@@ -1,7 +1,9 @@
+
 import * as React from 'react';
 import { useRef, useState } from 'react';
-import { Animated, Easing, Pressable } from 'react-native';
+import { Animated, Easing, Pressable, Animated as RAnimated } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+const AnimatedPath = RAnimated.createAnimatedComponent(Path);
 
 
 interface HearEmoteIconProps {
@@ -19,8 +21,37 @@ const HEART_PATH =
 const HearEmoteIcon: React.FC<HearEmoteIconProps> = ({ width = 36, height = 36, style, liked: likedProp, onLikeChange }) => {
   const [liked, setLiked] = useState(!!likedProp);
   const scale = useRef(new Animated.Value(1)).current;
+  const outlineAnim = useRef(new Animated.Value(0)).current;
+  const timeoutRef = useRef<any>(null);
+  // Approximate length of the heart path for strokeDasharray
+  const HEART_PATH_LENGTH = 64;
+
+  // Sync liked state with prop
+  React.useEffect(() => {
+    if (typeof likedProp === 'boolean') {
+      setLiked(likedProp);
+      if (likedProp) {
+        outlineAnim.setValue(0);
+      } else {
+        outlineAnim.setValue(0);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [likedProp]);
+
+  // Clean up timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const handlePress = () => {
+    // Prevent overlapping animations
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    scale.stopAnimation();
+    outlineAnim.stopAnimation();
+
     // Pop animation
     Animated.sequence([
       Animated.timing(scale, {
@@ -39,6 +70,21 @@ const HearEmoteIcon: React.FC<HearEmoteIconProps> = ({ width = 36, height = 36, 
     setLiked((prev) => {
       const next = !prev;
       if (onLikeChange) onLikeChange(next);
+      // Animate outline after fill
+      if (!prev) {
+        outlineAnim.setValue(HEART_PATH_LENGTH);
+        timeoutRef.current = setTimeout(() => {
+          Animated.timing(outlineAnim, {
+            toValue: 0,
+            duration: 350,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.ease),
+          }).start();
+        }, 120); // delay after fill
+      } else {
+        // If unliking, reset outline immediately
+        outlineAnim.setValue(0);
+      }
       return next;
     });
   };
@@ -47,13 +93,22 @@ const HearEmoteIcon: React.FC<HearEmoteIconProps> = ({ width = 36, height = 36, 
     <Pressable onPress={handlePress} style={style} accessibilityRole="button" accessibilityState={{ selected: liked }}>
       <Animated.View style={{ transform: [{ scale }] }}>
         <Svg width={width} height={height} viewBox="0 0 36 36" fill="none">
+          {/* Fill Path */}
           <Path
+            d={HEART_PATH}
+            stroke="none"
+            fill={liked ? 'url(#paint0_linear_276_2006)' : 'none'}
+          />
+          {/* Animated Outline */}
+          <AnimatedPath
             d={HEART_PATH}
             stroke="url(#paint0_linear_276_2006)"
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
-            fill={liked ? 'url(#paint0_linear_276_2006)' : 'none'}
+            fill="none"
+            strokeDasharray={HEART_PATH_LENGTH}
+            strokeDashoffset={outlineAnim}
           />
           <Defs>
             <LinearGradient id="paint0_linear_276_2006" x1="18" y1="4.5" x2="18" y2="31.5" gradientUnits="userSpaceOnUse">
