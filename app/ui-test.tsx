@@ -1,0 +1,67 @@
+import { useState } from 'react';
+import { Text, View } from 'react-native';
+import { AISparkles } from '../components/ui/AISparkles';
+import { Alert } from '../components/ui/Alert';
+import { Avatar } from '../components/ui/Avatar';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Checkbox } from '../components/ui/Checkbox';
+import { Input } from '../components/ui/Input';
+import { Label } from '../components/ui/Label';
+import { OptionsChip } from '../components/ui/OptionsChip';
+import { Separator } from '../components/ui/Separator';
+import { Textarea } from '../components/ui/Textarea';
+
+export default function UiTestPage() {
+  const [checked, setChecked] = useState(false);
+  return (
+    <View style={{ padding: 16, gap: 16 }}>
+      <Text style={{ fontSize: 24, fontWeight: 'bold' }}>UI Components Test</Text>
+      <Alert title="Alert Title" variant="success">This is an alert message.</Alert>
+      <AISparkles style={{ alignSelf: 'center' }} width={48} height={48} />
+      <OptionsChip icon={<AISparkles width={20} height={20} />}>
+        Default Chip
+      </OptionsChip>
+      <OptionsChip
+        icon={<AISparkles width={20} height={20} />}
+        backgroundColor="#F87171"
+        textColor="#fff"
+        iconColor="#fff"
+      >
+        Red Chip
+      </OptionsChip>
+      <OptionsChip
+        icon={<AISparkles width={20} height={20} />}
+        backgroundColor="#E5E7EB"
+        textColor="#134E3A"
+        iconColor="#134E3A"
+      >
+        Gray Chip
+      </OptionsChip>
+      <OptionsChip
+        icon={<AISparkles width={20} height={20} />}
+        backgroundColor="#fff"
+        textColor="#134E3A"
+        iconColor="#134E3A"
+        style={{ borderWidth: 1, borderColor: '#E5E7EB' }}
+      >
+        Outlined Chip
+      </OptionsChip>
+      <Avatar source={{ uri: 'https://placehold.co/64x64' }} size="md" />
+      <Badge>Default Badge</Badge>
+      <Badge variant="secondary">Secondary Badge</Badge>
+      <Button onPress={() => {}}>Default Button</Button>
+      <Button variant="outline" onPress={() => {}}>Outline Button</Button>
+      <Button variant="ghost" onPress={() => {}}>Ghost Button</Button>
+      <Card>
+        <Text>This is a card component.</Text>
+      </Card>
+      <Checkbox checked={checked} onChange={setChecked} label="Check me!" />
+      <Label>Label Example</Label>
+      <Input placeholder="Input field" />
+      <Textarea placeholder="Textarea field" />
+      <Separator />
+    </View>
+  );
+}
