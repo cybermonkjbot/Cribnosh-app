@@ -10,20 +10,21 @@ export interface OptionsChipProps extends ViewProps {
   iconColor?: string;
 }
 
+export const OptionsChip: React.FC<OptionsChipProps> = ({ icon, children, style, backgroundColor, textColor, iconColor, ...props }) => (
   <View
     className="flex-row items-center rounded-full px-4 py-1.5 min-h-[36px] self-start relative"
-    style={[{ backgroundColor: props.backgroundColor || '#E5E7EB' }, style]}
+    style={[{ backgroundColor: backgroundColor || '#E5E7EB' }, style]}
     {...props}
   >
     {icon ? (
       <View style={{ marginRight: children ? 8 : 0 }}>
-        {React.isValidElement(icon) && props.iconColor
-          ? React.cloneElement(icon as React.ReactElement<any>, { ...(icon.props || {}), color: props.iconColor })
+        {React.isValidElement(icon) && iconColor
+          ? React.cloneElement(icon as React.ReactElement<any>, { ...(icon.props || {}), color: iconColor })
           : icon}
       </View>
     ) : null}
     {children ? (
-      <Text className="font-semibold text-[16px]" style={{ color: props.textColor || '#134E3A', fontFamily: 'Poppins' }}>{children}</Text>
+      <Text className="font-semibold text-[16px]" style={{ color: textColor || '#134E3A', fontFamily: 'Poppins' }}>{children}</Text>
     ) : null}
   </View>
 );
