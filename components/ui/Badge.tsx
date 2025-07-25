@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import type { FC, ReactNode } from 'react';
-import { Platform, StyleSheet, Text, View, ViewProps } from 'react-native';
+import { Platform, Text, View, ViewProps } from 'react-native';
 import { cn } from './utils';
 
 export interface BadgeProps extends ViewProps {
@@ -19,16 +19,15 @@ export const Badge: FC<BadgeProps> = ({ variant = 'default', children, glass, el
   const hasGlass = !!glass;
   const hasElevation = !!elevated;
   const shadowClass = hasElevation && !hasGlass ? 'shadow-lg' : '';
-  const innerStyle = [glass ? { position: 'relative' as const } : undefined, style];
   return (
-    <View style={style}>
+    <View className={props.className}>
       {hasGlass ? (
         Platform.OS === 'ios' ? (
-          <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={18} tint="light" className="absolute inset-0" />
         ) : Platform.OS === 'android' ? (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)' }]} />
+          <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255,255,255,0.7)' }} />
         ) : (
-          <View style={[StyleSheet.absoluteFill, { backdropFilter: 'blur(6px)', backgroundColor: 'rgba(255,255,255,0.6)' }]} />
+          <View className="absolute inset-0" style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(255,255,255,0.6)' }} />
         )
       ) : null}
       <View
@@ -39,10 +38,10 @@ export const Badge: FC<BadgeProps> = ({ variant = 'default', children, glass, el
           shadowClass,
           props.className
         )}
-        style={innerStyle}
+        style={glass ? { position: 'relative' } : undefined}
       >
         {children !== undefined && children !== null ? (
-          <Text className={cn('text-xs font-semibold', variant === 'default' ? 'text-white' : 'text-gray-900')}>{children}</Text>
+          <Text className={cn('text-xs font-semibold', variant === 'default' ? 'text-white' : 'text-gray-900')} style={{ fontFamily: 'Poppins' }}>{children}</Text>
         ) : null}
       </View>
     </View>

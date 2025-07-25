@@ -136,7 +136,7 @@ This allows AI agents and design tools to reason about layout and state using se
 ## 🧪 Testing
 
 ```bash
-npm test
+bun test
 ```
 
 Tests use:
@@ -158,9 +158,9 @@ Tests use:
 
 ## 🤝 Contributing
 
-Contributions from humans and AI agents are welcome. Follow this structure:
+Follow this structure:
 
-1. Fork the repo
+1. clone the repo
 2. Create a feature branch
 3. Add your changes
 4. Describe your logic clearly (include intent comments)
@@ -181,7 +181,7 @@ Return structured steps and links to screens.
 
 ## 📄 License
 
-MIT License © 2025 \[Your Name or Org]
+Private Non Licensible © 2025 \ Cribnosh Technologies
 
 ---
 

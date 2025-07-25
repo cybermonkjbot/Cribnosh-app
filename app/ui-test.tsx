@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { ScrollView, Text } from 'react-native';
 import { AISparkles } from '../components/ui/AISparkles';
 import { Alert } from '../components/ui/Alert';
 import { Avatar } from '../components/ui/Avatar';
@@ -11,20 +11,28 @@ import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
 import { OptionsChip } from '../components/ui/OptionsChip';
 import { Separator } from '../components/ui/Separator';
+
+import SearchArea from '../components/SearchArea';
+import SearchBar from '../components/searchbar';
+import CartBar from '../components/ui/CartBar';
 import { Textarea } from '../components/ui/Textarea';
 
 export default function UiTestPage() {
   const [checked, setChecked] = useState(false);
   return (
-    <View style={{ padding: 16, gap: 16 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Text style={{ fontSize: 24, fontWeight: 'bold' }}>UI Components Test</Text>
       <Alert title="Alert Title" variant="success">This is an alert message.</Alert>
-      <AISparkles style={{ alignSelf: 'center' }} width={48} height={48} />
-      <OptionsChip icon={<AISparkles width={20} height={20} />}>
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>SearchArea Component:</Text>
+      <SearchArea />
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>SearchBar Component:</Text>
+      <SearchBar />
+      <AISparkles style={{ alignSelf: 'center' }} size={48} />
+      <OptionsChip icon={<AISparkles size={20} />}> 
         Default Chip
       </OptionsChip>
       <OptionsChip
-        icon={<AISparkles width={20} height={20} />}
+        icon={<AISparkles size={20} />}
         backgroundColor="#F87171"
         textColor="#fff"
         iconColor="#fff"
@@ -32,7 +40,7 @@ export default function UiTestPage() {
         Red Chip
       </OptionsChip>
       <OptionsChip
-        icon={<AISparkles width={20} height={20} />}
+        icon={<AISparkles size={20} />}
         backgroundColor="#E5E7EB"
         textColor="#134E3A"
         iconColor="#134E3A"
@@ -40,7 +48,7 @@ export default function UiTestPage() {
         Gray Chip
       </OptionsChip>
       <OptionsChip
-        icon={<AISparkles width={20} height={20} />}
+        icon={<AISparkles size={20} />}
         backgroundColor="#fff"
         textColor="#134E3A"
         iconColor="#134E3A"
@@ -51,6 +59,19 @@ export default function UiTestPage() {
       <Avatar source={{ uri: 'https://placehold.co/64x64' }} size="md" />
       <Badge>Default Badge</Badge>
       <Badge variant="secondary">Secondary Badge</Badge>
+      <CartBar count={2} label="Items in cart" />
+      <Button
+        onPress={() => {}}
+        backgroundColor="#FF3B30"
+        textColor="#FAFFFA"
+        borderRadius={20}
+        paddingVertical={15}
+        fontFamily="Poppins"
+        fontWeight={"600"}
+        style={{ alignSelf: 'stretch', justifyContent: 'center', alignItems: 'center', marginHorizontal: 0 }}
+      >
+        Confirm
+      </Button>
       <Button onPress={() => {}}>Default Button</Button>
       <Button variant="outline" onPress={() => {}}>Outline Button</Button>
       <Button variant="ghost" onPress={() => {}}>Ghost Button</Button>
@@ -62,6 +83,6 @@ export default function UiTestPage() {
       <Input placeholder="Input field" />
       <Textarea placeholder="Textarea field" />
       <Separator />
-    </View>
+    </ScrollView>
   );
 }

@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import type { FC, ReactNode } from 'react';
-import { Platform, StyleSheet, Text, View, ViewProps } from 'react-native';
+import { Platform, Text, View, ViewProps } from 'react-native';
 import { cn } from './utils';
 
 export interface AlertProps extends ViewProps {
@@ -22,16 +22,15 @@ export const Alert: FC<AlertProps> = ({ variant = 'default', title, children, gl
   const hasGlass = !!glass;
   const hasElevation = !!elevated;
   const shadowClass = hasElevation && !hasGlass ? 'shadow-lg' : '';
-  const innerStyle = [glass ? { position: 'relative' as const } : undefined, style];
   return (
-    <View style={style} {...props}>
+    <View className={props.className} style={style} {...props}>
       {hasGlass ? (
         Platform.OS === 'ios' ? (
-          <BlurView intensity={24} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={24} tint="light" className="absolute inset-0" />
         ) : Platform.OS === 'android' ? (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)' }]} />
+          <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255,255,255,0.7)' }} />
         ) : (
-          <View style={[StyleSheet.absoluteFill, { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255,255,255,0.6)' }]} />
+          <View className="absolute inset-0" style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255,255,255,0.6)' }} />
         )
       ) : null}
       <View
@@ -42,12 +41,12 @@ export const Alert: FC<AlertProps> = ({ variant = 'default', title, children, gl
           shadowClass,
           props.className
         )}
-        style={innerStyle}
+        style={glass ? { position: 'relative' } : undefined}
         accessibilityRole="alert"
       >
-        {title ? <Text className="font-semibold mb-2 text-lg font-[System]">{title}</Text> : null}
+        {title ? <Text className="font-semibold mb-2 text-lg" style={{ fontFamily: 'Poppins' }}>{title}</Text> : null}
         {children !== undefined && children !== null ? (
-          <Text className="text-base text-gray-700 font-[System]">{children}</Text>
+          <Text className="text-base text-gray-700" style={{ fontFamily: 'Poppins' }}>{children}</Text>
         ) : null}
       </View>
     </View>

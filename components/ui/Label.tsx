@@ -8,8 +8,9 @@ export interface LabelProps extends TextProps {
 
 export const Label: FC<LabelProps> = ({ children, ...props }) => (
   <Text
-    className={cn('text-base font-semibold text-gray-800 mb-1 font-[System]', props.className)}
+    className={cn('text-base font-semibold text-gray-800 mb-1', props.className)}
     accessibilityRole="text"
+    style={[{ fontFamily: 'Poppins' }, props.style]}
     {...props}
   >
     {children}

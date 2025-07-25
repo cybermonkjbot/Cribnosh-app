@@ -10,22 +10,9 @@ export interface OptionsChipProps extends ViewProps {
   iconColor?: string;
 }
 
-export const OptionsChip: React.FC<OptionsChipProps> = ({ icon, children, style, ...props }) => (
   <View
-    style={[ 
-      { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        borderRadius: 9999, 
-        paddingHorizontal: 16, 
-        paddingVertical: 6, 
-        backgroundColor: props.backgroundColor || '#E5E7EB', // default: gray-200 
-        minHeight: 36, 
-        alignSelf: 'flex-start', 
-        position: 'relative' as const, // ensure correct type for position
-      }, 
-      style, 
-    ]}
+    className="flex-row items-center rounded-full px-4 py-1.5 min-h-[36px] self-start relative"
+    style={[{ backgroundColor: props.backgroundColor || '#E5E7EB' }, style]}
     {...props}
   >
     {icon ? (
@@ -36,7 +23,7 @@ export const OptionsChip: React.FC<OptionsChipProps> = ({ icon, children, style,
       </View>
     ) : null}
     {children ? (
-      <Text style={{ color: props.textColor || '#134E3A', fontWeight: '600', fontSize: 16 }}>{children}</Text>
+      <Text className="font-semibold text-[16px]" style={{ color: props.textColor || '#134E3A', fontFamily: 'Poppins' }}>{children}</Text>
     ) : null}
   </View>
 );

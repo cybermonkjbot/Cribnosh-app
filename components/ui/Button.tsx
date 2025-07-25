@@ -11,6 +11,13 @@ export interface ButtonProps extends PressableProps {
   children: ReactNode;
   glass?: boolean;
   elevated?: boolean;
+  backgroundColor?: string;
+  textColor?: string;
+  borderRadius?: number;
+  paddingVertical?: number;
+  paddingHorizontal?: number;
+  fontFamily?: string;
+  fontWeight?: string | number;
 }
 
 const base = 'items-center justify-center rounded-xl min-h-[44px] min-w-[44px]';
@@ -38,6 +45,13 @@ export const Button: FC<ButtonProps> = ({
   glass,
   elevated,
   style,
+  backgroundColor,
+  textColor,
+  borderRadius,
+  paddingVertical,
+  paddingHorizontal,
+  fontFamily,
+  fontWeight,
   ...props
 }) => {
   const hasGlass = !!glass;
@@ -74,17 +88,41 @@ export const Button: FC<ButtonProps> = ({
           <View style={[StyleSheet.absoluteFill, { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255,255,255,0.6)' }]} />
         )
       ) : null}
-      <View className={cn(
-        base,
-        variants[variant],
-        sizes[size],
-        hasGlass && 'bg-white/60',
-        shadowClass,
-        disabled && 'opacity-40',
-        props.className
-      )} style={innerStyle as any}>
+      <View
+        className={cn(
+          base,
+          variants[variant],
+          sizes[size],
+          hasGlass && 'bg-white/60',
+          shadowClass,
+          disabled && 'opacity-40',
+          props.className
+        )}
+        style={[
+          innerStyle as any,
+          backgroundColor ? { backgroundColor } : {},
+          borderRadius !== undefined ? { borderRadius } : {},
+          paddingVertical !== undefined ? { paddingVertical } : {},
+          paddingHorizontal !== undefined ? { paddingHorizontal } : {},
+        ]}
+      >
         {children !== undefined && children !== null ? (
-          <Text className={cn(text[variant])}>{children}</Text>
+          <Text
+            className={cn(text[variant])}
+            style={[
+              textColor ? { color: textColor } : {},
+              fontFamily ? { fontFamily } : {},
+              fontWeight && [
+                'normal','bold','100','200','300','400','500','600','700','800','900',
+                'light','regular','ultralight','thin','medium','semibold','heavy','black'
+              ].includes(fontWeight.toString())
+                ? { fontWeight: fontWeight as any }
+                : {},
+              { fontSize: 18, lineHeight: 27, textAlign: 'center' },
+            ]}
+          >
+            {children}
+          </Text>
         ) : null}
       </View>
     </Animated.View>
