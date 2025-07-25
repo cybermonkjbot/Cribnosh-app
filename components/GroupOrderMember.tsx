@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Avatar } from './ui/Avatar';
+import MessageIcon from './ui/MessageIcon';
 
 interface GroupOrderMemberProps {
   name: string;
-  avatarUri: string;
+  avatarUri: string | { uri: string };
   showMessageIcon?: boolean;
   isPaying?: boolean;
   payingAmount?: number;
@@ -11,7 +13,49 @@ interface GroupOrderMemberProps {
   isContributing?: boolean;
   contributingAmount?: number;
   isCurrentUser?: boolean;
+  textColor?: string;
 }
+
+const styles = StyleSheet.create({
+  statusText: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  container: {
+    alignItems: 'center',
+    marginHorizontal: 8,
+    width: 70,
+  },
+  avatarWrapper: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    overflow: 'hidden',
+    backgroundColor: '#222',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  avatar: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+  },
+  messageIconWrapper: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    right: 0,
+    bottom: 0,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+});
 
 const GroupOrderMember: React.FC<GroupOrderMemberProps> = ({
   name,
@@ -23,91 +67,36 @@ const GroupOrderMember: React.FC<GroupOrderMemberProps> = ({
   isContributing = false,
   contributingAmount,
   isCurrentUser = false,
+  textColor = '#134E3A',
 }) => {
-  let statusText = '';
-  let statusColor = '#E6FFE8';
-
-  if (isCurrentUser) {
-    statusText = 'You';
-  } else if (isPaying && payingAmount) {
-    statusText = `Paying £${payingAmount}`;
-  } else if (isContributing && contributingAmount) {
-    statusText = `Contributing £${contributingAmount}`;
+  // Name and status logic for display
+  let displayName = isCurrentUser ? 'You' : name;
+  let status = '';
+  if (isPaying && payingAmount) {
+    status = `Paying £${payingAmount}`;
   } else if (isChoosingMeal) {
-    statusText = 'Choosing meal...';
-    statusColor = '#FFD700';
-  } else {
-    statusText = name;
+    status = 'Choosing meal';
+  } else if (isContributing && contributingAmount) {
+    status = `Contributing £${contributingAmount}`;
   }
+  let statusText = status ? `${displayName} (${status})` : displayName;
+  let statusColor = textColor;
 
   return (
     <View style={styles.container}>
-      <View style={styles.avatarWrapper}>
-        <Image source={{ uri: avatarUri }} style={styles.avatar} />
+      <View style={{ position: 'relative', width: 62, height: 62 }}>
+        <View style={styles.avatarWrapper}>
+          <Avatar source={typeof avatarUri === 'string' ? { uri: avatarUri } : avatarUri} style={styles.avatar} size="md" />
+        </View>
         {showMessageIcon && (
           <View style={styles.messageIconWrapper}>
-            <Image source={require('../../assets/images/Messages.png')} style={styles.messageIcon} />
+            <MessageIcon />
           </View>
         )}
       </View>
-      <Text style={[styles.statusText, { color: statusColor }]}> {statusText} </Text>
+      <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    width: 62,
-    alignItems: 'center',
-    marginHorizontal: 8,
-  },
-  avatarWrapper: {
-    position: 'absolute',
-    width: 62,
-    height: 62,
-    top: -1,
-    left: 0,
-    borderRadius: 10000,
-    overflow: 'hidden',
-    backgroundColor: '#222',
-  },
-  avatar: {
-    width: 62,
-    height: 62,
-    borderRadius: 10000,
-  },
-  messageIconWrapper: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    left: 43,
-    top: 44,
-    borderRadius: 4,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  messageIcon: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
-  },
-  statusText: {
-    position: 'absolute',
-    top: 67,
-    left: -8,
-    right: -8,
-    height: 26,
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '400',
-    fontSize: 11,
-    lineHeight: 13,
-    textAlign: 'center',
-    letterSpacing: 0.06,
-    color: '#E6FFE8',
-  },
-});
 
 export default GroupOrderMember;

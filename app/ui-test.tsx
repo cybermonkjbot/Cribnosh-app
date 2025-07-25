@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ScrollView, Text } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
+import GroupOrderMember from '../components/GroupOrderMember';
 import GroupTotalSpendCard from '../components/GroupTotalSpendCard';
 import { AISparkles } from '../components/ui/AISparkles';
 import { Alert } from '../components/ui/Alert';
@@ -24,6 +25,49 @@ export default function UiTestPage() {
   const [checked, setChecked] = useState(false);
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>GroupOrderMember Component Variants:</Text>
+      <Card style={{ padding: 24, backgroundColor: '#fff', borderRadius: 16 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 32 }}>
+          <GroupOrderMember
+            name="Sandy Wilder Cheng"
+            avatarUri={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
+            textColor="#134E3A"
+          />
+          <GroupOrderMember
+            name="Kevin Leong"
+            avatarUri={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }}
+            showMessageIcon={true}
+            isPaying={true}
+            payingAmount={50}
+            textColor="#134E3A"
+          />
+          <GroupOrderMember
+            name="Alex Kim"
+            avatarUri={{ uri: 'https://randomuser.me/api/portraits/men/45.jpg' }}
+            isCurrentUser={true}
+            isPaying={true}
+            payingAmount={25}
+            textColor="#134E3A"
+          />
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+          <GroupOrderMember
+            name="Greg Apodaca"
+            avatarUri={{ uri: 'https://randomuser.me/api/portraits/men/46.jpg' }}
+            showMessageIcon={true}
+            isChoosingMeal={true}
+            textColor="#134E3A"
+          />
+          <GroupOrderMember
+            name="Juliana Mejia"
+            avatarUri={{ uri: 'https://randomuser.me/api/portraits/women/47.jpg' }}
+            showMessageIcon={true}
+            isContributing={true}
+            contributingAmount={10}
+            textColor="#134E3A"
+          />
+        </View>
+      </Card>
       <GroupTotalSpendCard
         amount="£50"
         avatars={[
