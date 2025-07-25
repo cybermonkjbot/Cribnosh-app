@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
+import GroupTotalSpendCard from '../components/GroupTotalSpendCard';
 import { AISparkles } from '../components/ui/AISparkles';
 import { Alert } from '../components/ui/Alert';
 import { Avatar } from '../components/ui/Avatar';
@@ -15,6 +16,7 @@ import { Separator } from '../components/ui/Separator';
 
 import SearchArea from '../components/SearchArea';
 import SearchBar from '../components/searchbar';
+import SwipeButton from '../components/SwipeButton';
 import CartBar from '../components/ui/CartBar';
 import { Textarea } from '../components/ui/Textarea';
 
@@ -22,6 +24,15 @@ export default function UiTestPage() {
   const [checked, setChecked] = useState(false);
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <GroupTotalSpendCard
+        amount="£50"
+        avatars={[
+          { uri: 'https://randomuser.me/api/portraits/men/32.jpg' },
+          { uri: 'https://randomuser.me/api/portraits/women/44.jpg' },
+          { uri: 'https://randomuser.me/api/portraits/men/45.jpg' },
+        ]}
+        glow
+      />
       <Text style={{ fontSize: 24, fontWeight: 'bold' }}>UI Components Test</Text>
       <Alert title="Alert Title" variant="success">This is an alert message.</Alert>
       <Text style={{ fontWeight: 'bold', marginTop: 16 }}>SearchArea Component:</Text>
@@ -74,6 +85,9 @@ export default function UiTestPage() {
       >
         Confirm
       </Button>
+
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>SwipeButton Component (Swipe Up):</Text>
+      <SwipeButton onSwipeSuccess={() => alert('Swiped up!')} />
       <Button onPress={() => {}}>Default Button</Button>
       <Button variant="outline" onPress={() => {}}>Outline Button</Button>
       <Button variant="ghost" onPress={() => {}}>Ghost Button</Button>

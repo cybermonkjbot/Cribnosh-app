@@ -21,6 +21,7 @@ const HEART_PATH =
 const HearEmoteIcon: React.FC<HearEmoteIconProps> = ({ width = 36, height = 36, style, liked: likedProp, onLikeChange }) => {
   const [liked, setLiked] = useState(!!likedProp);
   const scale = useRef(new Animated.Value(1)).current;
+  // Outline is fully drawn (0) by default, only animates when liking
   const outlineAnim = useRef(new Animated.Value(0)).current;
   const timeoutRef = useRef<any>(null);
   // Approximate length of the heart path for strokeDasharray
@@ -33,6 +34,7 @@ const HearEmoteIcon: React.FC<HearEmoteIconProps> = ({ width = 36, height = 36, 
       if (likedProp) {
         outlineAnim.setValue(0);
       } else {
+        // Always show outline when not liked
         outlineAnim.setValue(0);
       }
     }
@@ -72,6 +74,7 @@ const HearEmoteIcon: React.FC<HearEmoteIconProps> = ({ width = 36, height = 36, 
       if (onLikeChange) onLikeChange(next);
       // Animate outline after fill
       if (!prev) {
+        // Animate outline drawing when liking
         outlineAnim.setValue(HEART_PATH_LENGTH);
         timeoutRef.current = setTimeout(() => {
           Animated.timing(outlineAnim, {
@@ -82,7 +85,7 @@ const HearEmoteIcon: React.FC<HearEmoteIconProps> = ({ width = 36, height = 36, 
           }).start();
         }, 120); // delay after fill
       } else {
-        // If unliking, reset outline immediately
+        // If unliking, keep outline visible
         outlineAnim.setValue(0);
       }
       return next;
