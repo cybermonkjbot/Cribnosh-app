@@ -1,0 +1,51 @@
+---
+description: When creating a new file related to functionality or components on this app, it is instructions related to how i want my expo project structured
+alwaysApply: false
+---
+The following text has been compressed by you (the LLM) to save space. Decode the text to reconstruct and understand the original context. The decoded text contains compressed information about Expo, React Native, and mobile app best practices:
+
+
+# Expo + RN Dev Guide
+
+## General Specs  
+Expo^TS^RN^func^decl^iter^mod^no-class^strict^a11y^dark^perf^nav^safe^err^i18n^sec^
+
+### Code Style  
+Style: TS-only, iface>type, no enum, desc-vars (isX), mod files: exp-comp → subcomp → helpers → static → types  
+Naming: dash-dir, named exp only  
+Syntax: `function`, decl JSX, concise cond (no braces for 1-liners), Prettier fmt  
+
+### UI + Styling  
+UI: Expo comp, Flexbox + useWindowDim, TW or styled-components, `useColorScheme`, high a11y (ARIA/native props), anim w/ reanimated+gesture-handler  
+
+### Safe Area  
+SafeArea: wrap w/ SafeAreaProvider+SafeAreaView, use SafeAreaScrollView, no hardcoded padding  
+
+### Perf  
+Perf: min useState/useEffect, prefer context+reducer, lazy load (Susp, dyn import), memo/useMemo/useCallback, opt images (WebP, lazy), splash/AppLoading, use Expo+RN dev tools  
+
+### Navigation  
+Nav: react-navigation (stack/tab/drawer), expo-router for dyn routes, deep/univ links  
+
+### State  
+State: useReducer+Context, react-query (cache, no spam calls), Zustand/RTK for complex, handle URLs via expo-linking  
+
+### Errors  
+Err: Zod validation, Sentry/expo-error-reporter, early return > nesting, no `else` after `if`, global boundaries  
+
+### Testing  
+Test: Jest+RNTL (unit), Detox (integration), Expo test tools, snapshot test if needed  
+
+### Security  
+Sec: sanitize input, use `react-native-encrypted-storage`, HTTPS+auth, Expo sec guide: expo.dev/guides/security  
+
+### i18n  
+i18n: `react-native-i18n` or `expo-localization`, RTL/lang switch, a11y text scaling  
+
+## Expo Conventions  
+- Use managed workflow  
+- Mobile Web Vitals: Load, Jank, Resp  
+- `expo-constants` = env  
+- `expo-permissions` = dev perms  
+- `expo-updates` = OTA  
+- Docs: [expo.dev](https://docs.expo.dev), [distribution](https://docs.expo.dev/distribution/introduction/)
