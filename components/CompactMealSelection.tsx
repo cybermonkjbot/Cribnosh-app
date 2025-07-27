@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import OrderItemCounterButton from './OrderItemCounterButton';
 
 interface CompactMealSelectionProps {
@@ -16,103 +16,25 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
   onChange,
 }) => {
   return (
-    <View style={styles.container}>
+    <View className="flex-row items-center bg-white rounded-2xl shadow-sm p-2 gap-2 w-full min-w-0 flex-1 self-stretch">
       {/* Image Section */}
-      <View style={styles.imageWrapper}>
-        <View style={styles.imageBg} />
-        <Image source={imageSource} style={styles.image} resizeMode="cover" />
+      <View className="w-[72px] h-[72px] justify-center items-center mr-2 relative overflow-hidden rounded-xl">
+        <View className="absolute w-full h-full bg-[#FAFAFA] border border-[#EAEAEA] rounded-xl z-10" />
+        <Image source={imageSource} className="w-full h-full" resizeMode="cover" style={{ position: 'absolute', top: 0, left: 0 }} />
       </View>
       {/* Info Section */}
-      <View style={styles.infoWrapper}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.price}>{price}</Text>
+      <View className="flex-1 justify-center ml-2 min-w-0">
+        <Text className="font-inter font-normal text-[16px] leading-6 text-black h-6" numberOfLines={1} ellipsizeMode="tail">{title}</Text>
+        <Text className="font-inter font-bold text-[16px] leading-6 text-black h-6 mt-1">{price}</Text>
       </View>
       {/* Counter Section */}
-      <View style={styles.counterWrapper}>
+      <View className="w-[79px] h-9 justify-center items-center ml-2">
         <OrderItemCounterButton onChange={onChange} />
       </View>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    width: 347,
-    height: 87,
-    left: 19,
-    top: 159,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  imageWrapper: {
-    position: 'absolute',
-    width: 80.82,
-    height: 77,
-    left: 6,
-    top: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageBg: {
-    position: 'absolute',
-    width: 80.82,
-    height: 77,
-    backgroundColor: '#FAFAFA',
-    borderColor: '#EAEAEA',
-    borderWidth: 1,
-    borderRadius: 15,
-  },
-  image: {
-    position: 'absolute',
-    width: 67,
-    height: 67,
-    left: 7,
-    top: 7,
-    borderRadius: 12,
-  },
-  infoWrapper: {
-    position: 'absolute',
-    left: 96,
-    top: 16,
-    width: 109,
-    height: 52,
-    justifyContent: 'flex-start',
-  },
-  title: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
-    fontWeight: '400',
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#000',
-    height: 24,
-  },
-  price: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
-    fontWeight: '700',
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#000',
-    height: 24,
-    marginTop: 4,
-  },
-  counterWrapper: {
-    position: 'absolute',
-    left: 257,
-    top: 16,
-    width: 79,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+
 
 export default CompactMealSelection;

@@ -35,7 +35,7 @@ export default function UiTestPage() {
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
       {/* CompactMealSelection Component Preview */}
       <Text style={{ fontWeight: 'bold', marginTop: 16 }}>CompactMealSelection Component Preview:</Text>
-      <View style={{ width: 347, height: 87, marginBottom: 24 }}>
+      <View style={{ marginBottom: 24, alignSelf: 'stretch', width: '100%' }}>
         <CompactMealSelection />
       </View>
       {/* LiveComments Component Preview */}
