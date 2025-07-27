@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import GroupOrderMember from '../components/GroupOrderMember';
 import GroupTotalSpendCard from '../components/GroupTotalSpendCard';
+import KitchenNameCard from '../components/KitchenNameCard';
 import { AISparkles } from '../components/ui/AISparkles';
 import { Alert } from '../components/ui/Alert';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
+import BigPackaging from '../components/ui/BigPackaging';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Checkbox } from '../components/ui/Checkbox';
@@ -14,6 +16,7 @@ import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
 import { OptionsChip } from '../components/ui/OptionsChip';
 import { Separator } from '../components/ui/Separator';
+import SvgHeading from '../components/ui/SvgHeading';
 
 import SearchArea from '../components/SearchArea';
 import SearchBar from '../components/searchbar';
@@ -25,6 +28,24 @@ export default function UiTestPage() {
   const [checked, setChecked] = useState(false);
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      {/* Heading matching the provided image */}
+      <SvgHeading
+        title={"Josh and friend's\nparty order"}
+        color="#E6FFE8"
+        strokeColor="#FF3B30"
+        strokeWidth={4}
+        fontFamily="Inter"
+        fontSize={30}
+        style={{ lineHeight: 34 }}
+        containerStyle={{ marginBottom: 24, alignSelf: 'flex-start', width: 330 }}
+      />
+      {/* KitchenNameCard preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>KitchenNameCard Component Preview:</Text>
+      <KitchenNameCard />
+
+      {/* BigPackaging component preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>BigPackaging Component Preview:</Text>
+      <BigPackaging />
       <Text style={{ fontWeight: 'bold', marginTop: 16 }}>GroupOrderMember Component Variants:</Text>
       <Card style={{ padding: 24, backgroundColor: '#fff', borderRadius: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 32 }}>
@@ -78,6 +99,8 @@ export default function UiTestPage() {
         glow
       />
       <Text style={{ fontSize: 24, fontWeight: 'bold' }}>UI Components Test</Text>
+      <SvgHeading title="Payment" fontSize={24} color="#E6FFE8" strokeColor="#FF3B30" strokeWidth={2} fontFamily="Inter" style={{ lineHeight: 28 }} containerStyle={{ marginBottom: 12, alignSelf: 'flex-start' }} />
+      {/* Example with custom colors and dark variant removed as requested */}
       <Alert title="Alert Title" variant="success">This is an alert message.</Alert>
       <Text style={{ fontWeight: 'bold', marginTop: 16 }}>SearchArea Component:</Text>
       <SearchArea />
