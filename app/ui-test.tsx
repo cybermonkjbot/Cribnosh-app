@@ -24,10 +24,104 @@ import SwipeButton from '../components/SwipeButton';
 import CartBar from '../components/ui/CartBar';
 import { Textarea } from '../components/ui/Textarea';
 
+import LoveThisButton from '../components/ui/LoveThisButton';
+
+import { Link as LinkIcon } from 'lucide-react-native';
+import ChipButton from '../components/ui/ChipButton';
+
+
+import LiveViewersIndicator from '../components/LiveViewersIndicator';
+import CancelButton from '../components/ui/CancelButton';
+
+import { CribnoshLiveHeader } from '../components/ui/CribnoshLiveHeader';
+import { CribnoshLiveIndicator } from '../components/ui/CribnoshLiveIndicator';
+import { LiveIndicator } from '../components/ui/LiveIndicator';
+import { ShareLiveRightIcon } from '../components/ui/ShareLiveRightIcon';
+
+import IncrementalOrderAmount from '../components/IncrementalOrderAmount';
+import OrderButton from '../components/OrderButton';
+import OrderItemCounterButton from '../components/OrderItemCounterButton';
+
 export default function UiTestPage() {
   const [checked, setChecked] = useState(false);
+  const [loved, setLoved] = useState(false);
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      {/* CribnoshLiveHeader Component Preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>CribnoshLiveHeader Component Preview:</Text>
+      <View style={{ marginBottom: 32, alignItems: 'center', width: '100%', backgroundColor: '#18181b', paddingVertical: 24, borderRadius: 16 }}>
+        <CribnoshLiveHeader
+          avatarSource={require('../assets/images/cribnoshpackaging.png')}
+          kitchenTitle="Minnies Kitchen"
+          viewers={301}
+          onCancel={() => alert('Cancel pressed!')}
+        />
+      </View>
+      {/* LiveIndicator Component Preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>LiveIndicator Component Preview:</Text>
+      <View style={{ flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center', position: 'relative', height: 40 }}>
+        <LiveIndicator />
+      </View>
+      {/* CribnoshLiveIndicator Component Preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>CribnoshLiveIndicator Component Preview:</Text>
+      <View style={{ flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center', position: 'relative', height: 40 }}>
+        <CribnoshLiveIndicator />
+      </View>
+      {/* LiveViewersIndicator Component Preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>LiveViewersIndicator Component Preview:</Text>
+      <View style={{ flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center', position: 'relative', height: 40 }}>
+        {/* With eye icon */}
+        <LiveViewersIndicator viewers={301} showEye style={{ position: 'relative', left: 0, top: 0 }} />
+        {/* Without eye icon */}
+        <LiveViewersIndicator viewers={301} style={{ position: 'relative', left: 0, top: 0 }} />
+      </View>
+      {/* Order Buttons & Counters Preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>Order Buttons & Counters Preview:</Text>
+      <View style={{ flexDirection: 'row', gap: 24, alignItems: 'center', marginBottom: 16 }}>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, marginBottom: 4 }}>OrderButton</Text>
+          <OrderButton onPress={() => alert('Order button pressed!')} />
+        </View>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, marginBottom: 4 }}>IncrementalOrderAmount</Text>
+          <IncrementalOrderAmount onChange={val => {}} />
+        </View>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, marginBottom: 4 }}>OrderItemCounterButton</Text>
+          <OrderItemCounterButton onChange={val => {}} />
+        </View>
+      </View>
+      {/* CancelButton Component Preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>CancelButton Component Preview:</Text>
+      <View style={{ flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center', justifyContent: 'flex-start' }}>
+        {/* Default dark green X */}
+        <CancelButton color="#094327" onPress={() => alert('Dark green X pressed!')} style={{ position: 'relative' }} />
+        {/* Subtle background variant */}
+        <CancelButton color="#094327" size={36} background="rgba(9,67,39,0.08)" onPress={() => alert('Subtle background pressed!')} style={{ position: 'relative' }} />
+      </View>
+      {/* ChipButton Component Preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>ChipButton Component Preview:</Text>
+      <View style={{ flexDirection: 'row', gap: 16, marginBottom: 16 }}>
+        <ChipButton
+          text="Share live"
+          icon={<ShareLiveRightIcon color="#E6FFE8" size={24} />}
+          backgroundColor="#094327"
+          textColor="#E6FFE8"
+          style={{ width: 137, height: 29 }}
+          textStyle={{ fontFamily: 'Lato', fontWeight: '700', fontSize: 15, lineHeight: 22, letterSpacing: 0.03 }}
+        />
+        <ChipButton
+          text="Treat Someone"
+          icon={<LinkIcon color="#094327" size={16} strokeWidth={1.33} />}
+          backgroundColor="rgba(0,0,0,0.3)"
+          textColor="#094327"
+          style={{ width: 157, height: 29 }}
+          textStyle={{ fontFamily: 'Lato', fontWeight: '700', fontSize: 15, lineHeight: 22, letterSpacing: 0.03 }}
+        />
+      </View>
+      {/* LoveThisButton preview */}
+      <Text style={{ fontWeight: 'bold', marginTop: 16 }}>LoveThisButton Component Preview:</Text>
+      <LoveThisButton liked={loved} onLikeChange={setLoved} style={{ position: 'relative', left: 0, top: 0, marginBottom: 16 }} />
       {/* Heading matching the provided image */}
       <SvgHeading
         title={"Josh and friend's\nparty order"}
