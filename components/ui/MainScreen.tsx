@@ -1,22 +1,26 @@
+import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, View } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AIChatDrawer } from './AIChatDrawer';
 import { BottomSearchDrawer } from './BottomSearchDrawer';
 import { CategoryFilterChips } from './CategoryFilterChips';
+import { CuisineCategoriesSection } from './CuisineCategoriesSection';
 import { CuisinesSection } from './CuisinesSection';
-import { useDebugLogger } from './DebugLogger';
 import { NoshHeavenErrorBoundary } from './ErrorBoundary';
 import { EventBanner } from './EventBanner';
+import { FeaturedKitchensSection } from './FeaturedKitchensSection';
 import { Header } from './Header';
 import { KitchensNearMe } from './KitchensNearMe';
+import { LiveContent } from './LiveContent';
 import { MultiStepLoader } from './MultiStepLoader';
 import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';
 import { OrderAgainSection } from './OrderAgainSection';
-import { PerformanceMonitor } from './PerformanceMonitor';
+import { usePerformanceOptimizations } from './PerformanceMonitor';
+import { PopularMealsSection } from './PopularMealsSection';
 import { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
+import { SpecialOffersSection } from './SpecialOffersSection';
 import { TakeAways } from './TakeAways';
 import { TooFreshToWaste } from './TooFreshToWaste';
 import { TopKebabs } from './TopKebabs';
@@ -80,9 +84,220 @@ const mockMealData: MealData[] = [
   },
 ];
 
+// Mock data for new sections
+const mockCuisines = [
+  {
+    id: '1',
+    name: 'Nigerian',
+    image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=400&fit=crop' },
+    restaurantCount: 24,
+    isActive: true,
+  },
+  {
+    id: '2',
+    name: 'Italian',
+    image: { uri: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=400&fit=crop' },
+    restaurantCount: 18,
+    isActive: false,
+  },
+  {
+    id: '3',
+    name: 'Chinese',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop' },
+    restaurantCount: 15,
+    isActive: false,
+  },
+  {
+    id: '4',
+    name: 'Indian',
+    image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=400&fit=crop' },
+    restaurantCount: 12,
+    isActive: false,
+  },
+];
+
+const mockKitchens = [
+  {
+    id: '1',
+    name: 'Amara\'s Kitchen',
+    cuisine: 'Nigerian',
+    rating: 4.8,
+    deliveryTime: '25 min',
+    distance: '0.8 mi',
+    image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop' },
+    isLive: true,
+    liveViewers: 156,
+  },
+  {
+    id: '2',
+    name: 'Bangkok Bites',
+    cuisine: 'Thai',
+    rating: 4.6,
+    deliveryTime: '30 min',
+    distance: '1.2 mi',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
+    isLive: false,
+  },
+  {
+    id: '3',
+    name: 'Marrakech Delights',
+    cuisine: 'Moroccan',
+    rating: 4.7,
+    deliveryTime: '35 min',
+    distance: '1.5 mi',
+    image: { uri: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop' },
+    isLive: true,
+    liveViewers: 89,
+  },
+  {
+    id: '4',
+    name: 'Seoul Street',
+    cuisine: 'Korean',
+    rating: 4.5,
+    deliveryTime: '28 min',
+    distance: '1.0 mi',
+    image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
+    isLive: false,
+  },
+  {
+    id: '5',
+    name: 'Nonna\'s Table',
+    cuisine: 'Italian',
+    rating: 4.9,
+    deliveryTime: '32 min',
+    distance: '1.3 mi',
+    image: { uri: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop' },
+    isLive: false,
+  },
+  {
+    id: '6',
+    name: 'Tokyo Dreams',
+    cuisine: 'Japanese',
+    rating: 4.4,
+    deliveryTime: '22 min',
+    distance: '0.6 mi',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
+    isLive: true,
+    liveViewers: 234,
+  },
+];
+
+const mockMeals = [
+  {
+    id: '1',
+    name: 'Jollof Rice',
+    kitchen: 'Amara\'s Kitchen',
+    price: '£12',
+    originalPrice: '£15',
+    image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop' },
+    isPopular: true,
+    rating: 4.8,
+    deliveryTime: '25 min',
+  },
+  {
+    id: '2',
+    name: 'Green Curry',
+    kitchen: 'Bangkok Bites',
+    price: '£14',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
+    isNew: true,
+    rating: 4.6,
+    deliveryTime: '30 min',
+  },
+  {
+    id: '3',
+    name: 'Lamb Tagine',
+    kitchen: 'Marrakech Delights',
+    price: '£18',
+    image: { uri: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop' },
+    isPopular: true,
+    rating: 4.7,
+    deliveryTime: '35 min',
+  },
+  {
+    id: '4',
+    name: 'Bulgogi Bowl',
+    kitchen: 'Seoul Street',
+    price: '£16',
+    image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
+    rating: 4.5,
+    deliveryTime: '28 min',
+  },
+  {
+    id: '5',
+    name: 'Truffle Risotto',
+    kitchen: 'Nonna\'s Table',
+    price: '£22',
+    image: { uri: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop' },
+    isPopular: true,
+    rating: 4.9,
+    deliveryTime: '32 min',
+  },
+  {
+    id: '6',
+    name: 'Sushi Platter',
+    kitchen: 'Tokyo Dreams',
+    price: '£25',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
+    isNew: true,
+    rating: 4.4,
+    deliveryTime: '22 min',
+  },
+  {
+    id: '7',
+    name: 'Pounded Yam',
+    kitchen: 'Amara\'s Kitchen',
+    price: '£10',
+    image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop' },
+    rating: 4.8,
+    deliveryTime: '25 min',
+  },
+  {
+    id: '8',
+    name: 'Pad Thai',
+    kitchen: 'Bangkok Bites',
+    price: '£13',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
+    rating: 4.6,
+    deliveryTime: '30 min',
+  },
+];
+
+const mockOffers = [
+  {
+    id: '1',
+    title: 'First Order Discount',
+    description: 'Get 20% off your first order from any kitchen',
+    discount: '20%',
+    image: { uri: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop' },
+    validUntil: 'Dec 31, 2024',
+    isLimited: true,
+    remainingTime: '2 days left',
+  },
+  {
+    id: '2',
+    title: 'Weekend Special',
+    description: 'Free delivery on orders over £25 this weekend',
+    discount: 'Free Delivery',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
+    validUntil: 'Dec 15, 2024',
+    remainingTime: '5 days left',
+  },
+  {
+    id: '3',
+    title: 'Lunch Rush',
+    description: '15% off all lunch orders between 12-2 PM',
+    discount: '15%',
+    image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
+    validUntil: 'Dec 20, 2024',
+    isLimited: true,
+    remainingTime: '1 day left',
+  },
+];
+
 export function MainScreen() {
-  const logger = useDebugLogger('MainScreen');
   const insets = useSafeAreaInsets();
+  const { activeHeaderTab, activeCategoryFilter, getFilteredContent } = useAppContext();
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,7 +305,6 @@ export function MainScreen() {
   const [refreshCount, setRefreshCount] = useState(0);
   const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>(mockMealData);
-  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(__DEV__);
   
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
@@ -99,50 +313,21 @@ export function MainScreen() {
   const contentFadeAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   
-  // Shared values for pull-to-Nosh-Heaven - simplified stable approach
-  const pullProgress = useSharedValue(0);
+  // Enhanced pull-to-refresh state management
   const [showPullTrigger, setShowPullTrigger] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
   const isScrolling = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Performance tracking
-  const renderCountRef = useRef(0);
-  const lastRenderTimeRef = useRef(Date.now());
-
-  // Log component mount
-  useEffect(() => {
-    logger.info('MainScreen mounted', { 
-      initialMealsCount: noshHeavenMeals.length,
-      isDev: __DEV__ 
-    });
-    
-    return () => {
-      logger.info('MainScreen unmounting');
-    };
-  }, []);
-
-  // Track render performance
-  useEffect(() => {
-    renderCountRef.current++;
-    const now = Date.now();
-    const timeSinceLastRender = now - lastRenderTimeRef.current;
-    lastRenderTimeRef.current = now;
-    
-    if (timeSinceLastRender > 16) { // 60fps threshold
-      logger.warn('Slow render detected', { 
-        renderCount: renderCountRef.current,
-        timeSinceLastRender 
-      });
-    }
-  });
+  const lastScrollPosition = useRef(0);
+  const pullStartY = useRef(0);
+  const pullThreshold = 60; // Further reduced threshold for immediate activation
+  const velocityThreshold = 300; // Further reduced velocity threshold for faster response
 
   // Cleanup effect to reset states and prevent crashes
   useEffect(() => {
-    logger.debug('Setting up cleanup effect');
-    
     return () => {
-      logger.debug('Running cleanup effect');
       // Comprehensive cleanup on unmount
       try {
         // Clear any pending timeouts
@@ -159,11 +344,6 @@ export function MainScreen() {
         setShowLoader(false);
         setRefreshing(false);
         
-        // Reset shared values safely
-        if (pullProgress && typeof pullProgress.value === 'number') {
-          pullProgress.value = 0;
-        }
-        
         // Stop any running animations
         scrollY.stopAnimation();
         stickyHeaderOpacity.stopAnimation();
@@ -173,30 +353,23 @@ export function MainScreen() {
         
         // Reset refs
         isScrolling.current = false;
-        
-        logger.info('Cleanup completed successfully');
+        lastScrollPosition.current = 0;
       } catch (error) {
-        logger.error('Cleanup error', error);
       }
     };
-  }, [pullProgress, scrollY, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, contentFadeAnim]);
+  }, [scrollY, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, contentFadeAnim]);
 
   // Reset states when Nosh Heaven closes
   useEffect(() => {
     if (!isNoshHeavenVisible) {
-      logger.debug('Nosh Heaven closed, resetting states');
       // Use requestAnimationFrame to batch updates and prevent conflicts
       requestAnimationFrame(() => {
         setShowPullTrigger(false);
         setHasTriggered(false);
-        
-        // Reset scroll-related shared values
-        if (pullProgress && typeof pullProgress.value === 'number') {
-          pullProgress.value = 0;
-        }
+        lastScrollPosition.current = 0;
       });
     }
-  }, [isNoshHeavenVisible, pullProgress]);
+  }, [isNoshHeavenVisible]);
 
   // Enhanced cleanup for scroll timeout
   useEffect(() => {
@@ -252,7 +425,6 @@ export function MainScreen() {
   };
 
   const simulateLoadingSteps = async () => {
-    logger.info('Starting loading simulation');
     setShowLoader(true);
     
     // Simulate the time it takes for the loader to complete all 3 steps
@@ -268,53 +440,113 @@ export function MainScreen() {
         duration: 500,
         useNativeDriver: true,
       }).start();
-      
-      logger.info('Loading simulation completed');
     }, 6000);
   };
 
   const onRefresh = useCallback(async () => {
-    logger.info('Refresh triggered');
+    console.log('Refresh triggered!');
+    
+    // Show loader immediately without any delays
+    setShowLoader(true);
     setRefreshing(true);
     
-    // Fade out current content
+    // Fade out current content immediately
     Animated.timing(contentFadeAnim, {
       toValue: 0.3,
-      duration: 200,
+      duration: 100, // Faster fade out
       useNativeDriver: true,
     }).start();
     
-    // Start the loading process
-    await simulateLoadingSteps();
-    setRefreshing(false);
+    // Simulate the loading process
+    setTimeout(() => {
+      setShowLoader(false);
+      setRefreshing(false);
+      
+      // Increment refresh count to show new content
+      setRefreshCount(prev => prev + 1);
+      
+      // Fade in the content
+      Animated.timing(contentFadeAnim, {
+        toValue: 1,
+        duration: 300, // Faster fade in
+        useNativeDriver: true,
+      }).start();
+    }, 3000); // 3 seconds for the full loading experience
+    
   }, [contentFadeAnim]);
 
-  const handleOpenAIChat = useCallback(() => {
-    logger.info('AI Chat opened');
+  const handleOpenAIChat = () => {
     setIsChatVisible(true);
-  }, []);
+  };
 
-  const handleCloseAIChat = useCallback(() => {
-    logger.info('AI Chat closed');
+  const handleCloseAIChat = () => {
     setIsChatVisible(false);
-  }, []);
+  };
 
-  // Simplified scroll handler with throttling and debugging
+  // Enhanced scroll handler with intentional pull detection
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     try {
-      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      const { contentOffset, contentSize, layoutMeasurement, velocity } = event.nativeEvent;
       
-      // Validate all values are numbers and positive
-      if (!Number.isFinite(contentOffset.y) || 
-          !Number.isFinite(contentSize.height) || 
-          !Number.isFinite(layoutMeasurement.height)) {
-        logger.warn('Invalid scroll values', { contentOffset, contentSize, layoutMeasurement });
-        return;
+      // Improved bottom detection with tolerance
+      const maxScrollPosition = Math.max(0, contentSize.height - layoutMeasurement.height);
+      const bottomTolerance = 10; // Allow 10px tolerance for bottom detection
+      const isAtBottom = contentOffset.y >= (maxScrollPosition - bottomTolerance);
+      const currentScrollPosition = contentOffset.y;
+      
+      // Detect intentional pull gesture with immediate feedback
+      const overscroll = Math.max(0, currentScrollPosition - maxScrollPosition);
+      const isSignificantPull = overscroll > pullThreshold;
+      const hasSignificantVelocity = Math.abs(velocity?.y || 0) > velocityThreshold;
+      const isIntentionalPull = isSignificantPull && hasSignificantVelocity;
+      
+      // Debug logging for scroll events (only when at bottom or overscrolling)
+      if (isAtBottom || overscroll > 0) {
+        console.log('Scroll event at bottom/overscroll:', { 
+          contentOffset: contentOffset.y, 
+          maxScrollPosition, 
+          isAtBottom, 
+          overscroll, 
+          showPullTrigger,
+          hasTriggered 
+        });
       }
       
-      if (contentSize.height <= 0 || layoutMeasurement.height <= 0) {
-        logger.warn('Invalid scroll dimensions', { contentSize, layoutMeasurement });
-        return;
+      // Simplified pull detection logic
+      if (isAtBottom) {
+        // We're at the bottom, check for pull gesture
+      if (overscroll > 0) {
+        setPullDistance(overscroll);
+        setIsPulling(true);
+        
+          // Show trigger immediately when any pull is detected
+          if (overscroll > 5 && !hasTriggered) {
+            console.log('Showing pull trigger - at bottom with overscroll', { overscroll });
+          setShowPullTrigger(true);
+        }
+          
+          // Trigger Nosh Heaven when pull is significant (with or without velocity)
+          if (overscroll > pullThreshold && !hasTriggered) {
+            console.log('Triggering Nosh Heaven!', { overscroll, pullThreshold });
+            setHasTriggered(true);
+            setShowPullTrigger(false);
+            handleNoshHeavenTrigger();
+          }
+      } else {
+          // No overscroll, reset states
+        setPullDistance(0);
+        setIsPulling(false);
+          if (showPullTrigger) {
+            console.log('Hiding pull trigger - no overscroll');
+        setShowPullTrigger(false);
+      }
+        }
+      } else {
+        // Not at bottom, reset all pull states
+        setPullDistance(0);
+        setIsPulling(false);
+        setShowPullTrigger(false);
+        setHasTriggered(false);
       }
       
       // Throttle scroll state management
@@ -325,49 +557,13 @@ export function MainScreen() {
       
       scrollTimeoutRef.current = setTimeout(() => {
         isScrolling.current = false;
-      }, 150);
-    
-      // Pull-to-Nosh-Heaven calculation
-      const maxScrollPosition = Math.max(0, contentSize.height - layoutMeasurement.height);
-      const overscroll = Math.max(0, contentOffset.y - maxScrollPosition);
-      const overscrollProgress = Math.min(1, overscroll / 200);
-      
-      // Update pull progress safely
-      if (Number.isFinite(overscrollProgress) && overscrollProgress >= 0) {
-        pullProgress.value = overscrollProgress;
-        
-        // Show trigger when at bottom
-        const shouldShowTrigger = contentOffset.y >= maxScrollPosition && !hasTriggered;
-        if (shouldShowTrigger !== showPullTrigger) {
-          setShowPullTrigger(shouldShowTrigger);
-          if (shouldShowTrigger) {
-            logger.debug('Pull trigger shown');
-          }
-        }
-        
-        // Reset trigger when away from bottom
-        if (overscrollProgress < 0.05 && showPullTrigger) {
-          setShowPullTrigger(false);
-          setHasTriggered(false);
-          logger.debug('Pull trigger hidden');
-        }
-        
-        // Trigger Nosh Heaven with deliberate pull
-        if (overscrollProgress >= 0.9 && !hasTriggered) {
-          setHasTriggered(true);
-          logger.info('Nosh Heaven trigger activated', { overscrollProgress });
-          setTimeout(() => {
-            handleNoshHeavenTrigger();
-          }, 0);
-        }
-      }
+      }, 50); // Much faster debounce for immediate feedback
       
       // Header sticky logic - lightweight calculation
       const shouldBeSticky = contentOffset.y > 100;
       
       if (shouldBeSticky !== isHeaderSticky) {
         setIsHeaderSticky(shouldBeSticky);
-        logger.debug('Header sticky state changed', { shouldBeSticky });
         
         // Animate header transitions
         if (shouldBeSticky) {
@@ -375,17 +571,17 @@ export function MainScreen() {
           Animated.parallel([
             Animated.timing(stickyHeaderOpacity, {
               toValue: 1,
-              duration: 300,
+              duration: 200, // Faster transition
               useNativeDriver: true,
             }),
             Animated.timing(normalHeaderOpacity, {
               toValue: 0,
-              duration: 200,
+              duration: 150, // Faster transition
               useNativeDriver: true,
             }),
             Animated.timing(categoryChipsOpacity, {
               toValue: 1,
-              duration: 400,
+              duration: 250, // Faster transition
               useNativeDriver: true,
             }),
           ]).start();
@@ -394,17 +590,17 @@ export function MainScreen() {
           Animated.parallel([
             Animated.timing(stickyHeaderOpacity, {
               toValue: 0,
-              duration: 200,
+              duration: 150, // Faster transition
               useNativeDriver: true,
             }),
             Animated.timing(normalHeaderOpacity, {
               toValue: 1,
-              duration: 300,
+              duration: 200, // Faster transition
               useNativeDriver: true,
             }),
             Animated.timing(categoryChipsOpacity, {
               toValue: 0,
-              duration: 200,
+              duration: 150, // Faster transition
               useNativeDriver: true,
             }),
           ]).start();
@@ -412,51 +608,41 @@ export function MainScreen() {
       }
     } catch (error) {
       // Complete fallback: reset everything to safe state
-      logger.error('Scroll handler error', error);
+      console.warn('Scroll handler error:', error);
       setShowPullTrigger(false);
       setHasTriggered(false);
-      pullProgress.value = 0;
+      setPullDistance(0);
+      setIsPulling(false);
     }
-  }, [isHeaderSticky, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, pullProgress, showPullTrigger, hasTriggered]);
+  }, [isHeaderSticky, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, hasTriggered, pullThreshold, velocityThreshold]);
 
-  // Handle Nosh Heaven trigger
+  // Handle Nosh Heaven trigger - immediate execution
   const handleNoshHeavenTrigger = useCallback(() => {
+    console.log('handleNoshHeavenTrigger called', { isNoshHeavenVisible });
     try {
-      logger.info('Nosh Heaven trigger called');
       // Validate state before making changes
       if (isNoshHeavenVisible) {
-        logger.warn('Nosh Heaven already visible, ignoring trigger');
+        console.log('Nosh Heaven already visible, not triggering again');
         return; // Already visible, don't trigger again
       }
       
-      // Batch all state updates together
-      requestAnimationFrame(() => {
+      console.log('Setting Nosh Heaven visible');
+      // Immediate state updates for faster response
         setIsNoshHeavenVisible(true);
         setShowPullTrigger(false);
         setHasTriggered(false);
-        
-        // Safely update shared value
-        if (pullProgress && typeof pullProgress.value === 'number') {
-          pullProgress.value = 0;
-        }
-        
-        logger.info('Nosh Heaven opened successfully');
-      });
     } catch (error) {
-      logger.error('Nosh Heaven trigger error', error);
-      // Reset to safe state with batched updates
-      requestAnimationFrame(() => {
+      console.warn('Nosh Heaven trigger error:', error);
+      // Reset to safe state immediately
         setIsNoshHeavenVisible(false);
         setShowPullTrigger(false);
         setHasTriggered(false);
-      });
     }
-  }, [isNoshHeavenVisible, pullProgress]);
+  }, [isNoshHeavenVisible]);
 
   // Handle Nosh Heaven close
   const handleNoshHeavenClose = useCallback(() => {
     try {
-      logger.info('Nosh Heaven close called');
       // Batch all state updates together
       requestAnimationFrame(() => {
         setIsNoshHeavenVisible(false);
@@ -466,11 +652,9 @@ export function MainScreen() {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({ y: 0, animated: true });
         }
-        
-        logger.info('Nosh Heaven closed successfully');
       });
     } catch (error) {
-      logger.error('Nosh Heaven close error', error);
+      console.warn('Nosh Heaven close error:', error);
       // Reset to safe state
       requestAnimationFrame(() => {
         setIsNoshHeavenVisible(false);
@@ -481,7 +665,6 @@ export function MainScreen() {
 
   // Load more meals for Nosh Heaven
   const handleLoadMoreMeals = useCallback(() => {
-    logger.info('Loading more meals');
     // In a real app, this would load from an API
     const moreMeals: MealData[] = [
       {
@@ -497,51 +680,83 @@ export function MainScreen() {
       },
     ];
     setNoshHeavenMeals(prev => [...prev, ...moreMeals]);
-    logger.info('More meals loaded', { newCount: moreMeals.length });
   }, []);
 
-  // Handle meal interactions with debugging
+  // Handle meal interactions
   const handleMealLike = useCallback((mealId: string) => {
-    logger.info('Meal liked', { mealId });
+    console.log('Liked meal:', mealId);
     // In a real app, this would update the backend
   }, []);
 
   const handleMealComment = useCallback((mealId: string) => {
-    logger.info('Meal comment', { mealId });
+    console.log('Comment on meal:', mealId);
     // In a real app, this would open a comment modal
   }, []);
 
   const handleMealShare = useCallback((mealId: string) => {
-    logger.info('Meal shared', { mealId });
+    console.log('Share meal:', mealId);
     // In a real app, this would open share sheet
   }, []);
 
   const handleAddToCart = useCallback((mealId: string) => {
-    logger.info('Meal added to cart', { mealId });
+    console.log('Add to cart:', mealId);
     // In a real app, this would add the meal to cart
   }, []);
 
   const handleKitchenPress = useCallback((kitchenName: string) => {
-    logger.info('Kitchen pressed', { kitchenName });
+    console.log('View kitchen:', kitchenName);
     // In a real app, this would navigate to kitchen profile
   }, []);
 
-  // Optimized pull trigger component with stable dependencies
-  const pullTriggerComponent = useMemo(() => {
-    if (!showPullTrigger) return null;
-    
-    return (
-      <PullToNoshHeavenTrigger
-        pullProgress={pullProgress}
-        onTrigger={handleNoshHeavenTrigger}
-        isVisible={true} // Always true when component is rendered
-      />
-    );
-  }, [showPullTrigger, pullProgress, handleNoshHeavenTrigger]);
+  // Handlers for new sections
+  const handleCuisinePress = useCallback((cuisine: any) => {
+    console.log('View cuisine:', cuisine.name);
+    // In a real app, this would navigate to cuisine category
+  }, []);
 
-  // Simplified Nosh Heaven player without performance config
+  const handleFeaturedKitchenPress = useCallback((kitchen: any) => {
+    console.log('View featured kitchen:', kitchen.name);
+    // In a real app, this would navigate to kitchen profile
+  }, []);
+
+  const handleMealPress = useCallback((meal: any) => {
+    console.log('View meal:', meal.name);
+    // In a real app, this would navigate to meal details
+  }, []);
+
+  const handleOfferPress = useCallback((offer: any) => {
+    console.log('View offer:', offer.title);
+    // In a real app, this would navigate to offer details
+  }, []);
+
+  // Simplified pull trigger component - render immediately
+  const pullTriggerComponent = showPullTrigger ? (
+      <PullToNoshHeavenTrigger
+        isVisible={true}
+        onTrigger={handleNoshHeavenTrigger}
+      />
+  ) : null;
+
+  // Performance monitoring integration
+  const { PerformanceMonitor, getPerformanceConfig } = usePerformanceOptimizations();
+  const performanceConfigRef = useRef(getPerformanceConfig());
+
+  // Update performance config periodically
+  useEffect(() => {
+    const updateConfig = () => {
+      performanceConfigRef.current = getPerformanceConfig();
+    };
+    
+    const interval = setInterval(updateConfig, 2000); // Update every 2 seconds
+    
+    return () => clearInterval(interval);
+  }, [getPerformanceConfig]);
+
+  // Performance-aware Nosh Heaven player with adaptive settings
   const noshHeavenPlayerComponent = useMemo(() => {
     if (!isNoshHeavenVisible || noshHeavenMeals.length === 0) return null;
+    
+    const config = performanceConfigRef.current;
     
     return (
       <NoshHeavenPlayer
@@ -568,26 +783,21 @@ export function MainScreen() {
     handleKitchenPress
   ]);
 
-  // Performance metrics handler
-  const handlePerformanceMetrics = useCallback((metrics: any) => {
-    logger.debug('Performance metrics updated', metrics);
-    
-    // Log performance issues
-    if (metrics.fps < 30) {
-      logger.warn('Low FPS detected', { fps: metrics.fps });
-    }
-    
-    if (metrics.renderTime > 16) {
-      logger.warn('Slow render detected', { renderTime: metrics.renderTime });
-    }
-    
-    if (metrics.scrollPerformance > 60) {
-      logger.warn('High scroll event rate', { scrollPerformance: metrics.scrollPerformance });
-    }
-  }, []);
-
   return (
     <View style={{ flex: 1 }}>
+      {/* Performance Monitor - tracks FPS and optimizes accordingly */}
+      <PerformanceMonitor 
+        isActive={isNoshHeavenVisible} // Only monitor during Nosh Heaven experience
+        sampleInterval={1000}
+      />
+      
+      {/* Multi-Step Loader - positioned at root level to appear above everything */}
+      <MultiStepLoader
+        loadingStates={loadingStates}
+        loading={showLoader}
+        duration={2000}
+        loop={false}
+      />
       
       <LinearGradient
         colors={['#f8e6f0', '#faf2e8']}
@@ -595,12 +805,6 @@ export function MainScreen() {
         end={{ x: 1, y: 1 }}
         style={{ flex: 1 }}
       >
-        {/* Performance Monitor */}
-        <PerformanceMonitor 
-          isVisible={showPerformanceMonitor}
-          onMetricsUpdate={handlePerformanceMetrics}
-        />
-
         {/* Sticky Header - always present but animated opacity */}
         <Animated.View style={{ 
           position: 'absolute', 
@@ -611,6 +815,18 @@ export function MainScreen() {
           opacity: stickyHeaderOpacity,
         }}>
           <Header isSticky={true} />
+        </Animated.View>
+
+        {/* Normal Header - positioned below sticky header */}
+        <Animated.View style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          zIndex: 999,
+          opacity: normalHeaderOpacity,
+        }}>
+          <Header isSticky={false} />
         </Animated.View>
 
         {/* Category Filter Chips - positioned right under sticky header */}
@@ -625,86 +841,106 @@ export function MainScreen() {
           <CategoryFilterChips />
         </Animated.View>
 
-        <ScrollView
-          ref={scrollViewRef}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ 
-            paddingBottom: 280, // Increased padding to account for bottom tabs, search drawer, and pull trigger
-            paddingTop: isHeaderSticky ? 142 : 0,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#FF3B30"
-              colors={['#FF3B30']}
-              progressBackgroundColor="rgba(255, 255, 255, 0.8)"
-            />
-          }
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { 
-              useNativeDriver: false,
-              listener: handleScroll,
+        {activeHeaderTab === 'for-you' ? (
+          <ScrollView
+            ref={scrollViewRef}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            alwaysBounceVertical={true}
+            contentContainerStyle={{ 
+              paddingBottom: 100, // Reduced padding to allow overscroll detection
+              paddingTop: isHeaderSticky ? 0 : 282, // When header is sticky (positioned absolutely), no padding needed. When not sticky (at rest), add padding for header height
+            }}
+            refreshControl={
+              // Only show RefreshControl when not at bottom to avoid conflict with pull-to-nosh-heaven
+              !showPullTrigger ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#FF3B30"
+                colors={['#FF3B30']}
+                progressBackgroundColor="rgba(255, 255, 255, 0.8)"
+                progressViewOffset={0}
+                title="Pull to refresh"
+                titleColor="#FF3B30"
+                />
+              ) : undefined
             }
-          )}
-          scrollEventThrottle={16}
-        >
-          {/* Normal Header - animated opacity */}
-          <Animated.View style={{ opacity: normalHeaderOpacity }}>
-            <Header isSticky={false} />
-          </Animated.View>
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { 
+                useNativeDriver: false,
+                listener: handleScroll,
+              }
+            )}
+            scrollEventThrottle={8}
+          >
+            {/* Main Content with fade animation */}
+            <Animated.View style={{ opacity: contentFadeAnim }}>
+              <OrderAgainSection />
+              <CuisinesSection />
+              <CuisineCategoriesSection cuisines={mockCuisines} onCuisinePress={handleCuisinePress} />
+              <FeaturedKitchensSection kitchens={mockKitchens} onKitchenPress={handleFeaturedKitchenPress} />
+              <PopularMealsSection meals={mockMeals} onMealPress={handleMealPress} />
+              <SpecialOffersSection offers={mockOffers} onOfferPress={handleOfferPress} />
+              <KitchensNearMe />
+              <TopKebabs />
+              <TakeAways />
+              <TooFreshToWaste />
+              <EventBanner />
+            </Animated.View>
+          </ScrollView>
+        ) : (
+          <LiveContent
+            scrollViewRef={scrollViewRef}
+            scrollY={scrollY}
+            isHeaderSticky={isHeaderSticky}
+            contentFadeAnim={contentFadeAnim}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { 
+                useNativeDriver: false,
+                listener: handleScroll,
+              }
+            )}
+          />
+        )}
 
-          {/* Main Content with fade animation */}
-          <Animated.View style={{ opacity: contentFadeAnim }}>
-            <OrderAgainSection />
-            <CuisinesSection />
-            <KitchensNearMe />
-            <TopKebabs />
-            <TakeAways />
-            <TooFreshToWaste />
-            <EventBanner />
-          </Animated.View>
-        </ScrollView>
-
-          {/* Pull to Nosh Heaven Trigger - positioned with extra spacing */}
+        {/* Pull to Nosh Heaven Trigger - positioned to avoid overlap */}
         {pullTriggerComponent && (
           <NoshHeavenErrorBoundary>
-          <View style={{ 
+            <View style={{
               position: 'absolute',
-              bottom: 120, // Position above tab bar with extra spacing
+              bottom: 140, // Increased spacing to avoid overlap with bottom tabs and search drawer
               left: 0,
               right: 0,
               alignItems: 'center',
               zIndex: 1000,
               paddingHorizontal: 20,
-          }}>
-            {pullTriggerComponent}
-          </View>
+            }}>
+              {pullTriggerComponent}
+            </View>
           </NoshHeavenErrorBoundary>
         )}
+        
+
 
         {/* AI Chat Drawer */}
-        <AIChatDrawer 
-          isVisible={isChatVisible} 
+        <AIChatDrawer
+          isVisible={isChatVisible}
           onClose={handleCloseAIChat}
         />
 
-        {/* Nosh Heaven Player - rendered at root level for true full-screen */}
-        {noshHeavenPlayerComponent && (
-          <NoshHeavenErrorBoundary>
-            {noshHeavenPlayerComponent}
-          </NoshHeavenErrorBoundary>
-        )}
-
-        {/* Multi-Step Loader */}
-      <MultiStepLoader
-        loadingStates={loadingStates}
-        loading={showLoader}
-        duration={2000}
-        loop={false}
-      />
       </LinearGradient>
+
+      {/* Nosh Heaven Player - rendered at root level for true full-screen above everything except tabs */}
+      {noshHeavenPlayerComponent && (
+        <NoshHeavenErrorBoundary>
+          {noshHeavenPlayerComponent}
+        </NoshHeavenErrorBoundary>
+      )}
 
       {/* Bottom Search Drawer */}
       <BottomSearchDrawer />

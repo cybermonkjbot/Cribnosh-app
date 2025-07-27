@@ -25,7 +25,7 @@ export function KitchenNameCard({
   description,
 }: KitchenNameCardProps) {
   // Edge case handling
-  const fallbackAvatar = { uri: 'https://randomuser.me/api/portraits/men/32.jpg' };
+  const fallbackAvatar = { uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' };
   let avatarSource: { uri: string } = fallbackAvatar;
   if (isValidUri(avatarUri)) {
     if (typeof avatarUri === 'string') {

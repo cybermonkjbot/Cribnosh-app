@@ -23,7 +23,7 @@ export function CribnoshLiveHeader({
       {/* Left side: Avatar, then text column */}
       <View className="flex-row items-start flex-1 min-w-0">
         <Avatar
-          source={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }}
+          source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' }}
           size="md"
           className="w-[64px] h-[64px] rounded-full bg-[#CEC9FF] mt-4"
         />

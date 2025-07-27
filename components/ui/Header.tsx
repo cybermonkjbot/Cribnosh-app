@@ -1,3 +1,5 @@
+import { useAppContext } from '@/utils/AppContext';
+import { getCompleteDynamicHeader } from '@/utils/dynamicHeaderMessages';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,17 +9,34 @@ import { Animated, Text, TouchableOpacity, View } from 'react-native';
 interface HeaderProps {
   userName?: string;
   isSticky?: boolean;
+  showSubtitle?: boolean;
 }
 
-export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
-  const [activeTab, setActiveTab] = useState<'for-you' | 'live'>('for-you');
+export function Header({ userName = "Joshua", isSticky = false, showSubtitle = false }: HeaderProps) {
+  const { activeHeaderTab, handleHeaderTabChange } = useAppContext();
+  const [dynamicMessage, setDynamicMessage] = useState(() => getCompleteDynamicHeader(userName, showSubtitle));
   
   // Animation values
-  const logoScale = useRef(new Animated.Value(isSticky ? 0.75 : 1)).current;
+  const logoScale = useRef(new Animated.Value(isSticky ? 0.95 : 1)).current;
   const greetingOpacity = useRef(new Animated.Value(isSticky ? 0 : 1)).current;
   const buttonsScale = useRef(new Animated.Value(isSticky ? 0.85 : 1)).current;
   const avatarScale = useRef(new Animated.Value(isSticky ? 0.73 : 1)).current;
   const containerPadding = useRef(new Animated.Value(isSticky ? 12 : 20)).current;
+
+  // Update dynamic message periodically
+  useEffect(() => {
+    const updateMessage = () => {
+      setDynamicMessage(getCompleteDynamicHeader(userName, showSubtitle));
+    };
+
+    // Update message every 5 minutes to keep it fresh
+    const interval = setInterval(updateMessage, 5 * 60 * 1000);
+    
+    // Also update when component mounts
+    updateMessage();
+
+    return () => clearInterval(interval);
+  }, [userName, showSubtitle]);
 
   useEffect(() => {
     const duration = 300;
@@ -29,7 +48,7 @@ export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
     if (isSticky) {
       // Animate to sticky state
       Animated.parallel([
-        Animated.timing(logoScale, { toValue: 0.75, ...config }),
+        Animated.timing(logoScale, { toValue: 0.95, ...config }),
         Animated.timing(greetingOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
         Animated.timing(buttonsScale, { toValue: 0.85, ...config }),
         Animated.timing(avatarScale, { toValue: 0.73, ...config }),
@@ -70,7 +89,8 @@ export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
         <View style={{ 
           flexDirection: 'row', 
           justifyContent: 'space-between', 
-          alignItems: 'center' 
+          alignItems: 'center',
+          gap: 0
         }}>
           {/* Compact Logo with Animation */}
           <Animated.View 
@@ -81,7 +101,7 @@ export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
             }}
           >
             <Text style={{ 
-              fontSize: 18, 
+              fontSize: 22, 
               fontWeight: 'bold', 
               color: '#16a34a',
               textShadowColor: 'rgba(255, 255, 255, 0.8)',
@@ -93,7 +113,7 @@ export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
               shadowRadius: 4,
             }}>Crib</Text>
             <Text style={{ 
-              fontSize: 18, 
+              fontSize: 22, 
               fontWeight: 'bold', 
               color: '#dc2626',
               textShadowColor: 'rgba(255, 255, 255, 0.8)',
@@ -106,72 +126,79 @@ export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
             }}>Nosh</Text>
           </Animated.View>
 
-          {/* Compact Toggle Buttons with Animation */}
-          <Animated.View 
-            style={{ 
-              flexDirection: 'row', 
-              gap: 8,
-              transform: [{ scale: buttonsScale }]
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => setActiveTab('for-you')}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: activeTab === 'for-you' ? '#111827' : 'rgba(255, 255, 255, 0.8)',
-                borderWidth: activeTab === 'for-you' ? 0 : 1,
-                borderColor: 'rgba(229, 231, 235, 0.5)'
+          {/* Right side: Tabs and Avatar grouped together */}
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center',
+            gap: 4
+          }}>
+            {/* Compact Toggle Buttons with Animation */}
+            <Animated.View 
+              style={{ 
+                flexDirection: 'row', 
+                gap: 8,
+                transform: [{ scale: buttonsScale }]
               }}
             >
-              <Text style={{
-                fontSize: 12,
-                fontWeight: '500',
-                color: activeTab === 'for-you' ? '#fff' : '#374151'
-              }}>
-                For you
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleHeaderTabChange('for-you')}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  backgroundColor: activeHeaderTab === 'for-you' ? '#111827' : 'rgba(255, 255, 255, 0.8)',
+                  borderWidth: activeHeaderTab === 'for-you' ? 0 : 1,
+                  borderColor: 'rgba(229, 231, 235, 0.5)'
+                }}
+              >
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '500',
+                  color: activeHeaderTab === 'for-you' ? '#fff' : '#374151'
+                }}>
+                  For you
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setActiveTab('live')}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: activeTab === 'live' ? '#111827' : 'rgba(255, 255, 255, 0.8)',
-                borderWidth: activeTab === 'live' ? 0 : 1,
-                borderColor: 'rgba(229, 231, 235, 0.5)'
+              <TouchableOpacity
+                onPress={() => handleHeaderTabChange('live')}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  backgroundColor: activeHeaderTab === 'live' ? '#111827' : 'rgba(255, 255, 255, 0.8)',
+                  borderWidth: activeHeaderTab === 'live' ? 0 : 1,
+                  borderColor: 'rgba(229, 231, 235, 0.5)'
+                }}
+              >
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '500',
+                  color: activeHeaderTab === 'live' ? '#fff' : '#374151'
+                }}>
+                  Live
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Compact Avatar with Animation */}
+            <Animated.View 
+              style={{ 
+                width: 32, 
+                height: 32, 
+                borderRadius: 16, 
+                backgroundColor: '#000', 
+                overflow: 'hidden',
+                transform: [{ scale: avatarScale }]
               }}
             >
-              <Text style={{
-                fontSize: 12,
-                fontWeight: '500',
-                color: activeTab === 'live' ? '#fff' : '#374151'
-              }}>
-                Live
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* Compact Avatar with Animation */}
-          <Animated.View 
-            style={{ 
-              width: 32, 
-              height: 32, 
-              borderRadius: 16, 
-              backgroundColor: '#000', 
-              overflow: 'hidden',
-              transform: [{ scale: avatarScale }]
-            }}
-          >
             <Image
-              source={{ uri: 'https://i.pravatar.cc/32?img=7' }}
+              source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=32&h=32&fit=crop&crop=face' }}
               style={{ width: 32, height: 32 }}
               contentFit="cover"
             />
           </Animated.View>
+          </View>
         </View>
       </BlurView>
     );
@@ -233,7 +260,7 @@ export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
           }}
         >
           <Image
-            source={{ uri: 'https://i.pravatar.cc/44?img=7' }}
+            source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=44&h=44&fit=crop&crop=face' }}
             style={{ width: 44, height: 44 }}
             contentFit="cover"
           />
@@ -242,10 +269,15 @@ export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
 
       {/* Greeting with Animation */}
       <Animated.View style={{ marginBottom: 20, opacity: greetingOpacity }}>
-        <Text style={{ fontSize: 16, color: '#6b7280', marginBottom: 4 }}>Hi, {userName}</Text>
+        <Text style={{ fontSize: 16, color: '#6b7280', marginBottom: 4 }}>{dynamicMessage.greeting}</Text>
         <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#000', lineHeight: 36 }}>
-          Welcome{'\n'}Back
+          {dynamicMessage.mainMessage}
         </Text>
+        {dynamicMessage.subMessage && (
+          <Text style={{ fontSize: 14, color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>
+            {dynamicMessage.subMessage}
+          </Text>
+        )}
       </Animated.View>
 
       {/* Toggle Buttons with Animation */}
@@ -257,40 +289,40 @@ export function Header({ userName = "Joshua", isSticky = false }: HeaderProps) {
         }}
       >
         <TouchableOpacity
-          onPress={() => setActiveTab('for-you')}
+          onPress={() => handleHeaderTabChange('for-you')}
           style={{
             paddingHorizontal: 20,
             paddingVertical: 8,
             borderRadius: 20,
-            backgroundColor: activeTab === 'for-you' ? '#111827' : '#fff',
-            borderWidth: activeTab === 'for-you' ? 0 : 1,
+            backgroundColor: activeHeaderTab === 'for-you' ? '#111827' : '#fff',
+            borderWidth: activeHeaderTab === 'for-you' ? 0 : 1,
             borderColor: '#e5e7eb'
           }}
         >
           <Text style={{
             fontSize: 14,
             fontWeight: '500',
-            color: activeTab === 'for-you' ? '#fff' : '#374151'
+            color: activeHeaderTab === 'for-you' ? '#fff' : '#374151'
           }}>
             For you
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => setActiveTab('live')}
+          onPress={() => handleHeaderTabChange('live')}
           style={{
             paddingHorizontal: 20,
             paddingVertical: 8,
             borderRadius: 20,
-            backgroundColor: activeTab === 'live' ? '#111827' : '#fff',
-            borderWidth: activeTab === 'live' ? 0 : 1,
+            backgroundColor: activeHeaderTab === 'live' ? '#111827' : '#fff',
+            borderWidth: activeHeaderTab === 'live' ? 0 : 1,
             borderColor: '#e5e7eb'
           }}
         >
           <Text style={{
             fontSize: 14,
             fontWeight: '500',
-            color: activeTab === 'live' ? '#fff' : '#374151'
+            color: activeHeaderTab === 'live' ? '#fff' : '#374151'
           }}>
             Live
           </Text>

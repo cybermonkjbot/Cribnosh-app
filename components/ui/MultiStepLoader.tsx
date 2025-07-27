@@ -2,9 +2,9 @@ import { BlurView } from 'expo-blur';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming
 } from 'react-native-reanimated';
 import { Mascot } from '../Mascot';
 
@@ -221,6 +221,7 @@ export const MultiStepLoader: React.FC<MultiStepLoaderProps> = ({
   }, [cleanup]);
 
   const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       opacity: opacity.value,
     };

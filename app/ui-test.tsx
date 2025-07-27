@@ -96,12 +96,12 @@ export default function UiTestPage() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 32 }}>
           <GroupOrderMember
             name="Sandy Wilder Cheng"
-            avatarUri={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
+            avatarUri={{ uri: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face' }}
             textColor="#134E3A"
           />
           <GroupOrderMember
             name="Kevin Leong"
-            avatarUri={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }}
+            avatarUri={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' }}
             showMessageIcon={true}
             isPaying={true}
             payingAmount={50}
@@ -109,7 +109,7 @@ export default function UiTestPage() {
           />
           <GroupOrderMember
             name="Alex Kim"
-            avatarUri={{ uri: 'https://randomuser.me/api/portraits/men/45.jpg' }}
+            avatarUri={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face' }}
             isCurrentUser={true}
             isPaying={true}
             payingAmount={25}
@@ -119,14 +119,14 @@ export default function UiTestPage() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
           <GroupOrderMember
             name="Greg Apodaca"
-            avatarUri={{ uri: 'https://randomuser.me/api/portraits/men/46.jpg' }}
+            avatarUri={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face' }}
             showMessageIcon={true}
             isChoosingMeal={true}
             textColor="#134E3A"
           />
           <GroupOrderMember
             name="Juliana Mejia"
-            avatarUri={{ uri: 'https://randomuser.me/api/portraits/women/47.jpg' }}
+            avatarUri={{ uri: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face' }}
             showMessageIcon={true}
             isContributing={true}
             contributingAmount={10}
@@ -137,9 +137,9 @@ export default function UiTestPage() {
       <GroupTotalSpendCard
         amount="£50"
         avatars={[
-          { uri: 'https://randomuser.me/api/portraits/men/32.jpg' },
-          { uri: 'https://randomuser.me/api/portraits/women/44.jpg' },
-          { uri: 'https://randomuser.me/api/portraits/men/45.jpg' },
+          { uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' },
+          { uri: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face' },
+          { uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face' },
         ]}
         glow
       />

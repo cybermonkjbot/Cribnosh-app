@@ -55,7 +55,7 @@ const SearchArea = React.forwardRef<TextInput, SearchAreaProps>(({
           ref={ref}
           style={styles.input}
           placeholder={placeholder}
-          placeholderTextColor={error ? '#FF6B6B' : '#C4C4C4'}
+          placeholderTextColor={error ? '#FF6B6B' : '#666666'}
           value={value}
           onChangeText={handleChange}
           editable={editable && !loading}
@@ -66,13 +66,13 @@ const SearchArea = React.forwardRef<TextInput, SearchAreaProps>(({
           accessibilityLabel="Search input"
         />
         {loading && (
-          <ActivityIndicator size="small" color="#fff" style={styles.loading} />
+          <ActivityIndicator size="small" color="#1a1a1a" style={styles.loading} />
         )}
       </View>
       <View style={styles.iconContainer}>
         <AISparkles 
           size={35} 
-          color="#E6FFE8" 
+          color="#ef4444" 
           onPress={onSparklesPress}
           enableShimmer={true}
           autoPlay={true}
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flex: 1,
     height: 42,
-    backgroundColor: '#134E3A',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 10,
     justifyContent: 'center',
     paddingLeft: 8,
@@ -105,6 +105,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   loading: {
     position: 'absolute',
@@ -124,10 +126,12 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 42,
     height: 42,
-    backgroundColor: '#134E3A',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   input: {
     flex: 1,
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22,
     letterSpacing: -0.43,
-    color: '#C4C4C4',
+    color: '#1a1a1a',
     backgroundColor: 'transparent',
     borderWidth: 0,
     paddingLeft: 8,

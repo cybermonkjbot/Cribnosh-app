@@ -1,263 +1,245 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { Dimensions, Platform } from 'react-native';
 
 interface PerformanceMetrics {
   fps: number;
+  frameDrops: number;
   memoryUsage: number;
-  renderTime: number;
-  scrollPerformance: number;
-  videoLoadTime: number;
-  animationFrameTime: number;
+  isLowPerformanceDevice: boolean;
+  adaptiveQuality: 'high' | 'medium' | 'low';
 }
 
 interface PerformanceMonitorProps {
-  isVisible?: boolean;
-  onMetricsUpdate?: (metrics: PerformanceMetrics) => void;
+  onMetricsUpdate: (metrics: PerformanceMetrics) => void;
+  onPerformanceIssue: (issue: string) => void;
+  isActive?: boolean;
+  sampleInterval?: number;
 }
 
-export function PerformanceMonitor({ 
-  isVisible = false, 
-  onMetricsUpdate 
-}: PerformanceMonitorProps) {
-  const insets = useSafeAreaInsets();
-  const [metrics, setMetrics] = useState<PerformanceMetrics>({
-    fps: 0,
-    memoryUsage: 0,
-    renderTime: 0,
-    scrollPerformance: 0,
-    videoLoadTime: 0,
-    animationFrameTime: 0,
-  });
-  
-  const [isExpanded, setIsExpanded] = useState(false);
-  const frameCountRef = useRef(0);
-  const lastTimeRef = useRef(Date.now());
-  const animationFrameRef = useRef<number | null>(null);
-  const renderStartTimeRef = useRef(0);
-  const scrollEventCountRef = useRef(0);
-  const lastScrollTimeRef = useRef(Date.now());
-  const videoLoadTimesRef = useRef<number[]>([]);
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-  // FPS calculation
-  const calculateFPS = () => {
-    const now = Date.now();
+// Device performance classification
+const getDevicePerformanceClass = (): 'high' | 'medium' | 'low' => {
+  const screenArea = SCREEN_WIDTH * SCREEN_HEIGHT;
+  const pixelDensity = screenArea / (SCREEN_WIDTH * SCREEN_HEIGHT);
+  
+  // Basic heuristics for device performance
+  if (Platform.OS === 'ios') {
+    // iOS devices generally have better performance
+    if (screenArea > 2000000) return 'high'; // iPhone 12 Pro and above
+    if (screenArea > 1500000) return 'medium'; // iPhone 11 and above
+    return 'low';
+  } else {
+    // Android performance varies widely
+    if (screenArea > 2500000) return 'high'; // High-end Android
+    if (screenArea > 1800000) return 'medium'; // Mid-range Android
+    return 'low';
+  }
+};
+
+export function PerformanceMonitor({
+  onMetricsUpdate,
+  onPerformanceIssue,
+  isActive = true,
+  sampleInterval = 1000, // 1 second
+}: PerformanceMonitorProps) {
+  const frameCountRef = useRef(0);
+  const lastFrameTimeRef = useRef(performance.now());
+  const frameDropsRef = useRef(0);
+  const metricsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const performanceClassRef = useRef(getDevicePerformanceClass());
+
+  // Frame counting function
+  const countFrame = useCallback(() => {
+    if (!isActive) return;
+
+    const now = performance.now();
+    const deltaTime = now - lastFrameTimeRef.current;
+    
     frameCountRef.current++;
     
-    if (now - lastTimeRef.current >= 1000) {
-      const fps = Math.round((frameCountRef.current * 1000) / (now - lastTimeRef.current));
-      frameCountRef.current = 0;
-      lastTimeRef.current = now;
+    // Detect frame drops (> 16.67ms for 60fps)
+    if (deltaTime > 20 && frameCountRef.current > 10) { // Allow initial frames to settle
+      frameDropsRef.current++;
       
-      setMetrics(prev => ({ ...prev, fps }));
+      // Report significant frame drops
+      if (deltaTime > 50) {
+        onPerformanceIssue(`Severe frame drop detected: ${deltaTime.toFixed(1)}ms`);
+      }
     }
     
-    animationFrameRef.current = requestAnimationFrame(calculateFPS);
-  };
-
-  // Memory usage estimation (simplified)
-  const estimateMemoryUsage = () => {
-    // This is a simplified estimation - in a real app you'd use performance.memory or similar
-    const estimatedMemory = Math.random() * 100 + 50; // Simulated memory usage
-    setMetrics(prev => ({ ...prev, memoryUsage: Math.round(estimatedMemory) }));
-  };
-
-  // Render time measurement
-  const measureRenderTime = () => {
-    const renderTime = Date.now() - renderStartTimeRef.current;
-    setMetrics(prev => ({ ...prev, renderTime }));
-  };
-
-  // Scroll performance measurement
-  const measureScrollPerformance = () => {
-    const now = Date.now();
-    scrollEventCountRef.current++;
+    lastFrameTimeRef.current = now;
     
-    if (now - lastScrollTimeRef.current >= 1000) {
-      const scrollPerformance = scrollEventCountRef.current;
-      scrollEventCountRef.current = 0;
-      lastScrollTimeRef.current = now;
-      
-      setMetrics(prev => ({ ...prev, scrollPerformance }));
-    }
-  };
+    // Continue counting frames
+    rafIdRef.current = requestAnimationFrame(countFrame);
+  }, [isActive, onPerformanceIssue]);
 
-  // Video load time measurement
-  const measureVideoLoadTime = (loadTime: number) => {
-    videoLoadTimesRef.current.push(loadTime);
-    if (videoLoadTimesRef.current.length > 10) {
-      videoLoadTimesRef.current.shift();
+  // Memory usage estimation (rough approximation)
+  const getMemoryUsage = useCallback((): number => {
+    if (Platform.OS === 'web' && 'memory' in performance) {
+      // @ts-ignore - performance.memory is available in Chrome
+      return performance.memory?.usedJSHeapSize || 0;
     }
     
-    const averageLoadTime = videoLoadTimesRef.current.reduce((a, b) => a + b, 0) / videoLoadTimesRef.current.length;
-    setMetrics(prev => ({ ...prev, videoLoadTime: Math.round(averageLoadTime) }));
-  };
+    // For native platforms, we can't directly measure memory
+    // Return a rough estimate based on component complexity
+    return 0;
+  }, []);
 
-  // Animation frame time measurement
-  const measureAnimationFrameTime = () => {
-    const startTime = Date.now();
-    requestAnimationFrame(() => {
-      const frameTime = Date.now() - startTime;
-      setMetrics(prev => ({ ...prev, animationFrameTime: Math.round(frameTime) }));
-    });
-  };
+  // Calculate adaptive quality based on performance
+  const getAdaptiveQuality = useCallback((fps: number, frameDrops: number): 'high' | 'medium' | 'low' => {
+    const performanceClass = performanceClassRef.current;
+    
+    // High performance: 55+ fps, minimal drops
+    if (fps >= 55 && frameDrops < 5 && performanceClass === 'high') {
+      return 'high';
+    }
+    
+    // Medium performance: 40+ fps, some drops acceptable
+    if (fps >= 40 && frameDrops < 15) {
+      return 'medium';
+    }
+    
+    // Low performance: anything below medium thresholds
+    return 'low';
+  }, []);
+
+  // Metrics calculation and reporting
+  const calculateMetrics = useCallback(() => {
+    if (!isActive) return;
+
+    const fps = frameCountRef.current;
+    const frameDrops = frameDropsRef.current;
+    const memoryUsage = getMemoryUsage();
+    const isLowPerformanceDevice = performanceClassRef.current === 'low';
+    const adaptiveQuality = getAdaptiveQuality(fps, frameDrops);
+
+    const metrics: PerformanceMetrics = {
+      fps,
+      frameDrops,
+      memoryUsage,
+      isLowPerformanceDevice,
+      adaptiveQuality,
+    };
+
+    onMetricsUpdate(metrics);
+
+    // Performance issue detection
+    if (fps < 30) {
+      onPerformanceIssue(`Low FPS detected: ${fps} fps`);
+    }
+    
+    if (frameDrops > 20) {
+      onPerformanceIssue(`High frame drop rate: ${frameDrops} drops in ${sampleInterval}ms`);
+    }
+
+    // Reset counters for next interval
+    frameCountRef.current = 0;
+    frameDropsRef.current = 0;
+  }, [isActive, sampleInterval, getMemoryUsage, getAdaptiveQuality, onMetricsUpdate, onPerformanceIssue]);
 
   // Start monitoring
   useEffect(() => {
-    if (isVisible) {
-      renderStartTimeRef.current = Date.now();
-      calculateFPS();
+    if (!isActive) return;
+
+    // Start frame counting
+    rafIdRef.current = requestAnimationFrame(countFrame);
+
+    // Start metrics calculation
+    metricsIntervalRef.current = setInterval(calculateMetrics, sampleInterval);
+
+    return () => {
+      // Cleanup
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
       
-      const interval = setInterval(() => {
-        estimateMemoryUsage();
-        measureAnimationFrameTime();
-        onMetricsUpdate?.(metrics);
-      }, 1000);
-      
-      return () => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-        clearInterval(interval);
-      };
-    }
-  }, [isVisible, onMetricsUpdate]);
+      if (metricsIntervalRef.current) {
+        clearInterval(metricsIntervalRef.current);
+        metricsIntervalRef.current = null;
+      }
+    };
+  }, [isActive, countFrame, calculateMetrics, sampleInterval]);
 
-  // Measure render time after each render
-  useEffect(() => {
-    if (isVisible) {
-      measureRenderTime();
-    }
-  });
-
-  // Expose measurement functions for external use
-  const performanceRef = useRef<{
-    measureScrollPerformance: () => void;
-    measureVideoLoadTime: (loadTime: number) => void;
-  }>({
-    measureScrollPerformance,
-    measureVideoLoadTime,
-  });
-
-  if (!isVisible) return null;
-
-  const getPerformanceColor = (value: number, threshold: number) => {
-    if (value <= threshold * 0.7) return '#4CAF50'; // Green - Good
-    if (value <= threshold) return '#FF9800'; // Orange - Warning
-    return '#F44336'; // Red - Poor
-  };
-
-  const getFPSColor = (fps: number) => getPerformanceColor(60 - fps, 20);
-  const getRenderTimeColor = (time: number) => getPerformanceColor(time, 16);
-  const getScrollPerformanceColor = (events: number) => getPerformanceColor(events, 60);
-
-  return (
-    <View style={[styles.container, { top: insets.top + 10 }]}>
-      <Pressable 
-        style={styles.header} 
-        onPress={() => setIsExpanded(!isExpanded)}
-      >
-        <Text style={styles.headerText}>
-          Performance Monitor {isExpanded ? '▼' : '▶'}
-        </Text>
-        <View style={[styles.fpsIndicator, { backgroundColor: getFPSColor(metrics.fps) }]}>
-          <Text style={styles.fpsText}>{metrics.fps}</Text>
-        </View>
-      </Pressable>
-      
-      {isExpanded && (
-        <View style={styles.metricsContainer}>
-          <View style={styles.metricRow}>
-            <Text style={styles.metricLabel}>FPS:</Text>
-            <Text style={[styles.metricValue, { color: getFPSColor(metrics.fps) }]}>
-              {metrics.fps}
-            </Text>
-          </View>
-          
-          <View style={styles.metricRow}>
-            <Text style={styles.metricLabel}>Memory:</Text>
-            <Text style={styles.metricValue}>{metrics.memoryUsage}MB</Text>
-          </View>
-          
-          <View style={styles.metricRow}>
-            <Text style={styles.metricLabel}>Render Time:</Text>
-            <Text style={[styles.metricValue, { color: getRenderTimeColor(metrics.renderTime) }]}>
-              {metrics.renderTime}ms
-            </Text>
-          </View>
-          
-          <View style={styles.metricRow}>
-            <Text style={styles.metricLabel}>Scroll Events:</Text>
-            <Text style={[styles.metricValue, { color: getScrollPerformanceColor(metrics.scrollPerformance) }]}>
-              {metrics.scrollPerformance}/s
-            </Text>
-          </View>
-          
-          <View style={styles.metricRow}>
-            <Text style={styles.metricLabel}>Video Load:</Text>
-            <Text style={styles.metricValue}>{metrics.videoLoadTime}ms</Text>
-          </View>
-          
-          <View style={styles.metricRow}>
-            <Text style={styles.metricLabel}>Frame Time:</Text>
-            <Text style={styles.metricValue}>{metrics.animationFrameTime}ms</Text>
-          </View>
-        </View>
-      )}
-    </View>
-  );
+  // Component doesn't render anything
+  return null;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    right: 10,
-    zIndex: 10000,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 8,
-    minWidth: 200,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 8,
-  },
-  headerText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  fpsIndicator: {
-    width: 30,
-    height: 20,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fpsText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  metricsContainer: {
-    padding: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  metricRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  metricLabel: {
-    color: '#CCCCCC',
-    fontSize: 10,
-  },
-  metricValue: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-}); 
+// Performance optimization hooks
+export function usePerformanceOptimizations() {
+  const performanceMetricsRef = useRef<PerformanceMetrics>({
+    fps: 60,
+    frameDrops: 0,
+    memoryUsage: 0,
+    isLowPerformanceDevice: false,
+    adaptiveQuality: 'high',
+  });
+
+  const handleMetricsUpdate = useCallback((metrics: PerformanceMetrics) => {
+    performanceMetricsRef.current = metrics;
+  }, []);
+
+  const handlePerformanceIssue = useCallback((issue: string) => {
+    console.warn('Performance Issue:', issue);
+    // Could integrate with analytics or crash reporting here
+  }, []);
+
+  // Get current performance recommendations
+  const getPerformanceConfig = useCallback(() => {
+    const metrics = performanceMetricsRef.current;
+    
+    return {
+      // Video player optimizations
+      maxPreloadedVideos: metrics.adaptiveQuality === 'high' ? 3 : metrics.adaptiveQuality === 'medium' ? 2 : 1,
+      videoQuality: metrics.adaptiveQuality,
+      
+      // Animation optimizations
+      useNativeDriver: metrics.fps > 45,
+      reducedMotion: metrics.fps < 30,
+      
+      // FlatList optimizations
+      windowSize: metrics.adaptiveQuality === 'high' ? 5 : 3,
+      maxToRenderPerBatch: metrics.adaptiveQuality === 'high' ? 3 : 1,
+      removeClippedSubviews: metrics.adaptiveQuality !== 'high',
+      
+      // Render optimizations
+      shouldOptimizeRenders: metrics.frameDrops > 10,
+      shouldReduceEffects: metrics.fps < 40,
+    };
+  }, []);
+
+  return {
+    PerformanceMonitor: (props: Omit<PerformanceMonitorProps, 'onMetricsUpdate' | 'onPerformanceIssue'>) => (
+      <PerformanceMonitor
+        {...props}
+        onMetricsUpdate={handleMetricsUpdate}
+        onPerformanceIssue={handlePerformanceIssue}
+      />
+    ),
+    getPerformanceConfig,
+    currentMetrics: performanceMetricsRef.current,
+  };
+}
+
+// Higher-order component for performance-aware components
+export function withPerformanceMonitoring<P extends object>(
+  Component: React.ComponentType<P>,
+  componentName: string
+) {
+  const PerformanceAwareComponent = (props: P) => {
+    const { PerformanceMonitor } = usePerformanceOptimizations();
+
+    return (
+      <>
+        <PerformanceMonitor isActive={true} />
+        <Component {...props} />
+      </>
+    );
+  };
+
+  PerformanceAwareComponent.displayName = `withPerformanceMonitoring(${componentName})`;
+  
+  return PerformanceAwareComponent;
+} 

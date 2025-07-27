@@ -41,7 +41,7 @@ export function TooFreshToWaste() {
         paddingHorizontal: 20 
       }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
-          Too Fresh to Waste
+          Eco Nosh
         </Text>
         <TouchableOpacity>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>

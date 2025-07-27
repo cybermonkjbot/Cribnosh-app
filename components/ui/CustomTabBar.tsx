@@ -107,6 +107,7 @@ const styles = StyleSheet.create({
     width: width,
     height: 95,
     backgroundColor: 'transparent',
+    zIndex: 999999, // Highest z-index to stay above the player
   },
   blurContainer: {
     flex: 1,

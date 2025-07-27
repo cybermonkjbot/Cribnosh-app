@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MealVideoCard } from './MealVideoCard';
+import { MealVideoCardSkeleton } from './MealVideoCardSkeleton';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -76,7 +77,7 @@ export function NoshHeavenPlayer({
       // For now, we'll simulate preloading by adding to the set after a short delay
       const timeoutId = setTimeout(() => {
         if (isMountedRef.current) {
-        setPreloadedVideos(prev => new Set([...prev, videoUrl]));
+          setPreloadedVideos(prev => new Set([...prev, videoUrl]));
         }
       }, 100);
       
@@ -144,7 +145,7 @@ export function NoshHeavenPlayer({
       swipeMessageOpacity.value = 1; // Reset opacity when player becomes visible
       hideTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current) {
-        swipeMessageOpacity.value = withTiming(0.3, { duration: 1000 });
+          swipeMessageOpacity.value = withTiming(0.3, { duration: 1000 });
         }
       }, 3000);
     } else {
@@ -177,7 +178,7 @@ export function NoshHeavenPlayer({
   // Handle close button press
   const handleClosePress = useCallback(() => {
     try {
-      if (isMountedRef.current && typeof onClose === 'function') {
+      if (typeof onClose === 'function') {
         onClose();
       }
     } catch (error) {
@@ -185,24 +186,82 @@ export function NoshHeavenPlayer({
     }
   }, [onClose]);
 
+  // Validate props
+  if (!Array.isArray(meals) || meals.length === 0) {
+    // Show skeleton loader when no meals are available
+    return (
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#000',
+        zIndex: 99999,
+        elevation: 99999,
+      }}>
+        <StatusBar hidden />
+        <MealVideoCardSkeleton isVisible={true} />
+        
+        {/* Close Button */}
+        <Pressable
+          onPress={handleClosePress}
+          style={{
+            position: 'absolute',
+            top: insets.top + 16,
+            left: 20,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          <X size={24} color="#fff" />
+        </Pressable>
+
+        {/* CribNosh Logo */}
+        <View style={{
+          position: 'absolute',
+          top: insets.top + 16,
+          right: 20,
+          zIndex: 10000,
+        }}>
+          <Text style={{
+            color: '#fff',
+            fontSize: 20,
+            fontWeight: 'bold',
+            textShadowColor: 'rgba(0, 0, 0, 0.75)',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 2,
+          }}>
+            CribNosh
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   // Handle scroll/swipe to next/previous video with optimized logic
   const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     try {
-      if (!isMountedRef.current || !viewableItems || viewableItems.length === 0 || !Array.isArray(meals)) return;
+      if (!isMountedRef.current || !viewableItems || viewableItems.length === 0) return;
       
-      const newIndex = viewableItems[0]?.index;
-      if (typeof newIndex === 'number' && newIndex >= 0 && newIndex !== currentIndex && newIndex < meals.length) {
+      const newIndex = viewableItems[0].index;
+      if (typeof newIndex === 'number' && newIndex >= 0 && newIndex !== currentIndex) {
         setCurrentIndex(newIndex);
         
         // Load more meals when approaching the end
-        if (newIndex >= meals.length - 2 && typeof onLoadMore === 'function' && isMountedRef.current) {
+        if (newIndex >= meals.length - 2 && typeof onLoadMore === 'function') {
           onLoadMore();
         }
       }
     } catch (error) {
       console.warn('Viewable items changed error:', error);
     }
-  }, [currentIndex, meals, onLoadMore]);
+  }, [currentIndex, meals.length, onLoadMore]);
 
   // Memoize viewability config for better performance
   const viewabilityConfig = useMemo(() => ({
@@ -214,17 +273,11 @@ export function NoshHeavenPlayer({
   // Optimized render function with minimal dependencies
   const renderMealItem = useCallback(({ item, index }: { item: MealData; index: number }) => {
     try {
-      if (!item || typeof index !== 'number' || !isMountedRef.current || !Array.isArray(meals)) {
+      if (!item || typeof index !== 'number' || !isMountedRef.current) {
         return null;
       }
       
-      // Validate item properties to prevent crashes
-      if (!item.id || !item.videoSource || !item.title || !item.kitchenName || !item.price) {
-        console.warn('Invalid meal item:', item);
-        return null;
-      }
-      
-      const isPreloaded = preloadedVideos && preloadedVideos.has(item.videoSource);
+      const isPreloaded = preloadedVideos.has(item.videoSource);
       const isCurrentItem = index === currentIndex;
       
       return (
@@ -232,146 +285,105 @@ export function NoshHeavenPlayer({
           key={item.id}
           videoSource={item.videoSource}
           title={item.title}
-          description={item.description || ''}
+          description={item.description}
           kitchenName={item.kitchenName}
           price={item.price}
-          chef={item.chef || ''}
-          likes={typeof item.likes === 'number' ? item.likes : 0}
-          comments={typeof item.comments === 'number' ? item.comments : 0}
+          chef={item.chef}
+          likes={item.likes}
+          comments={item.comments}
           isVisible={isCurrentItem}
-          isPreloaded={!!isPreloaded}
-          onLike={() => {
-            try {
-              if (isMountedRef.current && typeof onMealLike === 'function') {
-                onMealLike(item.id);
-              }
-            } catch (error) {
-              console.warn('Like callback error:', error);
-            }
-          }}
-          onComment={() => {
-            try {
-              if (isMountedRef.current && typeof onMealComment === 'function') {
-                onMealComment(item.id);
-              }
-            } catch (error) {
-              console.warn('Comment callback error:', error);
-            }
-          }}
-          onShare={() => {
-            try {
-              if (isMountedRef.current && typeof onMealShare === 'function') {
-                onMealShare(item.id);
-              }
-            } catch (error) {
-              console.warn('Share callback error:', error);
-            }
-          }}
-          onAddToCart={() => {
-            try {
-              if (isMountedRef.current && typeof onAddToCart === 'function') {
-                onAddToCart(item.id);
-              }
-            } catch (error) {
-              console.warn('Add to cart callback error:', error);
-            }
-          }}
-          onKitchenPress={() => {
-            try {
-              if (isMountedRef.current && typeof onKitchenPress === 'function') {
-                onKitchenPress(item.kitchenName);
-              }
-            } catch (error) {
-              console.warn('Kitchen press callback error:', error);
-            }
-          }}
+          isPreloaded={isPreloaded}
+          onLike={() => onMealLike?.(item.id)}
+          onComment={() => onMealComment?.(item.id)}
+          onShare={() => onMealShare?.(item.id)}
+          onAddToCart={() => onAddToCart?.(item.id)}
+          onKitchenPress={() => onKitchenPress?.(item.kitchenName)}
         />
       );
     } catch (error) {
       console.warn('Render meal item error:', error);
       return null;
     }
-  }, [currentIndex, preloadedVideos, onMealLike, onMealComment, onMealShare, onAddToCart, onKitchenPress, meals]);
+  }, [currentIndex, preloadedVideos, onMealLike, onMealComment, onMealShare, onAddToCart, onKitchenPress]);
 
-  // Validate props and state before rendering
-  if (!isVisible || !Array.isArray(meals) || meals.length === 0 || !isMountedRef.current) {
-    return null;
-  }
+  if (!isVisible) return null;
 
   return (
     <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: '#000',
-      zIndex: 99999,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: '#000',
+      zIndex: 99999, // Very high z-index to appear above everything except bottom tabs
+      elevation: 99999, // Android elevation
     }}>
       <StatusBar hidden />
-
+      
       {/* Optimized FlatList with performance configurations */}
-        <FlatList
-          ref={flatListRef}
-          data={meals}
-          renderItem={renderMealItem}
-          keyExtractor={keyExtractor}
+      <FlatList
+        ref={flatListRef}
+        data={meals}
+        renderItem={renderMealItem}
+        keyExtractor={keyExtractor}
         getItemLayout={getItemLayout}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
-          pagingEnabled
-          showsVerticalScrollIndicator={false}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
         decelerationRate="fast"
-          snapToInterval={SCREEN_HEIGHT}
-          snapToAlignment="start"
+        snapToInterval={SCREEN_HEIGHT}
+        snapToAlignment="start"
         disableIntervalMomentum
         // Performance optimizations
-          removeClippedSubviews={true}
+        removeClippedSubviews={true}
         maxToRenderPerBatch={2}
         windowSize={3}
         initialNumToRender={1}
         updateCellsBatchingPeriod={50}
         // Reduce re-renders
         extraData={currentIndex}
-        />
+        style={{ flex: 1 }}
+      />
 
       {/* Close Button */}
-        <Pressable
-          onPress={handleClosePress}
-          style={{
-            position: 'absolute',
+      <Pressable
+        onPress={handleClosePress}
+        style={{
+          position: 'absolute',
           top: insets.top + 16,
           left: 20,
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           alignItems: 'center',
-            justifyContent: 'center',
-          zIndex: 1000,
-          }}
-        >
+          justifyContent: 'center',
+          zIndex: 10000, // Above the video content
+        }}
+      >
         <X size={24} color="#fff" />
-        </Pressable>
+      </Pressable>
 
       {/* CribNosh Logo */}
-        <View style={{
-          position: 'absolute',
+      <View style={{
+        position: 'absolute',
         top: insets.top + 16,
         right: 20,
-        zIndex: 1000,
-        }}>
-          <Text style={{
+        zIndex: 10000, // Above the video content
+      }}>
+        <Text style={{
           color: '#fff',
-            fontSize: 20,
-            fontWeight: 'bold',
-            textShadowColor: 'rgba(0, 0, 0, 0.75)',
-            textShadowOffset: { width: 0, height: 1 },
+          fontSize: 20,
+          fontWeight: 'bold',
+          textShadowColor: 'rgba(0, 0, 0, 0.75)',
+          textShadowOffset: { width: 0, height: 1 },
           textShadowRadius: 2,
-          }}>
-            CribNosh
-          </Text>
-        </View>
+        }}>
+          CribNosh
+        </Text>
+      </View>
 
       {/* Auto-hiding swipe down message */}
       <Animated.View
@@ -382,7 +394,7 @@ export function NoshHeavenPlayer({
             left: 0,
             right: 0,
             alignItems: 'center',
-            zIndex: 1000,
+            zIndex: 10000, // Above the video content
           },
           swipeMessageStyle,
         ]}
@@ -392,16 +404,16 @@ export function NoshHeavenPlayer({
           fontSize: 16,
           textAlign: 'center',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 20,
-              textShadowColor: 'rgba(0, 0, 0, 0.75)',
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 2,
-            }}>
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          borderRadius: 20,
+          textShadowColor: 'rgba(0, 0, 0, 0.75)',
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 2,
+        }}>
           Swipe down to exit
-            </Text>
-        </Animated.View>
+        </Text>
+      </Animated.View>
     </View>
   );
 } 

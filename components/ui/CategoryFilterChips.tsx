@@ -1,10 +1,11 @@
+import { CategoryFilter, useAppContext } from '@/utils/AppContext';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import React, { useState } from 'react';
+import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 interface CategoryChip {
-  id: string;
+  id: CategoryFilter;
   label: string;
   color: string;
 }
@@ -23,12 +24,12 @@ const categories: CategoryChip[] = [
 ];
 
 export function CategoryFilterChips() {
-  const [activeCategory, setActiveCategory] = useState('all');
+  const { activeCategoryFilter, handleCategoryFilterChange } = useAppContext();
 
-  const handleCategoryPress = (categoryId: string) => {
+  const handleCategoryPress = (categoryId: CategoryFilter) => {
     // Add subtle haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveCategory(categoryId);
+    handleCategoryFilterChange(categoryId);
   };
 
   return (
@@ -46,7 +47,7 @@ export function CategoryFilterChips() {
         }}
       >
         {categories.map((category) => {
-          const isActive = activeCategory === category.id;
+          const isActive = activeCategoryFilter === category.id;
           
           return (
             <TouchableOpacity

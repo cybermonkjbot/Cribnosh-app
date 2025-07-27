@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
-  useAnimatedGestureHandler,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring
+    runOnJS,
+    useAnimatedGestureHandler,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -459,6 +459,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
 
   // Animated style for the drawer
   const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [{ translateX: translateX.value }],
       opacity: opacity.value,

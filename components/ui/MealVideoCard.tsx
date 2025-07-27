@@ -2,14 +2,16 @@ import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AlertCircle, MessageCircle, Play, Share2, ShoppingCart, UserRound } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, Pressable, Text, View } from 'react-native';
+import { Dimensions, Pressable, Text, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withTiming
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withTiming
 } from 'react-native-reanimated';
+import { useDebugLogger } from './DebugLogger';
 import HearEmoteIcon from './HearEmoteIcon';
+import { MealVideoCardSkeleton } from './MealVideoCardSkeleton';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -48,12 +50,32 @@ export function MealVideoCard({
   likes = 0,
   comments = 0,
 }: MealVideoCardProps) {
+  const logger = useDebugLogger('MealVideoCard');
   const videoRef = useRef<Video>(null);
   const [isLoading, setIsLoading] = useState(!isPreloaded);
   const [hasError, setHasError] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(isPreloaded);
   const loadingOpacity = useSharedValue(isPreloaded ? 0 : 1);
   const errorOpacity = useSharedValue(0);
+
+  // Performance tracking
+  const loadStartTimeRef = useRef<number>(0);
+  const renderCountRef = useRef(0);
+  const lastRenderTimeRef = useRef(Date.now());
+
+  // Log component mount
+  useEffect(() => {
+    logger.info('MealVideoCard mounted', { 
+      videoSource, 
+      title, 
+      isPreloaded,
+      isVisible 
+    });
+    
+    return () => {
+      logger.info('MealVideoCard unmounting', { title });
+    };
+  }, []);
 
   // Use derived values to avoid reading shared values during render
   const loadingOpacityDerived = useDerivedValue(() => {
@@ -66,6 +88,7 @@ export function MealVideoCard({
 
   // Validate required props
   if (!videoSource || !title || !kitchenName || !price) {
+    logger.error('Invalid props provided', { videoSource, title, kitchenName, price });
     return null;
   }
 
@@ -73,20 +96,29 @@ export function MealVideoCard({
   useEffect(() => {
     try {
       if (isVisible && isVideoReady) {
+        logger.debug('Starting video playback', { title });
         videoRef.current?.playAsync();
       } else {
+        logger.debug('Pausing video playback', { title, isVisible, isVideoReady });
         videoRef.current?.pauseAsync();
       }
     } catch (error) {
-      console.warn('Video playback control error:', error);
+      logger.error('Video playback control error', { title, error });
     }
   }, [isVisible, isVideoReady]);
 
   // Reset states when video source changes
   useEffect(() => {
+    logger.info('Video source changed', { 
+      videoSource, 
+      title, 
+      isPreloaded 
+    });
+    
     setIsLoading(!isPreloaded);
     setHasError(false);
     setIsVideoReady(isPreloaded);
+    
     // Use runOnJS to update shared values safely
     if (isPreloaded) {
       loadingOpacity.value = 0;
@@ -99,21 +131,33 @@ export function MealVideoCard({
 
   const handleLike = () => {
     try {
+      logger.info('Like button pressed', { title });
       if (typeof onLike === 'function') {
         onLike();
       }
     } catch (error) {
-      console.warn('Like button error:', error);
+      logger.error('Like button error', { title, error });
     }
   };
 
   const handleVideoLoad = () => {
+    const loadTime = Date.now() - loadStartTimeRef.current;
+    logger.info('Video loaded successfully', { title, loadTime });
+    
     setIsLoading(false);
     setIsVideoReady(true);
     loadingOpacity.value = withTiming(0, { duration: 300 });
+    
+    // Log performance issues
+    if (loadTime > 3000) {
+      logger.warn('Slow video load', { title, loadTime });
+    }
   };
 
   const handleVideoError = () => {
+    const loadTime = Date.now() - loadStartTimeRef.current;
+    logger.error('Video load error', { title, loadTime });
+    
     setIsLoading(false);
     setHasError(true);
     loadingOpacity.value = withTiming(0, { duration: 300 });
@@ -121,16 +165,22 @@ export function MealVideoCard({
   };
 
   const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      if (status.isPlaying && isLoading) {
-        handleVideoLoad();
+    try {
+      if (status.isLoaded) {
+        if (status.isPlaying && isLoading) {
+          handleVideoLoad();
+        }
+      } else if (status.error) {
+        logger.error('Playback status error', { title, error: status.error });
+        handleVideoError();
       }
-    } else if (status.error) {
-      handleVideoError();
+    } catch (error) {
+      logger.error('Playback status update error', { title, error });
     }
   };
 
   const retryVideo = () => {
+    logger.info('Retrying video', { title });
     setHasError(false);
     setIsLoading(true);
     setIsVideoReady(false);
@@ -141,13 +191,35 @@ export function MealVideoCard({
     videoRef.current?.loadAsync({ uri: videoSource }, {}, false);
   };
 
-  const loadingStyle = useAnimatedStyle(() => ({
-    opacity: loadingOpacityDerived.value,
-  }));
+  const loadingStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: loadingOpacityDerived.value,
+    };
+  });
 
-  const errorStyle = useAnimatedStyle(() => ({
-    opacity: errorOpacityDerived.value,
-  }));
+  const errorStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: errorOpacityDerived.value,
+    };
+  });
+
+  // Start load timer when component mounts or video source changes
+  useEffect(() => {
+    if (!isPreloaded) {
+      loadStartTimeRef.current = Date.now();
+      logger.debug('Starting video load timer', { title });
+    }
+  }, [videoSource, isPreloaded]);
+
+  logger.debug('MealVideoCard rendering', { 
+    title, 
+    isVisible, 
+    isLoading, 
+    hasError, 
+    isVideoReady 
+  });
 
   return (
     <View style={{
@@ -185,22 +257,11 @@ export function MealVideoCard({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: '#000',
-          justifyContent: 'center',
-          alignItems: 'center',
           zIndex: 10,
         },
         loadingStyle
       ]}>
-        <ActivityIndicator size="large" color="#FF3B30" />
-        <Text style={{
-          color: '#FFFFFF',
-          fontSize: 16,
-          marginTop: 16,
-          textAlign: 'center',
-        }}>
-          Loading video...
-        </Text>
+        <MealVideoCardSkeleton isVisible={isLoading} />
       </Animated.View>
 
       {/* Error Overlay */}

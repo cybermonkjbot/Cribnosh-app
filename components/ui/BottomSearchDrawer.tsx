@@ -303,6 +303,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
 
   // Main container style - positioned at bottom with dynamic height
   const containerStyle = useAnimatedStyle(() => {
+    'worklet';
     const finalHeight = Math.max(SNAP_POINTS.COLLAPSED, drawerHeight.value);
     
     return {
@@ -310,23 +311,64 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
     };
   });
 
-  // Backdrop with proper opacity and interaction blocking
-  const backdropStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
+  // Background color style - always white with red stain
+  const backgroundColorStyle = useAnimatedStyle(() => {
+    'worklet';
+    const progress = interpolate(
       drawerHeight.value,
-      [SNAP_POINTS.COLLAPSED, SNAP_POINTS.COLLAPSED + 50, SNAP_POINTS.EXPANDED],
-      [0, 0.1, 0.5],
+      [SNAP_POINTS.COLLAPSED, SNAP_POINTS.EXPANDED],
+      [0, 1],
       Extrapolate.CLAMP
     );
+    
+    // More transparent white background for stronger blur effect
+    const alpha = interpolate(progress, [0, 1], [0.7, 0.8], Extrapolate.CLAMP);
+    
+    return {
+      backgroundColor: `rgba(255, 255, 255, ${alpha})`,
+    };
+  });
+
+  // Dynamic blur intensity style
+  const blurIntensityStyle = useAnimatedStyle(() => {
+    'worklet';
+    const isDragging = gestureState.value === 'dragging';
+    const isSettling = gestureState.value === 'settling';
+    
+    // Higher blur when dragging or settling, lower when at rest
+    const blurIntensity = isDragging || isSettling ? 80 : 40;
+    
+    return {
+      // We'll use this to conditionally render different blur intensities
+      opacity: 1,
+    };
+  });
+
+  // Backdrop with proper opacity and interaction blocking
+  const backdropStyle = useAnimatedStyle(() => {
+    'worklet';
+    // Only show backdrop when drawer is significantly expanded or search is focused
+    const isExpanded = drawerHeight.value > SNAP_POINTS.COLLAPSED + 50;
+    const shouldShowBackdrop = isExpanded || isSearchFocused;
+    
+    const opacity = shouldShowBackdrop 
+      ? interpolate(
+          drawerHeight.value,
+          [SNAP_POINTS.COLLAPSED + 50, SNAP_POINTS.EXPANDED],
+          [0.1, 0.3],
+          Extrapolate.CLAMP
+        )
+      : 0;
 
     return {
       opacity,
-      pointerEvents: opacity > 0.05 ? 'auto' : 'none',
+      pointerEvents: shouldShowBackdrop ? 'auto' : 'none',
     };
   });
 
   // Content opacity for smooth reveal
   const contentOpacityStyle = useAnimatedStyle(() => {
+    'worklet';
     const opacity = interpolate(
       drawerHeight.value,
       [SNAP_POINTS.COLLAPSED, SNAP_POINTS.COLLAPSED + 30, SNAP_POINTS.EXPANDED],
@@ -339,6 +381,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
 
   // Search input scale for micro-interaction
   const searchInputStyle = useAnimatedStyle(() => {
+    'worklet';
     const scale = interpolate(
       drawerHeight.value,
       [SNAP_POINTS.COLLAPSED, SNAP_POINTS.EXPANDED],
@@ -353,6 +396,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
 
   // Search area interaction style
   const searchInteractionStyle = useAnimatedStyle(() => {
+    'worklet';
     const isCollapsed = drawerHeight.value <= SNAP_POINTS.COLLAPSED + 20;
     
     return {
@@ -362,6 +406,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
 
   // Collapsed search input style (for resting state)
   const collapsedSearchStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       // Only show when collapsed and not in search focus
       opacity: (drawerHeight.value <= SNAP_POINTS.COLLAPSED + 20 && !isSearchFocused) ? 1 : 0,
@@ -372,6 +417,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
 
   // Expanded search input pointer events style
   const expandedSearchPointerStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       // Disable pointer events on SearchArea when collapsed
       pointerEvents: currentSnapPoint.value === SNAP_POINTS.COLLAPSED ? 'none' : 'auto',
@@ -380,6 +426,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
 
   // Handle visual feedback
   const handleStyle = useAnimatedStyle(() => {
+    'worklet';
     const isDragging = gestureState.value === 'dragging';
     
     const width = interpolate(
@@ -391,9 +438,22 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
     
     const opacity = isDragging ? 0.8 : 1;
 
+    // Handle color transition from Cribnosh red stain to current color
+    const progress = interpolate(
+      drawerHeight.value,
+      [SNAP_POINTS.COLLAPSED, SNAP_POINTS.EXPANDED],
+      [0, 1],
+      Extrapolate.CLAMP
+    );
+    
+    const red = interpolate(progress, [0, 1], [239, 74], Extrapolate.CLAMP);
+    const green = interpolate(progress, [0, 1], [68, 93], Extrapolate.CLAMP);
+    const blue = interpolate(progress, [0, 1], [68, 79], Extrapolate.CLAMP);
+
     return {
       width,
       opacity,
+      backgroundColor: `rgb(${red}, ${green}, ${blue})`,
     };
   });
 
@@ -453,27 +513,30 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
 
   return (
     <>
-      {/* Backdrop */}
-      <Animated.View 
-        style={[
-          backdropStyle,
-          {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 1)',
-            opacity: isSearchFocused ? 0.8 : undefined, // Stronger backdrop when searching
-          }
-        ]}
-      >
-        <TouchableOpacity 
-          style={{ flex: 1 }}
-          onPress={handleBackdropPress}
-          activeOpacity={1}
-        />
-      </Animated.View>
+      {/* Backdrop - Only show when expanded or search focused */}
+      {isSearchFocused || drawerHeight.value > SNAP_POINTS.COLLAPSED + 50 ? (
+        <Animated.View 
+          style={[
+            backdropStyle,
+            {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 1)',
+              opacity: isSearchFocused ? 0.8 : undefined, // Stronger backdrop when searching
+            }
+          ]}
+          pointerEvents={isSearchFocused ? 'auto' : 'none'}
+        >
+          <TouchableOpacity 
+            style={{ flex: 1 }}
+            onPress={handleBackdropPress}
+            activeOpacity={1}
+          />
+        </Animated.View>
+      ) : null}
 
       {/* Main Drawer - Always positioned at bottom */}
       <PanGestureHandler onGestureEvent={gestureHandler}>
@@ -493,30 +556,78 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
               shadowRadius: 16,
               elevation: 20,
               overflow: 'hidden', // Ensure content doesn't spill out
+              zIndex: 9999, // Lower than NoshHeavenPlayer (99999) but above other content
             }
           ]}
         >
-          <BlurView
-            intensity={70}
-            tint="dark"
-            style={{
-              flex: 1,
-              backgroundColor: 'rgba(30, 58, 43, 0.85)', // Semi-transparent dark green
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.1)',
-              borderBottomWidth: 0,
-            }}
+          <Animated.View
+            style={[
+              {
+                flex: 1,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderBottomWidth: 0,
+                position: 'relative',
+              },
+              backgroundColorStyle
+            ]}
           >
+            {/* Dynamic Blur Overlay */}
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  overflow: 'hidden',
+                }
+              ]}
+            >
+              <BlurView
+                intensity={gestureState.value === 'dragging' || gestureState.value === 'settling' ? 120 : 80}
+                tint="light"
+                style={{
+                  flex: 1,
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                }}
+              />
+            </Animated.View>
+            {/* Red stain overlay - always present but varies in intensity */}
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)', // Cribnosh red stain
+                  opacity: interpolate(
+                    drawerHeight.value,
+                    [SNAP_POINTS.COLLAPSED, SNAP_POINTS.EXPANDED],
+                    [0.7, 0.4],
+                    Extrapolate.CLAMP
+                  ),
+                }
+              ]}
+            />
           {/* Handle Area - Hide when search is focused */}
           {!isSearchFocused && (
-          <TouchableOpacity 
+                      <TouchableOpacity 
             onPress={handleTap}
             style={{ 
               alignItems: 'center',
               paddingVertical: 16,
-              paddingHorizontal: 20,
+              paddingHorizontal: 12,
               minHeight: 48, // Better touch target
             }}
             activeOpacity={0.8}
@@ -526,7 +637,6 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                 handleStyle,
                 { 
                   height: 4,
-                  backgroundColor: '#4a5d4f',
                   borderRadius: 2,
                 }
               ]} 
@@ -537,7 +647,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
           {/* Content Area - Always visible when drawer has height */}
           <ScrollView 
             style={{ 
-            paddingHorizontal: 20, 
+            paddingHorizontal: 12, 
               flex: 1,
             }}
             contentContainerStyle={{
@@ -550,7 +660,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
             {isSearchFocused ? (
               <>
                 {/* Focused Search Input */}
-                <View style={{ marginTop: 20, marginBottom: 20 }}>
+                <View style={{ marginTop: 16, marginBottom: 16 }}>
                   <SearchArea 
                     ref={searchInputRef}
                     value={searchQuery}
@@ -568,7 +678,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                 {/* Search Suggestions */}
                 <View style={{ flex: 1 }}>
                   <Text style={{ 
-                    color: '#a3b3a8', 
+                    color: '#4a4a4a', 
                     fontSize: 14,
                     fontWeight: '600',
                     marginBottom: 16,
@@ -584,8 +694,8 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
-                        paddingVertical: 16,
-                        paddingHorizontal: 16,
+                        paddingVertical: 14,
+                        paddingHorizontal: 12,
                         backgroundColor: searchQuery.trim() ? '#1e3a2b' : '#2a4d35',
                         borderRadius: 12,
                         marginBottom: 8,
@@ -623,7 +733,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{
-                          color: '#ffffff',
+                          color: '#1a1a1a',
                           fontSize: 16,
                           fontWeight: '600',
                           marginBottom: 2,
@@ -635,7 +745,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                           )}
                         </Text>
                         <Text style={{
-                          color: '#a3b3a8',
+                          color: '#4a4a4a',
                           fontSize: 13,
                           fontWeight: '400',
                         }}>
@@ -704,30 +814,30 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                 </Animated.View>
 
                 {/* Title Section - Only show when expanded */}
-            <Animated.View style={[{ marginBottom: 24 }, contentOpacityStyle]}>
+            <Animated.View style={[{ marginBottom: 20 }, contentOpacityStyle]}>
               <Text style={{ 
-                color: '#ffffff', 
-                fontSize: 36, 
+                color: '#1a1a1a', 
+                fontSize: 32, 
                 fontWeight: '700',
                 letterSpacing: -0.5,
-                lineHeight: 40,
+                lineHeight: 36,
               }}>
                     Hungry?
               </Text>
               <Text style={{ 
-                color: '#ffffff', 
-                fontSize: 28, 
+                color: '#1a1a1a', 
+                fontSize: 24, 
                 fontWeight: '700',
                 letterSpacing: -0.5,
-                lineHeight: 32,
-                marginBottom: 12,
+                lineHeight: 28,
+                marginBottom: 10,
               }}>
                     Let's Fix That
               </Text>
               <Text style={{ 
-                color: '#a3b3a8', 
-                fontSize: 16,
-                lineHeight: 20,
+                color: '#4a4a4a', 
+                fontSize: 15,
+                lineHeight: 19,
                 fontWeight: '400',
               }}>
                 Find something different from your usual
@@ -757,13 +867,13 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
             </Animated.View>
 
                 {/* Filter Chips - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { marginBottom: 24 }]}>
+                <Animated.View style={[contentOpacityStyle, { marginBottom: 20 }]}>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{
                       paddingHorizontal: 0,
-                      gap: 8,
+                      gap: 6,
                     }}
                   >
                     {filterCategories.map((filter) => {
@@ -789,8 +899,8 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                             intensity={isActive ? 1 : 1}
                             tint="dark"
                             style={{
-                              paddingHorizontal: 16,
-                              paddingVertical: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 6,
                               backgroundColor: isActive 
                                 ? `${filter.color}95` // Almost completely opaque for active state
                                 : 'rgba(255, 255, 255, 0.01)', // Barely noticeable glass effect
@@ -801,7 +911,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                               alignItems: 'center',
                               justifyContent: 'center',
                               flexDirection: 'row',
-                              gap: 6,
+                              gap: 4,
                             }}
                           >
                             {filter.icon}
@@ -809,9 +919,9 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                               style={{
                                 fontSize: 14,
                                 fontWeight: isActive ? '600' : '500',
-                                color: isActive ? filter.color : '#a3b3a8',
+                                color: isActive ? filter.color : '#4a4a4a',
                                 textAlign: 'center',
-                                textShadowColor: isActive ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.4)',
+                                textShadowColor: isActive ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.1)',
                                 textShadowOffset: { width: 0, height: 0.5 },
                                 textShadowRadius: 1,
                               }}
@@ -826,22 +936,22 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                 </Animated.View>
 
                 {/* Try It's on me Section - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { marginBottom: 20 }]}>
+                <Animated.View style={[contentOpacityStyle, { marginBottom: 16 }]}>
                   <Text style={{ 
-                    color: '#ffffff', 
-                    fontSize: 20, 
+                    color: '#1a1a1a', 
+                    fontSize: 18, 
                     fontWeight: '700',
-                    lineHeight: 24,
-                    marginBottom: 8,
+                    lineHeight: 22,
+                    marginBottom: 6,
                   }}>
                     Try It's on me
                   </Text>
                   <Text style={{ 
-                    color: '#a3b3a8', 
-                    fontSize: 14,
-                    lineHeight: 18,
+                    color: '#4a4a4a', 
+                    fontSize: 13,
+                    lineHeight: 17,
                     fontWeight: '400',
-                    marginBottom: 20,
+                    marginBottom: 16,
                   }}>
                     Send a link to a friend so they can order{'\n'}food on you.
                   </Text>
@@ -849,23 +959,23 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                   {/* Invite Buttons Row */}
                   <View style={{ 
                     flexDirection: 'row', 
-                    gap: 12, 
-                    marginBottom: 16 
+                    gap: 8, 
+                    marginBottom: 12 
                   }}>
                     <View style={{ flex: 1 }}>
                       <Button
                         backgroundColor="#4a5d4f"
                         textColor="#ffffff"
-                        borderRadius={25}
-                        paddingVertical={12}
-                        paddingHorizontal={16}
+                        borderRadius={20}
+                        paddingVertical={10}
+                        paddingHorizontal={12}
                         onPress={() => {}}
                       >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '600' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600' }}>
                             Invite Friend
                           </Text>
-                          <LinkIcon size={16} />
+                          <LinkIcon size={14} />
                         </View>
                       </Button>
                     </View>
@@ -873,16 +983,16 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                       <Button
                         backgroundColor="#4a5d4f"
                         textColor="#ffffff"
-                        borderRadius={25}
-                        paddingVertical={12}
-                        paddingHorizontal={16}
+                        borderRadius={20}
+                        paddingVertical={10}
+                        paddingHorizontal={12}
                         onPress={() => {}}
                       >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '600' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600' }}>
                             Setup Family
                           </Text>
-                          <LinkIcon size={16} />
+                          <LinkIcon size={14} />
                         </View>
                       </Button>
                     </View>
@@ -892,28 +1002,28 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                   <Button
                     backgroundColor="#ef4444"
                     textColor="#ffffff"
-                    borderRadius={25}
-                    paddingVertical={14}
-                    paddingHorizontal={20}
+                    borderRadius={20}
+                    paddingVertical={12}
+                    paddingHorizontal={16}
                     onPress={() => {}}
                     style={{ width: '100%' }}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
                         Start Group Order
                       </Text>
-                      <LinkIcon size={18} />
+                      <LinkIcon size={16} />
           </View>
                   </Button>
                 </Animated.View>
 
                 {/* Food Illustration - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { alignItems: 'center', marginBottom: 24 }]}>
+                <Animated.View style={[contentOpacityStyle, { alignItems: 'center', marginBottom: 20 }]}>
                   <Image 
                     source={require('../../assets/images/cribnoshpackaging.png')}
                     style={{ 
-                      width: 200, 
-                      height: 150, 
+                      width: 180, 
+                      height: 135, 
                       resizeMode: 'contain' 
                     }}
                   />
@@ -922,7 +1032,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                 {/* Bottom Text - Only show when expanded */}
                 <Animated.View style={[contentOpacityStyle, { alignItems: 'center' }]}>
                   <Text style={{ 
-                    color: '#a3b3a8', 
+                    color: '#4a4a4a', 
                     fontSize: 16,
                     lineHeight: 20,
                     fontWeight: '400',
@@ -934,7 +1044,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
               </>
             )}
           </ScrollView>
-          </BlurView>
+          </Animated.View>
         </Animated.View>
       </PanGestureHandler>
     </>
