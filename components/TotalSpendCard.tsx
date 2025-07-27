@@ -6,7 +6,7 @@ import { Avatar } from './ui/Avatar';
 interface TotalSpendCardProps {
   amount: string;
   label?: string;
-  avatars: Array<{ uri: string }>; // expects array of avatar image URIs
+  avatars: { uri: string }[]; // expects array of avatar image URIs
 }
 
 const CARD_WIDTH = 362;

@@ -7,7 +7,7 @@ import { Avatar } from './ui/Avatar';
 interface GroupTotalSpendCardProps {
   amount: string;
   label?: string;
-  avatars: Array<{ uri: string }>;
+  avatars: { uri: string }[];
   glow?: boolean;
 }
 

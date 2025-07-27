@@ -20,12 +20,17 @@ export const ChipButton: React.FC<ChipButtonProps> = ({
   textStyle,
   onPress,
 }) => {
+  const buttonStyle = {
+    ...styles.chip,
+    backgroundColor: backgroundColor,
+  };
+
   return (
     <Pressable
       style={({ pressed }) => [
-        styles.chip,
-        { backgroundColor: backgroundColor, opacity: pressed ? 0.85 : 1 },
-        style,
+        buttonStyle,
+        { opacity: pressed ? 0.85 : 1 },
+        style, // Custom style can override
       ]}
       onPress={onPress}
     >

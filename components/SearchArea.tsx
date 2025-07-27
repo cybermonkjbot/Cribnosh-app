@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 import AISparkles from './ui/AISparkles';
 
 interface SearchAreaProps {
@@ -9,17 +9,31 @@ interface SearchAreaProps {
   value?: string;
   onChange?: (text: string) => void;
   maxLength?: number;
+  placeholder?: string;
+  returnKeyType?: TextInputProps['returnKeyType'];
+  onSubmitEditing?: TextInputProps['onSubmitEditing'];
+  autoFocus?: boolean;
+  editable?: boolean;
+  pointerEvents?: 'none' | 'auto';
+  onSparklesPress?: () => void;
 }
 
 const DEFAULT_MAX_LENGTH = 100;
 
-const SearchArea: React.FC<SearchAreaProps> = ({
+const SearchArea = React.forwardRef<TextInput, SearchAreaProps>(({
   loading = false,
   error = '',
   value: controlledValue,
   onChange,
   maxLength = DEFAULT_MAX_LENGTH,
-}) => {
+  placeholder = "I want to eat Eba",
+  returnKeyType = "default",
+  onSubmitEditing,
+  autoFocus = false,
+  editable = true,
+  pointerEvents = 'auto',
+  onSparklesPress,
+}, ref) => {
   const [internalValue, setInternalValue] = useState('');
   const value = controlledValue !== undefined ? controlledValue : internalValue;
 
@@ -33,15 +47,22 @@ const SearchArea: React.FC<SearchAreaProps> = ({
 
   return (
     <View style={styles.row}>
-      <View style={[styles.searchContainer, error ? styles.errorBorder : null]}>
+      <View 
+        style={[styles.searchContainer, error ? styles.errorBorder : null]}
+        pointerEvents={editable ? 'auto' : 'none'}
+      >
         <TextInput
+          ref={ref}
           style={styles.input}
-          placeholder="I want to eat Eba"
+          placeholder={placeholder}
           placeholderTextColor={error ? '#FF6B6B' : '#C4C4C4'}
           value={value}
           onChangeText={handleChange}
-          editable={!loading}
+          editable={editable && !loading}
           maxLength={maxLength}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          autoFocus={autoFocus}
           accessibilityLabel="Search input"
         />
         {loading && (
@@ -49,12 +70,20 @@ const SearchArea: React.FC<SearchAreaProps> = ({
         )}
       </View>
       <View style={styles.iconContainer}>
-        <AISparkles size={35} color="#E6FFE8" />
+        <AISparkles 
+          size={35} 
+          color="#E6FFE8" 
+          onPress={onSparklesPress}
+          enableShimmer={true}
+          autoPlay={true}
+        />
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
-};
+});
+
+SearchArea.displayName = 'SearchArea';
 
 const styles = StyleSheet.create({
   row: {

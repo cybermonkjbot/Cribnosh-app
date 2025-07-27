@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Platform, View, ViewStyle } from 'react-native';
+import { Animated, Easing, Platform, TouchableOpacity, View, ViewStyle } from 'react-native';
 import Svg, {
   Defs,
   Mask,
@@ -19,6 +19,8 @@ interface AISparklesProps {
   loop?: boolean;
   enableShimmer?: boolean;
   onAnimationComplete?: () => void;
+  onPress?: () => void;
+  disabled?: boolean;
   style?: ViewStyle;
   testID?: string;
 }
@@ -42,6 +44,8 @@ export const AISparkles: React.FC<AISparklesProps> = ({
   loop = false,
   enableShimmer = true,
   onAnimationComplete,
+  onPress,
+  disabled = false,
   style,
   testID,
   ...props
@@ -65,6 +69,13 @@ export const AISparkles: React.FC<AISparklesProps> = ({
   const containerStyle = useMemo(() => {
     // Only use valid CSS properties for web, filter out React Native specific ones
     if (Platform.OS === 'web') {
+      // Create a clean web-compatible style object
+      const webStyle: any = {
+        width: size,
+        height: height,
+        position: 'relative' as const,
+      };
+      
       // Only allow a safe subset of CSS properties for the web container
       const allowedCssProps = [
         'margin', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight',
@@ -72,39 +83,34 @@ export const AISparkles: React.FC<AISparklesProps> = ({
         'borderRadius', 'borderWidth', 'borderStyle', 'borderColor',
         'boxShadow', 'background', 'backgroundColor', 'opacity',
         'top', 'left', 'right', 'bottom', 'zIndex', 'display', 'overflow',
-        'width', 'height', 'minWidth', 'minHeight', 'maxWidth', 'maxHeight',
-        'position', 'transition', 'animation', 'animationDelay', 'animationDuration',
+        'minWidth', 'minHeight', 'maxWidth', 'maxHeight',
+        'position', 'transition', 'animation', 'animationDuration',
         'animationName', 'animationTimingFunction', 'transform', 'cursor', 'pointerEvents',
         'maskImage', 'WebkitMaskImage', 'backgroundSize', 'backgroundPosition',
       ];
-      const filteredStyle: Record<string, any> = {};
+      
       const styleAny = style as any;
       if (styleAny) {
         for (const key of allowedCssProps) {
-          if (key in styleAny) {
-            // Special handling for animationDelay: must be string or string[]
-            if (key === 'animationDelay') {
-              let val = styleAny[key];
-              if (typeof val === 'number') {
-                val = `${val}ms`;
-              } else if (Array.isArray(val)) {
-                val = val.map((v: any) => typeof v === 'number' ? `${v}ms` : v).filter((v: any) => typeof v === 'string');
-              }
-              if (typeof val === 'string' || (Array.isArray(val) && val.every((v: any) => typeof v === 'string'))) {
-                filteredStyle[key] = val;
-              }
-            } else {
-              filteredStyle[key] = styleAny[key];
-            }
+          if (key in styleAny && styleAny[key] !== undefined) {
+            webStyle[key] = styleAny[key];
+          }
+        }
+        
+        // Special handling for animationDelay to ensure proper string type
+        if ('animationDelay' in styleAny) {
+          let val = styleAny.animationDelay;
+          if (typeof val === 'number') {
+            webStyle.animationDelay = `${val}ms`;
+          } else if (Array.isArray(val)) {
+            webStyle.animationDelay = val.map((v: any) => typeof v === 'number' ? `${v}ms` : String(v)).filter((v: any) => typeof v === 'string');
+          } else if (val !== undefined) {
+            webStyle.animationDelay = String(val);
           }
         }
       }
-      return {
-        width: size,
-        height: height,
-        position: 'relative' as const,
-        ...filteredStyle,
-      };
+      
+      return webStyle;
     }
     return {
       width: size,
@@ -248,7 +254,7 @@ export const AISparkles: React.FC<AISparklesProps> = ({
 
   // Web implementation
   if (Platform.OS === 'web') {
-    return (
+    const webContent = (
       <div style={containerStyle} data-testid={testID}>
         <svg
           width={size}
@@ -285,19 +291,36 @@ export const AISparkles: React.FC<AISparklesProps> = ({
               },${shimmerOpacity}) 50%, transparent 60%)`,
               backgroundSize: '200% 200%',
               backgroundPosition: `${webShimmer * 100}% ${webShimmer * 100}%`,
-              // Ensure animationDelay is a string with units if used
-              // animationDelay: typeof animationDelay === 'number' ? `${animationDelay}ms` : animationDelay,
             }}
           />
         )}
       </div>
     );
+
+    // Wrap in clickable container if onPress is provided
+    if (onPress && !disabled) {
+      return (
+        <div 
+          onClick={onPress}
+          style={{ 
+            cursor: 'pointer',
+            display: 'inline-block',
+            opacity: disabled ? 0.6 : 1,
+          }}
+          data-testid={testID}
+        >
+          {webContent}
+        </div>
+      );
+    }
+
+    return webContent;
   }
 
   // Native implementation
   const AnimatedRect = Animated.createAnimatedComponent(SvgRect);
   
-  return (
+  const nativeContent = (
     <View style={containerStyle} testID={testID}>
       <Svg width={size} height={height} viewBox={viewBox} fill="none" {...props}>
         <Defs>
@@ -343,13 +366,27 @@ export const AISparkles: React.FC<AISparklesProps> = ({
             mask="url(#shimmer-mask)"
             fill="url(#shimmer-gradient)"
             opacity={1}
-            // Remove style prop, use transform props directly if needed
-            // If transform is required, consider using Animated.View as a wrapper
           />
         )}
       </Svg>
     </View>
   );
+  
+  // Wrap in TouchableOpacity if onPress is provided
+  if (onPress && !disabled) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.7}
+        disabled={disabled}
+        style={{ opacity: disabled ? 0.6 : 1 }}
+      >
+        {nativeContent}
+      </TouchableOpacity>
+    );
+  }
+
+  return nativeContent;
 };
 
 // Export additional utilities
