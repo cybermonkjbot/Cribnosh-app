@@ -1,27 +1,56 @@
+
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Avatar } from './ui/Avatar';
 
+type AvatarUri = { uri: string } | string | undefined;
+function isValidUri(uri: AvatarUri): boolean {
+  if (!uri) return false;
+  if (typeof uri === 'string') return uri.length > 0;
+  if (typeof uri === 'object' && uri.uri) return typeof uri.uri === 'string' && uri.uri.length > 0;
+  return false;
+}
+
+
+interface KitchenNameCardProps {
+  avatarUri?: AvatarUri;
+  name?: string;
+  description?: string;
+}
+
 export function KitchenNameCard({
-  avatarUri = { uri: 'https://randomuser.me/api/portraits/men/32.jpg' },
-  name = 'Stans Kitchen',
-  description = 'African cuisine (Top Rated)',
-}) {
+  avatarUri,
+  name,
+  description,
+}: KitchenNameCardProps) {
+  // Edge case handling
+  const fallbackAvatar = { uri: 'https://randomuser.me/api/portraits/men/32.jpg' };
+  let avatarSource: { uri: string } = fallbackAvatar;
+  if (isValidUri(avatarUri)) {
+    if (typeof avatarUri === 'string') {
+      avatarSource = { uri: avatarUri };
+    } else if (avatarUri && typeof avatarUri.uri === 'string') {
+      avatarSource = { uri: avatarUri.uri };
+    }
+  }
+  const displayName = typeof name === 'string' && name.trim() ? name : 'Stans Kitchen';
+  const displayDesc = typeof description === 'string' && description.trim() ? description : 'African cuisine (Top Rated)';
+
   return (
-    <View style={styles.container}>
+    <View className="flex-1 min-h-[74px] bg-[#FAFFFA] rounded-[22px] flex-row items-center shadow shadow-[#383838] shadow-opacity-5 shadow-lg elevation-5 my-2.5 px-4">
       {/* Avatar */}
-      <View style={styles.avatarWrapper}>
-        <Avatar source={avatarUri} size="md" style={styles.avatarImg} />
+      <View className="w-[52px] h-[52px] rounded-full bg-[#EAEAEA] justify-center items-center mr-[15px]">
+        <Avatar source={avatarSource} size="md" className="w-[52px] h-[52px] rounded-full" />
       </View>
       {/* Texts */}
-      <View style={styles.textWrapper}>
-        <Text style={styles.kitchenName}>{name}</Text>
-        <Text style={styles.kitchenDesc}>{description}</Text>
+      <View className="flex-1 justify-center">
+        <Text className="font-['Poppins'] font-medium text-[18px] text-[#4C3F59] mb-[2px]">{displayName}</Text>
+        <Text className="font-['Lato'] font-normal text-[14px] text-[#53465E] tracking-[0.03em]">{displayDesc}</Text>
       </View>
       {/* Details Button */}
-      <TouchableOpacity style={styles.detailsBtn}>
-        <View style={styles.detailsCircle}>
+      <TouchableOpacity className="w-8 h-8 justify-center items-center">
+        <View className="w-6 h-6 rounded-full bg-[#4C3F59] justify-center items-center">
           <Svg width={16} height={16} viewBox="0 0 4 6" fill="none">
             <Path d="M0 5.5V0.5L4 3L0 5.5Z" fill="#FAFFFA" />
           </Svg>
@@ -31,69 +60,7 @@ export function KitchenNameCard({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    minHeight: 74,
-    backgroundColor: '#FAFFFA',
-    borderRadius: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#383838',
-    shadowOffset: { width: 0, height: 51 },
-    shadowOpacity: 0.01,
-    shadowRadius: 20,
-    elevation: 5,
-    marginVertical: 10,
-    paddingHorizontal: 15,
-  },
-  avatarWrapper: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#EAEAEA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  avatarImg: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-  },
-  textWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  kitchenName: {
-    fontFamily: 'Poppins',
-    fontWeight: '500',
-    fontSize: 18,
-    color: '#4C3F59',
-    marginBottom: 2,
-  },
-  kitchenDesc: {
-    fontFamily: 'Lato',
-    fontWeight: '400',
-    fontSize: 14,
-    color: '#53465E',
-    letterSpacing: 0.03,
-  },
-  detailsBtn: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  detailsCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4C3F59',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // detailsArrow removed, replaced with SVG
-});
+
+// Styles removed, replaced with NativeWind classes
 
 export default KitchenNameCard;
