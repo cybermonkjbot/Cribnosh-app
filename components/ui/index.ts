@@ -10,3 +10,14 @@ export { NoshHeavenPlayer } from './NoshHeavenPlayer';
 export type { MealData } from './NoshHeavenPlayer';
 export { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
 
+// Export Category Full Drawer components
+export { CategoryDrawerDemo } from './CategoryDrawerDemo';
+export { CategoryFoodItemCard } from './CategoryFoodItemCard';
+export { CategoryFoodItemsGrid } from './CategoryFoodItemsGrid';
+export { CategoryFullContent } from './CategoryFullContent';
+export { CategoryFullDrawer } from './CategoryFullDrawer';
+export { CategoryFullFilterChips } from './CategoryFullFilterChips';
+export { CategoryFullHeader } from './CategoryFullHeader';
+export { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
+export { TooFreshToWasteDrawer } from './TooFreshToWasteDrawer';
+

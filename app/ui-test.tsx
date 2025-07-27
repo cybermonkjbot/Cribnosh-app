@@ -96,7 +96,7 @@ export default function UiTestPage() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 32 }}>
           <GroupOrderMember
             name="Sandy Wilder Cheng"
-            avatarUri={{ uri: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face' }}
+            avatarUri={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face' }}
             textColor="#134E3A"
           />
           <GroupOrderMember
@@ -126,7 +126,7 @@ export default function UiTestPage() {
           />
           <GroupOrderMember
             name="Juliana Mejia"
-            avatarUri={{ uri: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face' }}
+            avatarUri={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face' }}
             showMessageIcon={true}
             isContributing={true}
             contributingAmount={10}
@@ -138,7 +138,7 @@ export default function UiTestPage() {
         amount="£50"
         avatars={[
           { uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' },
-          { uri: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face' },
+          { uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face' },
           { uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face' },
         ]}
         glow

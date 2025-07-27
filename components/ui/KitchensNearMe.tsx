@@ -17,7 +17,7 @@ const kitchens: Kitchen[] = [
     name: "Clara's Kitchen",
     description: 'Get great burgers, chicken and pastries',
     distance: '0.5km away from you',
-    image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face',
     isVerified: true
   },
   {

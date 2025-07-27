@@ -41,7 +41,7 @@ const mockLiveKitchens: LiveKitchen[] = [
     cuisine: 'Moroccan',
     viewers: 234,
     isLive: true,
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop',
     description: 'Live Lamb Tagine cooking',
     chef: 'Chef Hassan'
   },
@@ -61,7 +61,7 @@ const mockLiveKitchens: LiveKitchen[] = [
     cuisine: 'Italian',
     viewers: 189,
     isLive: true,
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop',
     description: 'Live Truffle Risotto cooking',
     chef: 'Chef Giuseppe'
   },

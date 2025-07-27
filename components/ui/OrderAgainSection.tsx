@@ -22,7 +22,7 @@ const mockOrderItems: OrderItem[] = [
     id: '2',
     name: 'Hosomaki roll',
     price: '£19',
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=120&h=120&fit=crop',
+    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=120&h=120&fit=crop',
   },
   {
     id: '3',

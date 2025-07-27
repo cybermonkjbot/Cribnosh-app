@@ -12,7 +12,7 @@ const cuisines: Cuisine[] = [
   {
     id: '1',
     name: 'Italian',
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=80&h=80&fit=crop'
+    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop'
   },
   {
     id: '2', 
