@@ -7,6 +7,7 @@ import { AIChatDrawer } from './AIChatDrawer';
 import { BottomSearchDrawer } from './BottomSearchDrawer';
 import { CategoryFilterChips } from './CategoryFilterChips';
 import { CuisinesSection } from './CuisinesSection';
+import { useDebugLogger } from './DebugLogger';
 import { NoshHeavenErrorBoundary } from './ErrorBoundary';
 import { EventBanner } from './EventBanner';
 import { Header } from './Header';
@@ -14,6 +15,7 @@ import { KitchensNearMe } from './KitchensNearMe';
 import { MultiStepLoader } from './MultiStepLoader';
 import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';
 import { OrderAgainSection } from './OrderAgainSection';
+import { PerformanceMonitor } from './PerformanceMonitor';
 import { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
 import { TakeAways } from './TakeAways';
 import { TooFreshToWaste } from './TooFreshToWaste';
@@ -79,6 +81,7 @@ const mockMealData: MealData[] = [
 ];
 
 export function MainScreen() {
+  const logger = useDebugLogger('MainScreen');
   const insets = useSafeAreaInsets();
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
@@ -87,6 +90,7 @@ export function MainScreen() {
   const [refreshCount, setRefreshCount] = useState(0);
   const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>(mockMealData);
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(__DEV__);
   
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
@@ -102,9 +106,43 @@ export function MainScreen() {
   const isScrolling = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Performance tracking
+  const renderCountRef = useRef(0);
+  const lastRenderTimeRef = useRef(Date.now());
+
+  // Log component mount
+  useEffect(() => {
+    logger.info('MainScreen mounted', { 
+      initialMealsCount: noshHeavenMeals.length,
+      isDev: __DEV__ 
+    });
+    
+    return () => {
+      logger.info('MainScreen unmounting');
+    };
+  }, []);
+
+  // Track render performance
+  useEffect(() => {
+    renderCountRef.current++;
+    const now = Date.now();
+    const timeSinceLastRender = now - lastRenderTimeRef.current;
+    lastRenderTimeRef.current = now;
+    
+    if (timeSinceLastRender > 16) { // 60fps threshold
+      logger.warn('Slow render detected', { 
+        renderCount: renderCountRef.current,
+        timeSinceLastRender 
+      });
+    }
+  });
+
   // Cleanup effect to reset states and prevent crashes
   useEffect(() => {
+    logger.debug('Setting up cleanup effect');
+    
     return () => {
+      logger.debug('Running cleanup effect');
       // Comprehensive cleanup on unmount
       try {
         // Clear any pending timeouts
@@ -135,8 +173,10 @@ export function MainScreen() {
         
         // Reset refs
         isScrolling.current = false;
+        
+        logger.info('Cleanup completed successfully');
       } catch (error) {
-        console.warn('Cleanup error:', error);
+        logger.error('Cleanup error', error);
       }
     };
   }, [pullProgress, scrollY, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, contentFadeAnim]);
@@ -144,10 +184,11 @@ export function MainScreen() {
   // Reset states when Nosh Heaven closes
   useEffect(() => {
     if (!isNoshHeavenVisible) {
+      logger.debug('Nosh Heaven closed, resetting states');
       // Use requestAnimationFrame to batch updates and prevent conflicts
       requestAnimationFrame(() => {
-      setShowPullTrigger(false);
-      setHasTriggered(false);
+        setShowPullTrigger(false);
+        setHasTriggered(false);
         
         // Reset scroll-related shared values
         if (pullProgress && typeof pullProgress.value === 'number') {
@@ -211,6 +252,7 @@ export function MainScreen() {
   };
 
   const simulateLoadingSteps = async () => {
+    logger.info('Starting loading simulation');
     setShowLoader(true);
     
     // Simulate the time it takes for the loader to complete all 3 steps
@@ -226,10 +268,13 @@ export function MainScreen() {
         duration: 500,
         useNativeDriver: true,
       }).start();
+      
+      logger.info('Loading simulation completed');
     }, 6000);
   };
 
   const onRefresh = useCallback(async () => {
+    logger.info('Refresh triggered');
     setRefreshing(true);
     
     // Fade out current content
@@ -244,15 +289,17 @@ export function MainScreen() {
     setRefreshing(false);
   }, [contentFadeAnim]);
 
-  const handleOpenAIChat = () => {
+  const handleOpenAIChat = useCallback(() => {
+    logger.info('AI Chat opened');
     setIsChatVisible(true);
-  };
+  }, []);
 
-  const handleCloseAIChat = () => {
+  const handleCloseAIChat = useCallback(() => {
+    logger.info('AI Chat closed');
     setIsChatVisible(false);
-  };
+  }, []);
 
-  // Simplified scroll handler with throttling (no worklets to avoid crashes)
+  // Simplified scroll handler with throttling and debugging
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     try {
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
@@ -261,10 +308,12 @@ export function MainScreen() {
       if (!Number.isFinite(contentOffset.y) || 
           !Number.isFinite(contentSize.height) || 
           !Number.isFinite(layoutMeasurement.height)) {
+        logger.warn('Invalid scroll values', { contentOffset, contentSize, layoutMeasurement });
         return;
       }
       
       if (contentSize.height <= 0 || layoutMeasurement.height <= 0) {
+        logger.warn('Invalid scroll dimensions', { contentSize, layoutMeasurement });
         return;
       }
       
@@ -291,17 +340,22 @@ export function MainScreen() {
         const shouldShowTrigger = contentOffset.y >= maxScrollPosition && !hasTriggered;
         if (shouldShowTrigger !== showPullTrigger) {
           setShowPullTrigger(shouldShowTrigger);
+          if (shouldShowTrigger) {
+            logger.debug('Pull trigger shown');
+          }
         }
         
         // Reset trigger when away from bottom
         if (overscrollProgress < 0.05 && showPullTrigger) {
           setShowPullTrigger(false);
           setHasTriggered(false);
+          logger.debug('Pull trigger hidden');
         }
         
         // Trigger Nosh Heaven with deliberate pull
         if (overscrollProgress >= 0.9 && !hasTriggered) {
           setHasTriggered(true);
+          logger.info('Nosh Heaven trigger activated', { overscrollProgress });
           setTimeout(() => {
             handleNoshHeavenTrigger();
           }, 0);
@@ -311,53 +365,54 @@ export function MainScreen() {
       // Header sticky logic - lightweight calculation
       const shouldBeSticky = contentOffset.y > 100;
       
-    if (shouldBeSticky !== isHeaderSticky) {
-      setIsHeaderSticky(shouldBeSticky);
-      
-      // Animate header transitions
-      if (shouldBeSticky) {
-        // Transitioning to sticky
-        Animated.parallel([
-          Animated.timing(stickyHeaderOpacity, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.timing(normalHeaderOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(categoryChipsOpacity, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      } else {
-        // Transitioning to normal
-        Animated.parallel([
-          Animated.timing(stickyHeaderOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(normalHeaderOpacity, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.timing(categoryChipsOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }
+      if (shouldBeSticky !== isHeaderSticky) {
+        setIsHeaderSticky(shouldBeSticky);
+        logger.debug('Header sticky state changed', { shouldBeSticky });
+        
+        // Animate header transitions
+        if (shouldBeSticky) {
+          // Transitioning to sticky
+          Animated.parallel([
+            Animated.timing(stickyHeaderOpacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(normalHeaderOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.timing(categoryChipsOpacity, {
+              toValue: 1,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        } else {
+          // Transitioning to normal
+          Animated.parallel([
+            Animated.timing(stickyHeaderOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.timing(normalHeaderOpacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(categoryChipsOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        }
       }
     } catch (error) {
       // Complete fallback: reset everything to safe state
-      console.warn('Scroll handler error:', error);
+      logger.error('Scroll handler error', error);
       setShowPullTrigger(false);
       setHasTriggered(false);
       pullProgress.value = 0;
@@ -367,29 +422,33 @@ export function MainScreen() {
   // Handle Nosh Heaven trigger
   const handleNoshHeavenTrigger = useCallback(() => {
     try {
+      logger.info('Nosh Heaven trigger called');
       // Validate state before making changes
       if (isNoshHeavenVisible) {
+        logger.warn('Nosh Heaven already visible, ignoring trigger');
         return; // Already visible, don't trigger again
       }
       
       // Batch all state updates together
       requestAnimationFrame(() => {
-      setIsNoshHeavenVisible(true);
-      setShowPullTrigger(false);
-      setHasTriggered(false);
-      
-      // Safely update shared value
-      if (pullProgress && typeof pullProgress.value === 'number') {
-        pullProgress.value = 0;
-      }
+        setIsNoshHeavenVisible(true);
+        setShowPullTrigger(false);
+        setHasTriggered(false);
+        
+        // Safely update shared value
+        if (pullProgress && typeof pullProgress.value === 'number') {
+          pullProgress.value = 0;
+        }
+        
+        logger.info('Nosh Heaven opened successfully');
       });
     } catch (error) {
-      console.warn('Nosh Heaven trigger error:', error);
+      logger.error('Nosh Heaven trigger error', error);
       // Reset to safe state with batched updates
       requestAnimationFrame(() => {
-      setIsNoshHeavenVisible(false);
-      setShowPullTrigger(false);
-      setHasTriggered(false);
+        setIsNoshHeavenVisible(false);
+        setShowPullTrigger(false);
+        setHasTriggered(false);
       });
     }
   }, [isNoshHeavenVisible, pullProgress]);
@@ -397,28 +456,32 @@ export function MainScreen() {
   // Handle Nosh Heaven close
   const handleNoshHeavenClose = useCallback(() => {
     try {
+      logger.info('Nosh Heaven close called');
       // Batch all state updates together
       requestAnimationFrame(() => {
-      setIsNoshHeavenVisible(false);
-      setHasTriggered(false);
-      
-      // Safely scroll back to top
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ y: 0, animated: true });
-      }
+        setIsNoshHeavenVisible(false);
+        setHasTriggered(false);
+        
+        // Safely scroll back to top
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: 0, animated: true });
+        }
+        
+        logger.info('Nosh Heaven closed successfully');
       });
     } catch (error) {
-      console.warn('Nosh Heaven close error:', error);
+      logger.error('Nosh Heaven close error', error);
       // Reset to safe state
       requestAnimationFrame(() => {
-      setIsNoshHeavenVisible(false);
-      setHasTriggered(false);
+        setIsNoshHeavenVisible(false);
+        setHasTriggered(false);
       });
     }
   }, []);
 
   // Load more meals for Nosh Heaven
   const handleLoadMoreMeals = useCallback(() => {
+    logger.info('Loading more meals');
     // In a real app, this would load from an API
     const moreMeals: MealData[] = [
       {
@@ -434,31 +497,32 @@ export function MainScreen() {
       },
     ];
     setNoshHeavenMeals(prev => [...prev, ...moreMeals]);
+    logger.info('More meals loaded', { newCount: moreMeals.length });
   }, []);
 
-  // Handle meal interactions
+  // Handle meal interactions with debugging
   const handleMealLike = useCallback((mealId: string) => {
-    console.log('Liked meal:', mealId);
+    logger.info('Meal liked', { mealId });
     // In a real app, this would update the backend
   }, []);
 
   const handleMealComment = useCallback((mealId: string) => {
-    console.log('Comment on meal:', mealId);
+    logger.info('Meal comment', { mealId });
     // In a real app, this would open a comment modal
   }, []);
 
   const handleMealShare = useCallback((mealId: string) => {
-    console.log('Share meal:', mealId);
+    logger.info('Meal shared', { mealId });
     // In a real app, this would open share sheet
   }, []);
 
   const handleAddToCart = useCallback((mealId: string) => {
-    console.log('Add to cart:', mealId);
+    logger.info('Meal added to cart', { mealId });
     // In a real app, this would add the meal to cart
   }, []);
 
   const handleKitchenPress = useCallback((kitchenName: string) => {
-    console.log('View kitchen:', kitchenName);
+    logger.info('Kitchen pressed', { kitchenName });
     // In a real app, this would navigate to kitchen profile
   }, []);
 
@@ -504,6 +568,24 @@ export function MainScreen() {
     handleKitchenPress
   ]);
 
+  // Performance metrics handler
+  const handlePerformanceMetrics = useCallback((metrics: any) => {
+    logger.debug('Performance metrics updated', metrics);
+    
+    // Log performance issues
+    if (metrics.fps < 30) {
+      logger.warn('Low FPS detected', { fps: metrics.fps });
+    }
+    
+    if (metrics.renderTime > 16) {
+      logger.warn('Slow render detected', { renderTime: metrics.renderTime });
+    }
+    
+    if (metrics.scrollPerformance > 60) {
+      logger.warn('High scroll event rate', { scrollPerformance: metrics.scrollPerformance });
+    }
+  }, []);
+
   return (
     <View style={{ flex: 1 }}>
       
@@ -513,6 +595,12 @@ export function MainScreen() {
         end={{ x: 1, y: 1 }}
         style={{ flex: 1 }}
       >
+        {/* Performance Monitor */}
+        <PerformanceMonitor 
+          isVisible={showPerformanceMonitor}
+          onMetricsUpdate={handlePerformanceMetrics}
+        />
+
         {/* Sticky Header - always present but animated opacity */}
         <Animated.View style={{ 
           position: 'absolute', 
