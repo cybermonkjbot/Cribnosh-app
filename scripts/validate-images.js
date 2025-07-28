@@ -33,7 +33,7 @@ const imagesToValidate = [
   'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=100&fit=crop',
   
   // Video sources (for reference)
-  'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
 ];
@@ -55,7 +55,7 @@ const alternativeImages = {
   'avatar-4': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face',
   
   // Working video alternatives
-  'video-1': 'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
+  'video-1': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
   'video-2': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
 };
 

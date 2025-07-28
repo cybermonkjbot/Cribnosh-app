@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 
 // Types for tabs and filters
 export type HeaderTab = 'for-you' | 'live';
@@ -19,6 +19,10 @@ interface AppContextType {
   // Tab change handlers
   handleHeaderTabChange: (tab: HeaderTab) => void;
   handleCategoryFilterChange: (filter: CategoryFilter) => void;
+  
+  // Scroll to top functionality
+  scrollToTop: () => void;
+  registerScrollToTopCallback: (callback: () => void) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -30,6 +34,7 @@ interface AppProviderProps {
 export function AppProvider({ children }: AppProviderProps) {
   const [activeHeaderTab, setActiveHeaderTab] = useState<HeaderTab>('for-you');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<CategoryFilter>('all');
+  const [scrollToTopCallback, setScrollToTopCallback] = useState<(() => void) | null>(null);
 
   const handleHeaderTabChange = (tab: HeaderTab) => {
     setActiveHeaderTab(tab);
@@ -56,6 +61,20 @@ export function AppProvider({ children }: AppProviderProps) {
     });
   };
 
+  const scrollToTop = () => {
+    // Switch to "For you" tab first
+    setActiveHeaderTab('for-you');
+    
+    // Then call the scroll callback
+    if (scrollToTopCallback) {
+      scrollToTopCallback();
+    }
+  };
+
+  const registerScrollToTopCallback = useCallback((callback: () => void) => {
+    setScrollToTopCallback(() => callback);
+  }, []);
+
   const value: AppContextType = {
     activeHeaderTab,
     setActiveHeaderTab,
@@ -64,6 +83,8 @@ export function AppProvider({ children }: AppProviderProps) {
     getFilteredContent,
     handleHeaderTabChange,
     handleCategoryFilterChange,
+    scrollToTop,
+    registerScrollToTopCallback,
   };
 
   return (

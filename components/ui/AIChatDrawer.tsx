@@ -1,18 +1,9 @@
 import React, { useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
-import Animated, {
-    runOnJS,
-    useAnimatedGestureHandler,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { CancelButton } from './CancelButton';
 
-// Badge Component for product tags
+// Badge Component
 interface BadgeProps {
   text: string;
   type?: 'hot' | 'bestfit' | 'highprotein';
@@ -21,31 +12,30 @@ interface BadgeProps {
 const Badge: React.FC<BadgeProps> = ({ text, type = 'hot' }) => {
   const getBackgroundColor = () => {
     switch (type) {
-      case 'hot': return '#FF3B30';
-      case 'bestfit': return 'rgba(255, 59, 48, 0.72)';
-      case 'highprotein': return 'rgba(255, 59, 48, 0.72)';
-      default: return '#FF3B30';
+      case 'hot':
+        return '#FF3B30';
+      case 'bestfit':
+        return '#FF6B35';
+      case 'highprotein':
+        return '#0B9E58';
+      default:
+        return '#FF3B30';
     }
   };
 
   return (
     <View style={{
       backgroundColor: getBackgroundColor(),
-      borderRadius: 10,
       paddingHorizontal: 8,
       paddingVertical: 2,
-      position: 'absolute',
-      bottom: 17,
-      right: 8,
+      borderRadius: 12,
+      marginRight: 4,
     }}>
       <Text style={{
-        fontFamily: 'Lato',
-        fontWeight: '700',
-        fontSize: 7,
-        lineHeight: 22,
-        textAlign: 'center',
-        letterSpacing: 0.03,
-        color: '#FFFFFF',
+        color: 'white',
+        fontSize: 10,
+        fontWeight: '600',
+        textTransform: 'uppercase',
       }}>
         {text}
       </Text>
@@ -71,69 +61,52 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   return (
     <View style={{
-      width: 112.49,
-      height: 147.5,
-      marginRight: 18,
+      width: 140,
+      backgroundColor: 'white',
+      borderRadius: 16,
+      padding: 12,
+      marginRight: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: '#F0F0F0',
     }}>
-      {/* Product Image Container */}
       <View style={{
-        width: 107.96,
-        height: 96.27,
-        backgroundColor: '#FAFAFA',
-        borderWidth: 1,
-        borderColor: '#EAEAEA',
-        borderRadius: 15,
-        marginBottom: 4,
-        position: 'relative',
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: '100%',
+        height: 80,
+        borderRadius: 12,
+        backgroundColor: '#F8F9FA',
+        marginBottom: 8,
+        overflow: 'hidden',
       }}>
         <Image 
-          source={image}
-          style={{
-            width: 80,
-            height: 80,
-            resizeMode: 'contain',
-          }}
+          source={image} 
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="cover"
         />
-        
-        {/* Fire Emoji */}
-        {hasFireEmoji && (
-          <Text style={{
-            position: 'absolute',
-            bottom: -3,
-            right: 8,
-            fontSize: 20,
-          }}>
-            🔥
-          </Text>
-        )}
-        
-        {/* Badge */}
-        {badge && (
-          <Badge text={badge.text} type={badge.type} />
-        )}
       </View>
       
-      {/* Product Name */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+        {badge && <Badge text={badge.text} type={badge.type} />}
+        {hasFireEmoji && <Text style={{ fontSize: 12 }}>🔥</Text>}
+      </View>
+      
       <Text style={{
-        fontFamily: 'Poppins',
-        fontWeight: '600',
         fontSize: 14,
-        lineHeight: 28,
-        color: '#094327',
-        marginBottom: 2,
+        fontWeight: '600',
+        color: '#1A202C',
+        marginBottom: 4,
       }}>
         {name}
       </Text>
       
-      {/* Product Price */}
       <Text style={{
-        fontFamily: 'Poppins',
-        fontWeight: '600',
-        fontSize: 15,
-        lineHeight: 26,
-        color: '#094327',
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0B9E58',
       }}>
         {price}
       </Text>
@@ -150,61 +123,41 @@ interface UserMessageProps {
 const UserMessage: React.FC<UserMessageProps> = ({ message, avatar }) => {
   return (
     <View style={{
-      backgroundColor: '#F5FFF6',
-      borderRadius: 16,
-      padding: 18,
-      marginHorizontal: 19,
-      marginBottom: 16,
-      position: 'relative',
-      shadowColor: '#E6FFE8',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 1,
-      shadowRadius: 55,
-      elevation: 10,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginBottom: 20,
+      paddingHorizontal: 20,
     }}>
-      {/* User Avatar and Label */}
       <View style={{
-        position: 'absolute',
-        top: -8,
-        right: 25,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+        maxWidth: '80%',
+        backgroundColor: '#0B9E58',
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginRight: 12,
       }}>
         <Text style={{
-          fontFamily: 'Inter',
-          fontWeight: '500',
+          color: 'white',
           fontSize: 16,
-          lineHeight: 24,
-          color: '#094327',
+          lineHeight: 22,
+          fontWeight: '400',
         }}>
-          You
+          {message}
         </Text>
-        <View style={{
-          width: 36,
-          height: 36,
-          backgroundColor: '#E6FFE8',
-          borderRadius: 18,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-          <Image source={avatar} style={{ width: 32, height: 32, borderRadius: 16 }} />
-        </View>
       </View>
       
-      {/* Message Text */}
-      <Text style={{
-        fontFamily: 'Inter',
-        fontStyle: 'italic',
-        fontWeight: '400',
-        fontSize: 14,
-        lineHeight: 23,
-        textAlign: 'right',
-        color: '#094327',
-        marginTop: 25,
+      <View style={{
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        overflow: 'hidden',
       }}>
-        {message}
-      </Text>
+        <Image 
+          source={avatar} 
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="cover"
+        />
+      </View>
     </View>
   );
 };
@@ -219,56 +172,51 @@ interface AIMessageProps {
 const AIMessage: React.FC<AIMessageProps> = ({ message, products, title }) => {
   return (
     <View style={{
-      backgroundColor: 'rgba(245, 255, 246, 0.9)',
-      borderRadius: 16,
-      padding: 25,
-      marginHorizontal: 17,
-      marginBottom: 16,
+      marginBottom: 24,
+      paddingHorizontal: 20,
     }}>
-      {/* CribNosh Logo */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{
-          fontFamily: 'Inter',
-          fontWeight: '600',
-          fontSize: 16,
-          color: '#0B9E58',
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+      }}>
+        <View style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: '#0B9E58',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: 12,
         }}>
-          Crib<Text style={{ color: '#FF3B30' }}>Nosh</Text>
+          <Text style={{ fontSize: 20, color: 'white' }}>🤖</Text>
+        </View>
+        <Text style={{
+          fontSize: 18,
+          fontWeight: '600',
+          color: '#1A202C',
+        }}>
+          CribNosh
         </Text>
       </View>
       
-      {/* Title if provided */}
       {title && (
         <Text style={{
-          fontFamily: 'Poppins',
+          fontSize: 16,
           fontWeight: '600',
-          fontSize: 20,
-          lineHeight: 16,
-          color: '#094327',
-          marginBottom: 16,
+          color: '#4A5568',
+          marginBottom: 12,
         }}>
           {title}
         </Text>
       )}
       
-      {/* Message Text */}
-      <Text style={{
-        fontFamily: 'Inter',
-        fontWeight: '400',
-        fontSize: 14,
-        lineHeight: 23,
-        color: '#242524',
-        marginBottom: products ? 20 : 0,
-      }}>
-        {message}
-      </Text>
-      
-      {/* Products Section */}
       {products && products.length > 0 && (
-        <ScrollView 
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ marginTop: 10 }}
+          contentContainerStyle={{ paddingRight: 20 }}
+          style={{ marginBottom: 16 }}
         >
           {products.map((product, index) => (
             <ProductCard
@@ -282,70 +230,99 @@ const AIMessage: React.FC<AIMessageProps> = ({ message, products, title }) => {
           ))}
         </ScrollView>
       )}
+      
+      <Text style={{
+        fontSize: 16,
+        lineHeight: 24,
+        color: '#2D3748',
+        marginBottom: 16,
+      }}>
+        {message}
+      </Text>
+      
+      {products && products.length > 0 && (
+        <TouchableOpacity style={{
+          backgroundColor: '#0B9E58',
+          borderRadius: 25,
+          paddingVertical: 12,
+          paddingHorizontal: 24,
+          alignSelf: 'flex-start',
+        }}>
+          <Text style={{
+            color: 'white',
+            fontSize: 16,
+            fontWeight: '600',
+          }}>
+            Add to cart with instructions
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
 
 // Chat Input Component
 const ChatInput: React.FC<{ onSend: (message: string) => void }> = ({ onSend }) => {
-  const [inputText, setInputText] = useState('');
-  
+  const [message, setMessage] = useState('');
+
+  const handleSend = () => {
+    if (message.trim()) {
+      onSend(message.trim());
+      setMessage('');
+    }
+  };
+
   return (
     <View style={{
-      backgroundColor: '#FAFFFB',
-      borderTopWidth: 1,
-      borderTopColor: '#EBEBEA',
-      paddingHorizontal: 5,
-      paddingVertical: 17,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: 'white',
+      borderTopWidth: 1,
+      borderTopColor: '#E2E8F0',
     }}>
-      {/* Text Input */}
       <View style={{
         flex: 1,
-        backgroundColor: '#F7F7F7',
-        borderRadius: 14,
+        backgroundColor: '#F7FAFC',
+        borderRadius: 25,
         paddingHorizontal: 16,
-        paddingVertical: 11,
+        paddingVertical: 12,
+        marginRight: 12,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
       }}>
-        <Text style={{
-          fontFamily: 'Inter',
-          fontWeight: '400',
-          fontSize: 16,
-          lineHeight: 26,
-          color: '#8C8D8B',
-        }}>
-          Ask Cribnosh
-        </Text>
+        <TextInput
+          value={message}
+          onChangeText={setMessage}
+          placeholder="Ask Cribnosh"
+          placeholderTextColor="#A0AEC0"
+          style={{
+            fontSize: 16,
+            color: '#2D3748',
+          }}
+          multiline
+        />
       </View>
       
-      {/* Send Button */}
       <TouchableOpacity
+        onPress={handleSend}
         style={{
-          width: 44,
-          height: 44,
-          backgroundColor: '#094327',
-          opacity: 0.5,
-          borderRadius: 22,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: '#0B9E58',
           justifyContent: 'center',
           alignItems: 'center',
         }}
-        onPress={() => {
-          if (inputText.trim()) {
-            onSend(inputText.trim());
-            setInputText('');
-          }
-        }}
       >
-        <Svg width={23} height={22} viewBox="0 0 24 24" fill="none">
+        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
           <Path
-            d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z"
-            fill="#E6FFE8"
-          />
-          <Path
-            d="M19 7L20.18 9.82L23 11L20.18 12.18L19 15L17.82 12.18L15 11L17.82 9.82L19 7Z"
-            fill="#E6FFE8"
+            d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </Svg>
       </TouchableOpacity>
@@ -353,31 +330,37 @@ const ChatInput: React.FC<{ onSend: (message: string) => void }> = ({ onSend }) 
   );
 };
 
-// Main AIChatDrawer Component
 interface AIChatDrawerProps {
   isVisible: boolean;
   onClose: () => void;
 }
 
+interface Message {
+  id: number;
+  type: 'user' | 'ai';
+  content: string;
+  products?: ProductCardProps[];
+  title?: string;
+}
+
 export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }) => {
-  const insets = useSafeAreaInsets();
-  
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     {
+      id: 1,
       type: 'user',
-      message: 'Just finished a workout — what should I eat to recover right?',
-      avatar: require('../../assets/images/adaptive-icon.png'), // Replace with actual avatar
+      content: 'Just finished a workout — what should I eat to recover right?'
     },
     {
+      id: 2,
       type: 'ai',
-      message: 'Alright, I\'ve found a few meals that match your vibe today — all under your calorie goal, no dairy, and still packed with flavor. Want something spicy or keep it mild?',
+      content: 'Alright, I\'ve found a few meals that match your vibe today — all under your calorie goal, no dairy, and still packed with flavor. Want something spicy or keep it mild?',
       title: 'I picked these for you',
       products: [
         {
           name: 'Hosomaki roll',
           price: '£19',
-          image: require('../../assets/images/cribnoshpackaging.png'), // Replace with actual images
-          badge: { text: 'Bussin', type: 'hot' as const },
+          image: require('../../assets/images/cribnoshpackaging.png'),
+          badge: { text: 'Bussin', type: 'hot' },
           hasFireEmoji: true,
         },
         {
@@ -389,199 +372,143 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
           name: 'Hosomaki roll',
           price: '£19',
           image: require('../../assets/images/cribnoshpackaging.png'),
-          badge: { text: 'Best fit', type: 'bestfit' as const },
+          badge: { text: 'Best fit', type: 'bestfit' },
         },
       ],
     },
     {
+      id: 3,
       type: 'user',
-      message: 'Make it something with grilled fish or turkey, lots of greens, maybe quinoa or sweet potatoes on the side. I want it balanced, high protein, clean, but not boring. No dairy, and please keep the oil light. Something I can eat and still feel sharp after.',
-      avatar: require('../../assets/images/adaptive-icon.png'),
+      content: 'Make it something with grilled fish or turkey, lots of greens, maybe quinoa or sweet potatoes on the side. I want it balanced, high protein, clean, but not boring. No dairy, and please keep the oil light. Something I can eat and still feel sharp after.'
     },
     {
+      id: 4,
       type: 'ai',
-      message: 'Got it. Here\'s what I\'m recommending based on what you asked for:\n\nGrilled herbed turkey with sautéed greens and roasted sweet potatoes on the side — clean, balanced, and flavorful. No dairy. Light on oil. High in protein, low on fuss',
+      content: 'Got it. Here\'s what I\'m recommending based on what you asked for:\n\nGrilled herbed turkey with sautéed greens and roasted sweet potatoes on the side — clean, balanced, and flavorful. No dairy. Light on oil. High in protein, low on fuss',
       title: 'Fine Selected for you',
       products: [
         {
           name: 'Hosomaki roll',
           price: '£19',
           image: require('../../assets/images/cribnoshpackaging.png'),
-          badge: { text: 'High Protein', type: 'highprotein' as const },
+          badge: { text: 'High Protein', type: 'highprotein' },
         },
       ],
-    },
+    }
   ]);
 
   const handleSendMessage = (message: string) => {
-    // Add user message and simulate AI response
-    setMessages(prev => [...prev, {
-      type: 'user',
-      message,
-      avatar: require('../../assets/images/adaptive-icon.png'),
-    }]);
+    if (message.trim()) {
+      const newMessage: Message = {
+        id: messages.length + 1,
+        type: 'user',
+        content: message
+      };
+      setMessages([...messages, newMessage]);
+      
+      // Simulate AI response
+      setTimeout(() => {
+        const aiResponse: Message = {
+          id: messages.length + 2,
+          type: 'ai',
+          content: 'Thanks for your message! I\'m here to help you discover amazing food options. What type of cuisine are you in the mood for today?'
+        };
+        setMessages(prev => [...prev, aiResponse]);
+      }, 1000);
+    }
   };
 
-  // Animation values for swipe back
-  const translateX = useSharedValue(0);
-  const opacity = useSharedValue(1);
-
-  // Swipe back gesture handler
-  const gestureHandler = useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
-    onStart: () => {
-      // Reset any previous animations
-    },
-    onActive: (event) => {
-      // Only allow swipe to the right (positive translationX)
-      if (event.translationX > 0) {
-        translateX.value = event.translationX;
-        // Reduce opacity as user swipes
-        opacity.value = Math.max(0.3, 1 - event.translationX / 300);
-      }
-    },
-    onEnd: (event) => {
-      const swipeThreshold = 100; // Minimum distance to trigger close
-      const velocityThreshold = 500; // Minimum velocity to trigger close
-      
-      if (event.translationX > swipeThreshold || event.velocityX > velocityThreshold) {
-        // Close the drawer
-        translateX.value = withSpring(400, { damping: 15 });
-        opacity.value = withSpring(0, { damping: 15 }, () => {
-          runOnJS(onClose)();
-        });
-      } else {
-        // Spring back to original position
-        translateX.value = withSpring(0);
-        opacity.value = withSpring(1);
-      }
-    },
-  });
-
-  // Animated style for the drawer
-  const animatedStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      transform: [{ translateX: translateX.value }],
-      opacity: opacity.value,
-    };
-  });
-
-  if (!isVisible) return null;
-
   return (
-    <PanGestureHandler onGestureEvent={gestureHandler}>
-      <Animated.View style={[{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+    <Modal
+      visible={isVisible}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={onClose}
+      statusBarTranslucent={true}
+      presentationStyle="fullScreen"
+    >
+      <View style={{
+        flex: 1,
         backgroundColor: '#FAFFFA',
-        borderTopLeftRadius: 48,
-        borderTopRightRadius: 48,
-        shadowColor: 'rgba(23, 26, 31, 0.12)',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 2,
-        elevation: 8,
-      }, animatedStyle]}>
-        {/* Header with Back Button */}
+        paddingTop: 50, // Account for status bar
+        zIndex: 99999, // High z-index but lower than bottom tabs (999999)
+      }}>
+        {/* Header */}
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: 20,
-          paddingTop: Math.max(insets.top + 15, 25), // Slightly more top padding since no handle
-          paddingBottom: 15,
+          paddingVertical: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: '#E2E8F0',
+          backgroundColor: '#FAFFFA',
         }}>
-          {/* Back Button */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#0B9E58',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 12,
+            }}>
+              <Text style={{ fontSize: 20, color: 'white' }}>🤖</Text>
+            </View>
+            <View>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '600',
+                color: '#1A202C',
+              }}>
+                Chat with CribNosh
+              </Text>
+              <Text style={{
+                fontSize: 14,
+                color: '#718096',
+                fontWeight: '400',
+              }}>
+                AI-powered dining recommendations
+              </Text>
+            </View>
+          </View>
+          
           <CancelButton 
             onPress={onClose}
             color="#094327"
             size={32}
             style={{ opacity: 0.8 }}
           />
-          
-          {/* Title */}
-          <Text style={{
-            fontFamily: 'Inter',
-            fontWeight: '600',
-            fontSize: 18,
-            color: '#094327',
-            flex: 1,
-            textAlign: 'center',
-            marginHorizontal: 20,
-          }}>
-            Chat with CribNosh
-          </Text>
-          
-          {/* Spacer for balance */}
-          <View style={{ width: 32 }} />
         </View>
 
-        {/* Chat Messages */}
-        <ScrollView 
+        {/* Messages */}
+        <ScrollView
           style={{ flex: 1 }}
+          contentContainerStyle={{ paddingVertical: 20 }}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ 
-            paddingBottom: 20,
-            paddingTop: 10, // Add some top padding since handle is removed
-          }}
         >
-          {messages.map((msg, index) => (
-            msg.type === 'user' ? (
-              <UserMessage
-                key={index}
-                message={msg.message}
-                avatar={msg.avatar}
-              />
-            ) : (
-              <AIMessage
-                key={index}
-                message={msg.message}
-                title={msg.title}
-                products={msg.products}
-              />
-            )
+          {messages.map((message) => (
+            <View key={message.id}>
+              {message.type === 'user' ? (
+                <UserMessage
+                  message={message.content}
+                  avatar={require('../../assets/images/adaptive-icon.png')}
+                />
+              ) : (
+                <AIMessage
+                  message={message.content}
+                  products={message.products}
+                  title={message.title}
+                />
+              )}
+            </View>
           ))}
         </ScrollView>
 
-        {/* Add to Cart Button */}
-        <View style={{
-          paddingHorizontal: 33,
-          paddingBottom: 16,
-        }}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#094327',
-              borderRadius: 30,
-              paddingVertical: 10,
-              paddingHorizontal: 20,
-            }}
-          >
-            <Text style={{
-              fontFamily: 'Lato',
-              fontWeight: '700',
-              fontSize: 15,
-              lineHeight: 22,
-              textAlign: 'center',
-              letterSpacing: 0.03,
-              color: '#E6FFE8',
-            }}>
-              Add to cart with instructions
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Chat Input - positioned to be flush with bottom navigation */}
-        <View style={{
-          paddingBottom: insets.bottom - 90, // Subtract 90px from safe area bottom
-        }}>
-          <ChatInput onSend={handleSendMessage} />
-        </View>
-      </Animated.View>
-    </PanGestureHandler>
+        {/* Chat Input */}
+        <ChatInput onSend={handleSendMessage} />
+      </View>
+    </Modal>
   );
-};
-
-export default AIChatDrawer; 
+}; 

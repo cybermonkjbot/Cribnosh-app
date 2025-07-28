@@ -8,27 +8,41 @@ interface FoodItem {
   description: string;
   price: number;
   imageUrl?: string;
+  rating?: number;
+  prepTime?: string;
+  isPopular?: boolean;
 }
 
 interface CategoryFoodItemsGridProps {
   title?: string;
+  subtitle?: string;
   items: FoodItem[];
   onAddToCart?: (id: string) => void;
   onItemPress?: (id: string) => void;
   showShadow?: boolean;
+  showRatings?: boolean;
+  showPrepTime?: boolean;
 }
 
 export function CategoryFoodItemsGrid({
   title,
+  subtitle,
   items,
   onAddToCart,
   onItemPress,
-  showShadow = false
+  showShadow = false,
+  showRatings = false,
+  showPrepTime = false
 }: CategoryFoodItemsGridProps) {
   return (
     <View style={styles.container}>
       {title && (
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {subtitle && (
+            <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+          )}
+        </View>
       )}
       
       <View style={showShadow ? [styles.gridContainer, styles.gridContainerWithShadow] : styles.gridContainer}>
@@ -45,6 +59,9 @@ export function CategoryFoodItemsGrid({
                 description={item.description}
                 price={item.price}
                 imageUrl={item.imageUrl}
+                rating={showRatings ? item.rating : undefined}
+                prepTime={showPrepTime ? item.prepTime : undefined}
+                isPopular={item.isPopular}
                 onAddToCart={onAddToCart}
                 onPress={onItemPress}
               />
@@ -58,31 +75,41 @@ export function CategoryFoodItemsGrid({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 30,
+    marginBottom: 28,
+  },
+  titleContainer: {
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#094327',
-    lineHeight: 22,
-    letterSpacing: 0.03,
-    marginBottom: 14,
+    lineHeight: 26,
+    letterSpacing: -0.02,
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#6B7280',
+    lineHeight: 18,
+    letterSpacing: -0.01,
   },
   gridContainer: {
-    minHeight: 233,
+    minHeight: 240,
   },
   gridContainerWithShadow: {
     shadowColor: '#FF3B30',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 55,
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
     elevation: 8,
   },
   scrollContent: {
     paddingHorizontal: 0,
-    gap: 20,
+    gap: 16,
   },
   itemWrapper: {
-    marginRight: 20,
+    marginRight: 16,
   },
 }); 

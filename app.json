@@ -26,6 +26,7 @@
     "plugins": [
       "expo-router",
       "expo-av",
+      "expo-sensors",
       [
         "expo-splash-screen",
         {
@@ -45,6 +46,57 @@
         "projectId": "d256305c-b35f-4d85-9cec-e7780dcdf801"
       }
     },
-    "owner": "cribnosh"
+    "owner": "cribnosh",
+    "fonts": [
+      {
+        "asset": "./assets/fonts/ProtestStrike-Regular.ttf",
+        "family": "Protest Strike"
+      },
+      {
+        "asset": "./assets/fonts/Poppins-Regular.ttf",
+        "family": "Poppins"
+      },
+      {
+        "asset": "./assets/fonts/Poppins-SemiBold.ttf",
+        "family": "Poppins",
+        "weight": "600"
+      },
+      {
+        "asset": "./assets/fonts/Poppins-Bold.ttf",
+        "family": "Poppins",
+        "weight": "700"
+      },
+      {
+        "asset": "./assets/fonts/SFPro-Regular.ttf",
+        "family": "SF Pro"
+      },
+      {
+        "asset": "./assets/fonts/SFPro-Medium.ttf",
+        "family": "SF Pro",
+        "weight": "500"
+      },
+      {
+        "asset": "./assets/fonts/SFPro-SemiBold.ttf",
+        "family": "SF Pro",
+        "weight": "600"
+      },
+      {
+        "asset": "./assets/fonts/SFPro-Bold.ttf",
+        "family": "SF Pro",
+        "weight": "700"
+      },
+      {
+        "asset": "./assets/fonts/ADLaMDisplay-Regular.ttf",
+        "family": "ADLaM Display"
+      },
+      {
+        "asset": "./assets/fonts/Lato-Regular.ttf",
+        "family": "Lato"
+      },
+      {
+        "asset": "./assets/fonts/SpaceMono-Regular.ttf",
+        "family": "Space Mono"
+      }
+    ]
   }
 }

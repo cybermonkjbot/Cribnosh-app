@@ -9,6 +9,9 @@ interface FoodItem {
   description: string;
   price: number;
   imageUrl?: string;
+  rating?: number;
+  prepTime?: string;
+  isPopular?: boolean;
 }
 
 interface TakeawayCategoryDrawerProps {
@@ -28,73 +31,127 @@ export function TakeawayCategoryDrawer({
   onAddToCart,
   onItemPress
 }: TakeawayCategoryDrawerProps) {
-  // Default items for demonstration
+  // Enhanced default items with more realistic data
   const defaultItems: FoodItem[] = [
     {
       id: '1',
-      title: 'Chicken burger',
-      description: '100 gr chicken + tomato + cheese Lettuce',
-      price: 20.00,
-      imageUrl: undefined,
+      title: 'Classic Chicken Burger',
+      description: 'Grilled chicken breast, fresh lettuce, tomato, and special sauce',
+      price: 12.99,
+      rating: 4.8,
+      prepTime: '15-20 min',
+      isPopular: true,
+      imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&h=200&fit=crop'
     },
     {
       id: '2',
-      title: 'Chicken burger',
-      description: '100 gr chicken + tomato + cheese Lettuce',
-      price: 20.00,
-      imageUrl: undefined,
+      title: 'Veggie Delight Wrap',
+      description: 'Fresh vegetables, hummus, and tahini in whole wheat wrap',
+      price: 9.99,
+      rating: 4.6,
+      prepTime: '10-15 min',
+      isPopular: false,
+      imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop'
     },
     {
       id: '3',
-      title: 'Chicken burger',
-      description: '100 gr chicken + tomato + cheese Lettuce',
-      price: 20.00,
-      imageUrl: undefined,
+      title: 'Spicy Beef Tacos',
+      description: 'Seasoned beef, salsa, guacamole, and fresh cilantro',
+      price: 14.99,
+      rating: 4.9,
+      prepTime: '20-25 min',
+      isPopular: true,
+      imageUrl: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=200&h=200&fit=crop'
+    },
+    {
+      id: '4',
+      title: 'Mediterranean Salad',
+      description: 'Mixed greens, olives, feta, cucumber, and balsamic dressing',
+      price: 11.99,
+      rating: 4.7,
+      prepTime: '8-12 min',
+      isPopular: false,
+      imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200&h=200&fit=crop'
+    },
+    {
+      id: '5',
+      title: 'Teriyaki Salmon Bowl',
+      description: 'Grilled salmon, steamed rice, vegetables, and teriyaki glaze',
+      price: 18.99,
+      rating: 4.9,
+      prepTime: '25-30 min',
+      isPopular: true,
+      imageUrl: 'https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f?w=200&h=200&fit=crop'
     },
   ];
 
   const displayAllAvailable = allAvailableItems.length > 0 ? allAvailableItems : defaultItems;
-  const displayBestRated = bestRatedItems.length > 0 ? bestRatedItems : defaultItems;
+  const displayBestRated = bestRatedItems.length > 0 ? bestRatedItems : defaultItems.slice(0, 3);
+  const displayOrderAgain = defaultItems.slice(2, 5);
 
-  // Default filter chips
+  // Enhanced filter chips with better categorization
   const filterChips = [
+    { id: 'all', label: 'All', icon: 'grid' },
     { id: 'vegan', label: 'Vegan', icon: 'leaf' },
     { id: 'spicy', label: 'Spicy', icon: 'flame' },
-    { id: 'keto', label: 'Keto', icon: 'egg' },
-    { id: 'gluten-free', label: 'Gluten Free', icon: 'nutrition' },
+    { id: 'quick', label: 'Quick', icon: 'flash' },
+    { id: 'healthy', label: 'Healthy', icon: 'heart' },
+    { id: 'popular', label: 'Popular', icon: 'star' },
   ];
 
   return (
     <CategoryFullDrawer
       categoryName={categoryName}
+      categoryDescription="Fresh, delicious takeaway options from the best local kitchens"
       onBack={onBack}
       filterChips={filterChips}
       activeFilters={[]}
+      searchPlaceholder="Search takeaway options..."
     >
       <View style={styles.content}>
-        {/* All Available Section */}
+        {/* Popular & Quick Section */}
         <CategoryFoodItemsGrid
-          title="All Available"
-          items={displayAllAvailable}
+          title="🔥 Popular & Quick"
+          subtitle="Most ordered items, ready in 15 minutes"
+          items={displayAllAvailable.filter(item => item.isPopular)}
           onAddToCart={onAddToCart}
           onItemPress={onItemPress}
           showShadow={true}
+          showRatings={true}
+          showPrepTime={true}
+        />
+
+        {/* All Available Section */}
+        <CategoryFoodItemsGrid
+          title="🍽️ All Available"
+          subtitle="Complete menu from local kitchens"
+          items={displayAllAvailable}
+          onAddToCart={onAddToCart}
+          onItemPress={onItemPress}
+          showRatings={true}
+          showPrepTime={true}
         />
 
         {/* Best Rated Section */}
         <CategoryFoodItemsGrid
-          title="Best Rated Takeaway's"
+          title="⭐ Best Rated"
+          subtitle="Highest rated by our community"
           items={displayBestRated}
           onAddToCart={onAddToCart}
           onItemPress={onItemPress}
+          showRatings={true}
+          showPrepTime={true}
         />
 
         {/* Order Again Section */}
         <CategoryFoodItemsGrid
-          title="Order Again"
-          items={displayAllAvailable}
+          title="🔄 Order Again"
+          subtitle="Your previous favorites"
+          items={displayOrderAgain}
           onAddToCart={onAddToCart}
           onItemPress={onItemPress}
+          showRatings={true}
+          showPrepTime={true}
         />
       </View>
     </CategoryFullDrawer>
@@ -104,6 +161,5 @@ export function TakeawayCategoryDrawer({
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingTop: 20,
   },
 }); 

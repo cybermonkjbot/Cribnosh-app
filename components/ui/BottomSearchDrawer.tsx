@@ -808,6 +808,8 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                       <SearchArea 
                         ref={searchInputRef}
                         onSparklesPress={onOpenAIChat}
+                        placeholder="I want to eat Eba"
+                        editable={false}
                       />
                     </Animated.View>
                   </TouchableOpacity>

@@ -33,6 +33,14 @@ export function CategoryFullFilterChips({
         return 'egg';
       case 'gluten-free':
         return 'nutrition';
+      case 'quick':
+        return 'flash';
+      case 'healthy':
+        return 'heart';
+      case 'popular':
+        return 'star';
+      case 'all':
+        return 'grid';
       default:
         return undefined;
     }
@@ -59,8 +67,8 @@ export function CategoryFullFilterChips({
               {iconName && (
                 <Ionicons
                   name={iconName as any}
-                  size={12}
-                  color="#094327"
+                  size={14}
+                  color={isActive ? '#FFFFFF' : '#6B7280'}
                   style={styles.chipIcon}
                 />
               )}
@@ -77,7 +85,7 @@ export function CategoryFullFilterChips({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   scrollContent: {
     paddingHorizontal: 0,
@@ -86,30 +94,37 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 30,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    minHeight: 29,
+    paddingVertical: 10,
+    minHeight: 36,
     gap: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   chipActive: {
-    backgroundColor: 'rgba(9, 67, 39, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(9, 67, 39, 0.3)',
+    backgroundColor: '#FF3B30',
+    borderColor: '#FF3B30',
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   chipIcon: {
     marginRight: 2,
   },
   chipText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#094327',
-    lineHeight: 22,
-    letterSpacing: 0.03,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    lineHeight: 18,
+    letterSpacing: -0.01,
     textAlign: 'center',
   },
   chipTextActive: {
-    color: '#094327',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 }); 

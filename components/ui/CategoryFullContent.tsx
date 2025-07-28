@@ -13,6 +13,8 @@ export function CategoryFullContent({ children }: CategoryFullContentProps) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         bounces={true}
+        overScrollMode="never"
+        nestedScrollEnabled={true}
       >
         {children}
       </ScrollView>
@@ -28,6 +30,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 32,
   },
 }); 

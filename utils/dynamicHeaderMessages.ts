@@ -126,7 +126,7 @@ function getTimePeriodMessages(timePeriod: string, userName: string): HeaderMess
     },
     morning: {
       greeting: `Good morning, ${userName}`,
-      mainMessage: "Fresh start,\nfresh food!",
+      mainMessage: "Fresh start,\nExp. in 30 Min!",
       subMessage: "What will fuel your day?"
     },
     afternoon: {

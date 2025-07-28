@@ -21,3 +21,7 @@ export { CategoryFullHeader } from './CategoryFullHeader';
 export { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
 export { TooFreshToWasteDrawer } from './TooFreshToWasteDrawer';
 
+// Export Meal Details components
+export { MealItemDetails } from './MealItemDetails';
+export * from './MealItemDetails/index';
+

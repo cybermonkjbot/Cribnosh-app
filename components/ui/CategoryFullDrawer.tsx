@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryFullContent } from './CategoryFullContent';
 import { CategoryFullFilterChips } from './CategoryFullFilterChips';
@@ -41,25 +42,41 @@ export function CategoryFullDrawer({
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
-          <CategoryFullHeader
-            categoryName={categoryName}
-            categoryDescription={categoryDescription}
-            onBack={onBack}
-            selectedSegment={selectedSegment}
-            onSegmentChange={onSegmentChange}
-            onSearch={onSearch}
-            searchPlaceholder={searchPlaceholder}
-          />
-          
-          <CategoryFullFilterChips
-            chips={filterChips}
-            activeFilters={activeFilters}
-            onFilterChange={onFilterChange}
-          />
-          
+        {/* Sticky Search Bar Only */}
+        <View style={styles.stickySearch}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={17} color="rgba(60, 60, 67, 0.6)" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={searchPlaceholder}
+              placeholderTextColor="rgba(60, 60, 67, 0.6)"
+              onChangeText={onSearch}
+            />
+          </View>
+        </View>
+        
+        {/* Scrollable Content Section (includes header and filter chips) */}
+        <View style={styles.scrollableContent}>
           <CategoryFullContent>
-            {children}
+            <View style={styles.contentPadding}>
+              <CategoryFullHeader
+                categoryName={categoryName}
+                categoryDescription={categoryDescription}
+                onBack={onBack}
+                selectedSegment={selectedSegment}
+                onSegmentChange={onSegmentChange}
+              />
+              
+              {filterChips.length > 0 && (
+                <CategoryFullFilterChips
+                  chips={filterChips}
+                  activeFilters={activeFilters}
+                  onFilterChange={onFilterChange}
+                />
+              )}
+              
+              {children}
+            </View>
           </CategoryFullContent>
         </View>
       </SafeAreaView>
@@ -75,14 +92,50 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     backgroundColor: '#FAFFFA',
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
   safeArea: {
     flex: 1,
   },
-  content: {
+  stickySearch: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FAFFFA',
+    zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
     flex: 1,
-    paddingHorizontal: 24,
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#1F2937',
+    lineHeight: 20,
+    letterSpacing: -0.01,
+  },
+  scrollableContent: {
+    flex: 1,
+  },
+  contentPadding: {
+    paddingHorizontal: 20,
   },
 }); 

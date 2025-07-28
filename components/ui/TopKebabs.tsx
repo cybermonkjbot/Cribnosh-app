@@ -8,6 +8,10 @@ interface Kebab {
   image: string;
 }
 
+interface TopKebabsProps {
+  onOpenDrawer?: () => void;
+}
+
 const kebabs: Kebab[] = [
   {
     id: '1',
@@ -26,7 +30,7 @@ const kebabs: Kebab[] = [
   },
 ];
 
-export function TopKebabs() {
+export function TopKebabs({ onOpenDrawer }: TopKebabsProps) {
   return (
     <View style={{ paddingVertical: 20 }}>
       <View style={{ 
@@ -39,7 +43,7 @@ export function TopKebabs() {
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           From Top Kebabs
         </Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onOpenDrawer}>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
         </TouchableOpacity>
       </View>

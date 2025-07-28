@@ -1,11 +1,12 @@
 import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, View } from 'react-native';
+import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AIChatDrawer } from './AIChatDrawer';
 import { BottomSearchDrawer } from './BottomSearchDrawer';
 import { CategoryFilterChips } from './CategoryFilterChips';
+import { CategoryFullDrawer } from './CategoryFullDrawer';
 import { CuisineCategoriesSection } from './CuisineCategoriesSection';
 import { CuisinesSection } from './CuisinesSection';
 import { NoshHeavenErrorBoundary } from './ErrorBoundary';
@@ -14,22 +15,26 @@ import { FeaturedKitchensSection } from './FeaturedKitchensSection';
 import { Header } from './Header';
 import { KitchensNearMe } from './KitchensNearMe';
 import { LiveContent } from './LiveContent';
+import { MealItemDetails } from './MealItemDetails';
 import { MultiStepLoader } from './MultiStepLoader';
 import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';
 import { OrderAgainSection } from './OrderAgainSection';
 import { usePerformanceOptimizations } from './PerformanceMonitor';
 import { PopularMealsSection } from './PopularMealsSection';
 import { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
+import { ShakeToEatFlow } from './ShakeToEatFlow';
 import { SpecialOffersSection } from './SpecialOffersSection';
+import { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
 import { TakeAways } from './TakeAways';
 import { TooFreshToWaste } from './TooFreshToWaste';
+import { TooFreshToWasteDrawer } from './TooFreshToWasteDrawer';
 import { TopKebabs } from './TopKebabs';
 
 // Mock data for Nosh Heaven meals
 const mockMealData: MealData[] = [
   {
     id: '1',
-    videoSource: 'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
+    videoSource: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     title: 'Nigerian Jollof Rice',
     description: 'Authentic Nigerian Jollof Rice with perfectly seasoned long grain rice, tender chicken, and a blend of West African spices. Made with love by Chef Amara.',
     kitchenName: 'Amara\'s Kitchen',
@@ -51,7 +56,7 @@ const mockMealData: MealData[] = [
   },
   {
     id: '3',
-    videoSource: 'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
+    videoSource: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     title: 'Mediterranean Lamb Tagine',
     description: 'Slow-cooked lamb tagine with apricots, almonds, and warming Moroccan spices. Served with fluffy couscous and fresh herbs.',
     kitchenName: 'Marrakech Delights',
@@ -73,7 +78,7 @@ const mockMealData: MealData[] = [
   },
   {
     id: '5',
-    videoSource: 'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
+    videoSource: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     title: 'Italian Truffle Risotto',
     description: 'Creamy Arborio rice risotto with black truffle shavings, wild mushrooms, and aged Parmesan. A luxurious comfort food experience.',
     kitchenName: 'Nonna\'s Table',
@@ -297,7 +302,7 @@ const mockOffers = [
 
 export function MainScreen() {
   const insets = useSafeAreaInsets();
-  const { activeHeaderTab, activeCategoryFilter, getFilteredContent } = useAppContext();
+  const { activeHeaderTab, activeCategoryFilter, getFilteredContent, registerScrollToTopCallback } = useAppContext();
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -305,6 +310,16 @@ export function MainScreen() {
   const [refreshCount, setRefreshCount] = useState(0);
   const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>(mockMealData);
+  
+  // Category drawer state management
+  const [activeDrawer, setActiveDrawer] = useState<'takeaway' | 'tooFresh' | 'topKebabs' | null>(null);
+  
+  // Shake to Eat state management
+  const [isShakeToEatVisible, setIsShakeToEatVisible] = useState(false);
+  
+  // Meal Details state management
+  const [selectedMeal, setSelectedMeal] = useState<any>(null);
+  const [isMealDetailsVisible, setIsMealDetailsVisible] = useState(false);
   
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
@@ -324,6 +339,38 @@ export function MainScreen() {
   const pullStartY = useRef(0);
   const pullThreshold = 60; // Further reduced threshold for immediate activation
   const velocityThreshold = 300; // Further reduced velocity threshold for faster response
+
+  // Register scroll-to-top callback
+  useEffect(() => {
+    const scrollToTop = () => {
+      if (scrollViewRef.current) {
+        // Scroll to top with animation
+        scrollViewRef.current.scrollTo({ y: 0, animated: true });
+        
+        // Reset header to normal state
+        setIsHeaderSticky(false);
+        Animated.parallel([
+          Animated.timing(stickyHeaderOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(normalHeaderOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(categoryChipsOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+    };
+
+    registerScrollToTopCallback(scrollToTop);
+  }, [registerScrollToTopCallback]);
 
   // Cleanup effect to reset states and prevent crashes
   useEffect(() => {
@@ -481,6 +528,25 @@ export function MainScreen() {
 
   const handleCloseAIChat = () => {
     setIsChatVisible(false);
+  };
+
+  // Shake to Eat handlers
+  const handleShakeToEatLaunch = (prompt: string) => {
+    console.log('🎯 Shake to Eat: AI Chat launching with prompt:', prompt);
+    // Close shake to eat and open AI chat with the generated prompt
+    setIsShakeToEatVisible(false);
+    setIsChatVisible(true);
+    // You can pass the prompt to your AI chat component here
+  };
+
+  const handleShakeToEatClose = () => {
+    setIsShakeToEatVisible(false);
+  };
+
+  // Auto-show ShakeToEatFlow when it starts (triggered by shake)
+  const handleShakeToEatStart = () => {
+    console.log('🎯 Shake to Eat: Auto-showing flow');
+    setIsShakeToEatVisible(true);
   };
 
   // Enhanced scroll handler with intentional pull detection
@@ -721,12 +787,62 @@ export function MainScreen() {
 
   const handleMealPress = useCallback((meal: any) => {
     console.log('View meal:', meal.name);
-    // In a real app, this would navigate to meal details
+    // Convert meal data to MealItemDetails format
+    const mealData = {
+      title: meal.name,
+      description: `Delicious ${meal.name} from ${meal.kitchen}. Experience authentic flavors crafted with the finest ingredients and traditional cooking methods.`,
+      price: parseInt(meal.price.replace('£', '')) * 100, // Convert to cents
+      imageUrl: meal.image?.uri,
+      kitchenName: meal.kitchen,
+      kitchenAvatar: undefined,
+      calories: Math.floor(Math.random() * 500) + 300, // Random calories between 300-800
+      fat: `${Math.floor(Math.random() * 20) + 5}g`,
+      protein: `${Math.floor(Math.random() * 30) + 10}g`,
+      carbs: `${Math.floor(Math.random() * 50) + 20}g`,
+      dietCompatibility: Math.floor(Math.random() * 40) + 60, // Random percentage 60-100
+      dietMessage: 'Great choice for your current diet goals',
+      ingredients: [
+        'Fresh ingredients',
+        'Premium spices',
+        'Traditional herbs',
+        'Authentic seasonings'
+      ]
+    };
+    
+    setSelectedMeal({ id: meal.id, data: mealData });
+    setIsMealDetailsVisible(true);
   }, []);
 
   const handleOfferPress = useCallback((offer: any) => {
     console.log('View offer:', offer.title);
     // In a real app, this would navigate to offer details
+  }, []);
+
+  // Category drawer handlers
+  const handleOpenTakeawayDrawer = useCallback(() => {
+    setActiveDrawer('takeaway');
+  }, []);
+
+  const handleOpenTooFreshDrawer = useCallback(() => {
+    setActiveDrawer('tooFresh');
+  }, []);
+
+  const handleOpenTopKebabsDrawer = useCallback(() => {
+    setActiveDrawer('topKebabs');
+  }, []);
+
+  const handleCloseDrawer = useCallback(() => {
+    setActiveDrawer(null);
+  }, []);
+
+  const handleDrawerAddToCart = useCallback((id: string) => {
+    console.log('Added to cart from drawer:', id);
+    // In a real app, this would add the item to cart
+  }, []);
+
+  const handleDrawerItemPress = useCallback((id: string) => {
+    console.log('Item pressed in drawer:', id);
+    // In a real app, this would navigate to item details
   }, []);
 
   // Simplified pull trigger component - render immediately
@@ -841,6 +957,8 @@ export function MainScreen() {
           <CategoryFilterChips />
         </Animated.View>
 
+
+
         {activeHeaderTab === 'for-you' ? (
           <ScrollView
             ref={scrollViewRef}
@@ -848,7 +966,7 @@ export function MainScreen() {
             bounces={true}
             alwaysBounceVertical={true}
             contentContainerStyle={{ 
-              paddingBottom: 100, // Reduced padding to allow overscroll detection
+              paddingBottom: 300, // Increased padding for better bottom spacing
               paddingTop: isHeaderSticky ? 0 : 282, // When header is sticky (positioned absolutely), no padding needed. When not sticky (at rest), add padding for header height
             }}
             refreshControl={
@@ -884,9 +1002,9 @@ export function MainScreen() {
               <PopularMealsSection meals={mockMeals} onMealPress={handleMealPress} />
               <SpecialOffersSection offers={mockOffers} onOfferPress={handleOfferPress} />
               <KitchensNearMe />
-              <TopKebabs />
-              <TakeAways />
-              <TooFreshToWaste />
+              <TopKebabs onOpenDrawer={handleOpenTopKebabsDrawer} />
+              <TakeAways onOpenDrawer={handleOpenTakeawayDrawer} />
+              <TooFreshToWaste onOpenDrawer={handleOpenTooFreshDrawer} />
               <EventBanner />
             </Animated.View>
           </ScrollView>
@@ -933,6 +1051,14 @@ export function MainScreen() {
           onClose={handleCloseAIChat}
         />
 
+        {/* Shake to Eat Flow - Always mounted to detect shakes */}
+        <ShakeToEatFlow
+          isVisible={isShakeToEatVisible}
+          onClose={handleShakeToEatClose}
+          onAIChatLaunch={handleShakeToEatLaunch}
+          onStart={handleShakeToEatStart}
+        />
+
       </LinearGradient>
 
       {/* Nosh Heaven Player - rendered at root level for true full-screen above everything except tabs */}
@@ -943,7 +1069,74 @@ export function MainScreen() {
       )}
 
       {/* Bottom Search Drawer */}
-      <BottomSearchDrawer />
+      <BottomSearchDrawer onOpenAIChat={handleOpenAIChat} />
+
+      {/* Category Drawers */}
+      <Modal
+        visible={activeDrawer !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseDrawer}
+        statusBarTranslucent={true}
+        hardwareAccelerated={true}
+      >
+        {activeDrawer === 'takeaway' && (
+          <TakeawayCategoryDrawer
+            categoryName="All Available Takeaway's"
+            onBack={handleCloseDrawer}
+            onAddToCart={handleDrawerAddToCart}
+            onItemPress={handleDrawerItemPress}
+          />
+        )}
+        {activeDrawer === 'tooFresh' && (
+          <TooFreshToWasteDrawer
+            onBack={handleCloseDrawer}
+            onAddToCart={handleDrawerAddToCart}
+            onItemPress={handleDrawerItemPress}
+          />
+        )}
+        {activeDrawer === 'topKebabs' && (
+          <CategoryFullDrawer
+            categoryName="From Top Kebabs"
+            categoryDescription="Discover the best kebabs from top-rated kitchens in your area"
+            onBack={handleCloseDrawer}
+            filterChips={[
+              { id: 'italian', label: 'Italian' },
+              { id: 'mexican', label: 'Mexican' },
+              { id: 'french', label: 'French' },
+              { id: 'turkish', label: 'Turkish' },
+            ]}
+            activeFilters={[]}
+          >
+            <View style={{ flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, color: '#094327', textAlign: 'center' }}>
+                Top Kebabs content will be displayed here with filtering options
+              </Text>
+            </View>
+          </CategoryFullDrawer>
+        )}
+      </Modal>
+
+      {/* Add MealItemDetails Modal */}
+      <Modal
+        visible={isMealDetailsVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsMealDetailsVisible(false)}
+      >
+        {selectedMeal && (
+          <MealItemDetails
+            mealId={selectedMeal.id}
+            mealData={selectedMeal.data}
+            onBack={() => setIsMealDetailsVisible(false)}
+            onAddToCart={(mealId, quantity) => {
+              console.log(`Added ${quantity} of ${mealId} to cart`);
+              // Handle add to cart logic here
+              setIsMealDetailsVisible(false);
+            }}
+          />
+        )}
+      </Modal>
     </View>
   );
 } 

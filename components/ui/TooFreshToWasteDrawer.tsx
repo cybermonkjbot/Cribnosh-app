@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
 interface TooFreshItem {
@@ -8,7 +8,11 @@ interface TooFreshItem {
   name: string;
   origin: string;
   price: number;
+  originalPrice?: number;
   imageUrl?: string;
+  category?: string;
+  discount?: number;
+  ecoImpact?: string;
 }
 
 interface TooFreshToWasteDrawerProps {
@@ -27,43 +31,102 @@ export function TooFreshToWasteDrawer({
   const defaultItems: TooFreshItem[] = [
     {
       id: '1',
-      name: 'Salmon Fillet',
-      origin: 'African',
-      price: 20.00,
-      imageUrl: undefined, // Will use placeholder
+      name: 'Fresh Salmon Fillet',
+      origin: 'Scottish Highlands',
+      price: 12.99,
+      originalPrice: 24.99,
+      category: 'Seafood',
+      discount: 48,
+      ecoImpact: 'Saves 2.3kg CO2',
+      imageUrl: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=200&h=200&fit=crop'
     },
     {
       id: '2',
-      name: 'Parsley Bunch',
-      origin: 'African',
-      price: 20.00,
-      imageUrl: undefined,
+      name: 'Organic Parsley Bunch',
+      origin: 'Local Farm',
+      price: 2.49,
+      originalPrice: 4.99,
+      category: 'Herbs',
+      discount: 50,
+      ecoImpact: 'Saves 0.8kg CO2',
+      imageUrl: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=200&h=200&fit=crop'
     },
     {
       id: '3',
-      name: 'Meat Cut',
-      origin: 'African',
-      price: 20.00,
-      imageUrl: undefined,
+      name: 'Premium Beef Cut',
+      origin: 'Grass-fed Farm',
+      price: 15.99,
+      originalPrice: 32.99,
+      category: 'Meat',
+      discount: 52,
+      ecoImpact: 'Saves 3.1kg CO2',
+      imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=200&fit=crop'
+    },
+    {
+      id: '4',
+      name: 'Artisan Bread Loaf',
+      origin: 'Local Bakery',
+      price: 3.99,
+      originalPrice: 7.99,
+      category: 'Bakery',
+      discount: 50,
+      ecoImpact: 'Saves 1.2kg CO2',
+      imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&h=200&fit=crop'
+    },
+    {
+      id: '5',
+      name: 'Fresh Berries Mix',
+      origin: 'Organic Farm',
+      price: 4.99,
+      originalPrice: 12.99,
+      category: 'Fruits',
+      discount: 62,
+      ecoImpact: 'Saves 1.8kg CO2',
+      imageUrl: 'https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=200&h=200&fit=crop'
     },
   ];
 
   const displayItems = items.length > 0 ? items : defaultItems;
+
+  const handleAddToCart = (id: string) => {
+    onAddToCart?.(id);
+  };
+
+  const handleItemPress = (id: string) => {
+    onItemPress?.(id);
+  };
 
   return (
     <CategoryFullDrawer
       categoryName="Too Fresh to Waste"
       categoryDescription="High-quality meals and groceries that didn't make it to full menu — still fresh, still delicious, priced to move. Good for you, good for the kitchen, great for the planet."
       onBack={onBack}
+      searchPlaceholder="Search eco-friendly items..."
     >
       <View style={styles.content}>
+        {/* Eco Impact Summary */}
+        <View style={styles.ecoSummary}>
+          <View style={styles.ecoIconContainer}>
+            <Ionicons name="leaf" size={20} color="#10B981" />
+          </View>
+          <View style={styles.ecoTextContainer}>
+            <Text style={styles.ecoTitle}>Eco Impact</Text>
+            <Text style={styles.ecoSubtitle}>Save 9.2kg CO2 with these items</Text>
+          </View>
+        </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
           {displayItems.map((item) => (
-            <View key={item.id} style={styles.itemContainer}>
+            <TouchableOpacity
+              key={item.id}
+              style={styles.itemContainer}
+              onPress={() => handleItemPress(item.id)}
+              activeOpacity={0.9}
+            >
               {/* Food Container */}
               <View style={styles.foodContainer}>
                 {item.imageUrl ? (
@@ -78,13 +141,27 @@ export function TooFreshToWasteDrawer({
                   </View>
                 )}
                 
+                {/* Discount Badge */}
+                {item.discount && (
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountText}>-{item.discount}%</Text>
+                  </View>
+                )}
+                
+                {/* Category Badge */}
+                {item.category && (
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryText}>{item.category}</Text>
+                  </View>
+                )}
+                
                 {/* Packaging Strip */}
                 <View style={styles.packagingStrip}>
                   <View style={styles.logoContainer}>
                     <View style={styles.logoIcon}>
-                      <Ionicons name="grid" size={12} color="#094327" />
+                      <Ionicons name="leaf" size={10} color="#10B981" />
                     </View>
-                    <Text style={styles.logoText}>Crib Nosh</Text>
+                    <Text style={styles.logoText}>Eco Fresh</Text>
                   </View>
                   <Text style={styles.packagingText}>FRESH FOOD CONTAINER</Text>
                 </View>
@@ -92,10 +169,35 @@ export function TooFreshToWasteDrawer({
               
               {/* Item Details */}
               <View style={styles.itemDetails}>
+                <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.originText}>{item.origin}</Text>
-                <Text style={styles.priceText}>£ {item.price.toFixed(2)}</Text>
+                
+                {/* Eco Impact */}
+                {item.ecoImpact && (
+                  <View style={styles.ecoImpactContainer}>
+                    <Ionicons name="leaf-outline" size={12} color="#10B981" />
+                    <Text style={styles.ecoImpactText}>{item.ecoImpact}</Text>
+                  </View>
+                )}
+                
+                {/* Price Section */}
+                <View style={styles.priceSection}>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.priceText}>£ {item.price.toFixed(2)}</Text>
+                    {item.originalPrice && (
+                      <Text style={styles.originalPriceText}>£ {item.originalPrice.toFixed(2)}</Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => handleAddToCart(item.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="add" size={16} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
@@ -106,27 +208,60 @@ export function TooFreshToWasteDrawer({
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingTop: 20,
+  },
+  ecoSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  ecoIconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#10B981',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  ecoTextContainer: {
+    flex: 1,
+  },
+  ecoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#065F46',
+    marginBottom: 2,
+  },
+  ecoSubtitle: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#047857',
   },
   scrollContent: {
     paddingHorizontal: 0,
-    gap: 20,
+    gap: 16,
   },
   itemContainer: {
+    width: 160,
     alignItems: 'center',
-    gap: 8,
   },
   foodContainer: {
-    width: 120,
-    height: 120,
+    width: 160,
+    height: 160,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
     overflow: 'hidden',
+    position: 'relative',
   },
   foodImage: {
     width: '100%',
@@ -139,17 +274,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  discountBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  discountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#094327',
+  },
   packagingStrip: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#10B981',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -160,32 +323,83 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 2,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: '600',
     color: '#FFFFFF',
   },
   packagingText: {
-    fontSize: 6,
+    fontSize: 8,
     fontWeight: '700',
-    color: '#000000',
+    color: '#FFFFFF',
   },
   itemDetails: {
-    alignItems: 'center',
+    width: '100%',
+    paddingTop: 12,
     gap: 4,
   },
-  originText: {
-    fontSize: 14,
+  itemName: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#094327',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  originText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  ecoImpactContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  ecoImpactText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#10B981',
+  },
+  priceSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  priceContainer: {
+    flex: 1,
   },
   priceText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#FF3B30',
+    color: '#10B981',
+    lineHeight: 22,
+  },
+  originalPriceText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+    lineHeight: 16,
+  },
+  addButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
 }); 

@@ -9,28 +9,32 @@ interface FreshItem {
   image: string;
 }
 
+interface TooFreshToWasteProps {
+  onOpenDrawer?: () => void;
+}
+
 const freshItems: FreshItem[] = [
   {
     id: '1',
-    name: 'Salmon',
-    cuisine: 'African',
-    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=120&h=160&fit=crop'
-  },
-  {
-    id: '2',
-    name: 'Broccoli',
-    cuisine: 'African', 
-    image: 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=120&h=160&fit=crop'
-  },
-  {
-    id: '3', 
-    name: 'Beef',
+    name: 'Salmon Fillet',
     cuisine: 'African',
     image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=120&h=160&fit=crop'
   },
+  {
+    id: '2',
+    name: 'Parsley Bunch',
+    cuisine: 'African',
+    image: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=120&h=160&fit=crop'
+  },
+  {
+    id: '3',
+    name: 'Meat Cut',
+    cuisine: 'African',
+    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=120&h=160&fit=crop'
+  },
 ];
 
-export function TooFreshToWaste() {
+export function TooFreshToWaste({ onOpenDrawer }: TooFreshToWasteProps) {
   return (
     <View style={{ paddingVertical: 20 }}>
       <View style={{ 
@@ -43,7 +47,7 @@ export function TooFreshToWaste() {
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           Eco Nosh
         </Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onOpenDrawer}>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
         </TouchableOpacity>
       </View>
@@ -76,7 +80,7 @@ export function TooFreshToWaste() {
                 contentFit="cover"
               />
               
-              {/* Fresh Food Container Badge */}
+              {/* Exp. in 30 Min Badge */}
               <View style={{ 
                 position: 'absolute', 
                 top: 8, 
@@ -101,7 +105,7 @@ export function TooFreshToWaste() {
                     textAlign: 'center',
                     lineHeight: 10
                   }}>
-                    FRESH FOOD{'\n'}CONTAINER
+                    Exp. in 30 Min{'\n'}CONTAINER
                   </Text>
                 </View>
               </View>

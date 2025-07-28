@@ -10,18 +10,22 @@ interface TakeAwayItem {
   image: string;
 }
 
+interface TakeAwaysProps {
+  onOpenDrawer?: () => void;
+}
+
 const takeAwayItems: TakeAwayItem[] = [
   {
     id: '1',
-    name: 'Chicken burger',
+    name: 'Chicken burger', 
     description: '100 gr chicken + tomato + cheese Lettuce',
     price: '£20.00',
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=180&h=120&fit=crop'
   },
   {
     id: '2',
-    name: 'Chicken burger',
-    description: '100 gr chicken + tomato + cheese Lettuce', 
+    name: 'Chicken burger', 
+    description: '100 gr chicken + tomato + cheese Lettuce',
     price: '£20.00',
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=180&h=120&fit=crop'
   },
@@ -34,7 +38,7 @@ const takeAwayItems: TakeAwayItem[] = [
   },
 ];
 
-export function TakeAways() {
+export function TakeAways({ onOpenDrawer }: TakeAwaysProps) {
   return (
     <View style={{ paddingVertical: 20 }}>
       <View style={{ 
@@ -47,7 +51,7 @@ export function TakeAways() {
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           Take away's
         </Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onOpenDrawer}>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
         </TouchableOpacity>
       </View>

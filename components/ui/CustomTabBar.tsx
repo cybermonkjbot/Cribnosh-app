@@ -1,6 +1,7 @@
+import { useAppContext } from '@/utils/AppContext';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import React from 'react';
+import React, { useRef } from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { CustomHomeIcon } from './CustomHomeIcon';
 import { CustomOrdersIcon } from './CustomOrdersIcon';
@@ -10,6 +11,36 @@ import { IconSymbol } from './IconSymbol';
 const { width } = Dimensions.get('window');
 
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { scrollToTop } = useAppContext();
+  const lastTapRef = useRef<number>(0);
+  const doubleTapDelay = 300; // milliseconds
+
+  const handleTabPress = (route: any, isFocused: boolean) => {
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: route.key,
+      canPreventDefault: true,
+    });
+
+    if (!isFocused && !event.defaultPrevented) {
+      navigation.navigate(route.name);
+    }
+
+    // Handle double-tap for home tab
+    if (route.name === 'index' && isFocused) {
+      const now = Date.now();
+      const timeDiff = now - lastTapRef.current;
+      
+      if (timeDiff < doubleTapDelay) {
+        // Double tap detected - scroll to top
+        scrollToTop();
+        lastTapRef.current = 0; // Reset to prevent triple tap
+      } else {
+        lastTapRef.current = now;
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       <BlurView intensity={80} tint="light" style={styles.blurContainer}>
@@ -23,15 +54,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
               const isFocused = state.index === index;
 
               const onPress = () => {
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-
-                if (!isFocused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
+                handleTabPress(route, isFocused);
               };
 
               const getIconName = () => {

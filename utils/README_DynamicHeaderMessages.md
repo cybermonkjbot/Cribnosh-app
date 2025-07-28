@@ -6,7 +6,7 @@ A comprehensive utility for generating contextual header messages based on time 
 
 ### 🕐 Time-Based Messages
 - **Early Morning (5-8 AM)**: "Rise and shine!" messages
-- **Morning (8-12 PM)**: "Fresh start, fresh food!" messages  
+- **Morning (8-12 PM)**: "Fresh start, Exp. in 30 Min!" messages  
 - **Afternoon (12-5 PM)**: "Afternoon energy boost!" messages
 - **Evening (5-9 PM)**: "Evening vibes!" messages
 - **Night (9-11 PM)**: "Night owl special!" messages
