@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 
 import { useShakeDetection } from '@/hooks/useShakeDetection';
+import { CONFIG } from '../../constants/config';
+import { Mascot } from '../Mascot';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -47,9 +49,16 @@ onStart?: () => void;
 }
 
 export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: ShakeToEatFlowProps) {
-const [currentStep, setCurrentStep] = useState<FlowStep>('idle');
+  // Early return if shake to eat is globally disabled
+  if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
+    return null;
+  }
+
+  const [currentStep, setCurrentStep] = useState<FlowStep>('idle');
 const [selectedMood, setSelectedMood] = useState<typeof MOODS[0] | null>(null);
 const [selectedMeal, setSelectedMeal] = useState<typeof SAMPLE_MEALS[0] | null>(null);
+const [isInCooldown, setIsInCooldown] = useState(false);
+const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 // Enhanced animation system with more states
 const masterOpacity = useRef(new Animated.Value(0)).current;
@@ -61,6 +70,8 @@ const glowOpacity = useRef(new Animated.Value(0)).current;
 const particleOpacity = useRef(new Animated.Value(0)).current;
 const energyScale = useRef(new Animated.Value(1)).current;
 const sparkleOpacity = useRef(new Animated.Value(0)).current;
+const shakeOverlayOpacity = useRef(new Animated.Value(0)).current;
+const shakeIconScale = useRef(new Animated.Value(1)).current;
 
 // Reset animations and state
 const resetAnimations = () => {
@@ -73,6 +84,8 @@ const resetAnimations = () => {
   particleOpacity.setValue(0);
   energyScale.setValue(1);
   sparkleOpacity.setValue(0);
+  shakeOverlayOpacity.setValue(0);
+  shakeIconScale.setValue(1);
 };
 
 // Reset step when modal closes
@@ -85,25 +98,84 @@ useEffect(() => {
   }
 }, [isVisible, currentStep]);
 
-// Shake detection with enhanced feedback
-const { isShaking, shakeCount } = useShakeDetection(() => {
-  console.log('🎯 Shake detected! Starting modern flow...');
+// Cleanup cooldown timeout on unmount
+useEffect(() => {
+  return () => {
+    if (cooldownTimeoutRef.current) {
+      clearTimeout(cooldownTimeoutRef.current);
+    }
+  };
+}, []);
+
+// Shake detection with enhanced feedback - now requires sustained shaking
+// Only active when in 'idle' state to prevent multiple shake processes
+const { isShaking, shakeCount, sustainedShakeProgress, isSustainedShaking } = useShakeDetection(() => {
+  console.log('🎯 Sustained shake completed! Starting modern flow...');
   
   // Progressive haptic feedback
   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 100);
   
-  if (currentStep === 'idle' && !isVisible) {
+  if (currentStep === 'idle') {
+    // Automatically show the modal when sustained shake is completed
     setCurrentStep('wake-up');
     startWakeUpAnimation();
     onStart?.();
   }
 }, { 
   cooldownMs: 3000,
-  debug: false,
+  debug: true, // Enable debug to see what's happening
   sensitivity: 'high',
-  threshold: 2
+  threshold: 0.2, // Lower threshold to be more sensitive based on debug logs
+  sustainedShakeDuration: 3000, // 3 seconds of sustained shaking required
+  interruptionGracePeriod: 1500, // 1.5 seconds grace period for interruptions
+  enabled: currentStep === 'idle' && !isInCooldown // Only enable shake detection when in idle state and not in cooldown
 });
+
+// Add haptic feedback during sustained shaking
+React.useEffect(() => {
+  if (isSustainedShaking && sustainedShakeProgress > 0) {
+    // Light haptic feedback every 25% progress
+    if (Math.floor(sustainedShakeProgress * 4) > Math.floor((sustainedShakeProgress - 0.01) * 4)) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }
+}, [isSustainedShaking, sustainedShakeProgress]);
+
+// Animate shake overlay
+React.useEffect(() => {
+  if (isSustainedShaking || isShaking) {
+    // Show overlay with animation
+    Animated.parallel([
+      Animated.timing(shakeOverlayOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.spring(shakeIconScale, {
+        toValue: 1.1,
+        tension: 100,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  } else {
+    // Hide overlay with animation
+    Animated.parallel([
+      Animated.timing(shakeOverlayOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(shakeIconScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }
+}, [isSustainedShaking, isShaking]);
 
 // Modern animation sequences
 const startWakeUpAnimation = () => {
@@ -376,9 +448,28 @@ const startAILaunchAnimation = () => {
   });
 };
 
+const startCooldown = () => {
+  console.log('⏰ Starting 20-second cooldown...');
+  setIsInCooldown(true);
+  
+  // Clear any existing timeout
+  if (cooldownTimeoutRef.current) {
+    clearTimeout(cooldownTimeoutRef.current);
+  }
+  
+  // Set 20-second cooldown
+  cooldownTimeoutRef.current = setTimeout(() => {
+    console.log('✅ Cooldown finished, shake detection re-enabled');
+    setIsInCooldown(false);
+    cooldownTimeoutRef.current = null;
+  }, 20000); // 20 seconds
+};
+
 const resetFlow = () => {
   setCurrentStep('idle');
   onClose();
+  // Start cooldown when flow completes
+  startCooldown();
 };
 
 const handleClose = () => {
@@ -905,9 +996,187 @@ return (
     {/* Always render shake detection */}
     <View style={{ position: 'absolute', width: 0, height: 0 }} />
 
+    {/* Cooldown Overlay - Shows when shake detection is disabled after flow completion */}
+    {isInCooldown && (
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9998,
+      }}>
+        <View style={{
+          backgroundColor: 'white',
+          borderRadius: 20,
+          padding: 30,
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 10,
+        }}>
+          {/* Mascot in satisfied state */}
+          <View style={{ marginBottom: 20 }}>
+            <Mascot emotion="satisfied" size={60} />
+          </View>
+          
+          {/* Cooldown Text */}
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '600',
+            color: '#094327',
+            marginBottom: 15,
+            textAlign: 'center',
+          }}>
+            Take a moment to enjoy your discovery! 🎉
+          </Text>
+          
+          <Text style={{
+            fontSize: 14,
+            color: '#687076',
+            textAlign: 'center',
+            marginBottom: 10,
+          }}>
+            Shake detection will be available again soon...
+          </Text>
+          
+          {/* Timer indicator */}
+          <View style={{
+            width: 200,
+            height: 6,
+            backgroundColor: '#E5E7EB',
+            borderRadius: 3,
+            overflow: 'hidden',
+          }}>
+            <View 
+              style={{
+                height: '100%',
+                backgroundColor: '#FF6B35',
+                borderRadius: 3,
+                width: '100%', // Will animate to show progress
+              }} 
+            />
+          </View>
+        </View>
+      </View>
+    )}
+
+        {/* Shake Progress Overlay - Shows during sustained shaking */}
+    {(isSustainedShaking || isShaking) && (
+      <Animated.View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999,
+        opacity: shakeOverlayOpacity,
+      }}>
+        <Animated.View style={{
+          backgroundColor: 'white',
+          borderRadius: 20,
+          padding: 30,
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 10,
+          transform: [{ scale: shakeIconScale }],
+        }}>
+          {/* Mascot with dynamic emotions */}
+          <Animated.View style={{
+            marginBottom: 20,
+            transform: [{ scale: shakeIconScale }],
+          }}>
+            <Mascot 
+              emotion={
+                !isSustainedShaking ? 'default' :
+                sustainedShakeProgress < 0.3 ? 'hungry' :
+                sustainedShakeProgress < 0.7 ? 'excited' :
+                'happy'
+              }
+              size={60}
+            />
+          </Animated.View>
+          
+          {/* Progress Text */}
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '600',
+            color: '#094327',
+            marginBottom: 15,
+            textAlign: 'center',
+          }}>
+            {isSustainedShaking ? 'Keep Shaking!' : 'Start Shaking!'}
+          </Text>
+          
+          {/* Grace Period Indicator */}
+          {isSustainedShaking && !isShaking && (
+            <Text style={{
+              fontSize: 14,
+              color: '#FF6B35',
+              textAlign: 'center',
+              marginBottom: 10,
+              fontStyle: 'italic',
+            }}>
+              ⏰ Resume shaking within 1.5s to continue...
+            </Text>
+          )}
+          
+          {/* Progress Bar */}
+          <View style={{
+            width: 200,
+            height: 8,
+            backgroundColor: '#E5E7EB',
+            borderRadius: 4,
+            overflow: 'hidden',
+            marginBottom: 10,
+          }}>
+            <View 
+              style={{
+                height: '100%',
+                backgroundColor: '#22C55E',
+                borderRadius: 4,
+                width: `${sustainedShakeProgress * 100}%`,
+              }} 
+            />
+          </View>
+          
+          {/* Progress Percentage */}
+          <Text style={{
+            fontSize: 14,
+            color: '#687076',
+            fontWeight: '500',
+          }}>
+            {Math.round(sustainedShakeProgress * 100)}% Complete
+          </Text>
+          
+          {/* Instructions */}
+          <Text style={{
+            fontSize: 12,
+            color: '#9CA3AF',
+            textAlign: 'center',
+            marginTop: 10,
+            lineHeight: 16,
+          }}>
+            Shake continuously for 3 seconds{'\n'}to discover your perfect meal
+          </Text>
+        </Animated.View>
+      </Animated.View>
+    )}
+
     {/* Modal with enhanced presentation */}
     <Modal
-      visible={isVisible && currentStep !== 'idle'}
+      visible={currentStep !== 'idle'}
       animationType="fade"
       transparent={false}
       onRequestClose={handleClose}

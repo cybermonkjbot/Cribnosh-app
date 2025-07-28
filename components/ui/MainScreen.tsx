@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CONFIG } from '../../constants/config';
 import { AIChatDrawer } from './AIChatDrawer';
 import { BottomSearchDrawer } from './BottomSearchDrawer';
 import { CategoryFilterChips } from './CategoryFilterChips';
@@ -11,8 +12,10 @@ import { CuisineCategoriesSection } from './CuisineCategoriesSection';
 import { CuisinesSection } from './CuisinesSection';
 import { NoshHeavenErrorBoundary } from './ErrorBoundary';
 import { EventBanner } from './EventBanner';
+import { FeaturedKitchensDrawer } from './FeaturedKitchensDrawer';
 import { FeaturedKitchensSection } from './FeaturedKitchensSection';
 import { Header } from './Header';
+import { KitchenMainScreen } from './KitchenMainScreen';
 import { KitchensNearMe } from './KitchensNearMe';
 import { LiveContent } from './LiveContent';
 import { MealItemDetails } from './MealItemDetails';
@@ -20,10 +23,13 @@ import { MultiStepLoader } from './MultiStepLoader';
 import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';
 import { OrderAgainSection } from './OrderAgainSection';
 import { usePerformanceOptimizations } from './PerformanceMonitor';
+import { PopularMealsDrawer } from './PopularMealsDrawer';
 import { PopularMealsSection } from './PopularMealsSection';
 import { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
+import { ShakeDebugger } from './ShakeDebugger';
 import { ShakeToEatFlow } from './ShakeToEatFlow';
 import { SpecialOffersSection } from './SpecialOffersSection';
+import { SustainabilityDrawer } from './SustainabilityDrawer';
 import { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
 import { TakeAways } from './TakeAways';
 import { TooFreshToWaste } from './TooFreshToWaste';
@@ -121,12 +127,22 @@ const mockCuisines = [
   },
 ];
 
-const mockKitchens = [
+const mockKitchens: Array<{
+  id: string;
+  name: string;
+  cuisine: string;
+  sentiment: 'bussing' | 'mid' | 'notIt' | 'fire' | 'slaps' | 'decent' | 'meh' | 'trash' | 'elite' | 'solid' | 'average' | 'skip';
+  deliveryTime: string;
+  distance: string;
+  image: any;
+  isLive?: boolean;
+  liveViewers?: number;
+}> = [
   {
     id: '1',
     name: 'Amara\'s Kitchen',
     cuisine: 'Nigerian',
-    rating: 4.8,
+    sentiment: 'elite',
     deliveryTime: '25 min',
     distance: '0.8 mi',
     image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop' },
@@ -137,7 +153,7 @@ const mockKitchens = [
     id: '2',
     name: 'Bangkok Bites',
     cuisine: 'Thai',
-    rating: 4.6,
+    sentiment: 'fire',
     deliveryTime: '30 min',
     distance: '1.2 mi',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
@@ -147,7 +163,7 @@ const mockKitchens = [
     id: '3',
     name: 'Marrakech Delights',
     cuisine: 'Moroccan',
-    rating: 4.7,
+    sentiment: 'slaps',
     deliveryTime: '35 min',
     distance: '1.5 mi',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
@@ -158,7 +174,7 @@ const mockKitchens = [
     id: '4',
     name: 'Seoul Street',
     cuisine: 'Korean',
-    rating: 4.5,
+    sentiment: 'solid',
     deliveryTime: '28 min',
     distance: '1.0 mi',
     image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
@@ -168,7 +184,7 @@ const mockKitchens = [
     id: '5',
     name: 'Nonna\'s Table',
     cuisine: 'Italian',
-    rating: 4.9,
+    sentiment: 'bussing',
     deliveryTime: '32 min',
     distance: '1.3 mi',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
@@ -178,16 +194,48 @@ const mockKitchens = [
     id: '6',
     name: 'Tokyo Dreams',
     cuisine: 'Japanese',
-    rating: 4.4,
+    sentiment: 'decent',
     deliveryTime: '22 min',
     distance: '0.6 mi',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
     isLive: true,
     liveViewers: 234,
   },
+  {
+    id: '7',
+    name: 'Mumbai Spice',
+    cuisine: 'Indian',
+    sentiment: 'average',
+    deliveryTime: '40 min',
+    distance: '1.8 mi',
+    image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
+    isLive: false,
+  },
+  {
+    id: '8',
+    name: 'Parisian Bistro',
+    cuisine: 'French',
+    sentiment: 'mid',
+    deliveryTime: '45 min',
+    distance: '2.1 mi',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
+    isLive: true,
+    liveViewers: 67,
+  },
 ];
 
-const mockMeals = [
+const mockMeals: Array<{
+  id: string;
+  name: string;
+  kitchen: string;
+  price: string;
+  originalPrice?: string;
+  image: any;
+  isPopular?: boolean;
+  isNew?: boolean;
+  sentiment: 'bussing' | 'mid' | 'notIt' | 'fire' | 'slaps' | 'decent' | 'meh' | 'trash' | 'elite' | 'solid' | 'average' | 'skip';
+  deliveryTime: string;
+}> = [
   {
     id: '1',
     name: 'Jollof Rice',
@@ -196,7 +244,7 @@ const mockMeals = [
     originalPrice: '£15',
     image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop' },
     isPopular: true,
-    rating: 4.8,
+    sentiment: 'elite',
     deliveryTime: '25 min',
   },
   {
@@ -206,7 +254,7 @@ const mockMeals = [
     price: '£14',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
     isNew: true,
-    rating: 4.6,
+    sentiment: 'fire',
     deliveryTime: '30 min',
   },
   {
@@ -216,7 +264,7 @@ const mockMeals = [
     price: '£18',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
     isPopular: true,
-    rating: 4.7,
+    sentiment: 'slaps',
     deliveryTime: '35 min',
   },
   {
@@ -225,7 +273,7 @@ const mockMeals = [
     kitchen: 'Seoul Street',
     price: '£16',
     image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
-    rating: 4.5,
+    sentiment: 'solid',
     deliveryTime: '28 min',
   },
   {
@@ -235,7 +283,7 @@ const mockMeals = [
     price: '£22',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
     isPopular: true,
-    rating: 4.9,
+    sentiment: 'bussing',
     deliveryTime: '32 min',
   },
   {
@@ -245,7 +293,7 @@ const mockMeals = [
     price: '£25',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
     isNew: true,
-    rating: 4.4,
+    sentiment: 'decent',
     deliveryTime: '22 min',
   },
   {
@@ -254,7 +302,7 @@ const mockMeals = [
     kitchen: 'Amara\'s Kitchen',
     price: '£10',
     image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop' },
-    rating: 4.8,
+    sentiment: 'average',
     deliveryTime: '25 min',
   },
   {
@@ -263,8 +311,27 @@ const mockMeals = [
     kitchen: 'Bangkok Bites',
     price: '£13',
     image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
-    rating: 4.6,
+    sentiment: 'mid',
     deliveryTime: '30 min',
+  },
+  {
+    id: '9',
+    name: 'Butter Chicken',
+    kitchen: 'Mumbai Spice',
+    price: '£15',
+    image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
+    isPopular: true,
+    sentiment: 'meh',
+    deliveryTime: '40 min',
+  },
+  {
+    id: '10',
+    name: 'Coq au Vin',
+    kitchen: 'Parisian Bistro',
+    price: '£20',
+    image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
+    sentiment: 'notIt',
+    deliveryTime: '45 min',
   },
 ];
 
@@ -312,14 +379,18 @@ export function MainScreen() {
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>(mockMealData);
   
   // Category drawer state management
-  const [activeDrawer, setActiveDrawer] = useState<'takeaway' | 'tooFresh' | 'topKebabs' | null>(null);
+  const [activeDrawer, setActiveDrawer] = useState<'takeaway' | 'tooFresh' | 'topKebabs' | 'featuredKitchens' | 'popularMeals' | 'sustainability' | null>(null);
   
   // Shake to Eat state management
-  const [isShakeToEatVisible, setIsShakeToEatVisible] = useState(false);
+  // ShakeToEatFlow now handles its own visibility with sustained shake detection
   
   // Meal Details state management
   const [selectedMeal, setSelectedMeal] = useState<any>(null);
   const [isMealDetailsVisible, setIsMealDetailsVisible] = useState(false);
+  
+  // Kitchen Main Screen state management
+  const [selectedKitchen, setSelectedKitchen] = useState<any>(null);
+  const [isKitchenMainScreenVisible, setIsKitchenMainScreenVisible] = useState(false);
   
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
@@ -533,21 +604,25 @@ export function MainScreen() {
   // Shake to Eat handlers
   const handleShakeToEatLaunch = (prompt: string) => {
     console.log('🎯 Shake to Eat: AI Chat launching with prompt:', prompt);
-    // Close shake to eat and open AI chat with the generated prompt
-    setIsShakeToEatVisible(false);
+    // Open AI chat with the generated prompt from sustained shake
     setIsChatVisible(true);
     // You can pass the prompt to your AI chat component here
   };
 
   const handleShakeToEatClose = () => {
-    setIsShakeToEatVisible(false);
+    console.log('🎯 Shake to Eat: Flow closed');
+    // Component handles its own visibility now
   };
 
-  // Auto-show ShakeToEatFlow when it starts (triggered by shake)
+  // Shake to Eat flow started (triggered by sustained shake)
   const handleShakeToEatStart = () => {
-    console.log('🎯 Shake to Eat: Auto-showing flow');
-    setIsShakeToEatVisible(true);
+    console.log('🎯 Shake to Eat: Sustained shake completed, flow starting');
+    // Component handles its own visibility now
   };
+
+  // Debug: Add a simple shake indicator
+  const [debugShakeCount, setDebugShakeCount] = useState(0);
+  const [debugIsShaking, setDebugIsShaking] = useState(false);
 
   // Enhanced scroll handler with intentional pull detection
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -777,12 +852,24 @@ export function MainScreen() {
   // Handlers for new sections
   const handleCuisinePress = useCallback((cuisine: any) => {
     console.log('View cuisine:', cuisine.name);
-    // In a real app, this would navigate to cuisine category
+    // Create a mock kitchen based on the cuisine
+    const mockKitchen = {
+      id: `cuisine-${cuisine.id}`,
+      name: `${cuisine.name} Kitchen`,
+      cuisine: `${cuisine.name} cuisine`,
+      deliveryTime: '25-40 Mins',
+      distance: '1.5km away',
+      image: cuisine.image,
+      sentiment: 'fire' as const,
+    };
+    setSelectedKitchen(mockKitchen);
+    setIsKitchenMainScreenVisible(true);
   }, []);
 
   const handleFeaturedKitchenPress = useCallback((kitchen: any) => {
     console.log('View featured kitchen:', kitchen.name);
-    // In a real app, this would navigate to kitchen profile
+    setSelectedKitchen(kitchen);
+    setIsKitchenMainScreenVisible(true);
   }, []);
 
   const handleMealPress = useCallback((meal: any) => {
@@ -803,9 +890,41 @@ export function MainScreen() {
       dietMessage: 'Great choice for your current diet goals',
       ingredients: [
         { name: 'Chicken breasts', quantity: '250 g' },
-        { name: 'Unsalted butter', quantity: '1 tbsp' },
-        { name: 'Sesame or vegetable oil', quantity: '2 tsp' },
-        { name: 'Fresh ginger', quantity: '2 tsp' }
+        { name: 'Unsalted butter', quantity: '1 tbsp', isAllergen: true, allergenType: 'dairy' },
+        { name: 'Sesame oil', quantity: '2 tsp', isAllergen: true, allergenType: 'nuts' },
+        { name: 'Fresh ginger', quantity: '2 tsp' },
+        { name: 'Wheat flour', quantity: '100 g', isAllergen: true, allergenType: 'gluten' }
+      ],
+      chefName: 'Chef Stan',
+      chefStory: 'This Shawarma recipe has been perfected over 20 years of cooking. It combines traditional Middle Eastern spices with modern cooking techniques to create a dish that\'s both authentic and accessible.',
+      chefTips: [
+        'Best enjoyed hot and fresh - reheat for 2 minutes if needed',
+        'Add extra garlic sauce for an authentic Middle Eastern taste',
+        'Pair with our fresh mint tea for the complete experience',
+        'Perfect for sharing - order extra pita bread on the side'
+      ],
+      similarMeals: [
+        {
+          id: 'kebab-001',
+          name: 'Chicken Kebab',
+          price: '£12.99',
+          sentiment: 'bussing',
+          isVegetarian: false
+        },
+        {
+          id: 'falafel-001',
+          name: 'Falafel Wrap',
+          price: '£9.99',
+          sentiment: 'mid',
+          isVegetarian: true
+        },
+        {
+          id: 'hummus-001',
+          name: 'Hummus Plate',
+          price: '£8.99',
+          sentiment: 'bussing',
+          isVegetarian: true
+        }
       ]
     };
     
@@ -831,8 +950,41 @@ export function MainScreen() {
     setActiveDrawer('topKebabs');
   }, []);
 
+  const handleOpenFeaturedKitchensDrawer = useCallback(() => {
+    setActiveDrawer('featuredKitchens');
+  }, []);
+
+  const handleOpenPopularMealsDrawer = useCallback(() => {
+    setActiveDrawer('popularMeals');
+  }, []);
+
+  const handleOpenSustainabilityDrawer = useCallback(() => {
+    setActiveDrawer('sustainability');
+  }, []);
+
   const handleCloseDrawer = useCallback(() => {
     setActiveDrawer(null);
+  }, []);
+
+  // Kitchen Main Screen handlers
+  const handleCloseKitchenMainScreen = useCallback(() => {
+    setIsKitchenMainScreenVisible(false);
+    setSelectedKitchen(null);
+  }, []);
+
+  const handleKitchenCartPress = useCallback(() => {
+    console.log('Kitchen cart pressed');
+    // In a real app, this would navigate to cart
+  }, []);
+
+  const handleKitchenHeartPress = useCallback(() => {
+    console.log('Kitchen heart pressed');
+    // In a real app, this would toggle favorite
+  }, []);
+
+  const handleKitchenSearchPress = useCallback(() => {
+    console.log('Kitchen search pressed');
+    // In a real app, this would open search
   }, []);
 
   const handleDrawerAddToCart = useCallback((id: string) => {
@@ -996,15 +1148,15 @@ export function MainScreen() {
             {/* Main Content with fade animation */}
             <Animated.View style={{ opacity: contentFadeAnim }}>
               <OrderAgainSection />
-              <CuisinesSection />
+              <CuisinesSection onCuisinePress={handleCuisinePress} />
               <CuisineCategoriesSection cuisines={mockCuisines} onCuisinePress={handleCuisinePress} />
-              <FeaturedKitchensSection kitchens={mockKitchens} onKitchenPress={handleFeaturedKitchenPress} />
-              <PopularMealsSection meals={mockMeals} onMealPress={handleMealPress} />
+              <FeaturedKitchensSection kitchens={mockKitchens} onKitchenPress={handleFeaturedKitchenPress} onSeeAllPress={handleOpenFeaturedKitchensDrawer} />
+              <PopularMealsSection meals={mockMeals} onMealPress={handleMealPress} onSeeAllPress={handleOpenPopularMealsDrawer} />
               <SpecialOffersSection offers={mockOffers} onOfferPress={handleOfferPress} />
-              <KitchensNearMe />
+              <KitchensNearMe onKitchenPress={handleFeaturedKitchenPress} />
               <TopKebabs onOpenDrawer={handleOpenTopKebabsDrawer} />
               <TakeAways onOpenDrawer={handleOpenTakeawayDrawer} />
-              <TooFreshToWaste onOpenDrawer={handleOpenTooFreshDrawer} />
+              <TooFreshToWaste onOpenDrawer={handleOpenTooFreshDrawer} onOpenSustainability={handleOpenSustainabilityDrawer} />
               <EventBanner />
             </Animated.View>
           </ScrollView>
@@ -1051,13 +1203,20 @@ export function MainScreen() {
           onClose={handleCloseAIChat}
         />
 
-        {/* Shake to Eat Flow - Always mounted to detect shakes */}
-        <ShakeToEatFlow
-          isVisible={isShakeToEatVisible}
-          onClose={handleShakeToEatClose}
-          onAIChatLaunch={handleShakeToEatLaunch}
-          onStart={handleShakeToEatStart}
-        />
+        {/* Debug Shake Indicator */}
+        {CONFIG.DEBUG_MODE && (
+          <ShakeDebugger />
+        )}
+
+        {/* Shake to Eat Flow - Always mounted to detect sustained shakes */}
+        {CONFIG.SHAKE_TO_EAT_ENABLED && (
+          <ShakeToEatFlow
+            isVisible={false} // Not used anymore - component auto-shows on sustained shake
+            onClose={handleShakeToEatClose}
+            onAIChatLaunch={handleShakeToEatLaunch}
+            onStart={handleShakeToEatStart}
+          />
+        )}
 
       </LinearGradient>
 
@@ -1115,6 +1274,25 @@ export function MainScreen() {
             </View>
           </CategoryFullDrawer>
         )}
+        {activeDrawer === 'featuredKitchens' && (
+          <FeaturedKitchensDrawer
+            onBack={handleCloseDrawer}
+            kitchens={mockKitchens}
+            onKitchenPress={handleFeaturedKitchenPress}
+          />
+        )}
+        {activeDrawer === 'popularMeals' && (
+          <PopularMealsDrawer
+            onBack={handleCloseDrawer}
+            meals={mockMeals}
+            onMealPress={handleMealPress}
+          />
+        )}
+        {activeDrawer === 'sustainability' && (
+          <SustainabilityDrawer
+            onBack={handleCloseDrawer}
+          />
+        )}
       </Modal>
 
       {/* Add MealItemDetails Modal */}
@@ -1123,6 +1301,8 @@ export function MainScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setIsMealDetailsVisible(false)}
+        statusBarTranslucent={true}
+        hardwareAccelerated={true}
       >
         {selectedMeal && (
           <MealItemDetails
@@ -1134,6 +1314,29 @@ export function MainScreen() {
               // Handle add to cart logic here
               setIsMealDetailsVisible(false);
             }}
+          />
+        )}
+      </Modal>
+
+      {/* Add KitchenMainScreen Modal */}
+      <Modal
+        visible={isKitchenMainScreenVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={handleCloseKitchenMainScreen}
+        statusBarTranslucent={true}
+        hardwareAccelerated={true}
+      >
+        {selectedKitchen && (
+          <KitchenMainScreen
+            kitchenName={selectedKitchen.name}
+            cuisine={selectedKitchen.cuisine}
+            deliveryTime={selectedKitchen.deliveryTime}
+            cartItems={2}
+            onCartPress={handleKitchenCartPress}
+            onHeartPress={handleKitchenHeartPress}
+            onSearchPress={handleKitchenSearchPress}
+            onClose={handleCloseKitchenMainScreen}
           />
         )}
       </Modal>

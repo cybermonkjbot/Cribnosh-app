@@ -90,7 +90,7 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
             textShadowOffset: { width: 0, height: 1 },
             textShadowRadius: 2,
           }}>
-            {cuisine.restaurantCount} restaurants
+            {cuisine.restaurantCount} Kitchens
           </Text>
         </View>
         

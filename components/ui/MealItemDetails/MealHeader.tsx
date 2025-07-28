@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import HearEmoteIcon from '../HearEmoteIcon';
 
 interface MealHeaderProps {
   onBack: () => void;
@@ -22,11 +23,7 @@ export function MealHeader({ onBack, onFavorite, isFavorite = false }: MealHeade
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.heartButton} onPress={onFavorite}>
-          <Ionicons 
-            name={isFavorite ? "heart" : "heart-outline"} 
-            size={24} 
-            color="#FF3B30" 
-          />
+          <HearEmoteIcon width={24} height={24} liked={isFavorite} onLikeChange={onFavorite} />
         </TouchableOpacity>
       </View>
     </View>

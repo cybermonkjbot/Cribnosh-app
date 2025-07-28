@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SentimentRating } from './SentimentRating';
 
 interface CategoryFoodItemCardProps {
   id: string;
@@ -8,7 +9,7 @@ interface CategoryFoodItemCardProps {
   description: string;
   price: number;
   imageUrl?: string;
-  rating?: number;
+  sentiment?: 'bussing' | 'mid' | 'notIt';
   prepTime?: string;
   isPopular?: boolean;
   onAddToCart?: (id: string) => void;
@@ -21,7 +22,7 @@ export function CategoryFoodItemCard({
   description,
   price,
   imageUrl,
-  rating,
+  sentiment,
   prepTime,
   isPopular,
   onAddToCart,
@@ -63,12 +64,9 @@ export function CategoryFoodItemCard({
           </View>
         )}
         
-        {/* Rating Badge */}
-        {rating && (
-          <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={12} color="#FFD700" />
-            <Text style={styles.ratingText}>{rating}</Text>
-          </View>
+        {/* Sentiment Badge */}
+        {sentiment && (
+          <SentimentRating sentiment={sentiment} />
         )}
       </View>
 
@@ -157,28 +155,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  ratingBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    gap: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  ratingText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#094327',
-  },
+
   detailsContainer: {
     flex: 1,
     padding: 12,

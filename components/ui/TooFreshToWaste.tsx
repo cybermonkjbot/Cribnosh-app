@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -11,6 +12,7 @@ interface FreshItem {
 
 interface TooFreshToWasteProps {
   onOpenDrawer?: () => void;
+  onOpenSustainability?: () => void;
 }
 
 const freshItems: FreshItem[] = [
@@ -34,7 +36,7 @@ const freshItems: FreshItem[] = [
   },
 ];
 
-export function TooFreshToWaste({ onOpenDrawer }: TooFreshToWasteProps) {
+export function TooFreshToWaste({ onOpenDrawer, onOpenSustainability }: TooFreshToWasteProps) {
   return (
     <View style={{ paddingVertical: 20 }}>
       <View style={{ 
@@ -44,9 +46,14 @@ export function TooFreshToWaste({ onOpenDrawer }: TooFreshToWasteProps) {
         marginBottom: 16, 
         paddingHorizontal: 20 
       }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
-          Eco Nosh
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
+            Eco Nosh
+          </Text>
+          <TouchableOpacity onPress={onOpenSustainability}>
+            <Ionicons name="information-circle" size={20} color="#10B981" />
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity onPress={onOpenDrawer}>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
         </TouchableOpacity>

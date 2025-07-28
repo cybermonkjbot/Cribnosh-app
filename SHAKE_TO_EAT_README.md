@@ -5,6 +5,7 @@ A delightful, Duolingo-style food discovery experience that uses device shake de
 ## ✨ Features
 
 ### 🎯 Core Experience
+- **Sustained Shake Detection**: Requires continuous shaking for 3+ seconds to trigger, preventing accidental activations
 - **Shake Detection**: Uses Expo sensors for reliable shake detection with configurable sensitivity
 - **Emotion-Driven UI**: Dynamic theming based on user's emotional state
 - **Animated Mood Picker**: Playful emotion selection with bounce animations
@@ -27,6 +28,9 @@ ShakeToEatFlow (Main Orchestrator)
 ├── GachaMealSpinner (Meal Category Selection)
 ├── NoshMagicPortal (Transition Animation)
 └── useShakeDetection (Sensor Hook)
+    ├── Sustained Shake Detection (3+ seconds)
+    ├── Progress Tracking
+    └── Cooldown Management
 ```
 
 ### State Management
@@ -169,10 +173,12 @@ const speedMap = {
 ### Shake Sensitivity
 ```tsx
 // Configure in useShakeDetection hook
-const { isShaking } = useShakeDetection(onShake, {
-  threshold: 15,        // Lower = more sensitive
-  cooldownMs: 3000,     // Time between shakes
-  sensitivity: 'medium' // 'low' | 'medium' | 'high'
+const { isShaking, sustainedShakeProgress, isSustainedShaking } = useShakeDetection(onShake, {
+  threshold: 15,                    // Lower = more sensitive
+  cooldownMs: 3000,                // Time between sustained shakes
+  sensitivity: 'medium',           // 'low' | 'medium' | 'high'
+  sustainedShakeDuration: 3000,    // Duration in ms for sustained shake (3 seconds)
+  debug: false                     // Enable for debugging
 });
 ```
 
@@ -229,10 +235,31 @@ const { isShaking } = useShakeDetection(onShake, {
 - Check z-index and positioning
 - Verify component is mounted
 
+### Sustained Shake Detection
+The shake detection now requires **continuous shaking for 3 seconds** before triggering the callback. This prevents accidental activations and provides better user control.
+
+**Key Features:**
+- **Progress Tracking**: Real-time progress indicator (0-100%)
+- **Interruption Handling**: Resets if shaking stops before completion
+- **Visual Feedback**: Shows sustained shake state and progress
+- **Cooldown Period**: Prevents rapid successive activations
+
+**Usage:**
+```tsx
+const { 
+  isShaking,              // Current shake state
+  isSustainedShaking,     // Whether in sustained shake mode
+  sustainedShakeProgress, // Progress from 0 to 1
+  shakeCount              // Total completed shakes
+} = useShakeDetection(onShake, {
+  sustainedShakeDuration: 3000 // 3 seconds
+});
+```
+
 ### Debug Mode
 ```tsx
 // Enable debug logging
-const { isShaking, shakeCount } = useShakeDetection(onShake, {
+const { isShaking, shakeCount, sustainedShakeProgress } = useShakeDetection(onShake, {
   debug: true // Add this to see shake detection logs
 });
 ```

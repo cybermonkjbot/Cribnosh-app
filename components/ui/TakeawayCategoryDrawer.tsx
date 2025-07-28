@@ -9,7 +9,7 @@ interface FoodItem {
   description: string;
   price: number;
   imageUrl?: string;
-  rating?: number;
+  sentiment?: 'bussing' | 'mid' | 'notIt';
   prepTime?: string;
   isPopular?: boolean;
 }
@@ -38,7 +38,7 @@ export function TakeawayCategoryDrawer({
       title: 'Classic Chicken Burger',
       description: 'Grilled chicken breast, fresh lettuce, tomato, and special sauce',
       price: 12.99,
-      rating: 4.8,
+      sentiment: 'bussing',
       prepTime: '15-20 min',
       isPopular: true,
       imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&h=200&fit=crop'
@@ -48,7 +48,7 @@ export function TakeawayCategoryDrawer({
       title: 'Veggie Delight Wrap',
       description: 'Fresh vegetables, hummus, and tahini in whole wheat wrap',
       price: 9.99,
-      rating: 4.6,
+      sentiment: 'mid',
       prepTime: '10-15 min',
       isPopular: false,
       imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop'
@@ -58,7 +58,7 @@ export function TakeawayCategoryDrawer({
       title: 'Spicy Beef Tacos',
       description: 'Seasoned beef, salsa, guacamole, and fresh cilantro',
       price: 14.99,
-      rating: 4.9,
+      sentiment: 'bussing',
       prepTime: '20-25 min',
       isPopular: true,
       imageUrl: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=200&h=200&fit=crop'
@@ -68,7 +68,7 @@ export function TakeawayCategoryDrawer({
       title: 'Mediterranean Salad',
       description: 'Mixed greens, olives, feta, cucumber, and balsamic dressing',
       price: 11.99,
-      rating: 4.7,
+      sentiment: 'mid',
       prepTime: '8-12 min',
       isPopular: false,
       imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200&h=200&fit=crop'
@@ -78,7 +78,7 @@ export function TakeawayCategoryDrawer({
       title: 'Teriyaki Salmon Bowl',
       description: 'Grilled salmon, steamed rice, vegetables, and teriyaki glaze',
       price: 18.99,
-      rating: 4.9,
+      sentiment: 'bussing',
       prepTime: '25-30 min',
       isPopular: true,
       imageUrl: 'https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f?w=200&h=200&fit=crop'
@@ -96,7 +96,7 @@ export function TakeawayCategoryDrawer({
     { id: 'spicy', label: 'Spicy', icon: 'flame' },
     { id: 'quick', label: 'Quick', icon: 'flash' },
     { id: 'healthy', label: 'Healthy', icon: 'heart' },
-    { id: 'popular', label: 'Popular', icon: 'star' },
+    { id: 'popular', label: 'Popular', icon: 'flame' },
   ];
 
   return (
@@ -117,7 +117,7 @@ export function TakeawayCategoryDrawer({
           onAddToCart={onAddToCart}
           onItemPress={onItemPress}
           showShadow={true}
-          showRatings={true}
+          showSentiments={true}
           showPrepTime={true}
         />
 
@@ -128,18 +128,18 @@ export function TakeawayCategoryDrawer({
           items={displayAllAvailable}
           onAddToCart={onAddToCart}
           onItemPress={onItemPress}
-          showRatings={true}
+          showSentiments={true}
           showPrepTime={true}
         />
 
         {/* Best Rated Section */}
         <CategoryFoodItemsGrid
-          title="⭐ Best Rated"
+          title="🔥 Most Loved"
           subtitle="Highest rated by our community"
           items={displayBestRated}
           onAddToCart={onAddToCart}
           onItemPress={onItemPress}
-          showRatings={true}
+          showSentiments={true}
           showPrepTime={true}
         />
 
@@ -150,7 +150,7 @@ export function TakeawayCategoryDrawer({
           items={displayOrderAgain}
           onAddToCart={onAddToCart}
           onItemPress={onItemPress}
-          showRatings={true}
+          showSentiments={true}
           showPrepTime={true}
         />
       </View>

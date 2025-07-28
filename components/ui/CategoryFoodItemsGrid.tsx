@@ -8,7 +8,7 @@ interface FoodItem {
   description: string;
   price: number;
   imageUrl?: string;
-  rating?: number;
+  sentiment?: 'bussing' | 'mid' | 'notIt';
   prepTime?: string;
   isPopular?: boolean;
 }
@@ -20,7 +20,7 @@ interface CategoryFoodItemsGridProps {
   onAddToCart?: (id: string) => void;
   onItemPress?: (id: string) => void;
   showShadow?: boolean;
-  showRatings?: boolean;
+  showSentiments?: boolean;
   showPrepTime?: boolean;
 }
 
@@ -31,7 +31,7 @@ export function CategoryFoodItemsGrid({
   onAddToCart,
   onItemPress,
   showShadow = false,
-  showRatings = false,
+  showSentiments = false,
   showPrepTime = false
 }: CategoryFoodItemsGridProps) {
   return (
@@ -59,7 +59,7 @@ export function CategoryFoodItemsGrid({
                 description={item.description}
                 price={item.price}
                 imageUrl={item.imageUrl}
-                rating={showRatings ? item.rating : undefined}
+                sentiment={showSentiments ? item.sentiment : undefined}
                 prepTime={showPrepTime ? item.prepTime : undefined}
                 isPopular={item.isPopular}
                 onAddToCart={onAddToCart}

@@ -1,27 +1,41 @@
-// Export MultiStepLoader components
-export { MultiStepLoader } from './MultiStepLoader';
-export { MultiStepLoaderDemo } from './MultiStepLoaderDemo';
-export { PullToRefreshExample } from './PullToRefreshExample';
-
-// Export Nosh Heaven components
-export { MealVideoCard } from './MealVideoCard';
-export { MealVideoCardSkeleton } from './MealVideoCardSkeleton';
-export { NoshHeavenPlayer } from './NoshHeavenPlayer';
-export type { MealData } from './NoshHeavenPlayer';
-export { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
-
-// Export Category Full Drawer components
-export { CategoryDrawerDemo } from './CategoryDrawerDemo';
-export { CategoryFoodItemCard } from './CategoryFoodItemCard';
-export { CategoryFoodItemsGrid } from './CategoryFoodItemsGrid';
-export { CategoryFullContent } from './CategoryFullContent';
-export { CategoryFullDrawer } from './CategoryFullDrawer';
-export { CategoryFullFilterChips } from './CategoryFullFilterChips';
-export { CategoryFullHeader } from './CategoryFullHeader';
-export { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
-export { TooFreshToWasteDrawer } from './TooFreshToWasteDrawer';
-
-// Export Meal Details components
+// Export main components
+export { CartButton } from './CartButton';
+export { KitchenMainScreen } from './KitchenMainScreen';
+export { MainScreen } from './MainScreen';
 export { MealItemDetails } from './MealItemDetails';
-export * from './MealItemDetails/index';
+
+// Export Kitchen Main Screen components
+export { BackgroundElements } from './KitchenMainScreen/BackgroundElements';
+export { FoodIllustrations } from './KitchenMainScreen/FoodIllustrations';
+export { KitchenBottomSheet } from './KitchenMainScreen/KitchenBottomSheet';
+export { KitchenBottomSheetContent } from './KitchenMainScreen/KitchenBottomSheetContent';
+export { KitchenBottomSheetHeader } from './KitchenMainScreen/KitchenBottomSheetHeader';
+export { KitchenIntroCard } from './KitchenMainScreen/KitchenIntroCard';
+
+// Export Meal Item Details components
+export { ChefNotes } from './MealItemDetails/ChefNotes';
+export { DietCompatibilityBar } from './MealItemDetails/DietCompatibilityBar';
+export { KitchenInfo } from './MealItemDetails/KitchenInfo';
+export { MealBadges } from './MealItemDetails/MealBadges';
+export { MealDescription } from './MealItemDetails/MealDescription';
+export { MealHeader } from './MealItemDetails/MealHeader';
+export { MealImage } from './MealItemDetails/MealImage';
+export { MealInfo } from './MealItemDetails/MealInfo';
+export { MealIngredients } from './MealItemDetails/MealIngredients';
+export { MealTitle } from './MealItemDetails/MealTitle';
+export { NutritionalInfo } from './MealItemDetails/NutritionalInfo';
+export { SimilarMeals } from './MealItemDetails/SimilarMeals';
+
+// Export other UI components
+export { Avatar } from './Avatar';
+export { Badge } from './Badge';
+export { Button } from './Button';
+export { Card } from './Card';
+export { EmptyState } from './EmptyState';
+export { ErrorBoundary } from './ErrorBoundary';
+export { Header } from './Header';
+export { Input } from './Input';
+export { LoadingState } from './LoadingState';
+export { Modal } from './Modal';
+export { Separator } from './Separator';
 

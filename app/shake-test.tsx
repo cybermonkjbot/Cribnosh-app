@@ -2,6 +2,7 @@ import { ShakeToEatFlow } from '@/components/ui/ShakeToEatFlow';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { CONFIG } from '../constants/config';
 
 export default function ShakeTest() {
   const [isShakeToEatVisible, setIsShakeToEatVisible] = useState(false);
@@ -115,12 +116,18 @@ export default function ShakeTest() {
       </LinearGradient>
 
       {/* ShakeToEatFlow - Always mounted */}
-      <ShakeToEatFlow
-        isVisible={isShakeToEatVisible}
-        onClose={handleCloseShakeToEat}
-        onAIChatLaunch={handleAIChatLaunch}
-        onStart={handleShakeToEatStart}
-      />
+      {CONFIG.SHAKE_TO_EAT_ENABLED ? (
+        <ShakeToEatFlow
+          isVisible={isShakeToEatVisible}
+          onClose={handleCloseShakeToEat}
+          onAIChatLaunch={handleAIChatLaunch}
+          onStart={handleShakeToEatStart}
+        />
+      ) : (
+        <View style={styles.disabledContainer}>
+          <Text style={styles.disabledText}>Shake to Eat Feature Disabled</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -247,5 +254,20 @@ const styles = StyleSheet.create({
     color: '#11181C',
     marginBottom: 2,
     fontFamily: 'monospace',
+  },
+  disabledContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+  },
+  disabledText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF3B30',
+    textAlign: 'center',
   },
 }); 

@@ -4,12 +4,12 @@ import React, { useCallback } from 'react';
 import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import Animated, {
-    Extrapolate,
-    interpolate,
-    useAnimatedGestureHandler,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring
+  Extrapolate,
+  interpolate,
+  useAnimatedGestureHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import SearchArea from '../SearchArea';
@@ -655,6 +655,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
             justifyContent: 'flex-start'
             }}
             showsVerticalScrollIndicator={false}
+            scrollEnabled={drawerHeight.value >= SNAP_POINTS.EXPANDED - 50}
           >
             {/* Search Focus Mode - Only show when search is focused */}
             {isSearchFocused ? (
@@ -666,7 +667,7 @@ export function BottomSearchDrawer({ onOpenAIChat }: BottomSearchDrawerProps) {
                     value={searchQuery}
                     onChange={setSearchQuery}
                     returnKeyType="search"
-                    placeholder="Search for food, restaurants..."
+                    placeholder="Search for food, Kitchens..."
                     onSubmitEditing={() => {
                       // Handle search submission
                       console.log('Searching for:', searchQuery);

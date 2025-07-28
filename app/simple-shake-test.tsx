@@ -1,8 +1,22 @@
 import { useShakeDetection } from '@/hooks/useShakeDetection';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Mascot } from '../components/Mascot';
+import { CONFIG } from '../constants/config';
 
 export default function SimpleShakeTest() {
+  // Early return if shake to eat is disabled
+  if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Shake to Eat Feature Disabled</Text>
+        <Text style={styles.statusText}>
+          This feature is currently disabled in the configuration.
+        </Text>
+      </View>
+    );
+  }
+
   const [shakeEvents, setShakeEvents] = useState<string[]>([]);
 
   const handleShake = () => {
@@ -12,22 +26,56 @@ export default function SimpleShakeTest() {
     setShakeEvents(prev => [event, ...prev.slice(0, 4)]); // Keep last 5 events
   };
 
-  // Simple shake detection test
-  const { isShaking, shakeCount } = useShakeDetection(handleShake, {
+  // Sustained shake detection test
+  const { isShaking, shakeCount, sustainedShakeProgress, isSustainedShaking } = useShakeDetection(handleShake, {
     debug: true,
     sensitivity: 'high',
     threshold: 5, // Very low threshold for testing
-    cooldownMs: 1000
+    cooldownMs: 1000,
+    sustainedShakeDuration: 3000, // 3 seconds of sustained shaking required
+    enabled: true // Always enabled for testing
   });
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Simple Shake Test</Text>
       
+      {/* Mascot with dynamic emotions */}
+      <View style={styles.mascotContainer}>
+        <Mascot 
+          emotion={
+            !isSustainedShaking ? 'default' :
+            sustainedShakeProgress < 0.3 ? 'hungry' :
+            sustainedShakeProgress < 0.7 ? 'excited' :
+            'happy'
+          }
+          size={80}
+        />
+      </View>
+      
       <View style={styles.statusContainer}>
         <Text style={styles.statusText}>
           Is Shaking: {isShaking ? 'YES' : 'NO'}
         </Text>
+        <Text style={styles.statusText}>
+          Sustained Shaking: {isSustainedShaking ? 'YES' : 'NO'}
+        </Text>
+        <Text style={styles.statusText}>
+          Progress: {Math.round(sustainedShakeProgress * 100)}%
+        </Text>
+        
+        {/* Progress Bar */}
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBar}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { width: `${sustainedShakeProgress * 100}%` }
+              ]} 
+            />
+          </View>
+        </View>
+        
         <Text style={styles.statusText}>
           Shake Count: {shakeCount}
         </Text>
@@ -48,9 +96,10 @@ export default function SimpleShakeTest() {
 
       <View style={styles.instructions}>
         <Text style={styles.instructionTitle}>Instructions:</Text>
-        <Text style={styles.instruction}>1. Shake your device</Text>
-        <Text style={styles.instruction}>2. Watch the console for logs</Text>
-        <Text style={styles.instruction}>3. Check if events appear above</Text>
+        <Text style={styles.instruction}>1. Shake your device continuously for 3 seconds</Text>
+        <Text style={styles.instruction}>2. Watch the progress indicator</Text>
+        <Text style={styles.instruction}>3. Keep shaking until progress reaches 100%</Text>
+        <Text style={styles.instruction}>4. Check if events appear above</Text>
       </View>
     </View>
   );
@@ -69,6 +118,10 @@ const styles = StyleSheet.create({
     color: '#11181C',
     textAlign: 'center',
     marginBottom: 30,
+  },
+  mascotContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
   },
   statusContainer: {
     backgroundColor: 'white',
@@ -134,5 +187,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#687076',
     marginBottom: 6,
+  },
+  progressBarContainer: {
+    marginVertical: 10,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#22C55E',
+    borderRadius: 4,
   },
 }); 

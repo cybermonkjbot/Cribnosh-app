@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SentimentRating } from './SentimentRating';
 
 interface Meal {
   id: string;
@@ -10,18 +11,20 @@ interface Meal {
   image: any;
   isPopular?: boolean;
   isNew?: boolean;
-  rating?: number;
+  sentiment?: 'bussing' | 'mid' | 'notIt' | 'fire' | 'slaps' | 'decent' | 'meh' | 'trash' | 'elite' | 'solid' | 'average' | 'skip';
   deliveryTime?: string;
 }
 
 interface PopularMealsSectionProps {
   meals: Meal[];
   onMealPress?: (meal: Meal) => void;
+  onSeeAllPress?: () => void;
 }
 
 export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
   meals,
-  onMealPress
+  onMealPress,
+  onSeeAllPress
 }) => {
   const renderMealCard = (meal: Meal, index: number) => (
     <TouchableOpacity
@@ -113,21 +116,15 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
           {meal.kitchen}
         </Text>
         
-        {/* Rating and Delivery Time */}
-        {meal.rating && meal.deliveryTime && (
+        {/* Sentiment and Delivery Time */}
+        {meal.sentiment && meal.deliveryTime && (
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
             gap: 6,
             marginBottom: 8,
           }}>
-            <Text style={{
-              color: '#666666',
-              fontSize: 10,
-              fontWeight: '500',
-            }}>
-              ⭐ {meal.rating}
-            </Text>
+            <SentimentRating sentiment={meal.sentiment} />
             <Text style={{
               color: '#666666',
               fontSize: 10,
@@ -184,7 +181,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
           Popular Meals
         </Text>
         
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onSeeAllPress}>
           <Text style={{
             color: '#ef4444',
             fontSize: 14,

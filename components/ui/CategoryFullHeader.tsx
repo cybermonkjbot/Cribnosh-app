@@ -10,6 +10,7 @@ interface CategoryFullHeaderProps {
   onSegmentChange?: (segment: 'forYou' | 'all') => void;
   onSearch?: (query: string) => void;
   searchPlaceholder?: string;
+  showTabs?: boolean;
 }
 
 export function CategoryFullHeader({
@@ -19,7 +20,8 @@ export function CategoryFullHeader({
   selectedSegment = 'forYou',
   onSegmentChange,
   onSearch,
-  searchPlaceholder = "Search Stans Kitchens"
+  searchPlaceholder = "Search Stans Kitchens",
+  showTabs = true
 }: CategoryFullHeaderProps) {
   return (
     <View style={styles.container as ViewStyle}>
@@ -56,24 +58,26 @@ export function CategoryFullHeader({
         </View>
         
         {/* Segmented Control */}
-        <View style={styles.segmentedControl as ViewStyle}>
-          <TouchableOpacity
-            style={selectedSegment === 'forYou' ? [styles.segmentButton, styles.segmentButtonActive] as any : styles.segmentButton as any}
-            onPress={() => onSegmentChange?.('forYou')}
-          >
-            <Text style={selectedSegment === 'forYou' ? [styles.segmentText, styles.segmentTextActive] as any : styles.segmentText as any}>
-              For you
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={selectedSegment === 'all' ? [styles.segmentButton, styles.segmentButtonActive] as any : styles.segmentButton as any}
-            onPress={() => onSegmentChange?.('all')}
-          >
-            <Text style={selectedSegment === 'all' ? [styles.segmentText, styles.segmentTextActive] as any : styles.segmentText as any}>
-              All
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {showTabs && (
+          <View style={styles.segmentedControl as ViewStyle}>
+            <TouchableOpacity
+              style={selectedSegment === 'forYou' ? [styles.segmentButton, styles.segmentButtonActive] as any : styles.segmentButton as any}
+              onPress={() => onSegmentChange?.('forYou')}
+            >
+              <Text style={selectedSegment === 'forYou' ? [styles.segmentText, styles.segmentTextActive] as any : styles.segmentText as any}>
+                For you
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={selectedSegment === 'all' ? [styles.segmentButton, styles.segmentButtonActive] as any : styles.segmentButton as any}
+              onPress={() => onSegmentChange?.('all')}
+            >
+              <Text style={selectedSegment === 'all' ? [styles.segmentText, styles.segmentTextActive] as any : styles.segmentText as any}>
+                All
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );

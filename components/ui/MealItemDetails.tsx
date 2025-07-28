@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
-import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    View
-} from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-    AddToCartButton,
-    DietCompatibilityBar,
-    KitchenInfo,
-    MealBadges,
-    MealDescription,
-    MealHeader,
-    MealImage,
-    MealIngredients,
-    MealTitle,
-    NutritionalInfo
-} from './MealItemDetails/index';
+import { CartButton } from './CartButton';
+import { ChefNotes } from './MealItemDetails/ChefNotes';
+import { DietCompatibilityBar } from './MealItemDetails/DietCompatibilityBar';
+import { KitchenInfo } from './MealItemDetails/KitchenInfo';
+import { MealBadges } from './MealItemDetails/MealBadges';
+import { MealDescription } from './MealItemDetails/MealDescription';
+import { MealHeader } from './MealItemDetails/MealHeader';
+import { MealImage } from './MealItemDetails/MealImage';
+import { MealInfo } from './MealItemDetails/MealInfo';
+import { MealIngredients } from './MealItemDetails/MealIngredients';
+import { MealTitle } from './MealItemDetails/MealTitle';
+import { NutritionalInfo } from './MealItemDetails/NutritionalInfo';
+import { SimilarMeals } from './MealItemDetails/SimilarMeals';
 
 interface MealItemDetailsProps {
   mealId: string;
@@ -38,11 +34,28 @@ interface MealItemDetailsProps {
     ingredients: Array<{
       name: string;
       quantity: string;
+      isAllergen?: boolean;
+      allergenType?: string;
     }>;
     isVegetarian?: boolean;
     isSafeForYou?: boolean;
+    // New fields for additional sections
+    prepTime?: string;
+    deliveryTime?: string;
+    chefName?: string;
+    chefStory?: string;
+    chefTips?: string[];
+    similarMeals?: Array<{
+      id: string;
+      name: string;
+      price: string;
+      imageUrl?: string;
+      sentiment?: 'bussing' | 'mid' | 'notIt';
+      isVegetarian?: boolean;
+    }>;
   };
   onAddToCart?: (mealId: string, quantity: number) => void;
+  onSimilarMealPress?: (mealId: string) => void;
 }
 
 export function MealItemDetails({
@@ -63,14 +76,50 @@ export function MealItemDetails({
     dietMessage: 'Would help with your weight gain',
     ingredients: [
       { name: 'Chicken breasts', quantity: '250 g' },
-      { name: 'Unsalted butter', quantity: '1 tbsp' },
-      { name: 'Sesame or vegetable oil', quantity: '2 tsp' },
-      { name: 'Fresh ginger', quantity: '2 tsp' }
+      { name: 'Unsalted butter', quantity: '1 tbsp', isAllergen: true, allergenType: 'dairy' },
+      { name: 'Sesame oil', quantity: '2 tsp', isAllergen: true, allergenType: 'nuts' },
+      { name: 'Fresh ginger', quantity: '2 tsp' },
+      { name: 'Wheat flour', quantity: '100 g', isAllergen: true, allergenType: 'gluten' }
     ],
     isVegetarian: true,
     isSafeForYou: true,
+    // Default values for new sections
+    prepTime: '15 min',
+    deliveryTime: '30 min',
+    chefName: 'Chef Stan',
+    chefStory: 'This Shawarma recipe has been perfected over 20 years of cooking. It combines traditional Middle Eastern spices with modern cooking techniques to create a dish that\'s both authentic and accessible.',
+    chefTips: [
+      'Marinate the chicken overnight for maximum flavor',
+      'Use fresh spices for the best aroma',
+      'Don\'t overcook the chicken - it should be juicy',
+      'Let the meat rest for 5 minutes before slicing'
+    ],
+    similarMeals: [
+      {
+        id: 'kebab-001',
+        name: 'Chicken Kebab',
+        price: '£12.99',
+        sentiment: 'bussing',
+        isVegetarian: false
+      },
+      {
+        id: 'falafel-001',
+        name: 'Falafel Wrap',
+        price: '£9.99',
+        sentiment: 'mid',
+        isVegetarian: true
+      },
+      {
+        id: 'hummus-001',
+        name: 'Hummus Plate',
+        price: '£8.99',
+        sentiment: 'bussing',
+        isVegetarian: true
+      }
+    ]
   },
-  onAddToCart
+  onAddToCart,
+  onSimilarMealPress
 }: MealItemDetailsProps) {
   const [quantity, setQuantity] = useState(2);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -86,8 +135,6 @@ export function MealItemDetails({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
       {/* Container with rounded top corners */}
       <View style={styles.mainContainer}>
         
@@ -133,6 +180,12 @@ export function MealItemDetails({
             kitchenName={mealData.kitchenName}
           />
 
+          {/* Meal Info Component */}
+          <MealInfo 
+            prepTime={mealData.prepTime || '15 min'}
+            deliveryTime={mealData.deliveryTime || '30 min'}
+          />
+
           {/* Diet Compatibility Bar Component */}
           <DietCompatibilityBar compatibility={mealData.dietCompatibility} />
 
@@ -147,14 +200,35 @@ export function MealItemDetails({
 
           {/* Ingredients Component */}
           <MealIngredients ingredients={mealData.ingredients} />
-        </ScrollView>
 
-        {/* Add to Cart Button Component - Floating */}
-        <AddToCartButton 
-          quantity={quantity}
-          onAddToCart={handleAddToCart}
-        />
+          {/* Chef Notes Component */}
+          <ChefNotes 
+            story={mealData.chefStory}
+            tips={mealData.chefTips}
+            chefName={mealData.chefName}
+            chefAvatar={mealData.kitchenAvatar}
+          />
+
+          {/* Similar Meals Component */}
+          <SimilarMeals 
+            meals={mealData.similarMeals || []}
+            onMealPress={onSimilarMealPress}
+          />
+        </ScrollView>
       </View>
+
+      {/* Add to Cart Button Component - Floating above everything with proper safe area handling */}
+      <CartButton 
+        quantity={quantity}
+        onPress={handleAddToCart}
+        variant="view"
+        position="absolute"
+        bottom={Math.max(insets.bottom, 80)}
+        left={20}
+        right={20}
+        buttonText="Add to Cart"
+        showIcon={false}
+      />
     </View>
   );
 }

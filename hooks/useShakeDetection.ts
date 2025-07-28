@@ -1,35 +1,63 @@
 import { Accelerometer } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
+import { CONFIG } from '../constants/config';
 
 interface UseShakeDetectionOptions {
   threshold?: number; // Minimum acceleration to trigger shake
   cooldownMs?: number; // Time to wait before allowing another shake
   sensitivity?: 'low' | 'medium' | 'high';
   debug?: boolean; // Enable debug logging
+  sustainedShakeDuration?: number; // Duration in ms for sustained shake detection
+  interruptionGracePeriod?: number; // Time in ms to maintain progress when shaking stops
+  enabled?: boolean; // Whether shake detection is enabled
 }
 
 interface UseShakeDetectionReturn {
   isShaking: boolean;
   shakeCount: number;
   resetShakeCount: () => void;
+  sustainedShakeProgress: number; // Progress of sustained shake (0-1)
+  isSustainedShaking: boolean; // Whether currently in sustained shake mode
 }
 
 export function useShakeDetection(
   onShake: () => void,
   options: UseShakeDetectionOptions = {}
 ): UseShakeDetectionReturn {
+  // Early return if shake to eat is globally disabled
+  if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
+    return {
+      isShaking: false,
+      shakeCount: 0,
+      resetShakeCount: () => {},
+      sustainedShakeProgress: 0,
+      isSustainedShaking: false,
+    };
+  }
+
   const {
     threshold = 8, // Lower default threshold for better sensitivity
     cooldownMs = 2000,
     sensitivity = 'medium',
     debug = false, // Debug disabled by default for cleaner logs
+    sustainedShakeDuration = 3000, // 3 seconds for sustained shake
+    interruptionGracePeriod = 1000, // 1 second grace period for interruptions
+    enabled = true, // Enable shake detection by default
   } = options;
 
   const [isShaking, setIsShaking] = useState(false);
   const [shakeCount, setShakeCount] = useState(0);
+  const [sustainedShakeProgress, setSustainedShakeProgress] = useState(0);
+  const [isSustainedShaking, setIsSustainedShaking] = useState(false);
+  
   const lastShakeTime = useRef<number>(0);
   const accelerationHistory = useRef<number[]>([]);
   const isInitialized = useRef(false);
+  const sustainedShakeStartTime = useRef<number>(0);
+  const sustainedShakeTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastSustainedShakeTime = useRef<number>(0);
+  const lastShakeStopTime = useRef<number>(0);
+  const interruptionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Adjust threshold based on sensitivity
   const adjustedThreshold = sensitivity === 'low' ? threshold * 1.5 : 
@@ -53,6 +81,7 @@ export function useShakeDetection(
             threshold: adjustedThreshold,
             cooldownMs,
             sensitivity,
+            sustainedShakeDuration,
           });
         }
 
@@ -63,13 +92,21 @@ export function useShakeDetection(
           const { x, y, z } = accelerometerData;
           const currentTime = Date.now();
 
-          if (!isInitialized.current) {
-            isInitialized.current = true;
+          // If shake detection is disabled, don't process any data
+          if (!enabled) {
+            // Reset states when disabled
+            if (isShaking) {
+              setIsShaking(false);
+            }
+            if (isSustainedShaking) {
+              setIsSustainedShaking(false);
+              setSustainedShakeProgress(0);
+            }
             return;
           }
 
-          // Skip if we're in cooldown period
-          if (currentTime - lastShakeTime.current < cooldownMs) {
+          if (!isInitialized.current) {
+            isInitialized.current = true;
             return;
           }
 
@@ -106,30 +143,78 @@ export function useShakeDetection(
             });
           }
           
-          // Trigger shake if acceleration spike exceeds threshold
-          if (accelerationSpike > adjustedThreshold) {
-            if (debug) {
-              console.log('🎯 SHAKE DETECTED!', {
-                accelerationSpike: accelerationSpike.toFixed(2),
-                threshold: adjustedThreshold,
-                timeSinceLastShake: currentTime - lastShakeTime.current,
-              });
-            }
-
+          // Check if current acceleration exceeds threshold
+          const isCurrentlyShaking = accelerationSpike > adjustedThreshold;
+          
+          // Handle sustained shake detection
+          if (isCurrentlyShaking) {
             setIsShaking(true);
-            setShakeCount(prev => prev + 1);
-            lastShakeTime.current = currentTime;
             
-            // Call the shake handler
-            onShake();
+            // Clear any interruption timeout since we're shaking again
+            if (interruptionTimeout.current) {
+              clearTimeout(interruptionTimeout.current);
+              interruptionTimeout.current = null;
+            }
             
-            // Reset shaking state after a short delay
-            setTimeout(() => {
-              setIsShaking(false);
-            }, 500);
+            // Start sustained shake timer if not already started
+            if (!isSustainedShaking) {
+              sustainedShakeStartTime.current = currentTime;
+              setIsSustainedShaking(true);
+              setSustainedShakeProgress(0);
+              
+              if (debug) {
+                console.log('🔄 Starting sustained shake detection...');
+              }
+            }
+            
+            // Calculate progress of sustained shake
+            const elapsed = currentTime - sustainedShakeStartTime.current;
+            const progress = Math.min(elapsed / sustainedShakeDuration, 1);
+            setSustainedShakeProgress(progress);
+            
+            // Check if sustained shake duration is reached
+            if (elapsed >= sustainedShakeDuration && currentTime - lastSustainedShakeTime.current >= cooldownMs) {
+              if (debug) {
+                console.log('🎯 SUSTAINED SHAKE COMPLETED!', {
+                  duration: elapsed,
+                  requiredDuration: sustainedShakeDuration,
+                  timeSinceLastShake: currentTime - lastSustainedShakeTime.current,
+                });
+              }
 
-            // Clear acceleration history to prevent multiple triggers
-            accelerationHistory.current = [];
+              setShakeCount(prev => prev + 1);
+              lastSustainedShakeTime.current = currentTime;
+              
+              // Call the shake handler
+              onShake();
+              
+              // Reset sustained shake state
+              setIsSustainedShaking(false);
+              setSustainedShakeProgress(0);
+              
+              // Clear acceleration history to prevent multiple triggers
+              accelerationHistory.current = [];
+            }
+          } else {
+            // Not currently shaking
+            setIsShaking(false);
+            
+            // If we were in sustained shake mode, start grace period
+            if (isSustainedShaking) {
+              lastShakeStopTime.current = currentTime;
+              
+              // Set a timeout to reset progress after grace period
+              if (!interruptionTimeout.current) {
+                interruptionTimeout.current = setTimeout(() => {
+                  if (debug) {
+                    console.log('⏹️ Sustained shake interrupted after grace period');
+                  }
+                  setIsSustainedShaking(false);
+                  setSustainedShakeProgress(0);
+                  interruptionTimeout.current = null;
+                }, interruptionGracePeriod);
+              }
+            }
           }
         });
 
@@ -150,8 +235,35 @@ export function useShakeDetection(
           console.log('🛑 Accelerometer listener removed');
         }
       }
+      
+      // Clear any pending timeouts
+      if (sustainedShakeTimeout.current) {
+        clearTimeout(sustainedShakeTimeout.current);
+      }
+      if (interruptionTimeout.current) {
+        clearTimeout(interruptionTimeout.current);
+      }
     };
-  }, [onShake, adjustedThreshold, cooldownMs, debug]);
+  }, [onShake, adjustedThreshold, cooldownMs, debug, sustainedShakeDuration, enabled]);
+
+  // Reset states when enabled changes
+  useEffect(() => {
+    if (!enabled) {
+      if (debug) {
+        console.log('🛑 Shake detection disabled');
+      }
+      setIsShaking(false);
+      setIsSustainedShaking(false);
+      setSustainedShakeProgress(0);
+      // Clear any pending timeouts
+      if (interruptionTimeout.current) {
+        clearTimeout(interruptionTimeout.current);
+        interruptionTimeout.current = null;
+      }
+    } else if (debug) {
+      console.log('✅ Shake detection enabled');
+    }
+  }, [enabled, debug]);
 
   const resetShakeCount = () => {
     setShakeCount(0);
@@ -161,5 +273,7 @@ export function useShakeDetection(
     isShaking,
     shakeCount,
     resetShakeCount,
+    sustainedShakeProgress,
+    isSustainedShaking,
   };
 } 

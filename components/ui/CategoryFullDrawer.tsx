@@ -22,6 +22,8 @@ interface CategoryFullDrawerProps {
   onFilterChange?: (filterId: string) => void;
   activeFilters?: string[];
   children?: React.ReactNode;
+  showTabs?: boolean;
+  showSearch?: boolean;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -37,23 +39,27 @@ export function CategoryFullDrawer({
   filterChips = [],
   onFilterChange,
   activeFilters = [],
-  children
+  children,
+  showTabs = true,
+  showSearch = true
 }: CategoryFullDrawerProps) {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         {/* Sticky Search Bar Only */}
-        <View style={styles.stickySearch}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={17} color="rgba(60, 60, 67, 0.6)" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={searchPlaceholder}
-              placeholderTextColor="rgba(60, 60, 67, 0.6)"
-              onChangeText={onSearch}
-            />
+        {showSearch && (
+          <View style={styles.stickySearch}>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={17} color="rgba(60, 60, 67, 0.6)" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={searchPlaceholder}
+                placeholderTextColor="rgba(60, 60, 67, 0.6)"
+                onChangeText={onSearch}
+              />
+            </View>
           </View>
-        </View>
+        )}
         
         {/* Scrollable Content Section (includes header and filter chips) */}
         <View style={styles.scrollableContent}>
@@ -65,6 +71,7 @@ export function CategoryFullDrawer({
                 onBack={onBack}
                 selectedSegment={selectedSegment}
                 onSegmentChange={onSegmentChange}
+                showTabs={showTabs}
               />
               
               {filterChips.length > 0 && (

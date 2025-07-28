@@ -11,6 +11,10 @@ interface Kitchen {
   isVerified?: boolean;
 }
 
+interface KitchensNearMeProps {
+  onKitchenPress?: (kitchen: Kitchen) => void;
+}
+
 const kitchens: Kitchen[] = [
   {
     id: '1',
@@ -29,7 +33,7 @@ const kitchens: Kitchen[] = [
   }
 ];
 
-export function KitchensNearMe() {
+export function KitchensNearMe({ onKitchenPress }: KitchensNearMeProps) {
   return (
     <View style={{ paddingVertical: 20, paddingHorizontal: 20 }}>
       <View style={{ 
@@ -61,6 +65,8 @@ export function KitchensNearMe() {
               shadowRadius: 8,
               elevation: 3
             }}
+            onPress={() => onKitchenPress?.(kitchen)}
+            activeOpacity={0.8}
           >
             <View style={{ flexDirection: 'row' }}>
               <View style={{ 
@@ -98,28 +104,31 @@ export function KitchensNearMe() {
                       height: 18, 
                       borderRadius: 9, 
                       backgroundColor: '#3b82f6',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      alignItems: 'center'
                     }}>
                       <Text style={{ 
                         color: '#fff', 
                         fontSize: 10, 
                         fontWeight: 'bold' 
-                      }}>✓</Text>
+                      }}>
+                        ✓
+                      </Text>
                     </View>
                   )}
                 </View>
-                
                 <Text style={{ 
-                  fontSize: 12, 
-                  color: '#6b7280',
+                  fontSize: 14, 
+                  color: '#666', 
                   marginBottom: 4,
-                  lineHeight: 16
+                  lineHeight: 20
                 }}>
                   {kitchen.description}
                 </Text>
-                
-                <Text style={{ fontSize: 11, color: '#9ca3af' }}>
+                <Text style={{ 
+                  fontSize: 12, 
+                  color: '#999' 
+                }}>
                   {kitchen.distance}
                 </Text>
               </View>

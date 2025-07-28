@@ -8,6 +8,10 @@ interface Cuisine {
   image: string;
 }
 
+interface CuisinesSectionProps {
+  onCuisinePress?: (cuisine: Cuisine) => void;
+}
+
 const cuisines: Cuisine[] = [
   {
     id: '1',
@@ -26,7 +30,7 @@ const cuisines: Cuisine[] = [
   },
 ];
 
-export function CuisinesSection() {
+export function CuisinesSection({ onCuisinePress }: CuisinesSectionProps) {
   return (
     <View style={{ paddingVertical: 20 }}>
       <View style={{ 
@@ -56,6 +60,8 @@ export function CuisinesSection() {
               alignItems: 'center',
               marginRight: index < cuisines.length - 1 ? 24 : 0 
             }}
+            onPress={() => onCuisinePress?.(cuisine)}
+            activeOpacity={0.8}
           >
             <View style={{ 
               width: 64, 

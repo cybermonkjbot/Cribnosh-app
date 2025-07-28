@@ -1,11 +1,12 @@
 import React from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { KitchenRating } from './KitchenRating';
 
 interface Kitchen {
   id: string;
   name: string;
   cuisine: string;
-  rating: number;
+  sentiment: 'bussing' | 'mid' | 'notIt' | 'fire' | 'slaps' | 'decent' | 'meh' | 'trash' | 'elite' | 'solid' | 'average' | 'skip';
   deliveryTime: string;
   distance: string;
   image: any;
@@ -16,11 +17,13 @@ interface Kitchen {
 interface FeaturedKitchensSectionProps {
   kitchens: Kitchen[];
   onKitchenPress?: (kitchen: Kitchen) => void;
+  onSeeAllPress?: () => void;
 }
 
 export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = ({
   kitchens,
-  onKitchenPress
+  onKitchenPress,
+  onSeeAllPress
 }) => {
   const renderKitchenCard = (kitchen: Kitchen, index: number) => (
     <TouchableOpacity
@@ -78,26 +81,17 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
           </View>
         )}
         
-        {/* Rating Badge */}
+        {/* Kitchen Sentiment Badge */}
         <View style={{
           position: 'absolute',
           top: 8,
           right: 8,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          paddingHorizontal: 6,
-          paddingVertical: 3,
-          borderRadius: 8,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 2,
         }}>
-          <Text style={{
-            color: '#ffffff',
-            fontSize: 10,
-            fontWeight: '600',
-          }}>
-            ⭐ {kitchen.rating}
-          </Text>
+          <KitchenRating 
+            sentiment={kitchen.sentiment} 
+            size="small" 
+            compact={kitchen.isLive}
+          />
         </View>
       </View>
       
@@ -112,16 +106,17 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
         }}>
           {kitchen.name}
         </Text>
-        
         <Text style={{
           color: '#666666',
           fontSize: 12,
           fontWeight: '400',
-          marginBottom: 6,
+          marginBottom: 8,
+          lineHeight: 16,
         }}>
           {kitchen.cuisine}
         </Text>
         
+        {/* Delivery Info */}
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -164,7 +159,7 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
           Featured Kitchens
         </Text>
         
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onSeeAllPress}>
           <Text style={{
             color: '#ef4444',
             fontSize: 14,
@@ -175,20 +170,6 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
         </TouchableOpacity>
       </View>
       
-      {/* First Row */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: 12,
-          gap: 12,
-        }}
-        style={{ marginBottom: 12 }}
-      >
-        {kitchens.slice(0, 3).map(renderKitchenCard)}
-      </ScrollView>
-      
-      {/* Second Row */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -197,7 +178,7 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
           gap: 12,
         }}
       >
-        {kitchens.slice(3, 6).map(renderKitchenCard)}
+        {kitchens.map(renderKitchenCard)}
       </ScrollView>
     </View>
   );
