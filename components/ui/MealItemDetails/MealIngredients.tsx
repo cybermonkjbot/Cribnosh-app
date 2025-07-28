@@ -9,24 +9,26 @@ interface MealIngredientsProps {
 }
 
 export function MealIngredients({ ingredients }: MealIngredientsProps) {
-  console.log('MealIngredients - ingredients:', ingredients);
-  
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Ingredients</Text>
       
-      <Text style={styles.debug}>Count: {ingredients?.length || 0}</Text>
-      
       <View style={styles.table}>
         {ingredients && ingredients.length > 0 ? (
-          ingredients.map((ingredient, index) => (
-            <View key={index} style={styles.row}>
-              <Text style={styles.name}>{ingredient.name}</Text>
-              <Text style={styles.quantity}>{ingredient.quantity}</Text>
-            </View>
-          ))
+          ingredients.map((ingredient, index) => {
+            // Handle both string and object formats
+            const name = typeof ingredient === 'string' ? ingredient : ingredient.name;
+            const quantity = typeof ingredient === 'string' ? '' : ingredient.quantity;
+            
+            return (
+              <View key={index} style={styles.row}>
+                <Text style={styles.name}>{name}</Text>
+                <Text style={styles.quantity}>{quantity}</Text>
+              </View>
+            );
+          })
         ) : (
-          <Text style={styles.debug}>No ingredients data</Text>
+          <Text style={styles.name}>No ingredients data</Text>
         )}
       </View>
     </View>
@@ -67,10 +69,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     marginLeft: 20,
-  },
-  debug: {
-    fontSize: 12,
-    color: '#FF0000',
-    marginBottom: 8,
   },
 }); 

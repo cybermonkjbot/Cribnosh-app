@@ -802,10 +802,10 @@ export function MainScreen() {
       dietCompatibility: Math.floor(Math.random() * 40) + 60, // Random percentage 60-100
       dietMessage: 'Great choice for your current diet goals',
       ingredients: [
-        'Fresh ingredients',
-        'Premium spices',
-        'Traditional herbs',
-        'Authentic seasonings'
+        { name: 'Chicken breasts', quantity: '250 g' },
+        { name: 'Unsalted butter', quantity: '1 tbsp' },
+        { name: 'Sesame or vegetable oil', quantity: '2 tsp' },
+        { name: 'Fresh ginger', quantity: '2 tsp' }
       ]
     };
     
