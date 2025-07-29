@@ -16,7 +16,7 @@ A React Native component that displays a horizontal bar chart with food states, 
 ## Usage
 
 ```tsx
-import { FoodStatesBarChart } from '../components/ui/FoodStatesBarChart';
+import { FoodStatesBarChart } from '@/components/ui/FoodStatesBarChart';
 
 // Basic usage with default data
 <FoodStatesBarChart />

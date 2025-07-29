@@ -15,7 +15,7 @@ A React Native component that creates a profile screen background with a red bas
 ## Usage
 
 ```tsx
-import { ProfileScreenBackground } from '../components/ui/ProfileScreenBackground';
+import { ProfileScreenBackground } from '@/components/ui/ProfileScreenBackground';
 
 // Basic usage
 <ProfileScreenBackground>

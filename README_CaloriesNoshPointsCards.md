@@ -27,7 +27,7 @@ None - all props are optional with sensible defaults.
 
 ### Basic Usage
 ```tsx
-import CaloriesNoshPointsCards from '../components/ui/CaloriesNoshPointsCards';
+import CaloriesNoshPointsCards from '@/components/ui/CaloriesNoshPointsCards';
 
 <CaloriesNoshPointsCards />
 ```
@@ -44,7 +44,7 @@ import CaloriesNoshPointsCards from '../components/ui/CaloriesNoshPointsCards';
 ```tsx
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import CaloriesNoshPointsCards from '../components/ui/CaloriesNoshPointsCards';
+import CaloriesNoshPointsCards from '@/components/ui/CaloriesNoshPointsCards';
 
 export default function MyScreen() {
   return (

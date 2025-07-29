@@ -1,6 +1,6 @@
+import { CartButton } from '@/components/ui/CartButton';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CartButton } from '../components/ui/CartButton';
 
 export default function CartButtonDemo() {
   const [quantity, setQuantity] = useState(2);

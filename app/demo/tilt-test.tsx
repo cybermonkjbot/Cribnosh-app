@@ -1,8 +1,8 @@
+import CompactMealSelection from '@/components/CompactMealSelection';
+import KitchenNameCard from '@/components/KitchenNameCard';
+import { CategoryFoodItemCard } from '@/components/ui/CategoryFoodItemCard';
 import React, { useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
-import CompactMealSelection from '../components/CompactMealSelection';
-import KitchenNameCard from '../components/KitchenNameCard';
-import { CategoryFoodItemCard } from '../components/ui/CategoryFoodItemCard';
 
 export default function TiltTestPage() {
   const [tiltEnabled, setTiltEnabled] = useState(true);

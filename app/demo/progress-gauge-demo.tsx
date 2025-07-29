@@ -1,6 +1,6 @@
+import { ProgressGauge } from '@/components/ui/ProgressGauge';
 import React, { useEffect, useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ProgressGauge } from '../components/ui/ProgressGauge';
 
 export default function ProgressGaugeDemo() {
   const [progress, setProgress] = useState(67.2);

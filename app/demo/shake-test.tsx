@@ -1,8 +1,8 @@
 import { ShakeToEatFlow } from '@/components/ui/ShakeToEatFlow';
+import { CONFIG } from '@/constants/config';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { CONFIG } from '../constants/config';
 
 export default function ShakeTest() {
   const [isShakeToEatVisible, setIsShakeToEatVisible] = useState(false);

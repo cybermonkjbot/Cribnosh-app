@@ -15,7 +15,7 @@ A React Native component that displays two stacked cards with progress indicator
 ## Usage
 
 ```tsx
-import { StackedProgressCards } from '../components/ui/StackedProgressCards';
+import { StackedProgressCards } from '@/components/ui/StackedProgressCards';
 
 // Basic usage with default values
 <StackedProgressCards />

@@ -1,7 +1,7 @@
 import { useShakeDetection } from '@/hooks/useShakeDetection';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { CONFIG } from '../constants/config';
+import { CONFIG } from '../../constants/config';
 
 export default function SustainedShakeTest() {
   // Early return if shake to eat is disabled

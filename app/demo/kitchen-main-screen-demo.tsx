@@ -1,6 +1,6 @@
+import { KitchenMainScreen } from '@/components/ui/KitchenMainScreen';
 import React from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
-import { KitchenMainScreen } from '../components/ui/KitchenMainScreen';
 
 export default function KitchenMainScreenDemo() {
   const handleCartPress = () => {

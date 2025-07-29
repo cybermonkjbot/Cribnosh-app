@@ -15,7 +15,7 @@ A React Native component that displays a semi-circular progress gauge with 15 se
 ## Usage
 
 ```tsx
-import { ProgressGauge } from '../components/ui/ProgressGauge';
+import { ProgressGauge } from '@/components/ui/ProgressGauge';
 
 // Basic usage with default values
 <ProgressGauge progress={67.2} />

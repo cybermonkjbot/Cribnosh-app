@@ -1,6 +1,6 @@
+import { ForkPrintScoreCard } from '@/components/ui/ForkPrintScoreCard';
 import React from 'react';
 import { SafeAreaView, StyleSheet, View } from 'react-native';
-import { ForkPrintScoreCard } from '../components/ui/ForkPrintScoreCard';
 
 export default function ForkPrintScoreDemo() {
   return (

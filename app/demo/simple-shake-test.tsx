@@ -1,8 +1,8 @@
+import { Mascot } from '@/components/Mascot';
+import { CONFIG } from '@/constants/config';
 import { useShakeDetection } from '@/hooks/useShakeDetection';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Mascot } from '../components/Mascot';
-import { CONFIG } from '../constants/config';
 
 export default function SimpleShakeTest() {
   // Early return if shake to eat is disabled

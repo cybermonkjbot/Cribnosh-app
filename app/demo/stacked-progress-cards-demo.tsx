@@ -1,6 +1,6 @@
+import { StackedProgressCards } from '@/components/ui/StackedProgressCards';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { StackedProgressCards } from '../components/ui/StackedProgressCards';
 
 export default function StackedProgressCardsDemo() {
   const [caloriesProgress, setCaloriesProgress] = useState(23);

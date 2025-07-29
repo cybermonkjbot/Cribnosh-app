@@ -27,7 +27,7 @@ I've successfully created the OnTheStove bottom sheet component and integrated i
 You can also import and use the component directly in any existing page:
 
 ```tsx
-import OnTheStoveBottomSheet from '../components/OnTheStoveBottomSheet';
+import OnTheStoveBottomSheet from '@/components/OnTheStoveBottomSheet';
 
 // Add this to any existing component
 const [isVisible, setIsVisible] = useState(false);

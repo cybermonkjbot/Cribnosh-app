@@ -1,7 +1,7 @@
+import { FoodStatesBarChart } from '@/components/ui/FoodStatesBarChart';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { FoodStatesBarChart } from '../components/ui/FoodStatesBarChart';
 
 export default function FoodStatesBarChartDemo() {
   const [currentData, setCurrentData] = useState(0);

@@ -1,6 +1,6 @@
+import { ProfileScreenBackground } from '@/components/ui/ProfileScreenBackground';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ProfileScreenBackground } from '../components/ui/ProfileScreenBackground';
 
 export default function ProfileScreenBackgroundDemo() {
   return (

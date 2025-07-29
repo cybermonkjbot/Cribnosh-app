@@ -1,17 +1,17 @@
+import {
+  CalorieCompareCard,
+  CuisineScoreCard,
+  MealsLoggedCard,
+  WeeklySummaryCard
+} from '@/components/ui';
+import {
+  generateMockWeeklyData,
+  mockConvexQueries,
+  sampleWeeklyData
+} from '@/utils/braggingCardsData';
 import React, { useState } from 'react';
 import { Alert, Button, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-    CalorieCompareCard,
-    CuisineScoreCard,
-    MealsLoggedCard,
-    WeeklySummaryCard
-} from '../components/ui';
-import {
-    generateMockWeeklyData,
-    mockConvexQueries,
-    sampleWeeklyData
-} from '../utils/braggingCardsData';
 
 export default function BraggingCardsDemo() {
   const [sampleData, setSampleData] = useState(sampleWeeklyData);

@@ -1,7 +1,7 @@
 import { ShakeToEatFlow } from '@/components/ui/ShakeToEatFlow';
+import { CONFIG } from '@/constants/config';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { CONFIG } from '../constants/config';
 
 export default function ShakeToEatDemo() {
   const [showAIChat, setShowAIChat] = useState(false);

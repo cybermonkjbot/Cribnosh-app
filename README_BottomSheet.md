@@ -26,7 +26,7 @@ The component uses `@gorhom/bottom-sheet` which is already installed in the proj
 ```tsx
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { BottomSheetBase } from '../components/BottomSheet';
+import { BottomSheetBase } from '@/components/BottomSheet';
 
 export function MyComponent() {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,7 +58,7 @@ export function MyComponent() {
 ```tsx
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { BottomSheetBase } from '../components/BottomSheet';
+import { BottomSheetBase } from '@/components/BottomSheet';
 
 export function AdvancedExample() {
   const [isOpen, setIsOpen] = useState(false);

@@ -168,7 +168,7 @@ interface WeeklySummaryCardProps {
 
 ### In Profile Screen
 ```tsx
-import { WeeklySummaryCard } from '../components/ui';
+import { WeeklySummaryCard } from '@/components/ui';
 
 // In your profile screen component
 <WeeklySummaryCard
@@ -185,7 +185,7 @@ import {
   MealsLoggedCard, 
   CalorieCompareCard, 
   CuisineScoreCard 
-} from '../components/ui';
+} from '@/components/ui';
 
 // Use individual cards as needed
 <MealsLoggedCard weekMeals={data.weekMeals} avgMeals={data.avgMeals} />

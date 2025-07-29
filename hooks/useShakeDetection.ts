@@ -1,6 +1,6 @@
+import { CONFIG } from '@/constants/config';
 import { Accelerometer } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
-import { CONFIG } from '../constants/config';
 
 interface UseShakeDetectionOptions {
   threshold?: number; // Minimum acceleration to trigger shake

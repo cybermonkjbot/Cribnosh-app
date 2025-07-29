@@ -30,7 +30,7 @@ The `KitchenMainScreen` component is built using a modular architecture, breakin
 ### Basic Usage
 
 ```tsx
-import { KitchenMainScreen } from '../components/ui/KitchenMainScreen';
+import { KitchenMainScreen } from '@/components/ui/KitchenMainScreen';
 
 export default function MyScreen() {
   return (

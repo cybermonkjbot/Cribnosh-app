@@ -20,7 +20,7 @@ The `CartButton` component merges the functionality of the previous `AddToCartBu
 ### Basic Add to Cart Button
 
 ```tsx
-import { CartButton } from '../components/ui/CartButton';
+import { CartButton } from '@/components/ui/CartButton';
 
 <CartButton
   quantity={2}
