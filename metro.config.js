@@ -1,6 +1,8 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require('nativewind/metro');
 
+// Disable Reanimated strict mode warnings
+process.env.REANIMATED_STRICT_MODE = 'false';
 
 const path = require('path');
 const config = getDefaultConfig(__dirname);

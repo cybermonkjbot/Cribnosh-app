@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withSequence,
-    withSpring,
-    withTiming
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
 interface CalorieCompareCardProps {
@@ -33,24 +35,40 @@ export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
   const iconRotation = useSharedValue(0);
   const numbersScale = useSharedValue(0.8);
 
+  // Derived values for safe access
+  const currentCardOpacity = useDerivedValue(() => cardOpacity.value);
+  const currentCardScale = useDerivedValue(() => cardScale.value);
+  const currentCardTranslateY = useDerivedValue(() => cardTranslateY.value);
+  const currentIconScale = useDerivedValue(() => iconScale.value);
+  const currentIconRotation = useDerivedValue(() => `${iconRotation.value}deg`);
+  const currentNumbersScale = useDerivedValue(() => numbersScale.value);
+  const currentBarsProgress = useDerivedValue(() => barsProgress.value);
+
+  // State for JSX access
+  const [barsProgressState, setBarsProgressState] = useState(0);
+
+  useDerivedValue(() => {
+    runOnJS(setBarsProgressState)(currentBarsProgress.value);
+  }, [currentBarsProgress]);
+
   // Animated styles
   const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
+    opacity: currentCardOpacity.value,
     transform: [
-      { scale: cardScale.value },
-      { translateY: cardTranslateY.value }
+      { scale: currentCardScale.value },
+      { translateY: currentCardTranslateY.value }
     ],
   }));
 
   const iconAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { scale: iconScale.value },
-      { rotate: `${iconRotation.value}deg` }
+      { scale: currentIconScale.value },
+      { rotate: currentIconRotation.value }
     ],
   }));
 
   const numbersAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: numbersScale.value }],
+    transform: [{ scale: currentNumbersScale.value }],
   }));
 
   // Start entrance animations
@@ -126,7 +144,7 @@ export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
                 styles.bar, 
                 { 
                   backgroundColor: '#FF6B00',
-                  width: 60 * barsProgress.value
+                  width: 60 * barsProgressState
                 }
               ]} 
             />
@@ -142,7 +160,7 @@ export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
                 styles.bar, 
                 { 
                   backgroundColor: '#E5E5E5',
-                  width: 60 * barsProgress.value
+                  width: 60 * barsProgressState
                 }
               ]} 
             />

@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withSequence,
-    withSpring,
-    withTiming
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 import Svg, { Rect } from 'react-native-svg';
 
@@ -33,19 +35,38 @@ export const MealsLoggedCard: React.FC<MealsLoggedCardProps> = ({
   const iconScale = useSharedValue(0.8);
   const iconRotation = useSharedValue(0);
 
+  // Derived values for safe access
+  const currentCardOpacity = useDerivedValue(() => cardOpacity.value);
+  const currentCardScale = useDerivedValue(() => cardScale.value);
+  const currentCardTranslateY = useDerivedValue(() => cardTranslateY.value);
+  const currentIconScale = useDerivedValue(() => iconScale.value);
+  const currentIconRotation = useDerivedValue(() => `${iconRotation.value}deg`);
+  const currentAverageLineProgress = useDerivedValue(() => averageLineProgress.value);
+
+  // State for JSX access
+  const [barsProgressState, setBarsProgressState] = useState(0);
+  const [averageLineProgressState, setAverageLineProgressState] = useState(0);
+
+  useDerivedValue(() => {
+    runOnJS(setBarsProgressState)(barsProgress.value);
+  }, [barsProgress]);
+  useDerivedValue(() => {
+    runOnJS(setAverageLineProgressState)(averageLineProgress.value);
+  }, [averageLineProgress]);
+
   // Animated styles
   const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
+    opacity: currentCardOpacity.value,
     transform: [
-      { scale: cardScale.value },
-      { translateY: cardTranslateY.value }
+      { scale: currentCardScale.value },
+      { translateY: currentCardTranslateY.value }
     ],
   }));
 
   const iconAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { scale: iconScale.value },
-      { rotate: `${iconRotation.value}deg` }
+      { scale: currentIconScale.value },
+      { rotate: currentIconRotation.value }
     ],
   }));
 
@@ -127,14 +148,14 @@ export const MealsLoggedCard: React.FC<MealsLoggedCardProps> = ({
               <Rect
                 x={0}
                 y={40 - barHeight(avgMeals)}
-                width={200 * averageLineProgress.value}
+                width={200 * averageLineProgressState}
                 height={2}
                 fill="#FF6B00"
               />
               
               {/* Daily Bars */}
               {weekMeals.map((meals, index) => {
-                const animatedHeight = barHeight(meals) * barsProgress.value;
+                const animatedHeight = barHeight(meals) * barsProgressState;
                 return (
                   <Rect
                     key={index}

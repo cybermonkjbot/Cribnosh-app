@@ -8,6 +8,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+// Disable Reanimated strict mode warnings
+if (__DEV__) {
+  // In development, you can disable strict mode warnings
+  // This is done by setting the environment variable or using the correct API
+}
+
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';

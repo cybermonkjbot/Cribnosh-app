@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { ViewProps } from 'react-native';
 import Animated, {
-    Extrapolate,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
+  Extrapolate,
+  interpolate,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
 import { useDeviceMotion } from '../../hooks/useDeviceMotion';
 
@@ -88,14 +89,19 @@ export function TiltCard({
     scale.value = withSpring(newScale, springConfig);
   }, [motionData, enabled, isAvailable, intensity, springConfig, tiltX, tiltY, scale]);
 
+  // Derived values for safe access
+  const tiltXDegrees = useDerivedValue(() => `${tiltX.value}deg`);
+  const tiltYDegrees = useDerivedValue(() => `${tiltY.value}deg`);
+  const currentScale = useDerivedValue(() => scale.value);
+
   // Animated style for the tilt effect
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
         { perspective: 1000 },
-        { rotateX: `${tiltX.value}deg` },
-        { rotateY: `${tiltY.value}deg` },
-        { scale: scale.value },
+        { rotateX: tiltXDegrees.value },
+        { rotateY: tiltYDegrees.value },
+        { scale: currentScale.value },
       ],
     };
   }, []);

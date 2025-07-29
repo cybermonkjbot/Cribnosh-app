@@ -6,8 +6,10 @@ import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-g
 import Animated, {
   Extrapolate,
   interpolate,
+  runOnJS,
   useAnimatedGestureHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withSpring
 } from 'react-native-reanimated';
@@ -475,27 +477,52 @@ export function BottomSearchDrawer({
     };
   });
 
-  // Dynamic blur intensity style
-  const blurIntensityStyle = useAnimatedStyle(() => {
-    'worklet';
-    const isDragging = gestureState.value === 'dragging';
-    const isSettling = gestureState.value === 'settling';
-    
-    // Higher blur when dragging or settling, lower when at rest
-    const blurIntensity = isDragging || isSettling ? 80 : 40;
-    
-    return {
-      // We'll use this to conditionally render different blur intensities
-      opacity: 1,
-    };
+  // Derived values for conditions to avoid mixing shared values with regular state in worklets
+  const isCollapsedCondition = useDerivedValue(() => {
+    return drawerHeight.value <= SNAP_POINTS.COLLAPSED + 20;
   });
+  
+  const isExpandedCondition = useDerivedValue(() => {
+    return drawerHeight.value > SNAP_POINTS.COLLAPSED + 50;
+  });
+
+  // State for JSX access
+  const [isSearchFocusedState, setIsSearchFocusedState] = useState(false);
+  const [blurIntensityState, setBlurIntensityState] = useState(80);
+  const [scrollEnabledState, setScrollEnabledState] = useState(false);
+  const [buttonDisabledState, setButtonDisabledState] = useState(false);
+
+  // Derived values for safe access in JSX
+  const currentGestureState = useDerivedValue(() => gestureState.value);
+  const currentDrawerHeight = useDerivedValue(() => drawerHeight.value);
+  const currentSnapPointValue = useDerivedValue(() => currentSnapPoint.value);
+
+  // Update state from derived values
+  useDerivedValue(() => {
+    const intensity = currentGestureState.value === 'dragging' || currentGestureState.value === 'settling' ? 120 : 80;
+    runOnJS(setBlurIntensityState)(intensity);
+  });
+
+  useDerivedValue(() => {
+    const enabled = currentDrawerHeight.value >= SNAP_POINTS.EXPANDED - 50;
+    runOnJS(setScrollEnabledState)(enabled);
+  });
+
+  useDerivedValue(() => {
+    const disabled = currentSnapPointValue.value !== SNAP_POINTS.COLLAPSED;
+    runOnJS(setButtonDisabledState)(disabled);
+  });
+
+  useDerivedValue(() => {
+    runOnJS(setIsSearchFocusedState)(isSearchFocused);
+  }, [isSearchFocused]);
 
   // Backdrop with proper opacity and interaction blocking
   const backdropStyle = useAnimatedStyle(() => {
     'worklet';
     // Only show backdrop when drawer is significantly expanded or search is focused
     const isExpanded = drawerHeight.value > SNAP_POINTS.COLLAPSED + 50;
-    const shouldShowBackdrop = isExpanded || isSearchFocused;
+    const shouldShowBackdrop = isExpanded || isSearchFocusedState;
     
     const opacity = shouldShowBackdrop 
       ? interpolate(
@@ -550,13 +577,13 @@ export function BottomSearchDrawer({
     };
   });
 
-  // Collapsed search input style (for resting state)
+  // Collapsed search input style
   const collapsedSearchStyle = useAnimatedStyle(() => {
     'worklet';
     return {
       // Only show when collapsed and not in search focus
-      opacity: (drawerHeight.value <= SNAP_POINTS.COLLAPSED + 20 && !isSearchFocused) ? 1 : 0,
-      height: (drawerHeight.value <= SNAP_POINTS.COLLAPSED + 20 && !isSearchFocused) ? 'auto' : 0,
+      opacity: isCollapsedCondition.value ? 1 : 0,
+      height: isCollapsedCondition.value ? 'auto' : 0,
       overflow: 'hidden',
     };
   });
@@ -566,7 +593,7 @@ export function BottomSearchDrawer({
     'worklet';
     return {
       // Disable pointer events on SearchArea when collapsed
-      pointerEvents: currentSnapPoint.value === SNAP_POINTS.COLLAPSED ? 'none' : 'auto',
+      pointerEvents: currentSnapPointValue.value === SNAP_POINTS.COLLAPSED ? 'none' : 'auto',
     };
   });
 
@@ -605,7 +632,7 @@ export function BottomSearchDrawer({
 
   // Handle tap to expand/collapse (handle area - no focus)
   const handleTap = useCallback(() => {
-    const current = currentSnapPoint.value;
+    const current = currentSnapPointValue.value;
     
     if (current === SNAP_POINTS.COLLAPSED) {
       // Expand without focusing input (handle tap)
@@ -617,7 +644,7 @@ export function BottomSearchDrawer({
 
   // Handle search area tap when collapsed - should focus input
   const handleSearchTap = useCallback(() => {
-    if (currentSnapPoint.value === SNAP_POINTS.COLLAPSED) {
+    if (currentSnapPointValue.value === SNAP_POINTS.COLLAPSED) {
       animateToSnapPoint(SNAP_POINTS.EXPANDED);
       // Focus the search input after expansion
       setTimeout(() => {
@@ -628,7 +655,7 @@ export function BottomSearchDrawer({
 
   // Handle search focus when in expanded state
   const handleSearchFocus = useCallback(() => {
-    if (currentSnapPoint.value === SNAP_POINTS.EXPANDED) {
+    if (currentSnapPointValue.value === SNAP_POINTS.EXPANDED) {
       setIsSearchFocused(true);
       searchInputRef.current?.focus();
     }
@@ -724,12 +751,12 @@ export function BottomSearchDrawer({
 
   // Update header when drawer expands to show fresh content
   useEffect(() => {
-    if (currentSnapPoint.value === SNAP_POINTS.EXPANDED && !isSearchFocused) {
+    if (currentSnapPointValue.value === SNAP_POINTS.EXPANDED && !isSearchFocused) {
       // Small delay to ensure smooth animation
       const timer = setTimeout(updateHeaderMessage, 100);
       return () => clearTimeout(timer);
     }
-  }, [currentSnapPoint.value, isSearchFocused, updateHeaderMessage]);
+  }, [currentSnapPointValue.value, isSearchFocused, updateHeaderMessage]);
 
   const handleBackdropPress = useCallback(() => {
     try {
@@ -769,7 +796,7 @@ export function BottomSearchDrawer({
   useEffect(() => {
     const announceDrawerState = () => {
       try {
-        const isExpanded = currentSnapPoint.value === SNAP_POINTS.EXPANDED;
+        const isExpanded = currentSnapPointValue.value === SNAP_POINTS.EXPANDED;
         const announcement = isExpanded ? 'Search drawer expanded' : 'Search drawer collapsed';
         AccessibilityInfo.announceForAccessibility(announcement);
       } catch (error) {
@@ -781,7 +808,7 @@ export function BottomSearchDrawer({
     if (isSearchFocused) {
       AccessibilityInfo.announceForAccessibility('Search mode activated');
     }
-  }, [isSearchFocused, currentSnapPoint.value]);
+  }, [isSearchFocused, currentSnapPointValue.value]);
 
   // Error boundary for the entire component
   if (error) {
@@ -818,7 +845,7 @@ export function BottomSearchDrawer({
   return (
     <>
       {/* Backdrop - Only show when expanded or search focused */}
-      {isSearchFocused || drawerHeight.value > SNAP_POINTS.COLLAPSED + 50 ? (
+      {isSearchFocused || isExpandedCondition.value ? (
         <Animated.View 
           style={[
             backdropStyle,
@@ -894,7 +921,7 @@ export function BottomSearchDrawer({
               ]}
             >
               <BlurView
-                intensity={gestureState.value === 'dragging' || gestureState.value === 'settling' ? 120 : 80}
+                intensity={blurIntensityState}
                 tint="light"
                 style={{
                   flex: 1,
@@ -959,7 +986,7 @@ export function BottomSearchDrawer({
             justifyContent: 'flex-start'
             }}
             showsVerticalScrollIndicator={false}
-            scrollEnabled={drawerHeight.value >= SNAP_POINTS.EXPANDED - 50}
+            scrollEnabled={scrollEnabledState}
           >
             {/* Search Focus Mode - Only show when search is focused */}
             {isSearchFocused ? (
@@ -1262,12 +1289,12 @@ export function BottomSearchDrawer({
                 >
                   <TouchableOpacity 
                     onPress={() => {
-                      if (currentSnapPoint.value === SNAP_POINTS.COLLAPSED) {
+                      if (currentSnapPointValue.value === SNAP_POINTS.COLLAPSED) {
                         handleSearchTap();
                       }
                     }}
                     activeOpacity={1}
-                    disabled={currentSnapPoint.value !== SNAP_POINTS.COLLAPSED}
+                    disabled={buttonDisabledState}
                     style={{ flex: 1 }}
                   >
                     <Animated.View

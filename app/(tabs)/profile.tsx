@@ -82,45 +82,75 @@ export default function ProfileScreen() {
   // Refs
   const scrollViewRef = useRef<Animated.ScrollView>(null);
 
-  // Animated styles
-  const headerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: headerOpacity.value,
-  }));
+  // Derived values for safe access in animated styles
+  const currentHeaderOpacity = useDerivedValue(() => headerOpacity.value);
+  const currentScoreScale = useDerivedValue(() => scoreScale.value);
+  const currentCardsOpacity = useDerivedValue(() => cardsOpacity.value);
+  const currentCardsTranslateY = useDerivedValue(() => cardsTranslateY.value);
+  const currentBraggingCardsOpacity = useDerivedValue(() => braggingCardsOpacity.value);
+  const currentBraggingCardsTranslateY = useDerivedValue(() => braggingCardsTranslateY.value);
+  const currentStatsSectionTranslateY = useDerivedValue(() => statsSectionTranslateY.value);
+  const currentStatsSectionScale = useDerivedValue(() => statsSectionScale.value);
+  const currentStatsSectionOpacity = useDerivedValue(() => statsSectionOpacity.value);
 
-  const scoreAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scoreScale.value }],
-  }));
-
-  const cardsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: cardsOpacity.value,
-    transform: [{ translateY: cardsTranslateY.value }],
-  }));
-
-  const braggingCardsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: braggingCardsOpacity.value,
-    transform: [{ translateY: braggingCardsTranslateY.value }],
-  }));
-
-  const statsSectionAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: statsSectionTranslateY.value },
-      { scale: statsSectionScale.value }
-    ],
-    opacity: statsSectionOpacity.value,
-  }));
-
-  const resistanceAnimatedStyle = useAnimatedStyle(() => {
-    const resistance = interpolate(
+  const resistanceValue = useDerivedValue(() => {
+    return interpolate(
       resistanceProgress.value,
       [0, 1],
       [0, RESISTANCE_FACTOR],
       Extrapolate.CLAMP
     );
-    
+  });
+
+  const scrollYResistance = useDerivedValue(() => {
+    return scrollY.value * resistanceValue.value;
+  });
+
+  const gestureIndicatorOpacity = useDerivedValue(() => {
+    return resistanceProgress.value > 0.3 ? 1 : 0;
+  });
+
+  // Animated styles
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: currentHeaderOpacity.value,
+  }));
+
+  const scoreAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: currentScoreScale.value }],
+  }));
+
+  const cardsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: currentCardsOpacity.value,
+    transform: [{ translateY: currentCardsTranslateY.value }],
+  }));
+
+  const braggingCardsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: currentBraggingCardsOpacity.value,
+    transform: [{ translateY: currentBraggingCardsTranslateY.value }],
+  }));
+
+  const statsSectionAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: currentStatsSectionTranslateY.value },
+      { scale: currentStatsSectionScale.value }
+    ],
+    opacity: currentStatsSectionOpacity.value,
+  }));
+
+  const resistanceAnimatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY: scrollY.value * resistance }],
+      transform: [{ translateY: scrollYResistance.value }],
     };
   });
+
+  const gestureIndicatorAnimatedStyle = useAnimatedStyle(() => ({
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    opacity: gestureIndicatorOpacity.value
+  }));
 
   // Safe scroll to function
   const safeScrollTo = useCallback((y: number, animated: boolean = true) => {
@@ -437,14 +467,7 @@ export default function ProfileScreen() {
                 }} />
                 
                 {/* Gesture indicator */}
-                <Animated.View style={useAnimatedStyle(() => ({
-                  marginTop: 8,
-                  paddingHorizontal: 12,
-                  paddingVertical: 4,
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  borderRadius: 8,
-                  opacity: resistanceProgress.value > 0.3 ? 1 : 0
-                }))}>
+                <Animated.View style={gestureIndicatorAnimatedStyle}>
                   <Text style={{
                     fontSize: 12,
                     color: '#FFFFFF',

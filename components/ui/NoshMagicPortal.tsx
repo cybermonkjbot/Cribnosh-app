@@ -4,12 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import { Dimensions, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withSpring,
-    withTiming
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -73,15 +74,22 @@ function Particle({ id, delay, isActive, color }: ParticleProps) {
     }
   }, [isActive, delay]);
 
+  // Derived values for safe access
+  const rotationDegrees = useDerivedValue(() => `${rotation.value}deg`);
+  const currentTranslateX = useDerivedValue(() => translateX.value);
+  const currentTranslateY = useDerivedValue(() => translateY.value);
+  const currentScale = useDerivedValue(() => scale.value);
+  const currentOpacity = useDerivedValue(() => opacity.value);
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { scale: scale.value },
-        { rotate: `${rotation.value}deg` },
+        { translateX: currentTranslateX.value },
+        { translateY: currentTranslateY.value },
+        { scale: currentScale.value },
+        { rotate: rotationDegrees.value },
       ],
-      opacity: opacity.value,
+      opacity: currentOpacity.value,
     };
   });
 
@@ -146,17 +154,23 @@ export function NoshMagicPortal({
     }
   }, [isActive, onComplete]);
 
+  // Derived values for portal animations
+  const currentPortalScale = useDerivedValue(() => portalScale.value);
+  const currentPortalOpacity = useDerivedValue(() => portalOpacity.value);
+  const currentTextOpacity = useDerivedValue(() => textOpacity.value);
+  const currentTextScale = useDerivedValue(() => textScale.value);
+
   const portalStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: portalScale.value }],
-      opacity: portalOpacity.value,
+      transform: [{ scale: currentPortalScale.value }],
+      opacity: currentPortalOpacity.value,
     };
   });
 
   const textStyle = useAnimatedStyle(() => {
     return {
-      opacity: textOpacity.value,
-      transform: [{ scale: textScale.value }],
+      opacity: currentTextOpacity.value,
+      transform: [{ scale: currentTextScale.value }],
     };
   });
 

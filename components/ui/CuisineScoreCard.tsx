@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withSequence,
-    withSpring,
-    withTiming
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
 interface CuisineScoreCardProps {
@@ -31,28 +33,54 @@ export const CuisineScoreCard: React.FC<CuisineScoreCardProps> = ({
   const tagsProgress = useSharedValue(0);
   const celebrationScale = useSharedValue(0);
 
-  // Animated styles
+  // Derived values for safe access in JSX
+  const currentTagsProgress = useDerivedValue(() => tagsProgress.value);
+  const currentTagsOpacity = useDerivedValue(() => currentTagsProgress.value);
+  const currentTagsTranslateX = useDerivedValue(() => (1 - currentTagsProgress.value) * 20);
+
+  // State for JSX access
+  const [tagsOpacityState, setTagsOpacityState] = useState(0);
+  const [tagsTranslateXState, setTagsTranslateXState] = useState(0);
+
+  // Update state from derived values
+  useDerivedValue(() => {
+    runOnJS(setTagsOpacityState)(currentTagsOpacity.value);
+  });
+
+  useDerivedValue(() => {
+    runOnJS(setTagsTranslateXState)(currentTagsTranslateX.value);
+  });
+
+  // Derived values for safe access
+  const currentCardOpacity = useDerivedValue(() => cardOpacity.value);
+  const currentCardScale = useDerivedValue(() => cardScale.value);
+  const currentCardTranslateY = useDerivedValue(() => cardTranslateY.value);
+  const currentIconScale = useDerivedValue(() => iconScale.value);
+  const currentIconRotation = useDerivedValue(() => `${iconRotation.value}deg`);
+  const currentScoreScale = useDerivedValue(() => scoreScale.value);
+  const currentCelebrationScale = useDerivedValue(() => celebrationScale.value);
+
   const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
+    opacity: currentCardOpacity.value,
     transform: [
-      { scale: cardScale.value },
-      { translateY: cardTranslateY.value }
+      { scale: currentCardScale.value },
+      { translateY: currentCardTranslateY.value }
     ],
   }));
 
   const iconAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { scale: iconScale.value },
-      { rotate: `${iconRotation.value}deg` }
+      { scale: currentIconScale.value },
+      { rotate: currentIconRotation.value }
     ],
   }));
 
   const scoreAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scoreScale.value }],
+    transform: [{ scale: currentScoreScale.value }],
   }));
 
   const celebrationAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: celebrationScale.value }],
+    transform: [{ scale: currentCelebrationScale.value }],
   }));
 
   // Start entrance animations
@@ -142,10 +170,10 @@ export const CuisineScoreCard: React.FC<CuisineScoreCardProps> = ({
                 style={[
                   styles.cuisineTag,
                   {
-                    opacity: tagsProgress.value,
+                    opacity: tagsOpacityState,
                     transform: [
                       { 
-                        translateX: (1 - tagsProgress.value) * 20 * (index + 1) 
+                        translateX: tagsTranslateXState * (index + 1) 
                       }
                     ]
                   }
@@ -159,10 +187,10 @@ export const CuisineScoreCard: React.FC<CuisineScoreCardProps> = ({
                 style={[
                   styles.moreTag,
                   {
-                    opacity: tagsProgress.value,
+                    opacity: tagsOpacityState,
                     transform: [
                       { 
-                        translateX: (1 - tagsProgress.value) * 20 * 4 
+                        translateX: tagsTranslateXState * 4 
                       }
                     ]
                   }

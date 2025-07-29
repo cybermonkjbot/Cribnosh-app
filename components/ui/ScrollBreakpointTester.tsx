@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    withTiming
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  withTiming
 } from 'react-native-reanimated';
 
 interface ScrollBreakpointTesterProps {
@@ -26,35 +28,62 @@ export const ScrollBreakpointTester: React.FC<ScrollBreakpointTesterProps> = ({
     gestureActive: 'No'
   });
 
-  // Update display values periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDisplayValues({
-        scrollY: `${Math.round(scrollY.value)}px`,
-        resistance: `${Math.round(resistanceProgress.value * 100)}%`,
-        expanded: isExpanded.value ? 'Yes' : 'No',
-        gestureActive: 'No' // isGestureActive is removed, so always 'No'
-      });
-    }, 100); // Update every 100ms
+  // Use derived values to safely access shared values
+  const scrollYDisplay = useDerivedValue(() => {
+    return `${Math.round(scrollY.value)}px`;
+  });
 
-    return () => clearInterval(interval);
-  }, [scrollY, resistanceProgress, isExpanded]);
+  const resistanceDisplay = useDerivedValue(() => {
+    return `${Math.round(resistanceProgress.value * 100)}%`;
+  });
+
+  const expandedDisplay = useDerivedValue(() => {
+    return isExpanded.value ? 'Yes' : 'No';
+  });
+
+  // Update display values using runOnJS
+  const updateDisplayValues = (scrollYStr: string, resistanceStr: string, expandedStr: string) => {
+    setDisplayValues({
+      scrollY: scrollYStr,
+      resistance: resistanceStr,
+      expanded: expandedStr,
+      gestureActive: 'No'
+    });
+  };
+
+  // Use derived value to trigger updates
+  useDerivedValue(() => {
+    runOnJS(updateDisplayValues)(
+      scrollYDisplay.value,
+      resistanceDisplay.value,
+      expandedDisplay.value
+    );
+  });
 
   const debugAnimatedStyle = useAnimatedStyle(() => ({
     opacity: withTiming(showDebug ? 1 : 0, { duration: 200 }),
   }));
 
-  const progressBarStyle = useAnimatedStyle(() => {
+  // Derived values for safe access in animated styles
+  const progressBarWidth = useDerivedValue(() => {
     const progress = Math.max(0, Math.min(100, resistanceProgress.value * 100));
+    return progress;
+  });
+
+  const scrollIndicatorTranslateX = useDerivedValue(() => {
+    const scrollPosition = Math.min(scrollY.value / 2, 200);
+    return Math.max(0, scrollPosition);
+  });
+
+  const progressBarStyle = useAnimatedStyle(() => {
     return {
-      width: `${progress}%`,
+      width: `${progressBarWidth.value}%`,
     };
   });
 
   const scrollIndicatorStyle = useAnimatedStyle(() => {
-    const scrollPosition = Math.min(scrollY.value / 2, 200);
     return {
-      transform: [{ translateX: Math.max(0, scrollPosition) }],
+      transform: [{ translateX: scrollIndicatorTranslateX.value }],
     };
   });
 
@@ -68,9 +97,12 @@ export const ScrollBreakpointTester: React.FC<ScrollBreakpointTesterProps> = ({
 
   const testBreakpoint = () => {
     Alert.alert('Breakpoint Test', 'Current scroll position and resistance progress logged to console');
-    console.log('Scroll Y:', scrollY.value);
-    console.log('Resistance Progress:', resistanceProgress.value);
-    console.log('Is Expanded:', isExpanded.value);
+    // Use derived values to safely log values
+    runOnJS(() => {
+      console.log('Scroll Y:', scrollYDisplay.value);
+      console.log('Resistance Progress:', resistanceDisplay.value);
+      console.log('Is Expanded:', expandedDisplay.value);
+    })();
   };
 
   const handleManualExpand = () => {
@@ -82,6 +114,17 @@ export const ScrollBreakpointTester: React.FC<ScrollBreakpointTesterProps> = ({
         Alert.alert('Error', 'Manual expand failed. Check console for details.');
       }
     }
+  };
+
+  const logDebugValues = () => {
+    runOnJS(() => {
+      console.log('Current values:');
+      console.log('Scroll Y:', scrollYDisplay.value);
+      console.log('Resistance Progress:', resistanceDisplay.value);
+      console.log('Is Expanded:', expandedDisplay.value);
+      console.log('Is Gesture Active:', 'No');
+      console.log('Is Animating:', false);
+    })();
   };
 
   return (
@@ -135,14 +178,7 @@ export const ScrollBreakpointTester: React.FC<ScrollBreakpointTesterProps> = ({
       )}
 
       <View style={styles.buttonContainer}>
-        <Text style={styles.button} onPress={() => {
-          console.log('Current values:');
-          console.log('Scroll Y:', scrollY.value);
-          console.log('Resistance Progress:', resistanceProgress.value);
-          console.log('Is Expanded:', isExpanded.value);
-          console.log('Is Gesture Active:', 'No'); // isGestureActive is removed
-          console.log('Is Animating:', false); // We don't have access to this
-        }}>
+        <Text style={styles.button} onPress={logDebugValues}>
           Debug Values
         </Text>
       </View>

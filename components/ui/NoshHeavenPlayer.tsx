@@ -2,9 +2,10 @@ import { X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, FlatList, Pressable, StatusBar, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MealVideoCard } from './MealVideoCard';
@@ -168,10 +169,13 @@ export function NoshHeavenPlayer({
     };
   }, []);
 
+  // Derived value for safe access
+  const currentSwipeMessageOpacity = useDerivedValue(() => swipeMessageOpacity.value);
+
   // Animated style for swipe message
   const swipeMessageStyle = useAnimatedStyle(() => {
     return {
-      opacity: swipeMessageOpacity.value,
+      opacity: currentSwipeMessageOpacity.value,
     };
   });
 

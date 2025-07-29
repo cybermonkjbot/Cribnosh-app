@@ -2,12 +2,13 @@ import { EmotionType, useEmotionsUI } from '@/utils/EmotionsUIContext';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, {
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withSequence,
-    withSpring,
-    withTiming,
+  interpolate,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 interface AnimatedMoodButtonProps {
@@ -36,21 +37,27 @@ export function AnimatedMoodButton({
   const rotation = useSharedValue(0);
   const glowOpacity = useSharedValue(0);
 
+  // Derived values for safe access
+  const currentScale = useDerivedValue(() => scale.value);
+  const currentRotation = useDerivedValue(() => `${rotation.value}deg`);
+  const currentGlowOpacity = useDerivedValue(() => glowOpacity.value);
+  const currentGlowScale = useDerivedValue(() => interpolate(glowOpacity.value, [0, 1], [0.8, 1.2]));
+
   // Animated styles
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { scale: scale.value },
-        { rotate: `${rotation.value}deg` },
+        { scale: currentScale.value },
+        { rotate: currentRotation.value },
       ],
     };
   });
 
   const glowStyle = useAnimatedStyle(() => {
     return {
-      opacity: glowOpacity.value,
+      opacity: currentGlowOpacity.value,
       transform: [
-        { scale: interpolate(glowOpacity.value, [0, 1], [0.8, 1.2]) },
+        { scale: currentGlowScale.value },
       ],
     };
   });

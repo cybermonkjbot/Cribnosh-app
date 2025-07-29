@@ -4,12 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withSpring,
-    withTiming
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -59,12 +60,17 @@ function SpinnerItem({ item, index, isSpinning, isSelected }: SpinnerItemProps) 
     }
   }, [isSpinning, isSelected]);
 
+  // Derived values for safe access
+  const currentTranslateY = useDerivedValue(() => translateY.value);
+  const currentScale = useDerivedValue(() => scale.value);
+  const currentRotation = useDerivedValue(() => `${rotation.value}deg`);
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateY: translateY.value },
-        { scale: scale.value },
-        { rotate: `${rotation.value}deg` },
+        { translateY: currentTranslateY.value },
+        { scale: currentScale.value },
+        { rotate: currentRotation.value },
       ],
     };
   });
@@ -157,9 +163,12 @@ export function GachaMealSpinner({
     };
   }, [isSpinning, items, onComplete]);
 
+  // Derived values for safe access
+  const currentContainerScale = useDerivedValue(() => containerScale.value);
+
   const containerStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: containerScale.value }],
+      transform: [{ scale: currentContainerScale.value }],
       opacity: containerOpacity.value,
     };
   });
