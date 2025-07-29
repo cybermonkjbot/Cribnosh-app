@@ -1,6 +1,6 @@
 # FoodStatesBarChart Component
 
-A React Native component that displays a horizontal bar chart with food states, custom icons, colored bars, and monetary values.
+A React Native component that displays a horizontal bar chart with food states, custom icons, colored bars, and monetary values. 
 
 ## Features
 

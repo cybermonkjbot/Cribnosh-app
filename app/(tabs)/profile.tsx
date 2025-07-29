@@ -72,6 +72,7 @@ export default function ProfileScreen() {
   const statsSectionOpacity = useSharedValue(0);
   const resistanceProgress = useSharedValue(0);
   const isExpandedValue = useSharedValue(false);
+  const shouldTriggerExpansion = useSharedValue(false);
 
   // Derived value to prevent multiple triggers
   const shouldExpand = useDerivedValue(() => {
@@ -207,12 +208,25 @@ export default function ProfileScreen() {
       
       resistanceProgress.value = progress;
       
-      // Check for expansion trigger directly in scroll handler
+      // Set trigger flag instead of calling runOnJS directly
       if (scrollY.value > BREAKPOINT_THRESHOLD && !isExpandedValue.value && !isAnimating.current) {
-        runOnJS(expandStats)();
+        shouldTriggerExpansion.value = true;
       }
     },
   });
+
+  // Watch for expansion trigger
+  useEffect(() => {
+    const checkExpansion = () => {
+      if (shouldTriggerExpansion.value && !isAnimating.current && !isExpanded) {
+        shouldTriggerExpansion.value = false;
+        expandStats();
+      }
+    };
+
+    const interval = setInterval(checkExpansion, 16); // ~60fps
+    return () => clearInterval(interval);
+  }, [shouldTriggerExpansion, expandStats, isExpanded]);
 
   // Start animations on mount
   useEffect(() => {
