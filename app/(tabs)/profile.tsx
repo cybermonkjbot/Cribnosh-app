@@ -2,13 +2,8 @@ import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Image, Text, View } from 'react-native';
 import Animated, {
-  cancelAnimation,
-  Extrapolate,
-  interpolate,
-  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withSpring,
@@ -22,7 +17,6 @@ import { Avatar } from '../../components/ui/Avatar';
 import { CaloriesNoshPointsCards } from '../../components/ui/CaloriesNoshPointsCards';
 import { KPICards } from '../../components/ui/KPICards';
 import { ProfileScreenBackground } from '../../components/ui/ProfileScreenBackground';
-import { ScrollBreakpointTester } from '../../components/ui/ScrollBreakpointTester';
 import { generateMockWeeklyData, sampleWeeklyData } from '../../utils/braggingCardsData';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -57,6 +51,9 @@ export default function ProfileScreen() {
   const [isExpanded, setIsExpanded] = useState(false);
   const isAnimating = useRef(false);
   
+  // Simple shared values
+  const scrollY = useSharedValue(0);
+  
   // Animation values
   const headerOpacity = useSharedValue(0);
   const scoreScale = useSharedValue(0.8);
@@ -64,93 +61,55 @@ export default function ProfileScreen() {
   const cardsOpacity = useSharedValue(0);
   const braggingCardsTranslateY = useSharedValue(50);
   const braggingCardsOpacity = useSharedValue(0);
-  
-  // Scroll breakpoint values
-  const scrollY = useSharedValue(0);
-  const statsSectionTranslateY = useSharedValue(0);
-  const statsSectionScale = useSharedValue(1);
-  const statsSectionOpacity = useSharedValue(0);
-  const resistanceProgress = useSharedValue(0);
-  const isExpandedValue = useSharedValue(false);
-  const shouldTriggerExpansion = useSharedValue(false);
-
-  // Derived value to prevent multiple triggers
-  const shouldExpand = useDerivedValue(() => {
-    return scrollY.value > BREAKPOINT_THRESHOLD && !isExpandedValue.value;
-  });
 
   // Refs
   const scrollViewRef = useRef<Animated.ScrollView>(null);
 
-  // Derived values for safe access in animated styles
-  const currentHeaderOpacity = useDerivedValue(() => headerOpacity.value);
-  const currentScoreScale = useDerivedValue(() => scoreScale.value);
-  const currentCardsOpacity = useDerivedValue(() => cardsOpacity.value);
-  const currentCardsTranslateY = useDerivedValue(() => cardsTranslateY.value);
-  const currentBraggingCardsOpacity = useDerivedValue(() => braggingCardsOpacity.value);
-  const currentBraggingCardsTranslateY = useDerivedValue(() => braggingCardsTranslateY.value);
-  const currentStatsSectionTranslateY = useDerivedValue(() => statsSectionTranslateY.value);
-  const currentStatsSectionScale = useDerivedValue(() => statsSectionScale.value);
-  const currentStatsSectionOpacity = useDerivedValue(() => statsSectionOpacity.value);
-
-  const resistanceValue = useDerivedValue(() => {
-    return interpolate(
-      resistanceProgress.value,
-      [0, 1],
-      [0, RESISTANCE_FACTOR],
-      Extrapolate.CLAMP
-    );
-  });
-
-  const scrollYResistance = useDerivedValue(() => {
-    return scrollY.value * resistanceValue.value;
-  });
-
-  const gestureIndicatorOpacity = useDerivedValue(() => {
-    return resistanceProgress.value > 0.3 ? 1 : 0;
-  });
-
-  // Animated styles
+  // Simple animated styles
   const headerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: currentHeaderOpacity.value,
+    opacity: headerOpacity.value,
   }));
 
   const scoreAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: currentScoreScale.value }],
+    transform: [{ scale: scoreScale.value }],
   }));
 
   const cardsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: currentCardsOpacity.value,
-    transform: [{ translateY: currentCardsTranslateY.value }],
+    opacity: cardsOpacity.value,
+    transform: [{ translateY: cardsTranslateY.value }],
   }));
 
   const braggingCardsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: currentBraggingCardsOpacity.value,
-    transform: [{ translateY: currentBraggingCardsTranslateY.value }],
+    opacity: braggingCardsOpacity.value,
+    transform: [{ translateY: braggingCardsTranslateY.value }],
   }));
 
   const statsSectionAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: currentStatsSectionTranslateY.value },
-      { scale: currentStatsSectionScale.value }
+      { translateY: 0 },
+      { scale: 1 }
     ],
-    opacity: currentStatsSectionOpacity.value,
+    opacity: 1,
   }));
 
   const resistanceAnimatedStyle = useAnimatedStyle(() => {
+    const resistance = Math.min(scrollY.value * 0.3, 50);
     return {
-      transform: [{ translateY: scrollYResistance.value }],
+      transform: [{ translateY: resistance }],
     };
   });
 
-  const gestureIndicatorAnimatedStyle = useAnimatedStyle(() => ({
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    opacity: gestureIndicatorOpacity.value
-  }));
+  const gestureIndicatorAnimatedStyle = useAnimatedStyle(() => {
+    const shouldShow = scrollY.value > 50;
+    return {
+      marginTop: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      borderRadius: 8,
+      opacity: shouldShow ? 1 : 0
+    };
+  });
 
   // Safe scroll to function
   const safeScrollTo = useCallback((y: number, animated: boolean = true) => {
@@ -163,38 +122,23 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  // Stable expansion function
+  // Simple expansion function
   const expandStats = useCallback(() => {
     if (isAnimating.current || isExpanded) return;
     
     console.log('Starting expansion animation');
     isAnimating.current = true;
     setIsExpanded(true);
-    isExpandedValue.value = true;
     
-    // Safe haptic feedback
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (e) {
-      console.log('Haptic not available');
-    }
+    // Add haptic feedback
+    safeHapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
     
-    // Animate expansion
-    statsSectionOpacity.value = withTiming(1, { duration: 300 });
-    statsSectionScale.value = withSpring(1, { damping: 15, stiffness: 150 });
-    statsSectionTranslateY.value = withSpring(0, { 
-      damping: 15, 
-      stiffness: 150 
-    }, (finished) => {
-      runOnJS(() => {
-        console.log('Expansion animation completed');
-        isAnimating.current = false;
-      })();
-    });
-    
-    // Safe scroll to stats section
-    safeScrollTo(BREAKPOINT_THRESHOLD, true);
-  }, [isExpanded, safeScrollTo]);
+    // Simple state change without complex animations
+    setTimeout(() => {
+      isAnimating.current = false;
+      console.log('Expansion completed');
+    }, 300);
+  }, [isExpanded]);
 
   const collapseStats = useCallback(() => {
     if (isAnimating.current || !isExpanded) return;
@@ -202,64 +146,41 @@ export default function ProfileScreen() {
     console.log('Starting collapse animation');
     isAnimating.current = true;
     setIsExpanded(false);
-    isExpandedValue.value = false;
     
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (e) {
-      console.log('Haptic not available');
-    }
+    // Add haptic feedback
+    safeHapticFeedback(Haptics.ImpactFeedbackStyle.Light);
     
-    statsSectionOpacity.value = withTiming(0, { duration: 300 });
-    statsSectionScale.value = withSpring(0.8, { damping: 15, stiffness: 150 });
-    statsSectionTranslateY.value = withSpring(50, { 
-      damping: 15, 
-      stiffness: 150 
-    }, (finished) => {
-      runOnJS(() => {
-        console.log('Collapse animation completed');
-        isAnimating.current = false;
-      })();
-    });
+    setTimeout(() => {
+      isAnimating.current = false;
+      console.log('Collapse completed');
+    }, 300);
   }, [isExpanded]);
 
-  // Simplified scroll handler - only handle scroll, not expansion logic
+  // Minimal scroll handler - just track scroll position
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
+      'worklet';
       scrollY.value = event.contentOffset.y;
-      
-      // Calculate resistance progress
-      const progress = interpolate(
-        scrollY.value,
-        [0, BREAKPOINT_THRESHOLD],
-        [0, 1],
-        Extrapolate.CLAMP
-      );
-      
-      resistanceProgress.value = progress;
-      
-      // Set trigger flag instead of calling runOnJS directly
-      if (scrollY.value > BREAKPOINT_THRESHOLD && !isExpandedValue.value && !isAnimating.current) {
-        shouldTriggerExpansion.value = true;
-      }
     },
   });
 
-  // Watch for expansion trigger
+  // Simple expansion trigger using useEffect
   useEffect(() => {
     const checkExpansion = () => {
-      if (shouldTriggerExpansion.value && !isAnimating.current && !isExpanded) {
-        shouldTriggerExpansion.value = false;
+      if (scrollY.value > 100 && !isExpanded && !isAnimating.current) {
         expandStats();
       }
     };
-
-    const interval = setInterval(checkExpansion, 16); // ~60fps
+    
+    const interval = setInterval(checkExpansion, 100);
     return () => clearInterval(interval);
-  }, [shouldTriggerExpansion, expandStats, isExpanded]);
+  }, [isExpanded]);
 
-  // Start animations on mount
+  // Simple mount effect
   useEffect(() => {
+    console.log('Profile screen mounted');
+    
+    // Start entrance animations
     const startAnimations = () => {
       headerOpacity.value = withTiming(1, { duration: 800 });
       scoreScale.value = withDelay(200, withSpring(1, { damping: 15, stiffness: 150 }));
@@ -269,20 +190,11 @@ export default function ProfileScreen() {
       braggingCardsTranslateY.value = withDelay(600, withSpring(0, { damping: 15, stiffness: 150 }));
     };
 
-    startAnimations();
-
-    // Cleanup function
+    // Small delay to ensure component is fully mounted
+    setTimeout(startAnimations, 100);
+    
     return () => {
-      // Cancel any ongoing animations
-      cancelAnimation(headerOpacity);
-      cancelAnimation(scoreScale);
-      cancelAnimation(cardsTranslateY);
-      cancelAnimation(cardsOpacity);
-      cancelAnimation(braggingCardsTranslateY);
-      cancelAnimation(braggingCardsOpacity);
-      cancelAnimation(statsSectionScale);
-      cancelAnimation(statsSectionTranslateY);
-      cancelAnimation(statsSectionOpacity);
+      console.log('Profile screen unmounting');
     };
   }, []);
 
@@ -299,18 +211,21 @@ export default function ProfileScreen() {
   };
 
   const refreshBraggingData = useCallback(() => {
-    if (isAnimating.current) return; // Prevent conflicts
+    if (isAnimating.current) return;
     
     isAnimating.current = true;
-    braggingCardsOpacity.value = withTiming(0, { duration: 300 });
-    braggingCardsTranslateY.value = withTiming(20, { duration: 300 }, () => {
-      runOnJS(() => {
-        setBraggingData(generateMockWeeklyData());
-        isAnimating.current = false;
-      })();
-      braggingCardsOpacity.value = withTiming(1, { duration: 400 });
+    
+    // Animate the refresh
+    braggingCardsOpacity.value = withTiming(0, { duration: 200 });
+    braggingCardsTranslateY.value = withTiming(20, { duration: 200 }, () => {
+      setBraggingData(generateMockWeeklyData());
+      braggingCardsOpacity.value = withTiming(1, { duration: 300 });
       braggingCardsTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
     });
+    
+    setTimeout(() => {
+      isAnimating.current = false;
+    }, 500);
   }, []);
 
   return (
@@ -320,11 +235,12 @@ export default function ProfileScreen() {
           ref={scrollViewRef}
           style={{ flex: 1 }} 
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
           onScroll={scrollHandler}
-          scrollEventThrottle={16}
+          scrollEventThrottle={33}
           bounces={true}
-          alwaysBounceVertical={false}
+          alwaysBounceVertical={true}
+          removeClippedSubviews={false}
         >
             {/* Header */}
             <Animated.View style={headerAnimatedStyle}>
@@ -442,7 +358,7 @@ export default function ProfileScreen() {
             </Animated.View>
 
             {/* Breakpoint Trigger Area */}
-            <View style={{ height: BREAKPOINT_THRESHOLD, justifyContent: 'flex-end' }}>
+            <View style={{ height: 100, justifyContent: 'flex-end' }}>
               <View style={{ 
                 paddingHorizontal: 12, 
                 paddingBottom: 20,
@@ -540,18 +456,16 @@ export default function ProfileScreen() {
             </Animated.View>
             
             {/* Extra bottom padding for proper scrolling */}
-            <View style={{ height: 40 }} />
+            <View style={{ height: 200 }} />
           </Animated.ScrollView>
         </SafeAreaView>
 
         {/* Debug Tester - Remove this in production */}
         {showDebug && (
-          <ScrollBreakpointTester
-            scrollY={scrollY}
-            resistanceProgress={resistanceProgress}
-            isExpanded={isExpandedValue}
-            onManualExpand={expandStats}
-          />
+          <View style={{ padding: 20, backgroundColor: 'rgba(0,0,0,0.8)' }}>
+            <Text style={{ color: 'white' }}>Scroll Y: {scrollY.value}</Text>
+            <Text style={{ color: 'white' }}>Expanded: {isExpanded ? 'Yes' : 'No'}</Text>
+          </View>
         )}
       </ProfileScreenBackground>
   );
