@@ -33,7 +33,7 @@ export function CribnoshLiveHeader({
           </Text>
           <View className="flex-row items-center w-full mt-0.5 mb-0.5">
             <View className="bg-gray-400 rounded-2xl px-3 py-0.5 self-start">
-              <Text className="text-white font-inter font-normal text-[15px] leading-[18px]">{viewers} viewers</Text>
+              <Text className="text-white font-inter font-normal text-[15px] leading-[18px]">{viewers} watching live</Text>
             </View>
           </View>
           <View className="mt-0.5">

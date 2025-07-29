@@ -26,7 +26,7 @@ const SearchArea = React.forwardRef<TextInput, SearchAreaProps>(({
   value: controlledValue,
   onChange,
   maxLength = DEFAULT_MAX_LENGTH,
-  placeholder = "I want to eat Eba",
+  placeholder = "What are you craving today?",
   returnKeyType = "default",
   onSubmitEditing,
   autoFocus = false,

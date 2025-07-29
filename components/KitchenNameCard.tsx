@@ -3,26 +3,28 @@ import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Avatar } from './ui/Avatar';
-
-type AvatarUri = { uri: string } | string | undefined;
-function isValidUri(uri: AvatarUri): boolean {
-  if (!uri) return false;
-  if (typeof uri === 'string') return uri.length > 0;
-  if (typeof uri === 'object' && uri.uri) return typeof uri.uri === 'string' && uri.uri.length > 0;
-  return false;
-}
-
+import { TiltCard } from './ui/TiltCard';
 
 interface KitchenNameCardProps {
-  avatarUri?: AvatarUri;
+  avatarUri?: string | { uri: string };
   name?: string;
   description?: string;
+  tiltEnabled?: boolean;
 }
+
+// Helper function to validate URI
+const isValidUri = (uri: any): boolean => {
+  if (!uri) return false;
+  if (typeof uri === 'string') return uri.trim().length > 0;
+  if (typeof uri === 'object' && uri.uri) return uri.uri.trim().length > 0;
+  return false;
+};
 
 export function KitchenNameCard({
   avatarUri,
   name,
   description,
+  tiltEnabled = true,
 }: KitchenNameCardProps) {
   // Edge case handling
   const fallbackAvatar = { uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' };
@@ -37,7 +39,7 @@ export function KitchenNameCard({
   const displayName = typeof name === 'string' && name.trim() ? name : 'Stans Kitchen';
   const displayDesc = typeof description === 'string' && description.trim() ? description : 'African cuisine (Top Rated)';
 
-  return (
+  const cardContent = (
     <View className="flex-1 min-h-[74px] bg-[#FAFFFA] rounded-[22px] flex-row items-center shadow shadow-[#383838] shadow-opacity-5 shadow-lg elevation-5 my-2.5 px-4">
       {/* Avatar */}
       <View className="w-[52px] h-[52px] rounded-full bg-[#EAEAEA] justify-center items-center mr-[15px]">
@@ -58,6 +60,25 @@ export function KitchenNameCard({
       </TouchableOpacity>
     </View>
   );
+
+  // Wrap with TiltCard if enabled
+  if (tiltEnabled) {
+    return (
+      <TiltCard
+        intensity={4}
+        enabled={tiltEnabled}
+        springConfig={{
+          damping: 25,
+          stiffness: 180,
+          mass: 0.7,
+        }}
+      >
+        {cardContent}
+      </TiltCard>
+    );
+  }
+
+  return cardContent;
 }
 
 

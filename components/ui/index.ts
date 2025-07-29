@@ -39,3 +39,9 @@ export { LoadingState } from './LoadingState';
 export { Modal } from './Modal';
 export { Separator } from './Separator';
 
+// Export Bragging Cards components
+export { CalorieCompareCard } from './CalorieCompareCard';
+export { CuisineScoreCard } from './CuisineScoreCard';
+export { MealsLoggedCard } from './MealsLoggedCard';
+export { WeeklySummaryCard } from './WeeklySummaryCard';
+

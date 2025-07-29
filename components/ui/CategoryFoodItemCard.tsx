@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SentimentRating } from './SentimentRating';
+import { TiltCard } from './TiltCard';
 
 interface CategoryFoodItemCardProps {
   id: string;
@@ -14,6 +15,7 @@ interface CategoryFoodItemCardProps {
   isPopular?: boolean;
   onAddToCart?: (id: string) => void;
   onPress?: (id: string) => void;
+  tiltEnabled?: boolean;
 }
 
 export function CategoryFoodItemCard({
@@ -26,7 +28,8 @@ export function CategoryFoodItemCard({
   prepTime,
   isPopular,
   onAddToCart,
-  onPress
+  onPress,
+  tiltEnabled = true,
 }: CategoryFoodItemCardProps) {
   const handleAddToCart = () => {
     onAddToCart?.(id);
@@ -36,7 +39,7 @@ export function CategoryFoodItemCard({
     onPress?.(id);
   };
 
-  return (
+  const cardContent = (
     <TouchableOpacity
       style={styles.container as any}
       onPress={handlePress}
@@ -105,6 +108,25 @@ export function CategoryFoodItemCard({
       </View>
     </TouchableOpacity>
   );
+
+  // Wrap with TiltCard if enabled
+  if (tiltEnabled) {
+    return (
+      <TiltCard
+        intensity={6}
+        enabled={tiltEnabled}
+        springConfig={{
+          damping: 20,
+          stiffness: 200,
+          mass: 0.6,
+        }}
+      >
+        {cardContent}
+      </TiltCard>
+    );
+  }
+
+  return cardContent;
 }
 
 const styles = StyleSheet.create({

@@ -18,6 +18,11 @@ export function useFonts() {
     'ADLaM Display': require('../assets/fonts/ADLaMDisplay-Regular.ttf'),
     'Lato': require('../assets/fonts/Lato-Regular.ttf'),
     'Space Mono': require('../assets/fonts/SpaceMono-Regular.ttf'),
+    'Mukta': require('../assets/fonts/Mukta-Regular.ttf'),
+    'Mukta-Bold': require('../assets/fonts/Mukta-Bold.ttf'),
+    'Mukta-ExtraBold': require('../assets/fonts/Mukta-ExtraBold.ttf'),
+    'Inter': require('../assets/fonts/Inter-Regular.ttf'),
+    'Inter-Bold': require('../assets/fonts/Inter-Bold.ttf'),
   });
 
   const onLayoutRootView = useCallback(async () => {

@@ -2,8 +2,15 @@ import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Easing } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CONFIG } from '../../constants/config';
+import { UserBehavior } from '../../utils/hiddenSections';
+import {
+  getCurrentTimeContext,
+  getOrderedSectionsWithHidden,
+  OrderingContext
+} from '../../utils/sectionOrdering';
 import { AIChatDrawer } from './AIChatDrawer';
 import { BottomSearchDrawer } from './BottomSearchDrawer';
 import { CategoryFilterChips } from './CategoryFilterChips';
@@ -15,6 +22,7 @@ import { EventBanner } from './EventBanner';
 import { FeaturedKitchensDrawer } from './FeaturedKitchensDrawer';
 import { FeaturedKitchensSection } from './FeaturedKitchensSection';
 import { Header } from './Header';
+import { HiddenSections } from './HiddenSections';
 import { KitchenMainScreen } from './KitchenMainScreen';
 import { KitchensNearMe } from './KitchensNearMe';
 import { LiveContent } from './LiveContent';
@@ -392,6 +400,23 @@ export function MainScreen() {
   const [selectedKitchen, setSelectedKitchen] = useState<any>(null);
   const [isKitchenMainScreenVisible, setIsKitchenMainScreenVisible] = useState(false);
   
+  // Hidden sections state
+  const [orderedSections, setOrderedSections] = useState<any[]>([]);
+  const [userBehavior, setUserBehavior] = useState<UserBehavior>({
+    totalOrders: 5,
+    daysActive: 14,
+    usualDinnerItems: ['Pizza Margherita', 'Chicken Curry', 'Pasta Carbonara', 'Sushi Roll'],
+    favoriteSections: ['featured_kitchens', 'popular_meals', 'cuisine_categories'],
+    clickedSections: ['featured_kitchens', 'popular_meals', 'cuisine_categories'],
+    colleagueConnections: 3,
+    playToWinHistory: {
+      gamesPlayed: 2,
+      gamesWon: 1,
+      lastPlayed: new Date('2024-01-10T12:00:00')
+    },
+    freeFoodPreferences: ['Pizza', 'Burger', 'Sushi']
+  });
+  
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
   const normalHeaderOpacity = useRef(new Animated.Value(1)).current;
@@ -415,28 +440,38 @@ export function MainScreen() {
   useEffect(() => {
     const scrollToTop = () => {
       if (scrollViewRef.current) {
-        // Scroll to top with animation
+        // Scroll to top with smooth animation
         scrollViewRef.current.scrollTo({ y: 0, animated: true });
         
-        // Reset header to normal state
+        // Reset header to normal state with smooth animation
         setIsHeaderSticky(false);
-        Animated.parallel([
-          Animated.timing(stickyHeaderOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(normalHeaderOpacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(categoryChipsOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
+        
+        // Use consistent animation timing for smooth transitions
+        const animationDuration = 300;
+        
+        // Add a small delay to ensure scroll animation starts first
+        setTimeout(() => {
+          Animated.parallel([
+            Animated.timing(stickyHeaderOpacity, {
+              toValue: 0,
+              duration: animationDuration,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
+            }),
+            Animated.timing(normalHeaderOpacity, {
+              toValue: 1,
+              duration: animationDuration,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
+            }),
+            Animated.timing(categoryChipsOpacity, {
+              toValue: 0,
+              duration: animationDuration,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
+            }),
+          ]).start();
+        }, 50); // Small delay to ensure scroll starts first
       }
     };
 
@@ -575,7 +610,7 @@ export function MainScreen() {
       useNativeDriver: true,
     }).start();
     
-    // Simulate the loading process
+    // Simulate the loading process with artificial delay
     setTimeout(() => {
       setShowLoader(false);
       setRefreshing(false);
@@ -589,7 +624,7 @@ export function MainScreen() {
         duration: 300, // Faster fade in
         useNativeDriver: true,
       }).start();
-    }, 3000); // 3 seconds for the full loading experience
+    }, 5000); // 5 seconds for a more natural loading experience
     
   }, [contentFadeAnim]);
 
@@ -706,24 +741,30 @@ export function MainScreen() {
       if (shouldBeSticky !== isHeaderSticky) {
         setIsHeaderSticky(shouldBeSticky);
         
+        // Use consistent animation timing for smooth transitions
+        const animationDuration = 300;
+        
         // Animate header transitions
         if (shouldBeSticky) {
           // Transitioning to sticky
           Animated.parallel([
             Animated.timing(stickyHeaderOpacity, {
               toValue: 1,
-              duration: 200, // Faster transition
+              duration: animationDuration,
               useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
             }),
             Animated.timing(normalHeaderOpacity, {
               toValue: 0,
-              duration: 150, // Faster transition
+              duration: animationDuration,
               useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
             }),
             Animated.timing(categoryChipsOpacity, {
               toValue: 1,
-              duration: 250, // Faster transition
+              duration: animationDuration,
               useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
             }),
           ]).start();
         } else {
@@ -731,18 +772,21 @@ export function MainScreen() {
           Animated.parallel([
             Animated.timing(stickyHeaderOpacity, {
               toValue: 0,
-              duration: 150, // Faster transition
+              duration: animationDuration,
               useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
             }),
             Animated.timing(normalHeaderOpacity, {
               toValue: 1,
-              duration: 200, // Faster transition
+              duration: animationDuration,
               useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
             }),
             Animated.timing(categoryChipsOpacity, {
               toValue: 0,
-              duration: 150, // Faster transition
+              duration: animationDuration,
               useNativeDriver: true,
+              easing: Easing.inOut(Easing.ease),
             }),
           ]).start();
         }
@@ -1008,6 +1052,28 @@ export function MainScreen() {
   // Performance monitoring integration
   const { PerformanceMonitor, getPerformanceConfig } = usePerformanceOptimizations();
   const performanceConfigRef = useRef(getPerformanceConfig());
+  
+  // Update ordered sections with hidden sections
+  useEffect(() => {
+    const updateOrderedSections = () => {
+      const timeContext = getCurrentTimeContext();
+      const context: OrderingContext = {
+        timeContext,
+        userBehavior,
+        currentLocation: { latitude: 51.5074, longitude: -0.1278 }, // Mock location
+        weather: { condition: 'sunny', temperature: 22 }, // Mock weather
+        appState: 'active',
+      };
+      
+      const sections = getOrderedSectionsWithHidden(context);
+      setOrderedSections(sections);
+    };
+    
+    updateOrderedSections();
+    const interval = setInterval(updateOrderedSections, 5 * 60 * 1000); // Update every 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [userBehavior]);
 
   // Update performance config periodically
   useEffect(() => {
@@ -1147,11 +1213,17 @@ export function MainScreen() {
           >
             {/* Main Content with fade animation */}
             <Animated.View style={{ opacity: contentFadeAnim }}>
-              <OrderAgainSection />
+              <OrderAgainSection isHeaderSticky={isHeaderSticky} />
               <CuisinesSection onCuisinePress={handleCuisinePress} />
               <CuisineCategoriesSection cuisines={mockCuisines} onCuisinePress={handleCuisinePress} />
               <FeaturedKitchensSection kitchens={mockKitchens} onKitchenPress={handleFeaturedKitchenPress} onSeeAllPress={handleOpenFeaturedKitchensDrawer} />
               <PopularMealsSection meals={mockMeals} onMealPress={handleMealPress} onSeeAllPress={handleOpenPopularMealsDrawer} />
+              
+              {/* Hidden Sections - dynamically shown based on conditions */}
+              {orderedSections.some(section => section.isHidden) && (
+                <HiddenSections userBehavior={userBehavior} />
+              )}
+              
               <SpecialOffersSection offers={mockOffers} onOfferPress={handleOfferPress} />
               <KitchensNearMe onKitchenPress={handleFeaturedKitchenPress} />
               <TopKebabs onOpenDrawer={handleOpenTopKebabsDrawer} />

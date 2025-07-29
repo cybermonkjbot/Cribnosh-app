@@ -1,20 +1,29 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Circle, Path, Svg } from 'react-native-svg';
-import { ChipButton } from '../ChipButton';
 import HearEmoteIcon from '../HearEmoteIcon';
 
 interface KitchenBottomSheetHeaderProps {
   deliveryTime: string;
+  kitchenName?: string;
+  currentSnapPoint?: number;
+  distance?: string;
   onHeartPress?: () => void;
   onSearchPress?: () => void;
 }
 
 export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> = ({
   deliveryTime,
+  kitchenName = "Amara's Kitchen",
+  currentSnapPoint = 0,
+  distance = "0.8 km",
   onHeartPress,
   onSearchPress,
 }) => {
+  // Determine title text based on snap point
+  const titleText = currentSnapPoint === 1 ? kitchenName : "Kitchen Story";
+  const isExpanded = currentSnapPoint === 1;
+
   return (
     <View style={styles.container}>
       {/* Drag indicator */}
@@ -22,39 +31,25 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
       
       {/* Title and action buttons */}
       <View style={styles.titleRow}>
-        <Text style={styles.title}>About This Kitchen</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>{titleText}</Text>
+          {isExpanded && (
+            <Text style={styles.kitchenDetails}>
+              Delivers in {deliveryTime} • {distance} away
+            </Text>
+          )}
+        </View>
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={onHeartPress}>
-            <HearEmoteIcon width={24} height={24} />
+            <HearEmoteIcon width={32} height={32} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={onSearchPress}>
-            <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-              <Circle cx="11" cy="11" r="8" stroke="#F3F4F6" strokeWidth="2" />
-              <Path d="m21 21-4.35-4.35" stroke="#F3F4F6" strokeWidth="2" strokeLinecap="round" />
+            <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
+              <Circle cx="14.67" cy="14.67" r="10.67" stroke="#F3F4F6" strokeWidth="2.67" />
+              <Path d="m28 28-5.8-5.8" stroke="#F3F4F6" strokeWidth="2.67" strokeLinecap="round" />
             </Svg>
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Delivery information */}
-      <Text style={styles.deliveryInfo}>
-        Delivers within your zone {deliveryTime}
-      </Text>
-
-      {/* Feature chips */}
-      <View style={styles.chipsContainer}>
-        <ChipButton
-          text="Keto only"
-          backgroundColor="rgba(255, 59, 48, 0.72)"
-          textColor="#FAFFFA"
-          style={styles.chip}
-        />
-        <ChipButton
-          text="Best for late-night cravings"
-          backgroundColor="rgba(255, 59, 48, 0.72)"
-          textColor="#FAFFFA"
-          style={styles.chip}
-        />
       </View>
     </View>
   );
@@ -79,6 +74,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  titleContainer: {
+    flex: 1,
+  },
   title: {
     fontFamily: 'Poppins',
     fontStyle: 'normal',
@@ -86,7 +84,15 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 38,
     color: '#F3F4F6',
-    flex: 1,
+  },
+  kitchenDetails: {
+    fontFamily: 'Lato',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#FAFAFA',
+    marginTop: 4,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -97,23 +103,5 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  deliveryInfo: {
-    fontFamily: 'Lato',
-    fontStyle: 'normal',
-    fontWeight: '400',
-    fontSize: 16,
-    lineHeight: 22,
-    letterSpacing: 0.03,
-    color: '#FAFAFA',
-    marginBottom: 20,
-  },
-  chipsContainer: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
-  },
-  chip: {
-    marginRight: 0,
   },
 }); 

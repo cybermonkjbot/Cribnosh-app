@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import { Circle, Path, Svg } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -7,13 +7,11 @@ const { width } = Dimensions.get('window');
 interface KitchenIntroCardProps {
   kitchenName: string;
   cuisine: string;
-  onPlayPress?: () => void;
 }
 
 export const KitchenIntroCard: React.FC<KitchenIntroCardProps> = ({
   kitchenName,
   cuisine,
-  onPlayPress,
 }) => {
   return (
     <View style={styles.container}>
@@ -22,11 +20,11 @@ export const KitchenIntroCard: React.FC<KitchenIntroCardProps> = ({
         {/* Avatar */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Svg width={52} height={52} viewBox="0 0 52 52" fill="none">
-              <Circle cx="26" cy="26" r="26" fill="#EAEAEA" />
+            <Svg width={44} height={44} viewBox="0 0 44 44" fill="none">
+              <Circle cx="22" cy="22" r="22" fill="#EAEAEA" />
               {/* Simple avatar icon */}
-              <Circle cx="26" cy="20" r="6" fill="#4C3F59" />
-              <Path d="M10 40 C10 30 42 30 42 40" fill="#4C3F59" />
+              <Circle cx="22" cy="17" r="5" fill="#4C3F59" />
+              <Path d="M8 34 C8 25 36 25 36 34" fill="#4C3F59" />
             </Svg>
           </View>
         </View>
@@ -36,14 +34,6 @@ export const KitchenIntroCard: React.FC<KitchenIntroCardProps> = ({
           <Text style={styles.kitchenName}>{kitchenName}</Text>
           <Text style={styles.cuisine}>{cuisine}</Text>
         </View>
-
-        {/* Play button */}
-        <TouchableOpacity style={styles.playButton} onPress={onPlayPress}>
-          <Svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-            <Circle cx="7.5" cy="7.5" r="7.5" fill="#4C3F59" />
-            <Path d="M6 4 L11 7.5 L6 11 Z" fill="#FAFFFA" />
-          </Svg>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -51,14 +41,14 @@ export const KitchenIntroCard: React.FC<KitchenIntroCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: Math.min(346, width - 28),
-    height: 74,
+    width: Math.min(280, width - 80),
+    height: 60,
   },
   cardBackground: {
     width: '100%',
     height: '100%',
     backgroundColor: '#FAFFFA',
-    borderRadius: 22,
+    borderRadius: 18,
     shadowColor: '#383838',
     shadowOffset: {
       width: 0,
@@ -69,15 +59,15 @@ const styles = StyleSheet.create({
     elevation: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   avatarContainer: {
-    marginRight: 20,
+    marginRight: 16,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#EAEAEA',
     justifyContent: 'center',
     alignItems: 'center',
@@ -89,24 +79,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins',
     fontStyle: 'normal',
     fontWeight: '500',
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 22,
     color: '#4C3F59',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   cuisine: {
     fontFamily: 'Lato',
     fontStyle: 'normal',
     fontWeight: '400',
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 0.03,
     color: '#53465E',
-  },
-  playButton: {
-    width: 15,
-    height: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 }); 

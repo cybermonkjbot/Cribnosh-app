@@ -1,12 +1,14 @@
 import React from 'react';
 import { Image, Text, View } from 'react-native';
 import OrderItemCounterButton from './OrderItemCounterButton';
+import { TiltCard } from './ui/TiltCard';
 
 interface CompactMealSelectionProps {
   title?: string;
   price?: string;
   imageSource?: any;
-  onChange?: (value: number) => void;
+  onChange?: (quantity: number) => void;
+  tiltEnabled?: boolean;
 }
 
 const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
@@ -14,8 +16,9 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
   price = '16 QR',
   imageSource = require('../assets/images/cribnoshpackaging.png'),
   onChange,
+  tiltEnabled = true,
 }) => {
-  return (
+  const cardContent = (
     <View className="flex-row items-center bg-white rounded-2xl shadow-sm p-2 gap-2 w-full min-w-0 flex-1 self-stretch">
       {/* Image Section */}
       <View className="w-[72px] h-[72px] justify-center items-center mr-2 relative overflow-hidden rounded-xl">
@@ -33,8 +36,25 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
       </View>
     </View>
   );
+
+  // Wrap with TiltCard if enabled
+  if (tiltEnabled) {
+    return (
+      <TiltCard
+        intensity={5}
+        enabled={tiltEnabled}
+        springConfig={{
+          damping: 22,
+          stiffness: 190,
+          mass: 0.65,
+        }}
+      >
+        {cardContent}
+      </TiltCard>
+    );
+  }
+
+  return cardContent;
 };
-
-
 
 export default CompactMealSelection;

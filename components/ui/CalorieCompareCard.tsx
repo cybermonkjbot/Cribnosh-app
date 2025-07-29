@@ -1,0 +1,243 @@
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withSequence,
+    withSpring,
+    withTiming
+} from 'react-native-reanimated';
+
+interface CalorieCompareCardProps {
+  kcalToday: number;
+  kcalYesterday: number;
+  onPress?: () => void;
+}
+
+export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
+  kcalToday = 1420,
+  kcalYesterday = 1680,
+  onPress,
+}) => {
+  const difference = kcalYesterday - kcalToday;
+  const isLess = difference > 0;
+  const dayNames = ['Monday', 'Sunday']; // Yesterday and day before
+
+  // Animation values
+  const cardScale = useSharedValue(1);
+  const cardOpacity = useSharedValue(0);
+  const cardTranslateY = useSharedValue(20);
+  const barsProgress = useSharedValue(0);
+  const iconScale = useSharedValue(0.8);
+  const iconRotation = useSharedValue(0);
+  const numbersScale = useSharedValue(0.8);
+
+  // Animated styles
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+    transform: [
+      { scale: cardScale.value },
+      { translateY: cardTranslateY.value }
+    ],
+  }));
+
+  const iconAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: iconScale.value },
+      { rotate: `${iconRotation.value}deg` }
+    ],
+  }));
+
+  const numbersAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: numbersScale.value }],
+  }));
+
+  // Start entrance animations
+  useEffect(() => {
+    // Card entrance
+    cardOpacity.value = withTiming(1, { duration: 600 });
+    cardTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
+    
+    // Icon animation
+    iconScale.value = withDelay(200, withSpring(1, { damping: 10, stiffness: 200 }));
+    iconRotation.value = withDelay(200, withSpring(360, { damping: 15, stiffness: 150 }));
+    
+    // Numbers animation
+    numbersScale.value = withDelay(400, withSpring(1, { damping: 15, stiffness: 200 }));
+    
+    // Bars animation
+    barsProgress.value = withDelay(600, withTiming(1, { duration: 600 }));
+  }, []);
+
+  const handlePressIn = () => {
+    cardScale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    cardScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePress = () => {
+    // Trigger icon bounce animation
+    iconScale.value = withSequence(
+      withSpring(1.2, { damping: 8, stiffness: 300 }),
+      withSpring(1, { damping: 15, stiffness: 300 })
+    );
+    
+    if (onPress) {
+      onPress();
+    }
+  };
+
+  return (
+    <Animated.View style={cardAnimatedStyle}>
+      <Pressable 
+        style={styles.container} 
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.titleContainer}>
+            <Animated.Text style={[styles.icon, iconAnimatedStyle]}>🔥</Animated.Text>
+            <Text style={styles.title}>Calories Logged</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </View>
+
+        {/* Summary Text */}
+        <Text style={styles.summaryText}>
+          You consumed {Math.abs(difference)} kcal {isLess ? 'fewer' : 'more'} yesterday than the day before.
+        </Text>
+
+        {/* Separator */}
+        <View style={styles.separator} />
+
+        {/* Data Display */}
+        <View style={styles.dataSection}>
+          {/* Yesterday */}
+          <View style={styles.dataItem}>
+            <Animated.Text style={[styles.dataValue, numbersAnimatedStyle]}>{kcalToday}</Animated.Text>
+            <Text style={styles.dataUnit}>kcal</Text>
+            <Animated.View 
+              style={[
+                styles.bar, 
+                { 
+                  backgroundColor: '#FF6B00',
+                  width: 60 * barsProgress.value
+                }
+              ]} 
+            />
+            <Text style={styles.dayLabel}>{dayNames[0]}</Text>
+          </View>
+
+          {/* Day Before */}
+          <View style={styles.dataItem}>
+            <Animated.Text style={[styles.dataValue, numbersAnimatedStyle]}>{kcalYesterday}</Animated.Text>
+            <Text style={styles.dataUnit}>kcal</Text>
+            <Animated.View 
+              style={[
+                styles.bar, 
+                { 
+                  backgroundColor: '#E5E5E5',
+                  width: 60 * barsProgress.value
+                }
+              ]} 
+            />
+            <View style={styles.dayHighlight}>
+              <Text style={styles.dayLabel}>{dayNames[1]}</Text>
+            </View>
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 4,
+    marginVertical: 8,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6B00',
+  },
+  chevron: {
+    fontSize: 16,
+    color: '#9BA1A6',
+  },
+  summaryText: {
+    fontSize: 16,
+    color: '#000000',
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#E5E5E5',
+    marginBottom: 16,
+  },
+  dataSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dataItem: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  dataValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#000000',
+    lineHeight: 34,
+  },
+  dataUnit: {
+    fontSize: 14,
+    color: '#9BA1A6',
+    marginBottom: 8,
+  },
+  bar: {
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 8,
+  },
+  dayLabel: {
+    fontSize: 14,
+    color: '#000000',
+  },
+  dayHighlight: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+}); 

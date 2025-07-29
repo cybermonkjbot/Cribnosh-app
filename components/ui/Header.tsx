@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Text, TouchableOpacity, View } from 'react-native';
+import { Easing } from 'react-native-reanimated';
 
 interface HeaderProps {
   userName?: string;
@@ -40,16 +41,18 @@ export function Header({ userName = "Joshua", isSticky = false, showSubtitle = f
 
   useEffect(() => {
     const duration = 300;
+    const easing = Easing.inOut(Easing.ease);
     const config = {
       duration,
       useNativeDriver: false,
+      easing,
     };
 
     if (isSticky) {
       // Animate to sticky state
       Animated.parallel([
         Animated.timing(logoScale, { toValue: 0.95, ...config }),
-        Animated.timing(greetingOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(greetingOpacity, { toValue: 0, duration, useNativeDriver: true, easing }),
         Animated.timing(buttonsScale, { toValue: 0.85, ...config }),
         Animated.timing(avatarScale, { toValue: 0.73, ...config }),
         Animated.timing(containerPadding, { toValue: 12, ...config }),
@@ -58,7 +61,7 @@ export function Header({ userName = "Joshua", isSticky = false, showSubtitle = f
       // Animate to normal state
       Animated.parallel([
         Animated.timing(logoScale, { toValue: 1, ...config }),
-        Animated.timing(greetingOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(greetingOpacity, { toValue: 1, duration, useNativeDriver: true, easing }),
         Animated.timing(buttonsScale, { toValue: 1, ...config }),
         Animated.timing(avatarScale, { toValue: 1, ...config }),
         Animated.timing(containerPadding, { toValue: 20, ...config }),

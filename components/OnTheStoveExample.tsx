@@ -23,7 +23,7 @@ const OnTheStoveExample: React.FC = () => {
     title: 'Nigerian Jollof',
     price: '£ 16',
     imageSource: require('../assets/images/cribnoshpackaging.png'),
-    description: 'Minnies Kitchen is Preparing the Nigerian Jollof Rice Pack Live and you can order before it\'s ready.',
+    description: 'Watch Chef Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready.',
     kitchenName: 'Minnies Kitchen',
   };
 
