@@ -1,13 +1,14 @@
 import * as Haptics from 'expo-haptics';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Image, Text, View } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
   Extrapolate,
   interpolate,
   runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withSpring,
@@ -39,10 +40,22 @@ const ForkPrintImage = () => {
   );
 };
 
+// Safe haptic feedback function
+const safeHapticFeedback = async (style: Haptics.ImpactFeedbackStyle) => {
+  try {
+    await Haptics.impactAsync(style);
+  } catch (error) {
+    console.log('Haptic feedback not supported on this device');
+  }
+};
+
 export default function ProfileScreen() {
   const [braggingData, setBraggingData] = useState(sampleWeeklyData);
-  const [isStatsExpanded, setIsStatsExpanded] = useState(false);
   const [showDebug, setShowDebug] = useState(true); // Enable debug by default
+  
+  // Simplified state management
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isAnimating = useRef(false);
   
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -58,7 +71,12 @@ export default function ProfileScreen() {
   const statsSectionScale = useSharedValue(1);
   const statsSectionOpacity = useSharedValue(0);
   const resistanceProgress = useSharedValue(0);
-  const isExpanded = useSharedValue(false);
+  const isExpandedValue = useSharedValue(false);
+
+  // Derived value to prevent multiple triggers
+  const shouldExpand = useDerivedValue(() => {
+    return scrollY.value > BREAKPOINT_THRESHOLD && !isExpandedValue.value;
+  });
 
   // Refs
   const scrollViewRef = useRef<Animated.ScrollView>(null);
@@ -103,7 +121,78 @@ export default function ProfileScreen() {
     };
   });
 
-  // Scroll handler
+  // Safe scroll to function
+  const safeScrollTo = useCallback((y: number, animated: boolean = true) => {
+    if (scrollViewRef.current) {
+      try {
+        scrollViewRef.current.scrollTo({ y, animated });
+      } catch (error) {
+        console.log('Scroll error:', error);
+      }
+    }
+  }, []);
+
+  // Stable expansion function
+  const expandStats = useCallback(() => {
+    if (isAnimating.current || isExpanded) return;
+    
+    console.log('Starting expansion animation');
+    isAnimating.current = true;
+    setIsExpanded(true);
+    isExpandedValue.value = true;
+    
+    // Safe haptic feedback
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (e) {
+      console.log('Haptic not available');
+    }
+    
+    // Animate expansion
+    statsSectionOpacity.value = withTiming(1, { duration: 300 });
+    statsSectionScale.value = withSpring(1, { damping: 15, stiffness: 150 });
+    statsSectionTranslateY.value = withSpring(0, { 
+      damping: 15, 
+      stiffness: 150 
+    }, (finished) => {
+      runOnJS(() => {
+        console.log('Expansion animation completed');
+        isAnimating.current = false;
+      })();
+    });
+    
+    // Safe scroll to stats section
+    safeScrollTo(BREAKPOINT_THRESHOLD, true);
+  }, [isExpanded, safeScrollTo]);
+
+  const collapseStats = useCallback(() => {
+    if (isAnimating.current || !isExpanded) return;
+    
+    console.log('Starting collapse animation');
+    isAnimating.current = true;
+    setIsExpanded(false);
+    isExpandedValue.value = false;
+    
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {
+      console.log('Haptic not available');
+    }
+    
+    statsSectionOpacity.value = withTiming(0, { duration: 300 });
+    statsSectionScale.value = withSpring(0.8, { damping: 15, stiffness: 150 });
+    statsSectionTranslateY.value = withSpring(50, { 
+      damping: 15, 
+      stiffness: 150 
+    }, (finished) => {
+      runOnJS(() => {
+        console.log('Collapse animation completed');
+        isAnimating.current = false;
+      })();
+    });
+  }, [isExpanded]);
+
+  // Simplified scroll handler - only handle scroll, not expansion logic
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
@@ -118,101 +207,40 @@ export default function ProfileScreen() {
       
       resistanceProgress.value = progress;
       
-      // Update stats section visibility
-      if (progress > 0.5 && !isExpanded.value) {
-        statsSectionOpacity.value = withTiming(1, { duration: 300 });
-      }
-    },
-    onEndDrag: (event) => {
-      const velocity = event.velocity?.y || 0;
-      const shouldExpand = velocity > SNAP_VELOCITY || resistanceProgress.value > 0.7;
-      
-      if (shouldExpand && !isExpanded.value) {
-        runOnJS(expandStatsSection)();
-      } else if (!shouldExpand && isExpanded.value) {
-        runOnJS(collapseStatsSection)();
+      // Check for expansion trigger directly in scroll handler
+      if (scrollY.value > BREAKPOINT_THRESHOLD && !isExpandedValue.value && !isAnimating.current) {
+        runOnJS(expandStats)();
       }
     },
   });
 
-  // Gesture handler for pull-to-expand
-  const pullGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      if (scrollY.value >= BREAKPOINT_THRESHOLD) {
-        const pullDistance = Math.max(0, -event.translationY);
-        const pullProgress = interpolate(
-          pullDistance,
-          [0, 100],
-          [0, 1],
-          Extrapolate.CLAMP
-        );
-        
-        statsSectionScale.value = interpolate(
-          pullProgress,
-          [0, 1],
-          [0.8, 1],
-          Extrapolate.CLAMP
-        );
-        
-        statsSectionTranslateY.value = interpolate(
-          pullProgress,
-          [0, 1],
-          [50, 0],
-          Extrapolate.CLAMP
-        );
-      }
-    })
-    .onEnd((event) => {
-      const velocity = event.velocityY;
-      const shouldExpand = velocity < -SNAP_VELOCITY || statsSectionScale.value > 0.9;
-      
-      if (shouldExpand) {
-        runOnJS(expandStatsSection)();
-      } else {
-        // Reset to collapsed state
-        statsSectionScale.value = withSpring(0.8);
-        statsSectionTranslateY.value = withSpring(50);
-      }
-    });
-
   // Start animations on mount
   useEffect(() => {
-    headerOpacity.value = withTiming(1, { duration: 800 });
-    scoreScale.value = withDelay(200, withSpring(1, { damping: 15, stiffness: 150 }));
-    cardsOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
-    cardsTranslateY.value = withDelay(400, withSpring(0, { damping: 15, stiffness: 150 }));
-    braggingCardsOpacity.value = withDelay(600, withTiming(1, { duration: 600 }));
-    braggingCardsTranslateY.value = withDelay(600, withSpring(0, { damping: 15, stiffness: 150 }));
+    const startAnimations = () => {
+      headerOpacity.value = withTiming(1, { duration: 800 });
+      scoreScale.value = withDelay(200, withSpring(1, { damping: 15, stiffness: 150 }));
+      cardsOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
+      cardsTranslateY.value = withDelay(400, withSpring(0, { damping: 15, stiffness: 150 }));
+      braggingCardsOpacity.value = withDelay(600, withTiming(1, { duration: 600 }));
+      braggingCardsTranslateY.value = withDelay(600, withSpring(0, { damping: 15, stiffness: 150 }));
+    };
+
+    startAnimations();
+
+    // Cleanup function
+    return () => {
+      // Cancel any ongoing animations
+      cancelAnimation(headerOpacity);
+      cancelAnimation(scoreScale);
+      cancelAnimation(cardsTranslateY);
+      cancelAnimation(cardsOpacity);
+      cancelAnimation(braggingCardsTranslateY);
+      cancelAnimation(braggingCardsOpacity);
+      cancelAnimation(statsSectionScale);
+      cancelAnimation(statsSectionTranslateY);
+      cancelAnimation(statsSectionOpacity);
+    };
   }, []);
-
-  const expandStatsSection = () => {
-    isExpanded.value = true;
-    setIsStatsExpanded(true);
-    
-    // Haptic feedback
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
-    // Animate to expanded state
-    statsSectionScale.value = withSpring(1, { damping: 15, stiffness: 150 });
-    statsSectionTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
-    statsSectionOpacity.value = withTiming(1, { duration: 300 });
-    
-    // Scroll to stats section
-    scrollViewRef.current?.scrollTo({ y: BREAKPOINT_THRESHOLD, animated: true });
-  };
-
-  const collapseStatsSection = () => {
-    isExpanded.value = false;
-    setIsStatsExpanded(false);
-    
-    // Haptic feedback
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    // Animate to collapsed state
-    statsSectionScale.value = withSpring(0.8, { damping: 15, stiffness: 150 });
-    statsSectionTranslateY.value = withSpring(50, { damping: 15, stiffness: 150 });
-    statsSectionOpacity.value = withTiming(0, { duration: 300 });
-  };
 
   const handleMealsPress = () => {
     Alert.alert('Meals Logged', 'Show detailed meals breakdown');
@@ -226,244 +254,268 @@ export default function ProfileScreen() {
     Alert.alert('Cuisine Score', 'Show all cuisines explored');
   };
 
-  const refreshBraggingData = () => {
+  const refreshBraggingData = useCallback(() => {
+    if (isAnimating.current) return; // Prevent conflicts
+    
+    isAnimating.current = true;
     braggingCardsOpacity.value = withTiming(0, { duration: 300 });
     braggingCardsTranslateY.value = withTiming(20, { duration: 300 }, () => {
-      runOnJS(setBraggingData)(generateMockWeeklyData());
+      runOnJS(() => {
+        setBraggingData(generateMockWeeklyData());
+        isAnimating.current = false;
+      })();
       braggingCardsOpacity.value = withTiming(1, { duration: 400 });
       braggingCardsTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
     });
-  };
+  }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
     <ProfileScreenBackground>
       <SafeAreaView style={{ flex: 1 }}>
-          <GestureDetector gesture={pullGesture}>
-            <Animated.ScrollView 
-              ref={scrollViewRef}
-              style={{ flex: 1 }} 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
-              onScroll={scrollHandler}
-              scrollEventThrottle={16}
-            >
-          {/* Header */}
-              <Animated.View style={headerAnimatedStyle}>
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-                  paddingHorizontal: 12,
-            paddingTop: 10,
-            paddingBottom: 20
-          }}>
-            <Image 
-              source={require('../../assets/images/white-greenlogo.png')}
-              style={{ width: 120, height: 40, resizeMode: 'contain' }}
-            />
-            <Avatar 
-              size="md"
-              source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face' }}
-            />
-          </View>
-              </Animated.View>
-
-          {/* ForkPrint Score and Tastemaker Section */}
-              <Animated.View style={[scoreAnimatedStyle, resistanceAnimatedStyle]}>
-                <View style={{ paddingHorizontal: 12, marginBottom: 30, position: 'relative' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <View style={{ flex: 1, position: 'relative' }}>
-                <Text style={{
-                  fontFamily: 'Mukta',
-                  fontStyle: 'normal',
-                  fontWeight: '800',
-                  fontSize: 20,
-                  lineHeight: 33,
-                  color: '#FFFFFF',
-                  marginBottom: -5,
-                  marginLeft: 80
-                }}>
-                  Score
-                </Text>
-                
-                <ForkPrintImage />
-                
-                <Text style={{
-                  fontFamily: 'Inter',
-                  fontStyle: 'normal',
-                  fontWeight: '700',
-                  fontSize: 64,
-                  lineHeight: 77,
-                  color: '#FFFFFF',
-                  marginTop: 10
-                }}>
-                  799
-                </Text>
+        <Animated.ScrollView 
+          ref={scrollViewRef}
+          style={{ flex: 1 }} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+          bounces={true}
+          alwaysBounceVertical={false}
+        >
+            {/* Header */}
+            <Animated.View style={headerAnimatedStyle}>
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                paddingHorizontal: 12,
+                paddingTop: 10,
+                paddingBottom: 20
+              }}>
+                <Image 
+                  source={require('../../assets/images/white-greenlogo.png')}
+                  style={{ width: 120, height: 40, resizeMode: 'contain' }}
+                />
+                <Avatar 
+                  size="md"
+                  source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face' }}
+                />
               </View>
-            </View>
-            
-            <View style={{ 
-              position: 'absolute', 
-              top: -50, 
-              right: -50, 
-              alignItems: 'center',
-                    zIndex: 1
-            }}>
-              <Mascot 
-                emotion="happy" 
-                size={280}
-                style={{ marginBottom: 10 }}
-              />
-              
-              <ThemedText style={{ 
-                fontSize: 16, 
-                color: 'white', 
-                fontWeight: '600',
-                marginBottom: 5,
-                position: 'absolute',
-                bottom: 40,
-                zIndex: 2,
-                textAlign: 'right'
-              }}>
-                Tastemaker
-              </ThemedText>
-              <ThemedText style={{ 
-                fontSize: 12, 
-                color: 'white', 
-                opacity: 0.8,
-                textAlign: 'right',
-                position: 'absolute',
-                bottom: 20,
-                zIndex: 2
-              }}>
-                3 Points to Food Influencer
-              </ThemedText>
-            </View>
-          </View>
-              </Animated.View>
+            </Animated.View>
 
-          {/* Data Cards */}
-              <Animated.View style={cardsAnimatedStyle}>
-                <View style={{ paddingHorizontal: 12, marginBottom: 30, marginTop: 20, position: 'relative' }}>
-            <CaloriesNoshPointsCards 
-              caloriesProgress={23}
-              noshPointsProgress={40}
-            />
-          </View>
-              </Animated.View>
-
-          {/* KPI Cards */}
-              <Animated.View style={cardsAnimatedStyle}>
-                <View style={{ paddingHorizontal: 12, marginBottom: 20 }}>
-          <KPICards 
-            timeSaved="15.7 hours"
-            costSaved="£ 29.3"
-          />
+            {/* ForkPrint Score and Tastemaker Section */}
+            <Animated.View style={[scoreAnimatedStyle, resistanceAnimatedStyle]}>
+              <View style={{ paddingHorizontal: 12, marginBottom: 30, position: 'relative' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1, position: 'relative' }}>
+                    <Text style={{
+                      fontFamily: 'Mukta',
+                      fontStyle: 'normal',
+                      fontWeight: '800',
+                      fontSize: 20,
+                      lineHeight: 33,
+                      color: '#FFFFFF',
+                      marginBottom: -5,
+                      marginLeft: 80
+                    }}>
+                      Score
+                    </Text>
+                    
+                    <ForkPrintImage />
+                    
+                    <Text style={{
+                      fontFamily: 'Inter',
+                      fontStyle: 'normal',
+                      fontWeight: '700',
+                      fontSize: 64,
+                      lineHeight: 77,
+                      color: '#FFFFFF',
+                      marginTop: 10
+                    }}>
+                      799
+                    </Text>
+                  </View>
                 </View>
-              </Animated.View>
-
-              {/* Breakpoint Trigger Area */}
-              <View style={{ height: BREAKPOINT_THRESHOLD, justifyContent: 'flex-end' }}>
+                
                 <View style={{ 
-                  paddingHorizontal: 12, 
-                  paddingBottom: 20,
-                  alignItems: 'center'
+                  position: 'absolute', 
+                  top: -50, 
+                  right: -50, 
+                  alignItems: 'center',
+                  zIndex: 1
                 }}>
+                  <Mascot 
+                    emotion="happy" 
+                    size={280}
+                    style={{ marginBottom: 10 }}
+                  />
+                  
+                  <ThemedText style={{ 
+                    fontSize: 16, 
+                    color: 'white', 
+                    fontWeight: '600',
+                    marginBottom: 5,
+                    position: 'absolute',
+                    bottom: 40,
+                    zIndex: 2,
+                    textAlign: 'right'
+                  }}>
+                    Tastemaker
+                  </ThemedText>
+                  <ThemedText style={{ 
+                    fontSize: 12, 
+                    color: 'white', 
+                    opacity: 0.8,
+                    textAlign: 'right',
+                    position: 'absolute',
+                    bottom: 20,
+                    zIndex: 2
+                  }}>
+                    3 Points to Food Influencer
+                  </ThemedText>
+                </View>
+              </View>
+            </Animated.View>
+
+            {/* Data Cards */}
+            <Animated.View style={cardsAnimatedStyle}>
+              <View style={{ paddingHorizontal: 12, marginBottom: 30, marginTop: 20, position: 'relative' }}>
+                <CaloriesNoshPointsCards 
+                  caloriesProgress={23}
+                  noshPointsProgress={40}
+                />
+              </View>
+            </Animated.View>
+
+            {/* KPI Cards */}
+            <Animated.View style={cardsAnimatedStyle}>
+              <View style={{ paddingHorizontal: 12, marginBottom: 20 }}>
+                <KPICards 
+                  timeSaved="15.7 hours"
+                  costSaved="£ 29.3"
+                />
+              </View>
+            </Animated.View>
+
+            {/* Breakpoint Trigger Area */}
+            <View style={{ height: BREAKPOINT_THRESHOLD, justifyContent: 'flex-end' }}>
+              <View style={{ 
+                paddingHorizontal: 12, 
+                paddingBottom: 20,
+                alignItems: 'center'
+              }}>
+                <Text style={{
+                  fontSize: 16,
+                  color: '#FFFFFF',
+                  opacity: 0.7,
+                  fontFamily: 'Mukta',
+                  textAlign: 'center'
+                }}>
+                  Pull up to view your food stats
+                </Text>
+                <View style={{
+                  width: 40,
+                  height: 4,
+                  backgroundColor: '#FFFFFF',
+                  opacity: 0.3,
+                  borderRadius: 2,
+                  marginTop: 8
+                }} />
+                
+                {/* Gesture indicator */}
+                <Animated.View style={useAnimatedStyle(() => ({
+                  marginTop: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 4,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: 8,
+                  opacity: resistanceProgress.value > 0.3 ? 1 : 0
+                }))}>
                   <Text style={{
-                    fontSize: 16,
+                    fontSize: 12,
                     color: '#FFFFFF',
-                    opacity: 0.7,
                     fontFamily: 'Mukta',
                     textAlign: 'center'
                   }}>
-                    Pull down to view your food stats
+                    Ready to Expand
                   </Text>
-                  <View style={{
-                    width: 40,
-                    height: 4,
-                    backgroundColor: '#FFFFFF',
-                    opacity: 0.3,
-                    borderRadius: 2,
-                    marginTop: 8
-                  }} />
-                </View>
+                </Animated.View>
               </View>
+            </View>
 
-              {/* Bragging Cards Section - Sticky Header */}
-              <Animated.View style={[braggingCardsAnimatedStyle, statsSectionAnimatedStyle]}>
+            {/* Bragging Cards Section - Sticky Header */}
+            <Animated.View style={[braggingCardsAnimatedStyle, statsSectionAnimatedStyle]}>
+              <View style={{ 
+                paddingHorizontal: 12, 
+                marginBottom: 40, 
+                marginTop: 20,
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 16,
+                padding: 16,
+                backdropFilter: 'blur(10px)',
+              }}>
                 <View style={{ 
-                  paddingHorizontal: 12, 
-                  marginBottom: 40, 
-                  marginTop: 20,
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: 16,
-                  padding: 16,
-                  backdropFilter: 'blur(10px)',
+                  flexDirection: 'row', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: 16,
+                  paddingHorizontal: 4
                 }}>
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: 16,
-                    paddingHorizontal: 4
+                  <Text style={{
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    color: '#FFFFFF',
+                    fontFamily: 'Mukta',
                   }}>
-                    <Text style={{
-                      fontSize: 20,
-                      fontWeight: 'bold',
+                    Your Food Stats
+                  </Text>
+                  <Text 
+                    style={{
+                      fontSize: 14,
                       color: '#FFFFFF',
+                      opacity: 0.8,
                       fontFamily: 'Mukta',
-                    }}>
-                      Your Food Stats
-                    </Text>
-                    <Text 
-                      style={{
-                        fontSize: 14,
-                        color: '#FFFFFF',
-                        opacity: 0.8,
-                        fontFamily: 'Mukta',
-                      }}
-                      onPress={refreshBraggingData}
-                    >
-                      Refresh
-                    </Text>
-                  </View>
-                  
-                  {/* Individual Bragging Cards */}
-                  <MealsLoggedCard
-                    weekMeals={braggingData.weekMeals}
-                    avgMeals={braggingData.avgMeals}
-                    onPress={handleMealsPress}
-                  />
-                  
-                  <CalorieCompareCard
-                    kcalToday={braggingData.kcalToday}
-                    kcalYesterday={braggingData.kcalYesterday}
-                    onPress={handleCaloriesPress}
-                  />
-                  
-                  <CuisineScoreCard
-                    cuisines={braggingData.cuisines}
-                    onPress={handleCuisinePress}
-                  />
+                    }}
+                    onPress={refreshBraggingData}
+                  >
+                    Refresh
+                  </Text>
                 </View>
-              </Animated.View>
-              
-              {/* Extra bottom padding for proper scrolling */}
-              <View style={{ height: 40 }} />
-            </Animated.ScrollView>
-          </GestureDetector>
+                
+                {/* Individual Bragging Cards */}
+                <MealsLoggedCard
+                  weekMeals={braggingData.weekMeals}
+                  avgMeals={braggingData.avgMeals}
+                  onPress={handleMealsPress}
+                />
+                
+                <CalorieCompareCard
+                  kcalToday={braggingData.kcalToday}
+                  kcalYesterday={braggingData.kcalYesterday}
+                  onPress={handleCaloriesPress}
+                />
+                
+                <CuisineScoreCard
+                  cuisines={braggingData.cuisines}
+                  onPress={handleCuisinePress}
+                />
+              </View>
+            </Animated.View>
+            
+            {/* Extra bottom padding for proper scrolling */}
+            <View style={{ height: 40 }} />
+          </Animated.ScrollView>
+        </SafeAreaView>
 
-          {/* Debug Tester - Remove this in production */}
-          {showDebug && (
-            <ScrollBreakpointTester
-              scrollY={scrollY}
-              resistanceProgress={resistanceProgress}
-              isExpanded={isExpanded}
-            />
-          )}
-      </SafeAreaView>
-    </ProfileScreenBackground>
-    </GestureHandlerRootView>
+        {/* Debug Tester - Remove this in production */}
+        {showDebug && (
+          <ScrollBreakpointTester
+            scrollY={scrollY}
+            resistanceProgress={resistanceProgress}
+            isExpanded={isExpandedValue}
+            onManualExpand={expandStats}
+          />
+        )}
+      </ProfileScreenBackground>
   );
 } 

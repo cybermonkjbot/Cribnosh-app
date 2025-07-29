@@ -12,7 +12,7 @@ A sophisticated scroll-based interaction system that creates a dynamic transitio
 
 ### **Visual Feedback**
 - **Progressive Resistance**: Content moves slower as you approach the breakpoint
-- **Pull Indicator**: Visual cue showing "Pull down to view your food stats"
+- **Pull Indicator**: Visual cue showing "Pull up to view your food stats"
 - **Scale Animation**: Stats section scales from 0.8 to 1.0 during pull
 - **Glass Morphism**: Semi-transparent background with blur effect
 
@@ -75,7 +75,7 @@ const scrollHandler = useAnimatedScrollHandler({
 const pullGesture = Gesture.Pan()
   .onUpdate((event) => {
     if (scrollY.value >= BREAKPOINT_THRESHOLD) {
-      const pullDistance = Math.max(0, -event.translationY);
+      const pullDistance = Math.max(0, event.translationY); // Pull-up gesture
       const pullProgress = interpolate(
         pullDistance,
         [0, 100],
@@ -94,7 +94,7 @@ const pullGesture = Gesture.Pan()
   })
   .onEnd((event) => {
     const velocity = event.velocityY;
-    const shouldExpand = velocity < -SNAP_VELOCITY || statsSectionScale.value > 0.9;
+    const shouldExpand = velocity > SNAP_VELOCITY || statsSectionScale.value > 0.9;
     
     if (shouldExpand) {
       runOnJS(expandStatsSection)();
@@ -161,10 +161,10 @@ const expandStatsSection = () => {
 ### **Phase 2: Approaching Breakpoint**
 1. User scrolls past 200px threshold
 2. Content begins to show resistance (moves slower)
-3. Visual indicator appears: "Pull down to view your food stats"
+3. Visual indicator appears: "Pull up to view your food stats"
 
 ### **Phase 3: Breakpoint Engagement**
-1. User continues scrolling or pulls down
+1. User continues scrolling or pulls up
 2. Stats section becomes visible with scale animation
 3. Resistance increases as user approaches threshold
 
