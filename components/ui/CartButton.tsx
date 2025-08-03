@@ -1,35 +1,30 @@
 import React from 'react';
-import { Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
-const { width } = Dimensions.get('window');
-
 interface CartButtonProps {
-  // Common props
   quantity: number;
   onPress: () => void;
-  
-  // Variant props
   variant?: 'add' | 'view';
-  
-  // Layout props
   position?: 'absolute' | 'relative';
   bottom?: number;
   left?: number;
   right?: number;
-  
-  // Styling props
   backgroundColor?: string;
   textColor?: string;
   quantityBadgeColor?: string;
   quantityTextColor?: string;
-  
-  // Content props
   buttonText?: string;
   showIcon?: boolean;
-  
-  // Container props (for absolute positioning)
   containerStyle?: any;
 }
 
@@ -50,25 +45,25 @@ export function CartButton({
   containerStyle,
 }: CartButtonProps) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const { width: SCREEN_WIDTH } = Dimensions.get('window');
+  
 
-  // Default text based on variant
-  const defaultButtonText = variant === 'add' ? 'Add to Cart' : 'Items in cart';
-  const finalButtonText = buttonText || defaultButtonText;
+  const isSmallScreen = width < 375;
+  // const buttonWidth = width - (isSmallScreen ? 40 : 48); // 20 or 24px padding on each side
+  const buttonWidth = SCREEN_WIDTH - 32; // 20 or 24px padding on each side
 
-  // Default positioning based on variant
-  const defaultBottom = variant === 'add' ? 0 : 30;
-  const defaultLeft = variant === 'add' ? 0 : 25;
-  const defaultRight = variant === 'add' ? 0 : 25;
+  const finalButtonText = buttonText || (variant === 'add' ? 'Add to Cart' : 'Items in cart');
 
   const buttonStyle = [
     styles.button,
     {
       backgroundColor,
       position,
-      bottom: bottom ?? defaultBottom,
-      left: left ?? defaultLeft,
-      right: right ?? defaultRight,
-      width: variant === 'add' ? 325 : undefined,
+      bottom: bottom ?? (variant === 'add' ? 0 : 30),
+      left: left ?? (variant === 'add' ? 0 : 20),
+      right: right ?? (variant === 'add' ? 0 : 20),
+      width: variant === 'add' ? buttonWidth : undefined,
     },
   ];
 
@@ -89,40 +84,31 @@ export function CartButton({
     { color: textColor },
   ];
 
-  // Container for add variant with safe area
   if (variant === 'add' && position === 'absolute') {
     return (
-      <View style={[
-        styles.addContainer,
-        // Only apply internal safe area handling if no custom containerStyle is provided
-        containerStyle ? {} : { paddingBottom: Math.max(insets.bottom, 80) },
-        containerStyle
-      ]}>
+      <View
+        style={[
+          styles.addContainer, {marginTop:5},
+          containerStyle ? {} : { paddingBottom: Math.max(insets.bottom, 80) },
+          containerStyle, 
+        ]}
+      >
         <TouchableOpacity style={buttonStyle} onPress={onPress} activeOpacity={0.85}>
-          {/* Quantity Badge */}
           <View style={quantityBadgeStyle}>
             <Text style={quantityTextStyle}>{quantity}</Text>
           </View>
-          
-          {/* Button Text */}
           <Text style={buttonTextStyle}>{finalButtonText}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // View variant or relative positioning
   return (
     <TouchableOpacity style={buttonStyle} onPress={onPress} activeOpacity={0.85}>
-      {/* Quantity Badge */}
       <View style={quantityBadgeStyle}>
         <Text style={quantityTextStyle}>{quantity}</Text>
       </View>
-      
-      {/* Button Text */}
       <Text style={[buttonTextStyle, styles.viewButtonText]}>{finalButtonText}</Text>
-      
-      {/* Shopping bag icon */}
       {showIcon && (
         <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
           <Path
@@ -140,7 +126,6 @@ export function CartButton({
 }
 
 const styles = StyleSheet.create({
-  // Add variant container
   addContainer: {
     position: 'absolute',
     bottom: 0,
@@ -150,20 +135,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 15,
     zIndex: 9999,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
   },
-  
-  // Button base styles
   button: {
     height: 58,
-    backgroundColor: '#FF3B30',
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -172,45 +151,36 @@ const styles = StyleSheet.create({
     gap: 12,
     zIndex: 9999,
   },
-  
-  // Quantity badge
   quantityBadge: {
     width: 32,
     height: 32,
-    backgroundColor: '#E6FFE8',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
-  // Quantity text
   quantityText: {
-    fontFamily: Platform.select({
-      ios: 'Poppins-Bold, Arial Black, Arial',
-      android: 'Poppins-Bold, Arial Black, Arial',
-      default: 'Arial Black, Arial'
-    }),
     fontWeight: '700',
     fontSize: 18,
     lineHeight: 27,
     textAlign: 'center',
-  },
-  
-  // Button text
-  buttonText: {
     fontFamily: Platform.select({
-      ios: 'Poppins-SemiBold, Arial, sans-serif',
-      android: 'Poppins-SemiBold, Arial, sans-serif',
-      default: 'Arial, sans-serif'
+      ios: 'Poppins-Bold',
+      android: 'Poppins-Bold',
+      default: 'Arial',
     }),
+  },
+  buttonText: {
     fontWeight: '600',
     fontSize: 18,
     lineHeight: 27,
     textAlign: 'center',
+    fontFamily: Platform.select({
+      ios: 'Poppins-SemiBold',
+      android: 'Poppins-SemiBold',
+      default: 'Arial',
+    }),
   },
-  
-  // View variant specific text style
   viewButtonText: {
     flex: 1,
   },
-}); 
+});

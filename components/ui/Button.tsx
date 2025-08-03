@@ -5,7 +5,7 @@ import { Animated, Platform, Pressable, PressableProps, StyleSheet, Text, Toucha
 import { cn } from './utils';
 
 export interface ButtonProps extends PressableProps {
-  variant?: 'default' | 'outline' | 'ghost';
+  variant?: 'default' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   children: ReactNode;
@@ -25,6 +25,7 @@ const variants = {
   default: 'bg-gray-900 active:bg-gray-800',
   outline: 'border border-gray-300 bg-white',
   ghost: 'bg-transparent',
+  danger:'bg-[#FF3B30]'
 };
 const sizes = {
   sm: 'h-10 px-4',
@@ -35,6 +36,7 @@ const text = {
   default: 'text-white text-base font-semibold',
   outline: 'text-gray-900 text-base font-semibold',
   ghost: 'text-gray-900 text-base font-semibold',
+  danger: 'text-white text-base font-semibold',
 };
 
 export const Button: FC<ButtonProps> = ({

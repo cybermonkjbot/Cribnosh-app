@@ -14,7 +14,7 @@ export default function TabLayout() {
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
-          zIndex: 999999, // Highest z-index to stay above the player
+          zIndex: 999999,
         },
       }}
       tabBar={(props) => <CustomTabBar {...props} />}>

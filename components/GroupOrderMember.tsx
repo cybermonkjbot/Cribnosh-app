@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from './ui/Avatar';
 import MessageIcon from './ui/MessageIcon';
 
@@ -81,10 +81,12 @@ const GroupOrderMember: React.FC<GroupOrderMemberProps> = ({
   }
   let statusText = status ? `${displayName} (${status})` : displayName;
   let statusColor = textColor;
-
+ const { width } = Dimensions.get('window');
+ const isSmall = width < 375;
+ const avatarSize = isSmall ? 52 : 62;
   return (
     <View style={styles.container}>
-      <View style={{ position: 'relative', width: 62, height: 62 }}>
+      <View style={{ position: 'relative', width: avatarSize, height: avatarSize, borderRadius:avatarSize / 2 }}>
         <View style={styles.avatarWrapper}>
           <Avatar source={typeof avatarUri === 'string' ? { uri: avatarUri } : avatarUri} style={styles.avatar} size="md" />
         </View>
