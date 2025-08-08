@@ -1,7 +1,7 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Avatar } from './ui/Avatar';
-import MessageIcon from './ui/MessageIcon';
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { Avatar } from "./ui/Avatar";
+import MessageIcon from "./ui/MessageIcon";
 
 interface GroupOrderMemberProps {
   name: string;
@@ -20,11 +20,11 @@ const styles = StyleSheet.create({
   statusText: {
     marginTop: 8,
     fontSize: 13,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   container: {
-    alignItems: 'center',
+    alignItems: "center",
     marginHorizontal: 8,
     width: 70,
   },
@@ -32,10 +32,10 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    overflow: 'hidden',
-    backgroundColor: '#222',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: "hidden",
+    backgroundColor: "#222",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 4,
   },
   avatar: {
@@ -44,15 +44,15 @@ const styles = StyleSheet.create({
     borderRadius: 31,
   },
   messageIconWrapper: {
-    position: 'absolute',
+    position: "absolute",
     width: 20,
     height: 20,
     right: 0,
     bottom: 0,
     borderRadius: 4,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 2,
   },
 });
@@ -67,15 +67,15 @@ const GroupOrderMember: React.FC<GroupOrderMemberProps> = ({
   isContributing = false,
   contributingAmount,
   isCurrentUser = false,
-  textColor = '#134E3A',
+  textColor = "#134E3A",
 }) => {
   // Name and status logic for display
-  let displayName = isCurrentUser ? 'You' : name;
-  let status = '';
+  let displayName = isCurrentUser ? "You" : name;
+  let status = "";
   if (isPaying && payingAmount) {
     status = `Paying £${payingAmount}`;
   } else if (isChoosingMeal) {
-    status = 'Choosing meal';
+    status = "Choosing meal";
   } else if (isContributing && contributingAmount) {
     status = `Contributing £${contributingAmount}`;
   }
@@ -84,9 +84,15 @@ const GroupOrderMember: React.FC<GroupOrderMemberProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={{ position: 'relative', width: 62, height: 62 }}>
+      <View style={{ position: "relative", width: 62, height: 62 }}>
         <View style={styles.avatarWrapper}>
-          <Avatar source={typeof avatarUri === 'string' ? { uri: avatarUri } : avatarUri} style={styles.avatar} size="md" />
+          <Avatar
+            source={
+              typeof avatarUri === "string" ? { uri: avatarUri } : avatarUri
+            }
+            style={styles.avatar}
+            size="md"
+          />
         </View>
         {showMessageIcon && (
           <View style={styles.messageIconWrapper}>
@@ -94,7 +100,9 @@ const GroupOrderMember: React.FC<GroupOrderMemberProps> = ({
           </View>
         )}
       </View>
-      <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
+      <Text style={[styles.statusText, { color: statusColor }]}>
+        {statusText}
+      </Text>
     </View>
   );
 };
