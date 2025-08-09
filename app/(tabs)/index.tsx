@@ -1,5 +1,5 @@
-import { MainScreen } from '@/components/ui/MainScreen';
-import React from 'react';
+import { MainScreen } from "@/components/ui/MainScreen";
+import React from "react";
 import "../../global.css";
 import GroupOrder from '@/components/ui/GroupOrderScreen/Page';
 
