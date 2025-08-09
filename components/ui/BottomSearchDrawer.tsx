@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Dimensions, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolate,
@@ -18,6 +18,15 @@ import { getCompleteDynamicHeader, HeaderMessage } from '../../utils/dynamicHead
 import { getDynamicSearchPrompt, SearchPrompt } from '../../utils/dynamicSearchPrompts';
 import SearchArea from '../SearchArea';
 import { Button } from './Button';
+import GroupOrderBottomSheet from './GroupOrderScreen/Page';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { CartButton } from './CartButton';
+import { avatars, groupMembers } from '@/utils/getAvatarPosition';
+import GroupTotalSpendCard from '../GroupTotalSpendCard';
+import { SwipeButton } from '../SwipeButton';
+import GroupOrderMember from '../GroupOrderMember';
+import { ChevronDown, SearchIcon } from 'lucide-react-native';
+import { Input } from './Input';
 
 // Error boundary for icon components
 const SafeIcon = ({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) => {
@@ -203,6 +212,23 @@ export function BottomSearchDrawer({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+   const handleOpenSheet = () => {
+    if (setIsOpen) {
+      setIsOpen(true);
+    }
+    bottomSheetRef.current?.expand();
+  };
+   const handleCloseSheet = () => {
+    if (setIsOpen){
+
+      setIsOpen(false);
+    }
+    bottomSheetRef.current?.close();
+  };
+  const snapPoints = useMemo(() => ['25%', '95%', '100%'], []);
   
   // Filter chips state
   const [activeFilter, setActiveFilter] = useState('all');
@@ -1106,7 +1132,7 @@ export function BottomSearchDrawer({
                       letterSpacing: 1,
                       opacity: 0.8,
                     }}>
-                      {filteredSuggestions.length} RESULTS FOR "{searchQuery.toUpperCase()}"
+                      {filteredSuggestions.length} RESULTS FOR &quot;{searchQuery.toUpperCase()}&quot;
                     </Text>
                   ) : (
                     <Text style={{ 
@@ -1444,7 +1470,7 @@ export function BottomSearchDrawer({
                     lineHeight: 22,
                     marginBottom: 6,
                   }}>
-                    Try It's on me
+                    Try It&apos;s on me
                   </Text>
                   <Text style={{ 
                     color: '#4a4a4a', 
@@ -1499,21 +1525,28 @@ export function BottomSearchDrawer({
                   </View>
 
                   {/* Start Group Order Button */}
+                    
                   <Button
                     backgroundColor="#ef4444"
                     textColor="#ffffff"
                     borderRadius={20}
                     paddingVertical={12}
                     paddingHorizontal={16}
-                    onPress={() => {}}
+                    onPress={() =>console.log('Start Group Order')}
                     style={{ width: '100%' }}
                   >
+                  <TouchableOpacity style={{ width: '100%', 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  justifyContent: 'center' }} 
+                  onPress={handleOpenSheet}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
                         Start Group Order
                       </Text>
                       <LinkIcon size={16} />
-          </View>
+                    </View>
+                  </TouchableOpacity>
                   </Button>
                 </Animated.View>
 
@@ -1547,6 +1580,153 @@ export function BottomSearchDrawer({
           </Animated.View>
         </Animated.View>
       </PanGestureHandler>
+      {isOpen && (
+                  <BottomSheet
+                    ref={bottomSheetRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                  //   onChange={handleSheetChange}
+                    enablePanDownToClose={true}
+                  //   style={{ backgroundColor: '#02120A' }}
+                  >
+                    <ScrollView style={styles.sheetContent}>
+                      <View className='flex flex-row items-center justify-between w-full mb-4'>
+                          <ChevronDown color="#E6FFE8" />
+                          <Text style={{color:'#E6FFE8'}}>Share</Text>
+                      </View>
+                      <View>
+                          <Text 
+                          className="text-white text-5xl font-bold"
+                          style={{
+                          textShadowColor: '#FF3B30',
+                          textShadowOffset: { width: 4, height: 1.5 },
+                          textShadowRadius: 0.2,
+                          }}
+                          >
+                              Josh and friend’s party order
+                          </Text>
+                          <Text style={{color:'#EAEAEA', paddingTop: 10, paddingBottom: 20}}>
+                              You can share the link to add participants or add them here yourself
+                          </Text>
+                          <View >
+                              {/* <SearchIcon color="red" style={{ marginRight: 8 }} /> */}
+                              <Input
+                              placeholder="Search friends and family"
+                                leftIcon={<SearchIcon color="#E6FFE8"  />}
+                                />
+                          </View>
+                      </View>
+
+                      <View
+                      className='gap-4'
+                      style={{
+                          width: '100%',
+                          height: 200,
+                          marginTop: 24,
+                          display: 'flex',
+                          flexDirection: 'row',
+                          flexWrap: 'wrap',
+                          
+                      }}>
+                        {groupMembers.slice(0,5).map((member, idx) => {
+                        return (
+                          <View key={idx}>
+                            <GroupOrderMember
+                              name={member.name}
+                              avatarUri={member.avatarUri}
+                              showMessageIcon={true}
+                              />
+                            </View>
+                          );
+                        })}
+                        {groupMembers.length > 5 && (
+                        <View
+                          style={{
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 62,
+                            height: 62,
+                            borderRadius: 31,
+                            backgroundColor: '#134E3A',
+                            marginHorizontal: 8,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: 'white',
+                              fontWeight: '600',
+                              fontSize: 16,
+                            }}
+                          >
+                            +{groupMembers.length - 5}
+                          </Text>
+                        </View>
+                      )}
+                      </View>
+                    </ScrollView>
+                    <View style={styles.floatingButtons}>
+                      <GroupTotalSpendCard amount="3000" avatars={avatars} />
+                      <SwipeButton onSwipeSuccess={() => console.log('yes')} />
+                      <CartButton quantity={4} onPress={() => console.log('yes')} />
+                    </View>
+                  </BottomSheet>
+      )}
     </>
   );
 }
+
+
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        paddingTop: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sheetContent: {
+        flex: 1,
+        // alignItems: 'center',
+        // padding: 20,
+        paddingHorizontal: 20,
+        backgroundColor: '#02120A',
+    },
+    button: {
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+        backgroundColor: '#007bff',
+        borderRadius: 6,
+        marginTop: 10,
+    },
+    buttonText: {
+        color: '#fff',
+        // fontSize: 16,
+    },
+      avatarWrapper: {
+    position: 'absolute',
+  },
+  floatingButtons: {
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  right: 0,
+  // backgroundColor: '#02120A',
+  paddingVertical: 16,
+  paddingHorizontal: 20,
+  gap: 12,
+  
+},
+coverEverything:{
+  color:'#fff',
+  fontWeight:400,
+  fontSize:14,
+  backgroundColor:"#5E685F",
+  textAlign:'center',
+  marginHorizontal:'auto',
+  paddingHorizontal:20,
+  paddingVertical:5,
+  borderRadius:10
+}
+
+    
+});

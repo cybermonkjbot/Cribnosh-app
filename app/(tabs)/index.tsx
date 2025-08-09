@@ -6,8 +6,8 @@ import GroupOrder from '@/components/ui/GroupOrderScreen/Page';
 export default function HomeScreen() {
   return (
 
-    <GroupOrder/>
-    // <MainScreen />
+    // <GroupOrder/>
+    <MainScreen />
     
   )
 }

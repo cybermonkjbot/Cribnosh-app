@@ -29,20 +29,19 @@ const groupMembers = [
   { name: 'Emma', avatarUri: 'https://avatar.iran.liara.run/public/16', top: 200, left: 200 },
   { name: 'Alex', avatarUri: 'https://avatar.iran.liara.run/public/16', top: 250, left: 250 },
 ];
-export default function App() {
+
+type GroupOrderBottomSheetProps = {
+  isOpen?: boolean;
+  onClose?: () => void;
+  setIsOpen?: (isOpen: boolean) => void;
+}
+export default function GroupOrderBottomSheet({isOpen, setIsOpen, onClose}: GroupOrderBottomSheetProps) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['25%', '95%', '100%'], []);
-  const [isOpen, setIsOpen] = useState(true);
+  // const [isOpen, setIsOpen] = useState(true);
 
-  const handleOpenSheet = () => {
-    setIsOpen(true);
-    bottomSheetRef.current?.expand();
-  };
 
-  const handleCloseSheet = () => {
-    setIsOpen(false);
-    bottomSheetRef.current?.close();
-  };
+ 
 
 //   const handleSheetChange = useCallback((index) => {
 //     if (index === -1) setIsOpen(false);
@@ -52,14 +51,14 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <View style={styles.container}>
-          <TouchableOpacity onPress={handleOpenSheet} style={styles.button}>
+          {/* <TouchableOpacity onPress={handleOpenSheet} style={styles.button}>
             <Text style={styles.buttonText}>Open Bottom Sheet</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
-          {!isOpen && (
+          {isOpen && (
             <BottomSheet
               ref={bottomSheetRef}
-              index={1}
+              index={-1}
               snapPoints={snapPoints}
             //   onChange={handleSheetChange}
               enablePanDownToClose={true}
@@ -148,7 +147,7 @@ export default function App() {
             </BottomSheet>
           )}
 
-          {isOpen && (
+          {!isOpen && (
             <BottomSheet
               ref={bottomSheetRef}
                 index={1}
