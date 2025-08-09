@@ -1,7 +1,24 @@
-import { View, Text } from "react-native";
-import React from "react";
-import { Stack } from "expo-router";
+import { Stack } from 'expo-router';
 
-export default function _layout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+export default function OrdersLayout() {
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen 
+        name="index" 
+        options={{ title: 'Orders' }} 
+      />
+      <Stack.Screen 
+        name="group" 
+        options={{ title: 'Group Orders' }} 
+      />
+      <Stack.Screen 
+        name="cart" 
+        options={{ title: 'Cart' }} 
+      />
+    </Stack>
+  );
 }
