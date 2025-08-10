@@ -14,6 +14,7 @@ import { MealIngredients } from "./MealItemDetails/MealIngredients";
 import { MealTitle } from "./MealItemDetails/MealTitle";
 import { NutritionalInfo } from "./MealItemDetails/NutritionalInfo";
 import { SimilarMeals } from "./MealItemDetails/SimilarMeals";
+import { useRouter } from "expo-router";
 
 interface MealItemDetailsProps {
   mealId: string;
@@ -141,9 +142,13 @@ export function MealItemDetails({
   const [quantity, setQuantity] = useState(2);
   const [isFavorite, setIsFavorite] = useState(false);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const handleAddToCart = () => {
     onAddToCart?.(mealId, quantity);
+    console.log(`Added ${quantity} of ${mealData.title} to cart`);
+    router.push("/orders/cart");  
+  
   };
 
   const handleFavorite = () => {

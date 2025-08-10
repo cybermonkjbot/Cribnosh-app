@@ -8,6 +8,7 @@ import { BackgroundElements } from './KitchenMainScreen/BackgroundElements';
 import { FoodIllustrations } from './KitchenMainScreen/FoodIllustrations';
 import { KitchenBottomSheet } from './KitchenMainScreen/KitchenBottomSheet';
 import { KitchenIntroCard } from './KitchenMainScreen/KitchenIntroCard';
+import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 

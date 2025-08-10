@@ -11,13 +11,14 @@ export default function OrdersLayout() {
         name="index" 
         options={{ title: 'Orders' }} 
       />
-      <Stack.Screen 
-        name="group" 
-        options={{ title: 'Group Orders' }} 
-      />
+      
       <Stack.Screen 
         name="cart" 
         options={{ title: 'Cart' }} 
+      />
+      <Stack.Screen 
+        name="group" 
+        options={{ title: 'Group Orders' }} 
       />
     </Stack>
   );
