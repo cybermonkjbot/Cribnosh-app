@@ -27,6 +27,7 @@ import { SwipeButton } from '../SwipeButton';
 import GroupOrderMember from '../GroupOrderMember';
 import { ChevronDown, SearchIcon } from 'lucide-react-native';
 import { Input } from './Input';
+import { router } from 'expo-router';
 
 // Error boundary for icon components
 const SafeIcon = ({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) => {
@@ -221,6 +222,13 @@ export function BottomSearchDrawer({
     }
     bottomSheetRef.current?.expand();
   };
+ const handleNavigate = () => {
+  setIsOpen(true);
+  router.push({
+    pathname: '/orders/group',
+    params: { openSheet: 'true' }, // just use string for easy parsing
+  });
+};
    const handleCloseSheet = () => {
     if (setIsOpen){
 
@@ -1539,7 +1547,7 @@ export function BottomSearchDrawer({
                   flexDirection: 'row', 
                   alignItems: 'center', 
                   justifyContent: 'center' }} 
-                  onPress={handleOpenSheet}>
+                  onPress={handleNavigate}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
                         Start Group Order
@@ -1580,97 +1588,15 @@ export function BottomSearchDrawer({
           </Animated.View>
         </Animated.View>
       </PanGestureHandler>
-      {isOpen && (
-                  <BottomSheet
-                    ref={bottomSheetRef}
-                    index={-1}
-                    snapPoints={snapPoints}
-                  //   onChange={handleSheetChange}
-                    enablePanDownToClose={true}
-                  //   style={{ backgroundColor: '#02120A' }}
-                  >
-                    <ScrollView style={styles.sheetContent}>
-                      <View className='flex flex-row items-center justify-between w-full mb-4'>
-                          <ChevronDown color="#E6FFE8" />
-                          <Text style={{color:'#E6FFE8'}}>Share</Text>
-                      </View>
-                      <View>
-                          <Text 
-                          className="text-white text-5xl font-bold"
-                          style={{
-                          textShadowColor: '#FF3B30',
-                          textShadowOffset: { width: 4, height: 1.5 },
-                          textShadowRadius: 0.2,
-                          }}
-                          >
-                              Josh and friend’s party order
-                          </Text>
-                          <Text style={{color:'#EAEAEA', paddingTop: 10, paddingBottom: 20}}>
-                              You can share the link to add participants or add them here yourself
-                          </Text>
-                          <View >
-                              {/* <SearchIcon color="red" style={{ marginRight: 8 }} /> */}
-                              <Input
-                              placeholder="Search friends and family"
-                                leftIcon={<SearchIcon color="#E6FFE8"  />}
-                                />
-                          </View>
-                      </View>
+      {/* {
 
-                      <View
-                      className='gap-4'
-                      style={{
-                          width: '100%',
-                          height: 200,
-                          marginTop: 24,
-                          display: 'flex',
-                          flexDirection: 'row',
-                          flexWrap: 'wrap',
-                          
-                      }}>
-                        {groupMembers.slice(0,5).map((member, idx) => {
-                        return (
-                          <View key={idx}>
-                            <GroupOrderMember
-                              name={member.name}
-                              avatarUri={member.avatarUri}
-                              showMessageIcon={true}
-                              />
-                            </View>
-                          );
-                        })}
-                        {groupMembers.length > 5 && (
-                        <View
-                          style={{
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 62,
-                            height: 62,
-                            borderRadius: 31,
-                            backgroundColor: '#134E3A',
-                            marginHorizontal: 8,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color: 'white',
-                              fontWeight: '600',
-                              fontSize: 16,
-                            }}
-                          >
-                            +{groupMembers.length - 5}
-                          </Text>
-                        </View>
-                      )}
-                      </View>
-                    </ScrollView>
-                    <View style={styles.floatingButtons}>
-                      <GroupTotalSpendCard amount="3000" avatars={avatars} />
-                      <SwipeButton onSwipeSuccess={() => console.log('yes')} />
-                      <CartButton quantity={4} onPress={() => console.log('yes')} />
-                    </View>
-                  </BottomSheet>
-      )}
+      <GroupOrderBottomSheet 
+            isOpen={isOpen} 
+            setIsOpen={setIsOpen}
+            onClose={() => router.back()}
+      />
+      } */}
+      
     </>
   );
 }

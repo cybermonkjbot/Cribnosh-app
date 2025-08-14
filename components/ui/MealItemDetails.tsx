@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CartButton } from './CartButton';
-import { ChefNotes } from './MealItemDetails/ChefNotes';
-import { DietCompatibilityBar } from './MealItemDetails/DietCompatibilityBar';
-import { KitchenInfo } from './MealItemDetails/KitchenInfo';
-import { MealBadges } from './MealItemDetails/MealBadges';
-import { MealDescription } from './MealItemDetails/MealDescription';
-import { MealHeader } from './MealItemDetails/MealHeader';
-import { MealImage } from './MealItemDetails/MealImage';
-import { MealInfo } from './MealItemDetails/MealInfo';
-import { MealIngredients } from './MealItemDetails/MealIngredients';
-import { MealTitle } from './MealItemDetails/MealTitle';
-import { NutritionalInfo } from './MealItemDetails/NutritionalInfo';
-import { SimilarMeals } from './MealItemDetails/SimilarMeals';
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CartButton } from "./CartButton";
+import { ChefNotes } from "./MealItemDetails/ChefNotes";
+import { DietCompatibilityBar } from "./MealItemDetails/DietCompatibilityBar";
+import { KitchenInfo } from "./MealItemDetails/KitchenInfo";
+import { MealBadges } from "./MealItemDetails/MealBadges";
+import { MealDescription } from "./MealItemDetails/MealDescription";
+import { MealHeader } from "./MealItemDetails/MealHeader";
+import { MealImage } from "./MealItemDetails/MealImage";
+import { MealInfo } from "./MealItemDetails/MealInfo";
+import { MealIngredients } from "./MealItemDetails/MealIngredients";
+import { MealTitle } from "./MealItemDetails/MealTitle";
+import { NutritionalInfo } from "./MealItemDetails/NutritionalInfo";
+import { SimilarMeals } from "./MealItemDetails/SimilarMeals";
+import { useRouter } from "expo-router";
 
 interface MealItemDetailsProps {
   mealId: string;
@@ -50,7 +51,7 @@ interface MealItemDetailsProps {
       name: string;
       price: string;
       imageUrl?: string;
-      sentiment?: 'bussing' | 'mid' | 'notIt';
+      sentiment?: "bussing" | "mid" | "notIt";
       isVegetarian?: boolean;
     }>;
   };
@@ -62,71 +63,92 @@ export function MealItemDetails({
   mealId,
   onBack,
   mealData = {
-    title: 'Shawarma',
-    description: "For other's its Just Shawarma from Stans Kitchen, but to you and your current diet? its the exact fit for today.",
+    title: "Shawarma",
+    description:
+      "For other's its Just Shawarma from Stans Kitchen, but to you and your current diet? its the exact fit for today.",
     price: 1284,
     imageUrl: undefined,
     kitchenName: "Stans Kitchen's Burgers",
     kitchenAvatar: undefined,
     calories: 1284,
-    fat: '18g',
-    protein: '230g',
-    carbs: '12g',
+    fat: "18g",
+    protein: "230g",
+    carbs: "12g",
     dietCompatibility: 70,
-    dietMessage: 'Would help with your weight gain',
+    dietMessage: "Would help with your weight gain",
     ingredients: [
-      { name: 'Chicken breasts', quantity: '250 g' },
-      { name: 'Unsalted butter', quantity: '1 tbsp', isAllergen: true, allergenType: 'dairy' },
-      { name: 'Sesame oil', quantity: '2 tsp', isAllergen: true, allergenType: 'nuts' },
-      { name: 'Fresh ginger', quantity: '2 tsp' },
-      { name: 'Wheat flour', quantity: '100 g', isAllergen: true, allergenType: 'gluten' }
+      { name: "Chicken breasts", quantity: "250 g" },
+      {
+        name: "Unsalted butter",
+        quantity: "1 tbsp",
+        isAllergen: true,
+        allergenType: "dairy",
+      },
+      {
+        name: "Sesame oil",
+        quantity: "2 tsp",
+        isAllergen: true,
+        allergenType: "nuts",
+      },
+      { name: "Fresh ginger", quantity: "2 tsp" },
+      {
+        name: "Wheat flour",
+        quantity: "100 g",
+        isAllergen: true,
+        allergenType: "gluten",
+      },
     ],
     isVegetarian: true,
     isSafeForYou: true,
     // Default values for new sections
-    prepTime: '15 min',
-    deliveryTime: '30 min',
-    chefName: 'Chef Stan',
-    chefStory: 'This Shawarma recipe has been perfected over 20 years of cooking. It combines traditional Middle Eastern spices with modern cooking techniques to create a dish that\'s both authentic and accessible.',
+    prepTime: "15 min",
+    deliveryTime: "30 min",
+    chefName: "Chef Stan",
+    chefStory:
+      "This Shawarma recipe has been perfected over 20 years of cooking. It combines traditional Middle Eastern spices with modern cooking techniques to create a dish that's both authentic and accessible.",
     chefTips: [
-      'Marinate the chicken overnight for maximum flavor',
-      'Use fresh spices for the best aroma',
-      'Don\'t overcook the chicken - it should be juicy',
-      'Let the meat rest for 5 minutes before slicing'
+      "Marinate the chicken overnight for maximum flavor",
+      "Use fresh spices for the best aroma",
+      "Don't overcook the chicken - it should be juicy",
+      "Let the meat rest for 5 minutes before slicing",
     ],
     similarMeals: [
       {
-        id: 'kebab-001',
-        name: 'Chicken Kebab',
-        price: '£12.99',
-        sentiment: 'bussing',
-        isVegetarian: false
+        id: "kebab-001",
+        name: "Chicken Kebab",
+        price: "£12.99",
+        sentiment: "bussing",
+        isVegetarian: false,
       },
       {
-        id: 'falafel-001',
-        name: 'Falafel Wrap',
-        price: '£9.99',
-        sentiment: 'mid',
-        isVegetarian: true
+        id: "falafel-001",
+        name: "Falafel Wrap",
+        price: "£9.99",
+        sentiment: "mid",
+        isVegetarian: true,
       },
       {
-        id: 'hummus-001',
-        name: 'Hummus Plate',
-        price: '£8.99',
-        sentiment: 'bussing',
-        isVegetarian: true
-      }
-    ]
+        id: "hummus-001",
+        name: "Hummus Plate",
+        price: "£8.99",
+        sentiment: "bussing",
+        isVegetarian: true,
+      },
+    ],
   },
   onAddToCart,
-  onSimilarMealPress
+  onSimilarMealPress,
 }: MealItemDetailsProps) {
   const [quantity, setQuantity] = useState(2);
   const [isFavorite, setIsFavorite] = useState(false);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const handleAddToCart = () => {
     onAddToCart?.(mealId, quantity);
+    console.log(`Added ${quantity} of ${mealData.title} to cart`);
+    router.push("/orders/cart");  
+  
   };
 
   const handleFavorite = () => {
@@ -137,60 +159,56 @@ export function MealItemDetails({
     <View style={styles.container}>
       {/* Container with rounded top corners */}
       <View style={styles.mainContainer}>
-        
         {/* Header Component */}
-        <MealHeader 
-          onBack={onBack} 
+        <MealHeader
+          onBack={onBack}
           onFavorite={handleFavorite}
           isFavorite={isFavorite}
         />
 
-        <ScrollView 
-          style={styles.scrollView} 
+        <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: 120 + Math.max(insets.bottom, 20) }
+            { paddingBottom: 120 + Math.max(insets.bottom, 20) },
           ]}
           showsVerticalScrollIndicator={false}
         >
           {/* Kitchen Info Component - positioned at top */}
-          <KitchenInfo 
+          <KitchenInfo
             kitchenName={mealData.kitchenName}
             kitchenAvatar={mealData.kitchenAvatar}
           />
 
           {/* Meal Image Component */}
-          <MealImage 
-            imageUrl={mealData.imageUrl}
-            title={mealData.title}
-          />
+          <MealImage imageUrl={mealData.imageUrl} title={mealData.title} />
 
           {/* Meal Title Component */}
           <MealTitle title={mealData.title} />
 
           {/* Meal Badges Component - chips under the title */}
-          <MealBadges 
+          <MealBadges
             isVegetarian={mealData.isVegetarian}
             isSafeForYou={mealData.isSafeForYou}
           />
 
           {/* Meal Description Component */}
-          <MealDescription 
+          <MealDescription
             description={mealData.description}
             kitchenName={mealData.kitchenName}
           />
 
           {/* Meal Info Component */}
-          <MealInfo 
-            prepTime={mealData.prepTime || '15 min'}
-            deliveryTime={mealData.deliveryTime || '30 min'}
+          <MealInfo
+            prepTime={mealData.prepTime || "15 min"}
+            deliveryTime={mealData.deliveryTime || "30 min"}
           />
 
           {/* Diet Compatibility Bar Component */}
           <DietCompatibilityBar compatibility={mealData.dietCompatibility} />
 
           {/* Nutritional Info Component */}
-          <NutritionalInfo 
+          <NutritionalInfo
             calories={mealData.calories}
             fat={mealData.fat}
             protein={mealData.protein}
@@ -202,7 +220,7 @@ export function MealItemDetails({
           <MealIngredients ingredients={mealData.ingredients} />
 
           {/* Chef Notes Component */}
-          <ChefNotes 
+          <ChefNotes
             story={mealData.chefStory}
             tips={mealData.chefTips}
             chefName={mealData.chefName}
@@ -210,7 +228,7 @@ export function MealItemDetails({
           />
 
           {/* Similar Meals Component */}
-          <SimilarMeals 
+          <SimilarMeals
             meals={mealData.similarMeals || []}
             onMealPress={onSimilarMealPress}
           />
@@ -218,7 +236,7 @@ export function MealItemDetails({
       </View>
 
       {/* Add to Cart Button Component - Floating above everything with proper safe area handling */}
-      <CartButton 
+      <CartButton
         quantity={quantity}
         onPress={handleAddToCart}
         variant="view"
@@ -236,14 +254,14 @@ export function MealItemDetails({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: "#000000",
   },
   mainContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
-    position: 'relative',
+    position: "relative",
   },
   scrollView: {
     flex: 1,
@@ -251,4 +269,4 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-}); 
+});
