@@ -1,13 +1,13 @@
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AlertCircle, MessageCircle, Play, Share2, ShoppingCart, UserRound } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dimensions, Pressable, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withTiming
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withTiming
 } from 'react-native-reanimated';
 import { useDebugLogger } from './DebugLogger';
 import HearEmoteIcon from './HearEmoteIcon';

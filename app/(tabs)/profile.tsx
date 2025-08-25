@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Image, Text, View } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
@@ -230,12 +230,12 @@ export default function ProfileScreen() {
 
   return (
     <ProfileScreenBackground>
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, width: '100%' }}>
         <Animated.ScrollView 
           ref={scrollViewRef}
-          style={{ flex: 1 }} 
+          style={{ flex: 1, width: '100%' }} 
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 100, width: '100%' }}
           onScroll={scrollHandler}
           scrollEventThrottle={33}
           bounces={true}
@@ -248,7 +248,7 @@ export default function ProfileScreen() {
                 flexDirection: 'row', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
-                paddingHorizontal: 12,
+                paddingHorizontal: 16,
                 paddingTop: 10,
                 paddingBottom: 20
               }}>
@@ -265,7 +265,7 @@ export default function ProfileScreen() {
 
             {/* ForkPrint Score and Tastemaker Section */}
             <Animated.View style={[scoreAnimatedStyle, resistanceAnimatedStyle]}>
-              <View style={{ paddingHorizontal: 12, marginBottom: 30, position: 'relative' }}>
+              <View style={{ paddingHorizontal: 16, marginBottom: 30, position: 'relative' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <View style={{ flex: 1, position: 'relative' }}>
                     <Text style={{
@@ -339,7 +339,7 @@ export default function ProfileScreen() {
 
             {/* Data Cards */}
             <Animated.View style={cardsAnimatedStyle}>
-              <View style={{ paddingHorizontal: 12, marginBottom: 30, marginTop: 20, position: 'relative' }}>
+              <View style={{ paddingHorizontal: 16, marginBottom: 30, marginTop: 20, position: 'relative' }}>
                 <CaloriesNoshPointsCards 
                   caloriesProgress={23}
                   noshPointsProgress={40}
@@ -349,7 +349,7 @@ export default function ProfileScreen() {
 
             {/* KPI Cards */}
             <Animated.View style={cardsAnimatedStyle}>
-              <View style={{ paddingHorizontal: 12, marginBottom: 20 }}>
+              <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
                 <KPICards 
                   timeSaved="15.7 hours"
                   costSaved="£ 29.3"
@@ -360,7 +360,7 @@ export default function ProfileScreen() {
             {/* Breakpoint Trigger Area */}
             <View style={{ height: 100, justifyContent: 'flex-end' }}>
               <View style={{ 
-                paddingHorizontal: 12, 
+                paddingHorizontal: 16, 
                 paddingBottom: 20,
                 alignItems: 'center'
               }}>
@@ -399,7 +399,7 @@ export default function ProfileScreen() {
             {/* Bragging Cards Section - Sticky Header */}
             <Animated.View style={[braggingCardsAnimatedStyle, statsSectionAnimatedStyle]}>
               <View style={{ 
-                paddingHorizontal: 12, 
+                marginHorizontal: 0, 
                 marginBottom: 40, 
                 marginTop: 20,
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',

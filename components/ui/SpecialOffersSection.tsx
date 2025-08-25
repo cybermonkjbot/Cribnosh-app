@@ -196,7 +196,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 12,
+          paddingLeft: 12, // Changed from paddingHorizontal to paddingLeft only
         }}
       >
         {offers.map(renderOfferCard)}

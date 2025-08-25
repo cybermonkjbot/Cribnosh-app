@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 interface OrderItem {
@@ -110,7 +110,7 @@ export function OrderAgainSection({ isHeaderSticky = false }: OrderAgainSectionP
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 12,
+          paddingLeft: 12, // Changed from paddingHorizontal to paddingLeft only
           gap: 12,
         }}
         scrollEventThrottle={16}

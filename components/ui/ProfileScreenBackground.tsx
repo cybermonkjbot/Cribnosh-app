@@ -1,23 +1,21 @@
 import { BlurView } from 'expo-blur';
 import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface ProfileScreenBackgroundProps {
-  width?: number;
-  height?: number;
   children?: React.ReactNode;
 }
 
 // Memoized background component to prevent unnecessary re-renders
 const ProfileScreenBackground: React.FC<ProfileScreenBackgroundProps> = memo(({
-  width = 375,
-  height = 1283,
   children
 }) => {
-  // Pre-calculate styles to avoid style object recreation
-  const containerStyle = [styles.container, { width, height }];
-  const backgroundStyle = [styles.background, { width, height }];
-  const blurOverlayStyle = [styles.blurOverlay, { width, height }];
+  // Use full screen dimensions instead of fixed values
+  const containerStyle = [styles.container];
+  const backgroundStyle = [styles.background];
+  const blurOverlayStyle = [styles.blurOverlay];
 
   return (
     <View style={containerStyle}>
@@ -55,9 +53,13 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     overflow: 'hidden',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   background: {
     position: 'absolute',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     backgroundColor: '#FF3B30',
     opacity: 0.97,
     borderTopLeftRadius: 40,
@@ -80,10 +82,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     pointerEvents: 'none', // Prevents touch events on background elements
   },
   blurOverlay: {
     position: 'absolute',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     borderBottomLeftRadius: 0,
@@ -156,6 +162,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     flex: 1,
     zIndex: 1,
+    width: SCREEN_WIDTH,
   },
 });
 

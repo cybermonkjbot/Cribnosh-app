@@ -81,7 +81,7 @@ const GroupTotalSpendCard: React.FC<GroupTotalSpendCardProps> = ({ amount, label
           style={{
             width: '60%',
             left: '20%',
-            top: '60%',
+            top: '64%',
             fontFamily: 'Poppins-SemiBold',
             fontWeight: '400',
             fontSize: screenWidth < 375 ? 8 : 12,

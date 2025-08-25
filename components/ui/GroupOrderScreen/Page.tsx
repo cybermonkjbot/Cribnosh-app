@@ -1,15 +1,15 @@
-import React, { useRef, useMemo } from 'react';
-import { View, Text, StyleSheet,  ScrollView } from 'react-native';
+import GroupOrderMember from '@/components/GroupOrderMember';
+import GroupTotalSpendCard from '@/components/GroupTotalSpendCard';
+import { SwipeButton } from '@/components/SwipeButton';
 import BottomSheet from '@gorhom/bottom-sheet';
+import { useRouter } from 'expo-router';
+import { ChevronDown, SearchIcon } from 'lucide-react-native';
+import React, { useMemo, useRef } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import {  ChevronDown, SearchIcon } from 'lucide-react-native';
-import { Input } from '../Input';
-import GroupOrderMember from '@/components/GroupOrderMember';
 import { CartButton } from '../CartButton';
-import GroupTotalSpendCard from '@/components/GroupTotalSpendCard';
-import {SwipeButton} from '@/components/SwipeButton';
-import { useRouter } from 'expo-router';
+import { Input } from '../Input';
 const avatars = [
     { uri: 'https://avatar.iran.liara.run/public/44' },
     { uri: 'https://avatar.iran.liara.run/public/47' },

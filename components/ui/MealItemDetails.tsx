@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CartButton } from "./CartButton";
@@ -14,7 +15,6 @@ import { MealIngredients } from "./MealItemDetails/MealIngredients";
 import { MealTitle } from "./MealItemDetails/MealTitle";
 import { NutritionalInfo } from "./MealItemDetails/NutritionalInfo";
 import { SimilarMeals } from "./MealItemDetails/SimilarMeals";
-import { useRouter } from "expo-router";
 
 interface MealItemDetailsProps {
   mealId: string;
@@ -241,7 +241,7 @@ export function MealItemDetails({
         onPress={handleAddToCart}
         variant="view"
         position="absolute"
-        bottom={Math.max(insets.bottom, 80)}
+        bottom={Math.max(insets.bottom, 100)}
         left={20}
         right={20}
         buttonText="Add to Cart"

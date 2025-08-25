@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 interface Cuisine {
@@ -51,7 +50,7 @@ export function CuisinesSection({ onCuisinePress }: CuisinesSectionProps) {
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingLeft: 20 }} // Changed from paddingHorizontal to paddingLeft only
       >
         {cuisines.map((cuisine, index) => (
           <TouchableOpacity

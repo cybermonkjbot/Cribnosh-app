@@ -1,12 +1,12 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native'
+import AmountInput from '@/components/AmountInput'
+import BottomSheet from '@gorhom/bottom-sheet'
+import { router } from 'expo-router'
 import React, { useMemo, useRef } from 'react'
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import BottomSheet from '@gorhom/bottom-sheet'
-import { CartButton } from '../../CartButton'
 import { Button } from '../../Button'
-import AmountInput from '@/components/AmountInput'
-import { router, useLocalSearchParams } from 'expo-router'
+import { CartButton } from '../../CartButton'
 
 type GroupOrderCheckoutProps = {
   isSheetOpen?: boolean;

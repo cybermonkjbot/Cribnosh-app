@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 interface FreshItem {
@@ -62,7 +61,7 @@ export function TooFreshToWaste({ onOpenDrawer, onOpenSustainability }: TooFresh
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingLeft: 20 }} // Changed from paddingHorizontal to paddingLeft only
       >
         {freshItems.map((item, index) => (
           <TouchableOpacity

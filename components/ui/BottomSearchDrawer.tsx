@@ -1,33 +1,25 @@
+import BottomSheet from '@gorhom/bottom-sheet';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import Animated, {
-  Extrapolate,
-  interpolate,
-  runOnJS,
-  useAnimatedGestureHandler,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withSpring
+    Extrapolate,
+    interpolate,
+    runOnJS,
+    useAnimatedGestureHandler,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withSpring
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { getCompleteDynamicHeader, HeaderMessage } from '../../utils/dynamicHeaderMessages';
 import { getDynamicSearchPrompt, SearchPrompt } from '../../utils/dynamicSearchPrompts';
 import SearchArea from '../SearchArea';
 import { Button } from './Button';
-import GroupOrderBottomSheet from './GroupOrderScreen/Page';
-import BottomSheet from '@gorhom/bottom-sheet';
-import { CartButton } from './CartButton';
-import { avatars, groupMembers } from '@/utils/getAvatarPosition';
-import GroupTotalSpendCard from '../GroupTotalSpendCard';
-import { SwipeButton } from '../SwipeButton';
-import GroupOrderMember from '../GroupOrderMember';
-import { ChevronDown, SearchIcon } from 'lucide-react-native';
-import { Input } from './Input';
-import { router } from 'expo-router';
 
 // Error boundary for icon components
 const SafeIcon = ({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) => {
@@ -223,11 +215,7 @@ export function BottomSearchDrawer({
     bottomSheetRef.current?.expand();
   };
  const handleNavigate = () => {
-  setIsOpen(true);
-  router.push({
-    pathname: '/orders/group',
-    params: { openSheet: 'true' }, // just use string for easy parsing
-  });
+  router.push('/orders/group');
 };
    const handleCloseSheet = () => {
     if (setIsOpen){
@@ -1588,14 +1576,7 @@ export function BottomSearchDrawer({
           </Animated.View>
         </Animated.View>
       </PanGestureHandler>
-      {/* {
 
-      <GroupOrderBottomSheet 
-            isOpen={isOpen} 
-            setIsOpen={setIsOpen}
-            onClose={() => router.back()}
-      />
-      } */}
       
     </>
   );
