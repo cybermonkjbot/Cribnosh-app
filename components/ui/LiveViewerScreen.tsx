@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import OnTheStoveBottomSheet from './OnTheStoveBottomSheet';
+import { Image, StyleSheet, View } from 'react-native';
 
 const OnTheStoveExample: React.FC = () => {
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
@@ -22,28 +21,42 @@ const OnTheStoveExample: React.FC = () => {
   const mealData = {
     title: 'Nigerian Jollof',
     price: '£ 16',
-    imageSource: require('../assets/images/cribnoshpackaging.png'),
+    imageSource: require('../../assets/images/cribnoshpackaging.png'),
     description: 'Watch Chef Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready.',
     kitchenName: 'Minnies Kitchen',
   };
 
   return (
     <View style={styles.container}>
+      {/* Background image that covers the whole screen */}
+      <Image
+        source={require('../../assets/images/KitchenLive-01.png')}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          position: 'absolute',
+          top: 0,
+        }}
+        resizeMode="cover"
+        
+      />
+
       {/* Toggle Button */}
-      <Pressable style={styles.toggleButton} onPress={toggleBottomSheet}>
+      {/* <Pressable style={styles.toggleButton} onPress={toggleBottomSheet}>
         <Text style={styles.toggleButtonText}>
           {isBottomSheetVisible ? 'Hide' : 'Show'} On The Stove
         </Text>
-      </Pressable>
+      </Pressable> */}
 
       {/* OnTheStove Bottom Sheet */}
-      <OnTheStoveBottomSheet
+      {/* <OnTheStoveBottomSheet
         isVisible={isBottomSheetVisible}
         onToggleVisibility={toggleBottomSheet}
         onShareLive={handleShareLive}
         onTreatSomeone={handleTreatSomeone}
         mealData={mealData}
-      />
+      /> */}
     </View>
   );
 };
@@ -53,7 +66,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'red',
   },
   toggleButton: {
     backgroundColor: '#094327',
@@ -68,4 +81,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnTheStoveExample; 
+export default OnTheStoveExample;

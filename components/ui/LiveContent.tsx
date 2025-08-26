@@ -1,8 +1,8 @@
 import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
 interface LiveKitchen {
   id: string;
   name: string;
@@ -136,11 +136,16 @@ export function LiveContent({
     if (activeCategoryFilter === 'all') return true;
     return kitchen.cuisine.toLowerCase() === activeCategoryFilter;
   });
+  const router = useRouter();
 
   const handleKitchenPress = (kitchen: LiveKitchen) => {
     console.log('Joining live kitchen:', kitchen.name);
+    router.push('/live/index')
+    
+    
     // Here you would navigate to the live kitchen view
   };
+
 
   return (
     <ScrollView

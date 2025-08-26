@@ -6,7 +6,7 @@ import BottomSheet from '@gorhom/bottom-sheet'
 import { CartButton } from '../../CartButton'
 import { Button } from '../../Button'
 import AmountInput from '@/components/AmountInput'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router } from 'expo-router'
 
 type GroupOrderCheckoutProps = {
   isSheetOpen?: boolean;
@@ -36,7 +36,7 @@ React.useEffect(() => {
       // small delay so animation finishes; then navigate back
       setTimeout(() => {
         if (onClose) onClose();
-        router.replace('/orders/group?openSheet=true');        // setIsOpen!(false)
+        router.replace('/orders/group?openSheet=true'); // setIsOpen!(false)
       }, 0);
     }
   };
@@ -121,8 +121,6 @@ const styles = StyleSheet.create({
     },
     sheetContent: {
         flex: 1,
-        // alignItems: 'center',
-        // padding: 20,
         paddingHorizontal: 20,
         backgroundColor: '#02120A',
     },

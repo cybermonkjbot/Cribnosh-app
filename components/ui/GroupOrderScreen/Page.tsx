@@ -35,7 +35,6 @@ type GroupOrderBottomSheetProps = {
 export default function GroupOrderBottomSheet({isOpen, setIsOpen, onClose}: GroupOrderBottomSheetProps) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['25%', '95%', '100%'], []);
-  // const indexProp = isOpen ? 0 : -1;
   const router = useRouter();
   const [isSheetOpen, setIsSheetOpen] = React.useState(isOpen);
 
@@ -66,7 +65,7 @@ React.useEffect(() => {
     setIsSheetOpen(true);
     router.push({
       pathname: '/orders/group/details',
-      params: { openSheetGroupCheckout: 'true' }, // just use string for easy parsing
+      params: { openSheetGroupCheckout: 'true' },
     });
   };
   return (
@@ -103,7 +102,7 @@ React.useEffect(() => {
                         You can share the link to add participants or add them here yourself
                     </Text>
                     <View >
-                        {/* <SearchIcon color="red" style={{ marginRight: 8 }} /> */}
+                        
                         <Input
                          placeholder="Search friends and family"
                            leftIcon={<SearchIcon color="#E6FFE8"  />}
@@ -180,8 +179,6 @@ const styles = StyleSheet.create({
     },
     sheetContent: {
         flex: 1,
-        // alignItems: 'center',
-        // padding: 20,
         paddingHorizontal: 20,
         backgroundColor: '#02120A',
     },
@@ -194,7 +191,6 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#fff',
-        // fontSize: 16,
     },
       avatarWrapper: {
     position: 'absolute',
@@ -204,7 +200,6 @@ const styles = StyleSheet.create({
   bottom: 0,
   left: 0,
   right: 0,
-  // backgroundColor: '#02120A',
   paddingVertical: 16,
   paddingHorizontal: 20,
   gap: 12,
@@ -226,14 +221,46 @@ handle: { backgroundColor: "#ccc", width: 48 },
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: 12 },
-  headerLabel: { color: "#666", fontWeight: "600" },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 8 },
-  subtitle: { color: "#666", marginBottom: 16 },
-  members: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 12 },
-  extra: { width: 62, height: 62, borderRadius: 31, backgroundColor: "#134E3A", alignItems: "center", justifyContent: "center", marginLeft: 8 },
-  extraText: { color: "#fff", fontWeight: "700" },
-  actions: { marginTop: 18, gap: 12 },
-
-    
+  header: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginVertical: 12 
+  },
+  headerLabel: { 
+    color: "#666", 
+    fontWeight: "600" 
+  },
+  title: { 
+    fontSize: 20, 
+    fontWeight: "700", 
+    marginBottom: 8 
+  },
+  subtitle: { 
+    color: "#666", 
+    marginBottom: 16 
+  },
+  members: { 
+    flexDirection: "row", 
+    flexWrap: "wrap", 
+    gap: 12, 
+    marginTop: 12 
+  },
+  extra: { 
+    width: 62, 
+    height: 62, 
+    borderRadius: 31, 
+    backgroundColor: "#134E3A", 
+    alignItems: "center", 
+    justifyContent: "center", 
+    marginLeft: 8 
+  },
+  extraText: { 
+    color: "#fff", 
+    fontWeight: "700" 
+  },
+  actions: { 
+    marginTop: 18, 
+    gap: 12 
+  },    
 });
