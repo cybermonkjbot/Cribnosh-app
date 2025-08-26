@@ -1,5 +1,5 @@
-import CartScreen from "@/components/ui/CartScreen";
+import ChooseFriend from "@/components/ui/ChooseFriend";
 
 export default function Index() {
-  return <CartScreen />;
+  return <ChooseFriend />;
 }
