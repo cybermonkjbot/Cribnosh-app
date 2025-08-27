@@ -6,14 +6,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AccessibilityInfo, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import Animated, {
-    Extrapolate,
-    interpolate,
-    runOnJS,
-    useAnimatedGestureHandler,
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withSpring
+  Extrapolate,
+  interpolate,
+  runOnJS,
+  useAnimatedGestureHandler,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withSpring
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { getCompleteDynamicHeader, HeaderMessage } from '../../utils/dynamicHeaderMessages';
@@ -137,6 +137,135 @@ const SparkleIcon = ({ size = 24, color = '#ffffff' }) => (
   </SafeIcon>
 );
 
+// User/People Icon Component for Invite Friend
+const UserIcon = ({ size = 20, color = '#ffffff' }) => (
+  <SafeIcon>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 14a7 7 0 0 0-7 7v3h14v-3a7 7 0 0 0-7-7z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 8h.01"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 12h.01"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </SafeIcon>
+);
+
+// Family/Home Icon Component for Setup Family
+const FamilyIcon = ({ size = 20, color = '#ffffff' }) => (
+  <SafeIcon>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M9 22V12h6v10"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M8 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M16 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </SafeIcon>
+);
+
+// Group Order Icon Component for Start Group Order
+const GroupOrderIcon = ({ size = 20, color = '#ffffff' }) => (
+  <SafeIcon>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M16 4a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 12a7 7 0 0 0-7 7v3h14v-3a7 7 0 0 0-7-7z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M22 18v-1a5 5 0 0 0-2-4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M24 18v-1a5 5 0 0 0-2-4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </SafeIcon>
+);
+
 interface BottomSearchDrawerProps {
   onOpenAIChat?: () => void;
   onSearchSubmit?: (query: string, filter: string) => void;
@@ -247,14 +376,14 @@ export function BottomSearchDrawer({
       // Ensure subtitle is always present
       return {
         ...message,
-        subMessage: message.subMessage || "Find something different from your usual"
+        subMessage: message.subMessage || ""
       };
     } catch (error) {
       console.warn('Failed to get dynamic header message:', error);
       return { 
         greeting: "Hello there",
         mainMessage: "Hungry?\nLet's Fix That",
-        subMessage: "Find something different from your usual"
+        subMessage: ""
       };
     }
   });
@@ -764,7 +893,7 @@ export function BottomSearchDrawer({
       // Ensure subtitle is always present
       setHeaderMessage({
         ...message,
-        subMessage: message.subMessage || "Find something different from your usual"
+        subMessage: message.subMessage || ""
       });
     } catch (error) {
       console.warn('Failed to update header message:', error);
@@ -1336,22 +1465,14 @@ export function BottomSearchDrawer({
                 </Animated.View>
 
                 {/* Title Section - Only show when expanded */}
-            <Animated.View style={[{ marginBottom: 20 }, contentOpacityStyle]}>
+            <Animated.View style={[{ marginBottom: 2 }, contentOpacityStyle]}>
+
               <Text style={{ 
                 color: '#1a1a1a', 
                 fontSize: 32, 
                 fontWeight: '700',
                 letterSpacing: -0.5,
                 lineHeight: 36,
-              }}>
-                {headerMessage.greeting}
-              </Text>
-              <Text style={{ 
-                color: '#1a1a1a', 
-                fontSize: 24, 
-                fontWeight: '700',
-                letterSpacing: -0.5,
-                lineHeight: 28,
                 marginBottom: 10,
               }}>
                 {headerMessage.mainMessage}
@@ -1497,7 +1618,7 @@ export function BottomSearchDrawer({
                           <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600' }}>
                             Invite Friend
                           </Text>
-                          <LinkIcon size={14} />
+                          <UserIcon size={12} />
                         </View>
                       </Button>
                     </View>
@@ -1514,7 +1635,7 @@ export function BottomSearchDrawer({
                           <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600' }}>
                             Setup Family
                           </Text>
-                          <LinkIcon size={14} />
+                          <FamilyIcon size={12} />
                         </View>
                       </Button>
                     </View>
@@ -1540,14 +1661,14 @@ export function BottomSearchDrawer({
                       <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
                         Start Group Order
                       </Text>
-                      <LinkIcon size={16} />
+                      <GroupOrderIcon size={14} />
                     </View>
                   </TouchableOpacity>
                   </Button>
                 </Animated.View>
 
                 {/* Food Illustration - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { alignItems: 'center', marginBottom: 20 }]}>
+                <Animated.View style={[contentOpacityStyle, { alignItems: 'center', marginBottom: 8 }]}>
                   <SafeImage 
                     source={require('../../assets/images/cribnoshpackaging.png')}
                     style={{ 
@@ -1558,18 +1679,7 @@ export function BottomSearchDrawer({
                   />
                 </Animated.View>
 
-                {/* Bottom Text - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { alignItems: 'center' }]}>
-                  <Text style={{ 
-                    color: '#4a4a4a', 
-                    fontSize: 16,
-                    lineHeight: 20,
-                    fontWeight: '400',
-                    textAlign: 'center',
-                  }}>
-                    Search is smart, Search gets{'\n'}you
-                  </Text>
-                </Animated.View>
+
               </>
             )}
           </ScrollView>
