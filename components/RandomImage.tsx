@@ -8,7 +8,7 @@ const items = Array.from({ length: 20 }, (_, i) => ({
   name: `Item ${i + 1}`,
 }));
 
-export default function Index() {
+export default function RandomImage() {
   const rows = [];
   let i = 0;
 
