@@ -1,14 +1,13 @@
 import React from 'react';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
-import {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
   interpolate,
   runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TRACK_WIDTH = SCREEN_WIDTH - 32;
@@ -22,7 +21,7 @@ interface SwipeButtonProps {
 
 export const SwipeButton: React.FC<SwipeButtonProps> = ({
   onSwipeSuccess,
-  text = 'Swipe to Chip in',
+      text = 'Swipe to complete selection',
 }) => {
   const translateX = useSharedValue(0);
 

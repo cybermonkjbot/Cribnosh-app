@@ -15,6 +15,7 @@ interface ScatteredGroupMembersProps {
   members: GroupMember[];
   marginTop?: number;
   refreshKey?: number;
+  searchQuery?: string;
 }
 
 interface Position {
@@ -26,7 +27,8 @@ interface Position {
 const ScatteredGroupMembers: React.FC<ScatteredGroupMembersProps> = ({ 
   members, 
   marginTop = 24,
-  refreshKey = 0
+  refreshKey = 0,
+  searchQuery = ''
 }) => {
   const [positions, setPositions] = useState<Position[]>([]);
   const screenWidth = Dimensions.get('window').width;
@@ -142,42 +144,53 @@ const ScatteredGroupMembers: React.FC<ScatteredGroupMembersProps> = ({
         { marginTop }
       ]}
     >
-      {members.map((member, idx) => {
-        const position = positions[idx] || { top: 0, left: 0, scale: 1.0 };
-        
-        return (
-          <View 
-            key={idx}
-            style={[
-              styles.memberContainer,
-              {
-                top: position.top,
-                left: position.left,
-                transform: [{ scale: position.scale }],
-                zIndex: members.length - idx,
-              }
-            ]}
-          >
-            <GroupOrderMember
-              name={member.name}
-              avatarUri={member.avatarUri}
-              showMessageIcon={true}
-            />
-            
-            {/* Status Text */}
-            <Text style={styles.statusText}>
-              {member.status}
-            </Text>
-            
-            {/* Done Indicator */}
-            {member.isDone && (
-              <View style={styles.doneIndicator}>
-                <Text style={styles.doneText}>✓</Text>
-              </View>
-            )}
-          </View>
-        );
-      })}
+      {members.length === 0 && searchQuery ? (
+        <View style={styles.noResultsContainer}>
+          <Text style={styles.noResultsText}>
+            No members found matching "{searchQuery}"
+          </Text>
+          <Text style={styles.noResultsSubtext}>
+            Try searching by name or status
+          </Text>
+        </View>
+      ) : (
+        members.map((member, idx) => {
+          const position = positions[idx] || { top: 0, left: 0, scale: 1.0 };
+          
+          return (
+            <View 
+              key={idx}
+              style={[
+                styles.memberContainer,
+                {
+                  top: position.top,
+                  left: position.left,
+                  transform: [{ scale: position.scale }],
+                  zIndex: members.length - idx,
+                }
+              ]}
+            >
+              <GroupOrderMember
+                name={member.name}
+                avatarUri={member.avatarUri}
+                showMessageIcon={true}
+              />
+              
+              {/* Status Text */}
+              <Text style={styles.statusText}>
+                {member.status}
+              </Text>
+              
+              {/* Done Indicator */}
+              {member.isDone && (
+                <View style={styles.doneIndicator}>
+                  <Text style={styles.doneText}>✓</Text>
+                </View>
+              )}
+            </View>
+          );
+        })
+      )}
     </View>
   );
 };
@@ -222,6 +235,25 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noResultsText: {
+    color: '#E6FFE8',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  noResultsSubtext: {
+    color: '#EAEAEA',
+    fontSize: 14,
+    textAlign: 'center',
+    opacity: 0.8,
   },
 });
 

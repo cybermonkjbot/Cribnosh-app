@@ -1,12 +1,13 @@
 import GroupTotalSpendCard from '@/components/GroupTotalSpendCard';
 import { Mascot } from '@/components/Mascot';
 import { SwipeButton } from '@/components/SwipeButton';
-import { CartButton } from '@/components/ui/CartButton';
+import { Avatar } from '@/components/ui/Avatar';
+import { GroupMealSelection } from '@/components/ui/GroupMealSelection';
 import { Input } from '@/components/ui/Input';
 import ScatteredGroupMembers from '@/components/ui/ScatteredGroupMembers';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { ChevronLeft, SearchIcon } from 'lucide-react-native';
+import { ChevronLeft, SearchIcon, X } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +29,18 @@ const groupMembers = [
   { name: 'Alex', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 250, left: 250, status: 'Ready to order', isDone: true },
 ];
 
+// Mock data for users that can be invited
+const availableUsers = [
+  { id: '1', name: 'Alice Johnson', avatarUri: require('@/assets/images/demo/avatar-1.png'), mutualFriends: 3 },
+  { id: '2', name: 'Bob Smith', avatarUri: require('@/assets/images/demo/avatar-2.png'), mutualFriends: 5 },
+  { id: '3', name: 'Carol Davis', avatarUri: require('@/assets/images/demo/avatar-3.png'), mutualFriends: 2 },
+  { id: '4', name: 'David Wilson', avatarUri: require('@/assets/images/demo/avatar-4.png'), mutualFriends: 7 },
+  { id: '5', name: 'Eva Brown', avatarUri: require('@/assets/images/demo/avatar-5.png'), mutualFriends: 4 },
+  { id: '6', name: 'Frank Miller', avatarUri: require('@/assets/images/demo/avatar-1.png'), mutualFriends: 1 },
+  { id: '7', name: 'Grace Lee', avatarUri: require('@/assets/images/demo/avatar-2.png'), mutualFriends: 6 },
+  { id: '8', name: 'Henry Taylor', avatarUri: require('@/assets/images/demo/avatar-3.png'), mutualFriends: 3 },
+];
+
 export default function GroupOrdersScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
@@ -35,6 +48,8 @@ export default function GroupOrdersScreen() {
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const handleNavigate = () => {
     router.push('/orders/group/details');
@@ -51,8 +66,15 @@ export default function GroupOrdersScreen() {
 
   const handleScroll = (event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
-    // Show sticky search when user scrolls past the title area (approximately 200px)
-    setShowStickySearch(scrollY > 200);
+    
+    // Only handle scroll-based sticky search if:
+    // 1. User is not actively searching (searchQuery is empty)
+    // 2. Sticky search is not manually activated
+    if (searchQuery === '' && !showStickySearch) {
+      // Show sticky search when user scrolls past the title area (approximately 200px)
+      // Hide sticky search when user scrolls back to top
+      setShowStickySearch(scrollY > 200);
+    }
   };
 
   const handleInvitePress = async () => {
@@ -81,16 +103,58 @@ export default function GroupOrdersScreen() {
     }, 2000); // 2 second delay to show the loading state
   };
 
+  const filteredUsers = availableUsers.filter(user => 
+    user.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleSearchFocus = () => {
+    setShowStickySearch(true);
+    // Reset scroll position to top to ensure smooth transition
+    // This prevents scroll conflicts with the sticky search
+  };
+
+  const resetSearchState = () => {
+    setShowStickySearch(false);
+    setSearchQuery('');
+  };
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const getSelectedCountText = () => {
+    if (selectedUsers.length === 0) return '';
+    if (selectedUsers.length === 1) return selectedUsers.length.toString();
+    if (selectedUsers.length === 2) return selectedUsers.length.toString();
+    return selectedUsers.length.toString();
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Sticky Header */}
       <View style={styles.stickyHeader}>
         {showStickySearch ? (
           <View style={styles.stickySearchContainer}>
-            <Input
-              placeholder="Search for friends & family to invite..."
-              leftIcon={<SearchIcon color="#E6FFE8" />}
-            />
+            <View style={styles.stickySearchHeader}>
+              <TouchableOpacity 
+                onPress={resetSearchState}
+                style={styles.closeSearchButton}
+              >
+                <X color="#E6FFE8" size={18} />
+              </TouchableOpacity>
+              <Input
+                placeholder="Search for friends & family to invite..."
+                leftIcon={<SearchIcon color="#E6FFE8" />}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={handleSearchFocus}
+                style={{ flex: 1 }}
+              />
+            </View>
           </View>
         ) : (
           <View className='flex flex-row items-center justify-between w-full'>
@@ -98,7 +162,9 @@ export default function GroupOrdersScreen() {
               <ChevronLeft color="#E6FFE8" />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleInvitePress} style={styles.inviteButton}>
-              <Text style={{color:'#E6FFE8'}}>Invite</Text>
+              <Text style={{color:'#E6FFE8'}}>
+                {selectedUsers.length > 0 ? `Invite ${getSelectedCountText()}` : 'Invite'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -118,7 +184,8 @@ export default function GroupOrdersScreen() {
           />
         }
       >
-        <View>
+        {!showStickySearch && (
+          <View>
             <Text 
             className="text-white text-5xl font-bold"
             style={{
@@ -133,9 +200,50 @@ export default function GroupOrdersScreen() {
                 <Input
                  placeholder="Search for friends & family to invite..."
                    leftIcon={<SearchIcon color="#E6FFE8"  />}
+                   value={searchQuery}
+                   onChangeText={setSearchQuery}
+                   onFocus={handleSearchFocus}
                   />
             </View>
-        </View>
+
+          </View>
+        )}
+
+        {/* Search Results - Always visible when searching */}
+        {searchQuery && (
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.searchResultsTitle}>
+              {filteredUsers.length > 0 ? `Found ${filteredUsers.length} people` : 'No results found'}
+            </Text>
+            {filteredUsers.map((user) => (
+              <View key={user.id} style={styles.userResultItem}>
+                <TouchableOpacity 
+                  style={styles.userResultContent}
+                  onPress={() => toggleUserSelection(user.id)}
+                >
+                  <View style={styles.userAvatarContainer}>
+                    <Avatar source={{ uri: user.avatarUri }} size="sm" />
+                    <View style={styles.selectionIndicator}>
+                      {selectedUsers.includes(user.id) ? (
+                        <View style={styles.selectedCircle}>
+                          <Text style={styles.checkmark}>✓</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.unselectedCircle} />
+                      )}
+                    </View>
+                  </View>
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{user.name}</Text>
+                    <Text style={styles.mutualFriends}>
+                      {user.mutualFriends} mutual friends
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
 
         <ScatteredGroupMembers 
           members={groupMembers} 
@@ -147,7 +255,7 @@ export default function GroupOrdersScreen() {
       <View style={styles.floatingButtons}>
         <GroupTotalSpendCard amount="3000" avatars={avatars} />
         <SwipeButton onSwipeSuccess={() => console.log('yes')} />
-        <CartButton quantity={4} onPress={handleNavigate} />
+        <GroupMealSelection quantity={4} onPress={handleNavigate} />
       </View>
 
       {/* Full Screen Loading Modal */}
@@ -221,7 +329,7 @@ const styles = StyleSheet.create({
         paddingTop: 10,
     },
     stickyHeader: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 12,
         paddingTop: 10,
         paddingBottom: 16,
         backgroundColor: '#02120A',
@@ -229,6 +337,19 @@ const styles = StyleSheet.create({
     },
     stickySearchContainer: {
         width: '100%',
+    },
+    stickySearchHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    closeSearchButton: {
+        width: 40,
+        height: 48,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(230, 255, 232, 0.1)',
     },
     backButton: {
         padding: 8,
@@ -496,6 +617,71 @@ const styles = StyleSheet.create({
         backgroundColor: '#02120A',
         paddingVertical: 16,
         paddingHorizontal: 20,
+        paddingTop: 24,
         gap: 12,
+    },
+    searchResultsTitle: {
+        color: '#E6FFE8',
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 16,
+    },
+    userResultItem: {
+        marginBottom: 12,
+    },
+    userResultContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        backgroundColor: 'rgba(230, 255, 232, 0.05)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(230, 255, 232, 0.1)',
+    },
+    userAvatarContainer: {
+        position: 'relative',
+        marginRight: 12,
+    },
+    selectionIndicator: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+    },
+    selectedCircle: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#10B981',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: '#02120A',
+    },
+    checkmark: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    unselectedCircle: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: 'rgba(230, 255, 232, 0.3)',
+        backgroundColor: 'transparent',
+    },
+    userInfo: {
+        flex: 1,
+    },
+    userName: {
+        color: '#E6FFE8',
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    mutualFriends: {
+        color: '#EAEAEA',
+        fontSize: 14,
+        opacity: 0.8,
     },
 });
