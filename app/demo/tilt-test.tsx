@@ -1,7 +1,7 @@
 import CompactMealSelection from '@/components/CompactMealSelection';
 import KitchenNameCard from '@/components/KitchenNameCard';
 import { CategoryFoodItemCard } from '@/components/ui/CategoryFoodItemCard';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
 
 export default function TiltTestPage() {
@@ -56,7 +56,7 @@ export default function TiltTestPage() {
         tiltEnabled={tiltEnabled}
         name="Amara's Kitchen"
         description="Authentic Nigerian Cuisine"
-        avatarUri="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face"
+        avatarUri={require('@/assets/images/demo/avatar-1.png')}
       />
 
       <Text style={{ 

@@ -1,6 +1,6 @@
 import GroupOrderMember from '@/components/GroupOrderMember';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 
 interface GroupMember {
   name: string;
@@ -29,136 +29,102 @@ const ScatteredGroupMembers: React.FC<ScatteredGroupMembersProps> = ({
   refreshKey = 0
 }) => {
   const [positions, setPositions] = useState<Position[]>([]);
+  const screenWidth = Dimensions.get('window').width;
 
-  // Generate natural, close positions without artificial clustering
+  // Generate positions with proper overlap avoidance (deterministic but appearing random)
   const generateNonOverlappingPositions = () => {
     const newPositions: Position[] = [];
-    const memberSize = 70;
-    const containerWidth = 320;
-    const containerHeight = 800;
-    const topViewableHeight = 300;
+    const memberSize = 80; // Increased size to account for status text and done indicator
+    const containerWidth = screenWidth - 40; // Full width minus margins
+    const containerHeight = 400; // Half the typical scroll view height (800/2)
+    const minSpacing = memberSize + 20; // Minimum distance between member centers
     
-    // Ensure at least 3 members are in the top viewable area
-    const topMembers = Math.min(3, members.length);
-    const remainingMembers = members.length - topMembers;
+    // Create a grid-based approach for better overlap avoidance
+    const gridSize = minSpacing;
+    const cols = Math.floor(containerWidth / gridSize);
+    const rows = Math.floor(containerHeight / gridSize);
     
-    // Position top members naturally in viewable area
-    for (let i = 0; i < topMembers; i++) {
-      let attempts = 0;
-      let position: Position = {
-        top: Math.random() * (topViewableHeight - memberSize),
-        left: Math.random() * (containerWidth - memberSize),
-        scale: 0.8 + Math.random() * 0.4,
-      };
-      let hasCollision = true;
-      
-      while (hasCollision && attempts < 100) {
-        position = {
-          top: Math.random() * (topViewableHeight - memberSize),
-          left: Math.random() * (containerWidth - memberSize),
-          scale: 0.8 + Math.random() * 0.4,
-        };
+    // Create available grid positions with pseudo-random offsets
+    const availablePositions: Position[] = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        // Use deterministic pseudo-random offsets based on row/col position
+        const offsetTop = ((row * 7 + col * 13) % 21) - 10; // Pseudo-random between -10 and 10
+        const offsetLeft = ((row * 11 + col * 17) % 21) - 10; // Pseudo-random between -10 and 10
+        const scaleOffset = ((row * 3 + col * 5) % 41) / 100; // Pseudo-random between 0 and 0.4
         
-        // Simple collision detection
-        hasCollision = newPositions.some(existing => {
-          const thisLeft = position.left;
-          const thisRight = position.left + memberSize;
-          const thisTop = position.top;
-          const thisBottom = position.top + memberSize;
-          
-          const existingLeft = existing.left;
-          const existingRight = existing.left + memberSize;
-          const existingTop = existing.top;
-          const existingBottom = existing.top + memberSize;
-          
-          return !(thisLeft > existingRight || 
-                   thisRight < existingLeft || 
-                   thisTop > existingBottom || 
-                   thisBottom < existingTop);
-        });
+        const top = row * gridSize + offsetTop;
+        const left = col * gridSize + offsetLeft;
+        const scale = 0.8 + scaleOffset;
         
-        attempts++;
+        availablePositions.push({ top, left, scale });
       }
-      
-      // Use position even if there's collision
-      if (attempts >= 100) {
-        position = {
-          top: Math.random() * (topViewableHeight - memberSize),
-          left: Math.random() * (containerWidth - memberSize),
-          scale: 0.8 + Math.random() * 0.4,
-        };
-      }
-      
-      newPositions.push(position);
     }
     
-    // Position remaining members with natural spacing
-    for (let i = topMembers; i < members.length; i++) {
-      let attempts = 0;
-      let position: Position = {
-        top: topViewableHeight + Math.random() * (containerHeight - topViewableHeight - memberSize),
-        left: Math.random() * (containerWidth - memberSize),
-        scale: 0.7 + Math.random() * 0.6,
-      };
-      let hasCollision = true;
-      
-      while (hasCollision && attempts < 100) {
-        // Natural distribution - prefer areas near existing members
-        const nearExisting = Math.random() < 0.7; // 70% chance to be near existing
+    // Deterministic shuffle using a seeded approach
+    const shuffledPositions = [...availablePositions];
+    for (let i = shuffledPositions.length - 1; i > 0; i--) {
+      // Use member count and refresh key to create deterministic shuffle
+      const j = (i * 17 + members.length + refreshKey) % (i + 1);
+      [shuffledPositions[i], shuffledPositions[j]] = [shuffledPositions[j], shuffledPositions[i]];
+    }
+    
+    // Position members using available grid positions
+    for (let i = 0; i < members.length && i < shuffledPositions.length; i++) {
+      newPositions.push(shuffledPositions[i]);
+    }
+    
+    // If we have more members than grid positions, add some with deterministic offset positioning
+    if (members.length > shuffledPositions.length) {
+      for (let i = shuffledPositions.length; i < members.length; i++) {
+        let attempts = 0;
+        let position: Position = {
+          top: ((i * 23 + refreshKey) % (containerHeight - memberSize)),
+          left: ((i * 29 + refreshKey) % (containerWidth - memberSize)),
+          scale: 0.7 + ((i * 31 + refreshKey) % 61) / 100,
+        };
+        let hasCollision = true;
         
-        if (nearExisting && newPositions.length > 0) {
-          // Pick a random existing member and position near them
-          const referenceMember = newPositions[Math.floor(Math.random() * newPositions.length)];
-          const offsetX = (Math.random() - 0.5) * 150; // ±75px horizontal
-          const offsetY = (Math.random() - 0.5) * 150; // ±75px vertical
+        while (hasCollision && attempts < 50) {
+          // Try to find a position near existing members using deterministic selection
+          const referenceIndex = (i * 19 + attempts) % newPositions.length;
+          const referenceMember = newPositions[referenceIndex];
+          
+          // Deterministic offsets based on member index and attempts
+          const offsetX = (((i * 37 + attempts * 41) % 101) - 50) * minSpacing / 100;
+          const offsetY = (((i * 43 + attempts * 47) % 101) - 50) * minSpacing / 100;
           
           position = {
             top: Math.max(0, Math.min(containerHeight - memberSize, 
               referenceMember.top + offsetY)),
             left: Math.max(0, Math.min(containerWidth - memberSize, 
               referenceMember.left + offsetX)),
-            scale: 0.7 + Math.random() * 0.6,
+            scale: 0.7 + ((i * 53 + attempts * 59) % 61) / 100,
           };
-        } else {
-          // Completely random position
+          
+          // Check collision with all existing positions
+          hasCollision = newPositions.some(existing => {
+            const distance = Math.sqrt(
+              Math.pow(position.top - existing.top, 2) + 
+              Math.pow(position.left - existing.left, 2)
+            );
+            return distance < minSpacing;
+          });
+          
+          attempts++;
+        }
+        
+        // If we still have collision, use deterministic fallback position
+        if (hasCollision) {
           position = {
-            top: topViewableHeight + Math.random() * (containerHeight - topViewableHeight - memberSize),
-            left: Math.random() * (containerWidth - memberSize),
-            scale: 0.7 + Math.random() * 0.6,
+            top: ((i * 67 + refreshKey * 71) % (containerHeight - memberSize)),
+            left: ((i * 73 + refreshKey * 79) % (containerWidth - memberSize)),
+            scale: 0.7 + ((i * 83 + refreshKey * 89) % 61) / 100,
           };
         }
         
-        // Simple collision detection
-        hasCollision = newPositions.some(existing => {
-          const thisLeft = position.left;
-          const thisRight = position.left + memberSize;
-          const thisTop = position.top;
-          const thisBottom = position.top + memberSize;
-          
-          const existingLeft = existing.left;
-          const existingRight = existing.left + memberSize;
-          const existingTop = existing.top;
-          const existingBottom = existing.top + memberSize;
-          
-          return !(thisLeft > existingRight || 
-                   thisRight < existingLeft || 
-                   thisTop > existingBottom || 
-                   thisBottom < existingTop);
-        });
-        
-        attempts++;
+        newPositions.push(position);
       }
-      
-      // Use position even if there's collision
-      if (attempts >= 100) {
-        position = {
-          top: topViewableHeight + Math.random() * (containerHeight - topViewableHeight - memberSize),
-          left: Math.random() * (containerWidth - memberSize),
-          scale: 0.7 + Math.random() * 0.6,
-        };
-      }
-      
-      newPositions.push(position);
     }
     
     setPositions(newPositions);
@@ -167,7 +133,7 @@ const ScatteredGroupMembers: React.FC<ScatteredGroupMembersProps> = ({
   // Generate positions on mount and when refreshKey changes
   useEffect(() => {
     generateNonOverlappingPositions();
-  }, [refreshKey]);
+  }, [refreshKey, screenWidth]);
 
   return (
     <View
@@ -220,7 +186,8 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     position: 'relative',
-    minHeight: 800, // Ensure minimum height for positioning
+    minHeight: 400, // Reduced to half the scroll view height
+    paddingBottom: 120, // Add bottom padding to ensure content is visible above floating buttons
   },
   memberContainer: {
     position: 'absolute',
