@@ -1,5 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface DietCompatibilityBarProps {
@@ -41,7 +41,7 @@ export function DietCompatibilityBar({ compatibility }: DietCompatibilityBarProp
         
         {/* Fire Icon */}
         <View style={styles.fireIconContainer}>
-          <Text style={styles.fireIcon}>🔥</Text>
+          <Ionicons name="flame" size={20} color="#FF6B35" />
         </View>
       </View>
     </View>

@@ -13,7 +13,7 @@ export function DynamicHeaderDemo() {
   const [userName, setUserName] = useState('Joshua');
   const [showSubtitle, setShowSubtitle] = useState(false);
 
-  const demoTimes: Array<{ label: string; context: Partial<TimeContext> }> = [
+  const demoTimes: { label: string; context: Partial<TimeContext> }[] = [
     { label: 'Early Morning (6 AM)', context: { hour: 6, minute: 0, isWeekend: false } },
     { label: 'Breakfast (8 AM)', context: { hour: 8, minute: 0, isWeekend: false } },
     { label: 'Brunch (10 AM)', context: { hour: 10, minute: 0, isWeekend: true } },

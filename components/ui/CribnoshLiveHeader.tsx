@@ -1,4 +1,3 @@
-import React from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import { Avatar } from './Avatar';
 import CancelButton from './CancelButton';

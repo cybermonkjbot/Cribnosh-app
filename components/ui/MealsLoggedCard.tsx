@@ -1,3 +1,4 @@
+import { Utensils } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -17,6 +18,8 @@ interface MealsLoggedCardProps {
   avgMeals: number;
   onPress?: () => void;
 }
+
+
 
 export const MealsLoggedCard: React.FC<MealsLoggedCardProps> = ({
   weekMeals = [2, 3, 4, 3, 5, 1, 2],
@@ -118,7 +121,9 @@ export const MealsLoggedCard: React.FC<MealsLoggedCardProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Animated.Text style={[styles.icon, iconAnimatedStyle]}>🍽</Animated.Text>
+            <Animated.View style={[styles.icon, iconAnimatedStyle]}>
+              <Utensils size={20} color="#FF6B00" />
+            </Animated.View>
             <Text style={styles.title}>Meals Logged</Text>
           </View>
           <Text style={styles.chevron}>›</Text>

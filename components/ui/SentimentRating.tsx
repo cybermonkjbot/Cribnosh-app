@@ -23,8 +23,8 @@ interface SentimentRatingProps {
 
 const sentimentStyles = {
   // Positive sentiments
-  bussing: { bg: '#FEE2E2', text: '#DC2626', emoji: '🔥' },
-  fire: { bg: '#FEF3C7', text: '#D97706', emoji: '🔥' },
+  bussing: { bg: '#FEE2E2', text: '#DC2626' },
+  fire: { bg: '#FEF3C7', text: '#D97706' },
   slaps: { bg: '#DBEAFE', text: '#2563EB', emoji: '👏' },
   elite: { bg: '#ECFDF5', text: '#059669', emoji: '👑' },
   

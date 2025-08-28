@@ -1,16 +1,16 @@
-import { useEmotionsUI } from '@/utils/EmotionsUIContext';
+
 import { MealCategory } from '@/utils/mealCategories';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dimensions, Text, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -29,8 +29,6 @@ interface SpinnerItemProps {
 }
 
 function SpinnerItem({ item, index, isSpinning, isSelected }: SpinnerItemProps) {
-  const { getEmotionColors } = useEmotionsUI();
-  const colors = getEmotionColors('neutral'); // Use neutral for spinner
 
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);

@@ -32,12 +32,12 @@ interface MealItemDetailsProps {
     carbs: string;
     dietCompatibility: number; // percentage
     dietMessage: string;
-    ingredients: Array<{
+    ingredients: {
       name: string;
       quantity: string;
       isAllergen?: boolean;
       allergenType?: string;
-    }>;
+    }[];
     isVegetarian?: boolean;
     isSafeForYou?: boolean;
     // New fields for additional sections
@@ -46,14 +46,14 @@ interface MealItemDetailsProps {
     chefName?: string;
     chefStory?: string;
     chefTips?: string[];
-    similarMeals?: Array<{
+    similarMeals?: {
       id: string;
       name: string;
       price: string;
       imageUrl?: string;
       sentiment?: "bussing" | "mid" | "notIt";
       isVegetarian?: boolean;
-    }>;
+    }[];
   };
   onAddToCart?: (mealId: string, quantity: number) => void;
   onSimilarMealPress?: (mealId: string) => void;
@@ -139,7 +139,7 @@ export function MealItemDetails({
   onAddToCart,
   onSimilarMealPress,
 }: MealItemDetailsProps) {
-  const [quantity, setQuantity] = useState(2);
+  const [quantity] = useState(2);
   const [isFavorite, setIsFavorite] = useState(false);
   const insets = useSafeAreaInsets();
   const router = useRouter();

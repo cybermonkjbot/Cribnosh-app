@@ -1,5 +1,4 @@
-import BottomSheet from '@gorhom/bottom-sheet';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../constants/Colors';
 import { useColorScheme } from '../hooks/useColorScheme';
@@ -8,7 +7,7 @@ import { BottomSheetBase } from './BottomSheetBase';
 export function BottomSheetExample() {
   const colorScheme = useColorScheme();
   const [isOpen, setIsOpen] = useState(false);
-  const bottomSheetRef = useRef<BottomSheet>(null);
+  // Removed unused bottomSheetRef
 
   // Snap points for the bottom sheet
   const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);

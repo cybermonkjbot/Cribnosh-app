@@ -1,5 +1,5 @@
 import CompactMealSelection from '@/components/CompactMealSelection';
-import KitchenNameCard from '@/components/KitchenNameCard';
+import { KitchenNameCard } from '@/components/KitchenNameCard';
 import { CategoryFoodItemCard } from '@/components/ui/CategoryFoodItemCard';
 import { useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
@@ -54,7 +54,7 @@ export default function TiltTestPage() {
       </Text>
       <KitchenNameCard 
         tiltEnabled={tiltEnabled}
-        name="Amara's Kitchen"
+        name="Amara&apos;s Kitchen"
         description="Authentic Nigerian Cuisine"
         avatarUri={require('@/assets/images/demo/avatar-1.png')}
       />
@@ -115,7 +115,7 @@ export default function TiltTestPage() {
         lineHeight: 20,
       }}>
         Move your device to see the 3D tilt effect!{'\n'}
-        The cards will subtly tilt based on your device's orientation.
+        The cards will subtly tilt based on your device&apos;s orientation.
       </Text>
     </ScrollView>
   );

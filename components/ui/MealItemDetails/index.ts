@@ -1,4 +1,3 @@
-export { AddToCartButton } from './AddToCartButton';
 export { ChefNotes } from './ChefNotes';
 export { DietCompatibilityBar } from './DietCompatibilityBar';
 export { KitchenInfo } from './KitchenInfo';

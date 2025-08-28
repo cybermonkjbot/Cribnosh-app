@@ -1,5 +1,5 @@
 import { X } from 'lucide-react-native';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, FlatList, Pressable, StatusBar, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -8,6 +8,7 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CribNoshLogo } from './CribNoshLogo';
 import { MealVideoCard } from './MealVideoCard';
 import { MealVideoCardSkeleton } from './MealVideoCardSkeleton';
 
@@ -190,64 +191,6 @@ export function NoshHeavenPlayer({
     }
   }, [onClose]);
 
-  // Validate props
-  if (!Array.isArray(meals) || meals.length === 0) {
-    // Show skeleton loader when no meals are available
-    return (
-      <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: '#000',
-        zIndex: 99999,
-        elevation: 99999,
-      }}>
-        <StatusBar hidden />
-        <MealVideoCardSkeleton isVisible={true} />
-        
-        {/* Close Button */}
-        <Pressable
-          onPress={handleClosePress}
-          style={{
-            position: 'absolute',
-            top: insets.top + 16,
-            left: 20,
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-          }}
-        >
-          <X size={24} color="#fff" />
-        </Pressable>
-
-        {/* CribNosh Logo */}
-        <View style={{
-          position: 'absolute',
-          top: insets.top + 16,
-          right: 20,
-          zIndex: 10000,
-        }}>
-          <Text style={{
-            color: '#fff',
-            fontSize: 20,
-            fontWeight: 'bold',
-            textShadowColor: 'rgba(0, 0, 0, 0.75)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 2,
-          }}>
-            CribNosh
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
   // Handle scroll/swipe to next/previous video with optimized logic
   const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     try {
@@ -310,6 +253,56 @@ export function NoshHeavenPlayer({
     }
   }, [currentIndex, preloadedVideos, onMealLike, onMealComment, onMealShare, onAddToCart, onKitchenPress]);
 
+  // Validate props - moved after all hooks
+  if (!Array.isArray(meals) || meals.length === 0) {
+    // Show skeleton loader when no meals are available
+    return (
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#000',
+        zIndex: 99999,
+        elevation: 99999,
+      }}>
+        <StatusBar hidden />
+        <MealVideoCardSkeleton isVisible={true} />
+        
+        {/* Close Button */}
+        <Pressable
+          onPress={handleClosePress}
+          style={{
+            position: 'absolute',
+            top: insets.top + 16,
+            left: 20,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          <X size={24} color="#fff" />
+        </Pressable>
+
+        {/* CribNosh Logo */}
+        <View style={{
+          position: 'absolute',
+          top: insets.top + 16,
+          right: 20,
+          zIndex: 10000,
+        }}>
+          <CribNoshLogo size={100} variant="white" />
+        </View>
+      </View>
+    );
+  }
+
+  // Early return check moved after all hooks
   if (!isVisible) return null;
 
   return (
@@ -377,16 +370,7 @@ export function NoshHeavenPlayer({
         right: 20,
         zIndex: 10000, // Above the video content
       }}>
-        <Text style={{
-          color: '#fff',
-          fontSize: 20,
-          fontWeight: 'bold',
-          textShadowColor: 'rgba(0, 0, 0, 0.75)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 2,
-        }}>
-          CribNosh
-        </Text>
+        <CribNoshLogo size={100} variant="white" />
       </View>
 
       {/* Auto-hiding swipe down message */}

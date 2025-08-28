@@ -194,7 +194,7 @@ export default function GroupOrdersScreen() {
             textShadowRadius: 0.2,
             }}
             >
-                Josh and friend's party order
+                Josh and friend&apos;s party order
             </Text>
             <View style={{ marginTop: 20 }}>
                 <Input
@@ -296,7 +296,7 @@ export default function GroupOrdersScreen() {
                 
                 <Text style={styles.modalTitle}>Creating Your Invite Link</Text>
                 <Text style={styles.modalSubtitle}>
-                  We're generating a unique link that your friends can use to join this group order
+                  We&apos;re generating a unique link that your friends can use to join this group order
                 </Text>
               </>
             ) : (

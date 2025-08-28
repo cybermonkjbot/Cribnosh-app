@@ -45,10 +45,10 @@ export function TakeAways({ onOpenDrawer }: TakeAwaysProps) {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: 16, 
-        paddingHorizontal: 20 
+        paddingHorizontal: 16 
       }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
-          Take away's
+          Take aways
         </Text>
         <TouchableOpacity onPress={onOpenDrawer}>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
@@ -58,7 +58,7 @@ export function TakeAways({ onOpenDrawer }: TakeAwaysProps) {
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingLeft: 20 }} // Changed from paddingHorizontal to paddingLeft only
+        contentContainerStyle={{ paddingLeft: 16 }} // Changed from paddingHorizontal to paddingLeft only
       >
         {takeAwayItems.map((item, index) => (
           <View

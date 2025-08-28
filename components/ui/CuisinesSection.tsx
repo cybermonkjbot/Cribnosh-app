@@ -37,10 +37,10 @@ export function CuisinesSection({ onCuisinePress }: CuisinesSectionProps) {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: 16, 
-        paddingHorizontal: 20 
+        paddingHorizontal: 16 
       }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
-          Cuisine's
+          Cuisines
         </Text>
         <TouchableOpacity>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -10,6 +11,26 @@ import Animated, {
   withSpring,
   withTiming
 } from 'react-native-reanimated';
+
+// App color constants - matching the home page and app theme
+const COLORS = {
+  primary: '#094327',      // Dark green - main brand color
+  secondary: '#0B9E58',    // Green - secondary brand color
+  accent: '#FF6B35',       // Orange accent - for highlights
+  background: {
+    primary: '#FFFFFF',     // White background
+    secondary: '#F8F8F8',  // Light gray background
+    soft: '#f8e6f0',       // Soft pink from home page
+    cream: '#faf2e8',      // Soft cream from home page
+  },
+  text: {
+    primary: '#1A202C',     // Dark text
+    secondary: '#4A5568',   // Medium text
+    muted: '#9BA1A6',      // Muted text
+  },
+  border: '#E5E5E5',       // Light border
+  shadow: '#000000',       // Shadow color
+};
 
 interface CalorieCompareCardProps {
   kcalToday: number;
@@ -119,7 +140,9 @@ export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Animated.Text style={[styles.icon, iconAnimatedStyle]}>🔥</Animated.Text>
+            <Animated.View style={[styles.icon, iconAnimatedStyle]}>
+              <Ionicons name="flame" size={16} color={COLORS.accent} />
+            </Animated.View>
             <Text style={styles.title}>Calories Logged</Text>
           </View>
           <Text style={styles.chevron}>›</Text>
@@ -143,7 +166,7 @@ export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
               style={[
                 styles.bar, 
                 { 
-                  backgroundColor: '#FF6B00',
+                  backgroundColor: COLORS.accent,
                   width: 60 * barsProgressState
                 }
               ]} 
@@ -159,7 +182,7 @@ export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
               style={[
                 styles.bar, 
                 { 
-                  backgroundColor: '#E5E5E5',
+                  backgroundColor: COLORS.border,
                   width: 60 * barsProgressState
                 }
               ]} 
@@ -176,12 +199,12 @@ export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background.primary,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 4,
     marginVertical: 8,
-    shadowColor: '#000000',
+    shadowColor: COLORS.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -207,21 +230,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6B00',
+    color: COLORS.accent,
   },
   chevron: {
     fontSize: 16,
-    color: '#9BA1A6',
+    color: COLORS.text.muted,
   },
   summaryText: {
     fontSize: 16,
-    color: '#000000',
+    color: COLORS.text.primary,
     lineHeight: 22,
     marginBottom: 12,
   },
   separator: {
     height: 1,
-    backgroundColor: '#E5E5E5',
+    backgroundColor: COLORS.border,
     marginBottom: 16,
   },
   dataSection: {
@@ -235,12 +258,12 @@ const styles = StyleSheet.create({
   dataValue: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000000',
+    color: COLORS.text.primary,
     lineHeight: 34,
   },
   dataUnit: {
     fontSize: 14,
-    color: '#9BA1A6',
+    color: COLORS.text.muted,
     marginBottom: 8,
   },
   bar: {
@@ -250,10 +273,10 @@ const styles = StyleSheet.create({
   },
   dayLabel: {
     fontSize: 14,
-    color: '#000000',
+    color: COLORS.text.primary,
   },
   dayHighlight: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background.cream,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,

@@ -84,7 +84,7 @@ export function BottomSheetBase({
 const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   handleIndicator: {
     width: 40,

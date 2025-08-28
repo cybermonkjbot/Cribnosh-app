@@ -20,7 +20,7 @@ export default function GroupOrderDetails() {
           Chip in an amount towards party order                   
            </Text>
           <Text style={{color:'#EAEAEA', paddingTop: 10, paddingBottom: 20}}>
-             Enter the amount you want to chip in, it'll 
+             Enter the amount you want to chip in, it&apos;ll 
              go towards the total order cost
           </Text>
           <View >

@@ -1,5 +1,4 @@
 import GroupOrderMember from "@/components/GroupOrderMember";
-import React from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -35,7 +34,7 @@ export default function Index() {
             }`}
           >
             {row.items.map((item, idx) => (
-              <GroupOrderMember avatarUri={item.avatarUri} name={item.name} />
+              <GroupOrderMember key={idx} avatarUri={item.avatarUri} name={item.name} />
             ))}
           </View>
         ))}

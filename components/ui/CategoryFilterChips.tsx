@@ -41,7 +41,7 @@ export function CategoryFilterChips() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingLeft: 20, // Changed from paddingHorizontal to paddingLeft only
+          paddingLeft: 16, // Changed from paddingHorizontal to paddingLeft only
           gap: 8,
         }}
       >

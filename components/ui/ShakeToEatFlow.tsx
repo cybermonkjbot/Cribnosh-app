@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -16,6 +17,17 @@ import { useShakeDetection } from '@/hooks/useShakeDetection';
 import { CONFIG } from '../../constants/config';
 import { Mascot } from '../Mascot';
 
+// Helper function to render mood/meal icon or emoji
+const renderMoodIcon = (item: any, size: number = 40) => {
+  if (item.icon) {
+    return <Ionicons name={item.icon as any} size={size} color="#FF6B35" />;
+  }
+  if (item.emoji) {
+    return <Text style={{ fontSize: size }}>{item.emoji}</Text>;
+  }
+  return null;
+};
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 // Flow steps - enhanced with more emotional beats
@@ -23,7 +35,7 @@ type FlowStep = 'idle' | 'wake-up' | 'mood-reveal' | 'mood-locked' | 'energy-bui
 
 // Redesigned moods with better visual hierarchy
 const MOODS = [
-{ id: 'hungry', emoji: '🔥', label: 'Craving', gradient: ['#FF3B30', '#FF6B35'], description: 'Something bold' },
+{ id: 'hungry', icon: 'flame', label: 'Craving', gradient: ['#FF3B30', '#FF6B35'], description: 'Something bold' },
 { id: 'comfort', emoji: '🤗', label: 'Comfort', gradient: ['#094327', '#0B9E58'], description: 'Warm & cozy' },
 { id: 'adventure', emoji: '⚡', label: 'Adventure', gradient: ['#FF3B30', '#094327'], description: 'Try something new' },
 { id: 'fresh', emoji: '🌱', label: 'Fresh', gradient: ['#0B9E58', '#E6FFE8'], description: 'Light & healthy' },
@@ -35,7 +47,7 @@ const MOODS = [
 const SAMPLE_MEALS = [
 { name: 'Jollof Supreme', emoji: '👑', origin: 'Nigerian Classic', vibe: 'Royal feast' },
 { name: 'Spiced Shawarma', emoji: '🌪️', origin: 'Middle Eastern', vibe: 'Street magic' },
-{ name: 'Suya Fire', emoji: '🔥', origin: 'Nigerian Street', vibe: 'Bold & spicy' },
+{ name: 'Suya Fire', icon: 'flame', origin: 'Nigerian Street', vibe: 'Bold & spicy' },
 { name: 'Truffle Pasta', emoji: '🍝', origin: 'Italian Luxe', vibe: 'Sophisticated' },
 { name: 'Curry Storm', emoji: '🌶️', origin: 'Indian Fusion', vibe: 'Flavor explosion' },
 { name: 'Taco Fiesta', emoji: '🎉', origin: 'Mexican Street', vibe: 'Party vibes' },
@@ -49,29 +61,24 @@ onStart?: () => void;
 }
 
 export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: ShakeToEatFlowProps) {
-  // Early return if shake to eat is globally disabled
-  if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
-    return null;
-  }
-
   const [currentStep, setCurrentStep] = useState<FlowStep>('idle');
-const [selectedMood, setSelectedMood] = useState<typeof MOODS[0] | null>(null);
-const [selectedMeal, setSelectedMeal] = useState<typeof SAMPLE_MEALS[0] | null>(null);
-const [isInCooldown, setIsInCooldown] = useState(false);
-const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedMood, setSelectedMood] = useState<typeof MOODS[0] | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<typeof SAMPLE_MEALS[0] | null>(null);
+  const [isInCooldown, setIsInCooldown] = useState(false);
+  const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-// Enhanced animation system with more states
-const masterOpacity = useRef(new Animated.Value(0)).current;
-const slideY = useRef(new Animated.Value(50)).current;
-const scale = useRef(new Animated.Value(0.9)).current;
-const pulseScale = useRef(new Animated.Value(1)).current;
-const rotateValue = useRef(new Animated.Value(0)).current;
-const glowOpacity = useRef(new Animated.Value(0)).current;
-const particleOpacity = useRef(new Animated.Value(0)).current;
-const energyScale = useRef(new Animated.Value(1)).current;
-const sparkleOpacity = useRef(new Animated.Value(0)).current;
-const shakeOverlayOpacity = useRef(new Animated.Value(0)).current;
-const shakeIconScale = useRef(new Animated.Value(1)).current;
+  // Enhanced animation system with more states
+  const masterOpacity = useRef(new Animated.Value(0)).current;
+  const slideY = useRef(new Animated.Value(50)).current;
+  const scale = useRef(new Animated.Value(0.9)).current;
+  const pulseScale = useRef(new Animated.Value(1)).current;
+  const rotateValue = useRef(new Animated.Value(0)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current;
+  const particleOpacity = useRef(new Animated.Value(0)).current;
+  const energyScale = useRef(new Animated.Value(1)).current;
+  const sparkleOpacity = useRef(new Animated.Value(0)).current;
+  const shakeOverlayOpacity = useRef(new Animated.Value(0)).current;
+  const shakeIconScale = useRef(new Animated.Value(1)).current;
 
 // Reset animations and state
 const resetAnimations = () => {
@@ -109,7 +116,7 @@ useEffect(() => {
 
 // Shake detection with enhanced feedback - now requires sustained shaking
 // Only active when in 'idle' state to prevent multiple shake processes
-const { isShaking, shakeCount, sustainedShakeProgress, isSustainedShaking } = useShakeDetection(() => {
+const { isShaking, sustainedShakeProgress, isSustainedShaking } = useShakeDetection(() => {
   console.log('🎯 Sustained shake completed! Starting modern flow...');
   
   // Progressive haptic feedback
@@ -133,7 +140,7 @@ const { isShaking, shakeCount, sustainedShakeProgress, isSustainedShaking } = us
 });
 
 // Add haptic feedback during sustained shaking
-React.useEffect(() => {
+useEffect(() => {
   if (isSustainedShaking && sustainedShakeProgress > 0) {
     // Light haptic feedback every 25% progress
     if (Math.floor(sustainedShakeProgress * 4) > Math.floor((sustainedShakeProgress - 0.01) * 4)) {
@@ -143,7 +150,7 @@ React.useEffect(() => {
 }, [isSustainedShaking, sustainedShakeProgress]);
 
 // Animate shake overlay
-React.useEffect(() => {
+useEffect(() => {
   if (isSustainedShaking || isShaking) {
     // Show overlay with animation
     Animated.parallel([
@@ -176,6 +183,8 @@ React.useEffect(() => {
     ]).start();
   }
 }, [isSustainedShaking, isShaking]);
+
+// Early return moved after all hooks
 
 // Modern animation sequences
 const startWakeUpAnimation = () => {
@@ -625,7 +634,7 @@ const renderMoodReveal = () => {
           marginBottom: 12,
           letterSpacing: -1,
         }}>
-          What's Your Vibe?
+          What&apos;s Your Vibe?
         </Text>
         <Text style={{
           fontSize: 16,
@@ -641,7 +650,7 @@ const renderMoodReveal = () => {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: 16,
           paddingBottom: 100,
         }}
         showsVerticalScrollIndicator={false}
@@ -683,12 +692,11 @@ const renderMoodReveal = () => {
                   }}
                   onPress={() => handleMoodSelect(mood)}
                 >
-                  <Text style={{ 
-                    fontSize: 40,
+                  <View style={{ 
                     alignSelf: 'flex-start',
                   }}>
-                    {mood.emoji}
-                  </Text>
+                    {renderMoodIcon(mood, 40)}
+                  </View>
                   
                   <View>
                     <Text style={{
@@ -768,9 +776,9 @@ const renderFoodDiscovery = () => {
               alignItems: 'center',
               transform: [{ rotate: spinInterpolate }],
             }}>
-              <Text style={{ fontSize: 64, color: 'white' }}>
-                {selectedMeal ? selectedMeal.emoji : '🎲'}
-              </Text>
+              <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                {selectedMeal ? renderMoodIcon(selectedMeal, 64) : <Text style={{ fontSize: 64, color: 'white' }}>🎲</Text>}
+              </View>
             </Animated.View>
           </View>
 
@@ -841,9 +849,9 @@ const renderMagicMoment = () => {
             shadowRadius: 30,
             elevation: 20,
           }}>
-            <Text style={{ fontSize: 72, marginBottom: 8 }}>
-              {selectedMeal?.emoji}
-            </Text>
+            <View style={{ marginBottom: 8 }}>
+              {selectedMeal ? renderMoodIcon(selectedMeal, 72) : null}
+            </View>
             <Text style={{
               fontSize: 14,
               fontWeight: '700',
@@ -989,6 +997,11 @@ const renderContent = () => {
       return null;
   }
 };
+
+// Early return if shake to eat is globally disabled
+if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
+  return null;
+}
 
 // Component is always rendered to keep shake detection active
 return (

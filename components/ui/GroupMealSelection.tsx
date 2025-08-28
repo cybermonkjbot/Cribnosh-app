@@ -5,7 +5,6 @@ import {
     Text,
     TouchableOpacity,
     View,
-    useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
@@ -44,11 +43,9 @@ export function GroupMealSelection({
   containerStyle,
 }: GroupMealSelectionProps) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
   
 
-  const isSmallScreen = width < 375;
   const buttonWidth = SCREEN_WIDTH - 32; // 20 or 24px padding on each side
 
   const finalButtonText = buttonText || (variant === 'select' ? 'Select Your Meal' : 'Group Meals Selected');
@@ -141,7 +138,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 12,
     zIndex: 9999,
   },

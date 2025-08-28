@@ -228,7 +228,7 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
 
       {/* Today's Menu Categories */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today's Menu</Text>
+        <Text style={styles.sectionTitle}>Today&apos;s Menu</Text>
         
         <ScrollView 
           horizontal 
@@ -327,7 +327,7 @@ export { KitchenBottomSheetContent };
 
 const styles = StyleSheet.create({
   container: {
-    paddingLeft: 25, // Maintain left padding for proper alignment
+    paddingLeft: 20, // Reduced from 25 for better visual balance
     paddingBottom: 250, // Increased from 180 to 250 for much more bottom padding
   },
   deliveryInfo: {

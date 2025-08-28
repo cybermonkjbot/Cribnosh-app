@@ -1,4 +1,4 @@
-# 🔥 Bragging Cards for Cribnosh
+# Bragging Cards for Cribnosh
 
 Apple Health-style food statistics cards that celebrate user achievements and provide insights into their eating habits.
 

@@ -1,8 +1,12 @@
 import { Tabs } from 'expo-router';
 
 import { CustomTabBar } from '@/components/ui/CustomTabBar';
+import { useProfilePreloader } from '../../hooks/useProfilePreloader';
 
 export default function TabLayout() {
+  // Use the profile preloader hook
+  useProfilePreloader();
+
   return (
     <Tabs
       screenOptions={{

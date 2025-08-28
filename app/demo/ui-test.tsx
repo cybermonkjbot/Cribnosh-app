@@ -3,7 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import CompactMealSelection from '../../components/CompactMealSelection';
 import GroupOrderMember from '../../components/GroupOrderMember';
 import GroupTotalSpendCard from '../../components/GroupTotalSpendCard';
-import KitchenNameCard from '../../components/KitchenNameCard';
+import { KitchenNameCard } from '../../components/KitchenNameCard';
 import LiveComments from '../../components/LiveComments';
 import { AISparkles } from '../../components/ui/AISparkles';
 import { Alert } from '../../components/ui/Alert';
@@ -22,7 +22,6 @@ import SvgHeading from '../../components/ui/SvgHeading';
 
 export default function UiTestPage() {
   const [checked, setChecked] = useState(false);
-  const [loved, setLoved] = useState(false);
   const sampleComments = [
     { name: 'Azeez', comment: 'This is awesome! Loving the live.' },
     { name: 'Mina', comment: 'Can you show the menu again please?' },

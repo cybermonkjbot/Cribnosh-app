@@ -37,7 +37,7 @@ export function TopKebabs({ onOpenDrawer }: TopKebabsProps) {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: 16, 
-        paddingHorizontal: 20 
+        paddingHorizontal: 16 
       }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           From Top Kebabs

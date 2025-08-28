@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
         flex: 1,
         // alignItems: 'center',
         // padding: 20,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         backgroundColor: '#02120A',
     },
     button: {
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   right: 0,
   // backgroundColor: '#02120A',
   paddingVertical: 16,
-  paddingHorizontal: 20,
+  paddingHorizontal: 16,
   gap: 12,
   
 },
@@ -217,13 +217,13 @@ coverEverything:{
   backgroundColor:"#5E685F",
   textAlign:'center',
   marginHorizontal:'auto',
-  paddingHorizontal:20,
+  paddingHorizontal:16,
   paddingVertical:5,
   borderRadius:10
 },
 handle: { backgroundColor: "#ccc", width: 48 },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 40,
   },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: 12 },

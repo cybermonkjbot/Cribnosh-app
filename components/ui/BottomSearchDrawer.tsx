@@ -121,21 +121,7 @@ const RestaurantIcon = ({ size = 18, color = '#a3b3a8' }) => (
   </SafeIcon>
 );
 
-// Sparkle Icon Component for search
-const SparkleIcon = ({ size = 24, color = '#ffffff' }) => (
-  <SafeIcon>
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z"
-        fill={color}
-      />
-      <Path
-        d="M19 7L20.18 9.82L23 11L20.18 12.18L19 15L17.82 12.18L15 11L17.82 9.82L19 7Z"
-        fill={color}
-      />
-    </Svg>
-  </SafeIcon>
-);
+// Removed unused SparkleIcon component
 
 // User/People Icon Component for Invite Friend
 const UserIcon = ({ size = 20, color = '#ffffff' }) => (
@@ -335,22 +321,12 @@ export function BottomSearchDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [isOpen, setIsOpen] = useState(false);
+  // Removed unused isOpen state and handleOpenSheet function
   const bottomSheetRef = useRef<BottomSheet>(null);
-   const handleOpenSheet = () => {
-    if (setIsOpen) {
-      setIsOpen(true);
-    }
-    bottomSheetRef.current?.expand();
-  };
  const handleNavigate = () => {
   router.push('/orders/group');
 };
    const handleCloseSheet = () => {
-    if (setIsOpen){
-
-      setIsOpen(false);
-    }
     bottomSheetRef.current?.close();
   };
   const snapPoints = useMemo(() => ['25%', '95%', '100%'], []);
@@ -1705,7 +1681,7 @@ const styles = StyleSheet.create({
         flex: 1,
         // alignItems: 'center',
         // padding: 20,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         backgroundColor: '#02120A',
     },
     button: {
@@ -1729,7 +1705,6 @@ const styles = StyleSheet.create({
   right: 0,
   // backgroundColor: '#02120A',
   paddingVertical: 16,
-  paddingHorizontal: 20,
   gap: 12,
   
 },
@@ -1740,7 +1715,7 @@ coverEverything:{
   backgroundColor:"#5E685F",
   textAlign:'center',
   marginHorizontal:'auto',
-  paddingHorizontal:20,
+  paddingHorizontal:16,
   paddingVertical:5,
   borderRadius:10
 }

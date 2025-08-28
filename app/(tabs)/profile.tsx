@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, Image, Text, View } from 'react-native';
+import { Alert, Image, Text, View } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -19,10 +19,7 @@ import { KPICards } from '../../components/ui/KPICards';
 import { ProfileScreenBackground } from '../../components/ui/ProfileScreenBackground';
 import { generateMockWeeklyData, sampleWeeklyData } from '../../utils/braggingCardsData';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const BREAKPOINT_THRESHOLD = 200; // Distance to trigger the breakpoint
-const RESISTANCE_FACTOR = 0.3; // How much resistance to apply
-const SNAP_VELOCITY = 800; // Minimum velocity to trigger snap
+// Removed unused constants
 
 // ForkPrint PNG component
 const ForkPrintImage = () => {
@@ -38,14 +35,14 @@ const ForkPrintImage = () => {
 const safeHapticFeedback = async (style: Haptics.ImpactFeedbackStyle) => {
   try {
     await Haptics.impactAsync(style);
-  } catch (error) {
+  } catch {
     console.log('Haptic feedback not supported on this device');
   }
 };
 
 export default function ProfileScreen() {
   const [braggingData, setBraggingData] = useState(sampleWeeklyData);
-  const [showDebug, setShowDebug] = useState(true); // Enable debug by default
+  const [showDebug] = useState(true); // Enable debug by default
   
   // Simplified state management
   const [isExpanded, setIsExpanded] = useState(false);
@@ -111,16 +108,7 @@ export default function ProfileScreen() {
     };
   });
 
-  // Safe scroll to function
-  const safeScrollTo = useCallback((y: number, animated: boolean = true) => {
-    if (scrollViewRef.current) {
-      try {
-        scrollViewRef.current.scrollTo({ y, animated });
-      } catch (error) {
-        console.log('Scroll error:', error);
-      }
-    }
-  }, []);
+  // Safe scroll to function - removed unused function
 
   // Simple expansion function
   const expandStats = useCallback(() => {
@@ -140,21 +128,7 @@ export default function ProfileScreen() {
     }, 300);
   }, [isExpanded]);
 
-  const collapseStats = useCallback(() => {
-    if (isAnimating.current || !isExpanded) return;
-    
-    console.log('Starting collapse animation');
-    isAnimating.current = true;
-    setIsExpanded(false);
-    
-    // Add haptic feedback
-    safeHapticFeedback(Haptics.ImpactFeedbackStyle.Light);
-    
-    setTimeout(() => {
-      isAnimating.current = false;
-      console.log('Collapse completed');
-    }, 300);
-  }, [isExpanded]);
+  // Removed unused collapseStats function
 
   // Minimal scroll handler - just track scroll position
   const scrollHandler = useAnimatedScrollHandler({
@@ -174,7 +148,7 @@ export default function ProfileScreen() {
     
     const interval = setInterval(checkExpansion, 100);
     return () => clearInterval(interval);
-  }, [isExpanded]);
+  }, [isExpanded, expandStats, scrollY.value]);
 
   // Simple mount effect
   useEffect(() => {
@@ -196,7 +170,7 @@ export default function ProfileScreen() {
     return () => {
       console.log('Profile screen unmounting');
     };
-  }, []);
+  }, [headerOpacity, scoreScale, cardsOpacity, cardsTranslateY, braggingCardsOpacity, braggingCardsTranslateY]);
 
   const handleMealsPress = () => {
     Alert.alert('Meals Logged', 'Show detailed meals breakdown');
@@ -226,7 +200,7 @@ export default function ProfileScreen() {
     setTimeout(() => {
       isAnimating.current = false;
     }, 500);
-  }, []);
+  }, [braggingCardsOpacity, braggingCardsTranslateY]);
 
   return (
     <ProfileScreenBackground>

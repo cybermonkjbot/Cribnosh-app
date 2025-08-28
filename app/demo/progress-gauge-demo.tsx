@@ -12,7 +12,7 @@ export default function ProgressGaugeDemo() {
       duration: 1000,
       useNativeDriver: false,
     }).start();
-  }, [progress]);
+  }, [progress, animatedProgress]);
 
   const updateProgress = () => {
     const newProgress = Math.random() * 100;

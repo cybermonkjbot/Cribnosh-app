@@ -12,7 +12,7 @@ export const CribNoshLogo: React.FC<CribNoshLogoProps> = ({
   variant = 'default'
 }) => {
   const fillColor = variant === 'white' ? '#FFFFFF' : '#24A645';
-  const textFillColor = variant === 'white' ? '#FFFFFF' : '#24A645';
+  const textFillColor = variant === 'white' ? '#FFFFFF' : '#dc2626';
 
   return (
     <View style={[styles.container, { width: size, height: size * 0.28 }]}>

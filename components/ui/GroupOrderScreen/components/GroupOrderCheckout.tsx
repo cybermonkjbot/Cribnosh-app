@@ -92,7 +92,7 @@ React.useEffect(() => {
                   right: 0,
                   backgroundColor: '#02120A',
                   paddingVertical: 60,
-                  paddingHorizontal: 20,
+                  paddingHorizontal: 16,
                   gap: 12,
               }}>
                  <CartButton quantity={4} onPress={() => console.log('yes')} /> 
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
         flex: 1,
         // alignItems: 'center',
         // padding: 20,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         backgroundColor: '#02120A',
     },
     coverEverything:{
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   backgroundColor:"#5E685F",
   textAlign:'center',
   marginHorizontal:'auto',
-  paddingHorizontal:20,
+  paddingHorizontal:16,
   paddingVertical:5,
   borderRadius:10
 },

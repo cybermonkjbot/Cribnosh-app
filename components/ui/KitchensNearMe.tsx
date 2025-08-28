@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 interface Kitchen {
@@ -35,7 +34,7 @@ const kitchens: Kitchen[] = [
 
 export function KitchensNearMe({ onKitchenPress }: KitchensNearMeProps) {
   return (
-    <View style={{ paddingVertical: 20, paddingHorizontal: 20 }}>
+    <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>
       <View style={{ 
         flexDirection: 'row', 
         justifyContent: 'space-between', 

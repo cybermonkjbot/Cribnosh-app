@@ -8,7 +8,6 @@ import { BackgroundElements } from './KitchenMainScreen/BackgroundElements';
 import { FoodIllustrations } from './KitchenMainScreen/FoodIllustrations';
 import { KitchenBottomSheet } from './KitchenMainScreen/KitchenBottomSheet';
 import { KitchenIntroCard } from './KitchenMainScreen/KitchenIntroCard';
-import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
@@ -79,7 +78,13 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       {/* Header Container with Kitchen Info Card and Close Button */}
       <View style={[styles.headerContainer, { top: insets.top + 20 }]}>
         {/* Kitchen Intro Card */}
-        <View style={styles.introCardContainer}>
+        <View style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 16, 
+          paddingHorizontal: 16 
+        }}>
           <KitchenIntroCard 
             kitchenName={kitchenName}
             cuisine={cuisine}

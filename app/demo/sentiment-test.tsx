@@ -1,6 +1,6 @@
 import { KitchenRating } from '@/components/ui/KitchenRating';
 import { SentimentRating } from '@/components/ui/SentimentRating';
-import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function SentimentTestScreen() {
@@ -93,7 +93,10 @@ export default function SentimentTestScreen() {
         <Text style={styles.sectionTitle}>🎯 Sentiment Categories</Text>
         
         <View style={styles.categorySection}>
-          <Text style={styles.categoryTitle}>🔥 Positive Sentiments</Text>
+          <View style={styles.categoryTitle}>
+            <Ionicons name="flame" size={16} color="#FF6B35" style={{ marginRight: 6 }} />
+            <Text style={styles.categoryTitleText}>Positive Sentiments</Text>
+          </View>
           <View style={styles.categoryGrid}>
             <SentimentRating sentiment="bussing" />
             <SentimentRating sentiment="fire" />
@@ -199,10 +202,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   categoryTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  categoryTitleText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#094327',
-    marginBottom: 12,
   },
   categoryGrid: {
     flexDirection: 'row',

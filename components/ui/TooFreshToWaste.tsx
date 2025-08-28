@@ -43,7 +43,7 @@ export function TooFreshToWaste({ onOpenDrawer, onOpenSustainability }: TooFresh
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: 16, 
-        paddingHorizontal: 20 
+        paddingHorizontal: 16 
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
@@ -99,11 +99,11 @@ export function TooFreshToWaste({ onOpenDrawer, onOpenSustainability }: TooFresh
                   padding: 6,
                   alignItems: 'center'
                 }}>
-                  <Image
+                  {/* <Image
                     source={require('../../assets/images/cribnoshpackaging.png')}
                     style={{ width: 16, height: 12, marginBottom: 2 }}
                     contentFit="contain"
-                  />
+                  /> */}
                   <Text style={{ 
                     fontSize: 8, 
                     fontWeight: '600', 
@@ -111,7 +111,7 @@ export function TooFreshToWaste({ onOpenDrawer, onOpenSustainability }: TooFresh
                     textAlign: 'center',
                     lineHeight: 10
                   }}>
-                    Exp. in 30 Min{'\n'}CONTAINER
+                    Leaves in 30 Min
                   </Text>
                 </View>
               </View>

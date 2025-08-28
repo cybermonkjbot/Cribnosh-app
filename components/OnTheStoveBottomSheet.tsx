@@ -78,7 +78,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     liveViewers: 127,
   },
 }) => {
-  const [quantity, setQuantity] = useState(1);
+  // Removed unused quantity state
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleQuantityChange = (value: number) => {

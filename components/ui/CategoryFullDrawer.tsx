@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stickySearch: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
     backgroundColor: '#FAFFFA',
     zIndex: 10,
@@ -143,6 +143,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentPadding: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
 }); 

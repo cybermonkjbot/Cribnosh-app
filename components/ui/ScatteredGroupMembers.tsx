@@ -147,7 +147,7 @@ const ScatteredGroupMembers: React.FC<ScatteredGroupMembersProps> = ({
       {members.length === 0 && searchQuery ? (
         <View style={styles.noResultsContainer}>
           <Text style={styles.noResultsText}>
-            No members found matching "{searchQuery}"
+            No members found matching &quot;{searchQuery}&quot;
           </Text>
           <Text style={styles.noResultsSubtext}>
             Try searching by name or status

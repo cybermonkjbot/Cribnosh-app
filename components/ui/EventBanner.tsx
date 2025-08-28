@@ -5,7 +5,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 export function EventBanner() {
   return (
-    <View style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
+    <View style={{ paddingHorizontal: 16, paddingVertical: 20 }}>
       <TouchableOpacity style={{ borderRadius: 16, overflow: 'hidden' }}>
         <View style={{ position: 'relative', height: 100 }}>
           <Image

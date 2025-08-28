@@ -1,9 +1,9 @@
-import React, { useRef, useMemo, useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
+import { ChevronDown } from 'lucide-react-native';
+import { useMemo, useRef } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ArrowBigDownIcon, ArrowDownIcon, ChevronDown } from 'lucide-react-native';
 
 type GroupOrderProps = {
     handleOpenSheet?: () => void;

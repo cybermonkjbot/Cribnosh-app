@@ -1,21 +1,9 @@
 import { useShakeDetection } from '@/hooks/useShakeDetection';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { CONFIG } from '../../constants/config';
 
 export default function SustainedShakeTest() {
-  // Early return if shake to eat is disabled
-  if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Sustained Shake Test</Text>
-        <Text style={styles.statusText}>
-          Shake to Eat Feature Disabled
-        </Text>
-      </View>
-    );
-  }
-
   const [shakeEvents, setShakeEvents] = useState<string[]>([]);
 
   const handleShake = () => {
@@ -38,6 +26,18 @@ export default function SustainedShakeTest() {
     cooldownMs: 1000,
     sustainedShakeDuration: 3000 // 3 seconds of sustained shaking required
   });
+
+  // Early return if shake to eat is disabled
+  if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Sustained Shake Test</Text>
+        <Text style={styles.statusText}>
+          Shake to Eat Feature Disabled
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -110,7 +110,7 @@ export default function SustainedShakeTest() {
         <Text style={styles.instruction}>1. Start shaking your device</Text>
         <Text style={styles.instruction}>2. Keep shaking continuously for 3 seconds</Text>
         <Text style={styles.instruction}>3. Watch the progress bar fill up</Text>
-        <Text style={styles.instruction}>4. Don't stop until it reaches 100%</Text>
+        <Text style={styles.instruction}>4. Don&apos;t stop until it reaches 100%</Text>
         <Text style={styles.instruction}>5. If you stop, progress resets to 0%</Text>
       </View>
     </View>
