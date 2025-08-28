@@ -47,9 +47,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     setCurrentStep('diet');
   };
 
-  const handleSkip = () => {
-    onSkip?.();
-  };
+
 
   const handleDietSkip = () => {
     onSkip?.();

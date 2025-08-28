@@ -63,9 +63,9 @@ export default function AppleSignInErrorDemo() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Apple Sign-In Error Handling Demo</Text>
-      <Text style={styles.subtitle}>Test different error scenarios and see how they're handled</Text>
+      <Text style={styles.subtitle}>Test different error scenarios and see how they&apos;re handled</Text>
       <Text style={styles.note}>
-        💡 User cancellations (like "authorization failed") are now handled gracefully without error messages
+        💡 User cancellations (like &quot;authorization failed&quot;) are now handled gracefully without error messages
       </Text>
 
       <View style={styles.buttonContainer}>
@@ -73,7 +73,7 @@ export default function AppleSignInErrorDemo() {
           style={[styles.errorButton, styles.cancellationButton]}
           onPress={() => testErrorHandling('authorization_failed')}
         >
-          <Text style={styles.buttonText}>Test "Authorization Failed"</Text>
+          <Text style={styles.buttonText}>Test &quot;Authorization Failed&quot;</Text>
           <Text style={styles.buttonSubtext}>Usually means user cancelled</Text>
         </TouchableOpacity>
 
@@ -81,7 +81,7 @@ export default function AppleSignInErrorDemo() {
           style={[styles.errorButton, styles.cancellationButton]}
           onPress={() => testErrorHandling('canceled')}
         >
-          <Text style={styles.buttonText}>Test "Canceled"</Text>
+          <Text style={styles.buttonText}>Test &quot;Canceled&quot;</Text>
           <Text style={styles.buttonSubtext}>Explicit user cancellation</Text>
         </TouchableOpacity>
 
@@ -89,7 +89,7 @@ export default function AppleSignInErrorDemo() {
           style={styles.errorButton}
           onPress={() => testErrorHandling('not_available')}
         >
-          <Text style={styles.buttonText}>Test "Not Available"</Text>
+          <Text style={styles.buttonText}>Test &quot;Not Available&quot;</Text>
           <Text style={styles.buttonSubtext}>Shows error message</Text>
         </TouchableOpacity>
 
@@ -97,7 +97,7 @@ export default function AppleSignInErrorDemo() {
           style={styles.errorButton}
           onPress={() => testErrorHandling('expired')}
         >
-          <Text style={styles.buttonText}>Test "Expired"</Text>
+          <Text style={styles.buttonText}>Test &quot;Expired&quot;</Text>
           <Text style={styles.buttonSubtext}>Shows error message</Text>
         </TouchableOpacity>
 
@@ -105,7 +105,7 @@ export default function AppleSignInErrorDemo() {
           style={styles.errorButton}
           onPress={() => testErrorHandling('invalid_response')}
         >
-          <Text style={styles.buttonText}>Test "Invalid Response"</Text>
+          <Text style={styles.buttonText}>Test &quot;Invalid Response&quot;</Text>
           <Text style={styles.buttonSubtext}>Shows error message</Text>
         </TouchableOpacity>
 
@@ -113,7 +113,7 @@ export default function AppleSignInErrorDemo() {
           style={[styles.errorButton, styles.cancellationButton]}
           onPress={() => testErrorHandling('unknown')}
         >
-          <Text style={styles.buttonText}>Test "Unknown Error"</Text>
+          <Text style={styles.buttonText}>Test &quot;Unknown Error&quot;</Text>
           <Text style={styles.buttonSubtext}>Treated as cancellation</Text>
         </TouchableOpacity>
       </View>

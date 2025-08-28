@@ -50,9 +50,7 @@ export const OnboardingDemo: React.FC<OnboardingDemoProps> = ({
     setCurrentScreen('signin');
   };
 
-  const handleBackToSignIn = () => {
-    setCurrentScreen('signin');
-  };
+
 
   if (currentScreen === 'onboarding') {
     return (

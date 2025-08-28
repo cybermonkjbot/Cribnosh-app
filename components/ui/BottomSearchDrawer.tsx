@@ -326,10 +326,7 @@ export function BottomSearchDrawer({
  const handleNavigate = () => {
   router.push('/orders/group');
 };
-   const handleCloseSheet = () => {
-    bottomSheetRef.current?.close();
-  };
-  const snapPoints = useMemo(() => ['25%', '95%', '100%'], []);
+
   
   // Filter chips state
   const [activeFilter, setActiveFilter] = useState('all');
@@ -391,8 +388,9 @@ export function BottomSearchDrawer({
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
+      const currentFocusTimeout = focusTimeoutRef.current;
+      if (currentFocusTimeout) {
+        clearTimeout(currentFocusTimeout);
       }
     };
   }, [userName]);
@@ -466,7 +464,7 @@ export function BottomSearchDrawer({
         gestureState.value = 'idle';
       }
     });
-  }, []);
+  }, [gestureState, currentSnapPoint, lastSnapPoint, drawerHeight]);
 
   // Intelligent snap point calculation
   const calculateSnapPoint = useCallback((currentHeight: number, velocityY: number, gestureDistance: number) => {
@@ -499,7 +497,7 @@ export function BottomSearchDrawer({
     } else {
       return SNAP_POINTS.EXPANDED;
     }
-  }, []);
+  }, [lastSnapPoint.value]);
 
   // Gesture handler with proper state management
   const gestureHandler = useAnimatedGestureHandler<
@@ -778,7 +776,7 @@ export function BottomSearchDrawer({
         searchInputRef.current?.focus();
       }, 300); // Wait for animation to complete
     }
-  }, [animateToSnapPoint]);
+  }, [animateToSnapPoint, currentSnapPointValue.value]);
 
   // Handle search focus when in expanded state
   const handleSearchFocus = useCallback(() => {
@@ -786,7 +784,7 @@ export function BottomSearchDrawer({
       setIsSearchFocused(true);
       searchInputRef.current?.focus();
     }
-  }, []);
+  }, [currentSnapPointValue.value]);
 
   // Handle search blur/cancel
   const handleSearchBlur = useCallback(() => {
@@ -795,7 +793,7 @@ export function BottomSearchDrawer({
   }, []);
 
   // Mock search suggestions - replace with real data
-  const searchSuggestions = [
+  const searchSuggestions = useMemo(() => [
     { id: 1, text: 'Pizza', category: 'Italian', kitchen: 'Mario\'s Kitchen', time: '25 min', distance: '0.8 mi', type: 'meals' },
     { id: 2, text: 'Sushi', category: 'Japanese', kitchen: 'Tokyo Express', time: '30 min', distance: '1.2 mi', type: 'meals' },
     { id: 3, text: 'Burger', category: 'American', kitchen: 'Street Grill', time: '20 min', distance: '0.5 mi', type: 'meals' },
@@ -804,7 +802,7 @@ export function BottomSearchDrawer({
     { id: 6, text: 'Mario\'s Kitchen', category: 'Italian', rating: '4.8', time: '25 min', distance: '0.8 mi', type: 'kitchens' },
     { id: 7, text: 'Tokyo Express', category: 'Japanese', rating: '4.6', time: '30 min', distance: '1.2 mi', type: 'kitchens' },
     { id: 8, text: 'Street Grill', category: 'American', rating: '4.4', time: '20 min', distance: '0.5 mi', type: 'kitchens' },
-  ];
+  ], []);
 
   // Filter suggestions based on active search filter with error handling
   const filteredSuggestions = useMemo(() => {

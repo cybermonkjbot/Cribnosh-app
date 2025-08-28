@@ -57,7 +57,7 @@ export const OnboardingDietScreen: React.FC<OnboardingDietScreenProps> = ({
             
             {/* Description */}
             <Text style={styles.description}>
-              Tell us what you like, skip what you don't.
+              Tell us what you like, skip what you don&apos;t.
             </Text>
             
             {/* Diet Description Section */}
