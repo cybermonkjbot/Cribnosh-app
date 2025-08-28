@@ -133,7 +133,7 @@ export function LiveContent({
         alwaysBounceVertical={true}
         contentContainerStyle={{ 
           paddingBottom: 100,
-          paddingTop: isHeaderSticky ? 0 : 280, // Increased top padding for better spacing
+          paddingTop: isHeaderSticky ? 0 : 320, // Increased top padding to push content down more
         }}
         refreshControl={
           <RefreshControl

@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Image, Text, View } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
@@ -202,19 +202,26 @@ export default function ProfileScreen() {
     }, 500);
   }, [braggingCardsOpacity, braggingCardsTranslateY]);
 
+  // Memoized scroll view props to prevent re-creation
+  const scrollViewProps = useMemo(() => ({
+    ref: scrollViewRef,
+    style: { flex: 1, width: '100%' as const },
+    showsVerticalScrollIndicator: false,
+    contentContainerStyle: { paddingBottom: 100, width: '100%' as const },
+    onScroll: scrollHandler,
+    scrollEventThrottle: 16, // Optimized from 33 to 16 for smoother scrolling
+    bounces: true,
+    alwaysBounceVertical: true,
+    removeClippedSubviews: true, // Enable view recycling
+    maxToRenderPerBatch: 10, // Limit batch rendering
+    windowSize: 5, // Reduce window size for better performance
+  }), [scrollHandler]);
+
   return (
     <ProfileScreenBackground>
       <SafeAreaView style={{ flex: 1, width: '100%' }}>
         <Animated.ScrollView 
-          ref={scrollViewRef}
-          style={{ flex: 1, width: '100%' }} 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100, width: '100%' }}
-          onScroll={scrollHandler}
-          scrollEventThrottle={33}
-          bounces={true}
-          alwaysBounceVertical={true}
-          removeClippedSubviews={false}
+          {...scrollViewProps}
         >
             {/* Header */}
             <Animated.View style={headerAnimatedStyle}>

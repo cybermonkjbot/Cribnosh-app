@@ -160,7 +160,7 @@ export function OrderAgainSection({ isHeaderSticky = false }: OrderAgainSectionP
                   <Text style={{ color: '#fff', fontSize: 10, fontWeight: '600', marginRight: 2 }}>
                     Bussin
                   </Text>
-                  <Ionicons name="flame" size={8} color="#FF6B35" />
+                  <Ionicons name="flame" size={8} color="#FFE4E1" />
                 </View>
               )}
             </View>
