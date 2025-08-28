@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
 import OnTheStoveBottomSheet from '../OnTheStoveBottomSheet';
 import { CribnoshLiveHeader } from './CribnoshLiveHeader';
+import LoveThisButton from './LoveThisButton';
 
 const LiveScreenView: React.FC = () => {
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
@@ -34,44 +35,30 @@ const LiveScreenView: React.FC = () => {
   const safeMealData = mealData ?? mealData;
 
   return (
-    <View style={styles.container}>
-      {/* Background image that covers the whole screen */}
-      <Image
-        source={require('../../assets/images/KitchenLive-01.png')}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          position: 'absolute',
-          top: 0,
-        }}
-        resizeMode="cover"
-        
-      />
+   <ImageBackground
+      source={require('../../assets/images/KitchenLive-01.png')}
+      style={styles.container}
+      resizeMode="cover"
+    >
       <View>
-        <View>
-           <CribnoshLiveHeader avatarSource={'https://fhfhfhhf'} kitchenTitle='Mimi' viewers={303} onCancel={() => {}} />
-        </View>
-        <OnTheStoveBottomSheet
-          isVisible={true}
-          onToggleVisibility={toggleBottomSheet}
-          onShareLive={handleShareLive}
-          onTreatSomeone={handleTreatSomeone}
-          
-          // mealData={safeMealData}
-        />     
+        <CribnoshLiveHeader
+          avatarSource={'https://fhfhfhhf'}
+          kitchenTitle="Mimi"
+          viewers={303}
+          onCancel={() => {}}
+        />
       </View>
+        {/* 🔥 Fixed Love Button */}
+        <LoveThisButton style={styles.loveButton} />
 
-      {/* Toggle Button */}
-      {/* <Pressable style={styles.toggleButton} onPress={toggleBottomSheet}>
-        <Text style={styles.toggleButtonText}>
-          {isBottomSheetVisible ? 'Hide' : 'Show'} On The Stove
-        </Text>
-      </Pressable> */}
-
-      {/* OnTheStove Bottom Sheet */}
-      
-    </View>
+      <OnTheStoveBottomSheet
+        isVisible={true}
+        onToggleVisibility={toggleBottomSheet}
+        onShareLive={handleShareLive}
+        onTreatSomeone={handleTreatSomeone}
+        // mealData={safeMealData}
+      />
+    </ImageBackground>
   );
 };
 
@@ -90,6 +77,13 @@ const styles = StyleSheet.create({
     color: '#E6FFE8',
     fontSize: 16,
     fontWeight: '600',
+  },
+   loveButton: {
+    position: 'absolute',
+    top: 255,   // stays pinned at the top
+    left: 20,
+    right: 20,
+    zIndex: 10,
   },
 });
 

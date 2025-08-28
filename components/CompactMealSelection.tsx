@@ -1,12 +1,12 @@
-import React from 'react';
-import { Image, Text, View } from 'react-native';
-import OrderItemCounterButton from './OrderItemCounterButton';
+import React, { useState } from 'react';
+import { Image, Text, View, Pressable, Dimensions } from 'react-native';
+import { Minus, Plus } from 'lucide-react-native'; // optional icons, you can swap
 import { TiltCard } from './ui/TiltCard';
 
 interface CompactMealSelectionProps {
   title?: string;
   price?: string;
-  imageSource?: any;
+  imageSource?: any; // local require() or URL string
   onChange?: (quantity: number) => void;
   tiltEnabled?: boolean;
 }
@@ -18,26 +18,87 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
   onChange,
   tiltEnabled = true,
 }) => {
+  const screenWidth = Dimensions.get('window').width;
+  const imageSize = screenWidth * 0.18; // ~18% of screen width for thumbnail
+
+  const resolvedSource =
+    typeof imageSource === 'string' ? { uri: imageSource } : imageSource;
+
+  const [quantity, setQuantity] = useState(1);
+
+  const handleIncrement = () => {
+    const newQty = quantity + 1;
+    setQuantity(newQty);
+    onChange?.(newQty);
+  };
+
+  const handleDecrement = () => {
+    if (quantity > 1) {
+      const newQty = quantity - 1;
+      setQuantity(newQty);
+      onChange?.(newQty);
+    }
+  };
+
   const cardContent = (
-    <View className="flex-row items-center bg-white rounded-2xl shadow-sm p-2 gap-2 w-full min-w-0 flex-1 self-stretch">
+    <View className="flex-row items-center bg-white rounded-2xl shadow-sm p-3 w-full self-stretch">
       {/* Image Section */}
-      <View className="w-[72px] h-[72px] justify-center items-center mr-2 relative overflow-hidden rounded-xl">
-        <View className="absolute w-full h-full bg-[#FAFAFA] border border-[#EAEAEA] rounded-xl z-10" />
-        <Image src={imageSource}  className="w-full h-full" resizeMode="cover" style={{ position: 'absolute', top: 0, left: 0 }} />
+      <View
+        style={{
+          width: imageSize,
+          height: imageSize,
+          borderRadius: 12,
+          overflow: 'hidden',
+          marginRight: 12,
+        }}
+      >
+        <Image
+          source={resolvedSource}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="cover"
+        />
       </View>
+
       {/* Info Section */}
-      <View className="flex-1 justify-center ml-2 min-w-0">
-        <Text className="font-inter font-normal text-[16px] leading-6 text-black h-6" numberOfLines={1} ellipsizeMode="tail">{title}</Text>
-        <Text className="font-inter font-bold text-[16px] leading-6 text-black h-6 mt-1">{price}</Text>
+      <View className="flex-1 justify-center min-w-0 mr-3">
+        <Text
+          className="font-inter font-normal text-base text-black"
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {title}
+        </Text>
+        <Text className="font-inter font-bold text-base text-black mt-1">
+          {price}
+        </Text>
       </View>
+
       {/* Counter Section */}
-      <View className="w-[79px] h-9 justify-center items-center ml-2">
-        <OrderItemCounterButton onChange={onChange} />
+      <View className="flex-row items-center justify-between bg-[#F5F5F5] rounded-full px-2 py-1 w-[90px]">
+        {/* Decrement */}
+        <Pressable
+          onPress={handleDecrement}
+          style={{ padding: 4 }}
+          android_ripple={{ color: '#ddd', borderless: true }}
+        >
+          <Minus size={18} color="#094327" />
+        </Pressable>
+
+        {/* Quantity Display */}
+        <Text className="text-base font-bold text-[#094327]">{quantity}</Text>
+
+        {/* Increment */}
+        <Pressable
+          onPress={handleIncrement}
+          style={{ padding: 4 }}
+          android_ripple={{ color: '#ddd', borderless: true }}
+        >
+          <Plus size={18} color="#094327" />
+        </Pressable>
       </View>
     </View>
   );
 
-  // Wrap with TiltCard if enabled
   if (tiltEnabled) {
     return (
       <TiltCard

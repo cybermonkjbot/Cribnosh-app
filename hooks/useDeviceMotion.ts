@@ -61,7 +61,7 @@ export function useDeviceMotion({
   useEffect(() => {
     if (!enabled || !isAvailable) {
       if (subscription.current) {
-        subscription.current.unsubscribe();
+        subscription.current.remove();
         subscription.current = null;
       }
       return;
@@ -94,7 +94,7 @@ export function useDeviceMotion({
 
     return () => {
       if (subscription.current) {
-        subscription.current.unsubscribe();
+        subscription.current.remove();
         subscription.current = null;
       }
     };
@@ -104,7 +104,7 @@ export function useDeviceMotion({
   useEffect(() => {
     return () => {
       if (subscription.current) {
-        subscription.current.unsubscribe();
+        subscription.current.remove();
         subscription.current = null;
       }
     };
