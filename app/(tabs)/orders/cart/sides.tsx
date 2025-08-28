@@ -1,5 +1,6 @@
+import OnTheWay from "@/components/ui/OnTheWay";
 import Entypo from "@expo/vector-icons/Entypo";
-import React from "react";
+import React, { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -18,6 +19,8 @@ export default function CartScreen() {
       quantity: 1,
     },
   ];
+
+  const [onTheWayModal, setOnTheWayModal] = useState(false);
   return (
     <SafeAreaView className="flex-1 p-5 bg-[02120A]">
       <View className="flex flex-col justify-between flex-1">
@@ -109,11 +112,18 @@ export default function CartScreen() {
             <Text className="text-lg font-bold text-white">Total </Text>
             <Text className="text-lg font-bold text-white">£ 36</Text>
           </View>
-          <Pressable className="bg-[#FF3B30] rounded-2xl p-5 flex items-center justify-center mt-5">
+          <Pressable
+            onPress={() => setOnTheWayModal(true)}
+            className="bg-[#FF3B30] rounded-2xl p-5 flex items-center justify-center mt-5"
+          >
             <Text className="text-lg font-bold text-white">Pay</Text>
           </Pressable>
         </View>
       </View>
+      <OnTheWay
+        isVisible={onTheWayModal}
+        onClose={() => setOnTheWayModal(false)}
+      />
     </SafeAreaView>
   );
 }

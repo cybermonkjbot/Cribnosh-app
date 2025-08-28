@@ -2,9 +2,10 @@ import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
 import { Link } from "expo-router";
 import { CarFront } from "lucide-react-native";
-import React from "react";
+import React, { useState } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ChooseFriend from "./ChooseFriend";
 
 export default function CartScreen() {
   const OrderItems = [
@@ -21,6 +22,8 @@ export default function CartScreen() {
       quantity: 1,
     },
   ];
+
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <SafeAreaView className="flex-1 p-5 bg-white">
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
@@ -145,7 +148,10 @@ export default function CartScreen() {
                   </View>
                 </View>
 
-                <Pressable className="bg-[#F3F4F6] rounded-2xl p-2">
+                <Pressable
+                  onPress={() => setIsOpen(true)}
+                  className="bg-[#F3F4F6] rounded-2xl p-2"
+                >
                   <Text className="text-lg font-semibold">Choose</Text>
                 </Pressable>
               </View>
@@ -171,6 +177,7 @@ export default function CartScreen() {
           </View>
         </View>
       </ScrollView>
+      <ChooseFriend isOpen={isOpen} onClick={() => setIsOpen(false)} />
     </SafeAreaView>
   );
 }
