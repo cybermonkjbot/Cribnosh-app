@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import OnTheStoveBottomSheet from '../OnTheStoveBottomSheet';
+import { CribnoshLiveHeader } from './CribnoshLiveHeader';
 
-const OnTheStoveExample: React.FC = () => {
+const LiveScreenView: React.FC = () => {
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
 
   const toggleBottomSheet = () => {
@@ -24,7 +26,12 @@ const OnTheStoveExample: React.FC = () => {
     imageSource: require('../../assets/images/cribnoshpackaging.png'),
     description: 'Watch Chef Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready.',
     kitchenName: 'Minnies Kitchen',
+    ingredients: ['Premium Basmati Rice', 'Fresh Tomatoes', 'Bell Peppers', 'Red Onions', 'Secret Spice Blend'],
+    cookingTime: '25 minutes',
+    chefBio: 'Chef Minnie brings 15+ years of authentic Nigerian cooking experience. Every dish tells a story of tradition and love.',
+    liveViewers: 127,
   };
+  const safeMealData = mealData ?? mealData;
 
   return (
     <View style={styles.container}>
@@ -41,6 +48,19 @@ const OnTheStoveExample: React.FC = () => {
         resizeMode="cover"
         
       />
+      <View>
+        <View>
+           <CribnoshLiveHeader avatarSource={'https://fhfhfhhf'} kitchenTitle='Mimi' viewers={303} onCancel={() => {}} />
+        </View>
+        <OnTheStoveBottomSheet
+          isVisible={true}
+          onToggleVisibility={toggleBottomSheet}
+          onShareLive={handleShareLive}
+          onTreatSomeone={handleTreatSomeone}
+          
+          // mealData={safeMealData}
+        />     
+      </View>
 
       {/* Toggle Button */}
       {/* <Pressable style={styles.toggleButton} onPress={toggleBottomSheet}>
@@ -50,13 +70,7 @@ const OnTheStoveExample: React.FC = () => {
       </Pressable> */}
 
       {/* OnTheStove Bottom Sheet */}
-      {/* <OnTheStoveBottomSheet
-        isVisible={isBottomSheetVisible}
-        onToggleVisibility={toggleBottomSheet}
-        onShareLive={handleShareLive}
-        onTreatSomeone={handleTreatSomeone}
-        mealData={mealData}
-      /> */}
+      
     </View>
   );
 };
@@ -64,9 +78,7 @@ const OnTheStoveExample: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'red',
+  
   },
   toggleButton: {
     backgroundColor: '#094327',
@@ -81,4 +93,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnTheStoveExample;
+export default LiveScreenView;

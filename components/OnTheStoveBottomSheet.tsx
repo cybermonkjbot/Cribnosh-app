@@ -69,7 +69,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
   mealData = {
     title: 'Nigerian Jollof',
     price: '£ 16',
-    imageSource: require('../assets/images/cribnoshpackaging.png') as any,
+    imageSource: 'https://avatar.iran.liara.run/public/44',
     description: 'Watch Chef Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready.',
     kitchenName: 'Minnies Kitchen',
     ingredients: ['Premium Basmati Rice', 'Fresh Tomatoes', 'Bell Peppers', 'Red Onions', 'Secret Spice Blend'],
@@ -78,6 +78,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     liveViewers: 127,
   },
 }) => {
+  console.log('Meal Data:', mealData); // Debugging line to check mealData
   const [quantity, setQuantity] = useState(1);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -129,9 +130,9 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
 
         {/* Title with Sparkles Icon */}
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="font-inter font-bold text-[30px] leading-9 text-[#094327] flex-1">
+          {/* <Text className="font-inter font-bold text-[30px] leading-9 text-[#094327] flex-1">
             #{mealData.title}
-          </Text>
+          </Text> */}
           
           {/* Sparkles Icon */}
           <View className="w-[35px] h-8 justify-center items-center">
@@ -144,63 +145,63 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
           className="font-sf-pro font-bold text-[17px] leading-[22px] tracking-[-0.43px] text-[#094327] mb-6"
           numberOfLines={4}
         >
-          {mealData.description}
+          {/* {mealData.description} */}
         </Text>
 
         {/* Action Buttons */}
         <View className="flex-row gap-2 mb-6">
           {/* Share Live Button */}
-          <CustomButton
+          {/* <CustomButton
             text="Share live"
             backgroundColor="#094327"
             textColor="#E6FFE8"
             style={{ flex: 1 }}
             onPress={onShareLive}
-          />
+          /> */}
 
           {/* Treat Someone Button */}
-          <CustomButton
+          {/* <CustomButton
             text="Treat Someone"
             icon={<ExternalLink color="#094327" size={16} strokeWidth={1.33} />}
             backgroundColor="rgba(0, 0, 0, 0.3)"
             textColor="#094327"
             style={{ flex: 1 }}
             onPress={onTreatSomeone}
-          />
+          /> */}
         </View>
 
         {/* Compact Meal Selection */}
         <View className="mb-6">
-          <CompactMealSelection
+          {/* <CompactMealSelection
             title={mealData.title}
             price={mealData.price}
             imageSource={mealData.imageSource}
             onChange={handleQuantityChange}
-          />
+          /> */}
         </View>
 
         {/* Expanded Content */}
         {isExpanded && (
           <View className="space-y-5">
             {/* Live Viewers */}
-            <View>
+            {/* <View>
               <Text className="text-lg font-bold text-[#094327] mb-2">Live Viewers</Text>
               <View className="flex-row items-center gap-2">
                 <Text className="text-xl font-bold text-[#094327]">👥 {mealData.liveViewers || 0}</Text>
                 <Text className="text-base text-gray-600">people watching</Text>
               </View>
-            </View>
+            </View> */}
 
             {/* Cooking Time */}
-            {mealData.cookingTime && (
+            {/* {mealData.cookingTime && (
               <View>
                 <Text className="text-lg font-bold text-[#094327] mb-2">Cooking Time</Text>
                 <Text className="text-base text-gray-600 leading-[22px]">⏱️ {mealData.cookingTime}</Text>
               </View>
-            )}
+            )} */}
 
             {/* Ingredients */}
-            {mealData.ingredients && mealData.ingredients.length > 0 && (
+            {/* {mealData.ingredients && mealData.ingredients.length > 0 && (
               <View>
                 <Text className="text-lg font-bold text-[#094327] mb-2">Ingredients</Text>
                 <View className="gap-1">
@@ -211,15 +212,15 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
                   ))}
                 </View>
               </View>
-            )}
+            )} */}
 
             {/* Chef Bio */}
-            {mealData.chefBio && (
+            {/* {mealData.chefBio && (
               <View>
                 <Text className="text-lg font-bold text-[#094327] mb-2">About the Chef</Text>
                 <Text className="text-base text-gray-600 leading-[22px]">{mealData.chefBio}</Text>
               </View>
-            )}
+            )} */}
           </View>
         )}
       </View>

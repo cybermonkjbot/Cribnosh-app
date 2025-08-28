@@ -14,7 +14,7 @@ interface CompactMealSelectionProps {
 const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
   title = 'Creamy Soup',
   price = '16 QR',
-  imageSource = require('../assets/images/cribnoshpackaging.png'),
+  imageSource = 'https://avatar.iran.liara.run/public/44',
   onChange,
   tiltEnabled = true,
 }) => {
@@ -23,7 +23,7 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
       {/* Image Section */}
       <View className="w-[72px] h-[72px] justify-center items-center mr-2 relative overflow-hidden rounded-xl">
         <View className="absolute w-full h-full bg-[#FAFAFA] border border-[#EAEAEA] rounded-xl z-10" />
-        <Image source={imageSource} className="w-full h-full" resizeMode="cover" style={{ position: 'absolute', top: 0, left: 0 }} />
+        <Image src={imageSource}  className="w-full h-full" resizeMode="cover" style={{ position: 'absolute', top: 0, left: 0 }} />
       </View>
       {/* Info Section */}
       <View className="flex-1 justify-center ml-2 min-w-0">

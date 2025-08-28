@@ -140,7 +140,7 @@ export function LiveContent({
 
   const handleKitchenPress = (kitchen: LiveKitchen) => {
     console.log('Joining live kitchen:', kitchen.name);
-    router.push('/live/index')
+    router.push('/live')
     
     
     // Here you would navigate to the live kitchen view
