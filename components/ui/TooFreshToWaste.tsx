@@ -111,7 +111,7 @@ export function TooFreshToWaste({ onOpenDrawer, onOpenSustainability }: TooFresh
                     textAlign: 'center',
                     lineHeight: 10
                   }}>
-                    Leaves in 30 Min
+                     in 30 Min
                   </Text>
                 </View>
               </View>

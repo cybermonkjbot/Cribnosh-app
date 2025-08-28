@@ -2,12 +2,13 @@ import { BurgerIcon } from '@/components/ui/BurgerIcon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { GradientBackground } from '@/components/ui/GradientBackground';
 import { OrderCard } from '@/components/ui/OrderCard';
+import { OrdersCampaignBanner } from '@/components/ui/OrdersCampaignBanner';
 import { PremiumHeader } from '@/components/ui/PremiumHeader';
 import { PremiumTabs } from '@/components/ui/PremiumTabs';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
 
 // Define order status types
 export type OrderStatus = 'preparing' | 'ready' | 'on-the-way' | 'delivered' | 'cancelled';
@@ -228,15 +229,8 @@ export default function OrdersScreen() {
         onTabPress={(tabKey) => setActiveTab(tabKey as 'ongoing' | 'past')}
       />
 
-      {/* Group Orders Button */}
-      <View style={styles.groupOrdersButtonContainer}>
-        <TouchableOpacity 
-          style={styles.groupOrdersButton}
-          onPress={() => router.push('/orders/group')}
-        >
-          <Text style={styles.groupOrdersButtonText}>Start Group Order</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Campaign Banner */}
+      <OrdersCampaignBanner onPress={() => router.push('/orders/group')} />
 
       <ScrollView 
         style={styles.content} 
@@ -257,21 +251,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 100, // Account for tab bar
   },
-  groupOrdersButtonContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  groupOrdersButton: {
-    backgroundColor: '#ef4444',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  groupOrdersButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+
 }); 

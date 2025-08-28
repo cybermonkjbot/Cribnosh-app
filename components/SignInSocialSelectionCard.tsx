@@ -1,10 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SocialSignIn } from './SocialSignIn';
 
 interface SignInSocialSelectionCardProps {
   onGoogleSignIn?: () => void;
   onAppleSignIn?: () => void;
+  onEmailSignIn?: () => void;
   bottomInset?: number;
   isAppleSignInAvailable?: boolean | null;
   isAppleSignInLoading?: boolean;
@@ -14,6 +16,7 @@ interface SignInSocialSelectionCardProps {
 export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps> = ({
   onGoogleSignIn,
   onAppleSignIn,
+  onEmailSignIn,
   bottomInset = 0,
   isAppleSignInAvailable,
   isAppleSignInLoading,
@@ -21,8 +24,18 @@ export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps>
 }) => {
   return (
     <View style={[styles.container, { height: 378 + bottomInset }]}>
-      {/* Title */}
-      <Text style={styles.title}>Ready?{'\n'}Set, Eat</Text>
+      {/* Title and Email Sign In Button */}
+      <View style={styles.titleContainer}>
+        <Text style={styles.title}>Ready?{'\n'}Set, Eat</Text>
+        <TouchableOpacity 
+          style={styles.emailSignInButton}
+          onPress={onEmailSignIn}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.emailSignInText}>Sign in with email</Text>
+          <Ionicons name="arrow-forward" size={16} color="#4ADE80" />
+        </TouchableOpacity>
+      </View>
       
       {/* Divider Line */}
       <View style={styles.divider} />
@@ -68,6 +81,13 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    width: '100%',
+    marginBottom: 16,
+  },
   title: {
     fontFamily: 'Poppins',
     fontStyle: 'normal',
@@ -76,8 +96,27 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     color: '#FFFFFF',
     textAlign: 'left',
-    marginBottom: 16,
     letterSpacing: -0.5,
+    flex: 1,
+  },
+  emailSignInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    gap: 4,
+  },
+  emailSignInText: {
+    fontFamily: 'SF Pro',
+    fontStyle: 'normal',
+    fontWeight: '500',
+    fontSize: 13,
+    lineHeight: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
   },
   divider: {
     width: 32,

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { Avatar } from './Avatar';
 import { CribNoshLogo } from './CribNoshLogo';
@@ -429,6 +430,35 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
     }
   ]);
 
+  // Animation values
+  const scaleValue = useSharedValue(1);
+  const opacityValue = useSharedValue(1);
+  const translateYValue = useSharedValue(0);
+  const isClosing = useRef(false);
+
+  // Handle smooth exit animation
+  const handleCloseWithAnimation = () => {
+    if (isClosing.current) return;
+    isClosing.current = true;
+
+    // Smooth exit animation
+    scaleValue.value = withTiming(0.95, { duration: 200, easing: Easing.out(Easing.cubic) });
+    opacityValue.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
+    translateYValue.value = withTiming(50, { duration: 300, easing: Easing.out(Easing.cubic) }, () => {
+      runOnJS(onClose)();
+    });
+  };
+
+  // Reset animation values when becoming visible
+  useEffect(() => {
+    if (isVisible) {
+      isClosing.current = false;
+      scaleValue.value = 1;
+      opacityValue.value = 1;
+      translateYValue.value = 0;
+    }
+  }, [isVisible, scaleValue, opacityValue, translateYValue]);
+
   const handleSendMessage = (message: string) => {
     if (message.trim()) {
       const newMessage: Message = {
@@ -450,12 +480,21 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
     }
   };
 
+  // Animated styles
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scaleValue.value },
+      { translateY: translateYValue.value }
+    ],
+    opacity: opacityValue.value,
+  }));
+
   return (
     <Modal
       visible={isVisible}
       animationType="none"
       transparent={false}
-      onRequestClose={onClose}
+      onRequestClose={handleCloseWithAnimation}
       statusBarTranslucent={true}
       presentationStyle="fullScreen"
     >
@@ -469,83 +508,85 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
           zIndex: 99999, // High z-index but lower than bottom tabs (999999)
         }}
       >
-        {/* Header */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-          backgroundColor: COLORS.glass.white,
-          shadowColor: COLORS.black,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 8,
-        }}>
-          <TouchableOpacity 
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              shadowColor: COLORS.black,
-              shadowOffset: {
-                width: 0,
-                height: 2,
-              },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-            }} 
-            onPress={onClose} 
-            activeOpacity={0.8}
-          >
-            <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
-              <Path
-                d="M15 5L5 15M5 5L15 15"
-                stroke={COLORS.darkGray}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </TouchableOpacity>
-          
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <CribNoshLogo size={120} variant="default" />
-          </View>
-        </View>
-
-        {/* Messages */}
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingVertical: 20 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {messages.map((message) => (
-            <View key={message.id}>
-              {message.type === 'user' ? (
-                <UserMessage
-                  message={message.content}
+        <Animated.View style={[animatedContainerStyle, { flex: 1 }]}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: COLORS.glass.white,
+            shadowColor: COLORS.black,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 8,
+          }}>
+            <TouchableOpacity 
+              style={{
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                shadowColor: COLORS.black,
+                shadowOffset: {
+                  width: 0,
+                  height: 2,
+                },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }} 
+              onPress={handleCloseWithAnimation} 
+              activeOpacity={0.8}
+            >
+              <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                <Path
+                  d="M15 5L5 15M5 5L15 15"
+                  stroke={COLORS.darkGray}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
-              ) : (
-                <AIMessage
-                  message={message.content}
-                  products={message.products}
-                  title={message.title}
-                />
-              )}
+              </Svg>
+            </TouchableOpacity>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <CribNoshLogo size={120} variant="default" />
             </View>
-          ))}
-        </ScrollView>
+          </View>
 
-        {/* Chat Input */}
-        <ChatInput onSend={handleSendMessage} />
+          {/* Messages */}
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingVertical: 20 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {messages.map((message) => (
+              <View key={message.id}>
+                {message.type === 'user' ? (
+                  <UserMessage
+                    message={message.content}
+                  />
+                ) : (
+                  <AIMessage
+                    message={message.content}
+                    products={message.products}
+                    title={message.title}
+                  />
+                )}
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Chat Input */}
+          <ChatInput onSend={handleSendMessage} />
+        </Animated.View>
       </LinearGradient>
     </Modal>
   );

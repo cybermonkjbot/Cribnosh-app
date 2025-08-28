@@ -9,10 +9,12 @@ import { AppleSignInErrorHandler, handleAppleSignInError } from '../utils/appleS
 import { handleGoogleSignInError } from '../utils/googleSignInErrorHandler';
 import { SignInSocialSelectionCard } from './SignInSocialSelectionCard';
 import { CribNoshLogo } from './ui/CribNoshLogo';
+import { PhoneSignInModal } from './ui/PhoneSignInModal';
 
 interface SignInScreenProps {
   onGoogleSignIn?: (idToken: string) => void;
   onAppleSignIn?: (idToken: string) => void;
+  onEmailSignIn?: () => void;
   onClose?: () => void;
   backgroundImage?: any;
 }
@@ -27,6 +29,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
   const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState<boolean | null>(null);
   const [isAppleSignInLoading, setIsAppleSignInLoading] = useState(false);
   const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
+  const [isPhoneSignInModalVisible, setIsPhoneSignInModalVisible] = useState(false);
   
   // Google Sign-In setup
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
@@ -161,6 +164,9 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
           <SignInSocialSelectionCard
             onGoogleSignIn={handleGoogleSignIn}
             onAppleSignIn={handleAppleSignIn}
+            onEmailSignIn={() => {
+              setIsPhoneSignInModalVisible(true);
+            }}
             isAppleSignInAvailable={isAppleSignInAvailable}
             isAppleSignInLoading={isAppleSignInLoading}
             isGoogleSignInLoading={isGoogleSignInLoading}
@@ -170,6 +176,16 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         {/* Home Indicator */}
         <View style={[styles.homeIndicator, { bottom: insets.bottom + 8 }]} />
       </ImageBackground>
+      
+      {/* Phone Sign In Modal */}
+      <PhoneSignInModal
+        isVisible={isPhoneSignInModalVisible}
+        onClose={() => setIsPhoneSignInModalVisible(false)}
+        onPhoneSubmit={(phoneNumber) => {
+          console.log('Phone number submitted:', phoneNumber);
+          // TODO: Implement phone verification logic
+        }}
+      />
     </View>
   );
 };
