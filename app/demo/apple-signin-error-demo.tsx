@@ -4,6 +4,7 @@ import { AppleSignInErrorHandler, handleAppleSignInError } from '../../utils/app
 
 export default function AppleSignInErrorDemo() {
   const [lastError, setLastError] = useState<any>(null);
+  const [lastProcessedError, setLastProcessedError] = useState<any>(null);
 
   const testErrorHandling = (errorType: string) => {
     let testError: any;
@@ -31,7 +32,7 @@ export default function AppleSignInErrorDemo() {
     setLastError(testError);
 
     // Test the error handling
-    handleAppleSignInError(
+    const processedError = handleAppleSignInError(
       testError,
       () => {
         Alert.alert('Retry', 'Retry function called!');
@@ -40,20 +41,21 @@ export default function AppleSignInErrorDemo() {
         Alert.alert('Fallback', 'Fallback to Google Sign-In called!');
       }
     );
+
+    setLastProcessedError(processedError);
   };
 
   const testErrorAnalysis = () => {
-    if (!lastError) {
+    if (!lastProcessedError) {
       Alert.alert('No Error', 'Please test an error first');
       return;
     }
 
-    const processedError = AppleSignInErrorHandler.handleError(lastError);
-    const tips = AppleSignInErrorHandler.getTroubleshootingTips(processedError);
+    const tips = AppleSignInErrorHandler.getTroubleshootingTips(lastProcessedError);
 
     Alert.alert(
       'Error Analysis',
-      `Code: ${processedError.code}\n\nMessage: ${processedError.message}\n\nUser Action: ${processedError.userAction}\n\nTroubleshooting Tips:\n${tips.map(tip => `• ${tip}`).join('\n')}`,
+      `Code: ${lastProcessedError.code}\n\nMessage: ${lastProcessedError.message}\n\nUser Action: ${lastProcessedError.userAction}\n\nIs User Cancellation: ${lastProcessedError.isUserCancellation ? 'Yes' : 'No'}\n\nTroubleshooting Tips:\n${tips.map(tip => `• ${tip}`).join('\n')}`,
       [{ text: 'OK' }]
     );
   };
@@ -62,13 +64,25 @@ export default function AppleSignInErrorDemo() {
     <View style={styles.container}>
       <Text style={styles.title}>Apple Sign-In Error Handling Demo</Text>
       <Text style={styles.subtitle}>Test different error scenarios and see how they're handled</Text>
+      <Text style={styles.note}>
+        💡 User cancellations (like "authorization failed") are now handled gracefully without error messages
+      </Text>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={styles.errorButton}
+          style={[styles.errorButton, styles.cancellationButton]}
           onPress={() => testErrorHandling('authorization_failed')}
         >
           <Text style={styles.buttonText}>Test "Authorization Failed"</Text>
+          <Text style={styles.buttonSubtext}>Usually means user cancelled</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.errorButton, styles.cancellationButton]}
+          onPress={() => testErrorHandling('canceled')}
+        >
+          <Text style={styles.buttonText}>Test "Canceled"</Text>
+          <Text style={styles.buttonSubtext}>Explicit user cancellation</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -76,13 +90,7 @@ export default function AppleSignInErrorDemo() {
           onPress={() => testErrorHandling('not_available')}
         >
           <Text style={styles.buttonText}>Test "Not Available"</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.errorButton}
-          onPress={() => testErrorHandling('canceled')}
-        >
-          <Text style={styles.buttonText}>Test "Canceled"</Text>
+          <Text style={styles.buttonSubtext}>Shows error message</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -90,6 +98,7 @@ export default function AppleSignInErrorDemo() {
           onPress={() => testErrorHandling('expired')}
         >
           <Text style={styles.buttonText}>Test "Expired"</Text>
+          <Text style={styles.buttonSubtext}>Shows error message</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -97,17 +106,19 @@ export default function AppleSignInErrorDemo() {
           onPress={() => testErrorHandling('invalid_response')}
         >
           <Text style={styles.buttonText}>Test "Invalid Response"</Text>
+          <Text style={styles.buttonSubtext}>Shows error message</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.errorButton}
+          style={[styles.errorButton, styles.cancellationButton]}
           onPress={() => testErrorHandling('unknown')}
         >
           <Text style={styles.buttonText}>Test "Unknown Error"</Text>
+          <Text style={styles.buttonSubtext}>Treated as cancellation</Text>
         </TouchableOpacity>
       </View>
 
-      {lastError && (
+      {lastProcessedError && (
         <View style={styles.errorInfo}>
           <Text style={styles.errorTitle}>Last Tested Error:</Text>
           <Text style={styles.errorText}>
@@ -116,6 +127,19 @@ export default function AppleSignInErrorDemo() {
           <Text style={styles.errorText}>
             Message: {lastError.message}
           </Text>
+          
+          <View style={styles.processedErrorInfo}>
+            <Text style={styles.processedErrorTitle}>Processed Result:</Text>
+            <Text style={styles.errorText}>
+              Processed Code: {lastProcessedError.code}
+            </Text>
+            <Text style={styles.errorText}>
+              Is Cancellation: {lastProcessedError.isUserCancellation ? 'Yes' : 'No'}
+            </Text>
+            <Text style={styles.errorText}>
+              User Action: {lastProcessedError.userAction}
+            </Text>
+          </View>
           
           <TouchableOpacity
             style={styles.analyzeButton}
@@ -128,10 +152,10 @@ export default function AppleSignInErrorDemo() {
 
       <View style={styles.infoContainer}>
         <Text style={styles.infoTitle}>What This Demo Shows:</Text>
-        <Text style={styles.infoText}>• Different error types and their handling</Text>
-        <Text style={styles.infoText}>• User-friendly error messages</Text>
-        <Text style={styles.infoText}>• Retry and fallback options</Text>
-        <Text style={styles.infoText}>• Troubleshooting suggestions</Text>
+        <Text style={styles.infoText}>• User cancellations are handled silently (no error alerts)</Text>
+        <Text style={styles.infoText}>• Actual errors still show user-friendly messages</Text>
+        <Text style={styles.infoText}>• Retry and fallback options for genuine errors</Text>
+        <Text style={styles.infoText}>• Smart detection of cancellation vs. actual errors</Text>
       </View>
     </View>
   );
@@ -153,8 +177,15 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 10,
     color: '#666',
+  },
+  note: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 30,
+    color: '#007AFF',
+    fontStyle: 'italic',
   },
   buttonContainer: {
     gap: 15,
@@ -166,10 +197,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
+  cancellationButton: {
+    backgroundColor: '#34C759',
+  },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonSubtext: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    marginTop: 5,
+    opacity: 0.8,
   },
   errorInfo: {
     backgroundColor: '#FFFFFF',
@@ -194,8 +234,20 @@ const styles = StyleSheet.create({
     color: '#666',
     fontFamily: 'monospace',
   },
+  processedErrorInfo: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  processedErrorTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
   analyzeButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#007AFF',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
