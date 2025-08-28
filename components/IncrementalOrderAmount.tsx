@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface IncrementalOrderAmountProps {
@@ -51,11 +51,8 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
     width: 79,
     height: 36,
-    left: 257,
-    top: 16,
     backgroundColor: '#F3F4F6',
     borderRadius: 10,
     flexDirection: 'row',
