@@ -8,6 +8,7 @@ interface SocialSignInProps {
   onAppleSignIn?: () => void;
   isAppleSignInAvailable?: boolean | null;
   isAppleSignInLoading?: boolean;
+  isGoogleSignInLoading?: boolean;
 }
 
 export const SocialSignIn: React.FC<SocialSignInProps> = ({
@@ -15,6 +16,7 @@ export const SocialSignIn: React.FC<SocialSignInProps> = ({
   onAppleSignIn,
   isAppleSignInAvailable,
   isAppleSignInLoading,
+  isGoogleSignInLoading,
 }) => {
   return (
     <View style={styles.container}>
@@ -50,16 +52,31 @@ export const SocialSignIn: React.FC<SocialSignInProps> = ({
 
       {/* Google Sign In Button */}
       <TouchableOpacity
-        style={styles.googleButton}
+        style={[
+          styles.googleButton,
+          isGoogleSignInLoading && styles.loadingButton
+        ]}
         onPress={() => {
           console.log('Google button pressed');
-          onGoogleSignIn?.();
+          if (!isGoogleSignInLoading) {
+            onGoogleSignIn?.();
+          }
         }}
         activeOpacity={0.7}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        disabled={isGoogleSignInLoading}
       >
-        <GoogleIcon size={20} />
-        <Text style={styles.googleButtonText}>Sign in with Google</Text>
+        {isGoogleSignInLoading ? (
+          <ActivityIndicator size="small" color="#000000" />
+        ) : (
+          <GoogleIcon size={20} />
+        )}
+        <Text style={[
+          styles.googleButtonText,
+          isGoogleSignInLoading && styles.loadingButtonText
+        ]}>
+          {isGoogleSignInLoading ? 'Signing in...' : 'Sign in with Google'}
+        </Text>
       </TouchableOpacity>
 
       {/* Apple Sign-In availability notice */}
@@ -145,6 +162,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#000000',
     textAlign: 'center',
+  },
+  loadingButtonText: {
+    color: '#666666',
   },
   availabilityNotice: {
     fontFamily: 'Inter',

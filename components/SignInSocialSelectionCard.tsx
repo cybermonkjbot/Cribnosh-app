@@ -8,6 +8,7 @@ interface SignInSocialSelectionCardProps {
   bottomInset?: number;
   isAppleSignInAvailable?: boolean | null;
   isAppleSignInLoading?: boolean;
+  isGoogleSignInLoading?: boolean;
 }
 
 export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps> = ({
@@ -16,6 +17,7 @@ export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps>
   bottomInset = 0,
   isAppleSignInAvailable,
   isAppleSignInLoading,
+  isGoogleSignInLoading,
 }) => {
   return (
     <View style={[styles.container, { height: 378 + bottomInset }]}>
@@ -37,6 +39,7 @@ export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps>
           onAppleSignIn={onAppleSignIn}
           isAppleSignInAvailable={isAppleSignInAvailable}
           isAppleSignInLoading={isAppleSignInLoading}
+          isGoogleSignInLoading={isGoogleSignInLoading}
         />
       </View>
       

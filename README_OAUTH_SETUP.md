@@ -144,6 +144,9 @@ const handleAppleSignIn = (idToken: string) => {
 - **"Invalid client"**: Check client IDs match your OAuth credentials
 - **"Redirect URI mismatch"**: Verify redirect URIs in Google Console
 - **"API not enabled"**: Ensure Google+ and Sign-In APIs are enabled
+- **"Authorization failed"**: Now handled gracefully with comprehensive error handling
+- **Network errors**: Automatically detected and provide retry options
+- **Configuration errors**: Suggest fallback to Apple Sign-In
 
 ### Apple Sign-In
 - **"Capability not enabled"**: Check Sign In with Apple is enabled in App ID

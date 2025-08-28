@@ -6,6 +6,7 @@ import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { oauthConfig } from '../config/oauth';
 import { AppleSignInErrorHandler, handleAppleSignInError } from '../utils/appleSignInErrorHandler';
+import { handleGoogleSignInError } from '../utils/googleSignInErrorHandler';
 import { SignInSocialSelectionCard } from './SignInSocialSelectionCard';
 import { CribNoshLogo } from './ui/CribNoshLogo';
 
@@ -25,6 +26,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
   const insets = useSafeAreaInsets();
   const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState<boolean | null>(null);
   const [isAppleSignInLoading, setIsAppleSignInLoading] = useState(false);
+  const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
   
   // Google Sign-In setup
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
@@ -48,7 +50,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
     checkAppleSignInAvailability();
   }, []);
 
-  // Handle Google Sign-In response
+  // Handle Google Sign-In response with error handling
   useEffect(() => {
     if (googleResponse?.type === 'success') {
       const { accessToken } = googleResponse.authentication!;
@@ -57,6 +59,14 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         // In a real implementation, you might want to exchange this for an ID token
         onGoogleSignIn?.(accessToken);
       }
+    } else if (googleResponse?.type === 'error') {
+      // Handle Google Sign-In errors
+      console.error('Google Sign-In error response:', googleResponse.error);
+      handleGoogleSignInError(
+        googleResponse.error,
+        () => handleGoogleSignIn(), // Retry function
+        () => handleAppleSignIn() // Fallback to Apple Sign-In
+      );
     }
   }, [googleResponse, onGoogleSignIn]);
 
@@ -101,10 +111,31 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
     }
   };
 
-  // Google Sign-In handler
+  // Google Sign-In handler with error handling
   const handleGoogleSignIn = () => {
-    googlePromptAsync();
+    setIsGoogleSignInLoading(true);
+    
+    try {
+      googlePromptAsync();
+    } catch (error) {
+      console.error('Error starting Google Sign-In:', error);
+      handleGoogleSignInError(
+        error,
+        () => handleGoogleSignIn(), // Retry function
+        () => handleAppleSignIn() // Fallback to Apple
+      );
+    } finally {
+      // Note: We can't set loading to false here because googlePromptAsync is async
+      // The loading state will be managed by the response handler
+    }
   };
+
+  // Reset Google loading state when response changes
+  useEffect(() => {
+    if (googleResponse?.type === 'success' || googleResponse?.type === 'error') {
+      setIsGoogleSignInLoading(false);
+    }
+  }, [googleResponse]);
 
   return (
     <View style={styles.container}>
@@ -132,6 +163,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
             onAppleSignIn={handleAppleSignIn}
             isAppleSignInAvailable={isAppleSignInAvailable}
             isAppleSignInLoading={isAppleSignInLoading}
+            isGoogleSignInLoading={isGoogleSignInLoading}
           />
         </View>
         

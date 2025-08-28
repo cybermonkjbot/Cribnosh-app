@@ -16,7 +16,7 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
   const backgroundColorAnim = useRef(new Animated.Value(0)).current;
   const logoScaleAnim = useRef(new Animated.Value(0.8)).current;
   const logoOpacityAnim = useRef(new Animated.Value(0)).current;
-
+  const [logoVariant, setLogoVariant] = React.useState<'default' | 'white'>('default');
 
   useEffect(() => {
     // Small delay to ensure seamless blending with Expo splash
@@ -51,8 +51,18 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
       }
     });
 
+    // Listen to background animation changes to update logo variant
+    const listener = backgroundColorAnim.addListener(({ value }) => {
+      if (value > 0.7) {
+        setLogoVariant('white');
+      } else {
+        setLogoVariant('default');
+      }
+    });
+
     return () => {
       clearTimeout(timer);
+      backgroundColorAnim.removeListener(listener);
     };
   }, [duration, onAnimationComplete, logoOpacityAnim, logoScaleAnim, backgroundColorAnim]);
 
@@ -80,7 +90,7 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
       >
         <CribNoshLogo 
           size={250} 
-          variant="default"
+          variant={logoVariant}
         />
       </Animated.View>
     </Animated.View>
