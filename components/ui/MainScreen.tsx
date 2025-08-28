@@ -600,8 +600,10 @@ export function MainScreen() {
   };
 
   const handleGeneratingSuggestionsComplete = () => {
-    setIsGeneratingSuggestions(false);
+    // Show the chat screen immediately when loader starts completing
+    // This ensures the chat is ready before the loader's fadeout animation finishes
     setIsChatVisible(true);
+    setIsGeneratingSuggestions(false);
   };
 
   // Shake to Eat handlers

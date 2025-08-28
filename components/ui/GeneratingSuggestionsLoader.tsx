@@ -1,8 +1,10 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+    cancelAnimation,
+    Easing,
     interpolate,
     runOnJS,
     useAnimatedStyle,
@@ -10,6 +12,7 @@ import Animated, {
     withRepeat,
     withTiming,
 } from 'react-native-reanimated';
+import { Mascot } from '../Mascot';
 
 interface GeneratingSuggestionsLoaderProps {
   isVisible: boolean;
@@ -30,18 +33,37 @@ export const GeneratingSuggestionsLoader: React.FC<GeneratingSuggestionsLoaderPr
   const shimmerOpacity = useSharedValue(0.3);
   const currentStep = useSharedValue(0);
   const fadeOpacity = useSharedValue(0);
+  const scaleValue = useSharedValue(0.8);
+  const translateY = useSharedValue(20);
   const hasCompleted = useRef(false);
+  const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  useEffect(() => {
-    if (isVisible && !hasCompleted.current) {
-      startLoadingSequence();
-    }
-  }, [isVisible]);
+  const completeLoading = useCallback(() => {
+    if (hasCompleted.current) return;
+    hasCompleted.current = true;
+    
+    // Call onComplete early so the chat screen can appear while we're still animating
+    runOnJS(onComplete)();
+    
+    // Enhanced completion animation with scale and slide
+    scaleValue.value = withTiming(1.1, { duration: 200 }, () => {
+      scaleValue.value = withTiming(0.8, { duration: 300 });
+    });
+    
+    translateY.value = withTiming(-50, { duration: 300 });
+    
+    // Complete the visual animation after onComplete is called
+    fadeOpacity.value = withTiming(0, { duration: 400 });
+  }, [fadeOpacity, scaleValue, translateY, onComplete]);
 
-  const startLoadingSequence = () => {
+  const startLoadingSequence = useCallback(() => {
     hasCompleted.current = false;
     currentStep.value = 0;
-    fadeOpacity.value = withTiming(1, { duration: 300 });
+    
+    // Soft reveal animation when appearing
+    scaleValue.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.back(1.2)) });
+    translateY.value = withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) });
+    fadeOpacity.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) });
     
     // Start shimmer animation
     shimmerOpacity.value = withRepeat(
@@ -50,34 +72,59 @@ export const GeneratingSuggestionsLoader: React.FC<GeneratingSuggestionsLoaderPr
       true
     );
 
+    // Clear any existing timeouts
+    timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+    timeoutRefs.current = [];
+
     // Progress through each step
     const stepDuration = 1500;
     LOADING_STEPS.forEach((_, index) => {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         if (hasCompleted.current) return;
         
         currentStep.value = index;
         
         // If this is the last step, complete after its duration
         if (index === LOADING_STEPS.length - 1) {
-          setTimeout(() => {
+          const completionTimeout = setTimeout(() => {
             if (hasCompleted.current) return;
             completeLoading();
           }, stepDuration);
+          timeoutRefs.current.push(completionTimeout);
         }
       }, index * stepDuration);
+      timeoutRefs.current.push(timeoutId);
     });
-  };
+  }, [currentStep, fadeOpacity, shimmerOpacity, scaleValue, translateY, completeLoading]);
 
-  const completeLoading = () => {
-    if (hasCompleted.current) return;
-    hasCompleted.current = true;
-    
-    // Final completion animation
-    fadeOpacity.value = withTiming(0, { duration: 300 }, () => {
-      runOnJS(onComplete)();
-    });
-  };
+  useEffect(() => {
+    if (isVisible && !hasCompleted.current) {
+      startLoadingSequence();
+    } else if (!isVisible) {
+      // Stop animations and clear timeouts when not visible
+      cancelAnimation(shimmerOpacity);
+      cancelAnimation(fadeOpacity);
+      cancelAnimation(scaleValue);
+      cancelAnimation(translateY);
+      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+      timeoutRefs.current = [];
+      
+      // Reset values for next appearance
+      scaleValue.value = 0.8;
+      translateY.value = 20;
+      fadeOpacity.value = 0;
+    }
+
+    // Cleanup function
+    return () => {
+      cancelAnimation(shimmerOpacity);
+      cancelAnimation(fadeOpacity);
+      cancelAnimation(scaleValue);
+      cancelAnimation(translateY);
+      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+      timeoutRefs.current = [];
+    };
+  }, [isVisible, startLoadingSequence, shimmerOpacity, fadeOpacity, scaleValue, translateY]);
 
   // Derived values for safe access
   const shimmerOpacityInterpolated = useAnimatedStyle(() => {
@@ -90,19 +137,12 @@ export const GeneratingSuggestionsLoader: React.FC<GeneratingSuggestionsLoaderPr
     };
   });
 
-  const skeletonOpacityInterpolated = useAnimatedStyle(() => {
-    return {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      opacity: interpolate(
-        shimmerOpacity.value,
-        [0.3, 1, 0.3],
-        [0.3, 0.6, 0.3]
-      ),
-    };
-  });
-
   const containerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: fadeOpacity.value,
+    transform: [
+      { scale: scaleValue.value },
+      { translateY: translateY.value }
+    ],
   }));
 
   if (!isVisible) return null;
@@ -120,58 +160,9 @@ export const GeneratingSuggestionsLoader: React.FC<GeneratingSuggestionsLoaderPr
       >
         <BlurView intensity={20} tint="light" style={styles.blurContainer}>
           <Animated.View style={[styles.content, containerAnimatedStyle]}>
-            {/* Header Skeleton - mimics AIChatDrawer header */}
-            <View style={styles.headerSkeleton}>
-              {/* Close button skeleton */}
-              <Animated.View style={[styles.closeButtonSkeleton, skeletonOpacityInterpolated]} />
-              
-              {/* Logo skeleton */}
-              <Animated.View style={[styles.logoSkeleton, skeletonOpacityInterpolated]} />
-            </View>
-
-            {/* Messages Skeleton - mimics AIChatDrawer message structure */}
-            <View style={styles.messagesContainer}>
-              {/* User message skeleton */}
-              <View style={styles.userMessageSkeleton}>
-                <View style={styles.userMessageBubbleSkeleton}>
-                  <Animated.View style={[styles.messageTextSkeleton, skeletonOpacityInterpolated]} />
-                  <Animated.View style={[styles.messageTextSkeleton, styles.messageTextShortSkeleton, skeletonOpacityInterpolated]} />
-                </View>
-                <Animated.View style={[styles.avatarSkeleton, skeletonOpacityInterpolated]} />
-              </View>
-
-              {/* AI message skeleton */}
-              <View style={styles.aiMessageSkeleton}>
-                <Animated.View style={[styles.aiAvatarSkeleton, skeletonOpacityInterpolated]} />
-                <View style={styles.aiMessageContentSkeleton}>
-                  <Animated.View style={[styles.messageTextSkeleton, skeletonOpacityInterpolated]} />
-                  <Animated.View style={[styles.messageTextSkeleton, styles.messageTextShortSkeleton, skeletonOpacityInterpolated]} />
-                  <Animated.View style={[styles.messageTextSkeleton, styles.messageTextShortSkeleton, skeletonOpacityInterpolated]} />
-                </View>
-              </View>
-
-              {/* AI message with products skeleton */}
-              <View style={styles.aiMessageSkeleton}>
-                <Animated.View style={[styles.aiAvatarSkeleton, skeletonOpacityInterpolated]} />
-                <View style={styles.aiMessageContentSkeleton}>
-                  <Animated.View style={[styles.messageTextSkeleton, skeletonOpacityInterpolated]} />
-                  
-                  {/* Products skeleton */}
-                  <View style={styles.productsSkeleton}>
-                    <Animated.View style={[styles.productCardSkeleton, skeletonOpacityInterpolated]} />
-                    <Animated.View style={[styles.productCardSkeleton, skeletonOpacityInterpolated]} />
-                    <Animated.View style={[styles.productCardSkeleton, skeletonOpacityInterpolated]} />
-                  </View>
-                  
-                  <Animated.View style={[styles.messageTextSkeleton, skeletonOpacityInterpolated]} />
-                </View>
-              </View>
-            </View>
-
-            {/* Chat Input Skeleton - mimics AIChatDrawer input */}
-            <View style={styles.chatInputSkeleton}>
-              <Animated.View style={[styles.inputFieldSkeleton, skeletonOpacityInterpolated]} />
-              <Animated.View style={[styles.sendButtonSkeleton, skeletonOpacityInterpolated]} />
+            {/* Centered Mascot */}
+            <View style={styles.mascotContainer}>
+              <Mascot emotion="excited" size={200} />
             </View>
 
             {/* Loading Indicator */}
@@ -211,121 +202,15 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     width: '100%',
   },
-  headerSkeleton: {
-    flexDirection: 'row',
+  mascotContainer: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 32,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  closeButtonSkeleton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  logoSkeleton: {
-    width: 120,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  messagesContainer: {
-    width: '100%',
-    marginBottom: 32,
-  },
-  userMessageSkeleton: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 20,
-    paddingHorizontal: 16,
-  },
-  userMessageBubbleSkeleton: {
-    maxWidth: '80%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginRight: 12,
-    minWidth: 120,
-  },
-  aiMessageSkeleton: {
-    marginBottom: 24,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  aiAvatarSkeleton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginRight: 12,
-  },
-  aiMessageContentSkeleton: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minWidth: 150,
-  },
-  messageTextSkeleton: {
-    height: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    marginBottom: 8,
-    width: '100%',
-  },
-  messageTextShortSkeleton: {
-    width: '70%',
-  },
-  avatarSkeleton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  productsSkeleton: {
-    flexDirection: 'row',
-    marginVertical: 16,
-    gap: 12,
-  },
-  productCardSkeleton: {
-    width: 140,
-    height: 120,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 12,
-  },
-  chatInputSkeleton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  inputFieldSkeleton: {
-    flex: 1,
-    height: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 25,
-    paddingHorizontal: 16,
-  },
-  sendButtonSkeleton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    marginBottom: 40,
   },
   loadingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 24,
     marginBottom: 16,
   },
   loadingDot: {
@@ -339,6 +224,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#dc2626',
     textAlign: 'center',
-    marginTop: 8,
   },
 });

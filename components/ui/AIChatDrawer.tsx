@@ -453,7 +453,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
   return (
     <Modal
       visible={isVisible}
-      animationType="slide"
+      animationType="none"
       transparent={false}
       onRequestClose={onClose}
       statusBarTranslucent={true}
