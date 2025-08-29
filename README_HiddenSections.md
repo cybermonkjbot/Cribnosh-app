@@ -4,7 +4,7 @@ A specialized utility for managing initially hidden sections that appear dynamic
 
 ## Features
 
-### 🍽️ **"You Usually Have These for Dinner"**
+### 🍽️ **"Your Dinner Favourites"**
 - **Personalized Recommendations**: Shows dinner items based on user's order history
 - **Time-Aware**: Only appears during dinner time (5-9 PM)
 - **User Requirements**: 
@@ -94,17 +94,17 @@ const userBehavior = {
 
 const hiddenSections = getHiddenSectionsToShow(timeContext, userBehavior);
 console.log(hiddenSections.map(s => s.name));
-// Output: ['You Usually Have These for Dinner', 'Sections Like These Made Your Day']
+// Output: ['Your Dinner Favourites', 'Sections Like These Made Your Day']
 ```
 
 ### Get Section Data
 
 ```typescript
-// Get data for "You Usually Have These for Dinner"
+// Get data for "Your Dinner Favourites"
 const dinnerData = getUsualDinnerData(userBehavior);
 console.log(dinnerData);
 // Output: {
-//   title: "You Usually Have These for Dinner",
+//   title: "Your Dinner Favourites",
 //   subtitle: "Based on your order history",
 //   items: ['Pizza Margherita', 'Chicken Curry', 'Pasta Carbonara'],
 //   totalOrders: 5,
@@ -165,7 +165,7 @@ console.log(gameStatus);
 Returns an array of hidden sections that should be shown based on current context.
 
 #### `shouldShowUsualDinnerSection(timeContext: TimeContext, userBehavior: UserBehavior): boolean`
-Checks if the "You Usually Have These for Dinner" section should be shown.
+Checks if the "Your Dinner Favourites" section should be shown.
 
 #### `shouldShowMadeYourDaySection(timeContext: TimeContext, userBehavior: UserBehavior): boolean`
 Checks if the "Sections Like These Made Your Day" section should be shown.
@@ -249,12 +249,12 @@ const context = {
 
 const allSections = getOrderedSectionsWithHidden(context);
 console.log(allSections.map(s => s.name));
-// Output: ['Search Bar', 'Featured Kitchens', 'You Usually Have These for Dinner', ...]
+// Output: ['Search Bar', 'Featured Kitchens', 'Your Dinner Favourites', ...]
 ```
 
 ## Show Conditions
 
-### "You Usually Have These for Dinner"
+### "Your Dinner Favourites"
 - ✅ `HIDDEN_SECTIONS_CONFIG.USUAL_DINNER_ENABLED` is true
 - ✅ `totalOrders >= MIN_ORDER_COUNT` (3)
 - ✅ `mealTime === 'dinner'` (5-9 PM)
