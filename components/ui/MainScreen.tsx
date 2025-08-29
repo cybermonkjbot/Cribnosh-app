@@ -849,7 +849,18 @@ export function MainScreen() {
 
   const handleKitchenPress = useCallback((kitchenName: string) => {
     console.log('View kitchen:', kitchenName);
-    // In a real app, this would navigate to kitchen profile
+    // Create a mock kitchen based on the kitchen name
+    const mockKitchen = {
+      id: `kitchen-${kitchenName.toLowerCase().replace(/\s+/g, '-')}`,
+      name: kitchenName,
+      cuisine: 'Authentic Cuisine',
+      deliveryTime: '25-40 Mins',
+      distance: '1.5km away',
+      image: 'https://avatar.iran.liara.run/public/44', // Default kitchen image
+      sentiment: 'fire' as const,
+    };
+    setSelectedKitchen(mockKitchen);
+    setIsKitchenMainScreenVisible(true);
   }, []);
 
   // Handlers for new sections
@@ -1410,6 +1421,7 @@ export function MainScreen() {
             kitchenName={selectedKitchen.name}
             cuisine={selectedKitchen.cuisine}
             deliveryTime={selectedKitchen.deliveryTime}
+            distance={selectedKitchen.distance}
             cartItems={2}
             onCartPress={handleKitchenCartPress}
             onHeartPress={handleKitchenHeartPress}

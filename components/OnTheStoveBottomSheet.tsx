@@ -6,6 +6,7 @@ import CompactMealSelection from './CompactMealSelection';
 import CustomLiveButton from './CustomLiveButton';
 import AISparkles from './ui/AISparkles';
 import LoveThisButton from './ui/LoveThisButton';
+import { OnTheStoveBottomSheetSkeleton } from './ui/OnTheStoveBottomSheetSkeleton';
 
 // Screen dimensions and snap point constants (following search drawer pattern)
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -21,6 +22,7 @@ const SNAP_POINTS = {
 
 interface OnTheStoveBottomSheetProps {
   isVisible: boolean;
+  isLoading?: boolean;
   onToggleVisibility: () => void;
   onShareLive?: () => void;
   onTreatSomeone?: () => void;
@@ -40,6 +42,7 @@ interface OnTheStoveBottomSheetProps {
 }
 const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
   isVisible,
+  isLoading = false,
   onToggleVisibility,
   onShareLive,
   onTreatSomeone,
@@ -126,6 +129,29 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
   }
 
   console.log('OnTheStoveBottomSheet: Rendering with snapPoints:', snapPoints, 'and index:', 0);
+
+  // Show skeleton when loading
+  if (isLoading) {
+    return (
+      <>
+        {/* Love This Button - positioned above the sheet and follows its movement */}
+        <View style={{
+          position: 'absolute',
+          bottom: (currentSnapPoint === 1 ? SNAP_POINTS.EXPANDED : SNAP_POINTS.COLLAPSED) + 20,
+          left: 23,
+          zIndex: 1000,
+        }}>
+          <LoveThisButton />
+        </View>
+        
+        {/* Skeleton Loading State */}
+        <OnTheStoveBottomSheetSkeleton 
+          isVisible={true} 
+          isExpanded={isExpanded} 
+        />
+      </>
+    );
+  }
 
   return (
     <>

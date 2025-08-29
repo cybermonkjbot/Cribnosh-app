@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Eye } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Animated, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -218,7 +219,8 @@ export default function LiveContent({
                         <Text style={styles.liveText}>LIVE</Text>
                       </View>
                       <View style={styles.viewersContainer}>
-                        <Text style={styles.viewersText}>{formatNumber(kitchen.viewers)} watching</Text>
+                        <Eye size={16} color="#fff" style={styles.eyeIcon} />
+                        <Text style={styles.viewersText}>{formatNumber(kitchen.viewers)}</Text>
                       </View>
                     </View>
                     
@@ -377,7 +379,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 16,
   },
   kitchenCard: {
     backgroundColor: '#fff',
@@ -388,7 +390,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
-    width: '48%', // Two columns with gap
+    width: '47%', // Slightly reduced width to give more space between cards
     marginBottom: 16,
   },
   imageContainer: {
@@ -409,6 +411,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    zIndex: 2,
   },
   liveDot: {
     width: 8,
@@ -425,16 +428,22 @@ const styles = StyleSheet.create({
   viewersContainer: {
     position: 'absolute',
     top: 12,
-    right: 12,
+    right: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    zIndex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   viewersText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '500',
+  },
+  eyeIcon: {
+    marginRight: 4,
   },
   kitchenInfo: {
     padding: 16,
