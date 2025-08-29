@@ -11,14 +11,14 @@ interface CribnoshLiveHeaderProps {
 }
 
 export function CribnoshLiveHeader({
-  avatarSource,
+  avatarSource, 
   kitchenTitle,
   viewers,
   onCancel,
 }: CribnoshLiveHeaderProps) {
   const { width } = useWindowDimensions();
   return (
-    <View className="flex-row items-start justify-between rounded-xl overflow-hidden px-2 py-1.5 self-center mt-6 w-[97vw] max-w-[500px] bg-transparent">
+    <View className="flex-row items-start justify-between rounded-xl overflow-hidden px-2 py-1.5 self-center mt-2 w-[97vw] max-w-[500px] bg-transparent">
       {/* Left side: Avatar, then text column */}
       <View className="flex-row items-start flex-1 min-w-0">
         <Avatar

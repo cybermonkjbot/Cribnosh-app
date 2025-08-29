@@ -6,6 +6,8 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Button } from '../../Button'
+import AmountInput from '@/components/AmountInput'
+import { router } from 'expo-router'
 import { CartButton } from '../../CartButton'
 
 type GroupOrderCheckoutProps = {
@@ -36,7 +38,7 @@ React.useEffect(() => {
       // small delay so animation finishes; then navigate back
       setTimeout(() => {
         if (onClose) onClose();
-        router.replace('/orders/group?openSheet=true');        // setIsOpen!(false)
+        router.replace('/orders/group?openSheet=true'); // setIsOpen!(false)
       }, 0);
     }
   };
