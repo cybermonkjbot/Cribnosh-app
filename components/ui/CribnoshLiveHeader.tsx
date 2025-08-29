@@ -12,7 +12,7 @@ interface CribnoshLiveHeaderProps {
 }
 
 export function CribnoshLiveHeader({
-  avatarSource,
+  avatarSource, 
   kitchenTitle,
   viewers,
   onCancel,
