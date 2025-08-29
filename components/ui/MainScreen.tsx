@@ -28,7 +28,7 @@ import { Header } from './Header';
 import { HiddenSections } from './HiddenSections';
 import { KitchenMainScreen } from './KitchenMainScreen';
 import { KitchensNearMe } from './KitchensNearMe';
-import { LiveContent } from './LiveContent';
+import LiveContent from './LiveContent';
 import { MealItemDetails } from './MealItemDetails';
 import { MultiStepLoader } from './MultiStepLoader';
 import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';

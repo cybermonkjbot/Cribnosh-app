@@ -9,7 +9,11 @@ interface LoveThisButtonProps {
   style?: ViewStyle;
 }
 
-const LoveThisButton: React.FC<LoveThisButtonProps> = ({ liked, onLikeChange, style }) => {
+const LoveThisButton: React.FC<LoveThisButtonProps> = ({ 
+  liked, 
+  onLikeChange, 
+  style
+}) => {
   return (
     <View style={[styles.container, style]}>
       <Pressable style={styles.leadingButton} onPress={() => onLikeChange && onLikeChange(!liked)}>
@@ -34,11 +38,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 0,
     gap: 2,
-    position: 'absolute',
     width: 161,
     height: 48,
-    left: 23,
-    top: 483,
     borderRadius: 16,
     backgroundColor: 'transparent',
   },

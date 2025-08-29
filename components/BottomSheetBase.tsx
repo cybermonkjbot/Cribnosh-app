@@ -1,7 +1,7 @@
 import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView } from '@gorhom/bottom-sheet';
 import React, { useCallback, useMemo, useRef } from 'react';
 import { StyleSheet } from 'react-native';
-import Colors  from '../constants/Colors';
+import Colors from '../constants/Colors';
 import { useColorScheme } from '../hooks/useColorScheme';
 
 interface BottomSheetProps {
@@ -19,7 +19,7 @@ interface BottomSheetProps {
 export function BottomSheetBase({
   children,
   snapPoints = ['25%', '50%', '90%'],
-  index = 1,
+  index = 0,
   onChange,
   enablePanDownToClose = true,
   backdropComponent,
@@ -42,9 +42,10 @@ export function BottomSheetBase({
     (props: BottomSheetBackdropProps) => (
       <BottomSheetBackdrop
         {...props}
-        disappearsOnIndex={0}
-        appearsOnIndex={1}
-        opacity={0.5}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.3}
+        pressBehavior="close"
       />
     ),
     []
