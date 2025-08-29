@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, TouchableOpacity, View, ViewStyle } from 'react-native';
 import Svg, {
-  Defs,
-  Mask,
-  Path,
-  Stop,
-  LinearGradient as SvgLinearGradient,
-  Rect as SvgRect
+    Defs,
+    Mask,
+    Path,
+    Stop,
+    LinearGradient as SvgLinearGradient,
+    Rect as SvgRect
 } from 'react-native-svg';
 
 interface AISparklesProps {
@@ -199,27 +199,11 @@ export const AISparkles: React.FC<AISparklesProps> = ({
         }
       });
     }
-  }, [enableShimmer, animationState, duration, loop, onAnimationComplete]);
+  }, [enableShimmer, animationState, duration, loop, onAnimationComplete, shimmerAnim]);
 
-  const stopAnimation = useCallback(() => {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    
-    if (Platform.OS !== 'web') {
-      shimmerAnim.stopAnimation();
-    }
-    
-    setAnimationState('idle');
-  }, [shimmerAnim]);
 
-  const resetAnimation = useCallback(() => {
-    stopAnimation();
-    setWebShimmer(-1);
-    shimmerAnim.setValue(-1);
-    setAnimationState('idle');
-  }, [stopAnimation, shimmerAnim]);
+
+  // Removed unused resetAnimation function
 
   // Effects
   useEffect(() => {
@@ -235,7 +219,7 @@ export const AISparkles: React.FC<AISparklesProps> = ({
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [autoPlay, enableShimmer, startAnimation, animationState]);
+  }, [autoPlay, enableShimmer, startAnimation, animationState, shimmerAnim]);
 
   // Cleanup effect
   useEffect(() => {

@@ -1,13 +1,13 @@
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AlertCircle, MessageCircle, Play, Share2, ShoppingCart, UserRound } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { AlertCircle, MessageCircle, Play, Send, ShoppingCart, UserRound } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 import { Dimensions, Pressable, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withTiming
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withTiming
 } from 'react-native-reanimated';
 import { useDebugLogger } from './DebugLogger';
 import HearEmoteIcon from './HearEmoteIcon';
@@ -60,8 +60,6 @@ export function MealVideoCard({
 
   // Performance tracking
   const loadStartTimeRef = useRef<number>(0);
-  const renderCountRef = useRef(0);
-  const lastRenderTimeRef = useRef(Date.now());
 
   // Log component mount
   useEffect(() => {
@@ -86,12 +84,6 @@ export function MealVideoCard({
     return errorOpacity.value;
   });
 
-  // Validate required props
-  if (!videoSource || !title || !kitchenName || !price) {
-    logger.error('Invalid props provided', { videoSource, title, kitchenName, price });
-    return null;
-  }
-
   // Control playback based on visibility
   useEffect(() => {
     try {
@@ -105,7 +97,7 @@ export function MealVideoCard({
     } catch (error) {
       logger.error('Video playback control error', { title, error });
     }
-  }, [isVisible, isVideoReady]);
+  }, [isVisible, isVideoReady, logger, title]);
 
   // Reset states when video source changes
   useEffect(() => {
@@ -127,7 +119,15 @@ export function MealVideoCard({
       loadingOpacity.value = 1;
       errorOpacity.value = 0;
     }
-  }, [videoSource, isPreloaded]);
+  }, [videoSource, isPreloaded, logger, title, loadingOpacity, errorOpacity]);
+
+  // Start load timer when component mounts or video source changes
+  useEffect(() => {
+    if (!isPreloaded) {
+      loadStartTimeRef.current = Date.now();
+      logger.debug('Starting video load timer', { title });
+    }
+  }, [videoSource, isPreloaded, logger, title]);
 
   const handleLike = () => {
     try {
@@ -205,13 +205,11 @@ export function MealVideoCard({
     };
   });
 
-  // Start load timer when component mounts or video source changes
-  useEffect(() => {
-    if (!isPreloaded) {
-      loadStartTimeRef.current = Date.now();
-      logger.debug('Starting video load timer', { title });
-    }
-  }, [videoSource, isPreloaded]);
+  // Validate required props
+  if (!videoSource || !title || !kitchenName || !price) {
+    logger.error('Invalid props provided', { videoSource, title, kitchenName, price });
+    return null;
+  }
 
   logger.debug('MealVideoCard rendering', { 
     title, 
@@ -451,7 +449,7 @@ export function MealVideoCard({
             borderColor: 'rgba(255, 255, 255, 0.2)',
             backdropFilter: 'blur(10px)',
           }}>
-            <Share2 size={24} color="#FFFFFF" />
+            <Send size={24} color="#FFFFFF" />
           </View>
           <Text style={{
             color: '#FFFFFF',
@@ -513,10 +511,12 @@ export function MealVideoCard({
         </Text>
 
         {/* Price and Order Button */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+        <View style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 16, 
+          paddingHorizontal: 16 
         }}>
           <Text style={{
             fontSize: 20,
@@ -532,22 +532,74 @@ export function MealVideoCard({
           <Pressable
             onPress={onAddToCart}
             style={{
-              backgroundColor: '#FF3B30',
+              backgroundColor: 'rgba(255, 59, 48, 0.4)',
               paddingHorizontal: 20,
               paddingVertical: 10,
               borderRadius: 25,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 8,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.2,
+              shadowRadius: 16,
+              elevation: 12,
+              // Additional glassmorphism effects
+              overflow: 'hidden',
             }}
           >
+            {/* Multiple glass border layers for light reactivity */}
+            <View style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderRadius: 25,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+            }} />
+            <View style={{
+              position: 'absolute',
+              top: 1,
+              left: 1,
+              right: 1,
+              bottom: 1,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+            }} />
+            {/* Inner glass highlight */}
+            <View style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              borderTopLeftRadius: 25,
+              borderTopRightRadius: 25,
+            }} />
+            {/* Subtle bottom shadow for depth */}
+            <View style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '30%',
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+              borderBottomLeftRadius: 25,
+              borderBottomRightRadius: 25,
+            }} />
             <ShoppingCart size={16} color="#FFFFFF" />
             <Text style={{
               color: '#FFFFFF',
               fontWeight: '600',
               fontSize: 14,
             }}>
-              Order now
+              Add to order
             </Text>
           </Pressable>
         </View>

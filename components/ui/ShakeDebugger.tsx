@@ -1,15 +1,10 @@
 import { useShakeDetection } from '@/hooks/useShakeDetection';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { CONFIG } from '../../constants/config';
 import { Mascot } from '../Mascot';
 
 export function ShakeDebugger() {
-  // Early return if debug mode is globally disabled
-  if (!CONFIG.DEBUG_MODE) {
-    return null;
-  }
-
   const [shakeEvents, setShakeEvents] = useState<string[]>([]);
 
   const handleShake = () => {
@@ -28,6 +23,11 @@ export function ShakeDebugger() {
     interruptionGracePeriod: 1500, // 1.5 seconds grace period for interruptions
     enabled: true // Always enabled for debugger
   });
+
+  // Early return if debug mode is globally disabled
+  if (!CONFIG.DEBUG_MODE) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>

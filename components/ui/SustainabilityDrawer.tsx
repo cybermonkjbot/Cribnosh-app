@@ -63,7 +63,7 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
               <View style={styles.numberedContent}>
                 <Text style={styles.numberedTitle}>Too Fresh to Waste</Text>
                 <Text style={styles.numberedDescription}>
-                  Perfectly good meals and ingredients that didn't get served in time are offered at lower prices. Still fresh, still top-tier, never thrown away.
+                  Perfectly good meals and ingredients that didn&apos;t get served in time are offered at lower prices. Still fresh, still top-tier, never thrown away.
                 </Text>
               </View>
             </View>
@@ -98,7 +98,7 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
               Every Order Matters
             </Text>
             <Text style={styles.everyOrderDescription}>
-              Choosing Cribnosh means you're supporting small food creators, reducing local food waste, and helping build a more sustainable food future.
+              Choosing Cribnosh means you&apos;re supporting small food creators, reducing local food waste, and helping build a more sustainable food future.
             </Text>
           </View>
         </View>
@@ -128,7 +128,7 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
         <View style={styles.summarySection}>
           <View style={styles.summaryContent}>
             <Text style={styles.summaryText}>
-              High-quality meals and groceries that didn't make it to full menu — still fresh, still delicious, priced to move. Good for you, good for the kitchen, great for the planet.
+              High-quality meals and groceries that didn&apos;t make it to full menu — still fresh, still delicious, priced to move. Good for you, good for the kitchen, great for the planet.
             </Text>
             <Ionicons name="reload" size={24} color="#10B981" style={styles.recycleIcon} />
           </View>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { CategoryFoodItemsGrid } from './CategoryFoodItemsGrid';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
@@ -31,6 +30,9 @@ export function TakeawayCategoryDrawer({
   onAddToCart,
   onItemPress
 }: TakeawayCategoryDrawerProps) {
+  
+  // Helper function to render title with icon
+  const renderTitleWithIcon = (icon: string, title: string) => `${icon} ${title}`;
   // Enhanced default items with more realistic data
   const defaultItems: FoodItem[] = [
     {
@@ -111,7 +113,7 @@ export function TakeawayCategoryDrawer({
       <View style={styles.content}>
         {/* Popular & Quick Section */}
         <CategoryFoodItemsGrid
-          title="🔥 Popular & Quick"
+          title={renderTitleWithIcon('🔥', 'Popular & Quick')}
           subtitle="Most ordered items, ready in 15 minutes"
           items={displayAllAvailable.filter(item => item.isPopular)}
           onAddToCart={onAddToCart}
@@ -134,7 +136,7 @@ export function TakeawayCategoryDrawer({
 
         {/* Best Rated Section */}
         <CategoryFoodItemsGrid
-          title="🔥 Most Loved"
+          title={renderTitleWithIcon('❤️', 'Most Loved')}
           subtitle="Highest rated by our community"
           items={displayBestRated}
           onAddToCart={onAddToCart}

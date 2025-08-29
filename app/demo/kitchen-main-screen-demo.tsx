@@ -15,9 +15,7 @@ export default function KitchenMainScreenDemo() {
     Alert.alert('Search', 'Search button pressed!');
   };
 
-  const handlePlayPress = () => {
-    Alert.alert('Play', 'Play button pressed!');
-  };
+  // Removed unused handlePlayPress function
 
   return (
     <View style={styles.container}>

@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   swipeCueContent: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     borderRadius: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',

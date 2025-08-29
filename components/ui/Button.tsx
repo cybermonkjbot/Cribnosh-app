@@ -130,9 +130,13 @@ export const Button: FC<ButtonProps> = ({
     </Animated.View>
   );
   if (Platform.OS === 'ios') {
-    // Remove null/undefined props for TouchableOpacity
+    // Remove null/undefined props and exclude event handlers for TouchableOpacity
     const filteredProps = Object.fromEntries(
-      Object.entries(props).filter(([, v]) => v !== null && v !== undefined)
+      Object.entries(props).filter(([key, v]) => 
+        v !== null && 
+        v !== undefined && 
+        !['onPress', 'onPressIn', 'onPressOut'].includes(key)
+      )
     );
     return (
       <TouchableOpacity
@@ -143,6 +147,7 @@ export const Button: FC<ButtonProps> = ({
         hitSlop={8}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
+        onPress={props.onPress}
         {...filteredProps}
       >
         {content}
@@ -157,6 +162,7 @@ export const Button: FC<ButtonProps> = ({
       hitSlop={8}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      onPress={props.onPress}
       {...props}
     >
       {content}

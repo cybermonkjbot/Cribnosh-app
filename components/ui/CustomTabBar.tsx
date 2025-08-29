@@ -1,7 +1,7 @@
 import { useAppContext } from '@/utils/AppContext';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { CustomHomeIcon } from './CustomHomeIcon';
 import { CustomOrdersIcon } from './CustomOrdersIcon';
@@ -47,10 +47,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
         <View style={styles.tabBarContainer}>
           <View style={styles.tabBarContent}>
             {state.routes.map((route, index) => {
-              const { options } = descriptors[route.key];
-              const label = typeof options.tabBarLabel === 'string' 
-                ? options.tabBarLabel 
-                : options.title ?? route.name;
+
               const isFocused = state.index === index;
 
               const onPress = () => {

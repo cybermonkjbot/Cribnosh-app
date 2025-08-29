@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import CaloriesNoshPointsCards from '../../components/ui/CaloriesNoshPointsCards';
+import { CaloriesNoshPointsCards } from '../../components/ui/CaloriesNoshPointsCards';
 
 export default function CaloriesNoshPointsDemo() {
   return (

@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Circle, Path, Rect, Svg } from 'react-native-svg';
 
@@ -228,7 +228,7 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
 
       {/* Today's Menu Categories */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today's Menu</Text>
+        <Text style={styles.sectionTitle}>Today&apos;s Menu</Text>
         
         <ScrollView 
           horizontal 
@@ -327,7 +327,7 @@ export { KitchenBottomSheetContent };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 25,
+    paddingLeft: 20, // Reduced from 25 for better visual balance
     paddingBottom: 250, // Increased from 180 to 250 for much more bottom padding
   },
   deliveryInfo: {
@@ -411,15 +411,17 @@ const styles = StyleSheet.create({
     color: '#FAFAFA',
   },
   mealsContainer: {
-    paddingRight: 25,
+    // Removed paddingRight completely
   },
   mealCard: {
     width: 150,
     height: 200,
     marginRight: 15,
-    backgroundColor: '#1F2937',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Changed to semi-transparent white for dark background
     borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)', // Subtle white border
   },
   mealImageContainer: {
     width: '100%',
@@ -516,9 +518,11 @@ const styles = StyleSheet.create({
     width: '48%', // Two items per row
     height: 150,
     marginBottom: 15,
-    backgroundColor: '#1F2937',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Slightly more transparent for featured items
     borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)', // Subtle white border
   },
   featuredImageContainer: {
     width: '100%',

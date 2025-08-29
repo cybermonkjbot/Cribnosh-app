@@ -197,7 +197,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 12,
+          paddingLeft: 12, // Changed from paddingHorizontal to paddingLeft only
           gap: 12,
         }}
         style={{ marginBottom: 12 }}
@@ -210,7 +210,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 12,
+          paddingLeft: 12, // Changed from paddingHorizontal to paddingLeft only
           gap: 12,
         }}
       >

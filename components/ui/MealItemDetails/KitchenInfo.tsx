@@ -1,4 +1,3 @@
-import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 interface KitchenInfoProps {
@@ -44,7 +43,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 15,
   },

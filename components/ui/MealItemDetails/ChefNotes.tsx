@@ -12,7 +12,7 @@ interface ChefNotesProps {
 export function ChefNotes({ story, tips, chefName, chefAvatar }: ChefNotesProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Chef's Notes</Text>
+      <Text style={styles.header}>Chef&apos;s Notes</Text>
       
       <View style={styles.notesContainer}>
         {/* Chef Info */}
@@ -21,7 +21,7 @@ export function ChefNotes({ story, tips, chefName, chefAvatar }: ChefNotesProps)
             <Ionicons name="person" size={24} color="#094327" />
           </View>
           <View style={styles.chefDetails}>
-            <Text style={styles.chefName}>{chefName || "Chef's Special"}</Text>
+            <Text style={styles.chefName}>{chefName || "Chef&apos;s Special"}</Text>
             <Text style={styles.chefSubtitle}>Personal Recipe</Text>
           </View>
         </View>
@@ -42,7 +42,7 @@ export function ChefNotes({ story, tips, chefName, chefAvatar }: ChefNotesProps)
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="bulb-outline" size={16} color="#FF3B30" />
-              <Text style={styles.sectionTitle}>Chef's Tips</Text>
+              <Text style={styles.sectionTitle}>Chef&apos;s Tips</Text>
             </View>
             {tips.map((tip, index) => (
               <View key={index} style={styles.tipItem}>

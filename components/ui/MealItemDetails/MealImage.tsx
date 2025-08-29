@@ -1,4 +1,3 @@
-import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
 interface MealImageProps {
@@ -27,7 +26,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   
   // Food Image with drop shadow

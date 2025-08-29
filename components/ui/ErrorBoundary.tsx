@@ -6,7 +6,7 @@ interface ErrorBoundaryProps {
   children: ReactNode;
   fallbackComponent?: ReactNode;
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
-  resetKeys?: Array<string | number>;
+  resetKeys?: (string | number)[];
   resetOnPropsChange?: boolean;
 }
 

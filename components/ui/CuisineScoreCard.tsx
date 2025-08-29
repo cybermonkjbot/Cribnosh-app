@@ -1,3 +1,4 @@
+import { ChefHat, Globe, Soup } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -15,6 +16,8 @@ interface CuisineScoreCardProps {
   cuisines: string[];
   onPress?: () => void;
 }
+
+
 
 export const CuisineScoreCard: React.FC<CuisineScoreCardProps> = ({
   cuisines = ['Nigerian', 'Italian', 'Asian Fusion', 'Mexican', 'Indian'],
@@ -140,7 +143,9 @@ export const CuisineScoreCard: React.FC<CuisineScoreCardProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Animated.Text style={[styles.icon, iconAnimatedStyle]}>🧂</Animated.Text>
+            <Animated.View style={[styles.icon, iconAnimatedStyle]}>
+              <ChefHat size={20} color="#FF6B00" />
+            </Animated.View>
             <Text style={styles.title}>Cuisine Score</Text>
           </View>
           <Text style={styles.chevron}>›</Text>
@@ -204,8 +209,12 @@ export const CuisineScoreCard: React.FC<CuisineScoreCardProps> = ({
 
         {/* Celebration Icons */}
         <Animated.View style={[styles.celebrationIcons, celebrationAnimatedStyle]}>
-          <Text style={styles.celebrationIcon}>🌍</Text>
-          <Text style={styles.celebrationIcon}>🍲</Text>
+          <View style={styles.celebrationIcon}>
+            <Globe size={16} color="#4A90E2" />
+          </View>
+          <View style={styles.celebrationIcon}>
+            <Soup size={16} color="#FF6B00" />
+          </View>
         </Animated.View>
       </Pressable>
     </Animated.View>
@@ -239,8 +248,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   icon: {
-    fontSize: 16,
+    width: 20,
+    height: 20,
     marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: 16,
@@ -315,6 +327,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   celebrationIcon: {
-    fontSize: 16,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 }); 

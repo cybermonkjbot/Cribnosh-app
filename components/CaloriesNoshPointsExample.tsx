@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import CaloriesNoshPointsCards from './ui/CaloriesNoshPointsCards';
+import { CaloriesNoshPointsCards } from './ui/CaloriesNoshPointsCards';
 
 const CaloriesNoshPointsExample: React.FC = () => {
   const [caloriesProgress, setCaloriesProgress] = useState(23);

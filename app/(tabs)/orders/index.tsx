@@ -2,10 +2,12 @@ import { BurgerIcon } from '@/components/ui/BurgerIcon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { GradientBackground } from '@/components/ui/GradientBackground';
 import { OrderCard } from '@/components/ui/OrderCard';
+import { OrdersCampaignBanner } from '@/components/ui/OrdersCampaignBanner';
 import { PremiumHeader } from '@/components/ui/PremiumHeader';
 import { PremiumTabs } from '@/components/ui/PremiumTabs';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 // Define order status types
@@ -47,6 +49,7 @@ interface Order {
 
 export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<'ongoing' | 'past'>('ongoing');
+  const router = useRouter();
 
   const tabs = [
     { key: 'ongoing', label: 'Ongoing' },
@@ -226,6 +229,9 @@ export default function OrdersScreen() {
         onTabPress={(tabKey) => setActiveTab(tabKey as 'ongoing' | 'past')}
       />
 
+      {/* Campaign Banner */}
+      <OrdersCampaignBanner onPress={() => router.push('/orders/group')} />
+
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
@@ -245,4 +251,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 100, // Account for tab bar
   },
+
 }); 

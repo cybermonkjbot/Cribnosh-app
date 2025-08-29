@@ -145,21 +145,21 @@ export default function RatingSystemsTestScreen() {
         <View style={styles.exampleContainer}>
           <Text style={styles.exampleTitle}>Individual Meal:</Text>
           <Text style={styles.exampleText}>
-            "This Shawarma was <Text style={styles.highlight}>bussing</Text> - I loved it!"
+            &ldquo;This Shawarma was <Text style={styles.highlight}>bussing</Text> - I loved it!&rdquo;
           </Text>
         </View>
         
         <View style={styles.exampleContainer}>
           <Text style={styles.exampleTitle}>Kitchen Aggregate:</Text>
           <Text style={styles.exampleText}>
-            "Amara's Kitchen is <Text style={styles.highlight}>mostly bussing</Text> - their meals are consistently great!"
+            &ldquo;Amara&apos;s Kitchen is <Text style={styles.highlight}>mostly bussing</Text> - their meals are consistently great!&rdquo;
           </Text>
         </View>
         
         <View style={styles.exampleContainer}>
           <Text style={styles.exampleTitle}>Mixed Kitchen:</Text>
           <Text style={styles.exampleText}>
-            "Bangkok Bites is <Text style={styles.highlight}>mostly mid</Text> - some dishes are good, others are just okay."
+            &ldquo;Bangkok Bites is <Text style={styles.highlight}>mostly mid</Text> - some dishes are good, others are just okay.&rdquo;
           </Text>
         </View>
       </View>

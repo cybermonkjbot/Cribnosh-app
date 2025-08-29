@@ -1,5 +1,5 @@
+import { Ionicons } from '@expo/vector-icons'; // Added Ionicons import
 import * as Haptics from 'expo-haptics';
-import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
   getPlayToWinData,
@@ -40,7 +40,7 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 12,
+          paddingLeft: 12, // Changed from paddingHorizontal to paddingLeft only
           gap: 12,
         }}
       >
@@ -76,7 +76,7 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
                 position: 'absolute',
                 top: 6,
                 right: 6,
-                backgroundColor: '#ef4444',
+                backgroundColor: '#F59E0B', // Changed to Cribnosh golden/orange color for prep time
                 borderRadius: 12,
                 paddingHorizontal: 6,
                 paddingVertical: 2,
@@ -84,9 +84,9 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
                 alignItems: 'center'
               }}>
                 <Text style={{ color: '#fff', fontSize: 10, fontWeight: '600', marginRight: 2 }}>
-                  Usual
+                  15m
                 </Text>
-                <Text style={{ fontSize: 8 }}>⭐</Text>
+                <Ionicons name="time-outline" size={8} color="#ffffff" />
               </View>
             </View>
             
@@ -130,83 +130,79 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
 
   return (
     <View style={{ marginBottom: 24 }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-        paddingHorizontal: 12,
-      }}>
-        <Text style={{
-          color: '#1a1a1a',
-          fontSize: 20,
-          fontWeight: '700',
-          lineHeight: 24,
-        }}>
-          {data.title}
-        </Text>
-      </View>
-
       <View style={{ paddingHorizontal: 12 }}>
         <View
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backgroundColor: '#FFFFFF',
             borderRadius: 16,
             overflow: 'hidden',
             borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.15)',
+            borderColor: '#E5E7EB',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 3,
           }}
         >
-          <View style={{ padding: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+          <View style={{ padding: 20 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
               <View style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: '#ef4444',
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#FF3B30', // Cribnosh red
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginRight: 12,
+                marginRight: 16,
+                shadowColor: '#FF3B30',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 4,
               }}>
-                <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '600' }}>
-                  🎮
-                </Text>
+                <Ionicons name="game-controller" size={24} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{
                   color: '#1a1a1a',
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: '700',
-                  marginBottom: 2,
-                  lineHeight: 20,
+                  marginBottom: 4,
+                  lineHeight: 22,
                 }}>
                   Free Lunch Game
                 </Text>
                 <Text style={{
-                  color: '#666666',
-                  fontSize: 13,
-                  fontWeight: '400',
+                  color: '#6B7280',
+                  fontSize: 14,
+                  fontWeight: '500',
                 }}>
                   {data.colleagueConnections} colleagues available
                 </Text>
               </View>
             </View>
 
-            <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
               <TouchableOpacity
                 onPress={handleStartGame}
                 style={{
                   flex: 1,
-                  backgroundColor: '#ef4444',
+                  backgroundColor: '#FF3B30', // Cribnosh red
                   borderRadius: 12,
-                  paddingVertical: 12,
+                  paddingVertical: 14,
                   alignItems: 'center',
+                  shadowColor: '#FF3B30',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: 3,
                 }}
                 activeOpacity={0.8}
               >
                 <Text style={{
                   color: '#ffffff',
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: '600',
                 }}>
                   Start Game
@@ -217,18 +213,18 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
                 onPress={handleInviteColleagues}
                 style={{
                   flex: 1,
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  backgroundColor: 'rgba(255, 59, 48, 0.1)',
                   borderRadius: 12,
-                  paddingVertical: 12,
+                  paddingVertical: 14,
                   alignItems: 'center',
                   borderWidth: 1,
-                  borderColor: '#ef4444',
+                  borderColor: '#FF3B30',
                 }}
                 activeOpacity={0.8}
               >
                 <Text style={{
-                  color: '#ef4444',
-                  fontSize: 14,
+                  color: '#FF3B30',
+                  fontSize: 15,
                   fontWeight: '600',
                 }}>
                   Invite More
@@ -237,19 +233,28 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
             </View>
 
             <View style={{ 
-              marginTop: 12, 
-              paddingTop: 12, 
+              paddingTop: 16, 
               borderTopWidth: 1, 
-              borderTopColor: 'rgba(255, 255, 255, 0.15)' 
+              borderTopColor: '#F3F4F6',
+              alignItems: 'center',
             }}>
-              <Text style={{
-                color: '#666666',
-                fontSize: 12,
-                textAlign: 'center',
-                fontWeight: '400',
+              <View style={{
+                backgroundColor: '#F0FDF4',
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderWidth: 1,
+                borderColor: '#D1FAE5',
               }}>
-                All items are £{data.freeAmount} • Max {data.maxParticipants} players
-              </Text>
+                <Text style={{
+                  color: '#065F46',
+                  fontSize: 12,
+                  fontWeight: '600',
+                  textAlign: 'center',
+                }}>
+                  All items are £{data.freeAmount} • Max {data.maxParticipants} players
+                </Text>
+              </View>
             </View>
           </View>
         </View>

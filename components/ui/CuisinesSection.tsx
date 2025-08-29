@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 interface Cuisine {
@@ -38,10 +37,10 @@ export function CuisinesSection({ onCuisinePress }: CuisinesSectionProps) {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: 16, 
-        paddingHorizontal: 20 
+        paddingHorizontal: 16 
       }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
-          Cuisine's
+          Cuisines
         </Text>
         <TouchableOpacity>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
@@ -51,7 +50,7 @@ export function CuisinesSection({ onCuisinePress }: CuisinesSectionProps) {
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingLeft: 20 }} // Changed from paddingHorizontal to paddingLeft only
       >
         {cuisines.map((cuisine, index) => (
           <TouchableOpacity

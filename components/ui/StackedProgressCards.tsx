@@ -47,7 +47,13 @@ export const StackedProgressCards: React.FC<StackedProgressCardsProps> = ({
       <View style={styles.noshPointsCard}>
         <View style={styles.noshPointsBackground}>
           <View style={styles.noshPointsContent}>
-            <View style={styles.noshPointsHeader}>
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: 16, 
+              paddingHorizontal: 16 
+            }}>
               <Text style={styles.noshPointsLabel}>{noshPointsLabel}</Text>
               <View style={styles.arrowIcon}>
                 <View style={styles.arrowLine1} />
@@ -137,7 +143,7 @@ const styles = StyleSheet.create({
     shadowRadius: 55,
     elevation: 8,
     padding: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 15,
     paddingLeft: 14,
     justifyContent: 'center',

@@ -232,8 +232,6 @@
 
 
 
-
-
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 import BottomSheetBase from './BottomSheetBase'
@@ -278,9 +276,9 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     liveViewers: 127,
   },  
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
-  const [quantity, setQuantity] = React.useState(1);
 
+  // Removed unused quantity state
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const snapPoints = isExpanded ? ['60%', '90%'] : ['60%'];
 

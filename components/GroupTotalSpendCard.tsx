@@ -17,7 +17,7 @@ const CARD_HEIGHT = CARD_WIDTH * 0.28;
 const AVATAR_SIZE = screenWidth < 375 ? 32 : 36;
 const AVATAR_OVERLAP = screenWidth < 375 ? 14 : 18;
 
-const GroupTotalSpendCard: React.FC<GroupTotalSpendCardProps> = ({ amount, label = 'Squad Spend budget', avatars, glow }) => {
+const GroupTotalSpendCard: React.FC<GroupTotalSpendCardProps> = ({ amount, label = 'Chip in to budget', avatars, glow }) => {
   const mainCardHeight = CARD_HEIGHT * 0.78;
 
   return (
@@ -81,7 +81,7 @@ const GroupTotalSpendCard: React.FC<GroupTotalSpendCardProps> = ({ amount, label
           style={{
             width: '60%',
             left: '20%',
-            top: '60%',
+            top: '64%',
             fontFamily: 'Poppins-SemiBold',
             fontWeight: '400',
             fontSize: screenWidth < 375 ? 8 : 12,

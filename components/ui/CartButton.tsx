@@ -1,12 +1,10 @@
-import React from 'react';
 import {
   Dimensions,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  useWindowDimensions,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
@@ -45,11 +43,9 @@ export function CartButton({
   containerStyle,
 }: CartButtonProps) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
   
 
-  const isSmallScreen = width < 375;
   // const buttonWidth = width - (isSmallScreen ? 40 : 48); // 20 or 24px padding on each side
   const buttonWidth = SCREEN_WIDTH - 32; // 20 or 24px padding on each side
 
@@ -147,7 +143,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 12,
     zIndex: 9999,
   },

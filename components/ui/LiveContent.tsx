@@ -2,6 +2,7 @@ import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
+
 import { Animated, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 interface LiveKitchen {
   id: string;
@@ -98,9 +99,6 @@ export function LiveContent({
 }: LiveContentProps) {
   const { activeCategoryFilter } = useAppContext();
   
-  // Animation for the live icon pulse
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  
   // Function to format numbers to K, M format
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
@@ -110,27 +108,6 @@ export function LiveContent({
     }
     return num.toString();
   };
-  
-  useEffect(() => {
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    
-    pulseAnimation.start();
-    
-    return () => pulseAnimation.stop();
-  }, [pulseAnim]);
 
   const filteredKitchens = mockLiveKitchens.filter(kitchen => {
     if (activeCategoryFilter === 'all') return true;
@@ -148,107 +125,75 @@ export function LiveContent({
 
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
+    <LinearGradient
+      colors={['#f8e6f0', '#faf2e8']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.container}
-      showsVerticalScrollIndicator={false}
-      bounces={true}
-      alwaysBounceVertical={true}
-      contentContainerStyle={{ 
-        paddingBottom: 100,
-        paddingTop: isHeaderSticky ? 0 : 282, // Same padding as MainScreen
-      }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#FF3B30"
-          colors={['#FF3B30']}
-          progressBackgroundColor="rgba(255, 255, 255, 0.8)"
-          progressViewOffset={0}
-          title="Pull to refresh"
-          titleColor="#FF3B30"
-        />
-      }
-      onScroll={onScroll}
-      scrollEventThrottle={8}
     >
+      <ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
+        contentContainerStyle={{ 
+          paddingBottom: 100,
+          paddingTop: isHeaderSticky ? 0 : 320, // Increased top padding to push content down more
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF3B30"
+            colors={['#FF3B30']}
+            progressBackgroundColor="rgba(255, 255, 255, 0.8)"
+            progressViewOffset={0}
+            title="Pull to refresh"
+            titleColor="#FF3B30"
+          />
+        }
+        onScroll={onScroll}
+        scrollEventThrottle={8}
+      >
       {/* Main Content with fade animation */}
       <Animated.View style={{ opacity: contentFadeAnim }}>
-        {/* Live Header */}
-        <View style={styles.liveHeader}>
-          <LinearGradient
-            colors={['#FF3B30', '#FF6B6B', '#FF3B30']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.liveHeaderGradient}
-          >
-            <View style={styles.liveHeaderContent}>
-              <View style={styles.liveIconContainer}>
-                <Animated.View 
-                  style={[
-                    styles.liveIconPulse,
-                    { transform: [{ scale: pulseAnim }] }
-                  ]} 
-                />
-                <View style={styles.liveIconDot} />
-              </View>
-              <View style={styles.liveHeaderText}>
-                <Text style={styles.liveHeaderTitle}>LIVE NOW</Text>
-                <Text style={styles.liveHeaderSubtitle}>
-                  {filteredKitchens.length} kitchens cooking live
-                </Text>
-              </View>
-              <View style={styles.liveStatsContainer}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{filteredKitchens.length}</Text>
-                  <Text style={styles.statLabel}>Active</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>
-                    {formatNumber(filteredKitchens.reduce((total, kitchen) => total + kitchen.viewers, 0))}
-                  </Text>
-                  <Text style={styles.statLabel}>Watching</Text>
-                </View>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
 
-        {/* Live Kitchens Grid */}
+
+        {/* Live Kitchens Grid - Two Column Layout */}
         <View style={styles.kitchensContainer}>
           {filteredKitchens.length > 0 ? (
-            filteredKitchens.map((kitchen) => (
-              <TouchableOpacity
-                key={kitchen.id}
-                style={styles.kitchenCard}
-                onPress={() => handleKitchenPress(kitchen)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: kitchen.image }}
-                    style={styles.kitchenImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.liveIndicator}>
-                    <View style={styles.liveDot} />
-                    <Text style={styles.liveText}>LIVE</Text>
+            <View style={styles.kitchensGrid}>
+              {filteredKitchens.map((kitchen) => (
+                <TouchableOpacity
+                  key={kitchen.id}
+                  style={styles.kitchenCard}
+                  onPress={() => handleKitchenPress(kitchen)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={{ uri: kitchen.image }}
+                      style={styles.kitchenImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.liveIndicator}>
+                      <View style={styles.liveDot} />
+                      <Text style={styles.liveText}>LIVE</Text>
+                    </View>
+                    <View style={styles.viewersContainer}>
+                      <Text style={styles.viewersText}>{formatNumber(kitchen.viewers)} watching</Text>
+                    </View>
                   </View>
-                                  <View style={styles.viewersContainer}>
-                  <Text style={styles.viewersText}>{formatNumber(kitchen.viewers)} watching</Text>
-                </View>
-                </View>
-                
-                <View style={styles.kitchenInfo}>
-                  <Text style={styles.kitchenName}>{kitchen.name}</Text>
-                  <Text style={styles.kitchenCuisine}>{kitchen.cuisine}</Text>
-                  <Text style={styles.kitchenDescription}>{kitchen.description}</Text>
-                  <Text style={styles.chefName}>by {kitchen.chef}</Text>
-                </View>
-              </TouchableOpacity>
-            ))
+                  
+                  <View style={styles.kitchenInfo}>
+                    <Text style={styles.kitchenName}>{kitchen.name}</Text>
+                    <Text style={styles.kitchenCuisine}>{kitchen.cuisine}</Text>
+                    <Text style={styles.kitchenDescription}>{kitchen.description}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateTitle}>No Live Kitchens</Text>
@@ -273,20 +218,19 @@ export function LiveContent({
         <View style={styles.bottomSpacing} />
       </Animated.View>
     </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8e6f0',
   },
-  liveHeader: {
-    marginBottom: 20,
-  },
+
   liveHeaderGradient: {
     paddingVertical: 18,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 8,
@@ -387,6 +331,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 16,
   },
+  kitchensGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   kitchenCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -396,6 +346,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    width: '48%', // Two columns with gap
+    marginBottom: 16,
   },
   imageContainer: {
     position: 'relative',

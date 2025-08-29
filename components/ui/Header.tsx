@@ -3,9 +3,10 @@ import { getCompleteDynamicHeader } from '@/utils/dynamicHeaderMessages';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import { Easing } from 'react-native-reanimated';
+import { CribNoshLogo } from './CribNoshLogo';
 
 interface HeaderProps {
   userName?: string;
@@ -81,7 +82,7 @@ export function Header({ userName = "Joshua", isSticky = false, showSubtitle = f
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
           paddingTop: 50,
           paddingBottom: 12,
-          paddingHorizontal: 20,
+          paddingHorizontal: 16,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.1,
@@ -98,35 +99,11 @@ export function Header({ userName = "Joshua", isSticky = false, showSubtitle = f
           {/* Compact Logo with Animation */}
           <Animated.View 
             style={{ 
-              flexDirection: 'row', 
               alignItems: 'center',
               transform: [{ scale: logoScale }]
             }}
           >
-            <Text style={{ 
-              fontSize: 22, 
-              fontWeight: 'bold', 
-              color: '#16a34a',
-              textShadowColor: 'rgba(255, 255, 255, 0.8)',
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 2,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-            }}>Crib</Text>
-            <Text style={{ 
-              fontSize: 22, 
-              fontWeight: 'bold', 
-              color: '#dc2626',
-              textShadowColor: 'rgba(255, 255, 255, 0.8)',
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 2,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-            }}>Nosh</Text>
+            <CribNoshLogo size={88} variant="default" />
           </Animated.View>
 
           {/* Right side: Tabs and Avatar grouped together */}
@@ -213,43 +190,17 @@ export function Header({ userName = "Joshua", isSticky = false, showSubtitle = f
       colors={['#f5e6f0', '#f9f2e8']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={{ paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 }}
+      style={{ paddingTop: 60, paddingBottom: 20, paddingHorizontal: 16 }}
     >
       {/* Logo and Avatar Row with Animation */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Animated.View 
           style={{ 
-            flexDirection: 'row', 
             alignItems: 'center',
             transform: [{ scale: logoScale }]
           }}
         >
-          <Text style={{ 
-            fontSize: 24, 
-            fontWeight: 'bold', 
-            color: '#16a34a',
-            textShadowColor: 'rgba(255, 255, 255, 0.8)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 2,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            opacity: 0.9,
-          }}>Crib</Text>
-          <Text style={{ 
-            fontSize: 24, 
-            fontWeight: 'bold', 
-            color: '#dc2626',
-            textShadowColor: 'rgba(255, 255, 255, 0.8)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 2,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            opacity: 0.9,
-          }}>Nosh</Text>
+          <CribNoshLogo size={120} variant="default" />
         </Animated.View>
         
         <Animated.View 

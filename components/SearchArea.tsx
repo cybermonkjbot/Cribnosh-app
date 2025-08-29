@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
-import AISparkles from './ui/AISparkles';
+import { AISparkles } from './ui/AISparkles';
 
 interface SearchAreaProps {
   loading?: boolean;

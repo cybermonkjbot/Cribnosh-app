@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 interface OrderItem {
@@ -93,7 +94,7 @@ export function OrderAgainSection({ isHeaderSticky = false }: OrderAgainSectionP
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 16,
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
       }}>
         <Text style={{
           color: '#1a1a1a',
@@ -110,7 +111,7 @@ export function OrderAgainSection({ isHeaderSticky = false }: OrderAgainSectionP
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 12,
+          paddingLeft: 10, // Changed from paddingHorizontal to paddingLeft only
           gap: 12,
         }}
         scrollEventThrottle={16}
@@ -159,7 +160,7 @@ export function OrderAgainSection({ isHeaderSticky = false }: OrderAgainSectionP
                   <Text style={{ color: '#fff', fontSize: 10, fontWeight: '600', marginRight: 2 }}>
                     Bussin
                   </Text>
-                  <Text style={{ fontSize: 8 }}>🔥</Text>
+                  <Ionicons name="flame" size={8} color="#FFE4E1" />
                 </View>
               )}
             </View>

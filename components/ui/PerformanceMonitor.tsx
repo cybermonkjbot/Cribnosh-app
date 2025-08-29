@@ -21,7 +21,6 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Device performance classification
 const getDevicePerformanceClass = (): 'high' | 'medium' | 'low' => {
   const screenArea = SCREEN_WIDTH * SCREEN_HEIGHT;
-  const pixelDensity = screenArea / (SCREEN_WIDTH * SCREEN_HEIGHT);
   
   // Basic heuristics for device performance
   if (Platform.OS === 'ios') {

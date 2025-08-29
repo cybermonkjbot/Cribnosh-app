@@ -22,18 +22,18 @@ export function getAvatarPositions(
 
 
 export const avatars = [
-    { uri: 'https://avatar.iran.liara.run/public/44' },
-    { uri: 'https://avatar.iran.liara.run/public/47' },
-    { uri: 'https://avatar.iran.liara.run/public/27' },
-    { uri: 'https://avatar.iran.liara.run/public/12' },
-    { uri: 'https://avatar.iran.liara.run/public/16' },
+    { uri: require('@/assets/images/demo/avatar-1.png') },
+    { uri: require('@/assets/images/demo/avatar-2.png') },
+    { uri: require('@/assets/images/demo/avatar-3.png') },
+    { uri: require('@/assets/images/demo/avatar-4.png') },
+    { uri: require('@/assets/images/demo/avatar-5.png') },
 ]
 
 export const groupMembers = [
-  { name: 'Fola', avatarUri: 'https://avatar.iran.liara.run/public/44', top: 0, left: 0 },
-  { name: 'Josh', avatarUri: 'https://avatar.iran.liara.run/public/47', top: 50, left: 50 },
-  { name: 'Sarah', avatarUri: 'https://avatar.iran.liara.run/public/27', top: 100, left: 100 },
-  { name: 'Mike', avatarUri: 'https://avatar.iran.liara.run/public/12', top: 150, left: 150 },
-  { name: 'Emma', avatarUri: 'https://avatar.iran.liara.run/public/16', top: 200, left: 200 },
-  { name: 'Alex', avatarUri: 'https://avatar.iran.liara.run/public/16', top: 250, left: 250 },
+    { name: 'Fola', avatarUri: require('@/assets/images/demo/avatar-1.png'), top: 0, left: 0 },
+    { name: 'Josh', avatarUri: require('@/assets/images/demo/avatar-2.png'), top: 50, left: 50 },
+    { name: 'Sarah', avatarUri: require('@/assets/images/demo/avatar-3.png'), top: 100, left: 100 },
+    { name: 'Mike', avatarUri: require('@/assets/images/demo/avatar-4.png'), top: 150, left: 150 },
+    { name: 'Emma', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 200, left: 200 },
+    { name: 'Alex', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 250, left: 250 },
 ];

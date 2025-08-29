@@ -1,12 +1,14 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native'
+import AmountInput from '@/components/AmountInput'
+import BottomSheet from '@gorhom/bottom-sheet'
+import { router } from 'expo-router'
 import React, { useMemo, useRef } from 'react'
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import BottomSheet from '@gorhom/bottom-sheet'
-import { CartButton } from '../../CartButton'
 import { Button } from '../../Button'
 import AmountInput from '@/components/AmountInput'
 import { router } from 'expo-router'
+import { CartButton } from '../../CartButton'
 
 type GroupOrderCheckoutProps = {
   isSheetOpen?: boolean;
@@ -92,7 +94,7 @@ React.useEffect(() => {
                   right: 0,
                   backgroundColor: '#02120A',
                   paddingVertical: 60,
-                  paddingHorizontal: 20,
+                  paddingHorizontal: 16,
                   gap: 12,
               }}>
                  <CartButton quantity={4} onPress={() => console.log('yes')} /> 
@@ -121,7 +123,9 @@ const styles = StyleSheet.create({
     },
     sheetContent: {
         flex: 1,
-        paddingHorizontal: 20,
+        // alignItems: 'center',
+        // padding: 20,
+        paddingHorizontal: 16,
         backgroundColor: '#02120A',
     },
     coverEverything:{
@@ -131,7 +135,7 @@ const styles = StyleSheet.create({
   backgroundColor:"#5E685F",
   textAlign:'center',
   marginHorizontal:'auto',
-  paddingHorizontal:20,
+  paddingHorizontal:16,
   paddingVertical:5,
   borderRadius:10
 },

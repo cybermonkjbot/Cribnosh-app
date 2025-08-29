@@ -126,117 +126,142 @@ const BillIcon: React.FC = () => (
 
 const GuiltyIcon: React.FC = () => (
   <Svg width={20} height={20} viewBox="0 0 20 20">
-    {/* Main face shape */}
+    {/* Credit card shape */}
     <Rect
-      x={1.13}
-      y={1.87}
-      width={18.11}
-      height={15.8}
+      x={2}
+      y={4}
+      width={16}
+      height={12}
+      rx={2}
       fill="#FFFFFF"
-    />
-    {/* Eyes */}
-    <Circle
-      cx={6.54}
-      cy={9.59}
-      r={0.96}
       stroke="#000000"
-      strokeWidth={2}
-      fill="none"
+      strokeWidth={1.5}
     />
-    <Circle
-      cx={11.54}
-      cy={9.59}
-      r={0.96}
-      stroke="#000000"
-      strokeWidth={2}
-      fill="none"
+    {/* Card chip */}
+    <Rect
+      x={4}
+      y={6.5}
+      width={3}
+      height={2.5}
+      fill="#000000"
     />
-    {/* Horns */}
-    <Path
-      d="M 2.13 6.64 L 5.41 6.64"
-      stroke="#000000"
-      strokeWidth={2}
-      transform="rotate(90 3.77 6.64)"
+    {/* Card lines */}
+    <Rect
+      x={8}
+      y={6.5}
+      width={8}
+      height={1.5}
+      fill="#000000"
     />
-    <Path
-      d="M 14.55 6.64 L 17.83 6.64"
-      stroke="#000000"
-      strokeWidth={2}
-      transform="rotate(90 16.19 6.64)"
+    <Rect
+      x={8}
+      y={8.5}
+      width={6}
+      height={1.5}
+      fill="#000000"
+    />
+    <Rect
+      x={8}
+      y={10.5}
+      width={4}
+      height={1.5}
+      fill="#000000"
     />
   </Svg>
 );
 
 const TransportIcon: React.FC = () => (
   <Svg width={20} height={20} viewBox="0 0 20 20">
-    {/* Bus body */}
+    {/* Car body */}
     <Rect
-      x={1}
-      y={4.65}
-      width={17.98}
-      height={11.58}
-      stroke="#000000"
-      strokeWidth={2}
+      x={2}
+      y={6}
+      width={16}
+      height={8}
+      rx={2}
       fill="#FFFFFF"
+      stroke="#000000"
+      strokeWidth={1.5}
+    />
+    {/* Car roof */}
+    <Path
+      d="M 4 6 L 8 2 L 12 2 L 16 6"
+      fill="#FFFFFF"
+      stroke="#000000"
+      strokeWidth={1.5}
     />
     {/* Windows */}
     <Rect
-      x={1.01}
-      y={6.78}
-      width={17.98}
-      height={4.46}
+      x={4.5}
+      y={3}
+      width={3}
+      height={2.5}
+      fill="#87CEEB"
       stroke="#000000"
-      strokeWidth={2}
-      fill="none"
+      strokeWidth={0.5}
+    />
+    <Rect
+      x={12.5}
+      y={3}
+      width={3}
+      height={2.5}
+      fill="#87CEEB"
+      stroke="#000000"
+      strokeWidth={0.5}
     />
     {/* Wheels */}
     <Circle
-      cx={4.53}
-      cy={16.78}
-      r={2.12}
-      stroke="#000000"
-      strokeWidth={2}
-      fill="none"
+      cx={6}
+      cy={16}
+      r={2}
+      fill="#000000"
     />
     <Circle
-      cx={13.53}
-      cy={16.78}
-      r={2.12}
-      stroke="#000000"
-      strokeWidth={2}
-      fill="none"
+      cx={14}
+      cy={16}
+      r={2}
+      fill="#000000"
     />
   </Svg>
 );
 
 const FoodIcon: React.FC = () => (
   <Svg width={20} height={20} viewBox="0 0 20 20">
-    {/* Carrot shape */}
-    <Path
-      d="M 10 2.24 L 15.54 7.78 L 10 13.32 L 4.46 7.78 Z"
+    {/* Plate */}
+    <Circle
+      cx={10}
+      cy={12}
+      r={6}
       fill="#FFFFFF"
-      transform="rotate(-45 10 7.78)"
-    />
-    {/* Carrot outline */}
-    <Path
-      d="M 10 2.24 L 15.54 7.78 L 10 13.32 L 4.46 7.78 Z"
       stroke="#000000"
-      strokeWidth={2}
-      fill="none"
-      transform="rotate(-45 10 7.78)"
+      strokeWidth={1.5}
     />
-    {/* Carrot lines */}
-    <Path
-      d="M 8.79 9.16 L 15.24 9.16"
-      stroke="#000000"
-      strokeWidth={2}
-      transform="rotate(45 12.015 9.16)"
+    {/* Fork */}
+    <Rect
+      x={6}
+      y={4}
+      width={1.5}
+      height={8}
+      fill="#000000"
+    />
+    <Rect
+      x={5.5}
+      y={4}
+      width={2.5}
+      height={1.5}
+      fill="#000000"
+    />
+    {/* Knife */}
+    <Rect
+      x={12.5}
+      y={4}
+      width={1.5}
+      height={8}
+      fill="#000000"
     />
     <Path
-      d="M 6.15 14.68 L 8.78 14.68"
-      stroke="#000000"
-      strokeWidth={2}
-      transform="rotate(45 7.465 14.68)"
+      d="M 12.5 4 L 15 6 L 12.5 8"
+      fill="#000000"
     />
   </Svg>
 );

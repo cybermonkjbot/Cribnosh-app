@@ -1,9 +1,9 @@
 import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { Easing } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { CONFIG } from '../../constants/config';
 import { UserBehavior } from '../../utils/hiddenSections';
 import {
@@ -11,6 +11,8 @@ import {
   getOrderedSectionsWithHidden,
   OrderingContext
 } from '../../utils/sectionOrdering';
+import { NotLoggedInNotice } from '../NotLoggedInNotice';
+import { SignInScreen } from '../SignInScreen';
 import { AIChatDrawer } from './AIChatDrawer';
 import { BottomSearchDrawer } from './BottomSearchDrawer';
 import { CategoryFilterChips } from './CategoryFilterChips';
@@ -21,6 +23,7 @@ import { NoshHeavenErrorBoundary } from './ErrorBoundary';
 import { EventBanner } from './EventBanner';
 import { FeaturedKitchensDrawer } from './FeaturedKitchensDrawer';
 import { FeaturedKitchensSection } from './FeaturedKitchensSection';
+import { GeneratingSuggestionsLoader } from './GeneratingSuggestionsLoader';
 import { Header } from './Header';
 import { HiddenSections } from './HiddenSections';
 import { KitchenMainScreen } from './KitchenMainScreen';
@@ -135,7 +138,7 @@ const mockCuisines = [
   },
 ];
 
-const mockKitchens: Array<{
+const mockKitchens: {
   id: string;
   name: string;
   cuisine: string;
@@ -145,7 +148,7 @@ const mockKitchens: Array<{
   image: any;
   isLive?: boolean;
   liveViewers?: number;
-}> = [
+}[] = [
   {
     id: '1',
     name: 'Amara\'s Kitchen',
@@ -232,7 +235,7 @@ const mockKitchens: Array<{
   },
 ];
 
-const mockMeals: Array<{
+const mockMeals: {
   id: string;
   name: string;
   kitchen: string;
@@ -243,7 +246,7 @@ const mockMeals: Array<{
   isNew?: boolean;
   sentiment: 'bussing' | 'mid' | 'notIt' | 'fire' | 'slaps' | 'decent' | 'meh' | 'trash' | 'elite' | 'solid' | 'average' | 'skip';
   deliveryTime: string;
-}> = [
+}[] = [
   {
     id: '1',
     name: 'Jollof Rice',
@@ -376,13 +379,13 @@ const mockOffers = [
 ];
 
 export function MainScreen() {
-  const insets = useSafeAreaInsets();
-  const { activeHeaderTab, activeCategoryFilter, getFilteredContent, registerScrollToTopCallback } = useAppContext();
+  const { activeHeaderTab, registerScrollToTopCallback } = useAppContext();
   const [isChatVisible, setIsChatVisible] = useState(false);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
-  const [refreshCount, setRefreshCount] = useState(0);
+
   const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>(mockMealData);
   
@@ -400,9 +403,17 @@ export function MainScreen() {
   const [selectedKitchen, setSelectedKitchen] = useState<any>(null);
   const [isKitchenMainScreenVisible, setIsKitchenMainScreenVisible] = useState(false);
   
+  // Sign-in modal state management
+  const [isSignInModalVisible, setIsSignInModalVisible] = useState(false);
+
+  // Debug effect to track modal state changes
+  useEffect(() => {
+    console.log('SignIn modal state changed to:', isSignInModalVisible);
+  }, [isSignInModalVisible]);
+  
   // Hidden sections state
   const [orderedSections, setOrderedSections] = useState<any[]>([]);
-  const [userBehavior, setUserBehavior] = useState<UserBehavior>({
+  const [userBehavior] = useState<UserBehavior>({
     totalOrders: 5,
     daysActive: 14,
     usualDinnerItems: ['Pizza Margherita', 'Chicken Curry', 'Pasta Carbonara', 'Sushi Roll'],
@@ -427,12 +438,10 @@ export function MainScreen() {
   // Enhanced pull-to-refresh state management
   const [showPullTrigger, setShowPullTrigger] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
-  const [isPulling, setIsPulling] = useState(false);
+
   const isScrolling = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollPosition = useRef(0);
-  const pullStartY = useRef(0);
   const pullThreshold = 60; // Further reduced threshold for immediate activation
   const velocityThreshold = 300; // Further reduced velocity threshold for faster response
 
@@ -549,52 +558,7 @@ export function MainScreen() {
     },
   ];
 
-  const totalSteps = loadingStates.length;
 
-  const getStepMessage = (step: number) => {
-    switch (step) {
-      case 1:
-        return "Finding the best meals for you...";
-      case 2:
-        return "Preparing your fresh experience...";
-      case 3:
-        return "Ready to serve!";
-      default:
-        return "Loading...";
-    }
-  };
-
-  const getMascotEmotion = (step: number) => {
-    switch (step) {
-      case 1:
-        return "excited";
-      case 2:
-        return "hungry";
-      case 3:
-        return "satisfied";
-      default:
-        return "default";
-    }
-  };
-
-  const simulateLoadingSteps = async () => {
-    setShowLoader(true);
-    
-    // Simulate the time it takes for the loader to complete all 3 steps
-    // 3 steps × 2 seconds each = 6 seconds total
-    setTimeout(() => {
-      setShowLoader(false);
-      // Increment refresh count to show new content
-      setRefreshCount(prev => prev + 1);
-      
-      // Fade in the content
-      Animated.timing(contentFadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-    }, 6000);
-  };
 
   const onRefresh = useCallback(async () => {
     console.log('Refresh triggered!');
@@ -615,8 +579,7 @@ export function MainScreen() {
       setShowLoader(false);
       setRefreshing(false);
       
-      // Increment refresh count to show new content
-      setRefreshCount(prev => prev + 1);
+
       
       // Fade in the content
       Animated.timing(contentFadeAnim, {
@@ -629,18 +592,25 @@ export function MainScreen() {
   }, [contentFadeAnim]);
 
   const handleOpenAIChat = () => {
-    setIsChatVisible(true);
+    setIsGeneratingSuggestions(true);
   };
 
   const handleCloseAIChat = () => {
     setIsChatVisible(false);
   };
 
+  const handleGeneratingSuggestionsComplete = () => {
+    // Show the chat screen immediately when loader starts completing
+    // This ensures the chat is ready before the loader's fadeout animation finishes
+    setIsChatVisible(true);
+    setIsGeneratingSuggestions(false);
+  };
+
   // Shake to Eat handlers
   const handleShakeToEatLaunch = (prompt: string) => {
     console.log('🎯 Shake to Eat: AI Chat launching with prompt:', prompt);
-    // Open AI chat with the generated prompt from sustained shake
-    setIsChatVisible(true);
+    // Open generating suggestions loader first, then AI chat
+    setIsGeneratingSuggestions(true);
     // You can pass the prompt to your AI chat component here
   };
 
@@ -655,14 +625,12 @@ export function MainScreen() {
     // Component handles its own visibility now
   };
 
-  // Debug: Add a simple shake indicator
-  const [debugShakeCount, setDebugShakeCount] = useState(0);
-  const [debugIsShaking, setDebugIsShaking] = useState(false);
+
 
   // Enhanced scroll handler with intentional pull detection
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     try {
-      const { contentOffset, contentSize, layoutMeasurement, velocity } = event.nativeEvent;
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
       
       // Improved bottom detection with tolerance
       const maxScrollPosition = Math.max(0, contentSize.height - layoutMeasurement.height);
@@ -672,9 +640,6 @@ export function MainScreen() {
       
       // Detect intentional pull gesture with immediate feedback
       const overscroll = Math.max(0, currentScrollPosition - maxScrollPosition);
-      const isSignificantPull = overscroll > pullThreshold;
-      const hasSignificantVelocity = Math.abs(velocity?.y || 0) > velocityThreshold;
-      const isIntentionalPull = isSignificantPull && hasSignificantVelocity;
       
       // Debug logging for scroll events (only when at bottom or overscrolling)
       if (isAtBottom || overscroll > 0) {
@@ -692,8 +657,7 @@ export function MainScreen() {
       if (isAtBottom) {
         // We're at the bottom, check for pull gesture
       if (overscroll > 0) {
-        setPullDistance(overscroll);
-        setIsPulling(true);
+
         
           // Show trigger immediately when any pull is detected
           if (overscroll > 5 && !hasTriggered) {
@@ -710,8 +674,6 @@ export function MainScreen() {
           }
       } else {
           // No overscroll, reset states
-        setPullDistance(0);
-        setIsPulling(false);
           if (showPullTrigger) {
             console.log('Hiding pull trigger - no overscroll');
         setShowPullTrigger(false);
@@ -719,8 +681,6 @@ export function MainScreen() {
         }
       } else {
         // Not at bottom, reset all pull states
-        setPullDistance(0);
-        setIsPulling(false);
         setShowPullTrigger(false);
         setHasTriggered(false);
       }
@@ -796,8 +756,7 @@ export function MainScreen() {
       console.warn('Scroll handler error:', error);
       setShowPullTrigger(false);
       setHasTriggered(false);
-      setPullDistance(0);
-      setIsPulling(false);
+
     }
   }, [isHeaderSticky, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, hasTriggered, pullThreshold, velocityThreshold]);
 
@@ -1010,6 +969,30 @@ export function MainScreen() {
     setActiveDrawer(null);
   }, []);
 
+  // Sign-in handlers
+  const handleSignInPress = useCallback(() => {
+    console.log('Sign in button pressed');
+    console.log('Current isSignInModalVisible state:', isSignInModalVisible);
+    setIsSignInModalVisible(true);
+    console.log('Setting isSignInModalVisible to true');
+  }, [isSignInModalVisible]);
+
+  const handleCloseSignInModal = useCallback(() => {
+    setIsSignInModalVisible(false);
+  }, []);
+
+  const handleGoogleSignIn = useCallback(() => {
+    console.log('Google sign in pressed');
+    // In a real app, this would handle Google authentication
+    setIsSignInModalVisible(false);
+  }, []);
+
+  const handleAppleSignIn = useCallback(() => {
+    console.log('Apple sign in pressed');
+    // In a real app, this would handle Apple authentication
+    setIsSignInModalVisible(false);
+  }, []);
+
   // Kitchen Main Screen handlers
   const handleCloseKitchenMainScreen = useCallback(() => {
     setIsKitchenMainScreenVisible(false);
@@ -1090,7 +1073,7 @@ export function MainScreen() {
   const noshHeavenPlayerComponent = useMemo(() => {
     if (!isNoshHeavenVisible || noshHeavenMeals.length === 0) return null;
     
-    const config = performanceConfigRef.current;
+
     
     return (
       <NoshHeavenPlayer
@@ -1213,6 +1196,7 @@ export function MainScreen() {
           >
             {/* Main Content with fade animation */}
             <Animated.View style={{ opacity: contentFadeAnim }}>
+            <NotLoggedInNotice onSignInPress={handleSignInPress} />
               <OrderAgainSection isHeaderSticky={isHeaderSticky} />
               <CuisinesSection onCuisinePress={handleCuisinePress} />
               <CuisineCategoriesSection cuisines={mockCuisines} onCuisinePress={handleCuisinePress} />
@@ -1260,7 +1244,7 @@ export function MainScreen() {
               right: 0,
               alignItems: 'center',
               zIndex: 1000,
-              paddingHorizontal: 20,
+              paddingHorizontal: 16,
             }}>
               {pullTriggerComponent}
             </View>
@@ -1268,6 +1252,12 @@ export function MainScreen() {
         )}
         
 
+
+        {/* Generating Suggestions Loader */}
+        <GeneratingSuggestionsLoader
+          isVisible={isGeneratingSuggestions}
+          onComplete={handleGeneratingSuggestionsComplete}
+        />
 
         {/* AI Chat Drawer */}
         <AIChatDrawer
@@ -1388,6 +1378,22 @@ export function MainScreen() {
             }}
           />
         )}
+      </Modal>
+
+      {/* Add SignIn Modal */}
+      <Modal
+        visible={isSignInModalVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={handleCloseSignInModal}
+        statusBarTranslucent={true}
+        hardwareAccelerated={true}
+      >
+        <SignInScreen
+          onGoogleSignIn={handleGoogleSignIn}
+          onAppleSignIn={handleAppleSignIn}
+          onClose={handleCloseSignInModal}
+        />
       </Modal>
 
       {/* Add KitchenMainScreen Modal */}

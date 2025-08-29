@@ -1,7 +1,6 @@
 import { CategoryFilter, useAppContext } from '@/utils/AppContext';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 interface CategoryChip {
@@ -42,7 +41,7 @@ export function CategoryFilterChips() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingLeft: 16, // Changed from paddingHorizontal to paddingLeft only
           gap: 8,
         }}
       >

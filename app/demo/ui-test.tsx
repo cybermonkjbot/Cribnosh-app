@@ -3,7 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import CompactMealSelection from '../../components/CompactMealSelection';
 import GroupOrderMember from '../../components/GroupOrderMember';
 import GroupTotalSpendCard from '../../components/GroupTotalSpendCard';
-import KitchenNameCard from '../../components/KitchenNameCard';
+import { KitchenNameCard } from '../../components/KitchenNameCard';
 import LiveComments from '../../components/LiveComments';
 import { AISparkles } from '../../components/ui/AISparkles';
 import { Alert } from '../../components/ui/Alert';
@@ -22,7 +22,6 @@ import SvgHeading from '../../components/ui/SvgHeading';
 
 export default function UiTestPage() {
   const [checked, setChecked] = useState(false);
-  const [loved, setLoved] = useState(false);
   const sampleComments = [
     { name: 'Azeez', comment: 'This is awesome! Loving the live.' },
     { name: 'Mina', comment: 'Can you show the menu again please?' },
@@ -96,12 +95,12 @@ export default function UiTestPage() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 32 }}>
           <GroupOrderMember
             name="Sandy Wilder Cheng"
-            avatarUri={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face' }}
+            avatarUri={require('@/assets/images/demo/avatar-1.png')}
             textColor="#134E3A"
           />
           <GroupOrderMember
             name="Kevin Leong"
-            avatarUri={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' }}
+            avatarUri={require('@/assets/images/demo/avatar-2.png')}
             showMessageIcon={true}
             isPaying={true}
             payingAmount={50}
@@ -109,7 +108,7 @@ export default function UiTestPage() {
           />
           <GroupOrderMember
             name="Alex Kim"
-            avatarUri={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face' }}
+            avatarUri={require('@/assets/images/demo/avatar-3.png')}
             isCurrentUser={true}
             isPaying={true}
             payingAmount={25}
@@ -119,14 +118,14 @@ export default function UiTestPage() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
           <GroupOrderMember
             name="Greg Apodaca"
-            avatarUri={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face' }}
+            avatarUri={require('@/assets/images/demo/avatar-4.png')}
             showMessageIcon={true}
             isChoosingMeal={true}
             textColor="#134E3A"
           />
           <GroupOrderMember
             name="Juliana Mejia"
-            avatarUri={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face' }}
+            avatarUri={require('@/assets/images/demo/avatar-5.png')}
             showMessageIcon={true}
             isContributing={true}
             contributingAmount={10}
@@ -137,9 +136,9 @@ export default function UiTestPage() {
       <GroupTotalSpendCard
         amount="£50"
         avatars={[
-          { uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' },
-          { uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face' },
-          { uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face' },
+          { uri: require('@/assets/images/demo/avatar-1.png') },
+          { uri: require('@/assets/images/demo/avatar-2.png') },
+          { uri: require('@/assets/images/demo/avatar-3.png') },
         ]}
         glow
       />
@@ -181,7 +180,7 @@ export default function UiTestPage() {
       >
         Outlined Chip
       </OptionsChip>
-      <Avatar source={{ uri: 'https://placehold.co/64x64' }} size="md" />
+      <Avatar source={require('@/assets/images/demo/avatar-1.png')} size="md" />
       <Badge>Default Badge</Badge>
       <Badge variant="secondary">Secondary Badge</Badge>
       {/** <CartBar count={2} label="Items in cart" /> */}

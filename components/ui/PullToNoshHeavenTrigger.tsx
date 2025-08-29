@@ -43,12 +43,13 @@ export function PullToNoshHeavenTrigger({
       pointerEvents={isVisible ? 'auto' : 'none'}
     >
       {/* Icons */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 12,
-      }}>
+      <View style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 16, 
+          paddingHorizontal: 16 
+        }}>
         <Utensils size={20} color="#666" />
         <ChefHat size={20} color="#666" />
         <Sparkles size={20} color="#666" />

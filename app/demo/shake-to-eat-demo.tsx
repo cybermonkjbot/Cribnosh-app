@@ -1,6 +1,6 @@
 import { ShakeToEatFlow } from '@/components/ui/ShakeToEatFlow';
 import { CONFIG } from '@/constants/config';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function ShakeToEatDemo() {
@@ -8,11 +8,7 @@ export default function ShakeToEatDemo() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isShakeToEatVisible, setIsShakeToEatVisible] = useState(false);
 
-  const handleAIChatLaunch = (prompt: string) => {
-    console.log('🎯 AI Chat Launch:', prompt);
-    setAiPrompt(prompt);
-    setShowAIChat(true);
-  };
+  // Removed unused handleAIChatLaunch function
 
   const handleCloseAIChat = () => {
     setShowAIChat(false);

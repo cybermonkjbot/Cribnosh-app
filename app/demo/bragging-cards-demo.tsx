@@ -9,7 +9,8 @@ import {
   mockConvexQueries,
   sampleWeeklyData
 } from '@/utils/braggingCardsData';
-import React, { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { Alert, Button, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -38,7 +39,7 @@ export default function BraggingCardsDemo() {
     try {
       const newData = await mockConvexQueries.getUserWeeklyStats('user_123');
       setSampleData(newData);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to fetch data');
     } finally {
       setIsLoading(false);
@@ -48,7 +49,10 @@ export default function BraggingCardsDemo() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🔥 Bragging Cards Demo</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="flame" size={20} color="#FF6B35" style={{ marginRight: 8 }} />
+          <Text style={styles.title}>Bragging Cards Demo</Text>
+        </View>
         <Text style={styles.subtitle}>Apple Health-style food stats</Text>
         
         <View style={styles.buttonContainer}>
@@ -114,11 +118,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000000',
-    marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,

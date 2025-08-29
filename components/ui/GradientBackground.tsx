@@ -66,15 +66,7 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
     }
   }, [animated]);
 
-  const animatedStart = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [start.x, start.x + 0.1],
-  });
 
-  const animatedEnd = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [end.x, end.x + 0.1],
-  });
 
   // Use static gradient for now since animated gradients have type issues
   const gradientStart = start;

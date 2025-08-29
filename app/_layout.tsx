@@ -3,21 +3,22 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 // import 'react-native-reanimated';
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { AppProvider } from '@/utils/AppContext';
+import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
 
 // Disable Reanimated strict mode warnings
 configureReanimatedLogger({
   level: ReanimatedLogLevel.error,
   strict: false,
 });
-
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { AppProvider } from '@/utils/AppContext';
-import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -27,15 +28,27 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     'Space Mono': require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
+      // Hide the default splash screen
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  // Show animated splash while fonts are loading
   if (!fontsLoaded && !fontError) {
-    return null;
+    return <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} />;
+  }
+
+  // Show animated splash for a bit even after fonts load for better UX
+  if (showSplash) {
+    return <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} duration={2000} />;
   }
 
   return (

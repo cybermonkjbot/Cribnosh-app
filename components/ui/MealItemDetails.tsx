@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CartButton } from "./CartButton";
@@ -14,7 +15,6 @@ import { MealIngredients } from "./MealItemDetails/MealIngredients";
 import { MealTitle } from "./MealItemDetails/MealTitle";
 import { NutritionalInfo } from "./MealItemDetails/NutritionalInfo";
 import { SimilarMeals } from "./MealItemDetails/SimilarMeals";
-import { useRouter } from "expo-router";
 
 interface MealItemDetailsProps {
   mealId: string;
@@ -32,12 +32,12 @@ interface MealItemDetailsProps {
     carbs: string;
     dietCompatibility: number; // percentage
     dietMessage: string;
-    ingredients: Array<{
+    ingredients: {
       name: string;
       quantity: string;
       isAllergen?: boolean;
       allergenType?: string;
-    }>;
+    }[];
     isVegetarian?: boolean;
     isSafeForYou?: boolean;
     // New fields for additional sections
@@ -46,14 +46,14 @@ interface MealItemDetailsProps {
     chefName?: string;
     chefStory?: string;
     chefTips?: string[];
-    similarMeals?: Array<{
+    similarMeals?: {
       id: string;
       name: string;
       price: string;
       imageUrl?: string;
       sentiment?: "bussing" | "mid" | "notIt";
       isVegetarian?: boolean;
-    }>;
+    }[];
   };
   onAddToCart?: (mealId: string, quantity: number) => void;
   onSimilarMealPress?: (mealId: string) => void;
@@ -139,7 +139,7 @@ export function MealItemDetails({
   onAddToCart,
   onSimilarMealPress,
 }: MealItemDetailsProps) {
-  const [quantity, setQuantity] = useState(2);
+  const [quantity] = useState(2);
   const [isFavorite, setIsFavorite] = useState(false);
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -241,7 +241,7 @@ export function MealItemDetails({
         onPress={handleAddToCart}
         variant="view"
         position="absolute"
-        bottom={Math.max(insets.bottom, 80)}
+        bottom={Math.max(insets.bottom, 100)}
         left={20}
         right={20}
         buttonText="Add to Cart"

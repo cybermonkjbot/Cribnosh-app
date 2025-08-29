@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Animated, FlatList, StyleSheet, View } from 'react-native';
-import LiveCommentItem from './LiveCommentItem';
+import { LiveCommentItem } from './LiveCommentItem';
 
 interface LiveCommentsProps {
   comments: { name: string; comment: string }[];
@@ -12,7 +12,7 @@ const VISIBLE_ITEMS = 3.5;
 
 const LiveComments: React.FC<LiveCommentsProps> = ({ comments }) => {
   const flatListRef = useRef<FlatList>(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Removed unused scrollY variable
 
   useEffect(() => {
     if (comments.length > 0 && flatListRef.current) {

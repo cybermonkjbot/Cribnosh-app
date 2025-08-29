@@ -70,7 +70,7 @@ export default function ProfileScreenBackgroundDemo() {
                 <Text style={styles.savingsTitle}>Savings Gained</Text>
                 <Text style={styles.savingsAmount}>£245.67</Text>
                 <Text style={styles.savingsSubtitle}>
-                  This month's total savings from your orders
+                  This month&apos;s total savings from your orders
                 </Text>
               </View>
             </View>

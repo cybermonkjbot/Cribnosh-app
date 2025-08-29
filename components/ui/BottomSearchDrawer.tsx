@@ -1,5 +1,7 @@
+import BottomSheet from '@gorhom/bottom-sheet';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
@@ -18,16 +20,6 @@ import { getCompleteDynamicHeader, HeaderMessage } from '../../utils/dynamicHead
 import { getDynamicSearchPrompt, SearchPrompt } from '../../utils/dynamicSearchPrompts';
 import SearchArea from '../SearchArea';
 import { Button } from './Button';
-import GroupOrderBottomSheet from './GroupOrderScreen/Page';
-import BottomSheet from '@gorhom/bottom-sheet';
-import { CartButton } from './CartButton';
-import { avatars, groupMembers } from '@/utils/getAvatarPosition';
-import GroupTotalSpendCard from '../GroupTotalSpendCard';
-import { SwipeButton } from '../SwipeButton';
-import GroupOrderMember from '../GroupOrderMember';
-import { ChevronDown, SearchIcon } from 'lucide-react-native';
-import { Input } from './Input';
-import { router } from 'expo-router';
 
 // Error boundary for icon components
 const SafeIcon = ({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) => {
@@ -129,17 +121,132 @@ const RestaurantIcon = ({ size = 18, color = '#a3b3a8' }) => (
   </SafeIcon>
 );
 
-// Sparkle Icon Component for search
-const SparkleIcon = ({ size = 24, color = '#ffffff' }) => (
+// Removed unused SparkleIcon component
+
+// User/People Icon Component for Invite Friend
+const UserIcon = ({ size = 20, color = '#ffffff' }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z"
-        fill={color}
+        d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <Path
-        d="M19 7L20.18 9.82L23 11L20.18 12.18L19 15L17.82 12.18L15 11L17.82 9.82L19 7Z"
-        fill={color}
+        d="M12 14a7 7 0 0 0-7 7v3h14v-3a7 7 0 0 0-7-7z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 8h.01"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 12h.01"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </SafeIcon>
+);
+
+// Family/Home Icon Component for Setup Family
+const FamilyIcon = ({ size = 20, color = '#ffffff' }) => (
+  <SafeIcon>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M9 22V12h6v10"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M8 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M16 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </SafeIcon>
+);
+
+// Group Order Icon Component for Start Group Order
+const GroupOrderIcon = ({ size = 20, color = '#ffffff' }) => (
+  <SafeIcon>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M16 4a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 12a7 7 0 0 0-7 7v3h14v-3a7 7 0 0 0-7-7z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M22 18v-1a5 5 0 0 0-2-4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M24 18v-1a5 5 0 0 0-2-4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   </SafeIcon>
@@ -214,29 +321,12 @@ export function BottomSearchDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [isOpen, setIsOpen] = useState(false);
+  // Removed unused isOpen state and handleOpenSheet function
   const bottomSheetRef = useRef<BottomSheet>(null);
-   const handleOpenSheet = () => {
-    if (setIsOpen) {
-      setIsOpen(true);
-    }
-    bottomSheetRef.current?.expand();
-  };
  const handleNavigate = () => {
-  setIsOpen(true);
-  router.push({
-    pathname: '/orders/group',
-    params: { openSheet: 'true' }, // just use string for easy parsing
-  });
+  router.push('/orders/group');
 };
-   const handleCloseSheet = () => {
-    if (setIsOpen){
 
-      setIsOpen(false);
-    }
-    bottomSheetRef.current?.close();
-  };
-  const snapPoints = useMemo(() => ['25%', '95%', '100%'], []);
   
   // Filter chips state
   const [activeFilter, setActiveFilter] = useState('all');
@@ -259,14 +349,14 @@ export function BottomSearchDrawer({
       // Ensure subtitle is always present
       return {
         ...message,
-        subMessage: message.subMessage || "Find something different from your usual"
+        subMessage: message.subMessage || ""
       };
     } catch (error) {
       console.warn('Failed to get dynamic header message:', error);
       return { 
         greeting: "Hello there",
         mainMessage: "Hungry?\nLet's Fix That",
-        subMessage: "Find something different from your usual"
+        subMessage: ""
       };
     }
   });
@@ -298,8 +388,9 @@ export function BottomSearchDrawer({
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
+      const currentFocusTimeout = focusTimeoutRef.current;
+      if (currentFocusTimeout) {
+        clearTimeout(currentFocusTimeout);
       }
     };
   }, [userName]);
@@ -373,7 +464,7 @@ export function BottomSearchDrawer({
         gestureState.value = 'idle';
       }
     });
-  }, []);
+  }, [gestureState, currentSnapPoint, lastSnapPoint, drawerHeight]);
 
   // Intelligent snap point calculation
   const calculateSnapPoint = useCallback((currentHeight: number, velocityY: number, gestureDistance: number) => {
@@ -406,7 +497,7 @@ export function BottomSearchDrawer({
     } else {
       return SNAP_POINTS.EXPANDED;
     }
-  }, []);
+  }, [lastSnapPoint.value]);
 
   // Gesture handler with proper state management
   const gestureHandler = useAnimatedGestureHandler<
@@ -685,7 +776,7 @@ export function BottomSearchDrawer({
         searchInputRef.current?.focus();
       }, 300); // Wait for animation to complete
     }
-  }, [animateToSnapPoint]);
+  }, [animateToSnapPoint, currentSnapPointValue.value]);
 
   // Handle search focus when in expanded state
   const handleSearchFocus = useCallback(() => {
@@ -693,7 +784,7 @@ export function BottomSearchDrawer({
       setIsSearchFocused(true);
       searchInputRef.current?.focus();
     }
-  }, []);
+  }, [currentSnapPointValue.value]);
 
   // Handle search blur/cancel
   const handleSearchBlur = useCallback(() => {
@@ -702,7 +793,7 @@ export function BottomSearchDrawer({
   }, []);
 
   // Mock search suggestions - replace with real data
-  const searchSuggestions = [
+  const searchSuggestions = useMemo(() => [
     { id: 1, text: 'Pizza', category: 'Italian', kitchen: 'Mario\'s Kitchen', time: '25 min', distance: '0.8 mi', type: 'meals' },
     { id: 2, text: 'Sushi', category: 'Japanese', kitchen: 'Tokyo Express', time: '30 min', distance: '1.2 mi', type: 'meals' },
     { id: 3, text: 'Burger', category: 'American', kitchen: 'Street Grill', time: '20 min', distance: '0.5 mi', type: 'meals' },
@@ -711,7 +802,7 @@ export function BottomSearchDrawer({
     { id: 6, text: 'Mario\'s Kitchen', category: 'Italian', rating: '4.8', time: '25 min', distance: '0.8 mi', type: 'kitchens' },
     { id: 7, text: 'Tokyo Express', category: 'Japanese', rating: '4.6', time: '30 min', distance: '1.2 mi', type: 'kitchens' },
     { id: 8, text: 'Street Grill', category: 'American', rating: '4.4', time: '20 min', distance: '0.5 mi', type: 'kitchens' },
-  ];
+  ], []);
 
   // Filter suggestions based on active search filter with error handling
   const filteredSuggestions = useMemo(() => {
@@ -776,7 +867,7 @@ export function BottomSearchDrawer({
       // Ensure subtitle is always present
       setHeaderMessage({
         ...message,
-        subMessage: message.subMessage || "Find something different from your usual"
+        subMessage: message.subMessage || ""
       });
     } catch (error) {
       console.warn('Failed to update header message:', error);
@@ -1348,22 +1439,14 @@ export function BottomSearchDrawer({
                 </Animated.View>
 
                 {/* Title Section - Only show when expanded */}
-            <Animated.View style={[{ marginBottom: 20 }, contentOpacityStyle]}>
+            <Animated.View style={[{ marginBottom: 2 }, contentOpacityStyle]}>
+
               <Text style={{ 
                 color: '#1a1a1a', 
                 fontSize: 32, 
                 fontWeight: '700',
                 letterSpacing: -0.5,
                 lineHeight: 36,
-              }}>
-                {headerMessage.greeting}
-              </Text>
-              <Text style={{ 
-                color: '#1a1a1a', 
-                fontSize: 24, 
-                fontWeight: '700',
-                letterSpacing: -0.5,
-                lineHeight: 28,
                 marginBottom: 10,
               }}>
                 {headerMessage.mainMessage}
@@ -1509,7 +1592,7 @@ export function BottomSearchDrawer({
                           <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600' }}>
                             Invite Friend
                           </Text>
-                          <LinkIcon size={14} />
+                          <UserIcon size={12} />
                         </View>
                       </Button>
                     </View>
@@ -1526,7 +1609,7 @@ export function BottomSearchDrawer({
                           <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600' }}>
                             Setup Family
                           </Text>
-                          <LinkIcon size={14} />
+                          <FamilyIcon size={12} />
                         </View>
                       </Button>
                     </View>
@@ -1552,14 +1635,14 @@ export function BottomSearchDrawer({
                       <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
                         Start Group Order
                       </Text>
-                      <LinkIcon size={16} />
+                      <GroupOrderIcon size={14} />
                     </View>
                   </TouchableOpacity>
                   </Button>
                 </Animated.View>
 
                 {/* Food Illustration - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { alignItems: 'center', marginBottom: 20 }]}>
+                <Animated.View style={[contentOpacityStyle, { alignItems: 'center', marginBottom: 8 }]}>
                   <SafeImage 
                     source={require('../../assets/images/cribnoshpackaging.png')}
                     style={{ 
@@ -1570,32 +1653,14 @@ export function BottomSearchDrawer({
                   />
                 </Animated.View>
 
-                {/* Bottom Text - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { alignItems: 'center' }]}>
-                  <Text style={{ 
-                    color: '#4a4a4a', 
-                    fontSize: 16,
-                    lineHeight: 20,
-                    fontWeight: '400',
-                    textAlign: 'center',
-                  }}>
-                    Search is smart, Search gets{'\n'}you
-                  </Text>
-                </Animated.View>
+
               </>
             )}
           </ScrollView>
           </Animated.View>
         </Animated.View>
       </PanGestureHandler>
-      {/* {
 
-      <GroupOrderBottomSheet 
-            isOpen={isOpen} 
-            setIsOpen={setIsOpen}
-            onClose={() => router.back()}
-      />
-      } */}
       
     </>
   );
@@ -1614,7 +1679,7 @@ const styles = StyleSheet.create({
         flex: 1,
         // alignItems: 'center',
         // padding: 20,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         backgroundColor: '#02120A',
     },
     button: {
@@ -1638,7 +1703,6 @@ const styles = StyleSheet.create({
   right: 0,
   // backgroundColor: '#02120A',
   paddingVertical: 16,
-  paddingHorizontal: 20,
   gap: 12,
   
 },
@@ -1649,7 +1713,7 @@ coverEverything:{
   backgroundColor:"#5E685F",
   textAlign:'center',
   marginHorizontal:'auto',
-  paddingHorizontal:20,
+  paddingHorizontal:16,
   paddingVertical:5,
   borderRadius:10
 }

@@ -5,18 +5,6 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function SimpleShakeTest() {
-  // Early return if shake to eat is disabled
-  if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Shake to Eat Feature Disabled</Text>
-        <Text style={styles.statusText}>
-          This feature is currently disabled in the configuration.
-        </Text>
-      </View>
-    );
-  }
-
   const [shakeEvents, setShakeEvents] = useState<string[]>([]);
 
   const handleShake = () => {
@@ -35,6 +23,18 @@ export default function SimpleShakeTest() {
     sustainedShakeDuration: 3000, // 3 seconds of sustained shaking required
     enabled: true // Always enabled for testing
   });
+
+  // Early return if shake to eat is disabled
+  if (!CONFIG.SHAKE_TO_EAT_ENABLED) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Shake to Eat Feature Disabled</Text>
+        <Text style={styles.statusText}>
+          This feature is currently disabled in the configuration.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

@@ -44,7 +44,7 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
       {!isProfileVariant && (
         <View style={styles.header}>
           <Text style={styles.title}>Your Food Stats</Text>
-          <Text style={styles.subtitle}>This week's highlights</Text>
+          <Text style={styles.subtitle}>This week&apos;s highlights</Text>
         </View>
       )}
 

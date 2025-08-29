@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import AISparkles from './ui/AISparkles';
+import { AISparkles } from './ui/AISparkles';
 import { Avatar } from './ui/Avatar';
 
 interface TotalSpendCardProps {

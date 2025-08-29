@@ -1,7 +1,10 @@
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, Image, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Image, Text, View } from 'react-native';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
+  runOnJS,
+  useAnimatedGestureHandler,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -19,10 +22,7 @@ import { KPICards } from '../../components/ui/KPICards';
 import { ProfileScreenBackground } from '../../components/ui/ProfileScreenBackground';
 import { generateMockWeeklyData, sampleWeeklyData } from '../../utils/braggingCardsData';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const BREAKPOINT_THRESHOLD = 200; // Distance to trigger the breakpoint
-const RESISTANCE_FACTOR = 0.3; // How much resistance to apply
-const SNAP_VELOCITY = 800; // Minimum velocity to trigger snap
+// Removed unused constants
 
 // ForkPrint PNG component
 const ForkPrintImage = () => {
@@ -38,14 +38,14 @@ const ForkPrintImage = () => {
 const safeHapticFeedback = async (style: Haptics.ImpactFeedbackStyle) => {
   try {
     await Haptics.impactAsync(style);
-  } catch (error) {
+  } catch {
     console.log('Haptic feedback not supported on this device');
   }
 };
 
 export default function ProfileScreen() {
   const [braggingData, setBraggingData] = useState(sampleWeeklyData);
-  const [showDebug, setShowDebug] = useState(true); // Enable debug by default
+  const [showDebug] = useState(true); // Enable debug by default
   
   // Simplified state management
   const [isExpanded, setIsExpanded] = useState(false);
@@ -61,6 +61,15 @@ export default function ProfileScreen() {
   const cardsOpacity = useSharedValue(0);
   const braggingCardsTranslateY = useSharedValue(50);
   const braggingCardsOpacity = useSharedValue(0);
+  
+  // Sheet animation values
+  const sheetTranslateY = useSharedValue(0);
+  const sheetHeight = useSharedValue(0);
+  const isSheetOpen = useSharedValue(0);
+  
+  // Sheet constants
+  const SHEET_SNAP_POINT = 200; // Distance to pull up to open sheet
+  const SHEET_OPEN_HEIGHT = 400; // Height when sheet is fully open
 
   // Refs
   const scrollViewRef = useRef<Animated.ScrollView>(null);
@@ -98,29 +107,76 @@ export default function ProfileScreen() {
       transform: [{ translateY: resistance }],
     };
   });
-
-  const gestureIndicatorAnimatedStyle = useAnimatedStyle(() => {
-    const shouldShow = scrollY.value > 50;
+  
+  // Sheet animated styles
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: sheetTranslateY.value }],
+    height: sheetHeight.value,
+  }));
+  
+  const sheetBackgroundAnimatedStyle = useAnimatedStyle(() => {
+    const progress = Math.abs(sheetTranslateY.value) / SHEET_SNAP_POINT;
+    const backgroundColor = `rgba(255, 255, 255, ${0.1 + (progress * 0.8)})`; // From 0.1 to 0.9 opacity
+    
     return {
-      marginTop: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 4,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      borderRadius: 8,
-      opacity: shouldShow ? 1 : 0
+      backgroundColor,
     };
   });
+  
+  const sheetOverlayAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: isSheetOpen.value ? 0.3 : 0,
+  }));
 
-  // Safe scroll to function
-  const safeScrollTo = useCallback((y: number, animated: boolean = true) => {
-    if (scrollViewRef.current) {
-      try {
-        scrollViewRef.current.scrollTo({ y, animated });
-      } catch (error) {
-        console.log('Scroll error:', error);
+
+
+  // Safe scroll to function - removed unused function
+
+  // Sheet gesture handler
+  const sheetGestureHandler = useAnimatedGestureHandler({
+    onStart: () => {
+      'worklet';
+    },
+    onActive: (event: any) => {
+      'worklet';
+      const newTranslateY = Math.max(-SHEET_OPEN_HEIGHT, Math.min(0, event.translationY));
+      sheetTranslateY.value = newTranslateY;
+      
+      // Calculate sheet height based on pull distance
+      const pullDistance = Math.abs(newTranslateY);
+      const progress = Math.min(pullDistance / SHEET_SNAP_POINT, 1);
+      sheetHeight.value = progress * SHEET_OPEN_HEIGHT;
+    },
+    onEnd: (event: any) => {
+      'worklet';
+      const velocity = event.velocityY;
+      const currentTranslateY = sheetTranslateY.value;
+      
+      if (currentTranslateY < -SHEET_SNAP_POINT || velocity < -500) {
+        // Snap to open
+        sheetTranslateY.value = withSpring(-SHEET_OPEN_HEIGHT, {
+          damping: 20,
+          stiffness: 200,
+        });
+        sheetHeight.value = withSpring(SHEET_OPEN_HEIGHT, {
+          damping: 20,
+          stiffness: 200,
+        });
+        isSheetOpen.value = withTiming(1, { duration: 300 });
+        runOnJS(safeHapticFeedback)(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        // Snap back to closed
+        sheetTranslateY.value = withSpring(0, {
+          damping: 20,
+          stiffness: 200,
+        });
+        sheetHeight.value = withSpring(0, {
+          damping: 20,
+          stiffness: 200,
+        });
+        isSheetOpen.value = withTiming(0, { duration: 300 });
       }
-    }
-  }, []);
+    },
+  });
 
   // Simple expansion function
   const expandStats = useCallback(() => {
@@ -140,21 +196,7 @@ export default function ProfileScreen() {
     }, 300);
   }, [isExpanded]);
 
-  const collapseStats = useCallback(() => {
-    if (isAnimating.current || !isExpanded) return;
-    
-    console.log('Starting collapse animation');
-    isAnimating.current = true;
-    setIsExpanded(false);
-    
-    // Add haptic feedback
-    safeHapticFeedback(Haptics.ImpactFeedbackStyle.Light);
-    
-    setTimeout(() => {
-      isAnimating.current = false;
-      console.log('Collapse completed');
-    }, 300);
-  }, [isExpanded]);
+  // Removed unused collapseStats function
 
   // Minimal scroll handler - just track scroll position
   const scrollHandler = useAnimatedScrollHandler({
@@ -174,7 +216,7 @@ export default function ProfileScreen() {
     
     const interval = setInterval(checkExpansion, 100);
     return () => clearInterval(interval);
-  }, [isExpanded]);
+  }, [isExpanded, expandStats, scrollY.value]);
 
   // Simple mount effect
   useEffect(() => {
@@ -196,7 +238,7 @@ export default function ProfileScreen() {
     return () => {
       console.log('Profile screen unmounting');
     };
-  }, []);
+  }, [headerOpacity, scoreScale, cardsOpacity, cardsTranslateY, braggingCardsOpacity, braggingCardsTranslateY]);
 
   const handleMealsPress = () => {
     Alert.alert('Meals Logged', 'Show detailed meals breakdown');
@@ -226,21 +268,28 @@ export default function ProfileScreen() {
     setTimeout(() => {
       isAnimating.current = false;
     }, 500);
-  }, []);
+  }, [braggingCardsOpacity, braggingCardsTranslateY]);
+
+  // Memoized scroll view props to prevent re-creation
+  const scrollViewProps = useMemo(() => ({
+    ref: scrollViewRef,
+    style: { flex: 1, width: '100%' as const },
+    showsVerticalScrollIndicator: false,
+    contentContainerStyle: { paddingBottom: 100, width: '100%' as const },
+    onScroll: scrollHandler,
+    scrollEventThrottle: 16, // Optimized from 33 to 16 for smoother scrolling
+    bounces: true,
+    alwaysBounceVertical: true,
+    removeClippedSubviews: true, // Enable view recycling
+    maxToRenderPerBatch: 10, // Limit batch rendering
+    windowSize: 5, // Reduce window size for better performance
+  }), [scrollHandler]);
 
   return (
     <ProfileScreenBackground>
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, width: '100%' }}>
         <Animated.ScrollView 
-          ref={scrollViewRef}
-          style={{ flex: 1 }} 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          onScroll={scrollHandler}
-          scrollEventThrottle={33}
-          bounces={true}
-          alwaysBounceVertical={true}
-          removeClippedSubviews={false}
+          {...scrollViewProps}
         >
             {/* Header */}
             <Animated.View style={headerAnimatedStyle}>
@@ -248,7 +297,7 @@ export default function ProfileScreen() {
                 flexDirection: 'row', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
-                paddingHorizontal: 12,
+                paddingHorizontal: 16,
                 paddingTop: 10,
                 paddingBottom: 20
               }}>
@@ -265,7 +314,7 @@ export default function ProfileScreen() {
 
             {/* ForkPrint Score and Tastemaker Section */}
             <Animated.View style={[scoreAnimatedStyle, resistanceAnimatedStyle]}>
-              <View style={{ paddingHorizontal: 12, marginBottom: 30, position: 'relative' }}>
+              <View style={{ paddingHorizontal: 16, marginBottom: 30, position: 'relative' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <View style={{ flex: 1, position: 'relative' }}>
                     <Text style={{
@@ -339,7 +388,7 @@ export default function ProfileScreen() {
 
             {/* Data Cards */}
             <Animated.View style={cardsAnimatedStyle}>
-              <View style={{ paddingHorizontal: 12, marginBottom: 30, marginTop: 20, position: 'relative' }}>
+              <View style={{ paddingHorizontal: 16, marginBottom: 30, marginTop: 20, position: 'relative' }}>
                 <CaloriesNoshPointsCards 
                   caloriesProgress={23}
                   noshPointsProgress={40}
@@ -349,18 +398,15 @@ export default function ProfileScreen() {
 
             {/* KPI Cards */}
             <Animated.View style={cardsAnimatedStyle}>
-              <View style={{ paddingHorizontal: 12, marginBottom: 20 }}>
-                <KPICards 
-                  timeSaved="15.7 hours"
-                  costSaved="£ 29.3"
-                />
+              <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+                <KPICards />
               </View>
             </Animated.View>
 
             {/* Breakpoint Trigger Area */}
             <View style={{ height: 100, justifyContent: 'flex-end' }}>
               <View style={{ 
-                paddingHorizontal: 12, 
+                paddingHorizontal: 16, 
                 paddingBottom: 20,
                 alignItems: 'center'
               }}>
@@ -382,78 +428,70 @@ export default function ProfileScreen() {
                   marginTop: 8
                 }} />
                 
-                {/* Gesture indicator */}
-                <Animated.View style={gestureIndicatorAnimatedStyle}>
-                  <Text style={{
-                    fontSize: 12,
-                    color: '#FFFFFF',
-                    fontFamily: 'Mukta',
-                    textAlign: 'center'
-                  }}>
-                    Ready to Expand
-                  </Text>
-                </Animated.View>
+
               </View>
             </View>
 
-            {/* Bragging Cards Section - Sticky Header */}
-            <Animated.View style={[braggingCardsAnimatedStyle, statsSectionAnimatedStyle]}>
-              <View style={{ 
-                paddingHorizontal: 12, 
-                marginBottom: 40, 
-                marginTop: 20,
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: 16,
-                padding: 16,
-                backdropFilter: 'blur(10px)',
-              }}>
-                <View style={{ 
-                  flexDirection: 'row', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  marginBottom: 16,
-                  paddingHorizontal: 4
-                }}>
-                  <Text style={{
-                    fontSize: 20,
-                    fontWeight: 'bold',
-                    color: '#FFFFFF',
-                    fontFamily: 'Mukta',
+            {/* Bragging Cards Section - Sheet */}
+            <PanGestureHandler onGestureEvent={sheetGestureHandler}>
+              <Animated.View style={[braggingCardsAnimatedStyle, statsSectionAnimatedStyle, sheetAnimatedStyle]}>
+                <Animated.View style={[{
+                  marginHorizontal: 0, 
+                  marginBottom: 40, 
+                  marginTop: 20,
+                  borderRadius: 16,
+                  padding: 16,
+                  backdropFilter: 'blur(10px)',
+                  minHeight: 200,
+                }, sheetBackgroundAnimatedStyle]}>
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: 16,
+                    paddingHorizontal: 4
                   }}>
-                    Your Food Stats
-                  </Text>
-                  <Text 
-                    style={{
-                      fontSize: 14,
+                    <Text style={{
+                      fontSize: 20,
+                      fontWeight: 'bold',
                       color: '#FFFFFF',
-                      opacity: 0.8,
                       fontFamily: 'Mukta',
-                    }}
-                    onPress={refreshBraggingData}
-                  >
-                    Refresh
-                  </Text>
-                </View>
-                
-                {/* Individual Bragging Cards */}
-                <MealsLoggedCard
-                  weekMeals={braggingData.weekMeals}
-                  avgMeals={braggingData.avgMeals}
-                  onPress={handleMealsPress}
-                />
-                
-                <CalorieCompareCard
-                  kcalToday={braggingData.kcalToday}
-                  kcalYesterday={braggingData.kcalYesterday}
-                  onPress={handleCaloriesPress}
-                />
-                
-                <CuisineScoreCard
-                  cuisines={braggingData.cuisines}
-                  onPress={handleCuisinePress}
-                />
-              </View>
-            </Animated.View>
+                    }}>
+                      Your Food Stats
+                    </Text>
+                    <Text 
+                      style={{
+                        fontSize: 14,
+                        color: '#FFFFFF',
+                        opacity: 0.8,
+                        fontFamily: 'Mukta',
+                      }}
+                      onPress={refreshBraggingData}
+                    >
+                      Refresh
+                    </Text>
+                  </View>
+                  
+                  {/* Individual Bragging Cards */}
+                  <MealsLoggedCard
+                    weekMeals={braggingData.weekMeals}
+                    avgMeals={braggingData.avgMeals}
+                    onPress={handleMealsPress}
+                  />
+                  
+                  <CalorieCompareCard
+                    kcalToday={braggingData.kcalToday}
+                    kcalYesterday={braggingData.kcalYesterday}
+                    onPress={handleCaloriesPress}
+                  />
+                  
+                  <CuisineScoreCard
+                    cuisines={braggingData.cuisines}
+                    onPress={handleCuisinePress}
+                  />
+                </Animated.View>
+              </Animated.View>
+            </PanGestureHandler>
             
             {/* Extra bottom padding for proper scrolling */}
             <View style={{ height: 200 }} />
