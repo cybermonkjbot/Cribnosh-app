@@ -237,7 +237,7 @@ import React from 'react'
 import BottomSheetBase from './BottomSheetBase'
 import AISparkles from './ui/AISparkles';
 import CustomLiveButton from './CustomLiveButton';
-import { ExternalLink } from 'lucide-react-native';
+import { ExternalLink, ForwardIcon, Link } from 'lucide-react-native';
 import CompactMealSelection from './CompactMealSelection';
 import LoveThisButton from './ui/LoveThisButton';
 
@@ -278,7 +278,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
 }) => {
 
   // Removed unused quantity state
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   const snapPoints = isExpanded ? ['60%', '90%'] : ['60%'];
 
@@ -366,6 +366,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
            <CustomLiveButton
             text="Share live"
              backgroundColor="#094327"
+             icon={<ForwardIcon/>}  
              textColor="#E6FFE8"
              style={{ flex: 1 }}
              onPress={onShareLive}
@@ -374,10 +375,11 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
            {/* Treat Someone Button */}
            <CustomLiveButton
              text="Treat Someone"
-             icon={<ExternalLink color="#094327" size={16} strokeWidth={1.33} />}
+             icon={<Link color="#094327" size={16} strokeWidth={1.33} />}
              backgroundColor="rgba(0, 0, 0, 0.3)"
              textColor="#094327"
              style={{ flex: 1 }}
+             
              onPress={onTreatSomeone}
            />
          </View>
@@ -427,3 +429,7 @@ const styles = StyleSheet.create({
   },
 
 }); 
+
+function setQuantity(value: number) {
+  throw new Error('Function not implemented.');
+}
