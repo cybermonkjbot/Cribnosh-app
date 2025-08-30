@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView } from 'expo-camera';
+import * as MediaLibrary from 'expo-media-library';
 import React, { useRef, useState } from 'react';
-import { Dimensions, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { CribNoshLogo } from './CribNoshLogo';
 
@@ -44,6 +45,8 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('normal');
   const [lastCapturedPhoto, setLastCapturedPhoto] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [lastRecordedVideo, setLastRecordedVideo] = useState<string | null>(null);
+  const [showVideoPreview, setShowVideoPreview] = useState<boolean>(false);
   const cameraRef = useRef<any>(null);
 
   React.useEffect(() => {
@@ -51,6 +54,16 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
       const { Camera } = await import('expo-camera');
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
+      
+      // Request media library permissions for saving photos/videos
+      const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+      if (mediaStatus !== 'granted') {
+        Alert.alert(
+          'Media Library Permission Required',
+          'To save your photos and videos, please grant access to your photo library.',
+          [{ text: 'OK' }]
+        );
+      }
     })();
   }, []);
 
@@ -76,6 +89,9 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
         // Save the captured photo URI
         setLastCapturedPhoto(photo.uri);
         console.log('Photo captured:', photo);
+        
+        // Automatically save to media library
+        await saveToMediaLibrary(photo.uri, 'photo');
       } catch (error) {
         console.error('Error capturing photo:', error);
       }
@@ -93,7 +109,21 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
         console.log('Video recording started:', recording);
       } catch (error) {
         console.error('Error starting video recording:', error);
-        setIsRecording(false);
+        // Simulator fallback - create mock recording
+        if (error instanceof Error && error.message?.includes('simulator')) {
+          console.log('Using simulator fallback for video recording');
+          // Simulate recording delay
+          setTimeout(() => {
+            setIsRecording(false);
+            // Create mock video URI for simulator testing
+            const mockVideoUri = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+            setLastRecordedVideo(mockVideoUri);
+            setShowVideoPreview(true);
+            console.log('Mock video recording completed for simulator testing');
+          }, 2000); // 2 second mock recording
+        } else {
+          setIsRecording(false);
+        }
       }
     }
   };
@@ -102,7 +132,18 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
     if (cameraRef.current && isRecording) {
       try {
         setIsRecording(false);
-        console.log('Video recording stopped');
+        // Get the recorded video URI and show preview
+        if (cameraRef.current) {
+          const video = await cameraRef.current.stopRecordingAsync();
+                      if (video && video.uri) {
+              setLastRecordedVideo(video.uri);
+              setShowVideoPreview(true);
+              console.log('Video recording stopped:', video);
+              
+              // Automatically save to media library
+              await saveToMediaLibrary(video.uri, 'video');
+            }
+        }
       } catch (error) {
         console.error('Error stopping video recording:', error);
         setIsRecording(false);
@@ -119,6 +160,55 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
   const handleFilterSelect = (filter: string) => {
     setSelectedFilter(filter);
     console.log('Filter selected:', filter);
+  };
+
+  const closeVideoPreview = () => {
+    setShowVideoPreview(false);
+    setLastRecordedVideo(null);
+  };
+
+  // iOS Storage Service for Creators
+  const saveToMediaLibrary = async (uri: string, type: 'photo' | 'video') => {
+    try {
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      
+      // Try to add to existing CribNosh album or create new one
+      let album = await MediaLibrary.getAlbumAsync('CribNosh');
+      if (!album) {
+        album = await MediaLibrary.createAlbumAsync('CribNosh', asset, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      }
+      
+      Alert.alert(
+        'Saved Successfully!',
+        `Your ${type} has been saved to your photo library in the CribNosh album.`,
+        [{ text: 'OK' }]
+      );
+      
+      console.log(`${type} saved to media library:`, asset);
+      return asset;
+    } catch (error) {
+      console.error(`Error saving ${type} to media library:`, error);
+      Alert.alert(
+        'Save Failed',
+        `Unable to save ${type} to your photo library. Please check your permissions.`,
+        [{ text: 'OK' }]
+      );
+      return null;
+    }
+  };
+
+  const savePhoto = async () => {
+    if (lastCapturedPhoto) {
+      await saveToMediaLibrary(lastCapturedPhoto, 'photo');
+    }
+  };
+
+  const saveVideo = async () => {
+    if (lastRecordedVideo) {
+      await saveToMediaLibrary(lastRecordedVideo, 'video');
+    }
   };
 
   if (hasPermission === null) {
@@ -171,6 +261,92 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
         </View>
 
 
+
+        {/* Photo Preview Overlay */}
+        {lastCapturedPhoto && (
+          <View style={styles.photoPreviewOverlay}>
+            <View style={styles.photoPreviewHeader}>
+              <TouchableOpacity 
+                style={styles.closePreviewButton} 
+                onPress={() => setLastCapturedPhoto(null)}
+              >
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.photoPreviewTitle}>Photo Preview</Text>
+              <TouchableOpacity style={styles.editPhotoButton}>
+                <Ionicons name="create" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.photoPreviewContainer}>
+              <Image 
+                source={{ uri: lastCapturedPhoto }} 
+                style={styles.photoPreviewImage}
+                resizeMode="cover"
+              />
+            </View>
+            <View style={styles.photoPreviewActions}>
+              <TouchableOpacity style={styles.photoPreviewActionButton}>
+                <Ionicons name="share" size={20} color="#FFFFFF" />
+                <Text style={styles.photoPreviewActionText}>Share</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.photoPreviewActionButton}
+                onPress={savePhoto}
+              >
+                <Ionicons name="save" size={20} color="#FFFFFF" />
+                <Text style={styles.photoPreviewActionText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.photoPreviewActionButton}>
+                <Ionicons name="trash" size={20} color="#FFFFFF" />
+                <Text style={styles.photoPreviewActionText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Video Preview Overlay */}
+        {showVideoPreview && lastRecordedVideo && (
+          <View style={styles.videoPreviewOverlay}>
+            <View style={styles.videoPreviewHeader}>
+              <TouchableOpacity style={styles.closePreviewButton} onPress={closeVideoPreview}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.videoPreviewTitle}>Video Preview</Text>
+              <TouchableOpacity style={styles.editVideoButton}>
+                <Ionicons name="create" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.videoPreviewContainer}>
+              <Image 
+                source={{ uri: lastRecordedVideo }} 
+                style={styles.videoPreviewThumbnail}
+                resizeMode="cover"
+              />
+              <View style={styles.videoPreviewControls}>
+                <TouchableOpacity style={styles.videoPreviewPlayButton}>
+                  <Ionicons name="play" size={32} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.videoPreviewActions}>
+              <TouchableOpacity style={styles.videoPreviewActionButton}>
+                <Ionicons name="share" size={20} color="#FFFFFF" />
+                <Text style={styles.videoPreviewActionText}>Share</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.videoPreviewActionButton}
+                onPress={saveVideo}
+              >
+                <Ionicons name="save" size={20} color="#FFFFFF" />
+                <Text style={styles.videoPreviewActionText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.videoPreviewActionButton}>
+                <Ionicons name="trash" size={20} color="#FFFFFF" />
+                <Text style={styles.videoPreviewActionText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Camera Filters Section - Above Shutter */}
         <View style={styles.filtersSection}>
@@ -415,6 +591,147 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF3B30',
     borderWidth: 3,
     borderColor: '#FFFFFF',
+  },
+  videoPreviewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000000',
+    zIndex: 20,
+  },
+  videoPreviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  closePreviewButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPreviewTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  editVideoButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPreviewContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  videoPreviewThumbnail: {
+    width: width * 0.8,
+    height: height * 0.4,
+    borderRadius: 12,
+    backgroundColor: '#1F1F1F',
+  },
+  videoPreviewControls: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPreviewPlayButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  videoPreviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 50,
+  },
+  videoPreviewActionButton: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  videoPreviewActionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  photoPreviewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000000',
+    zIndex: 20,
+  },
+  photoPreviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  photoPreviewTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  editPhotoButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoPreviewContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  photoPreviewImage: {
+    width: width * 0.9,
+    height: height * 0.5,
+    borderRadius: 12,
+    backgroundColor: '#1F1F1F',
+  },
+  photoPreviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 50,
+  },
+  photoPreviewActionButton: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  photoPreviewActionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    marginTop: 8,
+    opacity: 0.8,
   },
   rightControls: {
     width: 80,
