@@ -1,5 +1,6 @@
 import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { Easing } from 'react-native-reanimated';
@@ -15,6 +16,7 @@ import { NotLoggedInNotice } from '../NotLoggedInNotice';
 import { SignInScreen } from '../SignInScreen';
 import { AIChatDrawer } from './AIChatDrawer';
 import { BottomSearchDrawer } from './BottomSearchDrawer';
+import { CameraModalScreen } from './CameraModalScreen';
 import { CategoryFilterChips } from './CategoryFilterChips';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 import { CuisineCategoriesSection } from './CuisineCategoriesSection';
@@ -23,6 +25,7 @@ import { NoshHeavenErrorBoundary } from './ErrorBoundary';
 import { EventBanner } from './EventBanner';
 import { FeaturedKitchensDrawer } from './FeaturedKitchensDrawer';
 import { FeaturedKitchensSection } from './FeaturedKitchensSection';
+import { FloatingActionButton } from './FloatingActionButton';
 import { GeneratingSuggestionsLoader } from './GeneratingSuggestionsLoader';
 import { Header } from './Header';
 import { HiddenSections } from './HiddenSections';
@@ -380,6 +383,7 @@ const mockOffers = [
 
 export function MainScreen() {
   const { activeHeaderTab, registerScrollToTopCallback } = useAppContext();
+  const router = useRouter();
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
@@ -405,6 +409,10 @@ export function MainScreen() {
   
   // Sign-in modal state management
   const [isSignInModalVisible, setIsSignInModalVisible] = useState(false);
+  
+  // Camera modal state management
+  const [isCameraVisible, setIsCameraVisible] = useState(false);
+
 
   // Debug effect to track modal state changes
   useEffect(() => {
@@ -1300,6 +1308,11 @@ export function MainScreen() {
         </NoshHeavenErrorBoundary>
       )}
 
+
+
+      {/* Floating Action Button */}
+      <FloatingActionButton onCameraPress={() => setIsCameraVisible(true)} />
+
       {/* Bottom Search Drawer */}
       <BottomSearchDrawer onOpenAIChat={handleOpenAIChat} />
 
@@ -1430,6 +1443,20 @@ export function MainScreen() {
           />
         )}
       </Modal>
+
+      {/* Camera Modal */}
+      <Modal
+        visible={isCameraVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setIsCameraVisible(false)}
+        statusBarTranslucent={true}
+        hardwareAccelerated={true}
+      >
+        <CameraModalScreen onClose={() => setIsCameraVisible(false)} />
+      </Modal>
     </View>
   );
-} 
+}
+
+ 

@@ -9,7 +9,8 @@ interface CaloriesNoshPointsCardsProps {
   noshPointsProgress?: number; // 0-100
 }
 
-export const CaloriesNoshPointsCards: React.FC<CaloriesNoshPointsCardsProps> = ({
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedCaloriesNoshPointsCards: React.FC<CaloriesNoshPointsCardsProps> = React.memo(({
   caloriesProgress = 23,
   noshPointsProgress = 40,
 }) => {
@@ -200,7 +201,10 @@ export const CaloriesNoshPointsCards: React.FC<CaloriesNoshPointsCardsProps> = (
       )}
     </View>
   );
-};
+});
+
+// Export the memoized component
+export const CaloriesNoshPointsCards = MemoizedCaloriesNoshPointsCards;
 
 const styles = StyleSheet.create({
   container: {

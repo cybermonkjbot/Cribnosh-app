@@ -3,6 +3,7 @@ import { getCompleteDynamicHeader } from '@/utils/dynamicHeaderMessages';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import { Easing } from 'react-native-reanimated';
@@ -16,6 +17,7 @@ interface HeaderProps {
 
 export function Header({ userName = "Joshua", isSticky = false, showSubtitle = false }: HeaderProps) {
   const { activeHeaderTab, handleHeaderTabChange } = useAppContext();
+  const router = useRouter();
   const [dynamicMessage, setDynamicMessage] = useState(() => getCompleteDynamicHeader(userName, showSubtitle));
   
   // Animation values
@@ -69,6 +71,11 @@ export function Header({ userName = "Joshua", isSticky = false, showSubtitle = f
       ]).start();
     }
   }, [isSticky]);
+
+  // Handle avatar press
+  const handleAvatarPress = () => {
+    router.push('/account-details');
+  };
 
   if (isSticky) {
     // Sticky/Optimized Header State
@@ -162,22 +169,24 @@ export function Header({ userName = "Joshua", isSticky = false, showSubtitle = f
             </Animated.View>
 
             {/* Compact Avatar with Animation */}
-            <Animated.View 
-              style={{ 
-                width: 32, 
-                height: 32, 
-                borderRadius: 16, 
-                backgroundColor: '#000', 
-                overflow: 'hidden',
-                transform: [{ scale: avatarScale }]
-              }}
-            >
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=32&h=32&fit=crop&crop=face' }}
-              style={{ width: 32, height: 32 }}
-              contentFit="cover"
-            />
-          </Animated.View>
+            <TouchableOpacity onPress={handleAvatarPress}>
+              <Animated.View 
+                style={{ 
+                  width: 32, 
+                  height: 32, 
+                  borderRadius: 16, 
+                  backgroundColor: '#000', 
+                  overflow: 'hidden',
+                  transform: [{ scale: avatarScale }]
+                }}
+              >
+                <Image
+                  source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=32&h=32&fit=crop&crop=face' }}
+                  style={{ width: 32, height: 32 }}
+                  contentFit="cover"
+                />
+              </Animated.View>
+            </TouchableOpacity>
           </View>
         </View>
       </BlurView>
@@ -203,22 +212,24 @@ export function Header({ userName = "Joshua", isSticky = false, showSubtitle = f
           <CribNoshLogo size={120} variant="default" />
         </Animated.View>
         
-        <Animated.View 
-          style={{ 
-            width: 44, 
-            height: 44, 
-            borderRadius: 22, 
-            backgroundColor: '#000', 
-            overflow: 'hidden',
-            transform: [{ scale: avatarScale }]
-          }}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=44&h=44&fit=crop&crop=face' }}
-            style={{ width: 44, height: 44 }}
-            contentFit="cover"
-          />
-        </Animated.View>
+        <TouchableOpacity onPress={handleAvatarPress}>
+          <Animated.View 
+            style={{ 
+              width: 44, 
+              height: 44, 
+              borderRadius: 22, 
+              backgroundColor: '#000', 
+              overflow: 'hidden',
+              transform: [{ scale: avatarScale }]
+            }}
+          >
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=44&h=44&fit=crop&crop=face' }}
+              style={{ width: 44, height: 44 }}
+              contentFit="cover"
+            />
+          </Animated.View>
+        </TouchableOpacity>
       </View>
 
       {/* Greeting with Animation */}

@@ -2,14 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
-  withTiming
+    runOnJS,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withSequence,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
 
 // App color constants - matching the home page and app theme
@@ -38,7 +38,8 @@ interface CalorieCompareCardProps {
   onPress?: () => void;
 }
 
-export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo(({
   kcalToday = 1420,
   kcalYesterday = 1680,
   onPress,
@@ -195,7 +196,10 @@ export const CalorieCompareCard: React.FC<CalorieCompareCardProps> = ({
       </Pressable>
     </Animated.View>
   );
-};
+});
+
+// Export the memoized component
+export const CalorieCompareCard = MemoizedCalorieCompareCard;
 
 const styles = StyleSheet.create({
   container: {

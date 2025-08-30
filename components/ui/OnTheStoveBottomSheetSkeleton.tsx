@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Dimensions, View } from 'react-native';
 import Animated, {
-  interpolate,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withRepeat,
-  withTiming,
+    interpolate,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withRepeat,
+    withTiming,
 } from 'react-native-reanimated';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -204,49 +204,16 @@ export function OnTheStoveBottomSheetSkeleton({
             ]} />
           </View>
           
-          {/* Quantity Controls Skeleton */}
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-          }}>
-            {/* Minus Button Skeleton */}
-            <Animated.View style={[
-              {
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: 'rgba(9, 67, 39, 0.1)',
-                borderWidth: 1,
-                borderColor: 'rgba(9, 67, 39, 0.2)',
-              },
-              skeletonStyle
-            ]} />
-            
-            {/* Quantity Skeleton */}
-            <Animated.View style={[
-              {
-                width: 30,
-                height: 20,
-                borderRadius: 10,
-                backgroundColor: 'rgba(9, 67, 39, 0.15)',
-              },
-              skeletonStyle
-            ]} />
-            
-            {/* Plus Button Skeleton */}
-            <Animated.View style={[
-              {
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: 'rgba(9, 67, 39, 0.1)',
-                borderWidth: 1,
-                borderColor: 'rgba(9, 67, 39, 0.2)',
-              },
-              skeletonStyle
-            ]} />
-          </View>
+          {/* Quantity Controls Skeleton - IncrementalOrderAmount (Order Button) */}
+          <Animated.View style={[
+            {
+              width: 79,
+              height: 36,
+              borderRadius: 10,
+              backgroundColor: 'rgba(9, 67, 39, 0.2)',
+            },
+            skeletonStyle
+          ]} />
         </View>
       </View>
 

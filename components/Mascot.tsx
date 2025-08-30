@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import React from 'react';
 import { SvgXml } from 'react-native-svg';
 
 interface MascotProps {
@@ -346,7 +347,8 @@ const mascotSVGs = {
   hungry: mascot2SVG,
 };
 
-export function Mascot({ emotion = 'default', size = 100, style }: MascotProps) {
+// Memoize the SVG content to prevent re-creation on every render
+const MemoizedMascot = React.memo<MascotProps>(({ emotion = 'default', size = 100, style }) => {
   const svgContent = mascotSVGs[emotion] || mascotSVGs.default;
   
   return (
@@ -358,7 +360,10 @@ export function Mascot({ emotion = 'default', size = 100, style }: MascotProps) 
       />
     </View>
   );
-}
+});
+
+// Export the memoized component
+export const Mascot = MemoizedMascot;
 
 const styles = StyleSheet.create({
   container: {
