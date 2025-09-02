@@ -5,27 +5,30 @@ export default function CartLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation:"transparentModal",
-        animation:"slide_from_bottom",
-        contentStyle: { backgroundColor: "transparent" },
-        
-
+        presentation: "card",
+        animation: "slide_from_right",
+        contentStyle: { backgroundColor: "white" },
       }}
     >
       <Stack.Screen 
         name="index" 
-        options=
-        {{ title: 'Cart',
-          // headerTitle:"Group Orders",
-          // headerShown: true,
-          // headerStyle:{
-          //   backgroundColor: '#007AFF',
-          // }
-         }} 
+        options={{ title: 'Cart' }} 
       />
       <Stack.Screen 
         name="sides" 
-        options={{ title: 'Cart slides' }} 
+        options={{ title: 'Sides & Extras' }} 
+      />
+      <Stack.Screen 
+        name="payment-method" 
+        options={{ title: 'Payment Method' }} 
+      />
+      <Stack.Screen 
+        name="payment" 
+        options={{ title: 'Payment' }} 
+      />
+      <Stack.Screen 
+        name="success" 
+        options={{ title: 'Order Confirmed' }} 
       />
     </Stack>
   );

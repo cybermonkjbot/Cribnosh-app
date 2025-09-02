@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import type { FC } from 'react';
+import React from 'react';
 import { Image, ImageProps, Platform, StyleSheet, View } from 'react-native';
 import { cn } from './utils';
 
@@ -15,7 +15,8 @@ const sizes = {
   lg: 'w-20 h-20',
 };
 
-export const Avatar: FC<AvatarProps> = ({ size = 'md', glass, elevated, style, ...props }) => {
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedAvatar: React.FC<AvatarProps> = React.memo(({ size = 'md', glass, elevated, style, ...props }) => {
   const hasGlass = !!glass;
   const hasElevation = !!elevated;
   const shadowClass = hasElevation && !hasGlass ? 'shadow-lg' : '';
@@ -39,4 +40,7 @@ export const Avatar: FC<AvatarProps> = ({ size = 'md', glass, elevated, style, .
       />
     </View>
   );
-};
+});
+
+// Export the memoized component
+export const Avatar = MemoizedAvatar;

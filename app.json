@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cribnosh.app"
+      "bundleIdentifier": "com.cribnosh.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile pictures.",
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +22,12 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.cribnosh.app"
+      "package": "com.cribnosh.app",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -28,8 +37,10 @@
     "plugins": [
       "expo-router",
       "expo-av",
+      "expo-camera",
       "expo-sensors",
       "expo-apple-authentication",
+      "expo-image-picker",
       [
         "expo-splash-screen",
         {
@@ -41,7 +52,8 @@
             "backgroundColor": "#2C2C2C"
           }
         }
-      ]
+      ],
+      "expo-maps"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,10 +1,11 @@
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { CarFront } from "lucide-react-native";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import IncrementalOrderAmount from "../IncrementalOrderAmount";
 import ChooseFriend from "./ChooseFriend";
 
 export default function CartScreen() {
@@ -24,13 +25,27 @@ export default function CartScreen() {
   ];
 
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleQuantityChange = (index: number, newQuantity: number) => {
+    // Handle quantity change logic here
+    console.log(`Item ${index} quantity changed to ${newQuantity}`);
+  };
+
   return (
     <SafeAreaView className="flex-1 p-5 bg-white">
-      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        <View className="flex flex-col justify-between flex-1">
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        <View className="flex flex-col flex-1">
           <View className="flex-1">
             <View className="flex flex-row items-center justify-between">
-              <Pressable>
+              <Pressable onPress={handleBack}>
                 <Entypo name="chevron-down" size={18} color="#094327" />
               </Pressable>
               <Text className="text-lg font-medium text-center text-dark-green">
@@ -64,27 +79,20 @@ export default function CartScreen() {
                     </View>
                   </View>
 
-                  <View className="flex flex-row items-center gap-x-3 w-20 bg-[#eaeaea] h-8 rounded-xl px-2">
-                    <Pressable className="items-center justify-center flex-1">
-                      <Text className="text-xl">-</Text>
-                    </Pressable>
-                    <Text className="flex-1 font-bold text-center">
-                      {item.quantity}
-                    </Text>
-                    <Pressable className="items-center justify-center flex-1">
-                      <Text className="text-xl">+</Text>
-                    </Pressable>
-                  </View>
+                  <IncrementalOrderAmount
+                    initialValue={item.quantity}
+                    onChange={(newQuantity) => handleQuantityChange(index, newQuantity)}
+                  />
                 </View>
               ))}
             </View>
             <View>
               <View className="flex flex-row justify-between mt-8 border-b pb-2 border-[#F3F4F6]">
-                <View className="flex flex-row gap-x-2">
-                  <View className="p-2 rounded-full bg-dark-green">
+                <View className="flex flex-row gap-x-2 flex-1">
+                  <View className="p-2 rounded-full bg-dark-green flex-shrink-0">
                     <CarFront color={"white"} />
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <Text className="text-lg font-bold">
                       Delivery in 38-64 mins
                     </Text>
@@ -169,14 +177,19 @@ export default function CartScreen() {
               <Text className="text-lg font-bold">Total </Text>
               <Text className="text-lg font-bold">£ 34</Text>
             </View>
-            <Link asChild href={"/orders/cart/sides"}>
-              <Pressable className="bg-[#FF3B30] rounded-2xl p-5 flex items-center justify-center mt-5">
-                <Text className="text-lg font-bold text-white">Confirm</Text>
-              </Pressable>
-            </Link>
           </View>
         </View>
       </ScrollView>
+
+      {/* Floating Continue Button */}
+      <View className="absolute bottom-0 left-0 right-0 bg-white px-5 py-4 border-t border-gray-200">
+        <Link asChild href={"/orders/cart/sides"}>
+          <Pressable className="bg-[#FF3B30] rounded-2xl p-5 flex items-center justify-center">
+            <Text className="text-lg font-bold text-white">Continue to Sides</Text>
+          </Pressable>
+        </Link>
+      </View>
+
       <ChooseFriend isOpen={isOpen} onClick={() => setIsOpen(false)} />
     </SafeAreaView>
   );

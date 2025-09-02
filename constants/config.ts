@@ -6,7 +6,7 @@ export const CONFIG = {
   // Hidden sections configuration
   HIDDEN_SECTIONS: {
     ENABLED: true, // Master toggle for hidden sections
-    USUAL_DINNER_ENABLED: true, // "You usually have these for dinner" section
+    USUAL_DINNER_ENABLED: true, // "Your Dinner Favourites" section
     MADE_YOUR_DAY_ENABLED: true, // "Sections like these made your day" section
     PLAY_TO_WIN_ENABLED: true, // "Play to win" free food section
     SHOW_FREQUENCY: 0.3, // 30% chance to show hidden sections when conditions are met

@@ -195,7 +195,7 @@ export const DEFAULT_SECTIONS: SectionConfig[] = [
   // Hidden sections - initially hidden, shown based on conditions
   {
     id: 'usual_dinner',
-    name: 'You Usually Have These for Dinner',
+    name: 'Your Dinner Favourites',
     priority: 6,
     timeWeight: 0.4,
     userWeight: 0.8,

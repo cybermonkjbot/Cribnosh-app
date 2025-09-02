@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface IncrementalOrderAmountProps {
@@ -15,6 +15,12 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
   onChange,
 }) => {
   const [value, setValue] = useState(initialValue);
+  const [isOrdered, setIsOrdered] = useState(false);
+
+  const handleOrderClick = () => {
+    setIsOrdered(true);
+    onChange && onChange(value);
+  };
 
   const handleDecrement = () => {
     if (value > min) {
@@ -36,6 +42,16 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
     }
   };
 
+  // Show "Order" button initially
+  if (!isOrdered) {
+    return (
+      <Pressable style={styles.orderButton} onPress={handleOrderClick}>
+        <Text style={styles.orderButtonText}>Order</Text>
+      </Pressable>
+    );
+  }
+
+  // Show quantity controls after order is clicked
   return (
     <View style={styles.container}>
       <Pressable style={styles.button} onPress={handleDecrement}>
@@ -51,17 +67,31 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
     width: 79,
     height: 36,
-    left: 257,
-    top: 16,
     backgroundColor: '#F3F4F6',
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     overflow: 'hidden',
+  },
+  orderButton: {
+    width: 79,
+    height: 36,
+    backgroundColor: '#094327',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orderButtonText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   button: {
     width: 24,

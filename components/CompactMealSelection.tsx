@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Image, Text, View, Pressable, Dimensions } from 'react-native';
-import { Minus, Plus } from 'lucide-react-native'; // optional icons, you can swap
+import { Image, Text, View, Dimensions } from 'react-native';
 import { TiltCard } from './ui/TiltCard';
+import IncrementalOrderAmount from './IncrementalOrderAmount';
 
 interface CompactMealSelectionProps {
   title?: string;
@@ -25,20 +25,6 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
     typeof imageSource === 'string' ? { uri: imageSource } : imageSource;
 
   const [quantity, setQuantity] = useState(1);
-
-  const handleIncrement = () => {
-    const newQty = quantity + 1;
-    setQuantity(newQty);
-    onChange?.(newQty);
-  };
-
-  const handleDecrement = () => {
-    if (quantity > 1) {
-      const newQty = quantity - 1;
-      setQuantity(newQty);
-      onChange?.(newQty);
-    }
-  };
 
   const cardContent = (
     <View className="flex-row items-center bg-white rounded-2xl shadow-sm p-3 w-full self-stretch">
@@ -74,28 +60,15 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
       </View>
 
       {/* Counter Section */}
-      <View className="flex-row items-center justify-between bg-[#F5F5F5] rounded-full px-2 py-1 w-[90px]">
-        {/* Decrement */}
-        <Pressable
-          onPress={handleDecrement}
-          style={{ padding: 4 }}
-          android_ripple={{ color: '#ddd', borderless: true }}
-        >
-          <Minus size={18} color="#094327" />
-        </Pressable>
-
-        {/* Quantity Display */}
-        <Text className="text-base font-bold text-[#094327]">{quantity}</Text>
-
-        {/* Increment */}
-        <Pressable
-          onPress={handleIncrement}
-          style={{ padding: 4 }}
-          android_ripple={{ color: '#ddd', borderless: true }}
-        >
-          <Plus size={18} color="#094327" />
-        </Pressable>
-      </View>
+      <IncrementalOrderAmount
+        initialValue={quantity}
+        min={1}
+        max={99}
+        onChange={(newQuantity) => {
+          setQuantity(newQuantity);
+          onChange?.(newQuantity);
+        }}
+      />
     </View>
   );
 

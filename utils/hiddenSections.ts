@@ -57,7 +57,7 @@ export const PLAY_TO_WIN_CONFIG = {
 export const HIDDEN_SECTIONS: HiddenSectionConfig[] = [
   {
     id: 'usual_dinner',
-    name: 'You Usually Have These for Dinner',
+    name: 'Your Dinner Favourites',
     description: 'Personalized dinner recommendations based on your order history',
     showConditions: ['min_orders', 'dinner_time', 'usual_items'],
     priority: 6,
@@ -75,7 +75,7 @@ export const HIDDEN_SECTIONS: HiddenSectionConfig[] = [
   }
 ];
 
-// Check if "You Usually Have These for Dinner" section should be shown
+// Check if "Your Dinner Favourites" section should be shown
 export function shouldShowUsualDinnerSection(timeContext: TimeContext, userBehavior: UserBehavior): boolean {
   if (!HIDDEN_SECTIONS_CONFIG.USUAL_DINNER_ENABLED) return false;
   
@@ -136,10 +136,10 @@ export function getHiddenSectionsToShow(timeContext: TimeContext, userBehavior: 
   return sectionsToShow;
 }
 
-// Get section data for "You Usually Have These for Dinner"
+// Get section data for "Your Dinner Favourites"
 export function getUsualDinnerData(userBehavior: UserBehavior) {
   return {
-    title: "You Usually Have These for Dinner",
+    title: "Your Dinner Favourites",
     subtitle: "Based on your order history",
     items: userBehavior.usualDinnerItems || [],
     totalOrders: userBehavior.totalOrders || 0,

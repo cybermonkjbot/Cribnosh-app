@@ -2,14 +2,14 @@ import { Utensils } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
-  withTiming
+    runOnJS,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withSequence,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
 import Svg, { Rect } from 'react-native-svg';
 
@@ -19,9 +19,8 @@ interface MealsLoggedCardProps {
   onPress?: () => void;
 }
 
-
-
-export const MealsLoggedCard: React.FC<MealsLoggedCardProps> = ({
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
   weekMeals = [2, 3, 4, 3, 5, 1, 2],
   avgMeals = 2.9,
   onPress,
@@ -188,7 +187,10 @@ export const MealsLoggedCard: React.FC<MealsLoggedCardProps> = ({
       </Pressable>
     </Animated.View>
   );
-};
+});
+
+// Export the memoized component
+export const MealsLoggedCard = MemoizedMealsLoggedCard;
 
 const styles = StyleSheet.create({
   container: {

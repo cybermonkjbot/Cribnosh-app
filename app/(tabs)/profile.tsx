@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Image, Text, View } from 'react-native';
+import { Alert, Image, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -240,17 +241,17 @@ export default function ProfileScreen() {
     };
   }, [headerOpacity, scoreScale, cardsOpacity, cardsTranslateY, braggingCardsOpacity, braggingCardsTranslateY]);
 
-  const handleMealsPress = () => {
+  const handleMealsPress = useCallback(() => {
     Alert.alert('Meals Logged', 'Show detailed meals breakdown');
-  };
+  }, []);
 
-  const handleCaloriesPress = () => {
+  const handleCaloriesPress = useCallback(() => {
     Alert.alert('Calories Tracked', 'Show detailed calorie analysis');
-  };
+  }, []);
 
-  const handleCuisinePress = () => {
+  const handleCuisinePress = useCallback(() => {
     Alert.alert('Cuisine Score', 'Show all cuisines explored');
-  };
+  }, []);
 
   const refreshBraggingData = useCallback(() => {
     if (isAnimating.current) return;
@@ -285,6 +286,8 @@ export default function ProfileScreen() {
     windowSize: 5, // Reduce window size for better performance
   }), [scrollHandler]);
 
+  const router = useRouter();
+
   return (
     <ProfileScreenBackground>
       <SafeAreaView style={{ flex: 1, width: '100%' }}>
@@ -305,10 +308,12 @@ export default function ProfileScreen() {
                   source={require('../../assets/images/white-greenlogo.png')}
                   style={{ width: 120, height: 40, resizeMode: 'contain' }}
                 />
-                <Avatar 
-                  size="md"
-                  source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face' }}
-                />
+                <TouchableOpacity onPress={() => router.push('/account-details')}>
+                  <Avatar 
+                    size="md"
+                    source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face' }}
+                  />
+                </TouchableOpacity>
               </View>
             </Animated.View>
 

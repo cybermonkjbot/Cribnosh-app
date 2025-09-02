@@ -2,14 +2,14 @@ import { ChefHat, Globe, Soup } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
-  withTiming
+    runOnJS,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withSequence,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
 
 interface CuisineScoreCardProps {
@@ -17,9 +17,8 @@ interface CuisineScoreCardProps {
   onPress?: () => void;
 }
 
-
-
-export const CuisineScoreCard: React.FC<CuisineScoreCardProps> = ({
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
   cuisines = ['Nigerian', 'Italian', 'Asian Fusion', 'Mexican', 'Indian'],
   onPress,
 }) => {
@@ -219,7 +218,10 @@ export const CuisineScoreCard: React.FC<CuisineScoreCardProps> = ({
       </Pressable>
     </Animated.View>
   );
-};
+});
+
+// Export the memoized component
+export const CuisineScoreCard = MemoizedCuisineScoreCard;
 
 const styles = StyleSheet.create({
   container: {

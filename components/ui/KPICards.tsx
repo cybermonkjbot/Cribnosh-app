@@ -9,7 +9,8 @@ interface KPICardsProps {
   streakDays?: string;
 }
 
-export const KPICards: React.FC<KPICardsProps> = ({
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedKPICards: React.FC<KPICardsProps> = React.memo(({
   mealsLogged = "24",
   caloriesTracked = "2,847",
   streakDays = "7",
@@ -71,7 +72,10 @@ export const KPICards: React.FC<KPICardsProps> = ({
 
     </View>
   );
-};
+});
+
+// Export the memoized component
+export const KPICards = MemoizedKPICards;
 
 const styles = StyleSheet.create({
   container: {
@@ -218,6 +222,4 @@ const styles = StyleSheet.create({
 
 
 
-});
-
-export default KPICards; 
+}); 
