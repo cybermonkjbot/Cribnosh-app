@@ -1,10 +1,11 @@
+import { Mascot } from '@/components/Mascot';
 import { Input } from '@/components/ui/Input';
 import ScatteredGroupMembers from '@/components/ui/ScatteredGroupMembers';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 
-import { ChevronDown, Contact, SearchIcon, X } from 'lucide-react-native';
+import { ChevronDown, SearchIcon, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Image, SafeAreaView, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Mock data for friends
 const friends = [
@@ -16,75 +17,35 @@ const friends = [
 
 // Mock data for scattered group members
 const groupMembers = [
-  { name: 'Sandy', avatarUri: require('../../assets/images/demo/avatar-1.png'), top: 0, left: 0, status: 'Selected', isDone: true },
-  { name: 'Kevin', avatarUri: require('../../assets/images/demo/avatar-2.png'), top: 50, left: 50, status: 'Selected', isDone: true },
-  { name: 'Greg', avatarUri: require('../../assets/images/demo/avatar-3.png'), top: 100, left: 100, status: 'Available', isDone: false },
-  { name: 'Juliana', avatarUri: require('../../assets/images/demo/avatar-4.png'), top: 150, left: 150, status: 'Available', isDone: false },
+  { name: 'Fola', avatarUri: require('@/assets/images/demo/avatar-1.png'), top: 0, left: 0, status: 'Contributing £3', isDone: false },
+  { name: 'Josh', avatarUri: require('@/assets/images/demo/avatar-2.png'), top: 50, left: 50, status: 'Selecting meal', isDone: true },
+  { name: 'Favour', avatarUri: require('@/assets/images/demo/avatar-3.png'), top: 100, left: 100, status: 'Browsing menu', isDone: false },
+  { name: 'Mike', avatarUri: require('@/assets/images/demo/avatar-4.png'), top: 150, left: 150, status: 'Contributing £5', isDone: true },
+  { name: 'Emma', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 200, left: 200, status: 'Adding sides', isDone: false },
+  { name: 'Alex', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 250, left: 250, status: 'Ready to order', isDone: true },
 ];
 
 export default function ChooseFriends() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const handleBack = () => {
     router.back();
   };
-
-  const handleShare = async () => {
-    // if (selectedFriends.length === 0) {
-    //   Alert.alert(
-    //     'No Friends Selected',
-    //     'Please select at least one friend to share with.',
-    //     [{ text: 'OK' }]
-    //   );
-    //   return;
-    // }
-
-    try {
-      // Generate a unique share link for the treat
-      const selectedFriendNames = selectedFriends.map(id => 
-        friends.find(friend => friend.id === id)?.name
-      ).filter(Boolean).join(', ');
-      
-      const shareMessage = `Hey ${selectedFriendNames}! 🎉\n\nI'm treating you to a meal on Cribnosh! Use this link to order:\n\nhttps://cribnosh.app/treat/${Date.now()}\n\nEnjoy your meal! 🍽️`;
-      console.log(shareMessage);
-      // Use React Native's built-in Share API
-      const result = await Share.share({
-        message: shareMessage,
-        title: 'Share Your Treat',
-      });
-
-      if (result.action === Share.sharedAction) {
-        // Content was shared successfully
-        console.log('Content shared successfully');
-      } else if (result.action === Share.dismissedAction) {
-        // Share dialog was dismissed
-        console.log('Share dialog dismissed');
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-      Alert.alert(
-        'Share Failed',
-        'There was an error sharing your treat. Please try again.',
-        [{ text: 'OK' }]
-      );
-    }
+  
+  const handleNavigate = () => {
+    // Close any active modals before navigating
+    setShowShareModal(false);
+    setIsGeneratingLink(false);
+    router.push('/shared-link');
   };
 
-  const handleScroll = (event: any) => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    
-    // Only handle scroll-based sticky search if:
-    // 1. User is not actively searching (searchQuery is empty)
-    // 2. Sticky search is not manually activated
-    if (searchQuery === '' && !showStickySearch) {
-      // Show sticky search when user scrolls past the title area (approximately 200px)
-      // Hide sticky search when user scrolls back to top
-      setShowStickySearch(scrollY > 200);
-    }
-  };
+
 
   const handleSearchFocus = () => {
     setShowStickySearch(true);
@@ -118,9 +79,33 @@ export default function ChooseFriends() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Sticky Header */}
-      <View style={styles.stickyHeader}>
-        {showStickySearch ? (
+      {/* Full-screen background image */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={require('../../assets/images/on-your-account-image-01.png')}
+          style={styles.takeoutImage}
+          resizeMode="cover"
+        />
+      </View>
+
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <ChevronDown color="#E6FFE8" size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleNavigate}
+            style={styles.shareButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.shareText}>
+              {selectedFriends.length > 0 ? `Share ${getSelectedCountText()}` : 'Share'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        {showStickySearch && (
           <View style={styles.stickySearchContainer}>
             <View style={styles.stickySearchHeader}>
               <TouchableOpacity 
@@ -139,25 +124,12 @@ export default function ChooseFriends() {
               />
             </View>
           </View>
-        ) : (
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <ChevronDown color="#E6FFE8" size={20} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
-              <Text style={styles.shareText}>
-                {selectedFriends.length > 0 ? `Share ${getSelectedCountText()}` : 'Share'}
-              </Text>
-            </TouchableOpacity>
-          </View>
         )}
       </View>
 
       <ScrollView 
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
       >
         {!showStickySearch && (
           <View>
@@ -223,14 +195,63 @@ export default function ChooseFriends() {
         </View>
       </ScrollView>
 
-      {/* Takeout box image - positioned better */}
-      <View style={styles.imageContainer}>
-        <Image
-          source={require('../../assets/images/on-your-account-image-01.png')}
-          style={styles.takeoutImage}
-          resizeMode="contain"
-        />
-      </View>
+      {/* Full Screen Loading Modal */}
+      <Modal
+        visible={showShareModal}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {isGeneratingLink ? (
+              <>
+                {/* Skeleton Loading */}
+                <View style={styles.skeletonContainer}>
+                  {/* Title Skeleton */}
+                  <View style={styles.skeletonTitle} />
+                  
+                  {/* Subtitle Skeleton */}
+                  <View style={styles.skeletonSubtitle} />
+                  
+                  {/* Progress Steps Skeleton */}
+                  <View style={styles.skeletonSteps}>
+                    <View style={styles.skeletonStep}>
+                      <View style={styles.skeletonStepIcon} />
+                      <View style={styles.skeletonStepText} />
+                    </View>
+                    <View style={styles.skeletonStep}>
+                      <View style={styles.skeletonStepIcon} />
+                      <View style={styles.skeletonStepText} />
+                    </View>
+                    <View style={styles.skeletonStep}>
+                      <View style={styles.skeletonStepIcon} />
+                      <View style={styles.skeletonStepText} />
+                    </View>
+                  </View>
+                </View>
+                
+                <Text style={styles.modalTitle}>Creating Your Treat Link</Text>
+                <Text style={styles.modalSubtitle}>
+                  We&apos;re generating a unique link that your friends can use to claim their treat
+                </Text>
+              </>
+            ) : (
+              <>
+                {/* Success Mascot */}
+                <View style={styles.successMascotContainer}>
+                  <Mascot emotion="excited" size={200} />
+                </View>
+                
+                <Text style={styles.modalSubtitle}>
+                  Your treat link has been created successfully and shared with your friends!
+                </Text>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -241,17 +262,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#02120A',
   },
   content: {
-    flex: 1,
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: 20,
-    paddingTop: 10,
-    minHeight: '100%',
+    paddingTop: 20,
+    zIndex: 10,
   },
-  stickyHeader: {
+  header: {
     paddingHorizontal: 12,
     paddingTop: 10,
     paddingBottom: 16,
-    backgroundColor: '#02120A',
-    zIndex: 1000,
+    backgroundColor: 'transparent',
   },
   stickySearchContainer: {
     width: '100%',
@@ -282,6 +306,8 @@ const styles = StyleSheet.create({
   shareButton: {
     padding: 8,
     borderRadius: 8,
+    
+  
   },
   shareText: {
     color: '#E6FFE8',
@@ -290,7 +316,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 150,
+    paddingBottom: 50,
   },
   scatteredMembersContainer: {
     flex: 1,
@@ -302,11 +328,12 @@ const styles = StyleSheet.create({
     maxHeight: 400,
   },
   title: {
-    fontSize: 48,
+    fontSize: 35,
     fontWeight: 'bold',
     color: '#FF3B30',
     lineHeight: 52,
-    marginBottom: 16,
+    marginBottom: 10,
+    marginTop: 20,
     textShadowColor: '#fff',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 0,
@@ -316,7 +343,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     lineHeight: 24,
-    marginBottom: 32,
+    marginBottom: 5,
     textAlign: 'left',
   },
   searchResultsTitle: {
@@ -385,18 +412,86 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    height: '30%',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    zIndex: -5,
-    paddingBottom: 30,
+    bottom: 0,
   },
   takeoutImage: {
-    width: 180,
-    height: 180,
-    opacity: 0.8,
+    width: '100%',
+    height: '100%',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: '#02120A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 120,
+  },
+  modalTitle: {
+    color: '#E6FFE8',
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalSubtitle: {
+    color: '#EAEAEA',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  successMascotContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  skeletonContainer: {
+    marginBottom: 60,
+    gap: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  skeletonTitle: {
+    height: 32,
+    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    borderRadius: 16,
+    width: '70%',
+    alignSelf: 'center',
+  },
+  skeletonSubtitle: {
+    height: 20,
+    backgroundColor: 'rgba(230, 255, 232, 0.08)',
+    borderRadius: 10,
+    width: '85%',
+    alignSelf: 'center',
+  },
+  skeletonSteps: {
+    gap: 16,
+    marginTop: 8,
+  },
+  skeletonStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  skeletonStepIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+  },
+  skeletonStepText: {
+    height: 14,
+    backgroundColor: 'rgba(230, 255, 232, 0.08)',
+    borderRadius: 7,
+    flex: 1,
   },
 });
