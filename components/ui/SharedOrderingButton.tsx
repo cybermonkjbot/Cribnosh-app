@@ -10,8 +10,8 @@ export function SharedOrderingButton({ style }: SharedOrderingButtonProps) {
   const router = useRouter();
 
   const handlePress = () => {
-    // router.push('/shared-ordering');
-    router.push('/shared-link');
+    router.push('/shared-ordering');
+    // router.push('/shared-link');
   };
 
   return (

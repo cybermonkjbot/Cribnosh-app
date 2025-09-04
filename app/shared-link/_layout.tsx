@@ -19,6 +19,12 @@ export default function SharedLinkLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen 
+        name="lets-fix-that" 
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

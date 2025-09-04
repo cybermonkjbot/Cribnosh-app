@@ -10,7 +10,11 @@ export default function ItsOnYou() {
   const handleShare = () => {
     // Navigate to choose friends screen
     console.log('Navigating to choose friends screen...');
-    router.push('./choose-friends');
+    try {
+      router.push('./choose-friends');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   const handleChange = () => {
@@ -26,7 +30,12 @@ export default function ItsOnYou() {
           <ArrowLeft size={20} color="#fff" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+        <TouchableOpacity 
+          onPress={handleShare} 
+          style={styles.shareButton}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Text style={styles.shareText}>Share</Text>
         </TouchableOpacity>
       </View>
@@ -93,7 +102,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   shareButton: {
-    padding: 8,
+    padding: 12,
+    minHeight: 44,
+    minWidth: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   shareText: {
     color: '#fff',
@@ -108,7 +121,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     alignItems: 'flex-start',
-    zIndex: 10,
+    zIndex: 5,
   },
   title: {
     fontSize: 35,

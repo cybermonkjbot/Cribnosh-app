@@ -33,16 +33,41 @@ export default function ChooseFriends() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [buttonPressed, setButtonPressed] = useState(false);
 
   const handleBack = () => {
     router.back();
   };
   
   const handleNavigate = () => {
+    console.log('Share button pressed - attempting navigation...');
+    setButtonPressed(true);
     // Close any active modals before navigating
     setShowShareModal(false);
     setIsGeneratingLink(false);
-    router.push('/shared-link');
+    
+    try {
+      console.log('Navigating to /shared-link...');
+      // Try different navigation methods
+      router.navigate('/shared-link');
+      console.log('Navigation command sent successfully');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback: try replace
+      try {
+        console.log('Trying replace as fallback...');
+        router.replace('/shared-link');
+      } catch (replaceError) {
+        console.error('Replace also failed:', replaceError);
+        // Final fallback: try push
+        try {
+          console.log('Trying push as final fallback...');
+          router.push('/shared-link');
+        } catch (pushError) {
+          console.error('All navigation methods failed:', pushError);
+        }
+      }
+    }
   };
 
 
@@ -95,12 +120,16 @@ export default function ChooseFriends() {
             <ChevronDown color="#E6FFE8" size={20} />
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={handleNavigate}
+            onPress={() => {
+              console.log('TouchableOpacity pressed!');
+              handleNavigate();
+            }}
             style={styles.shareButton}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={styles.shareText}>
-              {selectedFriends.length > 0 ? `Share ${getSelectedCountText()}` : 'Share'}
+              {buttonPressed ? 'Pressed!' : (selectedFriends.length > 0 ? `Share ${getSelectedCountText()}` : 'Share')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -276,6 +305,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 16,
     backgroundColor: 'transparent',
+    zIndex: 1000,
   },
   stickySearchContainer: {
     width: '100%',
@@ -304,10 +334,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   shareButton: {
-    padding: 8,
+    padding: 12,
     borderRadius: 8,
-    
-  
+    minHeight: 44,
+    minWidth: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    // backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    // borderWidth: 1,
+    // borderColor: 'rgba(230, 255, 232, 0.3)',
   },
   shareText: {
     color: '#E6FFE8',

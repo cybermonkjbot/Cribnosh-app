@@ -99,8 +99,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 25,
-    width: '100%',
+    marginLeft: 20,
+    marginRight: 20,
     marginBottom: 20,
+    alignSelf: 'center',
+    width: '90%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

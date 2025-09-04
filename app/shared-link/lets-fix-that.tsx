@@ -1,13 +1,10 @@
-import { useRouter } from 'expo-router';
-import { Apple, Flame, SearchIcon, Sparkles, Wheat } from 'lucide-react-native';
+import { Apple, Flame, Link, SearchIcon, Sparkles, Users, Wheat } from 'lucide-react-native';
 import { useState } from 'react';
 import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function TrySomethingNew() {
-  const router = useRouter();
+export default function LetsFixThat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-
 
   const toggleFilter = (filter: string) => {
     setSelectedFilters(prev => 
@@ -29,10 +26,9 @@ export default function TrySomethingNew() {
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Title Section */}
         <View style={styles.titleSection}>
-          <Text style={styles.mainTitle}>Order !</Text>
-          <Text style={styles.subTitle}>it&apos;s on Joshua</Text>
+          <Text style={styles.mainTitle}>Hungry? Let&apos;s Fix That</Text>
           <Text style={styles.description}>
-            Search works like a magic wand, try it!
+            Find something different from your usual
           </Text>
         </View>
 
@@ -48,12 +44,9 @@ export default function TrySomethingNew() {
               onChangeText={setSearchQuery}
             />
           </View>
-          <TouchableOpacity 
-            style={styles.sparkleIcon}
-            onPress={() => router.push('/shared-link/lets-fix-that')}
-          >
+          <View style={styles.sparkleIcon}>
             <Sparkles color="#E6FFE8" size={30} />
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* Filter Chips */}
@@ -84,6 +77,26 @@ export default function TrySomethingNew() {
               </TouchableOpacity>
             );
           })}
+        </View>
+
+        {/* Try It's on me Section */}
+        <View style={styles.tryItsOnMeSection}>
+          <Text style={styles.sectionTitle}>Try It&apos;s on me</Text>
+          <Text style={styles.sectionDescription}>
+            Send a link to a friend so they can order food on you.
+          </Text>
+          
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.actionButton}>
+              <Link color="#E6FFE8" size={16} style={styles.actionIcon} />
+              <Text style={styles.actionText}>Invite Friend</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton}>
+              <Users color="#E6FFE8" size={16} style={styles.actionIcon} />
+              <Text style={styles.actionText}>Setup Family</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Main Content Area - Takeout Boxes Image */}
@@ -120,31 +133,24 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   titleSection: {
-    marginBottom: 30,
+    marginBottom: 10,
   },
   mainTitle: {
-    fontSize: 48,
+    fontSize: 30,
     fontWeight: '300',
     color: '#E6FFE8',
-    lineHeight: 52,
-    marginBottom: 8,
-  },
-  subTitle: {
-    fontSize: 32,
-    fontWeight: '300',
-    color: '#E6FFE8',
-    lineHeight: 36,
-    marginBottom: 16,
+    lineHeight: 40,
+    marginBottom: 5,
   },
   description: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#C4C4C4',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   searchBar: {
     flex: 1,
@@ -173,7 +179,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginBottom: 40,
+    marginBottom: 24,
   },
   filterChip: {
     flexDirection: 'row',
@@ -200,15 +206,53 @@ const styles = StyleSheet.create({
   filterTextSelected: {
     color: '#094327',
   },
+  tryItsOnMeSection: {
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '300',
+    color: '#E6FFE8',
+    marginBottom: 6,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#C4C4C4',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 255, 232, 0.3)',
+    flex: 1,
+  },
+  actionIcon: {
+    marginRight: 8,
+  },
+  actionText: {
+    fontSize: 14,
+    color: '#E6FFE8',
+    fontWeight: '500',
+  },
   mainContentArea: {
     flex: 1,
-    minHeight: 200,
+    minHeight: 150,
     alignItems: 'center',
     justifyContent: 'center',
   },
   takeoutImage: {
     width: '100%',
-    height: 300,
+    height: 250,
     maxWidth: 350,
   },
   footer: {
