@@ -52,6 +52,9 @@ export default function GroupOrdersScreen() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const handleNavigate = () => {
+    // Close any active modals before navigating
+    setShowShareModal(false);
+    setIsGeneratingLink(false);
     router.push('/orders/group/details');
   };
 

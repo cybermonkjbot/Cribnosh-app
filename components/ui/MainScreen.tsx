@@ -8,9 +8,9 @@ import { Easing } from 'react-native-reanimated';
 import { CONFIG } from '../../constants/config';
 import { UserBehavior } from '../../utils/hiddenSections';
 import {
-  getCurrentTimeContext,
-  getOrderedSectionsWithHidden,
-  OrderingContext
+    getCurrentTimeContext,
+    getOrderedSectionsWithHidden,
+    OrderingContext
 } from '../../utils/sectionOrdering';
 import { NotLoggedInNotice } from '../NotLoggedInNotice';
 import { SignInScreen } from '../SignInScreen';
@@ -42,6 +42,7 @@ import { PopularMealsSection } from './PopularMealsSection';
 import { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
 import { ShakeDebugger } from './ShakeDebugger';
 import { ShakeToEatFlow } from './ShakeToEatFlow';
+import { SharedOrderingButton } from './SharedOrderingButton';
 import { SpecialOffersSection } from './SpecialOffersSection';
 import { SustainabilityDrawer } from './SustainabilityDrawer';
 import { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
@@ -1216,6 +1217,7 @@ export function MainScreen() {
             {/* Main Content with fade animation */}
             <Animated.View style={{ opacity: contentFadeAnim }}>
             <NotLoggedInNotice onSignInPress={handleSignInPress} />
+              <SharedOrderingButton />
               <OrderAgainSection isHeaderSticky={isHeaderSticky} />
               <CuisinesSection onCuisinePress={handleCuisinePress} />
               <CuisineCategoriesSection cuisines={mockCuisines} onCuisinePress={handleCuisinePress} />
