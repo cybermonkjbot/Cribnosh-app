@@ -289,3 +289,7 @@ const styles = StyleSheet.create({
   },
 
 }); 
+
+function setQuantity(value: number) {
+  throw new Error('Function not implemented.');
+}
