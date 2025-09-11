@@ -14,27 +14,11 @@ export default function DebugDeepLink() {
   };
 
   const testDeepLink = async () => {
-    // Check if we're in development mode
-    const initialUrl = await Linking.getInitialURL();
-    const isDevelopment = initialUrl?.includes('exp://') || initialUrl?.includes('expo://');
+    // Always use custom scheme for deep links
+    const deepLink = `cribnoshapp://treat/${customTreatId}`;
+    const testUrl = deepLink;
     
-    let deepLink: string;
-    let testUrl: string;
-    
-    if (isDevelopment) {
-      // Generate development URL
-      const devUrl = initialUrl?.replace(/\/$/, '') || 'exp://192.168.0.179:8081';
-      deepLink = `${devUrl}/treat/${customTreatId}`;
-      testUrl = `exp://192.168.0.179:8081/treat/${customTreatId}`;
-      addResult(`Development mode detected - using dev URL`);
-      addResult(`Testing dev link: ${deepLink}`);
-    } else {
-      // Generate production deep link
-      deepLink = `cribnoshapp://treat/${customTreatId}`;
-      testUrl = deepLink;
-      addResult(`Production mode - using custom scheme`);
-      addResult(`Testing deep link: ${deepLink}`);
-    }
+    addResult(`Testing custom scheme deep link: ${deepLink}`);
     
     // Test if the URL can be opened
     try {
@@ -48,8 +32,8 @@ export default function DebugDeepLink() {
           addResult(`Link failed: ${error.message}`);
         });
       } else {
-        addResult(`Cannot open URL - this is expected in development mode`);
-        addResult(`Try using the "Test Web Link" button instead`);
+        addResult(`Cannot open URL - custom scheme may not be registered`);
+        addResult(`This is normal in development mode`);
       }
     } catch (error) {
       addResult(`Error testing URL: ${error}`);
@@ -120,7 +104,7 @@ export default function DebugDeepLink() {
     }
   };
 
-  const testSimpleNavigation = () => {
+  const testSimpleNavigation = () => {      
     addResult(`Testing simple navigation to shared-link dynamic route`);
     addResult(`Using router.navigate instead of router.push`);
     
@@ -139,7 +123,7 @@ export default function DebugDeepLink() {
     
     try {
       // Import the deep link handler
-      const { deepLinkHandler } = await import('../lib/deepLinkHandler');
+      const { handleDeepLink } = await import('../lib/deepLinkHandler');
       
       // Test with a simple URL
       const testUrl = `exp://192.168.0.179:8081/treat/${customTreatId}`;
@@ -155,7 +139,7 @@ export default function DebugDeepLink() {
       }
       
       // Manually trigger the handler
-      deepLinkHandler.handleDeepLink({ url: testUrl });
+      handleDeepLink({ url: testUrl });
       addResult(`✅ Deep link handler triggered successfully`);
     } catch (error) {
       addResult(`❌ Deep link handler failed: ${error}`);
@@ -195,13 +179,10 @@ export default function DebugDeepLink() {
     setTestResults([]);
   };
 
-  const copyLink = (type: 'dev' | 'prod' | 'web') => {
+  const copyLink = (type: 'prod' | 'web') => {
     let link: string;
     
     switch (type) {
-      case 'dev':
-        link = `exp://192.168.0.179:8081/treat/${customTreatId}`;
-        break;
       case 'prod':
         link = `cribnoshapp://treat/${customTreatId}`;
         break;
@@ -265,19 +246,13 @@ export default function DebugDeepLink() {
         <View style={styles.linkContainer}>
           <Text style={styles.label}>Generated Links:</Text>
           <View style={styles.linkRow}>
-            <Text style={styles.linkText}>Dev: exp://192.168.0.179:8081/treat/{customTreatId}</Text>
-            <TouchableOpacity onPress={() => copyLink('dev')}>
-              <Text style={styles.copyText}>Copy</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.linkRow}>
-            <Text style={styles.linkText}>Prod: cribnoshapp://treat/{customTreatId}</Text>
+            <Text style={styles.linkText}>Deep Link: cribnoshapp://treat/{customTreatId}</Text>
             <TouchableOpacity onPress={() => copyLink('prod')}>
               <Text style={styles.copyText}>Copy</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.linkRow}>
-            <Text style={styles.linkText}>Web: https://cribnosh.com/treat/{customTreatId}</Text>
+            <Text style={styles.linkText}>Web Fallback: https://cribnosh.com/treat/{customTreatId}</Text>
             <TouchableOpacity onPress={() => copyLink('web')}>
               <Text style={styles.copyText}>Copy</Text>
             </TouchableOpacity>

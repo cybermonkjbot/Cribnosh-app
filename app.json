@@ -8,7 +8,10 @@
     "scheme": "cribnoshapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-   
+  "linking": {
+    "schemes": ["cribnoshapp"],
+    "prefixes": ["cribnoshapp://"]
+  },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cribnosh.com",
@@ -28,11 +31,9 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "autoVerify": true,
           "data": [
             {
-              "scheme": "https",
-              "host": "cribnosh.com"
+              "scheme": "cribnoshapp"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
@@ -54,12 +55,8 @@
       "expo-av",
       "expo-camera",
       "expo-sensors",
-      "expo-apple-authentication",
-      "expo-image-picker",
-      "expo-linking",
-      {
-        "prefixes": ["https://cribnosh.com", "cribnoshapp://"]
-      },
+        "expo-apple-authentication",
+        "expo-image-picker",
       [
         "expo-splash-screen",
         {

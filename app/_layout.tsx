@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 // import 'react-native-reanimated';
+import * as Linking from 'expo-linking';
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -14,7 +15,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
 import { ToastProvider } from '../lib/ToastContext';
-import { deepLinkHandler } from '../lib/deepLinkHandler';
+import { handleDeepLink } from '../lib/deepLinkHandler';
 
 // Disable Reanimated strict mode warnings
 configureReanimatedLogger({
@@ -34,7 +35,30 @@ export default function RootLayout() {
 
   // Initialize deep link handler
   useEffect(() => {
-    deepLinkHandler.initialize();
+    const initializeDeepLinks = async () => {
+      try {
+        // Handle deep links when app is already running
+        const subscription = Linking.addEventListener("url", handleDeepLink);
+
+        // Handle deep links when app is opened from a closed state
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          console.log("Initial URL on app start:", initialUrl);
+          handleDeepLink({ url: initialUrl });
+        }
+
+        console.log("Deep link handler initialized");
+
+        // Cleanup function
+        return () => {
+          subscription?.remove();
+        };
+      } catch (error) {
+        console.error("Error initializing deep link handler:", error);
+      }
+    };
+
+    initializeDeepLinks();
   }, []);
 
   useEffect(() => {
