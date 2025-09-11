@@ -1,9 +1,37 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SharedLinkScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ treatId?: string; treatName?: string }>();
+  const [treatData, setTreatData] = useState<{ id?: string; name?: string } | null>(null);
+
+  useEffect(() => {
+    // Handle deep link parameters
+    if (params.treatId) {
+      console.log('Deep link opened with treatId:', params.treatId);
+      
+      // Decode the treat ID if it's URL encoded
+      const decodedTreatId = decodeURIComponent(params.treatId);
+      const decodedTreatName = params.treatName ? decodeURIComponent(params.treatName) : 'Someone';
+      
+      console.log('Decoded treatId:', decodedTreatId);
+      console.log('Decoded treatName:', decodedTreatName);
+      
+      setTreatData({
+        id: decodedTreatId,
+        name: decodedTreatName
+      });
+    } else {
+      // No treat ID provided, set default data
+      setTreatData({
+        id: undefined,
+        name: 'Joshua' // Default name
+      });
+    }
+  }, [params.treatId, params.treatName]);
 
   const handleStartOrder = () => {
     // Navigate to the ordering flow
@@ -25,13 +53,23 @@ export default function SharedLinkScreen() {
       <View style={styles.content}>
         {/* Main Title */}
         <Text style={styles.mainTitle}>
-          Joshua is treating you with no limit !
+          {treatData?.name || 'Joshua'} is treating you with no limit !
         </Text>
         
         {/* Subtitle */}
         <Text style={styles.subtitle}>
-          You are treating someone!{'\n'}They&apos;ll be able to order once using this link
+          {treatData?.id ? 
+            `You have a treat waiting!${'\n'}Use this link to claim your meal` :
+            `You are treating someone!${'\n'}They'll be able to order once using this link`
+          }
         </Text>
+        
+        {/* Debug Info - Show in development */}
+        {treatData?.id && __DEV__ && (
+          <Text style={styles.debugText}>
+            Treat ID: {treatData.id}
+          </Text>
+        )}
         
         {/* Start Order Button */}
         <TouchableOpacity 
@@ -104,13 +142,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignSelf: 'center',
     width: '90%',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
     elevation: 8,
   },
   startOrderButtonText: {
@@ -118,5 +150,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  debugText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    textAlign: 'center',
+    opacity: 0.7,
+    marginTop: 10,
+    fontFamily: 'monospace',
   },
 });

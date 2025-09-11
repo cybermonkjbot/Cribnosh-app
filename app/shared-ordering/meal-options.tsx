@@ -1,8 +1,25 @@
 import { router } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
+import { useState } from 'react';
 import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Dropdown, { DropdownOption } from '../components/Dropdown';
 
 export default function MealOptions() {
+  const [selectedDiet, setSelectedDiet] = useState<string>('');
+
+  const dietOptions: DropdownOption[] = [
+    { label: 'No restrictions', value: 'none' },
+    { label: 'Vegetarian', value: 'vegetarian' },
+    { label: 'Vegan', value: 'vegan' },
+    { label: 'Gluten-free', value: 'gluten-free' },
+    { label: 'Keto', value: 'keto' },
+    { label: 'Paleo', value: 'paleo' },
+    { label: 'Halal', value: 'halal' },
+    { label: 'Kosher', value: 'kosher' },
+    { label: 'Low-carb', value: 'low-carb' },
+    { label: 'Dairy-free', value: 'dairy-free' },
+  ];
+
   const handleBack = () => {
     router.back();
   };
@@ -12,9 +29,8 @@ export default function MealOptions() {
     router.push('/shared-ordering/its-on-you');
   };
 
-  const handleSelectDiet = () => {
-    // Navigate to diet selection screen
-    console.log('Navigate to diet selection');
+  const handleDietSelect = (option: DropdownOption) => {
+    setSelectedDiet(option.value);
   };
 
   return (
@@ -22,7 +38,7 @@ export default function MealOptions() {
       {/* Header with back and confirm */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ArrowLeft size={20} color="#fff" />
+          <ChevronLeft size={20} color="#fff" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleConfirm} style={styles.confirmButton}>
@@ -42,10 +58,18 @@ export default function MealOptions() {
           You can limit this On me to diet or let them choose, remember it&apos;s one time only
         </Text>
 
-        {/* Select Diet Button */}
-        <TouchableOpacity style={styles.selectDietButton} onPress={handleSelectDiet}>
-          <Text style={styles.selectDietText}>Select Diet</Text>
-        </TouchableOpacity>
+        {/* Select Diet Dropdown */}
+        <Dropdown
+          options={dietOptions}
+          selectedValue={selectedDiet}
+          onSelect={handleDietSelect}
+          placeholder="Select Diet"
+          buttonStyle={styles.selectDietButton}
+          dropdownStyle={styles.dropdownStyle}
+          optionStyle={styles.optionStyle}
+          textStyle={styles.selectDietText}
+          maxHeight={300}
+        />
 
         {/* Takeout box image */}
         <View style={styles.imageContainer}>
@@ -66,22 +90,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#02120A',
   },
   imageContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    height: '60%',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 40,
-    paddingHorizontal: 20,
+    justifyContent: 'flex-end',
+    zIndex: -10,
   },
   takeoutImage: {
-    width: 200,
-    height: 200,
+  width: '90%',
+    height: '90%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 4,
   },
   backButton: {
     flexDirection: 'row',
@@ -99,12 +127,11 @@ const styles = StyleSheet.create({
   confirmText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 0,
   },
   title: {
     fontSize: 48,
@@ -113,8 +140,9 @@ const styles = StyleSheet.create({
     lineHeight: 52,
     marginBottom: 24,
     textShadowColor: '#FF3B30',
-    textShadowOffset: { width: 4, height: 4 },
-    textShadowRadius: 12,
+    textShadowOffset: { width: 6, height: 6 },
+    textShadowRadius: 4,
+    zIndex: 10,
   },
   description: {
     fontSize: 16,
@@ -125,15 +153,25 @@ const styles = StyleSheet.create({
   selectDietButton: {
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 50,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-    width: '50%',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    width: '60%',
     alignSelf: 'flex-start',
+    minHeight: 48,
   },
   selectDietText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '400',
+  },
+  dropdownStyle: {
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  optionStyle: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
 });

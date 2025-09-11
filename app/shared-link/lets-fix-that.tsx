@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Apple, Flame, Link, SearchIcon, Sparkles, Users, Wheat } from 'lucide-react-native';
 import { useState } from 'react';
 import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -44,9 +45,9 @@ export default function LetsFixThat() {
               onChangeText={setSearchQuery}
             />
           </View>
-          <View style={styles.sparkleIcon}>
+          <TouchableOpacity style={styles.sparkleIcon} onPress={() => router.navigate('/(tabs)')}>
             <Sparkles color="#E6FFE8" size={30} />
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Filter Chips */}

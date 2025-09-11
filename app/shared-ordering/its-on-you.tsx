@@ -1,35 +1,90 @@
+import { Mascot } from '@/components/Mascot';
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
-import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
+import { useState } from 'react';
+import { Image, Linking, Modal, SafeAreaView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useToast } from '../../lib/ToastContext';
 
 export default function ItsOnYou() {
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const { showCopySuccess, showError, showInfo } = useToast();
+
   const handleBack = () => {
     router.back();
   };
 
-  const handleShare = () => {
-    // Navigate to choose friends screen
-    console.log('Navigating to choose friends screen...');
-    try {
-      router.push('./choose-friends');
-    } catch (error) {
-      console.error('Navigation error:', error);
-    }
+  const handleShare = async () => {
+    setShowShareModal(true);
+    setIsGeneratingLink(true);
+    const treatId = `treat_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    
+    // Simulate generating the share link
+    setTimeout(async () => {
+      setIsGeneratingLink(false);
+      
+      try {
+        // Generate a unique treat ID
+        
+        // Generate deep link URLs
+        const initialUrl = await Linking.getInitialURL();
+        const deepLink = `${initialUrl}/shared-link/${treatId}`;
+        // const webLink = `https://cribnosh.com/treat/${treatId}`;
+        console.log("deepLink", deepLink);
+        
+        // Create share message with both links (deep link for app users, web link as fallback)
+        const shareMessage = `I'm treating you to a meal! 🍽️\n\nDownload Cribnosh and use this link: ${deepLink}`;
+        
+        
+        const result = await Share.share({
+          message: shareMessage,
+          title: 'Share your treat',
+        });
+        
+        if (result.action === Share.sharedAction) {
+          showInfo('Link Shared', 'Your treat link has been shared successfully!');
+        } else if (result.action === Share.dismissedAction) {
+          console.log('Share was dismissed');
+          showInfo('Link Ready', 'Your treat link is ready to copy');
+        }
+      } catch (error) {
+        console.error('Error sharing treat:', error);
+        try {
+          const initialUrl = await Linking.getInitialURL();
+          const deepLink = `${initialUrl}/treat/${treatId}`;
+          console.log("deepLink", deepLink);
+          
+          const shareMessage = `I'm treating you to a meal! 🍽️\n\nDownload Cribnosh and use this link: ${deepLink}`;
+          
+          await Clipboard.setStringAsync(shareMessage);
+          showCopySuccess('The treat link has been copied to your clipboard');
+        } catch (clipboardError) {
+          console.error('Error copying to clipboard:', clipboardError);
+          showError('Failed to share treat link', 'Please try again later');
+        }
+      }
+      
+      setShowShareModal(false);
+    }, 2000);
   };
 
   const handleChange = () => {
-    // Navigate back to amount selection
     router.back();
   };
 
+
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with back and share */}
+      {/* Header with back, share and copy */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ArrowLeft size={20} color="#fff" />
+          <ChevronLeft size={20} color="#fff" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
+        <View style={styles.headerButtons}>
+         
         <TouchableOpacity 
           onPress={handleShare} 
           style={styles.shareButton}
@@ -38,6 +93,7 @@ export default function ItsOnYou() {
         >
           <Text style={styles.shareText}>Share</Text>
         </TouchableOpacity>
+        </View>
       </View>
 
       {/* Main Content */}
@@ -70,6 +126,64 @@ export default function ItsOnYou() {
           resizeMode="contain"
         />
       </View>
+
+      {/* Full Screen Loading Modal */}
+      <Modal
+        visible={showShareModal}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {isGeneratingLink ? (
+              <>
+                {/* Skeleton Loading */}
+                <View style={styles.skeletonContainer}>
+                  {/* Title Skeleton */}
+                  <View style={styles.skeletonTitle} />
+                  
+                  {/* Subtitle Skeleton */}
+                  <View style={styles.skeletonSubtitle} />
+                  
+                  {/* Progress Steps Skeleton */}
+                  <View style={styles.skeletonSteps}>
+                    <View style={styles.skeletonStep}>
+                      <View style={styles.skeletonStepIcon} />
+                      <View style={styles.skeletonStepText} />
+                    </View>
+                    <View style={styles.skeletonStep}>
+                      <View style={styles.skeletonStepIcon} />
+                      <View style={styles.skeletonStepText} />
+                    </View>
+                    <View style={styles.skeletonStep}>
+                      <View style={styles.skeletonStepIcon} />
+                      <View style={styles.skeletonStepText} />
+                    </View>
+                  </View>
+                </View>
+                
+                <Text style={styles.modalTitle}>Creating Your Treat Link</Text>
+                <Text style={styles.modalSubtitle}>
+                  We&apos;re generating a unique link that your friend can use to claim their treat
+                </Text>
+              </>
+            ) : (
+              <>
+                {/* Success Mascot */}
+                <View style={styles.successMascotContainer}>
+                  <Mascot emotion="excited" size={200} />
+                </View>
+                
+                <Text style={styles.modalSubtitle}>
+                  Your treat link has been created successfully and is ready to share!
+                </Text>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -78,7 +192,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FF3B30',
-    
   },
   header: {
     position: 'absolute',
@@ -88,8 +201,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     zIndex: 10,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   backButton: {
     flexDirection: 'row',
@@ -111,11 +229,32 @@ const styles = StyleSheet.create({
   shareText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+  },
+  copyButton: {
+    padding: 12,
+    minHeight: 44,
+    minWidth: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  copyText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  disabledButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    opacity: 0.5,
+  },
+  disabledText: {
+    color: '#ccc',
   },
   content: {
     position: 'absolute',
-    top: 50,
+    top: 60,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
@@ -130,13 +269,9 @@ const styles = StyleSheet.create({
     lineHeight: 52,
     marginBottom: 10    ,
     textShadowColor: '#22c55e',
-    textShadowOffset: { width: 3, height: 3 },
-    textShadowRadius: 0,
+    textShadowOffset: { width: 6, height: 6 },
+    textShadowRadius: 4,
     textAlign: 'left',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
     elevation: 4,
   },
   description: {
@@ -155,10 +290,6 @@ const styles = StyleSheet.create({
     textShadowColor: '#22c55e',
     textShadowOffset: { width: 4, height: 4 },
     textShadowRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
     elevation: 4,
   },
   changeButton: {
@@ -168,10 +299,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignItems: 'center',
     marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.4)',
     elevation: 4,
   },
   changeText: {
@@ -192,5 +320,78 @@ const styles = StyleSheet.create({
   takeoutImage: {
     width: '90%',
     height: '90%',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: '#02120A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 120,
+  },
+  modalTitle: {
+    color: '#E6FFE8',
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalSubtitle: {
+    color: '#EAEAEA',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  successMascotContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  skeletonContainer: {
+    marginBottom: 60,
+    gap: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  skeletonTitle: {
+    height: 32,
+    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    borderRadius: 16,
+    width: '70%',
+    alignSelf: 'center',
+  },
+  skeletonSubtitle: {
+    height: 20,
+    backgroundColor: 'rgba(230, 255, 232, 0.08)',
+    borderRadius: 10,
+    width: '85%',
+    alignSelf: 'center',
+  },
+  skeletonSteps: {
+    gap: 16,
+    marginTop: 8,
+  },
+  skeletonStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  skeletonStepIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+  },
+  skeletonStepText: {
+    height: 14,
+    backgroundColor: 'rgba(230, 255, 232, 0.08)',
+    borderRadius: 7,
+    flex: 1,
   },
 });

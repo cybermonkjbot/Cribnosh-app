@@ -252,6 +252,42 @@ const GroupOrderIcon = ({ size = 20, color = '#ffffff' }) => (
   </SafeIcon>
 );
 
+// Shared Ordering Icon Component
+const SharedOrderingIcon = ({ size = 20, color = '#ffffff' }) => (
+  <SafeIcon>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M16 4a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 12a7 7 0 0 0-7 7v3h14v-3a7 7 0 0 0-7-7z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M8 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M10 18v-1a5 5 0 0 0-2-4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </SafeIcon>
+);
+
 interface BottomSearchDrawerProps {
   onOpenAIChat?: () => void;
   onSearchSubmit?: (query: string, filter: string) => void;
@@ -323,8 +359,12 @@ export function BottomSearchDrawer({
 
   // Removed unused isOpen state and handleOpenSheet function
   const bottomSheetRef = useRef<BottomSheet>(null);
- const handleNavigate = () => {
+ const handleNavigate = (): void => {
   router.push('/orders/group');
+};
+
+const handleSharedOrderingNavigate = (): void => {
+  router.push('/shared-ordering');
 };
 
   
@@ -1638,6 +1678,30 @@ export function BottomSearchDrawer({
                       <GroupOrderIcon size={14} />
                     </View>
                   </TouchableOpacity>
+                  </Button>
+
+                  {/* Shared Ordering Button */}
+                  <Button
+                    backgroundColor="#16a34a"
+                    textColor="#ffffff"
+                    borderRadius={20}
+                    paddingVertical={12}
+                    paddingHorizontal={16}
+                    onPress={() => console.log('Shared Ordering')}
+                    style={{ width: '100%', marginTop: 8 }}
+                  >
+                    <TouchableOpacity style={{ width: '100%', 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' }} 
+                    onPress={handleSharedOrderingNavigate}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
+                          Shared Ordering
+                        </Text>
+                        <SharedOrderingIcon size={14} />
+                      </View>
+                    </TouchableOpacity>
                   </Button>
                 </Animated.View>
 

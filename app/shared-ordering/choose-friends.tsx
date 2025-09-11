@@ -98,6 +98,8 @@ export default function ChooseFriends() {
   const getSelectedCountText = () => {
     if (selectedFriends.length === 0) return '';
     if (selectedFriends.length === 1) return selectedFriends.length.toString();
+    if (selectedFriends.length === 3) return selectedFriends.length.toString();
+    
     if (selectedFriends.length === 2) return selectedFriends.length.toString();
     return selectedFriends.length.toString();
   };
@@ -105,13 +107,13 @@ export default function ChooseFriends() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Full-screen background image */}
-      <View style={styles.imageContainer}>
+      {/* <View style={styles.imageContainer}>
         <Image
           source={require('../../assets/images/on-your-account-image-01.png')}
           style={styles.takeoutImage}
           resizeMode="cover"
         />
-      </View>
+      </View> */}
 
       {/* Header */}
       <View style={styles.header}>

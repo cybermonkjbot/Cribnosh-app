@@ -2,15 +2,15 @@ import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Easing } from 'react-native-reanimated';
 
 import { CONFIG } from '../../constants/config';
 import { UserBehavior } from '../../utils/hiddenSections';
 import {
-    getCurrentTimeContext,
-    getOrderedSectionsWithHidden,
-    OrderingContext
+  getCurrentTimeContext,
+  getOrderedSectionsWithHidden,
+  OrderingContext
 } from '../../utils/sectionOrdering';
 import { NotLoggedInNotice } from '../NotLoggedInNotice';
 import { SignInScreen } from '../SignInScreen';
@@ -42,7 +42,6 @@ import { PopularMealsSection } from './PopularMealsSection';
 import { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
 import { ShakeDebugger } from './ShakeDebugger';
 import { ShakeToEatFlow } from './ShakeToEatFlow';
-import { SharedOrderingButton } from './SharedOrderingButton';
 import { SpecialOffersSection } from './SpecialOffersSection';
 import { SustainabilityDrawer } from './SustainabilityDrawer';
 import { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
@@ -1217,7 +1216,7 @@ export function MainScreen() {
             {/* Main Content with fade animation */}
             <Animated.View style={{ opacity: contentFadeAnim }}>
             <NotLoggedInNotice onSignInPress={handleSignInPress} />
-              <SharedOrderingButton />
+              {/* <SharedOrderingButton /> */}
               <OrderAgainSection isHeaderSticky={isHeaderSticky} />
               <CuisinesSection onCuisinePress={handleCuisinePress} />
               <CuisineCategoriesSection cuisines={mockCuisines} onCuisinePress={handleCuisinePress} />
@@ -1314,6 +1313,27 @@ export function MainScreen() {
 
       {/* Floating Action Button */}
       <FloatingActionButton onCameraPress={() => setIsCameraVisible(true)} />
+
+      {/* Deep Link Test Button - Development Only */}
+      {(
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 100,
+            right: 20,
+            backgroundColor: '#10B981',
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 20,
+            zIndex: 1001,
+          }}
+          onPress={() => router.push('/debug-deep-link')}
+        >
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+            Test Deep Links
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* Bottom Search Drawer */}
       <BottomSearchDrawer onOpenAIChat={handleOpenAIChat} />
