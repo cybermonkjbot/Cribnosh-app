@@ -50,9 +50,11 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
   const [averageLineProgressState, setAverageLineProgressState] = useState(0);
 
   useDerivedValue(() => {
+    'worklet';
     runOnJS(setBarsProgressState)(barsProgress.value);
   }, [barsProgress]);
   useDerivedValue(() => {
+    'worklet';
     runOnJS(setAverageLineProgressState)(averageLineProgress.value);
   }, [averageLineProgress]);
 

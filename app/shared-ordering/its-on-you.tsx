@@ -3,7 +3,8 @@ import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, Modal, SafeAreaView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useToast } from '../../lib/ToastContext';
 
 export default function ItsOnYou() {
@@ -27,14 +28,12 @@ export default function ItsOnYou() {
       try {
         // Generate a unique treat ID
         
-        // Generate deep link URLs using custom scheme
-        const deepLink = `cribnoshapp://treat/${treatId}`;
+        // Generate web link for sharing
         const webLink = `https://cribnosh.com/treat/${treatId}`;
-        console.log("deepLink", deepLink);
         console.log("webLink", webLink);
         
-        // Create share message with both links (deep link for app users, web link as fallback)
-        const shareMessage = `I'm treating you to a meal! 🍽️\n\nDownload Cribnosh and use this link: ${deepLink}\n\nOr visit: ${webLink}`;
+        // Create share message with web link
+        const shareMessage = `I'm treating you to a meal! 🍽️\n\nVisit: ${webLink}`;
         
         
         const result = await Share.share({
@@ -51,12 +50,10 @@ export default function ItsOnYou() {
       } catch (error) {
         console.error('Error sharing treat:', error);
         try {
-          const deepLink = `cribnoshapp://treat/${treatId}`;
           const webLink = `https://cribnosh.com/treat/${treatId}`;
-          console.log("deepLink", deepLink);
           console.log("webLink", webLink);
           
-          const shareMessage = `I'm treating you to a meal! 🍽️\n\nDownload Cribnosh and use this link: ${deepLink}\n\nOr visit: ${webLink}`;
+          const shareMessage = `I'm treating you to a meal! 🍽️\n\nVisit: ${webLink}`;
           
           await Clipboard.setStringAsync(shareMessage);
           showCopySuccess('The treat link has been copied to your clipboard');

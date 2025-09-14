@@ -4,10 +4,10 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
+import { LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-// import 'react-native-reanimated';
-import * as Linking from 'expo-linking';
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
@@ -15,13 +15,18 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
 import { ToastProvider } from '../lib/ToastContext';
-import { handleDeepLink } from '../lib/deepLinkHandler';
 
 // Disable Reanimated strict mode warnings
 configureReanimatedLogger({
-  level: ReanimatedLogLevel.error,
-  strict: false,
+  strict: false, // Disable strict mode warnings
+  level: ReanimatedLogLevel.error, // Only show errors, not warnings
 });
+
+// Ignore specific Reanimated warnings in LogBox
+LogBox.ignoreLogs([
+  '[Reanimated] Reading from `value` during component render',
+  '[Reanimated] Seems like you are using a Babel plugin',
+]);
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -33,33 +38,6 @@ export default function RootLayout() {
   });
   const [showSplash, setShowSplash] = useState(true);
 
-  // Initialize deep link handler
-  useEffect(() => {
-    const initializeDeepLinks = async () => {
-      try {
-        // Handle deep links when app is already running
-        const subscription = Linking.addEventListener("url", handleDeepLink);
-
-        // Handle deep links when app is opened from a closed state
-        const initialUrl = await Linking.getInitialURL();
-        if (initialUrl) {
-          console.log("Initial URL on app start:", initialUrl);
-          handleDeepLink({ url: initialUrl });
-        }
-
-        console.log("Deep link handler initialized");
-
-        // Cleanup function
-        return () => {
-          subscription?.remove();
-        };
-      } catch (error) {
-        console.error("Error initializing deep link handler:", error);
-      }
-    };
-
-    initializeDeepLinks();
-  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -93,6 +71,7 @@ export default function RootLayout() {
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="shared-ordering" options={{ headerShown: false }} />
                   <Stack.Screen name="shared-link" options={{ headerShown: false }} />
+                  <Stack.Screen name="treat/[treatId]" options={{ headerShown: false }} />
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <StatusBar style="auto" />

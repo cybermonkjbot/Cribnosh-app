@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useDerivedValue,
-  withTiming
+    runOnJS,
+    useAnimatedStyle,
+    useDerivedValue,
+    withTiming
 } from 'react-native-reanimated';
 
 interface ScrollBreakpointTesterProps {
@@ -30,14 +30,17 @@ export const ScrollBreakpointTester: React.FC<ScrollBreakpointTesterProps> = ({
 
   // Use derived values to safely access shared values
   const scrollYDisplay = useDerivedValue(() => {
+    'worklet';
     return `${Math.round(scrollY.value)}px`;
   });
 
   const resistanceDisplay = useDerivedValue(() => {
+    'worklet';
     return `${Math.round(resistanceProgress.value * 100)}%`;
   });
 
   const expandedDisplay = useDerivedValue(() => {
+    'worklet';
     return isExpanded.value ? 'Yes' : 'No';
   });
 
@@ -53,6 +56,7 @@ export const ScrollBreakpointTester: React.FC<ScrollBreakpointTesterProps> = ({
 
   // Use derived value to trigger updates
   useDerivedValue(() => {
+    'worklet';
     runOnJS(updateDisplayValues)(
       scrollYDisplay.value,
       resistanceDisplay.value,
@@ -66,22 +70,26 @@ export const ScrollBreakpointTester: React.FC<ScrollBreakpointTesterProps> = ({
 
   // Derived values for safe access in animated styles
   const progressBarWidth = useDerivedValue(() => {
+    'worklet';
     const progress = Math.max(0, Math.min(100, resistanceProgress.value * 100));
     return progress;
   });
 
   const scrollIndicatorTranslateX = useDerivedValue(() => {
+    'worklet';
     const scrollPosition = Math.min(scrollY.value / 2, 200);
     return Math.max(0, scrollPosition);
   });
 
   const progressBarStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       width: `${progressBarWidth.value}%`,
     };
   });
 
   const scrollIndicatorStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [{ translateX: scrollIndicatorTranslateX.value }],
     };

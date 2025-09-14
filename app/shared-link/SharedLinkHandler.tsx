@@ -1,99 +1,36 @@
-import * as Clipboard from 'expo-clipboard';
-import * as Sharing from 'expo-sharing';
-import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 
 interface SharedLinkHandlerProps {
-  groupId?: string;
-  onLinkGenerated?: (link: string) => void;
+  treatId?: string;
+  treatName?: string;
 }
 
-export default function SharedLinkHandler({ groupId, onLinkGenerated }: SharedLinkHandlerProps) {
-  const [generatedLink, setGeneratedLink] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState(false);
+export function SharedLinkHandler({ treatId, treatName }: SharedLinkHandlerProps) {
+  const router = useRouter();
 
   useEffect(() => {
-    generateLink();
-  }, [groupId]);
-
-  const generateLink = async () => {
-    setIsGenerating(true);
-    
-    try {
-      // Generate a unique link for the group order
-      const baseUrl = 'https://cribnosh.app/shared-link';
-      const uniqueId = groupId || Date.now().toString();
-      const link = `${baseUrl}?group=${uniqueId}`;
+    // Handle treat parameters without deep linking
+    if (treatId) {
+      console.log('Treat handler - treatId:', treatId);
+      console.log('Treat handler - treatName:', treatName);
       
-      setGeneratedLink(link);
-      onLinkGenerated?.(link);
-    } catch (error) {
-      console.error('Error generating link:', error);
-      Alert.alert('Error', 'Failed to generate share link');
-    } finally {
-      setIsGenerating(false);
+      // Navigate to shared-link page with the treat parameters
+      router.navigate({
+        pathname: "/shared-link",
+        params: { treatId, treatName },
+      });
+    } else {
+      console.log('No treat ID provided, redirecting to shared-link');
+      // Fallback to shared-link page
+      router.navigate("/shared-link");
     }
-  };
+  }, [treatId, treatName, router]);
 
-  const shareLink = async () => {
-    if (!generatedLink) return;
-
-    try {
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(generatedLink, {
-          mimeType: 'text/plain',
-          dialogTitle: 'Share group order link',
-        });
-      } else {
-        // Fallback to clipboard if sharing is not available
-        await Clipboard.setStringAsync(generatedLink);
-        Alert.alert('Link Copied', 'The group order link has been copied to your clipboard');
-      }
-    } catch (error) {
-      console.error('Error sharing link:', error);
-      Alert.alert('Error', 'Failed to share link');
-    }
-  };
-
-  const copyToClipboard = async () => {
-    if (!generatedLink) return;
-
-    try {
-      await Clipboard.setStringAsync(generatedLink);
-      Alert.alert('Copied!', 'Link copied to clipboard');
-    } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      Alert.alert('Error', 'Failed to copy link');
-    }
-  };
-
-  return {
-    generatedLink,
-    isGenerating,
-    shareLink,
-    copyToClipboard,
-    regenerateLink: generateLink,
-  };
+  return null; // This component doesn't render anything
 }
 
-// Hook for using the shared link functionality
-export function useSharedLink(groupId?: string) {
-  const [linkData, setLinkData] = useState<{
-    link: string;
-    isGenerating: boolean;
-  }>({
-    link: '',
-    isGenerating: false,
-  });
-
-  const handler = SharedLinkHandler({ 
-    groupId, 
-    onLinkGenerated: (link) => setLinkData(prev => ({ ...prev, link }))
-  });
-
-  return {
-    ...handler,
-    link: linkData.link,
-    isGenerating: linkData.isGenerating,
-  };
+// Add default export for route compatibility
+export default function SharedLinkHandlerDefault() {
+  return <SharedLinkHandler />;
 }

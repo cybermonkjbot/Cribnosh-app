@@ -1,7 +1,7 @@
 import { EmotionType } from '@/utils/EmotionsUIContext';
 import { MealCategory } from '@/utils/mealCategories';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Dimensions, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -82,6 +82,7 @@ function Particle({ id, delay, isActive, color }: ParticleProps) {
   const currentOpacity = useDerivedValue(() => opacity.value);
 
   const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [
         { translateX: currentTranslateX.value },
@@ -161,6 +162,7 @@ export function NoshMagicPortal({
   const currentTextScale = useDerivedValue(() => textScale.value);
 
   const portalStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [{ scale: currentPortalScale.value }],
       opacity: currentPortalOpacity.value,
@@ -168,6 +170,7 @@ export function NoshMagicPortal({
   });
 
   const textStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       opacity: currentTextOpacity.value,
       transform: [{ scale: currentTextScale.value }],

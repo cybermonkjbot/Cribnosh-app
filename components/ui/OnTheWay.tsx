@@ -1,6 +1,7 @@
-import { Entypo, Feather } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
 import React from "react";
-import { Modal, Pressable, Text, View, SafeAreaView } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface OnTheWayDrawerProps {
   isVisible: boolean;

@@ -1,14 +1,13 @@
 import { EmotionType, useEmotionsUI } from '@/utils/EmotionsUIContext';
-import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, {
-  interpolate,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
+    interpolate,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withSequence,
+    withSpring,
+    withTiming,
 } from 'react-native-reanimated';
 
 interface AnimatedMoodButtonProps {
@@ -45,6 +44,7 @@ export function AnimatedMoodButton({
 
   // Animated styles
   const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [
         { scale: currentScale.value },
@@ -54,6 +54,7 @@ export function AnimatedMoodButton({
   });
 
   const glowStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       opacity: currentGlowOpacity.value,
       transform: [

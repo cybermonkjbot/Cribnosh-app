@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import { ViewProps } from 'react-native';
 import Animated, {
-  Extrapolate,
-  interpolate,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withSpring,
+    Extrapolate,
+    interpolate,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withSpring,
 } from 'react-native-reanimated';
 import { useDeviceMotion } from '../../hooks/useDeviceMotion';
 
@@ -96,6 +96,7 @@ export function TiltCard({
 
   // Animated style for the tilt effect
   const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [
         { perspective: 1000 },

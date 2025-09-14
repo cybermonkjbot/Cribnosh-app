@@ -46,10 +46,12 @@ const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
 
   // Update state from derived values
   useDerivedValue(() => {
+    'worklet';
     runOnJS(setTagsOpacityState)(currentTagsOpacity.value);
   });
 
   useDerivedValue(() => {
+    'worklet';
     runOnJS(setTagsTranslateXState)(currentTagsTranslateX.value);
   });
 

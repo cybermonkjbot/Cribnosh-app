@@ -38,7 +38,7 @@ export default function OnTheWayScreen() {
         {/* View Map Button - Above Delivery Driver Details */}
         <View className="absolute bottom-24 right-6">
           <Pressable
-            onPress={() => console.log('View Map pressed')}
+            onPress={() => router.push('/orders/cart/order-feedback')}
             className="bg-black bg-opacity-30 px-4 py-2 rounded-full"
           >
             <Text className="text-white text-sm font-medium">

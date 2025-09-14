@@ -8,14 +8,9 @@
     "scheme": "cribnoshapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-  "linking": {
-    "schemes": ["cribnoshapp"],
-    "prefixes": ["cribnoshapp://"]
-  },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cribnosh.com",
-      "associatedDomains": ["applinks:cribnosh.com"],
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile pictures.",
         "NSCameraUsageDescription": "This app needs access to your camera to take photos."
@@ -28,17 +23,6 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.cribnosh.com",
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "data": [
-            {
-              "scheme": "cribnoshapp"
-            }
-          ],
-          "category": ["BROWSABLE", "DEFAULT"]
-        }
-      ],
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -52,11 +36,11 @@
     },
     "plugins": [
       "expo-router",
-      "expo-av",
+      "expo-video",
       "expo-camera",
       "expo-sensors",
-        "expo-apple-authentication",
-        "expo-image-picker",
+      "expo-apple-authentication",
+      "expo-image-picker",
       [
         "expo-splash-screen",
         {
@@ -69,7 +53,9 @@
           }
         }
       ],
-      "expo-maps"
+      "expo-maps",
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -83,6 +69,3 @@
     "owner": "cribnosh"
   }
 }
-
-
- 

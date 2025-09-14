@@ -75,7 +75,7 @@ export function NoshHeavenPlayer({
     
     try {
       // For React Native, we'll use a simple approach to track preloaded videos
-      // In a real implementation, you might use expo-av's loadAsync or similar
+      // In a real implementation, you might use expo-video's player.load() or similar
       // For now, we'll simulate preloading by adding to the set after a short delay
       const timeoutId = setTimeout(() => {
         if (isMountedRef.current) {
@@ -175,6 +175,7 @@ export function NoshHeavenPlayer({
 
   // Animated style for swipe message
   const swipeMessageStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       opacity: currentSwipeMessageOpacity.value,
     };

@@ -1,16 +1,15 @@
 import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { Easing } from 'react-native-reanimated';
+import { Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, Animated as RNAnimated, ScrollView, Text, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { CONFIG } from '../../constants/config';
 import { UserBehavior } from '../../utils/hiddenSections';
 import {
-  getCurrentTimeContext,
-  getOrderedSectionsWithHidden,
-  OrderingContext
+    getCurrentTimeContext,
+    getOrderedSectionsWithHidden,
+    OrderingContext
 } from '../../utils/sectionOrdering';
 import { NotLoggedInNotice } from '../NotLoggedInNotice';
 import { SignInScreen } from '../SignInScreen';
@@ -383,7 +382,6 @@ const mockOffers = [
 
 export function MainScreen() {
   const { activeHeaderTab, registerScrollToTopCallback } = useAppContext();
-  const router = useRouter();
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
@@ -436,13 +434,46 @@ export function MainScreen() {
     freeFoodPreferences: ['Pizza', 'Burger', 'Sushi']
   });
   
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
-  const normalHeaderOpacity = useRef(new Animated.Value(1)).current;
-  const categoryChipsOpacity = useRef(new Animated.Value(0)).current;
-  const contentFadeAnim = useRef(new Animated.Value(1)).current;
+  const scrollY = useSharedValue(0);
+  const stickyHeaderOpacity = useSharedValue(0);
+  const normalHeaderOpacity = useSharedValue(1);
+  const categoryChipsOpacity = useSharedValue(0);
+  const contentFadeAnim = useSharedValue(1);
   const scrollViewRef = useRef<ScrollView>(null);
-  
+
+  // Create regular Animated.Value instances for LiveContent compatibility
+  const scrollYAnimated = useRef(new RNAnimated.Value(0)).current;
+  const contentFadeAnimAnimated = useRef(new RNAnimated.Value(1)).current;
+
+  // Animated styles
+  const stickyHeaderAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: stickyHeaderOpacity.value,
+    };
+  });
+
+  const normalHeaderAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: normalHeaderOpacity.value,
+    };
+  });
+
+  const categoryChipsAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: categoryChipsOpacity.value,
+    };
+  });
+
+  const contentFadeAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: contentFadeAnim.value,
+    };
+  });
+
   // Enhanced pull-to-refresh state management
   const [showPullTrigger, setShowPullTrigger] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
@@ -451,7 +482,6 @@ export function MainScreen() {
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollPosition = useRef(0);
   const pullThreshold = 60; // Further reduced threshold for immediate activation
-  const velocityThreshold = 300; // Further reduced velocity threshold for faster response
 
   // Register scroll-to-top callback
   useEffect(() => {
@@ -468,32 +498,24 @@ export function MainScreen() {
         
         // Add a small delay to ensure scroll animation starts first
         setTimeout(() => {
-          Animated.parallel([
-            Animated.timing(stickyHeaderOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(normalHeaderOpacity, {
-              toValue: 1,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(categoryChipsOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-          ]).start();
+          stickyHeaderOpacity.value = withTiming(0, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
+          normalHeaderOpacity.value = withTiming(1, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
+          categoryChipsOpacity.value = withTiming(0, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
         }, 50); // Small delay to ensure scroll starts first
       }
     };
 
     registerScrollToTopCallback(scrollToTop);
-  }, [registerScrollToTopCallback]);
+  }, [registerScrollToTopCallback, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity]);
 
   // Cleanup effect to reset states and prevent crashes
   useEffect(() => {
@@ -514,17 +536,17 @@ export function MainScreen() {
         setShowLoader(false);
         setRefreshing(false);
         
-        // Stop any running animations
-        scrollY.stopAnimation();
-        stickyHeaderOpacity.stopAnimation();
-        normalHeaderOpacity.stopAnimation();
-        categoryChipsOpacity.stopAnimation();
-        contentFadeAnim.stopAnimation();
+        // Reset shared values to initial state
+        scrollY.value = 0;
+        stickyHeaderOpacity.value = 0;
+        normalHeaderOpacity.value = 1;
+        categoryChipsOpacity.value = 0;
+        contentFadeAnim.value = 1;
         
         // Reset refs
         isScrolling.current = false;
         lastScrollPosition.current = 0;
-      } catch (error) {
+      } catch {
       }
     };
   }, [scrollY, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, contentFadeAnim]);
@@ -576,11 +598,10 @@ export function MainScreen() {
     setRefreshing(true);
     
     // Fade out current content immediately
-    Animated.timing(contentFadeAnim, {
-      toValue: 0.3,
+    contentFadeAnim.value = withTiming(0.3, {
       duration: 100, // Faster fade out
-      useNativeDriver: true,
-    }).start();
+    });
+    contentFadeAnimAnimated.setValue(0.3);
     
     // Simulate the loading process with artificial delay
     setTimeout(() => {
@@ -590,14 +611,13 @@ export function MainScreen() {
 
       
       // Fade in the content
-      Animated.timing(contentFadeAnim, {
-        toValue: 1,
+      contentFadeAnim.value = withTiming(1, {
         duration: 300, // Faster fade in
-        useNativeDriver: true,
-      }).start();
+      });
+      contentFadeAnimAnimated.setValue(1);
     }, 5000); // 5 seconds for a more natural loading experience
     
-  }, [contentFadeAnim]);
+  }, [contentFadeAnim, contentFadeAnimAnimated]);
 
   const handleOpenAIChat = () => {
     setIsGeneratingSuggestions(true);
@@ -633,7 +653,29 @@ export function MainScreen() {
     // Component handles its own visibility now
   };
 
-
+  // Handle Nosh Heaven trigger - immediate execution
+  const handleNoshHeavenTrigger = useCallback(() => {
+    console.log('handleNoshHeavenTrigger called', { isNoshHeavenVisible });
+    try {
+      // Validate state before making changes
+      if (isNoshHeavenVisible) {
+        console.log('Nosh Heaven already visible, not triggering again');
+        return; // Already visible, don't trigger again
+      }
+      
+      console.log('Setting Nosh Heaven visible');
+      // Immediate state updates for faster response
+        setIsNoshHeavenVisible(true);
+        setShowPullTrigger(false);
+        setHasTriggered(false);
+    } catch (error) {
+      console.warn('Nosh Heaven trigger error:', error);
+      // Reset to safe state immediately
+        setIsNoshHeavenVisible(false);
+        setShowPullTrigger(false);
+        setHasTriggered(false);
+    }
+  }, [isNoshHeavenVisible]);
 
   // Enhanced scroll handler with intentional pull detection
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -715,48 +757,32 @@ export function MainScreen() {
         // Animate header transitions
         if (shouldBeSticky) {
           // Transitioning to sticky
-          Animated.parallel([
-            Animated.timing(stickyHeaderOpacity, {
-              toValue: 1,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(normalHeaderOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(categoryChipsOpacity, {
-              toValue: 1,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-          ]).start();
+          stickyHeaderOpacity.value = withTiming(1, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
+          normalHeaderOpacity.value = withTiming(0, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
+          categoryChipsOpacity.value = withTiming(1, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
         } else {
           // Transitioning to normal
-          Animated.parallel([
-            Animated.timing(stickyHeaderOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(normalHeaderOpacity, {
-              toValue: 1,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(categoryChipsOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-          ]).start();
+          stickyHeaderOpacity.value = withTiming(0, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
+          normalHeaderOpacity.value = withTiming(1, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
+          categoryChipsOpacity.value = withTiming(0, {
+            duration: animationDuration,
+            easing: Easing.inOut(Easing.ease),
+          });
         }
       }
     } catch (error) {
@@ -766,31 +792,14 @@ export function MainScreen() {
       setHasTriggered(false);
 
     }
-  }, [isHeaderSticky, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, hasTriggered, pullThreshold, velocityThreshold]);
+  }, [isHeaderSticky, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, hasTriggered, pullThreshold, handleNoshHeavenTrigger, showPullTrigger]);
 
-  // Handle Nosh Heaven trigger - immediate execution
-  const handleNoshHeavenTrigger = useCallback(() => {
-    console.log('handleNoshHeavenTrigger called', { isNoshHeavenVisible });
-    try {
-      // Validate state before making changes
-      if (isNoshHeavenVisible) {
-        console.log('Nosh Heaven already visible, not triggering again');
-        return; // Already visible, don't trigger again
-      }
-      
-      console.log('Setting Nosh Heaven visible');
-      // Immediate state updates for faster response
-        setIsNoshHeavenVisible(true);
-        setShowPullTrigger(false);
-        setHasTriggered(false);
-    } catch (error) {
-      console.warn('Nosh Heaven trigger error:', error);
-      // Reset to safe state immediately
-        setIsNoshHeavenVisible(false);
-        setShowPullTrigger(false);
-        setHasTriggered(false);
-    }
-  }, [isNoshHeavenVisible]);
+  // Scroll handler for regular ScrollView
+  const scrollHandler = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollY.value = event.nativeEvent.contentOffset.y;
+    scrollYAnimated.setValue(event.nativeEvent.contentOffset.y);
+    handleScroll(event);
+  }, [handleScroll, scrollY, scrollYAnimated]);
 
   // Handle Nosh Heaven close
   const handleNoshHeavenClose = useCallback(() => {
@@ -1109,7 +1118,7 @@ export function MainScreen() {
     );
   }, [
     isNoshHeavenVisible, 
-    noshHeavenMeals.length, // Use length instead of full array for better memoization
+    noshHeavenMeals, // Include the full array as dependency
     handleNoshHeavenClose, 
     handleLoadMoreMeals, 
     handleMealLike, 
@@ -1142,38 +1151,35 @@ export function MainScreen() {
         style={{ flex: 1 }}
       >
         {/* Sticky Header - always present but animated opacity */}
-        <Animated.View style={{ 
+        <Animated.View style={[{ 
           position: 'absolute', 
           top: 0, 
           left: 0, 
           right: 0, 
           zIndex: 1000,
-          opacity: stickyHeaderOpacity,
-        }}>
+        }, stickyHeaderAnimatedStyle]}>
           <Header isSticky={true} />
         </Animated.View>
 
         {/* Normal Header - positioned below sticky header */}
-        <Animated.View style={{ 
+        <Animated.View style={[{ 
           position: 'absolute', 
           top: 0, 
           left: 0, 
           right: 0, 
           zIndex: 999,
-          opacity: normalHeaderOpacity,
-        }}>
+        }, normalHeaderAnimatedStyle]}>
           <Header isSticky={false} />
         </Animated.View>
 
         {/* Category Filter Chips - positioned right under sticky header */}
-        <Animated.View style={{ 
+        <Animated.View style={[{ 
           position: 'absolute', 
           top: 89, 
           left: 0, 
           right: 0, 
           zIndex: 999,
-          opacity: categoryChipsOpacity,
-        }}>
+        }, categoryChipsAnimatedStyle]}>
           <CategoryFilterChips />
         </Animated.View>
 
@@ -1204,17 +1210,11 @@ export function MainScreen() {
                 />
               ) : undefined
             }
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { 
-                useNativeDriver: false,
-                listener: handleScroll,
-              }
-            )}
+            onScroll={scrollHandler}
             scrollEventThrottle={8}
           >
             {/* Main Content with fade animation */}
-            <Animated.View style={{ opacity: contentFadeAnim }}>
+            <Animated.View style={contentFadeAnimatedStyle}>
             <NotLoggedInNotice onSignInPress={handleSignInPress} />
               {/* <SharedOrderingButton /> */}
               <OrderAgainSection isHeaderSticky={isHeaderSticky} />
@@ -1239,18 +1239,12 @@ export function MainScreen() {
         ) : (
           <LiveContent
             scrollViewRef={scrollViewRef}
-            scrollY={scrollY}
+            scrollY={scrollYAnimated}
             isHeaderSticky={isHeaderSticky}
-            contentFadeAnim={contentFadeAnim}
+            contentFadeAnim={contentFadeAnimAnimated}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { 
-                useNativeDriver: false,
-                listener: handleScroll,
-              }
-            )}
+            onScroll={scrollHandler}
           />
         )}
 
@@ -1314,26 +1308,6 @@ export function MainScreen() {
       {/* Floating Action Button */}
       <FloatingActionButton onCameraPress={() => setIsCameraVisible(true)} />
 
-      {/* Deep Link Test Button - Development Only */}
-      {(
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 100,
-            right: 20,
-            backgroundColor: '#10B981',
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 20,
-            zIndex: 1001,
-          }}
-          onPress={() => router.push('/debug-deep-link')}
-        >
-          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
-            Test Deep Links
-          </Text>
-        </TouchableOpacity>
-      )}
 
       {/* Bottom Search Drawer */}
       <BottomSearchDrawer onOpenAIChat={handleOpenAIChat} />

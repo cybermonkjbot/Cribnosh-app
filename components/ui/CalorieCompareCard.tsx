@@ -70,6 +70,7 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
   const [barsProgressState, setBarsProgressState] = useState(0);
 
   useDerivedValue(() => {
+    'worklet';
     runOnJS(setBarsProgressState)(currentBarsProgress.value);
   }, [currentBarsProgress]);
 

@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import Animated, {
     cancelAnimation,
@@ -8,6 +8,7 @@ import Animated, {
     interpolate,
     runOnJS,
     useAnimatedStyle,
+    useDerivedValue,
     useSharedValue,
     withRepeat,
     withTiming,
@@ -126,8 +127,17 @@ export const GeneratingSuggestionsLoader: React.FC<GeneratingSuggestionsLoaderPr
     };
   }, [isVisible, startLoadingSequence, shimmerOpacity, fadeOpacity, scaleValue, translateY]);
 
+  // State for JSX access
+  const [currentStepState, setCurrentStepState] = useState(0);
+
   // Derived values for safe access
+  useDerivedValue(() => {
+    'worklet';
+    runOnJS(setCurrentStepState)(Math.round(currentStep.value));
+  });
+
   const shimmerOpacityInterpolated = useAnimatedStyle(() => {
+    'worklet';
     return {
       opacity: interpolate(
         shimmerOpacity.value,
@@ -174,7 +184,7 @@ export const GeneratingSuggestionsLoader: React.FC<GeneratingSuggestionsLoaderPr
 
             {/* Current Step Text */}
             <Text style={styles.currentStepText}>
-              {LOADING_STEPS[Math.round(currentStep.value)] || LOADING_STEPS[0]}
+              {LOADING_STEPS[currentStepState] || LOADING_STEPS[0]}
             </Text>
           </Animated.View>
         </BlurView>

@@ -64,6 +64,7 @@ function SpinnerItem({ item, index, isSpinning, isSelected }: SpinnerItemProps) 
   const currentRotation = useDerivedValue(() => `${rotation.value}deg`);
 
   const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [
         { translateY: currentTranslateY.value },
@@ -165,6 +166,7 @@ export function GachaMealSpinner({
   const currentContainerScale = useDerivedValue(() => containerScale.value);
 
   const containerStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [{ scale: currentContainerScale.value }],
       opacity: containerOpacity.value,

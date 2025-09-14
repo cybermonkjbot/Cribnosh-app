@@ -2,11 +2,11 @@ import React from 'react';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  interpolate,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -41,17 +41,23 @@ export const SwipeButton: React.FC<SwipeButtonProps> = ({
       translateX.value = withTiming(0); // Return to start
     });
 
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
+  const thumbStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      transform: [{ translateX: translateX.value }],
+    };
+  });
 
-  const textStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [0, TRACK_WIDTH - THUMB_SIZE],
-      [1, 0]
-    ),
-  }));
+  const textStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: interpolate(
+        translateX.value,
+        [0, TRACK_WIDTH - THUMB_SIZE],
+        [1, 0]
+      ),
+    };
+  });
 
   return (
     <View style={styles.wrapper}>

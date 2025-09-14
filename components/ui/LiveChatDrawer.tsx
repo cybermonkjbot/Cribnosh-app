@@ -397,13 +397,16 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
   };
 
   // Animated styles
-  const animatedContainerStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: scaleValue.value },
-      { translateY: translateYValue.value }
-    ],
-    opacity: opacityValue.value,
-  }));
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      transform: [
+        { scale: scaleValue.value },
+        { translateY: translateYValue.value }
+      ],
+      opacity: opacityValue.value,
+    };
+  });
 
   return (
     <Modal

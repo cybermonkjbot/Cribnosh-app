@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 import { Dimensions, View } from 'react-native';
 import Animated, {
-    interpolate,
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withRepeat,
-    withTiming,
+  interpolate,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
 } from 'react-native-reanimated';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -38,6 +38,7 @@ export function OnTheStoveBottomSheetSkeleton({
 
   // Derived values for safe access
   const shimmerOpacityInterpolated = useDerivedValue(() => {
+    'worklet';
     return interpolate(
       shimmerOpacity.value,
       [0.3, 1, 0.3],
@@ -46,6 +47,7 @@ export function OnTheStoveBottomSheetSkeleton({
   });
 
   const skeletonOpacityInterpolated = useDerivedValue(() => {
+    'worklet';
     return interpolate(
       shimmerOpacity.value,
       [0.3, 1, 0.3],
@@ -54,12 +56,14 @@ export function OnTheStoveBottomSheetSkeleton({
   });
 
   const shimmerStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       opacity: shimmerOpacityInterpolated.value,
     };
   });
 
   const skeletonStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       backgroundColor: '#E0E0E0',
       opacity: skeletonOpacityInterpolated.value,

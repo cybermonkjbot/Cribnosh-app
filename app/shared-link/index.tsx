@@ -9,9 +9,9 @@ export default function SharedLinkScreen() {
   const [treatData, setTreatData] = useState<{ id?: string; name?: string } | null>(null);
 
   useEffect(() => {
-    // Handle deep link parameters
+    // Handle treat parameters (without deep linking)
     if (params.treatId) {
-      console.log('Deep link opened with treatId:', params.treatId);
+      console.log('Treat opened with treatId:', params.treatId);
       
       // Decode the treat ID if it's URL encoded
       const decodedTreatId = decodeURIComponent(params.treatId);
@@ -40,47 +40,30 @@ export default function SharedLinkScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Full-screen background image */}
-      <View style={styles.imageContainer}>
-        <Image
-          source={require('../../assets/images/on-your-account-image-02.png')}
-          style={styles.backgroundImage}
-          resizeMode="cover"
-        />
-      </View>
-
-      {/* Main Content */}
       <View style={styles.content}>
-        {/* Main Title */}
-        <Text style={styles.mainTitle}>
-          {treatData?.name || 'Joshua'} is treating you with no limit !
+        <Text style={styles.title}>
+          {treatData?.name ? `${treatData.name} is treating you!` : 'Someone is treating you!'}
         </Text>
         
-        {/* Subtitle */}
-        <Text style={styles.subtitle}>
-          {treatData?.id ? 
-            `You have a treat waiting!${'\n'}Use this link to claim your meal` :
-            `You are treating someone!${'\n'}They'll be able to order once using this link`
+        <Text style={styles.description}>
+          {treatData?.id 
+            ? `You've been invited to order a meal using this treat link.`
+            : 'You\'ve been invited to order a meal!'
           }
         </Text>
-        
-        {/* Debug Info - Show in development */}
-        {treatData?.id && __DEV__ && (
-          <Text style={styles.debugText}>
-            Treat ID: {treatData.id}
-          </Text>
-        )}
-        
-        {/* Start Order Button */}
-        <TouchableOpacity 
-          style={styles.startOrderButton}
-          onPress={handleStartOrder}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.startOrderButtonText}>
-            Start order
-          </Text>
+
+        <TouchableOpacity style={styles.startButton} onPress={handleStartOrder}>
+          <Text style={styles.startButtonText}>Start Ordering</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Background image */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={require('../../assets/images/on-your-account-image-01.png')}
+          style={styles.takeoutImage}
+          resizeMode="contain"
+        />
       </View>
     </SafeAreaView>
   );
@@ -91,72 +74,58 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FF3B30',
   },
-  imageContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  backgroundImage: {
-    width: '100%',
-    height: '100%',
-  },
   content: {
     flex: 1,
-    paddingHorizontal: 10,
-    paddingTop: 0,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    alignItems: 'flex-start',
     zIndex: 10,
   },
-  mainTitle: {
+  title: {
     fontSize: 35,
     fontWeight: 'bold',
-    color: '#E6FFE8',
-    textAlign: 'left',
-    textShadowColor: '#10B981',
-    textShadowOffset: { width: 4, height: 4 },
-    textShadowRadius: 6,
-    lineHeight: 42,
+    color: '#fff',
+    lineHeight: 52,
     marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
+    textShadowColor: '#22c55e',
+    textShadowOffset: { width: 6, height: 6 },
+    textShadowRadius: 4,
     textAlign: 'left',
-    lineHeight: 24,
-    marginBottom: 40,
-    alignSelf: 'flex-start',
+    elevation: 4,
   },
-  startOrderButton: {
+  description: {
+    fontSize: 16,
+    color: '#fff',
+    lineHeight: 24,
+    marginBottom: 30,
+    textAlign: 'left',
+  },
+  startButton: {
+    backgroundColor: '#B12C00',
+    borderRadius: 25,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    alignItems: 'center',
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.4)',
+    elevation: 4,
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  imageContainer: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 30,
     left: 0,
     right: 0,
-    backgroundColor: '#094327',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 25,
-    marginLeft: 20,
-    marginRight: 20,
-    marginBottom: 20,
-    alignSelf: 'center',
+    height: '60%',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    zIndex: -10,
+  },
+  takeoutImage: {
     width: '90%',
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
-    elevation: 8,
-  },
-  startOrderButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  debugText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    textAlign: 'center',
-    opacity: 0.7,
-    marginTop: 10,
-    fontFamily: 'monospace',
+    height: '90%',
   },
 });

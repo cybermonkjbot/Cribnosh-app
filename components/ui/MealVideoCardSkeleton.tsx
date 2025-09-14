@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Dimensions, View } from 'react-native';
 import Animated, {
-  interpolate,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withRepeat,
-  withTiming,
+    interpolate,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withRepeat,
+    withTiming,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -32,6 +32,7 @@ export function MealVideoCardSkeleton({ isVisible = true }: MealVideoCardSkeleto
 
   // Derived values for safe access
   const shimmerOpacityInterpolated = useDerivedValue(() => {
+    'worklet';
     return interpolate(
       shimmerOpacity.value,
       [0.3, 1, 0.3],
@@ -40,6 +41,7 @@ export function MealVideoCardSkeleton({ isVisible = true }: MealVideoCardSkeleto
   });
 
   const skeletonOpacityInterpolated = useDerivedValue(() => {
+    'worklet';
     return interpolate(
       shimmerOpacity.value,
       [0.3, 1, 0.3],
@@ -48,12 +50,14 @@ export function MealVideoCardSkeleton({ isVisible = true }: MealVideoCardSkeleto
   });
 
   const shimmerStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       opacity: shimmerOpacityInterpolated.value,
     };
   });
 
   const skeletonStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       backgroundColor: '#333',
       opacity: skeletonOpacityInterpolated.value,

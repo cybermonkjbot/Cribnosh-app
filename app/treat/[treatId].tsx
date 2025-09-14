@@ -9,7 +9,7 @@ export default function TreatPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading treat data
+    // Simulate loading treat data (without deep linking)
     const loadTreatData = async () => {
       try {
         // Here you would typically fetch treat data from your backend

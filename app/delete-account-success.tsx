@@ -1,5 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import BigPackaging from '../components/ui/BigPackaging';
 import CribNoshLogo from '../components/ui/CribNoshLogo';
@@ -45,11 +46,11 @@ export default function DeleteAccountSuccessScreen() {
           <Text style={styles.title}>Account Deleted</Text>
           
           <Text style={styles.message}>
-            We're sorry to see you go, but we respect your decision to delete your account. Your account deletion request has been successfully processed, and your account is now permanently deactivated.
+            We&apos;re sorry to see you go, but we respect your decision to delete your account. Your account deletion request has been successfully processed, and your account is now permanently deactivated.
           </Text>
           
           <Text style={styles.message}>
-            If you ever decide to return, we'll be here with new updates and features to make your experience even better.
+            If you ever decide to return, we&apos;ll be here with new updates and features to make your experience even better.
           </Text>
         </View>
 

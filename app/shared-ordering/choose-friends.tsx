@@ -5,7 +5,8 @@ import { useRouter } from 'expo-router';
 
 import { ChevronDown, SearchIcon, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Mock data for friends
 const friends = [
@@ -48,7 +49,7 @@ export default function ChooseFriends() {
     
     try {
       console.log('Navigating to /shared-link...');
-      // Try different navigation methods
+      // Navigate to shared-link page
       router.navigate('/shared-link');
       console.log('Navigation command sent successfully');
     } catch (error) {

@@ -481,13 +481,16 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
   };
 
   // Animated styles
-  const animatedContainerStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: scaleValue.value },
-      { translateY: translateYValue.value }
-    ],
-    opacity: opacityValue.value,
-  }));
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      transform: [
+        { scale: scaleValue.value },
+        { translateY: translateYValue.value }
+      ],
+      opacity: opacityValue.value,
+    };
+  });
 
   return (
     <Modal

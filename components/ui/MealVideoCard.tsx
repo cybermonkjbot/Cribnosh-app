@@ -1,7 +1,7 @@
-import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { AlertCircle, MessageCircle, Play, Send, ShoppingCart, UserRound } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Dimensions, Pressable, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -51,12 +51,18 @@ export function MealVideoCard({
   comments = 0,
 }: MealVideoCardProps) {
   const logger = useDebugLogger('MealVideoCard');
-  const videoRef = useRef<Video>(null);
+  const videoRef = useRef<VideoView>(null);
   const [isLoading, setIsLoading] = useState(!isPreloaded);
   const [hasError, setHasError] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(isPreloaded);
   const loadingOpacity = useSharedValue(isPreloaded ? 0 : 1);
   const errorOpacity = useSharedValue(0);
+
+  // Create video player
+  const player = useVideoPlayer(videoSource, (player) => {
+    player.loop = true;
+    player.muted = false;
+  });
 
   // Performance tracking
   const loadStartTimeRef = useRef<number>(0);
@@ -73,14 +79,16 @@ export function MealVideoCard({
     return () => {
       logger.info('MealVideoCard unmounting', { title });
     };
-  }, []);
+  }, [videoSource, title, isPreloaded, isVisible, logger]);
 
   // Use derived values to avoid reading shared values during render
   const loadingOpacityDerived = useDerivedValue(() => {
+    'worklet';
     return loadingOpacity.value;
   });
 
   const errorOpacityDerived = useDerivedValue(() => {
+    'worklet';
     return errorOpacity.value;
   });
 
@@ -89,15 +97,15 @@ export function MealVideoCard({
     try {
       if (isVisible && isVideoReady) {
         logger.debug('Starting video playback', { title });
-        videoRef.current?.playAsync();
+        player.play();
       } else {
         logger.debug('Pausing video playback', { title, isVisible, isVideoReady });
-        videoRef.current?.pauseAsync();
+        player.pause();
       }
     } catch (error) {
       logger.error('Video playback control error', { title, error });
     }
-  }, [isVisible, isVideoReady, logger, title]);
+  }, [isVisible, isVideoReady, logger, title, player]);
 
   // Reset states when video source changes
   useEffect(() => {
@@ -140,7 +148,7 @@ export function MealVideoCard({
     }
   };
 
-  const handleVideoLoad = () => {
+  const handleVideoLoad = useCallback(() => {
     const loadTime = Date.now() - loadStartTimeRef.current;
     logger.info('Video loaded successfully', { title, loadTime });
     
@@ -152,9 +160,9 @@ export function MealVideoCard({
     if (loadTime > 3000) {
       logger.warn('Slow video load', { title, loadTime });
     }
-  };
+  }, [title, logger, loadingOpacity]);
 
-  const handleVideoError = () => {
+  const handleVideoError = useCallback(() => {
     const loadTime = Date.now() - loadStartTimeRef.current;
     logger.error('Video load error', { title, loadTime });
     
@@ -162,22 +170,27 @@ export function MealVideoCard({
     setHasError(true);
     loadingOpacity.value = withTiming(0, { duration: 300 });
     errorOpacity.value = withTiming(1, { duration: 300 });
-  };
+  }, [title, logger, loadingOpacity, errorOpacity]);
 
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    try {
-      if (status.isLoaded) {
-        if (status.isPlaying && isLoading) {
-          handleVideoLoad();
+  // Handle video player status changes
+  useEffect(() => {
+    const subscription = player.addListener('statusChange', (status) => {
+      try {
+        if (status.status === 'readyToPlay') {
+          if (isLoading) {
+            handleVideoLoad();
+          }
+        } else if (status.status === 'error') {
+          logger.error('Playback status error', { title, error: status.error });
+          handleVideoError();
         }
-      } else if (status.error) {
-        logger.error('Playback status error', { title, error: status.error });
-        handleVideoError();
+      } catch (error) {
+        logger.error('Playback status update error', { title, error });
       }
-    } catch (error) {
-      logger.error('Playback status update error', { title, error });
-    }
-  };
+    });
+
+    return () => subscription?.remove();
+  }, [player, isLoading, logger, title, handleVideoLoad, handleVideoError]);
 
   const retryVideo = () => {
     logger.info('Retrying video', { title });
@@ -187,8 +200,8 @@ export function MealVideoCard({
     loadingOpacity.value = withTiming(1, { duration: 300 });
     errorOpacity.value = withTiming(0, { duration: 300 });
     
-    // Reset video
-    videoRef.current?.loadAsync({ uri: videoSource }, {}, false);
+    // Reset video player
+    player.replace(videoSource);
   };
 
   const loadingStyle = useAnimatedStyle(() => {
@@ -227,7 +240,7 @@ export function MealVideoCard({
       position: 'relative'
     }}>
       {/* Video Component */}
-      <Video
+      <VideoView
         ref={videoRef}
         style={{
           position: 'absolute',
@@ -236,15 +249,9 @@ export function MealVideoCard({
           right: 0,
           bottom: 0,
         }}
-        source={{ uri: videoSource }}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay={isVisible && isVideoReady}
-        isLooping
-        isMuted={false}
-        useNativeControls={false}
-        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-        onLoad={handleVideoLoad}
-        onError={handleVideoError}
+        player={player}
+        contentFit="cover"
+        nativeControls={false}
       />
 
       {/* Loading Overlay */}
