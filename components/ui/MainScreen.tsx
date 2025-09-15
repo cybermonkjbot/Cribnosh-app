@@ -42,7 +42,6 @@ import { PopularMealsSection } from './PopularMealsSection';
 import { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
 import { ShakeDebugger } from './ShakeDebugger';
 import { ShakeToEatFlow } from './ShakeToEatFlow';
-import { SharedOrderingButton } from './SharedOrderingButton';
 import { SpecialOffersSection } from './SpecialOffersSection';
 import { SustainabilityDrawer } from './SustainabilityDrawer';
 import { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
@@ -1217,7 +1216,7 @@ export function MainScreen() {
             {/* Main Content with fade animation */}
             <Animated.View style={{ opacity: contentFadeAnim }}>
             <NotLoggedInNotice onSignInPress={handleSignInPress} />
-              <SharedOrderingButton />
+              {/* <SharedOrderingButton /> */}
               <OrderAgainSection isHeaderSticky={isHeaderSticky} />
               <CuisinesSection onCuisinePress={handleCuisinePress} />
               <CuisineCategoriesSection cuisines={mockCuisines} onCuisinePress={handleCuisinePress} />
@@ -1314,6 +1313,7 @@ export function MainScreen() {
 
       {/* Floating Action Button */}
       <FloatingActionButton onCameraPress={() => setIsCameraVisible(true)} />
+
 
       {/* Bottom Search Drawer */}
       <BottomSearchDrawer onOpenAIChat={handleOpenAIChat} />

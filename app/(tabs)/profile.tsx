@@ -221,7 +221,7 @@ export default function ProfileScreen() {
 
   // Simple mount effect
   useEffect(() => {
-    console.log('Profile screen mounted');
+    // console.log('Profile screen mounted');
     
     // Start entrance animations
     const startAnimations = () => {
@@ -237,7 +237,7 @@ export default function ProfileScreen() {
     setTimeout(startAnimations, 100);
     
     return () => {
-      console.log('Profile screen unmounting');
+      // console.log('Profile screen unmounting');
     };
   }, [headerOpacity, scoreScale, cardsOpacity, cardsTranslateY, braggingCardsOpacity, braggingCardsTranslateY]);
 

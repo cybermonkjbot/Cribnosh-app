@@ -38,12 +38,10 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const handleHeaderTabChange = (tab: HeaderTab) => {
     setActiveHeaderTab(tab);
-    console.log('Header tab changed to:', tab);
   };
 
   const handleCategoryFilterChange = (filter: CategoryFilter) => {
     setActiveCategoryFilter(filter);
-    console.log('Category filter changed to:', filter);
   };
 
   const getFilteredContent = (content: any[]) => {

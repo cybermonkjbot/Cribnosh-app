@@ -8,9 +8,14 @@
     "scheme": "cribnoshapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+  "linking": {
+    "schemes": ["cribnoshapp"],
+    "prefixes": ["cribnoshapp://"]
+  },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cribnosh.app",
+      "bundleIdentifier": "com.cribnosh.com",
+      "associatedDomains": ["applinks:cribnosh.com"],
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile pictures.",
         "NSCameraUsageDescription": "This app needs access to your camera to take photos."
@@ -22,7 +27,18 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.cribnosh.app",
+      "package": "com.cribnosh.com",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "cribnoshapp"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -39,8 +55,8 @@
       "expo-av",
       "expo-camera",
       "expo-sensors",
-      "expo-apple-authentication",
-      "expo-image-picker",
+        "expo-apple-authentication",
+        "expo-image-picker",
       [
         "expo-splash-screen",
         {
@@ -67,3 +83,6 @@
     "owner": "cribnosh"
   }
 }
+
+
+ 

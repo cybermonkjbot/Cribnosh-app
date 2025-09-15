@@ -39,7 +39,7 @@ export const useProfilePreloader = () => {
         await import('@/components/ParallaxScrollView');
         
         isPreloaded.current = true;
-        console.log('Profile screen preloaded successfully');
+        // console.log('Profile screen preloaded successfully');
       } catch (error) {
         console.log('Profile preloading failed:', error);
       }
