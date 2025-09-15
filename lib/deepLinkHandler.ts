@@ -6,11 +6,12 @@ export const handleDeepLink = (event: { url: string }) => {
     const url = event.url;
 
     // Validate URL format and ensure it's a valid deep link
-    if (!url || typeof url !== "string" || (!url.includes('cribnoshapp://') && !url.includes('cribnosh.com'))) {
-      // Only navigate to shared-link if this is actually a deep link
-      if (url && url.includes('cribnoshapp://')) {
-        router.navigate("/shared-link");
-      }
+    if (!url || typeof url !== "string") {
+      return;
+    }
+    
+    // Check if it's a valid deep link
+    if (!url.includes('cribnoshapp://') && !url.includes('cribnosh.com')) {
       return;
     }
 
