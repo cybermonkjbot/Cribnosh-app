@@ -30,8 +30,6 @@ export default function ItsOnYou() {
         // Generate deep link URLs using custom scheme
         const deepLink = `cribnoshapp://treat/${treatId}`;
         const webLink = `https://cribnosh.com/treat/${treatId}`;
-        console.log("deepLink", deepLink);
-        console.log("webLink", webLink);
         
         // Create share message with both links (deep link for app users, web link as fallback)
         const shareMessage = `I'm treating you to a meal! 🍽️\n\nDownload Cribnosh and use this link: ${deepLink}\n\nOr visit: ${webLink}`;
@@ -45,7 +43,6 @@ export default function ItsOnYou() {
         if (result.action === Share.sharedAction) {
           showInfo('Link Shared', 'Your treat link has been shared successfully!');
         } else if (result.action === Share.dismissedAction) {
-          console.log('Share was dismissed');
           showInfo('Link Ready', 'Your treat link is ready to copy');
         }
       } catch (error) {
@@ -53,8 +50,6 @@ export default function ItsOnYou() {
         try {
           const deepLink = `cribnoshapp://treat/${treatId}`;
           const webLink = `https://cribnosh.com/treat/${treatId}`;
-          console.log("deepLink", deepLink);
-          console.log("webLink", webLink);
           
           const shareMessage = `I'm treating you to a meal! 🍽️\n\nDownload Cribnosh and use this link: ${deepLink}\n\nOr visit: ${webLink}`;
           

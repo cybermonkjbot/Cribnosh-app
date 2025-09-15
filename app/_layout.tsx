@@ -42,12 +42,9 @@ export default function RootLayout() {
 
         // Handle deep links when app is opened from a closed state
         const initialUrl = await Linking.getInitialURL();
-        if (initialUrl) {
-          console.log("Initial URL on app start:", initialUrl);
+        if (initialUrl && (initialUrl.includes('cribnoshapp://') || initialUrl.includes('cribnosh.com'))) {
           handleDeepLink({ url: initialUrl });
         }
-
-        console.log("Deep link handler initialized");
 
         // Cleanup function
         return () => {

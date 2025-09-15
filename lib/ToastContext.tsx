@@ -21,19 +21,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
   const showToast = useCallback((toast: Omit<ToastProps, 'id'>) => {
-    console.log('showToast called with:', toast);
     const id = Date.now().toString();
     const newToast: ToastProps = {
       ...toast,
       id,
     };
     
-    console.log('Adding new toast:', newToast);
-    setToasts(prev => {
-      const newToasts = [...prev, newToast];
-      console.log('Updated toasts array:', newToasts);
-      return newToasts;
-    });
+    setToasts(prev => [...prev, newToast]);
   }, []);
 
   const hideToast = useCallback((id: string) => {
@@ -77,7 +71,6 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   }, [showToast]);
 
   const showCopySuccess = useCallback((message?: string) => {
-    console.log('showCopySuccess called with message:', message);
     showToast({
       type: 'success',
       title: 'Copied to Clipboard',

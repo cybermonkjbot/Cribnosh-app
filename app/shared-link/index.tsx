@@ -11,14 +11,9 @@ export default function SharedLinkScreen() {
   useEffect(() => {
     // Handle deep link parameters
     if (params.treatId) {
-      console.log('Deep link opened with treatId:', params.treatId);
-      
       // Decode the treat ID if it's URL encoded
       const decodedTreatId = decodeURIComponent(params.treatId);
       const decodedTreatName = params.treatName ? decodeURIComponent(params.treatName) : 'Someone';
-      
-      console.log('Decoded treatId:', decodedTreatId);
-      console.log('Decoded treatName:', decodedTreatName);
       
       setTreatData({
         id: decodedTreatId,
