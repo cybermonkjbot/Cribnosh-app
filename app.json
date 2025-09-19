@@ -8,17 +8,16 @@
     "scheme": "cribnoshapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-  "linking": {
-    "schemes": ["cribnoshapp"],
-    "prefixes": ["cribnoshapp://"]
-  },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cribnosh.com",
-      "associatedDomains": ["applinks:cribnosh.com"],
+      "associatedDomains": [
+        "applinks:cribnosh.com"
+      ],
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile pictures.",
-        "NSCameraUsageDescription": "This app needs access to your camera to take photos."
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -36,13 +35,18 @@
               "scheme": "cribnoshapp"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -55,8 +59,8 @@
       "expo-av",
       "expo-camera",
       "expo-sensors",
-        "expo-apple-authentication",
-        "expo-image-picker",
+      "expo-apple-authentication",
+      "expo-image-picker",
       [
         "expo-splash-screen",
         {
@@ -77,12 +81,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "d256305c-b35f-4d85-9cec-e7780dcdf801"
+        "projectId": "2578e373-8a73-4caa-b2a3-6324699ebd79"
       }
     },
-    "owner": "cribnosh"
+    "owner": "cybermonkj"
   }
 }
-
-
- 
