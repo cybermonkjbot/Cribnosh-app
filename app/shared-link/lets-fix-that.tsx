@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { Apple, Flame, Link, SearchIcon, Sparkles, Users, Wheat } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LetsFixThat() {
   const [searchQuery, setSearchQuery] = useState('');

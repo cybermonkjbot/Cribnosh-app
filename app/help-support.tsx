@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import { LiveChatDrawer } from '../components/ui/LiveChatDrawer';
 

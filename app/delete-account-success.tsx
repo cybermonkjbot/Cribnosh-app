@@ -1,5 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import BigPackaging from '../components/ui/BigPackaging';
 import CribNoshLogo from '../components/ui/CribNoshLogo';

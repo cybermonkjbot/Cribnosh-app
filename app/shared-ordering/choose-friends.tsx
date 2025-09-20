@@ -5,7 +5,8 @@ import { useRouter } from 'expo-router';
 
 import { ChevronDown, SearchIcon, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Mock data for friends
 const friends = [

@@ -3,7 +3,8 @@ import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, Modal, SafeAreaView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useToast } from '../../lib/ToastContext';
 
 export default function ItsOnYou() {

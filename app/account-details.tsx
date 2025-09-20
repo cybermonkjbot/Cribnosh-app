@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
-import { SafeAreaView, StatusBar } from 'react-native';
+import { StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserAccountDetailsScreen } from '../components/UserAccountDetailsScreen';
 
 export default function AccountDetailsScreen() {

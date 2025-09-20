@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Modal, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
 // Back arrow icon SVG
