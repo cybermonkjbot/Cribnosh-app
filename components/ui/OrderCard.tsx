@@ -1,6 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withTiming,
+} from 'react-native-reanimated';
 
 // Import the OrderStatus type from the orders page
 export type OrderStatus = 'preparing' | 'ready' | 'on-the-way' | 'delivered' | 'cancelled';
@@ -138,34 +144,27 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   showSeparator = true,
   index = 0,
 }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const fadeAnim = useSharedValue(0);
+  const slideAnim = useSharedValue(50);
+  const scaleAnim = useSharedValue(0.95);
 
   useEffect(() => {
     const delay = index * 100; // Stagger animation for each card
     
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        delay,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        delay,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 600,
-        delay,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    fadeAnim.value = withDelay(delay, withTiming(1, { duration: 600 }));
+    slideAnim.value = withDelay(delay, withTiming(0, { duration: 600 }));
+    scaleAnim.value = withDelay(delay, withTiming(1, { duration: 600 }));
   }, []);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: fadeAnim.value,
+      transform: [
+        { translateY: slideAnim.value },
+        { scale: scaleAnim.value },
+      ],
+    };
+  });
 
   const statusStyle = status ? getStatusStyle(status) : null;
   const isOngoingOrder = status && status !== 'delivered' && status !== 'cancelled';
@@ -176,13 +175,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       style={[
         styles.orderItem, 
         style,
-        {
-          opacity: fadeAnim,
-          transform: [
-            { translateY: slideAnim },
-            { scale: scaleAnim },
-          ],
-        },
+        animatedStyle,
       ]}
     >
       <View style={styles.iconContainer}>

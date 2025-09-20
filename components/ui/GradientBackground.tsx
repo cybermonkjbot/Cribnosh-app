@@ -1,6 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, ViewStyle } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, View, ViewStyle } from 'react-native';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming,
+} from 'react-native-reanimated';
 
 interface GradientBackgroundProps {
   children: React.ReactNode;
@@ -19,50 +26,19 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
   end = { x: 0, y: 1 },
   animated = true,
 }) => {
-  const animatedValue = useRef(new Animated.Value(0)).current;
-  const floatingValue = useRef(new Animated.Value(0)).current;
+  const floatingValue = useSharedValue(0);
 
   useEffect(() => {
     if (animated) {
-      // Create a continuous animation for the gradient
-      const gradientAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(animatedValue, {
-            toValue: 1,
-            duration: 8000,
-            useNativeDriver: false,
-          }),
-          Animated.timing(animatedValue, {
-            toValue: 0,
-            duration: 8000,
-            useNativeDriver: false,
-          }),
-        ])
-      );
-
       // Create floating animation for subtle motion
-      const floatingAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(floatingValue, {
-            toValue: 1,
-            duration: 6000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(floatingValue, {
-            toValue: 0,
-            duration: 6000,
-            useNativeDriver: true,
-          }),
-        ])
+      floatingValue.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 6000 }),
+          withTiming(0, { duration: 6000 })
+        ),
+        -1,
+        false
       );
-
-      gradientAnimation.start();
-      floatingAnimation.start();
-
-      return () => {
-        gradientAnimation.stop();
-        floatingAnimation.stop();
-      };
     }
   }, [animated]);
 
@@ -72,9 +48,28 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
   const gradientStart = start;
   const gradientEnd = end;
 
-  const floatingTranslateY = floatingValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -10],
+  const particle1Style = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: floatingValue.value * -10 }],
+    };
+  });
+
+  const particle2Style = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: floatingValue.value * -15 }],
+    };
+  });
+
+  const particle3Style = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: floatingValue.value * -8 }],
+    };
+  });
+
+  const particle4Style = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: floatingValue.value * -12 }],
+    };
   });
 
   return (
@@ -92,45 +87,28 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
               style={[
                 styles.floatingParticle,
                 styles.particle1,
-                {
-                  transform: [{ translateY: floatingTranslateY }],
-                },
+                particle1Style,
               ]}
             />
             <Animated.View
               style={[
                 styles.floatingParticle,
                 styles.particle2,
-                {
-                  transform: [{ translateY: floatingTranslateY.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -15],
-                  }) }],
-                },
+                particle2Style,
               ]}
             />
             <Animated.View
               style={[
                 styles.floatingParticle,
                 styles.particle3,
-                {
-                  transform: [{ translateY: floatingTranslateY.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -8],
-                  }) }],
-                },
+                particle3Style,
               ]}
             />
             <Animated.View
               style={[
                 styles.floatingParticle,
                 styles.particle4,
-                {
-                  transform: [{ translateY: floatingTranslateY.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -12],
-                  }) }],
-                },
+                particle4Style,
               ]}
             />
           </>

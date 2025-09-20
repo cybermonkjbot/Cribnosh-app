@@ -1,5 +1,10 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring
+} from 'react-native-reanimated';
 
 interface TabItem {
   key: string;
@@ -25,22 +30,26 @@ export const PremiumTabs: React.FC<PremiumTabsProps> = ({
   inactiveColor = '#687076',
   indicatorColor = '#DC2626',
 }) => {
-  const indicatorAnim = useRef(new Animated.Value(0)).current;
+  const indicatorScale = useSharedValue(0);
 
   useEffect(() => {
-    Animated.spring(indicatorAnim, {
-      toValue: 1,
-      useNativeDriver: false,
-      tension: 100,
-      friction: 8,
-    }).start();
+    indicatorScale.value = withSpring(1, {
+      damping: 15,
+      stiffness: 150,
+    });
   }, [activeTab]);
 
   const handleTabPress = (tabKey: string) => {
     // Reset animation and restart
-    indicatorAnim.setValue(0);
+    indicatorScale.value = 0;
     onTabPress(tabKey);
   };
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scaleX: indicatorScale.value }],
+    };
+  });
 
   return (
     <View style={[styles.tabsContainer, style]}>
@@ -68,15 +77,8 @@ export const PremiumTabs: React.FC<PremiumTabsProps> = ({
                 styles.activeTabIndicator, 
                 { 
                   backgroundColor: indicatorColor,
-                  transform: [
-                    {
-                      scaleX: indicatorAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 1],
-                      }),
-                    },
-                  ],
-                }
+                },
+                indicatorStyle,
               ]} 
             />
           )}

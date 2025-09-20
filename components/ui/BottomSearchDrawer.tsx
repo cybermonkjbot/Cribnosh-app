@@ -543,6 +543,8 @@ const handleSharedOrderingNavigate = (): void => {
 
   // Gesture handler with proper state management
   const panGesture = Gesture.Pan()
+    .minDistance(10)
+    .activeOffsetY([-10, 10])
     .onStart((event) => {
       'worklet';
       gestureState.value = 'dragging';

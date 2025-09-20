@@ -2,14 +2,21 @@ import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Modal, RefreshControl, Text, View } from 'react-native';
+import Animated, {
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated';
 
 import { CONFIG } from '../../constants/config';
 import { UserBehavior } from '../../utils/hiddenSections';
 import {
-    getCurrentTimeContext,
-    getOrderedSectionsWithHidden,
-    OrderingContext
+  getCurrentTimeContext,
+  getOrderedSectionsWithHidden,
+  OrderingContext
 } from '../../utils/sectionOrdering';
 import { NotLoggedInNotice } from '../NotLoggedInNotice';
 import { SignInScreen } from '../SignInScreen';
@@ -435,12 +442,13 @@ export function MainScreen() {
     freeFoodPreferences: ['Pizza', 'Burger', 'Sushi']
   });
   
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
-  const normalHeaderOpacity = useRef(new Animated.Value(1)).current;
-  const categoryChipsOpacity = useRef(new Animated.Value(0)).current;
-  const contentFadeAnim = useRef(new Animated.Value(1)).current;
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollY = useSharedValue(0);
+  const stickyHeaderOpacity = useSharedValue(0);
+  const normalHeaderOpacity = useSharedValue(1);
+  const categoryChipsOpacity = useSharedValue(0);
+  const contentFadeAnim = useSharedValue(1);
+  const isHeaderStickyShared = useSharedValue(false);
+  const scrollViewRef = useRef<Animated.ScrollView>(null);
   
   // Enhanced pull-to-refresh state management
   const [showPullTrigger, setShowPullTrigger] = useState(false);
@@ -461,32 +469,16 @@ export function MainScreen() {
         
         // Reset header to normal state with smooth animation
         setIsHeaderSticky(false);
+        isHeaderStickyShared.value = false;
         
         // Use consistent animation timing for smooth transitions
         const animationDuration = 300;
         
         // Add a small delay to ensure scroll animation starts first
         setTimeout(() => {
-          Animated.parallel([
-            Animated.timing(stickyHeaderOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(normalHeaderOpacity, {
-              toValue: 1,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(categoryChipsOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-          ]).start();
+          stickyHeaderOpacity.value = withTiming(0, { duration: animationDuration });
+          normalHeaderOpacity.value = withTiming(1, { duration: animationDuration });
+          categoryChipsOpacity.value = withTiming(0, { duration: animationDuration });
         }, 50); // Small delay to ensure scroll starts first
       }
     };
@@ -513,12 +505,12 @@ export function MainScreen() {
         setShowLoader(false);
         setRefreshing(false);
         
-        // Stop any running animations
-        scrollY.stopAnimation();
-        stickyHeaderOpacity.stopAnimation();
-        normalHeaderOpacity.stopAnimation();
-        categoryChipsOpacity.stopAnimation();
-        contentFadeAnim.stopAnimation();
+        // Reset animation values
+        scrollY.value = 0;
+        stickyHeaderOpacity.value = 0;
+        normalHeaderOpacity.value = 1;
+        categoryChipsOpacity.value = 0;
+        contentFadeAnim.value = 1;
         
         // Reset refs
         isScrolling.current = false;
@@ -575,11 +567,7 @@ export function MainScreen() {
     setRefreshing(true);
     
     // Fade out current content immediately
-    Animated.timing(contentFadeAnim, {
-      toValue: 0.3,
-      duration: 100, // Faster fade out
-      useNativeDriver: true,
-    }).start();
+    contentFadeAnim.value = withTiming(0.3, { duration: 100 });
     
     // Simulate the loading process with artificial delay
     setTimeout(() => {
@@ -589,11 +577,7 @@ export function MainScreen() {
 
       
       // Fade in the content
-      Animated.timing(contentFadeAnim, {
-        toValue: 1,
-        duration: 300, // Faster fade in
-        useNativeDriver: true,
-      }).start();
+      contentFadeAnim.value = withTiming(1, { duration: 300 });
     }, 5000); // 5 seconds for a more natural loading experience
     
   }, [contentFadeAnim]);
@@ -635,7 +619,7 @@ export function MainScreen() {
 
 
   // Enhanced scroll handler with intentional pull detection
-  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleScroll = useCallback((event: any) => {
     try {
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
       
@@ -708,54 +692,17 @@ export function MainScreen() {
       if (shouldBeSticky !== isHeaderSticky) {
         setIsHeaderSticky(shouldBeSticky);
         
-        // Use consistent animation timing for smooth transitions
-        const animationDuration = 300;
-        
-        // Animate header transitions
+        // Animate header transitions using Reanimated
         if (shouldBeSticky) {
           // Transitioning to sticky
-          Animated.parallel([
-            Animated.timing(stickyHeaderOpacity, {
-              toValue: 1,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(normalHeaderOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(categoryChipsOpacity, {
-              toValue: 1,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-          ]).start();
+          stickyHeaderOpacity.value = withTiming(1, { duration: 300 });
+          normalHeaderOpacity.value = withTiming(0, { duration: 300 });
+          categoryChipsOpacity.value = withTiming(1, { duration: 300 });
         } else {
           // Transitioning to normal
-          Animated.parallel([
-            Animated.timing(stickyHeaderOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(normalHeaderOpacity, {
-              toValue: 1,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-            Animated.timing(categoryChipsOpacity, {
-              toValue: 0,
-              duration: animationDuration,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.ease),
-            }),
-          ]).start();
+          stickyHeaderOpacity.value = withTiming(0, { duration: 300 });
+          normalHeaderOpacity.value = withTiming(1, { duration: 300 });
+          categoryChipsOpacity.value = withTiming(0, { duration: 300 });
         }
       }
     } catch (error) {
@@ -766,6 +713,61 @@ export function MainScreen() {
 
     }
   }, [isHeaderSticky, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, hasTriggered, pullThreshold, velocityThreshold]);
+
+  // New Reanimated scroll handler
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      'worklet';
+      scrollY.value = event.contentOffset.y;
+      
+      // Header sticky logic - use a more forgiving threshold
+      const shouldBeSticky = event.contentOffset.y > 30;
+      
+      if (shouldBeSticky !== isHeaderStickyShared.value) {
+        runOnJS(console.log)(`Header state changing: ${isHeaderStickyShared.value} -> ${shouldBeSticky} (scroll: ${event.contentOffset.y})`);
+        isHeaderStickyShared.value = shouldBeSticky;
+        runOnJS(setIsHeaderSticky)(shouldBeSticky);
+        
+        // Animate header transitions
+        if (shouldBeSticky) {
+          // Transitioning to sticky
+          stickyHeaderOpacity.value = withTiming(1, { duration: 300 });
+          normalHeaderOpacity.value = withTiming(0, { duration: 300 });
+          categoryChipsOpacity.value = withTiming(1, { duration: 300 });
+        } else {
+          // Transitioning to normal
+          stickyHeaderOpacity.value = withTiming(0, { duration: 300 });
+          normalHeaderOpacity.value = withTiming(1, { duration: 300 });
+          categoryChipsOpacity.value = withTiming(0, { duration: 300 });
+        }
+      }
+    },
+  });
+
+  // Animated styles for headers
+  const stickyHeaderStyle = useAnimatedStyle(() => {
+    return {
+      opacity: stickyHeaderOpacity.value,
+    };
+  });
+
+  const normalHeaderStyle = useAnimatedStyle(() => {
+    return {
+      opacity: normalHeaderOpacity.value,
+    };
+  });
+
+  const categoryChipsStyle = useAnimatedStyle(() => {
+    return {
+      opacity: categoryChipsOpacity.value,
+    };
+  });
+
+  const contentFadeStyle = useAnimatedStyle(() => {
+    return {
+      opacity: contentFadeAnim.value,
+    };
+  });
 
   // Handle Nosh Heaven trigger - immediate execution
   const handleNoshHeavenTrigger = useCallback(() => {
@@ -1140,46 +1142,52 @@ export function MainScreen() {
         end={{ x: 1, y: 1 }}
         style={{ flex: 1 }}
       >
-        {/* Sticky Header - always present but animated opacity */}
-        <Animated.View style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          zIndex: 1000,
-          opacity: stickyHeaderOpacity,
-        }}>
+        {/* Sticky Header - positioned above normal header */}
+        <Animated.View style={[
+          { 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000,
+          },
+          stickyHeaderStyle,
+        ]}>
           <Header isSticky={true} />
         </Animated.View>
 
         {/* Normal Header - positioned below sticky header */}
-        <Animated.View style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          zIndex: 999,
-          opacity: normalHeaderOpacity,
-        }}>
+        <Animated.View style={[
+          { 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 999,
+          },
+          normalHeaderStyle,
+        ]}>
           <Header isSticky={false} />
         </Animated.View>
 
         {/* Category Filter Chips - positioned right under sticky header */}
-        <Animated.View style={{ 
-          position: 'absolute', 
-          top: 89, 
-          left: 0, 
-          right: 0, 
-          zIndex: 999,
-          opacity: categoryChipsOpacity,
-        }}>
+        <Animated.View style={[
+          { 
+            position: 'absolute', 
+            top: 89, 
+            left: 0, 
+            right: 0, 
+            zIndex: 999,
+          },
+          categoryChipsStyle,
+        ]}>
           <CategoryFilterChips />
         </Animated.View>
 
 
 
         {activeHeaderTab === 'for-you' ? (
-          <ScrollView
+          <Animated.ScrollView
             ref={scrollViewRef}
             showsVerticalScrollIndicator={false}
             bounces={true}
@@ -1203,17 +1211,11 @@ export function MainScreen() {
                 />
               ) : undefined
             }
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { 
-                useNativeDriver: false,
-                listener: handleScroll,
-              }
-            )}
+            onScroll={scrollHandler}
             scrollEventThrottle={8}
           >
             {/* Main Content with fade animation */}
-            <Animated.View style={{ opacity: contentFadeAnim }}>
+            <Animated.View style={contentFadeStyle}>
             <NotLoggedInNotice onSignInPress={handleSignInPress} />
               {/* <SharedOrderingButton /> */}
               <OrderAgainSection isHeaderSticky={isHeaderSticky} />
@@ -1234,7 +1236,7 @@ export function MainScreen() {
               <TooFreshToWaste onOpenDrawer={handleOpenTooFreshDrawer} onOpenSustainability={handleOpenSustainabilityDrawer} />
               <EventBanner />
             </Animated.View>
-          </ScrollView>
+          </Animated.ScrollView>
         ) : (
           <LiveContent
             scrollViewRef={scrollViewRef}
@@ -1243,13 +1245,7 @@ export function MainScreen() {
             contentFadeAnim={contentFadeAnim}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { 
-                useNativeDriver: false,
-                listener: handleScroll,
-              }
-            )}
+            onScroll={scrollHandler}
           />
         )}
 

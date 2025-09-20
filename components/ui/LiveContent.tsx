@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Eye } from 'lucide-react-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
-import { Animated, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import LiveScreenView from './LiveViewerScreen';
 
 interface LiveKitchen {
@@ -81,10 +82,10 @@ const mockLiveKitchens: LiveKitchen[] = [
 ];
 
 interface LiveContentProps {
-  scrollViewRef?: React.RefObject<ScrollView | null>;
-  scrollY?: Animated.Value;
+  scrollViewRef?: React.RefObject<any>;
+  scrollY?: SharedValue<number>;
   isHeaderSticky?: boolean;
-  contentFadeAnim?: Animated.Value;
+  contentFadeAnim?: SharedValue<number>;
   refreshing?: boolean;
   onRefresh?: () => void;
   onScroll?: (event: any) => void;
@@ -104,8 +105,8 @@ export default function LiveContent({
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('All Cuisines');
   const [isHeaderSticky, setIsHeaderSticky] = useState(externalIsHeaderSticky || false);
   const [showLiveModal, setShowLiveModal] = useState(false);
-  const scrollViewRef = externalScrollViewRef || useRef<ScrollView>(null);
-  const contentFadeAnim = externalContentFadeAnim || useRef(new Animated.Value(0)).current;
+  const scrollViewRef = externalScrollViewRef || useRef<any>(null);
+  const contentFadeAnim = externalContentFadeAnim || { value: 1 };
   const router = useRouter();
 
   const handleKitchenPress = (kitchen: LiveKitchen) => {
@@ -151,14 +152,11 @@ export default function LiveContent({
     }
   }, [externalOnScroll]);
 
-  useEffect(() => {
-    Animated.timing(contentFadeAnim, {
-      toValue: 1,
-      duration: 500,
-      delay: 100,
-      useNativeDriver: true,
-    }).start();
-  }, [contentFadeAnim]);
+  const contentFadeStyle = useAnimatedStyle(() => {
+    return {
+      opacity: contentFadeAnim.value,
+    };
+  });
 
   return (
     <>
@@ -168,7 +166,7 @@ export default function LiveContent({
         end={{ x: 1, y: 1 }}
         style={styles.container}
       >
-        <ScrollView
+        <Animated.ScrollView
           ref={scrollViewRef}
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
@@ -190,11 +188,11 @@ export default function LiveContent({
               titleColor="#FF3B30"
             />
           }
-          onScroll={handleScroll}
+          onScroll={externalOnScroll || handleScroll}
           scrollEventThrottle={8}
         >
         {/* Main Content with fade animation */}
-        <Animated.View style={{ opacity: contentFadeAnim }}>
+        <Animated.View style={contentFadeStyle}>
 
 
           {/* Live Kitchens Grid - Two Column Layout */}
@@ -255,7 +253,7 @@ export default function LiveContent({
           {/* Bottom Spacing */}
           <View style={styles.bottomSpacing} />
         </Animated.View>
-      </ScrollView>
+      </Animated.ScrollView>
       </LinearGradient>
 
       {/* Live Screen Modal */}

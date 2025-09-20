@@ -8,7 +8,14 @@ import { PremiumTabs } from '@/components/ui/PremiumTabs';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import Animated, {
+  Extrapolate,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 
 // Define order status types
 export type OrderStatus = 'preparing' | 'ready' | 'on-the-way' | 'delivered' | 'cancelled';
@@ -50,6 +57,49 @@ interface Order {
 export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<'ongoing' | 'past'>('ongoing');
   const router = useRouter();
+  const scrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [0, 100],
+      [1, 0.8],
+      Extrapolate.CLAMP
+    );
+    
+    return {
+      opacity,
+    };
+  });
+
+  const bannerStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, 200],
+      [0, -50],
+      Extrapolate.CLAMP
+    );
+    
+    const scale = interpolate(
+      scrollY.value,
+      [0, 200],
+      [1, 0.95],
+      Extrapolate.CLAMP
+    );
+    
+    return {
+      transform: [
+        { translateY },
+        { scale },
+      ],
+    };
+  });
 
   const tabs = [
     { key: 'ongoing', label: 'Ongoing' },
@@ -218,27 +268,33 @@ export default function OrdersScreen() {
 
   return (
     <GradientBackground>
-      <PremiumHeader 
-        title="Orders" 
-        onInfoPress={handleInfoPress}
-      />
-      
-      <PremiumTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabPress={(tabKey) => setActiveTab(tabKey as 'ongoing' | 'past')}
-      />
+      <Animated.View style={headerStyle}>
+        <PremiumHeader 
+          title="Orders" 
+          onInfoPress={handleInfoPress}
+        />
+        
+        <PremiumTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabPress={(tabKey) => setActiveTab(tabKey as 'ongoing' | 'past')}
+        />
+      </Animated.View>
 
       {/* Campaign Banner */}
-      <OrdersCampaignBanner onPress={() => router.push('/orders/group')} />
+      <Animated.View style={bannerStyle}>
+        <OrdersCampaignBanner onPress={() => router.push('/orders/group')} />
+      </Animated.View>
 
-      <ScrollView 
+      <Animated.ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
       >
         {renderContent()}
-      </ScrollView>
+      </Animated.ScrollView>
     </GradientBackground>
   );
 }
