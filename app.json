@@ -3,6 +3,7 @@
     "name": "Cribnosh-app",
     "slug": "cribnosh-user-app",
     "version": "1.0.0",
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "cribnoshapp",
@@ -73,7 +74,9 @@
           }
         }
       ],
-      "expo-maps"
+      "expo-maps",
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
