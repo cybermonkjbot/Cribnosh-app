@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Apple, Flame, SearchIcon, Sparkles, Wheat } from 'lucide-react-native';
+import { Apple, ChevronLeft, Flame, SearchIcon, Sparkles, Wheat } from 'lucide-react-native';
 import { useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,10 @@ export default function TrySomethingNew() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
+
+  const handleBack = () => {
+    router.back();
+  };
 
   const toggleFilter = (filter: string) => {
     setSelectedFilters(prev => 
@@ -26,6 +30,17 @@ export default function TrySomethingNew() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <ChevronLeft size={20} color="#E6FFE8" />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton}>
+          <Text style={styles.actionText}>Order</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Main Content */}
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Title Section */}
@@ -112,9 +127,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#02120A',
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
+    zIndex: 1000,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  backText: {
+    color: '#E6FFE8',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  actionButton: {
+    padding: 12,
+    borderRadius: 8,
+    minHeight: 44,
+    minWidth: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionText: {
+    color: '#E6FFE8',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   content: {
     flex: 1,
-    marginTop: 20,
+    marginTop: 0,
   },
   scrollContent: {
     paddingHorizontal: 20,

@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +29,10 @@ export default function SharedLinkScreen() {
     }
   }, [params.treatId, params.treatName]);
 
+  const handleBack = () => {
+    router.back();
+  };
+
   const handleStartOrder = () => {
     // Navigate to the ordering flow
     router.push('/shared-link/Try-something-new');
@@ -42,6 +47,17 @@ export default function SharedLinkScreen() {
           style={styles.backgroundImage}
           resizeMode="cover"
         />
+      </View>
+
+      {/* Header with back and done buttons */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <ChevronLeft size={24} color="#fff" />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleStartOrder} style={styles.doneButton}>
+          <Text style={styles.doneText}>Done</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Main Content */}
@@ -97,10 +113,38 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  header: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    zIndex: 10,
+  },
+  backButton: {
+    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  doneButton: {
+    padding: 8,
+  },
+  doneText: {
+    color: '#fff',
+    fontSize: 16,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 10,
-    paddingTop: 0,
+    paddingTop: 40, // Position content below header
     paddingBottom: 40,
     zIndex: 10,
   },
@@ -122,6 +166,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 40,
     alignSelf: 'flex-start',
+    opacity: 0.95,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    fontWeight: '500',
   },
   startOrderButton: {
     position: 'absolute',
