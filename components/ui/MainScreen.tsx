@@ -2,8 +2,7 @@ import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { Easing } from 'react-native-reanimated';
+import { Animated, Easing, Modal, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { CONFIG } from '../../constants/config';
 import { UserBehavior } from '../../utils/hiddenSections';

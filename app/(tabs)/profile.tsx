@@ -2,10 +2,9 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Image, Text, TouchableOpacity, View } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
-  useAnimatedGestureHandler,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -133,11 +132,11 @@ export default function ProfileScreen() {
   // Safe scroll to function - removed unused function
 
   // Sheet gesture handler
-  const sheetGestureHandler = useAnimatedGestureHandler({
-    onStart: () => {
+  const sheetGesture = Gesture.Pan()
+    .onStart(() => {
       'worklet';
-    },
-    onActive: (event: any) => {
+    })
+    .onUpdate((event) => {
       'worklet';
       const newTranslateY = Math.max(-SHEET_OPEN_HEIGHT, Math.min(0, event.translationY));
       sheetTranslateY.value = newTranslateY;
@@ -146,8 +145,8 @@ export default function ProfileScreen() {
       const pullDistance = Math.abs(newTranslateY);
       const progress = Math.min(pullDistance / SHEET_SNAP_POINT, 1);
       sheetHeight.value = progress * SHEET_OPEN_HEIGHT;
-    },
-    onEnd: (event: any) => {
+    })
+    .onEnd((event) => {
       'worklet';
       const velocity = event.velocityY;
       const currentTranslateY = sheetTranslateY.value;
@@ -176,8 +175,7 @@ export default function ProfileScreen() {
         });
         isSheetOpen.value = withTiming(0, { duration: 300 });
       }
-    },
-  });
+    });
 
   // Simple expansion function
   const expandStats = useCallback(() => {
@@ -438,7 +436,7 @@ export default function ProfileScreen() {
             </View>
 
             {/* Bragging Cards Section - Sheet */}
-            <PanGestureHandler onGestureEvent={sheetGestureHandler}>
+            <GestureDetector gesture={sheetGesture}>
               <Animated.View style={[braggingCardsAnimatedStyle, statsSectionAnimatedStyle, sheetAnimatedStyle]}>
                 <Animated.View style={[{
                   marginHorizontal: 0, 
@@ -496,7 +494,7 @@ export default function ProfileScreen() {
                   />
                 </Animated.View>
               </Animated.View>
-            </PanGestureHandler>
+            </GestureDetector>
             
             {/* Extra bottom padding for proper scrolling */}
             <View style={{ height: 200 }} />

@@ -5,8 +5,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Text, TouchableOpacity, View } from 'react-native';
-import { Easing } from 'react-native-reanimated';
+import { Animated, Easing, Text, TouchableOpacity, View } from 'react-native';
 import { CribNoshLogo } from './CribNoshLogo';
 
 interface HeaderProps {

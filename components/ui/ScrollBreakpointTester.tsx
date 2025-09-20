@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   runOnJS,
+  SharedValue,
   useAnimatedStyle,
   useDerivedValue,
   withTiming
 } from 'react-native-reanimated';
 
 interface ScrollBreakpointTesterProps {
-  scrollY: Animated.SharedValue<number>;
-  resistanceProgress: Animated.SharedValue<number>;
-  isExpanded: Animated.SharedValue<boolean>;
+  scrollY: SharedValue<number>;
+  resistanceProgress: SharedValue<number>;
+  isExpanded: SharedValue<boolean>;
   onManualExpand?: () => void;
 }
 

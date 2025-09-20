@@ -4,16 +4,15 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  Extrapolate,
-  interpolate,
-  runOnJS,
-  useAnimatedGestureHandler,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withSpring
+    Extrapolate,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withSpring
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { getCompleteDynamicHeader, HeaderMessage } from '../../utils/dynamicHeaderMessages';
@@ -350,6 +349,9 @@ export function BottomSearchDrawer({
   
   // Track if the gesture was a swipe (to avoid focusing input)
   const wasSwipeGesture = useSharedValue(false);
+  const startHeight = useSharedValue(0);
+  const startSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
+  const startTime = useSharedValue(0);
   
   // Search focus state
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -540,21 +542,18 @@ const handleSharedOrderingNavigate = (): void => {
   }, [lastSnapPoint.value]);
 
   // Gesture handler with proper state management
-  const gestureHandler = useAnimatedGestureHandler<
-    PanGestureHandlerGestureEvent,
-    { startHeight: number; startSnapPoint: SnapPoint; initialTouchY: number; startTime: number }
-  >({
-    onStart: (event, context) => {
+  const panGesture = Gesture.Pan()
+    .onStart((event) => {
+      'worklet';
       gestureState.value = 'dragging';
-      context.startHeight = drawerHeight.value;
-      context.startSnapPoint = currentSnapPoint.value;
-      context.initialTouchY = event.absoluteY;
-      context.startTime = Date.now();
+      startHeight.value = drawerHeight.value;
+      startSnapPoint.value = currentSnapPoint.value;
       initialTouchY.value = event.absoluteY;
+      startTime.value = Date.now();
       wasSwipeGesture.value = false;
-    },
-    
-    onActive: (event, context) => {
+    })
+    .onUpdate((event) => {
+      'worklet';
       // Check if this is a swipe gesture (significant movement)
       const gestureDistance = Math.abs(event.translationY);
       if (gestureDistance > 10) {
@@ -562,7 +561,7 @@ const handleSharedOrderingNavigate = (): void => {
       }
       
       // Convert pan gesture to height change (inverted because dragging up increases height)
-      let newHeight = context.startHeight - event.translationY;
+      let newHeight = startHeight.value - event.translationY;
       
       // Apply rubber band effect at boundaries
       if (newHeight < SNAP_POINTS.COLLAPSED) {
@@ -586,31 +585,27 @@ const handleSharedOrderingNavigate = (): void => {
       } else {
         currentSnapPoint.value = SNAP_POINTS.EXPANDED;
       }
-    },
-    
-    onEnd: (event, context) => {
-      const gestureDistance = Math.abs(event.absoluteY - context.initialTouchY);
+    })
+    .onEnd((event) => {
+      'worklet';
+      const gestureDistance = Math.abs(event.absoluteY - initialTouchY.value);
       const targetSnapPoint = calculateSnapPoint(drawerHeight.value, event.velocityY, gestureDistance);
       
       // If expanding to full height via swipe, don't focus input
-      if (targetSnapPoint === SNAP_POINTS.EXPANDED && context.startSnapPoint === SNAP_POINTS.COLLAPSED && wasSwipeGesture.value) {
+      if (targetSnapPoint === SNAP_POINTS.EXPANDED && startSnapPoint.value === SNAP_POINTS.COLLAPSED && wasSwipeGesture.value) {
         // This was a swipe gesture - expand without focusing
         animateToSnapPoint(targetSnapPoint, -event.velocityY);
       } else {
         animateToSnapPoint(targetSnapPoint, -event.velocityY);
       }
-    },
-    
-    onFail: (_, context) => {
-      // Return to last known good state
-      animateToSnapPoint(context.startSnapPoint);
-    },
-    
-    onCancel: (_, context) => {
-      // Return to last known good state
-      animateToSnapPoint(context.startSnapPoint);
-    },
-  });
+    })
+    .onFinalize(() => {
+      'worklet';
+      // Return to last known good state if gesture fails
+      if (gestureState.value === 'dragging') {
+        animateToSnapPoint(startSnapPoint.value);
+      }
+    });
 
 
 
@@ -1035,7 +1030,7 @@ const handleSharedOrderingNavigate = (): void => {
       ) : null}
 
       {/* Main Drawer - Always positioned at bottom */}
-      <PanGestureHandler onGestureEvent={gestureHandler}>
+      <GestureDetector gesture={panGesture}>
         <Animated.View
           style={[
             containerStyle,
@@ -1723,7 +1718,7 @@ const handleSharedOrderingNavigate = (): void => {
           </ScrollView>
           </Animated.View>
         </Animated.View>
-      </PanGestureHandler>
+      </GestureDetector>
 
       
     </>
