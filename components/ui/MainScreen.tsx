@@ -714,53 +714,67 @@ export function MainScreen() {
     }
   }, [isHeaderSticky, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, hasTriggered, pullThreshold, velocityThreshold]);
 
-  // New Reanimated scroll handler
+  // Simplified Reanimated scroll handler to prevent crashes
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       'worklet';
-      scrollY.value = event.contentOffset.y;
-      
-      // Header sticky logic - use a more forgiving threshold
-      const shouldBeSticky = event.contentOffset.y > 30;
-      
-      if (shouldBeSticky !== isHeaderStickyShared.value) {
-        runOnJS(console.log)(`Header state changing: ${isHeaderStickyShared.value} -> ${shouldBeSticky} (scroll: ${event.contentOffset.y})`);
-        isHeaderStickyShared.value = shouldBeSticky;
-        runOnJS(setIsHeaderSticky)(shouldBeSticky);
+      try {
+        scrollY.value = event.contentOffset.y;
         
-        // Animate header transitions
-        if (shouldBeSticky) {
-          // Transitioning to sticky
-          stickyHeaderOpacity.value = withTiming(1, { duration: 300 });
-          normalHeaderOpacity.value = withTiming(0, { duration: 300 });
-          categoryChipsOpacity.value = withTiming(1, { duration: 300 });
-        } else {
-          // Transitioning to normal
-          stickyHeaderOpacity.value = withTiming(0, { duration: 300 });
-          normalHeaderOpacity.value = withTiming(1, { duration: 300 });
-          categoryChipsOpacity.value = withTiming(0, { duration: 300 });
+        // Simplified header sticky logic
+        const shouldBeSticky = event.contentOffset.y > 30;
+        
+        if (shouldBeSticky !== isHeaderStickyShared.value) {
+          isHeaderStickyShared.value = shouldBeSticky;
+          runOnJS(setIsHeaderSticky)(shouldBeSticky);
+          
+          // Simplified animations
+          if (shouldBeSticky) {
+            stickyHeaderOpacity.value = withTiming(1, { duration: 200 });
+            normalHeaderOpacity.value = withTiming(0, { duration: 200 });
+            categoryChipsOpacity.value = withTiming(1, { duration: 200 });
+          } else {
+            stickyHeaderOpacity.value = withTiming(0, { duration: 200 });
+            normalHeaderOpacity.value = withTiming(1, { duration: 200 });
+            categoryChipsOpacity.value = withTiming(0, { duration: 200 });
+          }
         }
+      } catch (error) {
+        // Silently handle any worklet errors to prevent crashes
+        console.log('Scroll handler error:', error);
       }
     },
   });
 
-  // Animated styles for headers
+  // Animated styles for headers with safety checks
   const stickyHeaderStyle = useAnimatedStyle(() => {
-    return {
-      opacity: stickyHeaderOpacity.value,
-    };
+    try {
+      return {
+        opacity: stickyHeaderOpacity.value,
+      };
+    } catch (error) {
+      return { opacity: 0 };
+    }
   });
 
   const normalHeaderStyle = useAnimatedStyle(() => {
-    return {
-      opacity: normalHeaderOpacity.value,
-    };
+    try {
+      return {
+        opacity: normalHeaderOpacity.value,
+      };
+    } catch (error) {
+      return { opacity: 1 };
+    }
   });
 
   const categoryChipsStyle = useAnimatedStyle(() => {
-    return {
-      opacity: categoryChipsOpacity.value,
-    };
+    try {
+      return {
+        opacity: categoryChipsOpacity.value,
+      };
+    } catch (error) {
+      return { opacity: 0 };
+    }
   });
 
   const contentFadeStyle = useAnimatedStyle(() => {
