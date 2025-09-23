@@ -40,7 +40,6 @@ const ToastComponent: React.FC<ToastComponentProps> = ({
   onDismiss,
   action,
 }) => {
-  console.log('ToastComponent rendering with:', { id, type, title, message });
   const [isVisible, setIsVisible] = useState(true);
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -164,7 +163,6 @@ interface ToastContainerProps {
 }
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismiss }) => {
-  console.log('ToastContainer rendering with toasts:', toasts);
   return (
     <View style={styles.container}>
       {toasts.map((toast) => (
@@ -184,7 +182,7 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 60 : 40,
     left: 16,
     right: 16,
-    zIndex: 9999,
+    zIndex: 99999,
   },
   toast: {
     backgroundColor: '#FFFFFF',

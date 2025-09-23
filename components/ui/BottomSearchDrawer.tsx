@@ -607,7 +607,7 @@ const handleSharedOrderingNavigate = (): void => {
       if (gestureState.value === 'dragging') {
         animateToSnapPoint(startSnapPoint.value);
       }
-    });
+  });
 
 
 

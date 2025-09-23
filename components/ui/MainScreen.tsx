@@ -10,6 +10,7 @@ import Animated, {
   useSharedValue,
   withTiming
 } from 'react-native-reanimated';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 import { CONFIG } from '../../constants/config';
 import { UserBehavior } from '../../utils/hiddenSections';
@@ -390,11 +391,14 @@ const mockOffers = [
 export function MainScreen() {
   const { activeHeaderTab, registerScrollToTopCallback } = useAppContext();
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuthContext();
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
+  console.log('isAuthenticated', isAuthenticated);
+  console.log('user', user);
 
   const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>(mockMealData);
@@ -449,7 +453,7 @@ export function MainScreen() {
   const contentFadeAnim = useSharedValue(1);
   const isHeaderStickyShared = useSharedValue(false);
   const scrollViewRef = useRef<Animated.ScrollView>(null);
-  
+
   // Enhanced pull-to-refresh state management
   const [showPullTrigger, setShowPullTrigger] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
@@ -1159,39 +1163,39 @@ export function MainScreen() {
         {/* Sticky Header - positioned above normal header */}
         <Animated.View style={[
           { 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 1000,
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          zIndex: 1000,
           },
           stickyHeaderStyle,
         ]}>
-          <Header isSticky={true} />
+          <Header isSticky={true} userName={user?.name}/>
         </Animated.View>
 
         {/* Normal Header - positioned below sticky header */}
         <Animated.View style={[
           { 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 999,
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          zIndex: 999,
           },
           normalHeaderStyle,
         ]}>
-          <Header isSticky={false} />
+          <Header isSticky={false} userName={user?.name}/>
         </Animated.View>
 
         {/* Category Filter Chips - positioned right under sticky header */}
         <Animated.View style={[
           { 
-            position: 'absolute', 
-            top: 89, 
-            left: 0, 
-            right: 0, 
-            zIndex: 999,
+          position: 'absolute', 
+          top: 89, 
+          left: 0, 
+          right: 0, 
+          zIndex: 999,
           },
           categoryChipsStyle,
         ]}>
@@ -1230,7 +1234,9 @@ export function MainScreen() {
           >
             {/* Main Content with fade animation */}
             <Animated.View style={contentFadeStyle}>
+            {!isAuthenticated && !authLoading && (
             <NotLoggedInNotice onSignInPress={handleSignInPress} />
+            )}
               {/* <SharedOrderingButton /> */}
               <OrderAgainSection isHeaderSticky={isHeaderSticky} />
               <CuisinesSection onCuisinePress={handleCuisinePress} />

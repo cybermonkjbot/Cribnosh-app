@@ -14,8 +14,11 @@ import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
+import { Provider } from 'react-redux';
+import { AuthProvider } from '../contexts/AuthContext';
 import { ToastProvider } from '../lib/ToastContext';
 import { handleDeepLink } from '../lib/deepLinkHandler';
+import { store } from './store';
 
 // Disable Reanimated strict mode warnings
 configureReanimatedLogger({
@@ -80,24 +83,28 @@ export default function RootLayout() {
   }
 
   return (
-    <EmotionsUIProvider>
-      <AppProvider>
-        <ToastProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaProvider>
-              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <Stack>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="shared-ordering" options={{ headerShown: false }} />
-                  <Stack.Screen name="shared-link" options={{ headerShown: false }} />
-                  <Stack.Screen name="+not-found" />
-                </Stack>
-                <StatusBar style="auto" />
-              </ThemeProvider>
-            </SafeAreaProvider>
-          </GestureHandlerRootView>
-        </ToastProvider>
-      </AppProvider>
-    </EmotionsUIProvider>
+    <Provider store={store}>
+      <AuthProvider>
+        <EmotionsUIProvider>
+          <AppProvider>
+            <ToastProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <SafeAreaProvider>
+                  <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                    <Stack>
+                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                      <Stack.Screen name="shared-ordering" options={{ headerShown: false }} />
+                      <Stack.Screen name="shared-link" options={{ headerShown: false }} />
+                      <Stack.Screen name="+not-found" />
+                    </Stack>
+                    <StatusBar style="auto" />
+                  </ThemeProvider>
+                </SafeAreaProvider>
+              </GestureHandlerRootView>
+            </ToastProvider>
+          </AppProvider>
+        </EmotionsUIProvider>
+      </AuthProvider>
+    </Provider>
   );
 }

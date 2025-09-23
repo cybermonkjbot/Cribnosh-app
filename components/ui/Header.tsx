@@ -14,7 +14,7 @@ interface HeaderProps {
   showSubtitle?: boolean;
 }
 
-export function Header({ userName = "Joshua", isSticky = false, showSubtitle = false }: HeaderProps) {
+export function Header({ userName = "", isSticky = false, showSubtitle = false }: HeaderProps) {
   const { activeHeaderTab, handleHeaderTabChange } = useAppContext();
   const router = useRouter();
   const [dynamicMessage, setDynamicMessage] = useState(() => getCompleteDynamicHeader(userName, showSubtitle));

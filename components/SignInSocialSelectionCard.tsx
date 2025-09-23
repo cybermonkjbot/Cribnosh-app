@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React  from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SocialSignIn } from './SocialSignIn';
 
 interface SignInSocialSelectionCardProps {
@@ -23,7 +23,11 @@ export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps>
   isGoogleSignInLoading,
 }) => {
   return (
-    <View style={[styles.container, { height: 378 + bottomInset }]}>
+    <ScrollView
+  contentContainerStyle={[
+    styles.container,
+    { height: 478 + bottomInset },
+  ]}>
       {/* Title and Email Sign In Button */}
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Ready?{'\n'}Set, Eat</Text>
@@ -58,7 +62,7 @@ export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps>
       
       {/* Bottom spacing to push content above safe area */}
       <View style={{ height: bottomInset }} />
-    </View>
+    </ScrollView>
   );
 };
 

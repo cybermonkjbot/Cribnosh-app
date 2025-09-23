@@ -59,6 +59,7 @@ const countries: Country[] = [
   { name: 'Heard Island', code: 'HM', dialCode: '+672', flag: '🇭🇲' },
   { name: 'French Southern Territories', code: 'TF', dialCode: '+262', flag: '🇹🇫' },
   { name: 'Antarctica', code: 'AQ', dialCode: '+672', flag: '🇦🇶' },
+  { name : 'Nigeria', code: 'NG', dialCode: '+234', flag: '🇳🇬' },
 ];
 
 export function CountryCodePicker({ isVisible, onClose, onSelectCountry }: CountryCodePickerProps) {

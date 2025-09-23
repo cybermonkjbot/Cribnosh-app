@@ -3,7 +3,7 @@ const path = require('path');
 const https = require('https');
 
 // Create demo folder if it doesn't exist
-const demoFolder = path.join(__dirname, '..', 'assets', 'images', 'demo');
+const demoFolder = path.join(process.cwd(), 'assets', 'images', 'demo');
 if (!fs.existsSync(demoFolder)) {
   fs.mkdirSync(demoFolder, { recursive: true });
 }
