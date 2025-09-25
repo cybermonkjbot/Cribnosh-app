@@ -1,10 +1,10 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { ProfileAvatar } from './ProfileAvatar';
 import { VerificationBanner } from './VerificationBanner';
-import { useAuthContext } from '@/contexts/AuthContext';
 
 interface UserAccountDetailsScreenProps {
   userName?: string;
@@ -96,6 +96,7 @@ export function UserAccountDetailsScreen({
 }: UserAccountDetailsScreenProps) {
   const router = useRouter();
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | undefined>();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { logout } = useAuthContext();
   const handleBackPress = () => {
     router.back();
@@ -105,7 +106,16 @@ export function UserAccountDetailsScreen({
     setSelectedProfileImage(imageUri);
   };
   const handleLogOut = () => {
+    setShowLogoutModal(true);
+  }
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
     logout();
+  }
+
+  const handleCancelLogout = () => {
+    setShowLogoutModal(false);
   }
 
   return (
@@ -205,6 +215,39 @@ export function UserAccountDetailsScreen({
         </TouchableOpacity>
       </View>
       </ScrollView>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelLogout}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Log Out</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to log out? You&apos;ll need to sign in again to access your account.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalCancelButton} 
+                onPress={handleCancelLogout}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalLogoutButton} 
+                onPress={handleConfirmLogout}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalLogoutText}>Log Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

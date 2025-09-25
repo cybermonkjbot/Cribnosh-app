@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import React, { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { oauthConfig } from '../config/oauth';
+import { useAuthContext } from '../contexts/AuthContext';
 import { AppleSignInErrorHandler, handleAppleSignInError } from '../utils/appleSignInErrorHandler';
 import { handleGoogleSignInError } from '../utils/googleSignInErrorHandler';
 import { SignInSocialSelectionCard } from './SignInSocialSelectionCard';
@@ -26,6 +28,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
   backgroundImage,
 }) => {
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuthContext();
   const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState<boolean | null>(null);
   const [isAppleSignInLoading, setIsAppleSignInLoading] = useState(false);
   const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
@@ -36,6 +39,8 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
     clientId: oauthConfig.google.webClientId,
     iosClientId: oauthConfig.google.iosClientId,
     androidClientId: oauthConfig.google.androidClientId,
+    scopes: ['openid', 'profile', 'email'],
+    redirectUri: AuthSession.makeRedirectUri(),
   });
 
   // Check Apple Sign-In availability on component mount
@@ -57,20 +62,26 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
 
   // Google Sign-In handler with error handling
   const handleGoogleSignIn = () => {
+    // Validate OAuth configuration before attempting sign-in
+    if (!oauthConfig.google.webClientId || oauthConfig.google.webClientId.includes('<your-')) {
+      console.error('Google OAuth not properly configured. Please update oauthConfig.ts with your actual client IDs.');
+      alert('Google Sign-In is not configured. Please contact support.');
+      return;
+    }
+
     setIsGoogleSignInLoading(true);
     
     try {
+      console.log('Starting Google Sign-In with client ID:', oauthConfig.google.webClientId);
       googlePromptAsync();
     } catch (error) {
       console.error('Error starting Google Sign-In:', error);
+      setIsGoogleSignInLoading(false);
       handleGoogleSignInError(
         error,
         () => handleGoogleSignIn(), // Retry function
         () => handleAppleSignIn() // Fallback to Apple
       );
-    } finally {
-      // Note: We can't set loading to false here because googlePromptAsync is async
-      // The loading state will be managed by the response handler
     }
   };
 
@@ -125,20 +136,33 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
   // Handle Google Sign-In response with error handling
   useEffect(() => {
     if (googleResponse?.type === 'success') {
+      console.log('Google Sign-In successful:', googleResponse);
       const { accessToken } = googleResponse.authentication!;
       if (accessToken) {
         // For Google, we'll use the accessToken as the idToken
         // In a real implementation, you might want to exchange this for an ID token
         onGoogleSignIn?.(accessToken);
+      } else {
+        console.error('No access token received from Google');
+        setIsGoogleSignInLoading(false);
       }
     } else if (googleResponse?.type === 'error') {
       // Handle Google Sign-In errors
       console.error('Google Sign-In error response:', googleResponse.error);
+      console.error('Error details:', {
+        error: googleResponse.error,
+        errorCode: googleResponse.errorCode,
+        params: googleResponse.params
+      });
+      setIsGoogleSignInLoading(false);
       handleGoogleSignInError(
         googleResponse.error,
         () => handleGoogleSignIn(), // Retry function
         () => handleAppleSignIn() // Fallback to Apple Sign-In
       );
+    } else if (googleResponse?.type === 'cancel') {
+      console.log('Google Sign-In cancelled by user');
+      setIsGoogleSignInLoading(false);
     }
   }, [googleResponse, onGoogleSignIn]);
 
@@ -169,6 +193,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
             onEmailSignIn={() => {
               setIsPhoneSignInModalVisible(true);
             }}
+            isAuthenticated={isAuthenticated}
             isAppleSignInAvailable={isAppleSignInAvailable}
             isAppleSignInLoading={isAppleSignInLoading}
             isGoogleSignInLoading={isGoogleSignInLoading}
@@ -186,6 +211,11 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         onPhoneSubmit={(phoneNumber) => {
           console.log('Phone number submitted:', phoneNumber);
           // TODO: Implement phone verification logic
+        }}
+        onSignInSuccess={() => {
+          // Close the phone modal and the entire sign-in screen
+          setIsPhoneSignInModalVisible(false);
+          onClose?.();
         }}
       />
     </View>

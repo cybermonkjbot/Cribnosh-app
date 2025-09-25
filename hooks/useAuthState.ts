@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   AuthState,
@@ -29,6 +30,7 @@ export interface UseAuthStateReturn {
  * Provides methods to login, logout, and refresh auth state
  */
 export const useAuthState = (): UseAuthStateReturn => {
+  const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     token: null,
@@ -61,26 +63,52 @@ export const useAuthState = (): UseAuthStateReturn => {
     }
   };
 
-  const login = useCallback(async (token: string, user: StoredUser) => {
-    try {
-      setError(null);
+  const login = useCallback(
+    async (token: string, user: StoredUser) => {
+      try {
+        console.log("Login function called with token and user:", {
+          token: !!token,
+          user: !!user,
+        });
+        setError(null);
 
-      // Store auth data
-      await storeAuthData(token, user);
+        // Store auth data
+        console.log("Storing auth data...");
+        await storeAuthData(token, user);
+        console.log("Auth data stored successfully");
 
-      // Update state
-      setAuthState({
-        isAuthenticated: true,
-        token,
-        user,
-      });
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to login";
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+        // Update state
+        console.log("Updating auth state...");
+        setAuthState({
+          isAuthenticated: true,
+          token,
+          user,
+        });
+        console.log("Auth state updated successfully");
+        console.log("New auth state:", {
+          isAuthenticated: true,
+          token: !!token,
+          user: !!user,
+        });
+
+        // Small delay to ensure state update is processed
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Navigate to main app
+        console.log("Login successful, navigating to /(tabs)");
+        console.log("Current route before navigation:", router);
+        router.replace("/");
+        console.log("Navigation command sent");
+      } catch (err) {
+        console.error("Login error:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to login";
+        setError(errorMessage);
+        throw err;
+      }
+    },
+    [router]
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -95,13 +123,16 @@ export const useAuthState = (): UseAuthStateReturn => {
         token: null,
         user: null,
       });
+
+      // Navigate to main app (which will show sign-in modal if not authenticated)
+      router.replace("/");
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to logout";
       setError(errorMessage);
       console.error("Logout error:", err);
     }
-  }, []);
+  }, [router]);
 
   const refreshAuthState = useCallback(async () => {
     try {

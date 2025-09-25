@@ -4,15 +4,17 @@
 export const oauthConfig = {
   google: {
     expoClientId: "<your-expo-client-id>.apps.googleusercontent.com",
-    iosClientId: "<your-ios-client-id>.apps.googleusercontent.com", 
+    iosClientId: "<your-ios-client-id>.apps.googleusercontent.com",
     androidClientId: "<your-android-client-id>.apps.googleusercontent.com",
     webClientId: "<your-web-client-id>.apps.googleusercontent.com",
+    // For development, you can use a test client ID
+    // Make sure to replace with your actual client IDs from Google Console
   },
   apple: {
     // Apple Sign-In doesn't require client IDs in the same way
     // The configuration is handled through your Apple Developer account
     // and the expo-apple-authentication package
-  }
+  },
 };
 
 // Instructions for setting up OAuth:

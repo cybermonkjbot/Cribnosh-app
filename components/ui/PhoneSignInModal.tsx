@@ -15,12 +15,14 @@ interface PhoneSignInModalProps {
   isVisible: boolean;
   onClose: () => void;
   onPhoneSubmit?: (phoneNumber: string) => void;
+  onSignInSuccess?: () => void;
 }
 
 export function PhoneSignInModal({ 
   isVisible, 
   onClose, 
-  onPhoneSubmit 
+  onPhoneSubmit,
+  onSignInSuccess
 }: PhoneSignInModalProps) {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -127,6 +129,7 @@ export function PhoneSignInModal({
         
         if (userData.user_id && userData.name) {
           // Use the auth state hook to store data
+          console.log('Calling login function with token and user data');
           await login(res.data.token, {
             user_id: userData.user_id,
             email: userData.email || '', // Allow empty email for phone-only auth
@@ -136,19 +139,24 @@ export function PhoneSignInModal({
             isNewUser: userData.isNewUser || false,
             provider: userData.provider || 'phone'
           });
+          console.log('Login function completed');
+          
+          // Notify parent component of successful sign-in FIRST
+          onSignInSuccess?.();
+          
           showModalToast({
             type: 'success',
             title: 'Sign In Successful',
             message: 'Welcome to CribNosh!',
           });
+          
+          // Close modal after notifying parent
+          onClose();
+          setStep('phone');
         } else {
           throw new Error('Invalid user data received');
         }
       }
-      setTimeout(() => {
-        onClose();
-        setStep('phone');
-      }, 1500);
     } catch (error: any) {
       console.error('Error completing sign in:', error);
       

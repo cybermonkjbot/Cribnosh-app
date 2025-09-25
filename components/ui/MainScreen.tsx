@@ -397,8 +397,10 @@ export function MainScreen() {
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
-  console.log('isAuthenticated', isAuthenticated);
-  console.log('user', user);
+  console.log('MainScreen - isAuthenticated:', isAuthenticated);
+  console.log('MainScreen - user:', user);
+  console.log('MainScreen - authLoading:', authLoading);
+
 
   const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>(mockMealData);
@@ -428,7 +430,8 @@ export function MainScreen() {
   useEffect(() => {
     console.log('SignIn modal state changed to:', isSignInModalVisible);
   }, [isSignInModalVisible]);
-  
+
+
   // Hidden sections state
   const [orderedSections, setOrderedSections] = useState<any[]>([]);
   const [userBehavior] = useState<UserBehavior>({
@@ -1137,6 +1140,7 @@ export function MainScreen() {
     handleAddToCart, 
     handleKitchenPress
   ]);
+
 
   return (
     <View style={{ flex: 1 }}>
