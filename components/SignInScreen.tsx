@@ -2,13 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { oauthConfig } from '../config/oauth';
 import { useAuthContext } from '../contexts/AuthContext';
 import { AppleSignInErrorHandler, handleAppleSignInError } from '../utils/appleSignInErrorHandler';
 import { handleGoogleSignInError } from '../utils/googleSignInErrorHandler';
+import { mockAppleSignIn, mockGoogleSignIn } from '../utils/mockAuthUtils';
+import { isMockModeEnabled } from '../utils/mockConfig';
 import { SignInSocialSelectionCard } from './SignInSocialSelectionCard';
 import { CribNoshLogo } from './ui/CribNoshLogo';
 import { PhoneSignInModal } from './ui/PhoneSignInModal';
@@ -28,11 +30,15 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
   backgroundImage,
 }) => {
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, isSessionExpired, login } = useAuthContext();
   const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState<boolean | null>(null);
   const [isAppleSignInLoading, setIsAppleSignInLoading] = useState(false);
   const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
   const [isPhoneSignInModalVisible, setIsPhoneSignInModalVisible] = useState(false);
+  
+  // Refs to avoid circular dependencies
+  const handleGoogleSignInRef = useRef<(() => void) | null>(null);
+  const handleAppleSignInRef = useRef<(() => void) | null>(null);
   
   // Google Sign-In setup
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
@@ -61,7 +67,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
 
 
   // Google Sign-In handler with error handling
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = useCallback(() => {
     // Validate OAuth configuration before attempting sign-in
     if (!oauthConfig.google.webClientId || oauthConfig.google.webClientId.includes('<your-')) {
       console.error('Google OAuth not properly configured. Please update oauthConfig.ts with your actual client IDs.');
@@ -79,21 +85,24 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
       setIsGoogleSignInLoading(false);
       handleGoogleSignInError(
         error,
-        () => handleGoogleSignIn(), // Retry function
-        () => handleAppleSignIn() // Fallback to Apple
+        () => handleGoogleSignInRef.current?.(), // Retry function
+        () => {
+          // Fallback to Apple Sign-In
+          handleAppleSignInRef.current?.();
+        }
       );
     }
-  };
+  }, [googlePromptAsync]);
 
   // Apple Sign-In handler with comprehensive error handling
-  const handleAppleSignIn = async () => {
+  const handleAppleSignIn = useCallback(async () => {
     if (!isAppleSignInAvailable) {
       handleAppleSignInError(
         { code: 'ERR_NOT_AVAILABLE', message: 'Apple Sign-In is not available on this device.' },
         undefined,
         () => {
           // Fallback to Google Sign-In
-          handleGoogleSignIn();
+          handleGoogleSignInRef.current?.();
         }
       );
       return;
@@ -110,7 +119,25 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
       });
 
       if (credential.identityToken) {
-        onAppleSignIn?.(credential.identityToken);
+        // Use mock implementation if enabled
+        if (isMockModeEnabled()) {
+          console.log('🔧 Using mock Apple sign-in');
+          try {
+            const result = await mockAppleSignIn(credential.identityToken);
+            if (result.data.success) {
+              await login(result.data.token, result.data.user);
+              // Wait for auth state to propagate before closing
+              setTimeout(() => {
+                onClose?.();
+              }, 500);
+            }
+          } catch (error) {
+            console.error('Mock Apple sign-in error:', error);
+            throw error;
+          }
+        } else {
+          onAppleSignIn?.(credential.identityToken);
+        }
       } else {
         throw new Error('No identity token received from Apple');
       }
@@ -118,13 +145,20 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
       // Use comprehensive error handling
       handleAppleSignInError(
         error,
-        () => handleAppleSignIn(), // Retry function
-        () => handleGoogleSignIn() // Fallback to Google
+        () => handleAppleSignInRef.current?.(), // Retry function
+        () => {
+          // Fallback to Google Sign-In
+          handleGoogleSignInRef.current?.();
+        }
       );
     } finally {
       setIsAppleSignInLoading(false);
     }
-  };
+  }, [isAppleSignInAvailable, onAppleSignIn]);
+
+  // Update refs
+  handleGoogleSignInRef.current = handleGoogleSignIn;
+  handleAppleSignInRef.current = handleAppleSignIn;
 
   // Reset Google loading state when response changes
   useEffect(() => {
@@ -139,9 +173,26 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
       console.log('Google Sign-In successful:', googleResponse);
       const { accessToken } = googleResponse.authentication!;
       if (accessToken) {
-        // For Google, we'll use the accessToken as the idToken
-        // In a real implementation, you might want to exchange this for an ID token
-        onGoogleSignIn?.(accessToken);
+        // Use mock implementation if enabled
+        if (isMockModeEnabled()) {
+          console.log('🔧 Using mock Google sign-in');
+          mockGoogleSignIn(accessToken).then(async (result) => {
+            if (result.data.success) {
+              await login(result.data.token, result.data.user);
+              // Wait for auth state to propagate before closing
+              setTimeout(() => {
+                onClose?.();
+              }, 500);
+            }
+          }).catch(error => {
+            console.error('Mock Google sign-in error:', error);
+            setIsGoogleSignInLoading(false);
+          });
+        } else {
+          // For Google, we'll use the accessToken as the idToken
+          // In a real implementation, you might want to exchange this for an ID token
+          onGoogleSignIn?.(accessToken);
+        }
       } else {
         console.error('No access token received from Google');
         setIsGoogleSignInLoading(false);
@@ -164,7 +215,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
       console.log('Google Sign-In cancelled by user');
       setIsGoogleSignInLoading(false);
     }
-  }, [googleResponse, onGoogleSignIn]);
+  }, [googleResponse, onGoogleSignIn, handleAppleSignIn, handleGoogleSignIn, login, onClose]);
 
   return (
     <View style={styles.container}>
@@ -187,17 +238,27 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         
         {/* Social Selection Card at bottom */}
         <View style={[styles.cardContainer, { bottom: 0 }]}>
-          <SignInSocialSelectionCard
-            onGoogleSignIn={handleGoogleSignIn}
-            onAppleSignIn={handleAppleSignIn}
-            onEmailSignIn={() => {
-              setIsPhoneSignInModalVisible(true);
-            }}
-            isAuthenticated={isAuthenticated}
-            isAppleSignInAvailable={isAppleSignInAvailable}
-            isAppleSignInLoading={isAppleSignInLoading}
-            isGoogleSignInLoading={isGoogleSignInLoading}
-          />
+          {(() => {
+            const shouldShowCard = !(isAuthenticated && !isSessionExpired);
+            console.log('SignInScreen - Card visibility:', {
+              isAuthenticated,
+              isSessionExpired,
+              shouldShowCard
+            });
+            return shouldShowCard ? (
+              <SignInSocialSelectionCard
+                onGoogleSignIn={handleGoogleSignIn}
+                onAppleSignIn={handleAppleSignIn}
+                onEmailSignIn={() => {
+                  setIsPhoneSignInModalVisible(true);
+                }}
+                isAuthenticated={isAuthenticated && !isSessionExpired}
+                isAppleSignInAvailable={isAppleSignInAvailable}
+                isAppleSignInLoading={isAppleSignInLoading}
+                isGoogleSignInLoading={isGoogleSignInLoading}
+              />
+            ) : null;
+          })()}
         </View>
         
         {/* Home Indicator */}

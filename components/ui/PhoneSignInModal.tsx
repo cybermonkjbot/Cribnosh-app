@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { showError, showSuccess } from '../../lib/GlobalToastManager';
 import BigPackaging from './BigPackaging';
 import { Button } from './Button';
 import { CountryCodePicker } from './CountryCodePicker';
@@ -35,12 +36,6 @@ export function PhoneSignInModal({
   const [isCompletingSignIn, setIsCompletingSignIn] = useState(false);
   const { handleSendOTP, handlePhoneLogin } = useAuth();
   const { login } = useAuthContext();
-  const [modalToast, setModalToast] = useState<{type: string, title: string, message: string} | null>(null);
-  
-  const showModalToast = (toast: {type: string, title: string, message: string}) => {
-    setModalToast(toast);
-    setTimeout(() => setModalToast(null), 3000);
-  };
   
   const handlePhoneSubmit = async () => {
     if (isSendingOTP) return;
@@ -50,15 +45,10 @@ export function PhoneSignInModal({
       // Ensure country code doesn't have + prefix when concatenating
       const countryCodeClean = countryCode.startsWith('+') ? countryCode.slice(1) : countryCode;
       const fullPhoneNumber = `+${countryCodeClean}${cleanPhoneNumber}`;
-      console.log('Sending phone number:', fullPhoneNumber);
       const res = await handleSendOTP(fullPhoneNumber);
       if (res.data.success){
         onPhoneSubmit?.(fullPhoneNumber)
-        showModalToast({
-          type: 'success',
-          title: 'OTP Sent',
-          message: res.data.message || 'Verification code sent to your phone',
-        });
+        showSuccess('OTP Sent', res.data.message || 'Verification code sent to your phone');
         setStep('verification');
       }
     
@@ -94,11 +84,7 @@ export function PhoneSignInModal({
         errorMessage = error.message;
       }
       
-      showModalToast({
-        type: 'error',
-        title: errorTitle,
-        message: errorMessage,
-      });
+      showError(errorTitle, errorMessage);
     } finally {
       setIsSendingOTP(false);
     }
@@ -141,18 +127,15 @@ export function PhoneSignInModal({
           });
           console.log('Login function completed');
           
-          // Notify parent component of successful sign-in FIRST
-          onSignInSuccess?.();
+          // Show success toast
+          showSuccess('Sign In Successful', 'Welcome to CribNosh!');
           
-          showModalToast({
-            type: 'success',
-            title: 'Sign In Successful',
-            message: 'Welcome to CribNosh!',
-          });
-          
-          // Close modal after notifying parent
-          onClose();
-          setStep('phone');
+          // Close modal and notify parent after a short delay
+          setTimeout(() => {
+            onClose();
+            setStep('phone');
+            onSignInSuccess?.();
+          }, 1500); // Give time for toast to show
         } else {
           throw new Error('Invalid user data received');
         }
@@ -186,11 +169,7 @@ export function PhoneSignInModal({
         errorMessage = error.message;
       }
       
-      showModalToast({
-        type: 'error',
-        title: errorTitle,
-        message: errorMessage,
-      });
+      showError(errorTitle, errorMessage);
     } finally {
       setIsCompletingSignIn(false);
     }

@@ -2,25 +2,24 @@ import { useAppContext } from '@/utils/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, RefreshControl, Text, View } from 'react-native';
+import { Modal, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
-  runOnJS,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming
+    runOnJS,
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming
 } from 'react-native-reanimated';
 import { useAuthContext } from '../../contexts/AuthContext';
 
 import { CONFIG } from '../../constants/config';
 import { UserBehavior } from '../../utils/hiddenSections';
 import {
-  getCurrentTimeContext,
-  getOrderedSectionsWithHidden,
-  OrderingContext
+    getCurrentTimeContext,
+    getOrderedSectionsWithHidden,
+    OrderingContext
 } from '../../utils/sectionOrdering';
 import { NotLoggedInNotice } from '../NotLoggedInNotice';
-import { SignInScreen } from '../SignInScreen';
 import { AIChatDrawer } from './AIChatDrawer';
 import { BottomSearchDrawer } from './BottomSearchDrawer';
 import { CameraModalScreen } from './CameraModalScreen';
@@ -47,7 +46,8 @@ import { usePerformanceOptimizations } from './PerformanceMonitor';
 import { PopularMealsDrawer } from './PopularMealsDrawer';
 import { PopularMealsSection } from './PopularMealsSection';
 import { PullToNoshHeavenTrigger } from './PullToNoshHeavenTrigger';
-import { ShakeDebugger } from './ShakeDebugger';
+import { SessionExpiredModal } from './SessionExpiredModal';
+// import { ShakeDebugger } from './ShakeDebugger';
 import { ShakeToEatFlow } from './ShakeToEatFlow';
 import { SpecialOffersSection } from './SpecialOffersSection';
 import { SustainabilityDrawer } from './SustainabilityDrawer';
@@ -56,6 +56,18 @@ import { TakeAways } from './TakeAways';
 import { TooFreshToWaste } from './TooFreshToWaste';
 import { TooFreshToWasteDrawer } from './TooFreshToWasteDrawer';
 import { TopKebabs } from './TopKebabs';
+
+// Customer API imports
+import {
+    useAddToCartMutation,
+    useGetCartQuery,
+    useGetCuisinesQuery,
+    useGetPopularChefsQuery
+} from '../../app/store/customerApi';
+import { Chef, Cuisine } from '../../app/types/customer';
+
+// Global toast imports
+import { showError, showInfo, showSuccess, showWarning } from '../../lib/GlobalToastManager';
 
 // Mock data for Nosh Heaven meals
 const mockMealData: MealData[] = [
@@ -391,15 +403,114 @@ const mockOffers = [
 export function MainScreen() {
   const { activeHeaderTab, registerScrollToTopCallback } = useAppContext();
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading, user } = useAuthContext();
+  const { 
+    isAuthenticated, 
+    isLoading: authLoading, 
+    user, 
+    isSessionExpired, 
+    clearSessionExpired,
+    checkTokenExpiration
+  } = useAuthContext();
+
+  // Customer API hooks
+  const {
+    data: cuisinesData,
+    isLoading: cuisinesLoading,
+    error: cuisinesError,
+    refetch: refetchCuisines
+  } = useGetCuisinesQuery({ page: 1, limit: 20 }, {
+    skip: !isAuthenticated, // Only fetch when authenticated
+  });
+
+  const {
+    data: chefsData,
+    isLoading: chefsLoading,
+    error: chefsError,
+    refetch: refetchChefs
+  } = useGetPopularChefsQuery({ page: 1, limit: 20 }, {
+    skip: !isAuthenticated, // Only fetch when authenticated
+  });
+
+  const {
+    refetch: refetchCart
+  } = useGetCartQuery(undefined, {
+    skip: !isAuthenticated, // Only fetch when authenticated
+  });
+
+  const [addToCart] = useAddToCartMutation();
+
+  // Data transformation functions
+  const transformCuisinesData = useCallback((apiCuisines: Cuisine[]) => {
+    return apiCuisines.map(cuisine => ({
+      id: cuisine.id,
+      name: cuisine.name,
+      image: { uri: cuisine.image_url || 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=400&fit=crop' },
+      restaurantCount: cuisine.restaurant_count,
+      isActive: cuisine.is_active,
+    }));
+  }, []);
+
+  const transformChefsData = useCallback((apiChefs: Chef[]) => {
+    return apiChefs.map(chef => ({
+      id: chef.id,
+      name: chef.kitchen_name,
+      cuisine: chef.cuisine,
+      sentiment: chef.sentiment,
+      deliveryTime: chef.delivery_time,
+      distance: chef.distance,
+      image: { uri: chef.image_url || 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop' },
+      isLive: chef.is_live,
+      liveViewers: chef.live_viewers,
+    }));
+  }, []);
+
+  // Process API data
+  const cuisines = useMemo(() => {
+    if (cuisinesData?.success && cuisinesData.data) {
+      const transformedData = transformCuisinesData(cuisinesData.data);
+      // Show success toast when cuisines are loaded
+      if (transformedData.length > 0) {
+        showInfo(`Loaded ${transformedData.length} cuisines`, 'Cuisines Updated');
+      }
+      return transformedData;
+    }
+    return mockCuisines; // Fallback to mock data
+  }, [cuisinesData, transformCuisinesData]);
+
+  const kitchens = useMemo(() => {
+    if (chefsData?.success && chefsData.data) {
+      const transformedData = transformChefsData(chefsData.data);
+      // Show success toast when chefs are loaded
+      if (transformedData.length > 0) {
+        showInfo(`Loaded ${transformedData.length} chefs`, 'Chefs Updated');
+      }
+      return transformedData;
+    }
+    return mockKitchens; // Fallback to mock data
+  }, [chefsData, transformChefsData]);
+
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
+
+  // Handle API errors with toast notifications
+  useEffect(() => {
+    if (cuisinesError && isAuthenticated) {
+      showError('Failed to load cuisines', 'Please try again');
+    }
+  }, [cuisinesError, isAuthenticated]);
+
+  useEffect(() => {
+    if (chefsError && isAuthenticated) {
+      showError('Failed to load chefs', 'Please try again');
+    }
+  }, [chefsError, isAuthenticated]);
   console.log('MainScreen - isAuthenticated:', isAuthenticated);
   console.log('MainScreen - user:', user);
   console.log('MainScreen - authLoading:', authLoading);
+  console.log('MainScreen - Should show NotLoggedInNotice:', !isAuthenticated && !authLoading);
 
 
   const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
@@ -420,16 +531,22 @@ export function MainScreen() {
   const [isKitchenMainScreenVisible, setIsKitchenMainScreenVisible] = useState(false);
   
   // Sign-in modal state management
-  const [isSignInModalVisible, setIsSignInModalVisible] = useState(false);
   
   // Camera modal state management
   const [isCameraVisible, setIsCameraVisible] = useState(false);
 
 
-  // Debug effect to track modal state changes
+
+  // Periodic token expiration check
   useEffect(() => {
-    console.log('SignIn modal state changed to:', isSignInModalVisible);
-  }, [isSignInModalVisible]);
+    if (isAuthenticated) {
+      const checkInterval = setInterval(() => {
+        checkTokenExpiration();
+      }, 30000); // Check every 30 seconds
+
+      return () => clearInterval(checkInterval);
+    }
+  }, [isAuthenticated, checkTokenExpiration]);
 
 
   // Hidden sections state
@@ -459,13 +576,10 @@ export function MainScreen() {
 
   // Enhanced pull-to-refresh state management
   const [showPullTrigger, setShowPullTrigger] = useState(false);
-  const [hasTriggered, setHasTriggered] = useState(false);
 
   const isScrolling = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollPosition = useRef(0);
-  const pullThreshold = 60; // Further reduced threshold for immediate activation
-  const velocityThreshold = 300; // Further reduced velocity threshold for faster response
 
   // Register scroll-to-top callback
   useEffect(() => {
@@ -491,7 +605,7 @@ export function MainScreen() {
     };
 
     registerScrollToTopCallback(scrollToTop);
-  }, [registerScrollToTopCallback]);
+  }, [registerScrollToTopCallback, isHeaderStickyShared, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity]);
 
   // Cleanup effect to reset states and prevent crashes
   useEffect(() => {
@@ -506,7 +620,6 @@ export function MainScreen() {
         
         // Reset states
         setShowPullTrigger(false);
-        setHasTriggered(false);
         setIsNoshHeavenVisible(false);
         setIsChatVisible(false);
         setShowLoader(false);
@@ -522,10 +635,11 @@ export function MainScreen() {
         // Reset refs
         isScrolling.current = false;
         lastScrollPosition.current = 0;
-      } catch (error) {
+      } catch {
+        // Silently handle cleanup errors
       }
     };
-  }, [scrollY, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, contentFadeAnim]);
+  }, [scrollY, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, contentFadeAnim, isHeaderStickyShared]);
 
   // Reset states when Nosh Heaven closes
   useEffect(() => {
@@ -533,7 +647,6 @@ export function MainScreen() {
       // Use requestAnimationFrame to batch updates and prevent conflicts
       requestAnimationFrame(() => {
         setShowPullTrigger(false);
-        setHasTriggered(false);
         lastScrollPosition.current = 0;
       });
     }
@@ -576,18 +689,32 @@ export function MainScreen() {
     // Fade out current content immediately
     contentFadeAnim.value = withTiming(0.3, { duration: 100 });
     
+    try {
+      // Refetch API data when authenticated
+      if (isAuthenticated) {
+        await Promise.all([
+          refetchCuisines(),
+          refetchChefs(),
+          refetchCart()
+        ]);
+      }
+    
     // Simulate the loading process with artificial delay
     setTimeout(() => {
       setShowLoader(false);
       setRefreshing(false);
       
-
-      
       // Fade in the content
       contentFadeAnim.value = withTiming(1, { duration: 300 });
-    }, 5000); // 5 seconds for a more natural loading experience
-    
-  }, [contentFadeAnim]);
+      }, 2000); // Reduced to 2 seconds for better UX
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      showError('Failed to refresh data', 'Please try again');
+      setShowLoader(false);
+      setRefreshing(false);
+      contentFadeAnim.value = withTiming(1, { duration: 300 });
+    }
+  }, [contentFadeAnim, isAuthenticated, refetchCuisines, refetchChefs, refetchCart]);
 
   const handleOpenAIChat = () => {
     setIsGeneratingSuggestions(true);
@@ -625,101 +752,6 @@ export function MainScreen() {
 
 
 
-  // Enhanced scroll handler with intentional pull detection
-  const handleScroll = useCallback((event: any) => {
-    try {
-      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-      
-      // Improved bottom detection with tolerance
-      const maxScrollPosition = Math.max(0, contentSize.height - layoutMeasurement.height);
-      const bottomTolerance = 10; // Allow 10px tolerance for bottom detection
-      const isAtBottom = contentOffset.y >= (maxScrollPosition - bottomTolerance);
-      const currentScrollPosition = contentOffset.y;
-      
-      // Detect intentional pull gesture with immediate feedback
-      const overscroll = Math.max(0, currentScrollPosition - maxScrollPosition);
-      
-      // Debug logging for scroll events (only when at bottom or overscrolling)
-      if (isAtBottom || overscroll > 0) {
-        console.log('Scroll event at bottom/overscroll:', { 
-          contentOffset: contentOffset.y, 
-          maxScrollPosition, 
-          isAtBottom, 
-          overscroll, 
-          showPullTrigger,
-          hasTriggered 
-        });
-      }
-      
-      // Simplified pull detection logic
-      if (isAtBottom) {
-        // We're at the bottom, check for pull gesture
-      if (overscroll > 0) {
-
-        
-          // Show trigger immediately when any pull is detected
-          if (overscroll > 5 && !hasTriggered) {
-            console.log('Showing pull trigger - at bottom with overscroll', { overscroll });
-          setShowPullTrigger(true);
-        }
-          
-          // Trigger Nosh Heaven when pull is significant (with or without velocity)
-          if (overscroll > pullThreshold && !hasTriggered) {
-            console.log('Triggering Nosh Heaven!', { overscroll, pullThreshold });
-            setHasTriggered(true);
-            setShowPullTrigger(false);
-            handleNoshHeavenTrigger();
-          }
-      } else {
-          // No overscroll, reset states
-          if (showPullTrigger) {
-            console.log('Hiding pull trigger - no overscroll');
-        setShowPullTrigger(false);
-      }
-        }
-      } else {
-        // Not at bottom, reset all pull states
-        setShowPullTrigger(false);
-        setHasTriggered(false);
-      }
-      
-      // Throttle scroll state management
-      isScrolling.current = true;
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      
-      scrollTimeoutRef.current = setTimeout(() => {
-        isScrolling.current = false;
-      }, 50); // Much faster debounce for immediate feedback
-      
-      // Header sticky logic - lightweight calculation
-      const shouldBeSticky = contentOffset.y > 100;
-      
-      if (shouldBeSticky !== isHeaderSticky) {
-        setIsHeaderSticky(shouldBeSticky);
-        
-        // Animate header transitions using Reanimated
-        if (shouldBeSticky) {
-          // Transitioning to sticky
-          stickyHeaderOpacity.value = withTiming(1, { duration: 300 });
-          normalHeaderOpacity.value = withTiming(0, { duration: 300 });
-          categoryChipsOpacity.value = withTiming(1, { duration: 300 });
-        } else {
-          // Transitioning to normal
-          stickyHeaderOpacity.value = withTiming(0, { duration: 300 });
-          normalHeaderOpacity.value = withTiming(1, { duration: 300 });
-          categoryChipsOpacity.value = withTiming(0, { duration: 300 });
-        }
-      }
-    } catch (error) {
-      // Complete fallback: reset everything to safe state
-      console.warn('Scroll handler error:', error);
-      setShowPullTrigger(false);
-      setHasTriggered(false);
-
-    }
-  }, [isHeaderSticky, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity, hasTriggered, pullThreshold, velocityThreshold]);
 
   // Simplified Reanimated scroll handler to prevent crashes
   const scrollHandler = useAnimatedScrollHandler({
@@ -746,12 +778,12 @@ export function MainScreen() {
             categoryChipsOpacity.value = withTiming(0, { duration: 200 });
           }
         }
-      } catch (error) {
+      } catch {
         // Silently handle any worklet errors to prevent crashes
-        console.log('Scroll handler error:', error);
+        console.log('Scroll handler error');
       }
     },
-  });
+  }, [scrollY, isHeaderStickyShared, stickyHeaderOpacity, normalHeaderOpacity, categoryChipsOpacity]);
 
   // Animated styles for headers with safety checks
   const stickyHeaderStyle = useAnimatedStyle(() => {
@@ -759,7 +791,7 @@ export function MainScreen() {
       return {
         opacity: stickyHeaderOpacity.value,
       };
-    } catch (error) {
+    } catch {
       return { opacity: 0 };
     }
   });
@@ -769,7 +801,7 @@ export function MainScreen() {
       return {
         opacity: normalHeaderOpacity.value,
       };
-    } catch (error) {
+    } catch {
       return { opacity: 1 };
     }
   });
@@ -779,7 +811,7 @@ export function MainScreen() {
       return {
         opacity: categoryChipsOpacity.value,
       };
-    } catch (error) {
+    } catch {
       return { opacity: 0 };
     }
   });
@@ -804,13 +836,11 @@ export function MainScreen() {
       // Immediate state updates for faster response
         setIsNoshHeavenVisible(true);
         setShowPullTrigger(false);
-        setHasTriggered(false);
     } catch (error) {
       console.warn('Nosh Heaven trigger error:', error);
       // Reset to safe state immediately
         setIsNoshHeavenVisible(false);
         setShowPullTrigger(false);
-        setHasTriggered(false);
     }
   }, [isNoshHeavenVisible]);
 
@@ -820,7 +850,6 @@ export function MainScreen() {
       // Batch all state updates together
       requestAnimationFrame(() => {
         setIsNoshHeavenVisible(false);
-        setHasTriggered(false);
         
         // Safely scroll back to top
         if (scrollViewRef.current) {
@@ -832,7 +861,6 @@ export function MainScreen() {
       // Reset to safe state
       requestAnimationFrame(() => {
         setIsNoshHeavenVisible(false);
-        setHasTriggered(false);
       });
     }
   }, []);
@@ -872,10 +900,32 @@ export function MainScreen() {
     // In a real app, this would open share sheet
   }, []);
 
-  const handleAddToCart = useCallback((mealId: string) => {
+  const handleAddToCart = useCallback(async (mealId: string) => {
     console.log('Add to cart:', mealId);
-    // In a real app, this would add the meal to cart
-  }, []);
+    
+    if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to sign in');
+      showWarning('Authentication Required', 'Please sign in to add items to cart');
+      router.push('/sign-in');
+      return;
+    }
+
+    try {
+      const result = await addToCart({
+        dish_id: mealId,
+        quantity: 1,
+        special_instructions: undefined
+      }).unwrap();
+
+      if (result.success) {
+        console.log('Successfully added to cart:', result.data);
+        showSuccess('Added to Cart!', result.data.dish_name);
+      }
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      showError('Failed to add item to cart', 'Please try again');
+    }
+  }, [isAuthenticated, addToCart, router]);
 
   const handleKitchenPress = useCallback((kitchenName: string) => {
     console.log('View kitchen:', kitchenName);
@@ -1012,27 +1062,17 @@ export function MainScreen() {
 
   // Sign-in handlers
   const handleSignInPress = useCallback(() => {
-    console.log('Sign in button pressed');
-    console.log('Current isSignInModalVisible state:', isSignInModalVisible);
-    setIsSignInModalVisible(true);
-    console.log('Setting isSignInModalVisible to true');
-  }, [isSignInModalVisible]);
+    console.log('Sign in button pressed - opening sign-in modal');
+    router.push('/sign-in');
+  }, [router]);
 
-  const handleCloseSignInModal = useCallback(() => {
-    setIsSignInModalVisible(false);
-  }, []);
 
-  const handleGoogleSignIn = useCallback(() => {
-    console.log('Google sign in pressed');
-    // In a real app, this would handle Google authentication
-    setIsSignInModalVisible(false);
-  }, []);
+  const handleSessionExpiredRelogin = useCallback(() => {
+    clearSessionExpired();
+    router.push('/sign-in');
+  }, [clearSessionExpired, router]);
 
-  const handleAppleSignIn = useCallback(() => {
-    console.log('Apple sign in pressed');
-    // In a real app, this would handle Apple authentication
-    setIsSignInModalVisible(false);
-  }, []);
+
 
   // Kitchen Main Screen handlers
   const handleCloseKitchenMainScreen = useCallback(() => {
@@ -1055,10 +1095,32 @@ export function MainScreen() {
     // In a real app, this would open search
   }, []);
 
-  const handleDrawerAddToCart = useCallback((id: string) => {
+  const handleDrawerAddToCart = useCallback(async (id: string) => {
     console.log('Added to cart from drawer:', id);
-    // In a real app, this would add the item to cart
-  }, []);
+    
+    if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to sign in');
+      showWarning('Authentication Required', 'Please sign in to add items to cart');
+      router.push('/sign-in');
+      return;
+    }
+
+    try {
+      const result = await addToCart({
+        dish_id: id,
+        quantity: 1,
+        special_instructions: undefined
+      }).unwrap();
+
+      if (result.success) {
+        console.log('Successfully added to cart from drawer:', result.data);
+        showSuccess('Added to Cart!', result.data.dish_name);
+      }
+    } catch (error) {
+      console.error('Failed to add to cart from drawer:', error);
+      showError('Failed to add item to cart', 'Please try again');
+    }
+  }, [isAuthenticated, addToCart, router]);
 
   const handleDrawerItemPress = useCallback((id: string) => {
     console.log('Item pressed in drawer:', id);
@@ -1131,7 +1193,7 @@ export function MainScreen() {
     );
   }, [
     isNoshHeavenVisible, 
-    noshHeavenMeals.length, // Use length instead of full array for better memoization
+    noshHeavenMeals, // Use full array for proper memoization
     handleNoshHeavenClose, 
     handleLoadMoreMeals, 
     handleMealLike, 
@@ -1241,11 +1303,28 @@ export function MainScreen() {
             {!isAuthenticated && !authLoading && (
             <NotLoggedInNotice onSignInPress={handleSignInPress} />
             )}
+              
+              {/* Loading indicators for API data */}
+              {(cuisinesLoading || chefsLoading) && isAuthenticated && (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: '#666', fontSize: 16 }}>Loading fresh content...</Text>
+                </View>
+              )}
+              
+              {/* Error handling for API data */}
+              {(cuisinesError || chefsError) && isAuthenticated && (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: '#FF3B30', fontSize: 16 }}>
+                    Failed to load content. Pull to refresh.
+                  </Text>
+                </View>
+              )}
+              
               {/* <SharedOrderingButton /> */}
               <OrderAgainSection isHeaderSticky={isHeaderSticky} />
               <CuisinesSection onCuisinePress={handleCuisinePress} />
-              <CuisineCategoriesSection cuisines={mockCuisines} onCuisinePress={handleCuisinePress} />
-              <FeaturedKitchensSection kitchens={mockKitchens} onKitchenPress={handleFeaturedKitchenPress} onSeeAllPress={handleOpenFeaturedKitchensDrawer} />
+              <CuisineCategoriesSection cuisines={cuisines} onCuisinePress={handleCuisinePress} />
+              <FeaturedKitchensSection kitchens={kitchens} onKitchenPress={handleFeaturedKitchenPress} onSeeAllPress={handleOpenFeaturedKitchensDrawer} />
               <PopularMealsSection meals={mockMeals} onMealPress={handleMealPress} onSeeAllPress={handleOpenPopularMealsDrawer} />
               
               {/* Hidden Sections - dynamically shown based on conditions */}
@@ -1304,10 +1383,7 @@ export function MainScreen() {
           onClose={handleCloseAIChat}
         />
 
-        {/* Debug Shake Indicator */}
-        {CONFIG.DEBUG_MODE && (
-          <ShakeDebugger />
-        )}
+        {/* Debug Shake Indicator removed */}
 
         {/* Shake to Eat Flow - Always mounted to detect sustained shakes */}
         {CONFIG.SHAKE_TO_EAT_ENABLED && (
@@ -1330,8 +1406,146 @@ export function MainScreen() {
 
 
 
-      {/* Floating Action Button */}
-      <FloatingActionButton onCameraPress={() => setIsCameraVisible(true)} />
+       {/* Floating Action Button */}
+       <FloatingActionButton onCameraPress={() => setIsCameraVisible(true)} />
+
+       {/* Test Toast Button - Temporary for testing */}
+       <TouchableOpacity
+         style={{
+           position: 'absolute',
+           top: 100,
+           right: 20,
+           backgroundColor: '#094327',
+           paddingHorizontal: 16,
+           paddingVertical: 12,
+           borderRadius: 25,
+           zIndex: 1002,
+           shadowColor: '#000',
+           shadowOffset: { width: 0, height: 2 },
+           shadowOpacity: 0.25,
+           shadowRadius: 4,
+           elevation: 5,
+         }}
+         onPress={() => {
+           // Test different toast types with varying text lengths
+           showSuccess('Success!', 'Operation completed successfully');
+           setTimeout(() => showError('Error!', 'Something went wrong with a very long error message that should test the responsive design'), 1000);
+           setTimeout(() => showWarning('Warning!', 'Please be careful with this operation as it might cause issues'), 2000);
+           setTimeout(() => showInfo('Information', 'Here is some important information that you need to know about this feature and how it works'), 3000);
+         }}
+         activeOpacity={0.8}
+       >
+         <Text style={{
+           color: 'white',
+           fontSize: 14,
+           fontWeight: '700',
+           textAlign: 'center',
+         }}>
+           Test Toasts
+         </Text>
+       </TouchableOpacity>
+
+       {/* Always visible test button for debugging */}
+       {/* <TouchableOpacity
+         style={{
+           position: 'absolute',
+           top: 50,
+           right: 20,
+           backgroundColor: '#000000',
+           paddingHorizontal: 12,
+           paddingVertical: 6,
+           borderRadius: 15,
+           zIndex: 1002,
+         }}
+         onPress={() => {
+           console.log('Debug info:', {
+             DEBUG_MODE: CONFIG.DEBUG_MODE,
+             isAuthenticated,
+             user: user?.name,
+             authLoading
+           });
+           // Also try to trigger session expired for testing
+           handleTestSessionExpired();
+         }}
+         activeOpacity={0.8}
+       >
+         <Text style={{
+           color: 'white',
+           fontSize: 10,
+           fontWeight: '600',
+         }}>
+           DEBUG
+         </Text>
+       </TouchableOpacity> */}
+
+       {/* Test Session Expired Buttons - Only in development */}
+       {/* {(() => {
+         console.log('Debug button visibility check:', {
+           DEBUG_MODE: CONFIG.DEBUG_MODE,
+           isAuthenticated,
+           user: user?.name
+         });
+         return CONFIG.DEBUG_MODE && isAuthenticated;
+       })() && (
+         <View style={{
+           position: 'absolute',
+           top: 120,
+           right: 20,
+           zIndex: 1001,
+           gap: 8,
+           shadowColor: '#000',
+           shadowOffset: { width: 0, height: 2 },
+           shadowOpacity: 0.25,
+           shadowRadius: 4,
+           elevation: 5,
+         }}>
+           <TouchableOpacity
+             style={{
+               backgroundColor: '#FF3B30',
+               paddingHorizontal: 16,
+               paddingVertical: 10,
+               borderRadius: 20,
+               borderWidth: 2,
+               borderColor: '#FFFFFF',
+             }}
+             onPress={handleTestSessionExpired}
+             activeOpacity={0.8}
+           >
+             <Text style={{
+               color: 'white',
+               fontSize: 13,
+               fontWeight: '700',
+               fontFamily: 'Urbanist',
+               textAlign: 'center',
+             }}>
+               Test Session Expired
+             </Text>
+           </TouchableOpacity>
+           
+           <TouchableOpacity
+             style={{
+               backgroundColor: '#FF9500',
+               paddingHorizontal: 16,
+               paddingVertical: 10,
+               borderRadius: 20,
+               borderWidth: 2,
+               borderColor: '#FFFFFF',
+             }}
+             onPress={handleTestExpiringToken}
+             activeOpacity={0.8}
+           >
+             <Text style={{
+               color: 'white',
+               fontSize: 13,
+               fontWeight: '700',
+               fontFamily: 'Urbanist',
+               textAlign: 'center',
+             }}>
+               Set 5s Expiring Token
+             </Text>
+           </TouchableOpacity>
+         </View>
+       )} */}
 
 
       {/* Bottom Search Drawer */}
@@ -1384,7 +1598,7 @@ export function MainScreen() {
         {activeDrawer === 'featuredKitchens' && (
           <FeaturedKitchensDrawer
             onBack={handleCloseDrawer}
-            kitchens={mockKitchens}
+            kitchens={kitchens}
             onKitchenPress={handleFeaturedKitchenPress}
           />
         )}
@@ -1426,20 +1640,12 @@ export function MainScreen() {
       </Modal>
 
       {/* Add SignIn Modal */}
-      <Modal
-        visible={isSignInModalVisible}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={handleCloseSignInModal}
-        statusBarTranslucent={true}
-        hardwareAccelerated={true}
-      >
-        <SignInScreen
-          onGoogleSignIn={handleGoogleSignIn}
-          onAppleSignIn={handleAppleSignIn}
-          onClose={handleCloseSignInModal}
-        />
-      </Modal>
+
+      {/* Session Expired Modal */}
+      <SessionExpiredModal
+        isVisible={isSessionExpired}
+        onRelogin={handleSessionExpiredRelogin}
+      />
 
       {/* Add KitchenMainScreen Modal */}
       <Modal

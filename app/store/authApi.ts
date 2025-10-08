@@ -1,6 +1,7 @@
 // app/store/authApi.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
+import { isTokenExpired } from "../../utils/jwtUtils";
 import {
   PhoneLoginData,
   PhoneLoginResponse,
@@ -12,7 +13,16 @@ const baseQuery = fetchBaseQuery({
   prepareHeaders: async (headers) => {
     const token = await SecureStore.getItemAsync("cribnosh_token");
     if (token) {
-      headers.set("authorization", `Bearer ${token}`);
+      // Check if token is expired before adding to headers
+      if (isTokenExpired(token)) {
+        // Clear expired token
+        await SecureStore.deleteItemAsync("cribnosh_token");
+        await SecureStore.deleteItemAsync("cribnosh_user");
+        // Don't add the expired token to headers
+        console.log("Token expired, cleared from storage");
+      } else {
+        headers.set("authorization", `Bearer ${token}`);
+      }
     }
     headers.set("accept", "application/json");
     return headers;

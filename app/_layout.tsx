@@ -15,9 +15,11 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
 import { Provider } from 'react-redux';
+import { GlobalToastContainer } from '../components/ui/GlobalToastContainer';
 import { AuthProvider } from '../contexts/AuthContext';
-import { ToastProvider } from '../lib/ToastContext';
 import { handleDeepLink } from '../lib/deepLinkHandler';
+import { ToastProvider } from '../lib/ToastContext';
+import { logMockStatus } from '../utils/mockConfig';
 import { store } from './store';
 
 // Disable Reanimated strict mode warnings
@@ -29,14 +31,38 @@ configureReanimatedLogger({
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+// Main Navigator Component
+function MainNavigator() {
   const colorScheme = useColorScheme();
+
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="shared-ordering" />
+        <Stack.Screen name="shared-link" />
+        <Stack.Screen 
+          name="sign-in" 
+          options={{ 
+            presentation: 'modal',
+            animationTypeForReplace: 'push'
+          }} 
+        />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      <StatusBar style="auto" />
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     'Space Mono': require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const [showSplash, setShowSplash] = useState(true);
 
-  // Initialize deep link handler
+  // Initialize deep link handler and log mock status
   useEffect(() => {
     const initializeDeepLinks = async () => {
       try {
@@ -59,6 +85,9 @@ export default function RootLayout() {
     };
 
     initializeDeepLinks();
+    
+    // Log mock authentication status
+    logMockStatus();
   }, []);
 
   useEffect(() => {
@@ -90,21 +119,14 @@ export default function RootLayout() {
             <ToastProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <SafeAreaProvider>
-                  <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                    <Stack>
-                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                      <Stack.Screen name="shared-ordering" options={{ headerShown: false }} />
-                      <Stack.Screen name="shared-link" options={{ headerShown: false }} />
-                      <Stack.Screen name="+not-found" />
-                    </Stack>
-                    <StatusBar style="auto" />
-                  </ThemeProvider>
+                  <MainNavigator />
                 </SafeAreaProvider>
               </GestureHandlerRootView>
             </ToastProvider>
           </AppProvider>
         </EmotionsUIProvider>
       </AuthProvider>
+      <GlobalToastContainer />
     </Provider>
   );
 }

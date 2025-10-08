@@ -76,7 +76,8 @@
       ],
       "expo-maps",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "react-native-worklets/plugin"
     ],
     "experiments": {
       "typedRoutes": true

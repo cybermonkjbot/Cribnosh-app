@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   AuthState,
@@ -8,6 +7,7 @@ import {
   storeAuthData,
   StoredUser,
 } from "../utils/authUtils";
+import { isTokenExpired } from "../utils/jwtUtils";
 
 export interface UseAuthStateReturn {
   // State
@@ -22,6 +22,7 @@ export interface UseAuthStateReturn {
   logout: () => Promise<void>;
   refreshAuthState: () => Promise<void>;
   clearError: () => void;
+  checkTokenExpiration: () => boolean;
 }
 
 /**
@@ -30,7 +31,6 @@ export interface UseAuthStateReturn {
  * Provides methods to login, logout, and refresh auth state
  */
 export const useAuthState = (): UseAuthStateReturn => {
-  const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     token: null,
@@ -50,7 +50,19 @@ export const useAuthState = (): UseAuthStateReturn => {
       setError(null);
 
       const authData = await checkAuthState();
-      setAuthState(authData);
+
+      // Check if token is expired
+      if (authData.token && isTokenExpired(authData.token)) {
+        console.log("Token expired during initialization, clearing auth data");
+        await clearAuthData();
+        setAuthState({
+          isAuthenticated: false,
+          token: null,
+          user: null,
+        });
+      } else {
+        setAuthState(authData);
+      }
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -63,52 +75,47 @@ export const useAuthState = (): UseAuthStateReturn => {
     }
   };
 
-  const login = useCallback(
-    async (token: string, user: StoredUser) => {
-      try {
-        console.log("Login function called with token and user:", {
-          token: !!token,
-          user: !!user,
-        });
-        setError(null);
+  const login = useCallback(async (token: string, user: StoredUser) => {
+    try {
+      console.log("Login function called with token and user:", {
+        token: !!token,
+        user: !!user,
+      });
+      setError(null);
 
-        // Store auth data
-        console.log("Storing auth data...");
-        await storeAuthData(token, user);
-        console.log("Auth data stored successfully");
+      // Store auth data
+      console.log("Storing auth data...");
+      await storeAuthData(token, user);
+      console.log("Auth data stored successfully");
 
-        // Update state
-        console.log("Updating auth state...");
-        setAuthState({
-          isAuthenticated: true,
-          token,
-          user,
-        });
-        console.log("Auth state updated successfully");
-        console.log("New auth state:", {
-          isAuthenticated: true,
-          token: !!token,
-          user: !!user,
-        });
+      // Update state
+      console.log("Updating auth state...");
+      setAuthState({
+        isAuthenticated: true,
+        token,
+        user,
+      });
+      console.log("Auth state updated successfully");
+      console.log("New auth state:", {
+        isAuthenticated: true,
+        token: !!token,
+        user: !!user,
+      });
 
-        // Small delay to ensure state update is processed
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      // Small delay to ensure state update is processed
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Navigate to main app
-        console.log("Login successful, navigating to /(tabs)");
-        console.log("Current route before navigation:", router);
-        router.replace("/");
-        console.log("Navigation command sent");
-      } catch (err) {
-        console.error("Login error:", err);
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to login";
-        setError(errorMessage);
-        throw err;
-      }
-    },
-    [router]
-  );
+      // Don't navigate here - let the app's conditional rendering handle it
+      console.log("Login successful, auth state updated");
+      console.log("App will automatically re-render based on auth state");
+    } catch (err) {
+      console.error("Login error:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to login";
+      setError(errorMessage);
+      throw err;
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -124,15 +131,15 @@ export const useAuthState = (): UseAuthStateReturn => {
         user: null,
       });
 
-      // Navigate to main app (which will show sign-in modal if not authenticated)
-      router.replace("/");
+      // Don't navigate here - let the app's conditional rendering handle it
+      console.log("Logout successful, auth state updated");
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to logout";
       setError(errorMessage);
       console.error("Logout error:", err);
     }
-  }, [router]);
+  }, []);
 
   const refreshAuthState = useCallback(async () => {
     try {
@@ -155,6 +162,20 @@ export const useAuthState = (): UseAuthStateReturn => {
     setError(null);
   }, []);
 
+  const checkTokenExpiration = useCallback(() => {
+    if (authState.token && isTokenExpired(authState.token)) {
+      console.log("Token expired, clearing auth data");
+      clearAuthData();
+      setAuthState({
+        isAuthenticated: false,
+        token: null,
+        user: null,
+      });
+      return true; // Token was expired
+    }
+    return false; // Token is still valid
+  }, [authState.token]);
+
   return {
     // State
     isAuthenticated: authState.isAuthenticated,
@@ -168,6 +189,7 @@ export const useAuthState = (): UseAuthStateReturn => {
     logout,
     refreshAuthState,
     clearError,
+    checkTokenExpiration,
   };
 };
 
