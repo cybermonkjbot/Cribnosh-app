@@ -6,7 +6,7 @@ module.exports = function (api) {
       "nativewind/babel",
     ],
     plugins: [
-      "react-native-worklets/plugin",
+      // react-native-worklets/plugin is handled automatically by babel-preset-expo in Expo SDK 54
     ],
   };
-};  
+};

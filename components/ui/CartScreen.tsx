@@ -32,13 +32,12 @@ export default function CartScreen() {
 
   const handleQuantityChange = (index: number, newQuantity: number) => {
     // Handle quantity change logic here
-    console.log(`Item ${index} quantity changed to ${newQuantity}`);
   };
 
   return (
     <SafeAreaView className="flex-1 p-5 bg-white">
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 120 }}
       >
@@ -81,7 +80,9 @@ export default function CartScreen() {
 
                   <IncrementalOrderAmount
                     initialValue={item.quantity}
-                    onChange={(newQuantity) => handleQuantityChange(index, newQuantity)}
+                    onChange={(newQuantity) =>
+                      handleQuantityChange(index, newQuantity)
+                    }
                   />
                 </View>
               ))}
@@ -129,7 +130,8 @@ export default function CartScreen() {
                   <View className="flex-1">
                     <Text className="text-lg font-bold">Cutlery</Text>
                     <Text className="text-[#6B7280] text-sm">
-                      We do not include cutlery by default for sustainability{" "}
+                      We do not include cutlery by default for
+                      sustainability{" "}
                     </Text>
                   </View>
                 </View>
@@ -151,7 +153,8 @@ export default function CartScreen() {
                       Ask a friend to pay
                     </Text>
                     <Text className="text-sm text-[#6B7280]">
-                      We do not include cutlery by default for sustainability{" "}
+                      We do not include cutlery by default for
+                      sustainability{" "}
                     </Text>
                   </View>
                 </View>
@@ -185,7 +188,9 @@ export default function CartScreen() {
       <View className="absolute bottom-0 left-0 right-0 bg-white px-5 py-4 border-t border-gray-200">
         <Link asChild href={"/orders/cart/sides"}>
           <Pressable className="bg-[#FF3B30] rounded-2xl p-5 flex items-center justify-center">
-            <Text className="text-lg font-bold text-white">Continue to Sides</Text>
+            <Text className="text-lg font-bold text-white">
+              Continue to Sides
+            </Text>
           </Pressable>
         </Link>
       </View>
