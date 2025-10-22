@@ -10,12 +10,15 @@ import {
   CheckoutResponse,
   CreateOrderRequest,
   CreateOrderResponse,
+  DeleteCustomOrderResponse,
   EmotionsSearchRequest,
   EmotionsSearchResponse,
   GetCartResponse,
   GetCuisinesResponse,
   // Response types
   GetCustomerProfileResponse,
+  GetCustomOrderResponse,
+  GetCustomOrdersResponse,
   GetLiveStreamsResponse,
   GetOrdersResponse,
   GetPopularChefsResponse,
@@ -23,6 +26,8 @@ import {
   SearchRequest,
   SearchResponse,
   SortParams,
+  UpdateCustomOrderRequest,
+  UpdateCustomOrderResponse,
 } from "../types/customer";
 
 // ============================================================================
@@ -68,6 +73,7 @@ export const customerApi = createApi({
     "SearchResults",
     "LiveStreams",
     "PaymentIntent",
+    "CustomOrders",
   ],
   endpoints: (builder) => ({
     // ========================================================================
@@ -328,6 +334,69 @@ export const customerApi = createApi({
       },
       providesTags: ["LiveStreams"],
     }),
+
+    // ========================================================================
+    // CUSTOM ORDERS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get customer custom orders
+     * GET /custom_orders
+     */
+    getCustomOrders: builder.query<GetCustomOrdersResponse, PaginationParams>({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.page) searchParams.append("page", params.page.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+
+        const queryString = searchParams.toString();
+        return {
+          url: `/custom_orders${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["CustomOrders"],
+    }),
+
+    /**
+     * Get specific custom order details
+     * GET /custom_orders/{custom_order_id}
+     */
+    getCustomOrder: builder.query<GetCustomOrderResponse, string>({
+      query: (customOrderId) => ({
+        url: `/custom_orders/${customOrderId}`,
+        method: "GET",
+      }),
+      providesTags: ["CustomOrders"],
+    }),
+
+    /**
+     * Update custom order
+     * PUT /custom_orders/{custom_order_id}
+     */
+    updateCustomOrder: builder.mutation<
+      UpdateCustomOrderResponse,
+      { customOrderId: string; data: UpdateCustomOrderRequest }
+    >({
+      query: ({ customOrderId, data }) => ({
+        url: `/custom_orders/${customOrderId}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["CustomOrders"],
+    }),
+
+    /**
+     * Delete custom order
+     * DELETE /custom_orders/{custom_order_id}
+     */
+    deleteCustomOrder: builder.mutation<DeleteCustomOrderResponse, string>({
+      query: (customOrderId) => ({
+        url: `/custom_orders/${customOrderId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["CustomOrders"],
+    }),
   }),
 });
 
@@ -358,6 +427,14 @@ export const { useCreateCheckoutMutation } = customerApi;
 
 // Live Streaming
 export const { useGetLiveStreamsQuery } = customerApi;
+
+// Custom Orders
+export const {
+  useGetCustomOrdersQuery,
+  useGetCustomOrderQuery,
+  useUpdateCustomOrderMutation,
+  useDeleteCustomOrderMutation,
+} = customerApi;
 
 // ============================================================================
 // UTILITY FUNCTIONS

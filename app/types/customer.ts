@@ -396,6 +396,102 @@ export interface ApiError {
 }
 
 // ============================================================================
+// CUSTOM ORDERS TYPES
+// ============================================================================
+
+export interface CustomOrder {
+  _id: string;
+  userId: string;
+  chefId?: string;
+  requirements: string;
+  serving_size: number;
+  desired_delivery_time?: string;
+  custom_order_id: string;
+  order_id?: string;
+  status:
+    | "pending"
+    | "processing"
+    | "completed"
+    | "cancelled"
+    | "accepted"
+    | "preparing"
+    | "ready"
+    | "delivered";
+  dietary_restrictions?: string;
+  estimatedPrice?: number;
+  deliveryDate?: string;
+  deliveryAddress?: CustomerAddress;
+  specialInstructions?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateCustomOrderRequest {
+  requirements: string;
+  serving_size: number;
+  desired_delivery_time?: string;
+  dietary_restrictions?: string;
+  specialInstructions?: string;
+  deliveryAddress?: CustomerAddress;
+  budget?: number;
+}
+
+export interface UpdateCustomOrderRequest {
+  details: {
+    cuisine?: string;
+    dietary_restrictions?: string[];
+    servings?: number;
+    budget?: number;
+    special_requests?: string;
+    delivery_preferences?: {
+      preferred_time?: string;
+      contact_method?: string;
+    };
+  };
+}
+
+// ============================================================================
+// CUSTOM ORDERS API RESPONSE TYPES
+// ============================================================================
+
+export interface GetCustomOrdersResponse {
+  success: boolean;
+  data: {
+    orders: CustomOrder[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
+  message: string;
+}
+
+export interface GetCustomOrderResponse {
+  success: boolean;
+  data: CustomOrder;
+  message: string;
+}
+
+export interface UpdateCustomOrderResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+    orderId: string;
+    updatedAt: string;
+  };
+  message: string;
+}
+
+export interface DeleteCustomOrderResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+    orderId: string;
+    deletedAt: string;
+  };
+  message: string;
+}
+
+// ============================================================================
 // UTILITY TYPES
 // ============================================================================
 
