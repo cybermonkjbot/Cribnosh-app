@@ -2,9 +2,12 @@
  * Mock configuration for testing
  * Set MOCK_AUTH_ENABLED to true to use mock authentication
  * Set to false to use real API calls
+ * 
+ * NOTE: Mock phone sign-in is currently COMMENTED OUT in useAuth.ts
+ * The mock implementation is preserved but not active
  */
 
-export const MOCK_AUTH_ENABLED = true;
+export const MOCK_AUTH_ENABLED = false; // Changed to false - using real API calls
 
 /**
  * Helper function to check if mock mode is enabled

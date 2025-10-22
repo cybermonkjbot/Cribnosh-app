@@ -302,6 +302,42 @@ export interface GetOrdersResponse {
   };
 }
 
+// GET /customer/orders/{order_id}
+export interface GetOrderResponse {
+  success: boolean;
+  data: Order;
+  message: string;
+}
+
+// GET /customer/orders/{order_id}/status
+export interface OrderStatusUpdate {
+  status: string;
+  timestamp: string;
+  message?: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  };
+}
+
+export interface GetOrderStatusResponse {
+  success: boolean;
+  data: {
+    order_id: string;
+    current_status: string;
+    status_updates: OrderStatusUpdate[];
+    estimated_delivery_time?: string;
+    delivery_person?: {
+      name: string;
+      phone: string;
+      vehicle_type?: string;
+      vehicle_number?: string;
+    };
+  };
+  message: string;
+}
+
 // POST /customer/orders
 export interface CreateOrderRequest {
   kitchen_id: string;
@@ -317,6 +353,47 @@ export interface CreateOrderRequest {
 export interface CreateOrderResponse {
   success: boolean;
   data: Order;
+  message: string;
+}
+
+// POST /customer/orders/{order_id}/cancel
+export interface CancelOrderRequest {
+  reason?: string;
+  refund_preference?: "full_refund" | "partial_refund" | "credit";
+}
+
+export interface CancelOrderResponse {
+  success: boolean;
+  data: {
+    order_id: string;
+    cancellation_status: "cancelled" | "pending_refund" | "refunded";
+    refund_amount?: number;
+    refund_method?: string;
+    cancelled_at: string;
+  };
+  message: string;
+}
+
+// POST /customer/orders/{order_id}/rate
+export interface RateOrderRequest {
+  rating: number; // 1-5 stars
+  review?: string;
+  categories?: {
+    food_quality?: number;
+    delivery_speed?: number;
+    packaging?: number;
+    customer_service?: number;
+  };
+}
+
+export interface RateOrderResponse {
+  success: boolean;
+  data: {
+    order_id: string;
+    rating: number;
+    review?: string;
+    rated_at: string;
+  };
   message: string;
 }
 
@@ -505,4 +582,129 @@ export interface PaginationParams {
 export interface SortParams {
   sort_by?: string;
   sort_order?: "asc" | "desc";
+}
+
+// ========================================================================
+// SEARCH ENDPOINTS - MISSING INTEGRATIONS
+// ========================================================================
+
+// GET /customer/search/chefs
+export interface ChefSearchParams {
+  q: string; // Required search query
+  location?: string;
+  cuisine?: string;
+  rating_min?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface SearchChef {
+  _id: string;
+  name: string;
+  bio?: string;
+  specialties: string[];
+  location?: string;
+  rating?: number;
+  review_count?: number;
+  image?: string;
+  experience_years?: number;
+  is_verified: boolean;
+  is_available: boolean;
+  price_range?: string;
+  languages?: string[];
+  certifications?: string[];
+  cuisines: string[];
+  created_at: string;
+}
+
+export interface ChefSearchResponse {
+  success: boolean;
+  data: {
+    chefs: SearchChef[];
+    metadata: {
+      query: string;
+      total_results: number;
+      limit: number;
+      offset: number;
+      has_more: boolean;
+      search_time_ms: number;
+    };
+  };
+  message: string;
+}
+
+// GET /customer/search/suggestions
+export interface SearchSuggestionsParams {
+  q: string; // Required partial query
+  location?: string;
+  limit?: number;
+  category?: "all" | "dishes" | "chefs" | "cuisines" | "restaurants";
+  user_id?: string;
+}
+
+export interface SearchSuggestion {
+  text: string;
+  type: "dish" | "chef" | "cuisine" | "restaurant" | "ingredient";
+  confidence: number;
+  popularity_score: number;
+  category?: string;
+  image_url?: string;
+  chef_name?: string;
+  price_range?: string;
+  rating?: number;
+  is_trending: boolean;
+  search_count?: number;
+}
+
+export interface SearchSuggestionsResponse {
+  success: boolean;
+  data: {
+    suggestions: SearchSuggestion[];
+    metadata: {
+      query: string;
+      total_suggestions: number;
+      personalized: boolean;
+      generated_at: string;
+      cache_duration: number;
+    };
+  };
+  message: string;
+}
+
+// GET /customer/search/trending
+export interface TrendingSearchParams {
+  location?: string;
+  cuisine?: string;
+  time_range?: "hour" | "day" | "week" | "month";
+  limit?: number;
+  category?: "dishes" | "chefs" | "cuisines" | "restaurants";
+}
+
+export interface TrendingItem {
+  id: string;
+  name: string;
+  type: "dish" | "chef" | "cuisine" | "restaurant";
+  popularity_score: number;
+  trend_direction: "up" | "down" | "stable";
+  search_count: number;
+  image_url?: string;
+  chef_name?: string;
+  cuisine?: string;
+  price_range?: string;
+  rating?: number;
+  review_count?: number;
+}
+
+export interface TrendingSearchResponse {
+  success: boolean;
+  data: {
+    trending: TrendingItem[];
+    metadata: {
+      time_range: string;
+      location?: string;
+      total_items: number;
+      generated_at: string;
+    };
+  };
+  message: string;
 }

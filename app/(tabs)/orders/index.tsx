@@ -16,8 +16,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { useGetCustomOrdersQuery } from "../../store/customerApi";
-import { CustomOrder } from "../../types/customer";
+import {
+  useGetCustomOrdersQuery,
+  useGetOrdersQuery,
+} from "../../store/customerApi";
+import { Order as ApiOrder, CustomOrder } from "../../types/customer";
 
 // Define order status types
 export type OrderStatus =
@@ -78,6 +81,18 @@ export default function OrdersScreen() {
     }
   );
 
+  // Fetch regular orders from API
+  const {
+    data: ordersData,
+    error: ordersError,
+    isLoading: ordersLoading,
+  } = useGetOrdersQuery(
+    { page: 1, limit: 20 },
+    {
+      skip: false, // Always fetch to check if we have data
+    }
+  );
+
   // Mock custom orders data for fallback
   const mockCustomOrders: CustomOrder[] = [
     {
@@ -107,6 +122,44 @@ export default function OrdersScreen() {
       scrollY.value = event.contentOffset.y;
     },
   });
+
+  // Convert API orders to UI Order format
+  const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
+    const statusMap: Record<string, OrderStatus> = {
+      pending: "preparing",
+      confirmed: "preparing",
+      preparing: "preparing",
+      ready: "ready",
+      delivered: "delivered",
+      cancelled: "cancelled",
+    };
+
+    return {
+      id: parseInt(apiOrder.id.replace(/\D/g, "")) || Math.random() * 1000,
+      time: new Date(apiOrder.created_at).toLocaleString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "numeric",
+        month: "long",
+      }),
+      description: `${apiOrder.items.map((item) => item.dish_name).join(", ")} from ${apiOrder.kitchen_name}`,
+      price: `£${(apiOrder.total / 100).toFixed(2)}`,
+      status: statusMap[apiOrder.status] || "preparing",
+      estimatedTime: apiOrder.estimated_delivery_time
+        ? new Date(apiOrder.estimated_delivery_time).toLocaleTimeString(
+            "en-GB",
+            {
+              hour: "2-digit",
+              minute: "2-digit",
+            }
+          )
+        : "TBD",
+      kitchenName: apiOrder.kitchen_name,
+      orderNumber: `#${apiOrder.id}`,
+      items: apiOrder.items.map((item) => item.dish_name),
+      orderType: "individual",
+    };
+  };
 
   // Convert custom orders to Order format
   const convertCustomOrderToOrder = (customOrder: CustomOrder): Order => {
@@ -142,11 +195,18 @@ export default function OrdersScreen() {
     };
   };
 
+  // Get regular orders (API data or fallback to mock)
+  const apiOrders =
+    ordersData?.data && ordersData.data.length > 0 ? ordersData.data : [];
+
   // Get custom orders (API data or fallback to mock)
   const customOrders =
     customOrdersData?.data?.orders && customOrdersData.data.orders.length > 0
       ? customOrdersData.data.orders
       : mockCustomOrders;
+
+  // Convert API orders to Order format
+  const apiOrdersAsOrders = apiOrders.map(convertApiOrderToOrder);
 
   // Convert custom orders to Order format
   const customOrdersAsOrders = customOrders.map(convertCustomOrderToOrder);
@@ -299,9 +359,17 @@ export default function OrdersScreen() {
     },
   ];
 
-  // Combine regular orders with custom orders
+  // Combine API orders with custom orders, fallback to mock data if no API data
   const allOngoingOrders = [
-    ...ongoingOrders,
+    ...(apiOrdersAsOrders.length > 0
+      ? apiOrdersAsOrders
+      : ongoingOrders
+    ).filter(
+      (order) =>
+        order.status === "preparing" ||
+        order.status === "ready" ||
+        order.status === "on-the-way"
+    ),
     ...customOrdersAsOrders.filter(
       (order) =>
         order.status === "preparing" ||
@@ -311,7 +379,9 @@ export default function OrdersScreen() {
   ];
 
   const allPastOrders = [
-    ...pastOrders,
+    ...(apiOrdersAsOrders.length > 0 ? apiOrdersAsOrders : pastOrders).filter(
+      (order) => order.status === "delivered" || order.status === "cancelled"
+    ),
     ...customOrdersAsOrders.filter(
       (order) => order.status === "delivered" || order.status === "cancelled"
     ),
@@ -333,8 +403,8 @@ export default function OrdersScreen() {
       // Navigate to custom order details
       router.push(`/custom-order-details?id=${orderId}`);
     } else {
-      // Handle regular order press
-      console.log("Order pressed:", orderId);
+      // Navigate to regular order details
+      router.push(`/order-details?id=${orderId}`);
     }
   };
 

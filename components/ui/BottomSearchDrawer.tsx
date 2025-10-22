@@ -40,8 +40,18 @@ import SearchArea from "../SearchArea";
 import { Button } from "./Button";
 
 // Customer API imports
-import { useSearchQuery } from "../../app/store/customerApi";
-import { SearchResult } from "../../app/types/customer";
+import {
+  useGetSearchSuggestionsQuery,
+  useGetTrendingSearchQuery,
+  useSearchChefsQuery,
+  useSearchQuery,
+} from "../../app/store/customerApi";
+import {
+  SearchChef,
+  SearchResult,
+  SearchSuggestion,
+  TrendingItem,
+} from "../../app/types/customer";
 
 // Global toast imports
 import { showError, showInfo } from "../../lib/GlobalToastManager";
@@ -395,7 +405,7 @@ export function BottomSearchDrawer({
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeSearchFilter, setActiveSearchFilter] = useState("all");
 
-  // Search API hook
+  // Search API hooks
   const { data: searchData, error: searchError } = useSearchQuery(
     {
       query: searchQuery,
@@ -408,6 +418,47 @@ export function BottomSearchDrawer({
       skip: !searchQuery.trim() || !isAuthenticated, // Only search when there's a query and user is authenticated
     }
   );
+
+  // Chef search hook
+  const { data: chefSearchData, error: chefSearchError } = useSearchChefsQuery(
+    {
+      q: searchQuery,
+      limit: maxSuggestions,
+    },
+    {
+      skip:
+        !searchQuery.trim() ||
+        !isAuthenticated ||
+        activeSearchFilter !== "chefs",
+    }
+  );
+
+  // Search suggestions hook
+  const { data: suggestionsData, error: suggestionsError } =
+    useGetSearchSuggestionsQuery(
+      {
+        q: searchQuery,
+        limit: maxSuggestions,
+        category:
+          activeSearchFilter === "all" ? "all" : (activeSearchFilter as any),
+      },
+      {
+        skip: !searchQuery.trim() || !isAuthenticated,
+      }
+    );
+
+  // Trending search hook
+  const { data: trendingData, error: trendingError } =
+    useGetTrendingSearchQuery(
+      {
+        limit: maxSuggestions,
+        category:
+          activeSearchFilter === "all" ? "dishes" : (activeSearchFilter as any),
+      },
+      {
+        skip: !isAuthenticated,
+      }
+    );
 
   // Removed unused bottomSheetRef
   const handleNavigate = (): void => {
@@ -962,15 +1013,113 @@ export function BottomSearchDrawer({
     }));
   }, []);
 
-  // Process search suggestions from API or fallback to mock data
+  // Transform chef search results to component format
+  const transformChefResults = useCallback((chefs: SearchChef[]) => {
+    return chefs.map((chef) => ({
+      id: chef._id,
+      text: chef.name,
+      category: chef.cuisines.join(", "),
+      kitchen: chef.name,
+      time: "25 min", // Default delivery time
+      distance: chef.location || "Nearby",
+      type: "kitchens",
+      rating: chef.rating ? chef.rating.toString() : "4.5",
+      bio: chef.bio,
+      specialties: chef.specialties,
+      is_verified: chef.is_verified,
+      is_available: chef.is_available,
+      experience_years: chef.experience_years,
+      price_range: chef.price_range,
+    }));
+  }, []);
+
+  // Transform search suggestions to component format
+  const transformSuggestionResults = useCallback(
+    (suggestions: SearchSuggestion[]) => {
+      return suggestions.map((suggestion) => ({
+        id: suggestion.text,
+        text: suggestion.text,
+        category: suggestion.category || "General",
+        kitchen: suggestion.chef_name || "Various Kitchens",
+        time: "25 min",
+        distance: "Nearby",
+        type:
+          suggestion.type === "chef"
+            ? "kitchens"
+            : suggestion.type === "dish"
+              ? "meals"
+              : "cuisines",
+        rating: suggestion.rating ? suggestion.rating.toString() : "4.5",
+        confidence: suggestion.confidence,
+        popularity_score: suggestion.popularity_score,
+        is_trending: suggestion.is_trending,
+      }));
+    },
+    []
+  );
+
+  // Transform trending results to component format
+  const transformTrendingResults = useCallback((trending: TrendingItem[]) => {
+    return trending.map((item) => ({
+      id: item.id,
+      text: item.name,
+      category: item.cuisine || "Popular",
+      kitchen: item.chef_name || "Various Kitchens",
+      time: "25 min",
+      distance: "Nearby",
+      type:
+        item.type === "chef"
+          ? "kitchens"
+          : item.type === "dish"
+            ? "meals"
+            : "cuisines",
+      rating: item.rating ? item.rating.toString() : "4.5",
+      popularity_score: item.popularity_score,
+      trend_direction: item.trend_direction,
+      search_count: item.search_count,
+    }));
+  }, []);
+
+  // Process search suggestions from multiple API sources or fallback to mock data
   const searchSuggestions = useMemo(() => {
-    if (searchData?.success && searchData.data && isAuthenticated) {
-      const transformedData = transformSearchResults(searchData.data);
+    let apiResults: any[] = [];
+
+    // Priority 1: Use search suggestions API if available
+    if (
+      suggestionsData?.success &&
+      suggestionsData.data?.suggestions &&
+      isAuthenticated
+    ) {
+      apiResults = transformSuggestionResults(suggestionsData.data.suggestions);
+    }
+    // Priority 2: Use chef search API if searching for chefs specifically
+    else if (
+      chefSearchData?.success &&
+      chefSearchData.data?.chefs &&
+      isAuthenticated &&
+      activeSearchFilter === "chefs"
+    ) {
+      apiResults = transformChefResults(chefSearchData.data.chefs);
+    }
+    // Priority 3: Use general search API if available
+    else if (searchData?.success && searchData.data && isAuthenticated) {
+      apiResults = transformSearchResults(searchData.data);
+    }
+    // Priority 4: Use trending search API if no query and authenticated
+    else if (
+      trendingData?.success &&
+      trendingData.data?.trending &&
+      isAuthenticated &&
+      !searchQuery.trim()
+    ) {
+      apiResults = transformTrendingResults(trendingData.data.trending);
+    }
+
+    // If we have API results, return them
+    if (apiResults.length > 0) {
       // Show success toast when search results are loaded
-      if (transformedData.length > 0) {
-        showInfo(`Found ${transformedData.length} results`, "Search Results");
-      }
-      return transformedData;
+      showInfo(`Found ${apiResults.length} results`, "Search Results");
+      return apiResults;
     }
 
     // Fallback to mock data when not authenticated or no API results
@@ -1048,7 +1197,19 @@ export function BottomSearchDrawer({
         type: "kitchens",
       },
     ];
-  }, [searchData, isAuthenticated, transformSearchResults]);
+  }, [
+    searchData,
+    chefSearchData,
+    suggestionsData,
+    trendingData,
+    isAuthenticated,
+    searchQuery,
+    activeSearchFilter,
+    transformSearchResults,
+    transformChefResults,
+    transformSuggestionResults,
+    transformTrendingResults,
+  ]);
 
   // Filter suggestions based on active search filter with error handling
   const filteredSuggestions = useMemo(() => {
@@ -1080,7 +1241,7 @@ export function BottomSearchDrawer({
         } else {
           // Search functionality would be implemented here
         }
-      } catch (error) {
+      } catch {
         setError("Search failed. Please try again.");
       } finally {
         setIsLoading(false);
@@ -1094,7 +1255,22 @@ export function BottomSearchDrawer({
     if (searchError && isAuthenticated) {
       showError("Search failed", "Please try again");
     }
-  }, [searchError, isAuthenticated]);
+    if (chefSearchError && isAuthenticated) {
+      showError("Chef search failed", "Please try again");
+    }
+    if (suggestionsError && isAuthenticated) {
+      showError("Search suggestions failed", "Please try again");
+    }
+    if (trendingError && isAuthenticated) {
+      showError("Trending search failed", "Please try again");
+    }
+  }, [
+    searchError,
+    chefSearchError,
+    suggestionsError,
+    trendingError,
+    isAuthenticated,
+  ]);
 
   // Safe suggestion selection handler
   const handleSuggestionSelect = useCallback(
@@ -1109,7 +1285,7 @@ export function BottomSearchDrawer({
         } else {
           // Suggestion selection would be implemented here
         }
-      } catch (error) {
+      } catch {
         setError("Failed to select suggestion. Please try again.");
       }
     },
@@ -1125,7 +1301,7 @@ export function BottomSearchDrawer({
         ...message,
         subMessage: message.subMessage || "",
       });
-    } catch (error) {
+    } catch {
       // Failed to update header message
     }
   }, [userName]);
@@ -1149,7 +1325,7 @@ export function BottomSearchDrawer({
       } else {
         animateToSnapPoint(SNAP_POINTS.COLLAPSED);
       }
-    } catch (error) {
+    } catch {
       // Backdrop press error
     }
   }, [animateToSnapPoint, isSearchFocused, handleSearchBlur]);
@@ -1196,7 +1372,7 @@ export function BottomSearchDrawer({
           ? "Search drawer expanded"
           : "Search drawer collapsed";
         AccessibilityInfo.announceForAccessibility(announcement);
-      } catch (error) {
+      } catch {
         // Accessibility announcement failed
       }
     };

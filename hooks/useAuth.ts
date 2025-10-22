@@ -4,8 +4,9 @@ import {
 } from "@/app/store/authApi";
 import { useToast } from "@/lib/ToastContext";
 import { useCallback } from "react";
-import { mockPhoneLogin, mockSendOTP } from "../utils/mockAuthUtils";
-import { isMockModeEnabled } from "../utils/mockConfig";
+// Mock imports commented out - keeping for future use if needed
+// import { mockPhoneLogin, mockSendOTP } from "../utils/mockAuthUtils";
+// import { isMockModeEnabled } from "../utils/mockConfig";
 
 export const useAuth = () => {
   const { showToast } = useToast();
@@ -17,11 +18,11 @@ export const useAuth = () => {
   const handleSendOTP = useCallback(
     async (phone: string) => {
       try {
-        // Use mock implementation if enabled
-        if (isMockModeEnabled()) {
-          console.log("🔧 Using mock OTP send");
-          return await mockSendOTP(phone);
-        }
+        // MOCK IMPLEMENTATION COMMENTED OUT - Using real API calls
+        // if (isMockModeEnabled()) {
+        //   console.log("🔧 Using mock OTP send");
+        //   return await mockSendOTP(phone);
+        // }
 
         const result = await sendLoginOTP({ phone, action: "send" }).unwrap();
 
@@ -42,11 +43,11 @@ export const useAuth = () => {
   const handlePhoneLogin = useCallback(
     async (phone: string, otp: string) => {
       try {
-        // Use mock implementation if enabled
-        if (isMockModeEnabled()) {
-          console.log("🔧 Using mock phone login");
-          return await mockPhoneLogin(phone, otp);
-        }
+        // MOCK IMPLEMENTATION COMMENTED OUT - Using real API calls
+        // if (isMockModeEnabled()) {
+        //   console.log("🔧 Using mock phone login");
+        //   return await mockPhoneLogin(phone, otp);
+        // }
 
         const result = await phoneLogin({
           phone,

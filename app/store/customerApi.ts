@@ -6,8 +6,13 @@ import {
   // Request types
   AddToCartRequest,
   AddToCartResponse,
+  CancelOrderRequest,
+  CancelOrderResponse,
   CheckoutRequest,
   CheckoutResponse,
+  // New search types
+  ChefSearchParams,
+  ChefSearchResponse,
   CreateOrderRequest,
   CreateOrderResponse,
   DeleteCustomOrderResponse,
@@ -20,12 +25,20 @@ import {
   GetCustomOrderResponse,
   GetCustomOrdersResponse,
   GetLiveStreamsResponse,
+  GetOrderResponse,
   GetOrdersResponse,
+  GetOrderStatusResponse,
   GetPopularChefsResponse,
   PaginationParams,
+  RateOrderRequest,
+  RateOrderResponse,
   SearchRequest,
   SearchResponse,
+  SearchSuggestionsParams,
+  SearchSuggestionsResponse,
   SortParams,
+  TrendingSearchParams,
+  TrendingSearchResponse,
   UpdateCustomOrderRequest,
   UpdateCustomOrderResponse,
 } from "../types/customer";
@@ -218,6 +231,62 @@ export const customerApi = createApi({
       invalidatesTags: ["Orders", "Cart"],
     }),
 
+    /**
+     * Get specific order details
+     * GET /customer/orders/{order_id}
+     */
+    getOrder: builder.query<GetOrderResponse, string>({
+      query: (orderId) => ({
+        url: `/customer/orders/${orderId}`,
+        method: "GET",
+      }),
+      providesTags: ["Orders"],
+    }),
+
+    /**
+     * Get order status tracking
+     * GET /customer/orders/{order_id}/status
+     */
+    getOrderStatus: builder.query<GetOrderStatusResponse, string>({
+      query: (orderId) => ({
+        url: `/customer/orders/${orderId}/status`,
+        method: "GET",
+      }),
+      providesTags: ["Orders"],
+    }),
+
+    /**
+     * Cancel order
+     * POST /customer/orders/{order_id}/cancel
+     */
+    cancelOrder: builder.mutation<
+      CancelOrderResponse,
+      { orderId: string; data: CancelOrderRequest }
+    >({
+      query: ({ orderId, data }) => ({
+        url: `/customer/orders/${orderId}/cancel`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Orders"],
+    }),
+
+    /**
+     * Rate order
+     * POST /customer/orders/{order_id}/rate
+     */
+    rateOrder: builder.mutation<
+      RateOrderResponse,
+      { orderId: string; data: RateOrderRequest }
+    >({
+      query: ({ orderId, data }) => ({
+        url: `/customer/orders/${orderId}/rate`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Orders"],
+    }),
+
     // ========================================================================
     // SEARCH ENDPOINTS
     // ========================================================================
@@ -293,6 +362,80 @@ export const customerApi = createApi({
         body: data,
       }),
       invalidatesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Search for chefs by name or specialties
+     * GET /customer/search/chefs
+     */
+    searchChefs: builder.query<ChefSearchResponse, ChefSearchParams>({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("q", params.q);
+        if (params.location) searchParams.append("location", params.location);
+        if (params.cuisine) searchParams.append("cuisine", params.cuisine);
+        if (params.rating_min)
+          searchParams.append("rating_min", params.rating_min.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.offset)
+          searchParams.append("offset", params.offset.toString());
+
+        return {
+          url: `/customer/search/chefs?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get search suggestions/autocomplete
+     * GET /customer/search/suggestions
+     */
+    getSearchSuggestions: builder.query<
+      SearchSuggestionsResponse,
+      SearchSuggestionsParams
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("q", params.q);
+        if (params.location) searchParams.append("location", params.location);
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.category) searchParams.append("category", params.category);
+        if (params.user_id) searchParams.append("user_id", params.user_id);
+
+        return {
+          url: `/customer/search/suggestions?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get trending search results
+     * GET /customer/search/trending
+     */
+    getTrendingSearch: builder.query<
+      TrendingSearchResponse,
+      TrendingSearchParams
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.location) searchParams.append("location", params.location);
+        if (params.cuisine) searchParams.append("cuisine", params.cuisine);
+        if (params.time_range)
+          searchParams.append("time_range", params.time_range);
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.category) searchParams.append("category", params.category);
+
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/search/trending${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
     }),
 
     // ========================================================================
@@ -417,10 +560,23 @@ export const { useGetPopularChefsQuery } = customerApi;
 export const { useGetCartQuery, useAddToCartMutation } = customerApi;
 
 // Orders
-export const { useGetOrdersQuery, useCreateOrderMutation } = customerApi;
+export const {
+  useGetOrdersQuery,
+  useGetOrderQuery,
+  useGetOrderStatusQuery,
+  useCreateOrderMutation,
+  useCancelOrderMutation,
+  useRateOrderMutation,
+} = customerApi;
 
 // Search
-export const { useSearchQuery, useSearchWithEmotionsMutation } = customerApi;
+export const {
+  useSearchQuery,
+  useSearchWithEmotionsMutation,
+  useSearchChefsQuery,
+  useGetSearchSuggestionsQuery,
+  useGetTrendingSearchQuery,
+} = customerApi;
 
 // Payment
 export const { useCreateCheckoutMutation } = customerApi;
