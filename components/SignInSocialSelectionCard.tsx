@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SocialSignIn } from './SocialSignIn';
 
 interface SignInSocialSelectionCardProps {
@@ -11,6 +11,7 @@ interface SignInSocialSelectionCardProps {
   isAppleSignInAvailable?: boolean | null;
   isAppleSignInLoading?: boolean;
   isGoogleSignInLoading?: boolean;
+  isAuthenticated?: boolean;
 }
 
 export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps> = ({
@@ -21,9 +22,19 @@ export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps>
   isAppleSignInAvailable,
   isAppleSignInLoading,
   isGoogleSignInLoading,
+  isAuthenticated = false,
 }) => {
+  // Don't render the sign-in card if user is already authenticated
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
-    <View style={[styles.container, { height: 378 + bottomInset }]}>
+    <ScrollView
+  contentContainerStyle={[
+    styles.container,
+    { height: 478 + bottomInset },
+  ]}>
       {/* Title and Email Sign In Button */}
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Ready?{'\n'}Set, Eat</Text>
@@ -58,7 +69,7 @@ export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps>
       
       {/* Bottom spacing to push content above safe area */}
       <View style={{ height: bottomInset }} />
-    </View>
+    </ScrollView>
   );
 };
 

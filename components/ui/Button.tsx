@@ -1,10 +1,10 @@
 import { BlurView } from 'expo-blur';
 import type { FC, ReactNode } from 'react';
 import { useRef } from 'react';
-import { Animated, Platform, Pressable, PressableProps, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Platform, StyleSheet, Text, TouchableOpacity, TouchableOpacityProps, View } from 'react-native';
 import { cn } from './utils';
 
-export interface ButtonProps extends PressableProps {
+export interface ButtonProps extends TouchableOpacityProps {
   variant?: 'default' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
@@ -18,6 +18,7 @@ export interface ButtonProps extends PressableProps {
   paddingHorizontal?: number;
   fontFamily?: string;
   fontWeight?: string | number;
+  loading?: boolean;
 }
 
 const base = 'items-center justify-center rounded-xl min-h-[44px] min-w-[44px]';
@@ -25,7 +26,7 @@ const variants = {
   default: 'bg-gray-900 active:bg-gray-800',
   outline: 'border border-gray-300 bg-white',
   ghost: 'bg-transparent',
-  danger:'bg-[#FF3B30]'
+  danger: 'bg-[#FF3B30]'
 };
 const sizes = {
   sm: 'h-10 px-4',
@@ -42,10 +43,10 @@ const text = {
 export const Button: FC<ButtonProps> = ({
   variant = 'default',
   size = 'md',
-  disabled,
+  disabled = false,
   children,
-  glass,
-  elevated,
+  glass = false,
+  elevated = false,
   style,
   backgroundColor,
   textColor,
@@ -54,118 +55,140 @@ export const Button: FC<ButtonProps> = ({
   paddingHorizontal,
   fontFamily,
   fontWeight,
+  loading = false,
+  onPress,
+  onPressIn,
+  onPressOut,
   ...props
 }) => {
-  const hasGlass = !!glass;
-  const hasElevation = !!elevated;
-  const shadowClass = hasElevation && !hasGlass ? 'shadow-lg' : '';
-  const innerStyle = [glass ? { position: 'relative' as const } : undefined, ...(Array.isArray(style) ? style : style ? [style] : [])];
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const isDisabled = disabled || loading;
 
-  const handlePressIn = () => {
+  const handlePressIn = (event: any) => {
+    if (isDisabled) return;
+    
     Animated.spring(scaleAnim, {
-      toValue: 0.93,
+      toValue: 0.95,
       useNativeDriver: true,
-      speed: 30,
-      bounciness: 8,
+      tension: 300,
+      friction: 10,
     }).start();
+    
+    onPressIn?.(event);
   };
-  const handlePressOut = () => {
+
+  const handlePressOut = (event: any) => {
+    if (isDisabled) return;
+    
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      speed: 20,
-      bounciness: 6,
+      tension: 300,
+      friction: 10,
     }).start();
+    
+    onPressOut?.(event);
   };
 
-  const content = (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      {hasGlass ? (
-        Platform.OS === 'ios' ? (
-          <BlurView intensity={24} tint="light" style={StyleSheet.absoluteFill} />
-        ) : Platform.OS === 'android' ? (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)' }]} />
+  const buttonContent = (
+    <View
+      className={cn(
+        base,
+        variants[variant],
+        sizes[size],
+        glass && 'bg-white/60',
+        elevated && !glass && 'shadow-lg',
+        isDisabled && 'opacity-50',
+        props.className
+      )}
+      style={[
+        {
+          position: 'relative',
+          overflow: 'hidden',
+          backgroundColor: backgroundColor,
+          borderRadius: borderRadius,
+          paddingVertical: paddingVertical,
+          paddingHorizontal: paddingHorizontal,
+          // Ensure proper dimensions for touch handling
+          minWidth: 44,
+          minHeight: 44,
+        },
+        style,
+      ]}
+    >
+      {/* Glass effect background - positioned behind content with pointerEvents none */}
+      {glass && (
+        <View 
+          style={[
+            StyleSheet.absoluteFill,
+            { 
+              zIndex: 0,
+              pointerEvents: 'none'
+            }
+          ]}
+        >
+          {Platform.OS === 'ios' ? (
+            <BlurView 
+              intensity={24} 
+              tint="light" 
+              style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
+            />
+          ) : Platform.OS === 'android' ? (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)', pointerEvents: 'none' }]} />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255,255,255,0.6)', pointerEvents: 'none' }]} />
+          )}
+        </View>
+      )}
+
+      {/* Button content - positioned above glass effect */}
+      <View style={{ zIndex: 1, pointerEvents: 'none', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+        {loading ? (
+          <ActivityIndicator 
+            size="small" 
+            color={textColor || (variant === 'outline' || variant === 'ghost' ? '#000000' : '#FFFFFF')} 
+          />
         ) : (
-          <View style={[StyleSheet.absoluteFill, { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255,255,255,0.6)' }]} />
-        )
-      ) : null}
-      <View
-        className={cn(
-          base,
-          variants[variant],
-          sizes[size],
-          hasGlass && 'bg-white/60',
-          shadowClass,
-          disabled && 'opacity-40',
-          props.className
+          children !== undefined && children !== null ? (
+            <Text
+              className={cn(text[variant])}
+              style={[
+                {
+                  textAlign: 'center',
+                  fontSize: 16,
+                  lineHeight: 24,
+                },
+                textColor && { color: textColor },
+                fontFamily && { fontFamily },
+                fontWeight ? { fontWeight: fontWeight as any } : undefined,
+              ]}
+            >
+              {children}
+            </Text>
+          ) : null
         )}
-        style={[
-          innerStyle as any,
-          backgroundColor ? { backgroundColor } : {},
-          borderRadius !== undefined ? { borderRadius } : {},
-          paddingVertical !== undefined ? { paddingVertical } : {},
-          paddingHorizontal !== undefined ? { paddingHorizontal } : {},
-        ]}
-      >
-        {children !== undefined && children !== null ? (
-          <Text
-            className={cn(text[variant])}
-            style={[
-              textColor ? { color: textColor } : {},
-              fontFamily ? { fontFamily } : {},
-              fontWeight && [
-                'normal','bold','100','200','300','400','500','600','700','800','900',
-                'light','regular','ultralight','thin','medium','semibold','heavy','black'
-              ].includes(fontWeight.toString())
-                ? { fontWeight: fontWeight as any }
-                : {},
-              { fontSize: 18, lineHeight: 27, textAlign: 'center' },
-            ]}
-          >
-            {children}
-          </Text>
-        ) : null}
       </View>
-    </Animated.View>
+    </View>
   );
-  if (Platform.OS === 'ios') {
-    // Remove null/undefined props and exclude event handlers for TouchableOpacity
-    const filteredProps = Object.fromEntries(
-      Object.entries(props).filter(([key, v]) => 
-        v !== null && 
-        v !== undefined && 
-        !['onPress', 'onPressIn', 'onPressOut'].includes(key)
-      )
-    );
-    return (
-      <TouchableOpacity
-        activeOpacity={0.7}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityState={{ disabled }}
-        hitSlop={8}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={props.onPress}
-        {...filteredProps}
-      >
-        {content}
-      </TouchableOpacity>
-    );
-  }
+
   return (
-    <Pressable
-      disabled={disabled}
+    <TouchableOpacity
+      activeOpacity={1}
+      disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      hitSlop={8}
+      accessibilityState={{ disabled: isDisabled }}
+      onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      onPress={props.onPress}
+      style={{
+        minWidth: 44,
+        minHeight: 44,
+      }}
       {...props}
     >
-      {content}
-    </Pressable>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        {buttonContent}
+      </Animated.View>
+    </TouchableOpacity>
   );
 };

@@ -1,8 +1,8 @@
 // Feature flags and configuration
 export const CONFIG = {
   SHAKE_TO_EAT_ENABLED: false, // Disable shake to eat feature
-  DEBUG_MODE: false, // Disable debug mode
-  
+  DEBUG_MODE: true, // Enable debug mode for testing
+
   // Hidden sections configuration
   HIDDEN_SECTIONS: {
     ENABLED: true, // Master toggle for hidden sections
@@ -13,7 +13,7 @@ export const CONFIG = {
     MIN_ORDER_COUNT: 3, // Minimum orders before showing "usual dinner" section
     MIN_DAYS_ACTIVE: 7, // Minimum days active before showing hidden sections
   },
-  
+
   // Play to win configuration
   PLAY_TO_WIN: {
     ENABLED: true,
@@ -22,4 +22,4 @@ export const CONFIG = {
     GAME_DURATION: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
     MIN_COLLEAGUES: 2, // Minimum colleagues needed to start game
   },
-}; 
+};

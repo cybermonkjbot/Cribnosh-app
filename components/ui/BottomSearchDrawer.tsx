@@ -1,37 +1,78 @@
-import BottomSheet from '@gorhom/bottom-sheet';
-import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  AccessibilityInfo,
+  Dimensions,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-    Extrapolate,
-    interpolate,
-    runOnJS,
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withSpring
-} from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
-import { getCompleteDynamicHeader, HeaderMessage } from '../../utils/dynamicHeaderMessages';
-import { getDynamicSearchPrompt, SearchPrompt } from '../../utils/dynamicSearchPrompts';
-import SearchArea from '../SearchArea';
-import { Button } from './Button';
+  Extrapolate,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import Svg, { Path } from "react-native-svg";
+import {
+  getCompleteDynamicHeader,
+  HeaderMessage,
+} from "../../utils/dynamicHeaderMessages";
+import {
+  getDynamicSearchPrompt,
+  SearchPrompt,
+} from "../../utils/dynamicSearchPrompts";
+import SearchArea from "../SearchArea";
+import { Button } from "./Button";
+
+// Customer API imports
+import {
+  useGetSearchSuggestionsQuery,
+  useGetTrendingSearchQuery,
+  useSearchChefsQuery,
+  useSearchQuery,
+} from "../../app/store/customerApi";
+import {
+  SearchChef,
+  SearchResult,
+  SearchSuggestion,
+  TrendingItem,
+} from "../../app/types/customer";
+
+// Global toast imports
+import { showError, showInfo } from "../../lib/GlobalToastManager";
 
 // Error boundary for icon components
-const SafeIcon = ({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) => {
+const SafeIcon = ({
+  children,
+  fallback,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) => {
   try {
     return <>{children}</>;
-  } catch (error) {
-    console.warn('Icon rendering error:', error);
+  } catch {
     return <>{fallback || null}</>;
   }
 };
 
 // Link Icon Component
-const LinkIcon = ({ size = 20, color = '#ffffff' }) => (
+const LinkIcon = ({ size = 20, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -53,7 +94,7 @@ const LinkIcon = ({ size = 20, color = '#ffffff' }) => (
 );
 
 // Vegan Leaf Icon Component
-const VeganIcon = ({ size = 16, color = '#ffffff' }) => (
+const VeganIcon = ({ size = 16, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -65,7 +106,7 @@ const VeganIcon = ({ size = 16, color = '#ffffff' }) => (
 );
 
 // Gluten Free Wheat Icon Component
-const GlutenFreeIcon = ({ size = 16, color = '#ffffff' }) => (
+const GlutenFreeIcon = ({ size = 16, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -85,7 +126,7 @@ const GlutenFreeIcon = ({ size = 16, color = '#ffffff' }) => (
 );
 
 // Spicy Chili Icon Component
-const SpicyIcon = ({ size = 16, color = '#ffffff' }) => (
+const SpicyIcon = ({ size = 16, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -101,7 +142,7 @@ const SpicyIcon = ({ size = 16, color = '#ffffff' }) => (
 );
 
 // Food/Restaurant Icon Component
-const RestaurantIcon = ({ size = 18, color = '#a3b3a8' }) => (
+const RestaurantIcon = ({ size = 18, color = "#a3b3a8" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -123,7 +164,7 @@ const RestaurantIcon = ({ size = 18, color = '#a3b3a8' }) => (
 // Removed unused SparkleIcon component
 
 // User/People Icon Component for Invite Friend
-const UserIcon = ({ size = 20, color = '#ffffff' }) => (
+const UserIcon = ({ size = 20, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -159,7 +200,7 @@ const UserIcon = ({ size = 20, color = '#ffffff' }) => (
 );
 
 // Family/Home Icon Component for Setup Family
-const FamilyIcon = ({ size = 20, color = '#ffffff' }) => (
+const FamilyIcon = ({ size = 20, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -202,7 +243,7 @@ const FamilyIcon = ({ size = 20, color = '#ffffff' }) => (
 );
 
 // Group Order Icon Component for Start Group Order
-const GroupOrderIcon = ({ size = 20, color = '#ffffff' }) => (
+const GroupOrderIcon = ({ size = 20, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -252,7 +293,7 @@ const GroupOrderIcon = ({ size = 20, color = '#ffffff' }) => (
 );
 
 // Shared Ordering Icon Component
-const SharedOrderingIcon = ({ size = 20, color = '#ffffff' }) => (
+const SharedOrderingIcon = ({ size = 20, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -295,15 +336,15 @@ interface BottomSearchDrawerProps {
   enableHaptics?: boolean;
   accessibilityLabel?: string;
   userName?: string;
+  isAuthenticated?: boolean;
 }
 
 // Safe screen dimensions with fallback
 const getScreenDimensions = () => {
   try {
-    const { height } = Dimensions.get('window');
+    const { height } = Dimensions.get("window");
     return { height: Math.max(height, 400) }; // Minimum height fallback
-  } catch (error) {
-    console.warn('Failed to get screen dimensions:', error);
+  } catch {
     return { height: 600 }; // Fallback height
   }
 };
@@ -314,8 +355,8 @@ const COLLAPSED_HEIGHT = 100;
 
 // Snap points represent the visible height of the drawer - no closed state
 const SNAP_POINTS = {
-  COLLAPSED: COLLAPSED_HEIGHT, 
-  EXPANDED: DRAWER_HEIGHT
+  COLLAPSED: COLLAPSED_HEIGHT,
+  EXPANDED: DRAWER_HEIGHT,
 };
 
 type SnapPoint = number;
@@ -329,58 +370,114 @@ const SPRING_CONFIG = {
 const VELOCITY_THRESHOLD = 500;
 const GESTURE_THRESHOLD = 50; // Minimum distance to trigger snap change
 
-export function BottomSearchDrawer({ 
-  onOpenAIChat, 
+export function BottomSearchDrawer({
+  onOpenAIChat,
   onSearchSubmit,
   onSuggestionSelect,
   maxSuggestions = 20,
   enableHaptics = true,
   accessibilityLabel = "Search drawer",
-  userName = "there"
+  userName = "there",
+  isAuthenticated = false,
 }: BottomSearchDrawerProps) {
   // Core animation values - using height instead of translateY
   const drawerHeight = useSharedValue(SNAP_POINTS.COLLAPSED);
   const currentSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
-  const gestureState = useSharedValue<'idle' | 'dragging' | 'settling'>('idle');
-  
+  const gestureState = useSharedValue<"idle" | "dragging" | "settling">("idle");
+
   // Gesture tracking
   const initialTouchY = useSharedValue(0);
   const lastSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
-  
+
   // Track if the gesture was a swipe (to avoid focusing input)
   const wasSwipeGesture = useSharedValue(false);
   const startHeight = useSharedValue(0);
   const startSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
   const startTime = useSharedValue(0);
-  
+
   // Search focus state
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Removed unused isOpen state and handleOpenSheet function
-  const bottomSheetRef = useRef<BottomSheet>(null);
- const handleNavigate = (): void => {
-  router.push('/orders/group');
-};
-
-const handleSharedOrderingNavigate = (): void => {
-  router.push('/shared-ordering');
-};
-
-  
   // Filter chips state
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [activeSearchFilter, setActiveSearchFilter] = useState('all');
-  
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeSearchFilter, setActiveSearchFilter] = useState("all");
+
+  // Search API hooks
+  const { data: searchData, error: searchError } = useSearchQuery(
+    {
+      query: searchQuery,
+      type:
+        activeSearchFilter === "all" ? undefined : (activeSearchFilter as any),
+      page: 1,
+      limit: maxSuggestions,
+    },
+    {
+      skip: !searchQuery.trim() || !isAuthenticated, // Only search when there's a query and user is authenticated
+    }
+  );
+
+  // Chef search hook
+  const { data: chefSearchData, error: chefSearchError } = useSearchChefsQuery(
+    {
+      q: searchQuery,
+      limit: maxSuggestions,
+    },
+    {
+      skip:
+        !searchQuery.trim() ||
+        !isAuthenticated ||
+        activeSearchFilter !== "chefs",
+    }
+  );
+
+  // Search suggestions hook
+  const { data: suggestionsData, error: suggestionsError } =
+    useGetSearchSuggestionsQuery(
+      {
+        q: searchQuery,
+        limit: maxSuggestions,
+        category:
+          activeSearchFilter === "all" ? "all" : (activeSearchFilter as any),
+      },
+      {
+        skip: !searchQuery.trim() || !isAuthenticated,
+      }
+    );
+
+  // Trending search hook
+  const { data: trendingData, error: trendingError } =
+    useGetTrendingSearchQuery(
+      {
+        limit: maxSuggestions,
+        category:
+          activeSearchFilter === "all" ? "dishes" : (activeSearchFilter as any),
+      },
+      {
+        skip: !isAuthenticated,
+      }
+    );
+
+  // Removed unused bottomSheetRef
+  const handleNavigate = (): void => {
+    router.push("/orders/group");
+  };
+
+  const handleSharedOrderingNavigate = (): void => {
+    router.push("/shared-ordering");
+  };
+
   // Dynamic search prompt state with error handling
   const [searchPrompt, setSearchPrompt] = useState<SearchPrompt>(() => {
     try {
       return getDynamicSearchPrompt();
-    } catch (error) {
-      console.warn('Failed to get dynamic search prompt:', error);
-      return { placeholder: 'Search for food...', prompt: 'Find delicious meals' };
+    } catch {
+      return {
+        placeholder: "Search for food...",
+        prompt: "Find delicious meals",
+      };
     }
   });
 
@@ -391,41 +488,39 @@ const handleSharedOrderingNavigate = (): void => {
       // Ensure subtitle is always present
       return {
         ...message,
-        subMessage: message.subMessage || ""
+        subMessage: message.subMessage || "",
       };
-    } catch (error) {
-      console.warn('Failed to get dynamic header message:', error);
-      return { 
+    } catch {
+      return {
         greeting: "Hello there",
         mainMessage: "Hungry?\nLet's Fix That",
-        subMessage: ""
+        subMessage: "",
       };
     }
   });
-  
+
   // Refs for cleanup
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // Update search prompt every 30 minutes with error handling
   useEffect(() => {
     const updatePrompts = () => {
       try {
         setSearchPrompt(getDynamicSearchPrompt());
         setHeaderMessage(getCompleteDynamicHeader(userName, true));
-      } catch (error) {
-        console.warn('Failed to update prompts:', error);
+      } catch {
         // Keep existing prompts if update fails
       }
     };
-    
+
     try {
       intervalRef.current = setInterval(updatePrompts, 30 * 60 * 1000);
       updatePrompts(); // Initial update
-    } catch (error) {
-      console.warn('Failed to set up prompt interval:', error);
+    } catch {
+      // Failed to set up prompt interval
     }
-    
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -436,118 +531,171 @@ const handleSharedOrderingNavigate = (): void => {
       }
     };
   }, [userName]);
-  
+
   // Ref for search input focusing
   const searchInputRef = useRef<any>(null);
 
   // Safe haptics function
-  const triggerHaptic = useCallback((style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) => {
-    if (!enableHaptics) return;
-    
-    try {
-      Haptics.impactAsync(style).catch(error => {
-        console.warn('Haptic feedback failed:', error);
-      });
-    } catch (error) {
-      console.warn('Haptic feedback error:', error);
-    }
-  }, [enableHaptics]);
+  const triggerHaptic = useCallback(
+    (
+      style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light
+    ) => {
+      if (!enableHaptics) return;
+
+      try {
+        Haptics.impactAsync(style).catch(() => {
+          // Haptic feedback failed
+        });
+      } catch {
+        // Haptic feedback error
+      }
+    },
+    [enableHaptics]
+  );
 
   // Filter categories with error handling
   const filterCategories = [
-    { id: 'all', label: 'All', color: '#ff4444', icon: <RestaurantIcon size={14} color="#ff4444" /> },
-    { id: 'vegan', label: 'Vegan', color: '#00cc88', icon: <VeganIcon size={14} color="#00cc88" /> },
-    { id: 'glutenfree', label: 'Gluten Free', color: '#ffaa00', icon: <GlutenFreeIcon size={14} color="#ffaa00" /> },
-    { id: 'spicy', label: 'Spicy', color: '#ff3366', icon: <SpicyIcon size={14} color="#ff3366" /> },
-    { id: 'healthy', label: 'Healthy', color: '#00dd99', icon: <VeganIcon size={14} color="#00dd99" /> },
-    { id: 'fast', label: 'Fast Delivery', color: '#4488ff', icon: <LinkIcon size={14} color="#4488ff" /> },
-    { id: 'budget', label: 'Under £15', color: '#ff6688', icon: <RestaurantIcon size={14} color="#ff6688" /> }
+    {
+      id: "all",
+      label: "All",
+      color: "#ff4444",
+      icon: <RestaurantIcon size={14} color="#ff4444" />,
+    },
+    {
+      id: "vegan",
+      label: "Vegan",
+      color: "#00cc88",
+      icon: <VeganIcon size={14} color="#00cc88" />,
+    },
+    {
+      id: "glutenfree",
+      label: "Gluten Free",
+      color: "#ffaa00",
+      icon: <GlutenFreeIcon size={14} color="#ffaa00" />,
+    },
+    {
+      id: "spicy",
+      label: "Spicy",
+      color: "#ff3366",
+      icon: <SpicyIcon size={14} color="#ff3366" />,
+    },
+    {
+      id: "healthy",
+      label: "Healthy",
+      color: "#00dd99",
+      icon: <VeganIcon size={14} color="#00dd99" />,
+    },
+    {
+      id: "fast",
+      label: "Fast Delivery",
+      color: "#4488ff",
+      icon: <LinkIcon size={14} color="#4488ff" />,
+    },
+    {
+      id: "budget",
+      label: "Under £15",
+      color: "#ff6688",
+      icon: <RestaurantIcon size={14} color="#ff6688" />,
+    },
   ];
 
   // Search filter categories (more specific for search)
   const searchFilterCategories = [
-    { id: 'all', label: 'All', color: '#ef4444' },
-    { id: 'meals', label: 'Meals', color: '#ff6b35' },
-    { id: 'kitchens', label: 'Kitchens', color: '#4f46e5' },
-    { id: 'cuisines', label: 'Cuisines', color: '#059669' },
-    { id: 'ingredients', label: 'Ingredients', color: '#dc2626' },
-    { id: 'dietary', label: 'Dietary', color: '#7c3aed' }
+    { id: "all", label: "All", color: "#ef4444" },
+    { id: "meals", label: "Meals", color: "#ff6b35" },
+    { id: "kitchens", label: "Kitchens", color: "#4f46e5" },
+    { id: "cuisines", label: "Cuisines", color: "#059669" },
+    { id: "ingredients", label: "Ingredients", color: "#dc2626" },
+    { id: "dietary", label: "Dietary", color: "#7c3aed" },
   ];
 
-  const handleFilterPress = useCallback((filterId: string) => {
-    if (!filterId) return;
-    
-    triggerHaptic();
-    setActiveFilter(filterId);
-  }, [triggerHaptic]);
+  const handleFilterPress = useCallback(
+    (filterId: string) => {
+      if (!filterId) return;
 
-  const handleSearchFilterPress = useCallback((filterId: string) => {
-    if (!filterId) return;
-    
-    triggerHaptic();
-    setActiveSearchFilter(filterId);
-  }, [triggerHaptic]);
-  
+      triggerHaptic();
+      setActiveFilter(filterId);
+    },
+    [triggerHaptic]
+  );
+
+  const handleSearchFilterPress = useCallback(
+    (filterId: string) => {
+      if (!filterId) return;
+
+      triggerHaptic();
+      setActiveSearchFilter(filterId);
+    },
+    [triggerHaptic]
+  );
+
   // Smooth spring animation to snap point
-  const animateToSnapPoint = useCallback((snapPoint: SnapPoint, velocity = 0) => {
-    'worklet';
-    
-    gestureState.value = 'settling';
-    currentSnapPoint.value = snapPoint;
-    lastSnapPoint.value = snapPoint;
-    
-    const springConfig = {
-      ...SPRING_CONFIG,
-      velocity: velocity * 0.3, // Dampen velocity for smoother animation
-    };
-    
-    drawerHeight.value = withSpring(snapPoint, springConfig, (finished) => {
-      if (finished) {
-        gestureState.value = 'idle';
-      }
-    });
-  }, [gestureState, currentSnapPoint, lastSnapPoint, drawerHeight]);
+  const animateToSnapPoint = useCallback(
+    (snapPoint: SnapPoint, velocity = 0) => {
+      "worklet";
+
+      gestureState.value = "settling";
+      currentSnapPoint.value = snapPoint;
+      lastSnapPoint.value = snapPoint;
+
+      const springConfig = {
+        ...SPRING_CONFIG,
+        velocity: velocity * 0.3, // Dampen velocity for smoother animation
+      };
+
+      drawerHeight.value = withSpring(snapPoint, springConfig, (finished) => {
+        if (finished) {
+          gestureState.value = "idle";
+        }
+      });
+    },
+    [gestureState, currentSnapPoint, lastSnapPoint, drawerHeight]
+  );
 
   // Intelligent snap point calculation
-  const calculateSnapPoint = useCallback((currentHeight: number, velocityY: number, gestureDistance: number) => {
-    'worklet';
-    
-    const hasSignificantVelocity = Math.abs(velocityY) > VELOCITY_THRESHOLD;
-    const hasSignificantDistance = Math.abs(gestureDistance) > GESTURE_THRESHOLD;
-    
-    // If gesture is too small, stay at current snap point
-    if (!hasSignificantVelocity && !hasSignificantDistance) {
-      return lastSnapPoint.value;
-    }
-    
-    // Velocity-based snapping for quick gestures
-    if (hasSignificantVelocity) {
-      if (velocityY > 0) {
-        // Swiping down (making drawer smaller) - can only go to collapsed
+  const calculateSnapPoint = useCallback(
+    (currentHeight: number, velocityY: number, gestureDistance: number) => {
+      "worklet";
+
+      const hasSignificantVelocity = Math.abs(velocityY) > VELOCITY_THRESHOLD;
+      const hasSignificantDistance =
+        Math.abs(gestureDistance) > GESTURE_THRESHOLD;
+
+      // If gesture is too small, stay at current snap point
+      if (!hasSignificantVelocity && !hasSignificantDistance) {
+        return lastSnapPoint.value;
+      }
+
+      // Velocity-based snapping for quick gestures
+      if (hasSignificantVelocity) {
+        if (velocityY > 0) {
+          // Swiping down (making drawer smaller) - can only go to collapsed
+          return SNAP_POINTS.COLLAPSED;
+        } else {
+          // Swiping up (making drawer larger) - go to expanded
+          return SNAP_POINTS.EXPANDED;
+        }
+      }
+
+      // Position-based snapping for slow drags
+      const midPoint = (SNAP_POINTS.COLLAPSED + SNAP_POINTS.EXPANDED) / 2;
+
+      if (currentHeight < midPoint) {
         return SNAP_POINTS.COLLAPSED;
       } else {
-        // Swiping up (making drawer larger) - go to expanded
         return SNAP_POINTS.EXPANDED;
       }
-    }
-    
-    // Position-based snapping for slow drags
-    const midPoint = (SNAP_POINTS.COLLAPSED + SNAP_POINTS.EXPANDED) / 2;
-    
-    if (currentHeight < midPoint) {
-      return SNAP_POINTS.COLLAPSED;
-    } else {
-      return SNAP_POINTS.EXPANDED;
-    }
-  }, [lastSnapPoint.value]);
+    },
+    [lastSnapPoint.value]
+  );
 
   // Gesture handler with proper state management
   const panGesture = Gesture.Pan()
     .minDistance(10)
     .activeOffsetY([-10, 10])
     .onStart((event) => {
-      'worklet';
-      gestureState.value = 'dragging';
+      "worklet";
+      gestureState.value = "dragging";
       startHeight.value = drawerHeight.value;
       startSnapPoint.value = currentSnapPoint.value;
       initialTouchY.value = event.absoluteY;
@@ -555,32 +703,32 @@ const handleSharedOrderingNavigate = (): void => {
       wasSwipeGesture.value = false;
     })
     .onUpdate((event) => {
-      'worklet';
+      "worklet";
       // Check if this is a swipe gesture (significant movement)
       const gestureDistance = Math.abs(event.translationY);
       if (gestureDistance > 10) {
         wasSwipeGesture.value = true;
       }
-      
+
       // Convert pan gesture to height change (inverted because dragging up increases height)
       let newHeight = startHeight.value - event.translationY;
-      
+
       // Apply rubber band effect at boundaries
       if (newHeight < SNAP_POINTS.COLLAPSED) {
         // Strong resistance when trying to go below collapsed state
         const excess = SNAP_POINTS.COLLAPSED - newHeight;
         const resistance = Math.min(excess / 50, 0.9); // Stronger resistance
-        newHeight = SNAP_POINTS.COLLAPSED - (excess * (1 - resistance));
+        newHeight = SNAP_POINTS.COLLAPSED - excess * (1 - resistance);
       } else if (newHeight > SNAP_POINTS.EXPANDED) {
         // Resistance when trying to expand beyond max
         const excess = newHeight - SNAP_POINTS.EXPANDED;
         const resistance = Math.min(excess / 100, 0.8);
-        newHeight = SNAP_POINTS.EXPANDED + (excess * (1 - resistance));
+        newHeight = SNAP_POINTS.EXPANDED + excess * (1 - resistance);
       }
-      
+
       // Ensure minimum height is always collapsed height
       drawerHeight.value = Math.max(SNAP_POINTS.COLLAPSED, newHeight);
-      
+
       // Update current snap point for smooth interpolations
       if (newHeight <= SNAP_POINTS.COLLAPSED + 50) {
         currentSnapPoint.value = SNAP_POINTS.COLLAPSED;
@@ -589,12 +737,20 @@ const handleSharedOrderingNavigate = (): void => {
       }
     })
     .onEnd((event) => {
-      'worklet';
+      "worklet";
       const gestureDistance = Math.abs(event.absoluteY - initialTouchY.value);
-      const targetSnapPoint = calculateSnapPoint(drawerHeight.value, event.velocityY, gestureDistance);
-      
+      const targetSnapPoint = calculateSnapPoint(
+        drawerHeight.value,
+        event.velocityY,
+        gestureDistance
+      );
+
       // If expanding to full height via swipe, don't focus input
-      if (targetSnapPoint === SNAP_POINTS.EXPANDED && startSnapPoint.value === SNAP_POINTS.COLLAPSED && wasSwipeGesture.value) {
+      if (
+        targetSnapPoint === SNAP_POINTS.EXPANDED &&
+        startSnapPoint.value === SNAP_POINTS.COLLAPSED &&
+        wasSwipeGesture.value
+      ) {
         // This was a swipe gesture - expand without focusing
         animateToSnapPoint(targetSnapPoint, -event.velocityY);
       } else {
@@ -602,20 +758,18 @@ const handleSharedOrderingNavigate = (): void => {
       }
     })
     .onFinalize(() => {
-      'worklet';
+      "worklet";
       // Return to last known good state if gesture fails
-      if (gestureState.value === 'dragging') {
+      if (gestureState.value === "dragging") {
         animateToSnapPoint(startSnapPoint.value);
       }
     });
 
-
-
   // Main container style - positioned at bottom with dynamic height
   const containerStyle = useAnimatedStyle(() => {
-    'worklet';
+    "worklet";
     const finalHeight = Math.max(SNAP_POINTS.COLLAPSED, drawerHeight.value);
-    
+
     return {
       height: finalHeight,
     };
@@ -623,17 +777,17 @@ const handleSharedOrderingNavigate = (): void => {
 
   // Background color style - always white with red stain
   const backgroundColorStyle = useAnimatedStyle(() => {
-    'worklet';
+    "worklet";
     const progress = interpolate(
       drawerHeight.value,
       [SNAP_POINTS.COLLAPSED, SNAP_POINTS.EXPANDED],
       [0, 1],
       Extrapolate.CLAMP
     );
-    
+
     // More transparent white background for stronger blur effect
     const alpha = interpolate(progress, [0, 1], [0.7, 0.8], Extrapolate.CLAMP);
-    
+
     return {
       backgroundColor: `rgba(255, 255, 255, ${alpha})`,
     };
@@ -643,7 +797,7 @@ const handleSharedOrderingNavigate = (): void => {
   const isCollapsedCondition = useDerivedValue(() => {
     return drawerHeight.value <= SNAP_POINTS.COLLAPSED + 20;
   });
-  
+
   const isExpandedCondition = useDerivedValue(() => {
     return drawerHeight.value > SNAP_POINTS.COLLAPSED + 50;
   });
@@ -661,7 +815,11 @@ const handleSharedOrderingNavigate = (): void => {
 
   // Update state from derived values
   useDerivedValue(() => {
-    const intensity = currentGestureState.value === 'dragging' || currentGestureState.value === 'settling' ? 120 : 80;
+    const intensity =
+      currentGestureState.value === "dragging" ||
+      currentGestureState.value === "settling"
+        ? 120
+        : 80;
     runOnJS(setBlurIntensityState)(intensity);
   });
 
@@ -681,12 +839,12 @@ const handleSharedOrderingNavigate = (): void => {
 
   // Backdrop with proper opacity and interaction blocking
   const backdropStyle = useAnimatedStyle(() => {
-    'worklet';
+    "worklet";
     // Only show backdrop when drawer is significantly expanded or search is focused
     const isExpanded = drawerHeight.value > SNAP_POINTS.COLLAPSED + 50;
     const shouldShowBackdrop = isExpanded || isSearchFocusedState;
-    
-    const opacity = shouldShowBackdrop 
+
+    const opacity = shouldShowBackdrop
       ? interpolate(
           drawerHeight.value,
           [SNAP_POINTS.COLLAPSED + 50, SNAP_POINTS.EXPANDED],
@@ -697,13 +855,13 @@ const handleSharedOrderingNavigate = (): void => {
 
     return {
       opacity,
-      pointerEvents: shouldShowBackdrop ? 'auto' : 'none',
+      pointerEvents: shouldShowBackdrop ? "auto" : "none",
     };
   });
 
   // Content opacity for smooth reveal
   const contentOpacityStyle = useAnimatedStyle(() => {
-    'worklet';
+    "worklet";
     const opacity = interpolate(
       drawerHeight.value,
       [SNAP_POINTS.COLLAPSED, SNAP_POINTS.COLLAPSED + 30, SNAP_POINTS.EXPANDED],
@@ -716,7 +874,7 @@ const handleSharedOrderingNavigate = (): void => {
 
   // Search input scale for micro-interaction
   const searchInputStyle = useAnimatedStyle(() => {
-    'worklet';
+    "worklet";
     const scale = interpolate(
       drawerHeight.value,
       [SNAP_POINTS.COLLAPSED, SNAP_POINTS.EXPANDED],
@@ -731,9 +889,9 @@ const handleSharedOrderingNavigate = (): void => {
 
   // Search area interaction style
   const searchInteractionStyle = useAnimatedStyle(() => {
-    'worklet';
+    "worklet";
     const isCollapsed = drawerHeight.value <= SNAP_POINTS.COLLAPSED + 20;
-    
+
     return {
       opacity: isCollapsed ? 0.8 : 1,
     };
@@ -741,36 +899,37 @@ const handleSharedOrderingNavigate = (): void => {
 
   // Collapsed search input style
   const collapsedSearchStyle = useAnimatedStyle(() => {
-    'worklet';
+    "worklet";
     return {
       // Only show when collapsed and not in search focus
       opacity: isCollapsedCondition.value ? 1 : 0,
-      height: isCollapsedCondition.value ? 'auto' : 0,
-      overflow: 'hidden',
+      height: isCollapsedCondition.value ? "auto" : 0,
+      overflow: "hidden",
     };
   });
 
   // Expanded search input pointer events style
   const expandedSearchPointerStyle = useAnimatedStyle(() => {
-    'worklet';
+    "worklet";
     return {
       // Disable pointer events on SearchArea when collapsed
-      pointerEvents: currentSnapPointValue.value === SNAP_POINTS.COLLAPSED ? 'none' : 'auto',
+      pointerEvents:
+        currentSnapPointValue.value === SNAP_POINTS.COLLAPSED ? "none" : "auto",
     };
   });
 
   // Handle visual feedback
   const handleStyle = useAnimatedStyle(() => {
-    'worklet';
-    const isDragging = gestureState.value === 'dragging';
-    
+    "worklet";
+    const isDragging = gestureState.value === "dragging";
+
     const width = interpolate(
       drawerHeight.value,
       [SNAP_POINTS.COLLAPSED, SNAP_POINTS.EXPANDED],
       [36, 48],
       Extrapolate.CLAMP
     );
-    
+
     const opacity = isDragging ? 0.8 : 1;
 
     // Handle color transition from Cribnosh red stain to current color
@@ -780,7 +939,7 @@ const handleSharedOrderingNavigate = (): void => {
       [0, 1],
       Extrapolate.CLAMP
     );
-    
+
     const red = interpolate(progress, [0, 1], [239, 74], Extrapolate.CLAMP);
     const green = interpolate(progress, [0, 1], [68, 93], Extrapolate.CLAMP);
     const blue = interpolate(progress, [0, 1], [68, 79], Extrapolate.CLAMP);
@@ -795,7 +954,7 @@ const handleSharedOrderingNavigate = (): void => {
   // Handle tap to expand/collapse (handle area - no focus)
   const handleTap = useCallback(() => {
     const current = currentSnapPointValue.value;
-    
+
     if (current === SNAP_POINTS.COLLAPSED) {
       // Expand without focusing input (handle tap)
       animateToSnapPoint(SNAP_POINTS.EXPANDED);
@@ -826,76 +985,312 @@ const handleSharedOrderingNavigate = (): void => {
   // Handle search blur/cancel
   const handleSearchBlur = useCallback(() => {
     setIsSearchFocused(false);
-    setSearchQuery('');
+    setSearchQuery("");
   }, []);
 
-  // Mock search suggestions - replace with real data
-  const searchSuggestions = useMemo(() => [
-    { id: 1, text: 'Pizza', category: 'Italian', kitchen: 'Mario\'s Kitchen', time: '25 min', distance: '0.8 mi', type: 'meals' },
-    { id: 2, text: 'Sushi', category: 'Japanese', kitchen: 'Tokyo Express', time: '30 min', distance: '1.2 mi', type: 'meals' },
-    { id: 3, text: 'Burger', category: 'American', kitchen: 'Street Grill', time: '20 min', distance: '0.5 mi', type: 'meals' },
-    { id: 4, text: 'Tacos', category: 'Mexican', kitchen: 'Casa Miguel', time: '15 min', distance: '0.3 mi', type: 'meals' },
-    { id: 5, text: 'Pad Thai', category: 'Thai', kitchen: 'Bangkok Bites', time: '35 min', distance: '1.5 mi', type: 'meals' },
-    { id: 6, text: 'Mario\'s Kitchen', category: 'Italian', rating: '4.8', time: '25 min', distance: '0.8 mi', type: 'kitchens' },
-    { id: 7, text: 'Tokyo Express', category: 'Japanese', rating: '4.6', time: '30 min', distance: '1.2 mi', type: 'kitchens' },
-    { id: 8, text: 'Street Grill', category: 'American', rating: '4.4', time: '20 min', distance: '0.5 mi', type: 'kitchens' },
-  ], []);
+  // Transform API search results to component format
+  const transformSearchResults = useCallback((apiResults: SearchResult[]) => {
+    return apiResults.map((result) => ({
+      id: result.id,
+      text: result.title,
+      category:
+        result.type === "chef"
+          ? "Kitchen"
+          : result.type === "dish"
+            ? "Meal"
+            : "Cuisine",
+      kitchen: result.type === "chef" ? result.title : "Various Kitchens",
+      time: result.delivery_time || "25 min",
+      distance: result.distance || "1.0 mi",
+      type:
+        result.type === "chef"
+          ? "kitchens"
+          : result.type === "dish"
+            ? "meals"
+            : "cuisines",
+      rating: result.rating ? result.rating.toString() : "4.5",
+      relevance_score: result.relevance_score,
+    }));
+  }, []);
+
+  // Transform chef search results to component format
+  const transformChefResults = useCallback((chefs: SearchChef[]) => {
+    return chefs.map((chef) => ({
+      id: chef._id,
+      text: chef.name,
+      category: chef.cuisines.join(", "),
+      kitchen: chef.name,
+      time: "25 min", // Default delivery time
+      distance: chef.location || "Nearby",
+      type: "kitchens",
+      rating: chef.rating ? chef.rating.toString() : "4.5",
+      bio: chef.bio,
+      specialties: chef.specialties,
+      is_verified: chef.is_verified,
+      is_available: chef.is_available,
+      experience_years: chef.experience_years,
+      price_range: chef.price_range,
+    }));
+  }, []);
+
+  // Transform search suggestions to component format
+  const transformSuggestionResults = useCallback(
+    (suggestions: SearchSuggestion[]) => {
+      return suggestions.map((suggestion) => ({
+        id: suggestion.text,
+        text: suggestion.text,
+        category: suggestion.category || "General",
+        kitchen: suggestion.chef_name || "Various Kitchens",
+        time: "25 min",
+        distance: "Nearby",
+        type:
+          suggestion.type === "chef"
+            ? "kitchens"
+            : suggestion.type === "dish"
+              ? "meals"
+              : "cuisines",
+        rating: suggestion.rating ? suggestion.rating.toString() : "4.5",
+        confidence: suggestion.confidence,
+        popularity_score: suggestion.popularity_score,
+        is_trending: suggestion.is_trending,
+      }));
+    },
+    []
+  );
+
+  // Transform trending results to component format
+  const transformTrendingResults = useCallback((trending: TrendingItem[]) => {
+    return trending.map((item) => ({
+      id: item.id,
+      text: item.name,
+      category: item.cuisine || "Popular",
+      kitchen: item.chef_name || "Various Kitchens",
+      time: "25 min",
+      distance: "Nearby",
+      type:
+        item.type === "chef"
+          ? "kitchens"
+          : item.type === "dish"
+            ? "meals"
+            : "cuisines",
+      rating: item.rating ? item.rating.toString() : "4.5",
+      popularity_score: item.popularity_score,
+      trend_direction: item.trend_direction,
+      search_count: item.search_count,
+    }));
+  }, []);
+
+  // Process search suggestions from multiple API sources or fallback to mock data
+  const searchSuggestions = useMemo(() => {
+    let apiResults: any[] = [];
+
+    // Priority 1: Use search suggestions API if available
+    if (
+      suggestionsData?.success &&
+      suggestionsData.data?.suggestions &&
+      isAuthenticated
+    ) {
+      apiResults = transformSuggestionResults(suggestionsData.data.suggestions);
+    }
+    // Priority 2: Use chef search API if searching for chefs specifically
+    else if (
+      chefSearchData?.success &&
+      chefSearchData.data?.chefs &&
+      isAuthenticated &&
+      activeSearchFilter === "chefs"
+    ) {
+      apiResults = transformChefResults(chefSearchData.data.chefs);
+    }
+    // Priority 3: Use general search API if available
+    else if (searchData?.success && searchData.data && isAuthenticated) {
+      apiResults = transformSearchResults(searchData.data);
+    }
+    // Priority 4: Use trending search API if no query and authenticated
+    else if (
+      trendingData?.success &&
+      trendingData.data?.trending &&
+      isAuthenticated &&
+      !searchQuery.trim()
+    ) {
+      apiResults = transformTrendingResults(trendingData.data.trending);
+    }
+
+    // If we have API results, return them
+    if (apiResults.length > 0) {
+      // Show success toast when search results are loaded
+      showInfo(`Found ${apiResults.length} results`, "Search Results");
+      return apiResults;
+    }
+
+    // Fallback to mock data when not authenticated or no API results
+    return [
+      {
+        id: 1,
+        text: "Pizza",
+        category: "Italian",
+        kitchen: "Mario's Kitchen",
+        time: "25 min",
+        distance: "0.8 mi",
+        type: "meals",
+      },
+      {
+        id: 2,
+        text: "Sushi",
+        category: "Japanese",
+        kitchen: "Tokyo Express",
+        time: "30 min",
+        distance: "1.2 mi",
+        type: "meals",
+      },
+      {
+        id: 3,
+        text: "Burger",
+        category: "American",
+        kitchen: "Street Grill",
+        time: "20 min",
+        distance: "0.5 mi",
+        type: "meals",
+      },
+      {
+        id: 4,
+        text: "Tacos",
+        category: "Mexican",
+        kitchen: "Casa Miguel",
+        time: "15 min",
+        distance: "0.3 mi",
+        type: "meals",
+      },
+      {
+        id: 5,
+        text: "Pad Thai",
+        category: "Thai",
+        kitchen: "Bangkok Bites",
+        time: "35 min",
+        distance: "1.5 mi",
+        type: "meals",
+      },
+      {
+        id: 6,
+        text: "Mario's Kitchen",
+        category: "Italian",
+        rating: "4.8",
+        time: "25 min",
+        distance: "0.8 mi",
+        type: "kitchens",
+      },
+      {
+        id: 7,
+        text: "Tokyo Express",
+        category: "Japanese",
+        rating: "4.6",
+        time: "30 min",
+        distance: "1.2 mi",
+        type: "kitchens",
+      },
+      {
+        id: 8,
+        text: "Street Grill",
+        category: "American",
+        rating: "4.4",
+        time: "20 min",
+        distance: "0.5 mi",
+        type: "kitchens",
+      },
+    ];
+  }, [
+    searchData,
+    chefSearchData,
+    suggestionsData,
+    trendingData,
+    isAuthenticated,
+    searchQuery,
+    activeSearchFilter,
+    transformSearchResults,
+    transformChefResults,
+    transformSuggestionResults,
+    transformTrendingResults,
+  ]);
 
   // Filter suggestions based on active search filter with error handling
   const filteredSuggestions = useMemo(() => {
     try {
-      const filtered = searchSuggestions.filter(suggestion => {
+      const filtered = searchSuggestions.filter((suggestion) => {
         if (!suggestion || !suggestion.type) return false;
-        if (activeSearchFilter === 'all') return true;
+        if (activeSearchFilter === "all") return true;
         return suggestion.type === activeSearchFilter;
       });
-      
+
       // Limit suggestions to prevent performance issues
       return filtered.slice(0, maxSuggestions);
-    } catch (error) {
-      console.warn('Error filtering suggestions:', error);
+    } catch {
       return [];
     }
   }, [searchSuggestions, activeSearchFilter, maxSuggestions]);
 
   // Safe search submission handler
-  const handleSearchSubmit = useCallback((query: string) => {
-    if (!query || !query.trim()) return;
-    
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      if (onSearchSubmit) {
-        onSearchSubmit(query.trim(), activeSearchFilter);
-      } else {
-        console.log('Searching for:', query.trim());
+  const handleSearchSubmit = useCallback(
+    (query: string) => {
+      if (!query || !query.trim()) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        if (onSearchSubmit) {
+          onSearchSubmit(query.trim(), activeSearchFilter);
+        } else {
+          // Search functionality would be implemented here
+        }
+      } catch {
+        setError("Search failed. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Search submission error:', error);
-      setError('Search failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+    },
+    [onSearchSubmit, activeSearchFilter]
+  );
+
+  // Handle search API errors
+  useEffect(() => {
+    if (searchError && isAuthenticated) {
+      showError("Search failed", "Please try again");
     }
-  }, [onSearchSubmit, activeSearchFilter]);
+    if (chefSearchError && isAuthenticated) {
+      showError("Chef search failed", "Please try again");
+    }
+    if (suggestionsError && isAuthenticated) {
+      showError("Search suggestions failed", "Please try again");
+    }
+    if (trendingError && isAuthenticated) {
+      showError("Trending search failed", "Please try again");
+    }
+  }, [
+    searchError,
+    chefSearchError,
+    suggestionsError,
+    trendingError,
+    isAuthenticated,
+  ]);
 
   // Safe suggestion selection handler
-  const handleSuggestionSelect = useCallback((suggestion: any) => {
-    if (!suggestion || !suggestion.text) return;
-    
-    try {
-      setSearchQuery(suggestion.text);
-      
-      if (onSuggestionSelect) {
-        onSuggestionSelect(suggestion);
-      } else {
-        console.log('Selected:', suggestion.text);
+  const handleSuggestionSelect = useCallback(
+    (suggestion: any) => {
+      if (!suggestion || !suggestion.text) return;
+
+      try {
+        setSearchQuery(suggestion.text);
+
+        if (onSuggestionSelect) {
+          onSuggestionSelect(suggestion);
+        } else {
+          // Suggestion selection would be implemented here
+        }
+      } catch {
+        setError("Failed to select suggestion. Please try again.");
       }
-    } catch (error) {
-      console.error('Suggestion selection error:', error);
-      setError('Failed to select suggestion. Please try again.');
-    }
-  }, [onSuggestionSelect]);
+    },
+    [onSuggestionSelect]
+  );
 
   // Update header message when drawer expands
   const updateHeaderMessage = useCallback(() => {
@@ -904,16 +1299,19 @@ const handleSharedOrderingNavigate = (): void => {
       // Ensure subtitle is always present
       setHeaderMessage({
         ...message,
-        subMessage: message.subMessage || ""
+        subMessage: message.subMessage || "",
       });
-    } catch (error) {
-      console.warn('Failed to update header message:', error);
+    } catch {
+      // Failed to update header message
     }
   }, [userName]);
 
   // Update header when drawer expands to show fresh content
   useEffect(() => {
-    if (currentSnapPointValue.value === SNAP_POINTS.EXPANDED && !isSearchFocused) {
+    if (
+      currentSnapPointValue.value === SNAP_POINTS.EXPANDED &&
+      !isSearchFocused
+    ) {
       // Small delay to ensure smooth animation
       const timer = setTimeout(updateHeaderMessage, 100);
       return () => clearTimeout(timer);
@@ -927,23 +1325,34 @@ const handleSharedOrderingNavigate = (): void => {
       } else {
         animateToSnapPoint(SNAP_POINTS.COLLAPSED);
       }
-    } catch (error) {
-      console.error('Backdrop press error:', error);
+    } catch {
+      // Backdrop press error
     }
   }, [animateToSnapPoint, isSearchFocused, handleSearchBlur]);
 
   // Safe image loading component
   const SafeImage = ({ source, style, ...props }: any) => {
     const [imageError, setImageError] = useState(false);
-    
+
     if (imageError) {
       return (
-        <View style={[style, { backgroundColor: 'rgba(255, 255, 255, 0.1)', justifyContent: 'center', alignItems: 'center' }]}>
-          <Text style={{ color: '#8a9a8f', fontSize: 12 }}>Image unavailable</Text>
+        <View
+          style={[
+            style,
+            {
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+              justifyContent: "center",
+              alignItems: "center",
+            },
+          ]}
+        >
+          <Text style={{ color: "#8a9a8f", fontSize: 12 }}>
+            Image unavailable
+          </Text>
         </View>
       );
     }
-    
+
     return (
       <Image
         source={source}
@@ -959,46 +1368,57 @@ const handleSharedOrderingNavigate = (): void => {
     const announceDrawerState = () => {
       try {
         const isExpanded = currentSnapPointValue.value === SNAP_POINTS.EXPANDED;
-        const announcement = isExpanded ? 'Search drawer expanded' : 'Search drawer collapsed';
+        const announcement = isExpanded
+          ? "Search drawer expanded"
+          : "Search drawer collapsed";
         AccessibilityInfo.announceForAccessibility(announcement);
-      } catch (error) {
-        console.warn('Accessibility announcement failed:', error);
+      } catch {
+        // Accessibility announcement failed
       }
     };
 
     // Announce state changes for screen readers
     if (isSearchFocused) {
-      AccessibilityInfo.announceForAccessibility('Search mode activated');
+      AccessibilityInfo.announceForAccessibility("Search mode activated");
     }
   }, [isSearchFocused, currentSnapPointValue.value]);
 
   // Error boundary for the entire component
   if (error) {
     return (
-      <View style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: 16,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        zIndex: 9999,
-      }}>
-        <Text style={{ color: '#ef4444', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          padding: 16,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          zIndex: 9999,
+        }}
+      >
+        <Text
+          style={{
+            color: "#ef4444",
+            fontSize: 14,
+            textAlign: "center",
+            marginBottom: 8,
+          }}
+        >
           {error}
         </Text>
         <TouchableOpacity
           style={{
-            backgroundColor: '#ef4444',
+            backgroundColor: "#ef4444",
             padding: 8,
             borderRadius: 8,
-            alignItems: 'center',
+            alignItems: "center",
           }}
           onPress={() => setError(null)}
         >
-          <Text style={{ color: '#ffffff', fontSize: 12 }}>Dismiss</Text>
+          <Text style={{ color: "#ffffff", fontSize: 12 }}>Dismiss</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1008,22 +1428,22 @@ const handleSharedOrderingNavigate = (): void => {
     <>
       {/* Backdrop - Only show when expanded or search focused */}
       {isSearchFocused || isExpandedCondition.value ? (
-        <Animated.View 
+        <Animated.View
           style={[
             backdropStyle,
             {
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 1)',
+              backgroundColor: "rgba(0, 0, 0, 1)",
               opacity: isSearchFocused ? 0.8 : undefined, // Stronger backdrop when searching
-            }
+            },
           ]}
-          pointerEvents={isSearchFocused ? 'auto' : 'none'}
+          pointerEvents={isSearchFocused ? "auto" : "none"}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={{ flex: 1 }}
             onPress={handleBackdropPress}
             activeOpacity={1}
@@ -1037,20 +1457,20 @@ const handleSharedOrderingNavigate = (): void => {
           style={[
             containerStyle,
             {
-              position: 'absolute',
+              position: "absolute",
               bottom: 0,
               left: 0,
               right: 0,
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
-              shadowColor: '#000',
+              shadowColor: "#000",
               shadowOffset: { width: 0, height: -4 },
               shadowOpacity: 0.3,
               shadowRadius: 16,
               elevation: 20,
-              overflow: 'hidden', // Ensure content doesn't spill out
+              overflow: "hidden", // Ensure content doesn't spill out
               zIndex: 9999, // Lower than NoshHeavenPlayer (99999) but above other content
-            }
+            },
           ]}
         >
           <Animated.View
@@ -1060,26 +1480,26 @@ const handleSharedOrderingNavigate = (): void => {
                 borderTopLeftRadius: 20,
                 borderTopRightRadius: 20,
                 borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderColor: "rgba(255, 255, 255, 0.2)",
                 borderBottomWidth: 0,
-                position: 'relative',
+                position: "relative",
               },
-              backgroundColorStyle
+              backgroundColorStyle,
             ]}
           >
             {/* Dynamic Blur Overlay */}
             <Animated.View
               style={[
                 {
-                  position: 'absolute',
+                  position: "absolute",
                   top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
                   borderTopLeftRadius: 20,
                   borderTopRightRadius: 20,
-                  overflow: 'hidden',
-                }
+                  overflow: "hidden",
+                },
               ]}
             >
               <BlurView
@@ -1096,688 +1516,762 @@ const handleSharedOrderingNavigate = (): void => {
             <Animated.View
               style={[
                 {
-                  position: 'absolute',
+                  position: "absolute",
                   top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
                   borderTopLeftRadius: 20,
                   borderTopRightRadius: 20,
-                  backgroundColor: 'rgba(239, 68, 68, 0.15)', // Cribnosh red stain
+                  backgroundColor: "rgba(239, 68, 68, 0.15)", // Cribnosh red stain
                   opacity: interpolate(
                     drawerHeight.value,
                     [SNAP_POINTS.COLLAPSED, SNAP_POINTS.EXPANDED],
                     [0.7, 0.4],
                     Extrapolate.CLAMP
                   ),
-                }
+                },
               ]}
             />
-          {/* Handle Area - Hide when search is focused */}
-          {!isSearchFocused && (
-                      <TouchableOpacity 
-            onPress={handleTap}
-            style={{ 
-              alignItems: 'center',
-              paddingVertical: 16,
-              paddingHorizontal: 12,
-              minHeight: 48, // Better touch target
-            }}
-            activeOpacity={0.8}
-          >
-            <Animated.View 
-              style={[
-                handleStyle,
-                { 
-                  height: 4,
-                  borderRadius: 2,
-                }
-              ]} 
-            />
-          </TouchableOpacity>
-          )}
-
-          {/* Content Area - Always visible when drawer has height */}
-          <ScrollView 
-            style={{ 
-            paddingHorizontal: 12, 
-              flex: 1,
-            }}
-            contentContainerStyle={{
-            paddingBottom: 40, // Better spacing for home indicator
-            justifyContent: 'flex-start'
-            }}
-            showsVerticalScrollIndicator={false}
-            scrollEnabled={scrollEnabledState}
-          >
-            {/* Search Focus Mode - Only show when search is focused */}
-            {isSearchFocused ? (
-              <View style={{ flex: 1 }}>
-                {/* Handle Bar - Visible in search focus state */}
-                <TouchableOpacity 
-                  onPress={handleTap}
-                  style={{ 
-                    alignItems: 'center',
-                    paddingVertical: 8,
-                    paddingHorizontal: 0,
-                    marginBottom: 12,
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Animated.View 
-                    style={[
-                      handleStyle,
-                      { 
-                        height: 4,
-                        borderRadius: 2,
-                      }
-                    ]} 
-                  />
-                </TouchableOpacity>
-
-                {/* Search Input */}
-                <View style={{ marginBottom: 16 }}>
-                  <SearchArea 
-                    ref={searchInputRef}
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    returnKeyType="search"
-                    placeholder={searchPrompt.placeholder}
-                    onSubmitEditing={() => {
-                      handleSearchSubmit(searchQuery);
-                    }}
-                    autoFocus={true}
-                    editable={!isLoading}
-                  />
-                </View>
-
-                {/* Search Filter Chips */}
-                <View style={{ marginBottom: 16 }}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{
-                      paddingHorizontal: 0,
-                      gap: 10,
-                    }}
-                  >
-                    {searchFilterCategories.map((filter) => {
-                      const isActive = activeSearchFilter === filter.id;
-                      
-                      return (
-                        <TouchableOpacity
-                          key={filter.id}
-                          onPress={() => handleSearchFilterPress(filter.id)}
-                          style={{
-                            paddingHorizontal: 14,
-                            paddingVertical: 8,
-                            backgroundColor: isActive ? filter.color : 'rgba(255, 255, 255, 0.15)',
-                            borderRadius: 18,
-                            borderWidth: 1,
-                            borderColor: isActive ? filter.color : 'rgba(255, 255, 255, 0.25)',
-                            shadowColor: isActive ? filter.color : 'rgba(255, 255, 255, 0.3)',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: isActive ? 0.4 : 0.2,
-                            shadowRadius: 6,
-                            elevation: isActive ? 4 : 2,
-                            overflow: 'hidden',
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <BlurView
-                            intensity={isActive ? 40 : 60}
-                            tint="light"
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              borderRadius: 18,
-                              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                            }}
-                          />
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: isActive ? '700' : '500',
-                              color: isActive ? '#ffffff' : '#2a2a2a',
-                              letterSpacing: 0.2,
-                              textShadowColor: isActive ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.8)',
-                              textShadowOffset: { width: 0, height: 1 },
-                              textShadowRadius: 2,
-                            }}
-                          >
-                            {filter.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                {/* Search Results - Compact list */}
-                <View>
-                  {searchQuery.trim() ? (
-                    <Text style={{ 
-                      color: '#2a2a2a', 
-                      fontSize: 12,
-                      fontWeight: '700',
-                      marginBottom: 16,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      opacity: 0.8,
-                    }}>
-                      {filteredSuggestions.length} RESULTS FOR &quot;{searchQuery.toUpperCase()}&quot;
-                    </Text>
-                  ) : (
-                    <Text style={{ 
-                      color: '#2a2a2a', 
-                      fontSize: 12,
-                      fontWeight: '700',
-                      marginBottom: 16,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      opacity: 0.8,
-                    }}>
-                      POPULAR {activeSearchFilter.toUpperCase()}
-                    </Text>
-                  )}
-                  
-                  {filteredSuggestions.map((suggestion, index) => (
-                    <TouchableOpacity
-                      key={suggestion.id}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 14,
-                        paddingHorizontal: 12,
-                        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        borderRadius: 14,
-                        marginBottom: 8,
-                        borderWidth: 1,
-                        borderColor: 'rgba(255, 255, 255, 0.12)',
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.05,
-                        shadowRadius: 2,
-                        elevation: 1,
-                      }}
-                      onPress={() => {
-                        handleSuggestionSelect(suggestion);
-                      }}
-                      activeOpacity={0.85}
-                      disabled={isLoading}
-                    >
-                      {/* Compact Icon */}
-                      <View style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 12,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 2,
-                        elevation: 1,
-                      }}>
-                        {suggestion.type === 'kitchens' ? (
-                          <RestaurantIcon size={16} color="#8a9a8f" />
-                        ) : (
-                          <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                            <Path
-                              d="M12 2L13.09 8.26L16 7L14.5 12.5L19 10.5L16.5 16.5L22 15L18.5 20L12 22L5.5 20L2 15L7.5 16.5L5 10.5L9.5 12.5L8 7L10.91 8.26L12 2Z"
-                              fill="#8a9a8f"
-                            />
-                          </Svg>
-                        )}
-                      </View>
-
-                      {/* Compact Content */}
-                      <View style={{ flex: 1 }}>
-                        <Text style={{
-                          color: '#1a1a1a',
-                          fontSize: 15,
-                          fontWeight: '600',
-                          marginBottom: 3,
-                          letterSpacing: -0.2,
-                        }}>
-                          {suggestion.text}
-                        </Text>
-                        <Text style={{
-                          color: '#5a5a5a',
-                          fontSize: 12,
-                          fontWeight: '400',
-                          lineHeight: 16,
-                        }}>
-                          {suggestion.type === 'kitchens' 
-                            ? `${suggestion.category} • ${suggestion.rating}★ • ${suggestion.time}`
-                            : `${suggestion.category} • ${suggestion.kitchen} • ${suggestion.time}`
-                          }
-                        </Text>
-                      </View>
-
-                      {/* Compact Action Icon */}
-                      <View style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 14,
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginLeft: 8,
-                      }}>
-                        <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                          <Path
-                            d="M7 17L17 7M17 7H7M17 7V17"
-                            stroke="#8a9a8f"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </Svg>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-
-                  {/* No Results State */}
-                  {searchQuery.trim() && filteredSuggestions.length === 0 && (
-                    <View style={{
-                      alignItems: 'center',
-                      paddingVertical: 48,
-                      paddingHorizontal: 24,
-                    }}>
-                      <View style={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: 32,
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: 16,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 2,
-                      }}>
-                        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-                          <Path
-                            d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z"
-                            stroke="#8a9a8f"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </Svg>
-                      </View>
-                      <Text style={{
-                        color: '#2a2a2a',
-                        fontSize: 17,
-                        fontWeight: '600',
-                        marginBottom: 6,
-                        textAlign: 'center',
-                        letterSpacing: -0.2,
-                      }}>
-                        No results found
-                      </Text>
-                      <Text style={{
-                        color: '#6a6a6a',
-                        fontSize: 14,
-                        textAlign: 'center',
-                        lineHeight: 20,
-                        fontWeight: '400',
-                      }}>
-                        Try adjusting your search or{'\n'}browse different categories
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            ) : (
-              <>
-                {/* Normal Content - Show when not in search focus mode */}
-                
-                {/* Search Input - Visible when collapsed (above title) */}
-                <Animated.View 
-                  style={[
-                    searchInputStyle, 
-                    { marginBottom: 16, marginTop: 0 },
-                    collapsedSearchStyle
-                  ]}
-                >
-                  <TouchableOpacity 
-                    onPress={() => {
-                      if (currentSnapPointValue.value === SNAP_POINTS.COLLAPSED) {
-                        handleSearchTap();
-                      }
-                    }}
-                    activeOpacity={1}
-                    disabled={buttonDisabledState}
-                    style={{ flex: 1 }}
-                  >
-                    <Animated.View
-                      style={[
-                        searchInteractionStyle,
-                        expandedSearchPointerStyle
-                      ]}
-                    >
-                      <SearchArea 
-                        ref={searchInputRef}
-                        onSparklesPress={onOpenAIChat}
-                        placeholder={searchPrompt.placeholder}
-                        editable={false}
-                      />
-                    </Animated.View>
-                  </TouchableOpacity>
-                </Animated.View>
-
-                {/* Title Section - Only show when expanded */}
-            <Animated.View style={[{ marginBottom: 2 }, contentOpacityStyle]}>
-
-              <Text style={{ 
-                color: '#1a1a1a', 
-                fontSize: 32, 
-                fontWeight: '700',
-                letterSpacing: -0.5,
-                lineHeight: 36,
-                marginBottom: 10,
-              }}>
-                {headerMessage.mainMessage}
-              </Text>
-              <Text style={{ 
-                color: '#4a4a4a', 
-                fontSize: 15,
-                lineHeight: 19,
-                fontWeight: '400',
-              }}>
-                {headerMessage.subMessage}
-              </Text>
-            </Animated.View>
-
-                {/* Search Input - Visible when expanded (below title) */}
-                <Animated.View style={[searchInputStyle, { marginBottom: 16 }, contentOpacityStyle]}>
-              <TouchableOpacity 
-                    onPress={handleSearchFocus}
-                activeOpacity={1}
-                style={{ flex: 1 }}
+            {/* Handle Area - Hide when search is focused */}
+            {!isSearchFocused && (
+              <TouchableOpacity
+                onPress={handleTap}
+                style={{
+                  alignItems: "center",
+                  paddingVertical: 16,
+                  paddingHorizontal: 12,
+                  minHeight: 48, // Better touch target
+                }}
+                activeOpacity={0.8}
               >
                 <Animated.View
                   style={[
-                    searchInteractionStyle,
-                      ]}
-                    >
-                      <SearchArea 
-                        ref={searchInputRef}
-                        placeholder={searchPrompt.placeholder}
-                        editable={false}
-                        onSparklesPress={onOpenAIChat}
-                      />
-                </Animated.View>
+                    handleStyle,
+                    {
+                      height: 4,
+                      borderRadius: 2,
+                    },
+                  ]}
+                />
               </TouchableOpacity>
-            </Animated.View>
+            )}
 
-                {/* Filter Chips - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { marginBottom: 20 }]}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{
+            {/* Content Area - Always visible when drawer has height */}
+            <ScrollView
+              style={{
+                paddingHorizontal: 12,
+                flex: 1,
+              }}
+              contentContainerStyle={{
+                paddingBottom: 40, // Better spacing for home indicator
+                justifyContent: "flex-start",
+              }}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={scrollEnabledState}
+            >
+              {/* Search Focus Mode - Only show when search is focused */}
+              {isSearchFocused ? (
+                <View style={{ flex: 1 }}>
+                  {/* Handle Bar - Visible in search focus state */}
+                  <TouchableOpacity
+                    onPress={handleTap}
+                    style={{
+                      alignItems: "center",
+                      paddingVertical: 8,
                       paddingHorizontal: 0,
-                      gap: 6,
+                      marginBottom: 12,
                     }}
+                    activeOpacity={0.8}
                   >
-                    {filterCategories.map((filter) => {
-                      const isActive = activeFilter === filter.id;
-                      
-                      return (
-                        <TouchableOpacity
-                          key={filter.id}
-                          onPress={() => handleFilterPress(filter.id)}
-                          style={{
-                            borderRadius: 20,
-                            overflow: 'hidden',
-                            minWidth: 60,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: isActive ? 0.3 : 0.15,
-                            shadowRadius: isActive ? 6 : 4,
-                            elevation: isActive ? 5 : 3,
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <BlurView
-                            intensity={isActive ? 50 : 70}
-                            tint="light"
+                    <Animated.View
+                      style={[
+                        handleStyle,
+                        {
+                          height: 4,
+                          borderRadius: 2,
+                        },
+                      ]}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Search Input */}
+                  <View style={{ marginBottom: 16 }}>
+                    <SearchArea
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      returnKeyType="search"
+                      placeholder={searchPrompt.placeholder}
+                      onSubmitEditing={() => {
+                        handleSearchSubmit(searchQuery);
+                      }}
+                      autoFocus={true}
+                      editable={!isLoading}
+                    />
+                  </View>
+
+                  {/* Search Filter Chips */}
+                  <View style={{ marginBottom: 16 }}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{
+                        paddingHorizontal: 0,
+                        gap: 10,
+                      }}
+                    >
+                      {searchFilterCategories.map((filter) => {
+                        const isActive = activeSearchFilter === filter.id;
+
+                        return (
+                          <TouchableOpacity
+                            key={filter.id}
+                            onPress={() => handleSearchFilterPress(filter.id)}
                             style={{
-                              paddingHorizontal: 12,
-                              paddingVertical: 6,
-                              backgroundColor: isActive 
-                                ? `${filter.color}90` // More transparent for glass effect
-                                : 'rgba(255, 255, 255, 0.2)', // Enhanced glass effect
+                              paddingHorizontal: 14,
+                              paddingVertical: 8,
+                              backgroundColor: isActive
+                                ? filter.color
+                                : "rgba(255, 255, 255, 0.15)",
+                              borderRadius: 18,
                               borderWidth: 1,
-                              borderColor: isActive 
-                                ? `${filter.color}80` // More transparent border
-                                : 'rgba(255, 255, 255, 0.3)', // Enhanced glass border
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexDirection: 'row',
-                              gap: 4,
+                              borderColor: isActive
+                                ? filter.color
+                                : "rgba(255, 255, 255, 0.25)",
+                              shadowColor: isActive
+                                ? filter.color
+                                : "rgba(255, 255, 255, 0.3)",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: isActive ? 0.4 : 0.2,
+                              shadowRadius: 6,
+                              elevation: isActive ? 4 : 2,
+                              overflow: "hidden",
                             }}
+                            activeOpacity={0.8}
                           >
-                            {filter.icon}
+                            <BlurView
+                              intensity={isActive ? 40 : 60}
+                              tint="light"
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                borderRadius: 18,
+                                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                              }}
+                            />
                             <Text
                               style={{
-                                fontSize: 14,
-                                fontWeight: isActive ? '600' : '500',
-                                color: isActive ? filter.color : '#2a2a2a',
-                                textAlign: 'center',
-                                textShadowColor: isActive ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                                fontSize: 13,
+                                fontWeight: isActive ? "700" : "500",
+                                color: isActive ? "#ffffff" : "#2a2a2a",
+                                letterSpacing: 0.2,
+                                textShadowColor: isActive
+                                  ? "rgba(0, 0, 0, 0.3)"
+                                  : "rgba(255, 255, 255, 0.8)",
                                 textShadowOffset: { width: 0, height: 1 },
                                 textShadowRadius: 2,
                               }}
                             >
                               {filter.label}
                             </Text>
-                          </BlurView>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </Animated.View>
-
-                {/* Try It's on me Section - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { marginBottom: 16 }]}>
-                  <Text style={{ 
-                    color: '#1a1a1a', 
-                    fontSize: 18, 
-                    fontWeight: '700',
-                    lineHeight: 22,
-                    marginBottom: 6,
-                  }}>
-                    Try It&apos;s on me
-                  </Text>
-                  <Text style={{ 
-                    color: '#4a4a4a', 
-                    fontSize: 13,
-                    lineHeight: 17,
-                    fontWeight: '400',
-                    marginBottom: 16,
-                  }}>
-                    Send a link to a friend so they can order{'\n'}food on you.
-                  </Text>
-
-                  {/* Invite Buttons Row */}
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    gap: 8, 
-                    marginBottom: 12 
-                  }}>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        backgroundColor="#4a5d4f"
-                        textColor="#ffffff"
-                        borderRadius={20}
-                        paddingVertical={10}
-                        paddingHorizontal={12}
-                        onPress={() => {}}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600' }}>
-                            Invite Friend
-                          </Text>
-                          <UserIcon size={12} />
-                        </View>
-                      </Button>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        backgroundColor="#4a5d4f"
-                        textColor="#ffffff"
-                        borderRadius={20}
-                        paddingVertical={10}
-                        paddingHorizontal={12}
-                        onPress={() => {}}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600' }}>
-                            Setup Family
-                          </Text>
-                          <FamilyIcon size={12} />
-                        </View>
-                      </Button>
-                    </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
                   </View>
 
-                  {/* Start Group Order Button */}
-                    
-                  <Button
-                    backgroundColor="#ef4444"
-                    textColor="#ffffff"
-                    borderRadius={20}
-                    paddingVertical={12}
-                    paddingHorizontal={16}
-                    onPress={() =>console.log('Start Group Order')}
-                    style={{ width: '100%' }}
-                  >
-                  <TouchableOpacity style={{ width: '100%', 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' }} 
-                  onPress={handleNavigate}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
-                        Start Group Order
+                  {/* Search Results - Compact list */}
+                  <View>
+                    {searchQuery.trim() ? (
+                      <Text
+                        style={{
+                          color: "#2a2a2a",
+                          fontSize: 12,
+                          fontWeight: "700",
+                          marginBottom: 16,
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                          opacity: 0.8,
+                        }}
+                      >
+                        {filteredSuggestions.length} RESULTS FOR &quot;
+                        {searchQuery.toUpperCase()}&quot;
                       </Text>
-                      <GroupOrderIcon size={14} />
-                    </View>
-                  </TouchableOpacity>
-                  </Button>
+                    ) : (
+                      <Text
+                        style={{
+                          color: "#2a2a2a",
+                          fontSize: 12,
+                          fontWeight: "700",
+                          marginBottom: 16,
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                          opacity: 0.8,
+                        }}
+                      >
+                        POPULAR {activeSearchFilter.toUpperCase()}
+                      </Text>
+                    )}
 
-                  {/* Shared Ordering Button */}
-                  <Button
-                    backgroundColor="#16a34a"
-                    textColor="#ffffff"
-                    borderRadius={20}
-                    paddingVertical={12}
-                    paddingHorizontal={16}
-                    onPress={() => console.log('Shared Ordering')}
-                    style={{ width: '100%', marginTop: 8 }}
-                  >
-                    <TouchableOpacity style={{ width: '100%', 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' }} 
-                    onPress={handleSharedOrderingNavigate}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
-                          Shared Ordering
+                    {filteredSuggestions.map((suggestion, index) => (
+                      <TouchableOpacity
+                        key={suggestion.id}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          paddingVertical: 14,
+                          paddingHorizontal: 12,
+                          backgroundColor: "rgba(255, 255, 255, 0.06)",
+                          borderRadius: 14,
+                          marginBottom: 8,
+                          borderWidth: 1,
+                          borderColor: "rgba(255, 255, 255, 0.12)",
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.05,
+                          shadowRadius: 2,
+                          elevation: 1,
+                        }}
+                        onPress={() => {
+                          handleSuggestionSelect(suggestion);
+                        }}
+                        activeOpacity={0.85}
+                        disabled={isLoading}
+                      >
+                        {/* Compact Icon */}
+                        <View
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            backgroundColor: "rgba(255, 255, 255, 0.12)",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginRight: 12,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 1 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 2,
+                            elevation: 1,
+                          }}
+                        >
+                          {suggestion.type === "kitchens" ? (
+                            <RestaurantIcon size={16} color="#8a9a8f" />
+                          ) : (
+                            <Svg
+                              width={16}
+                              height={16}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <Path
+                                d="M12 2L13.09 8.26L16 7L14.5 12.5L19 10.5L16.5 16.5L22 15L18.5 20L12 22L5.5 20L2 15L7.5 16.5L5 10.5L9.5 12.5L8 7L10.91 8.26L12 2Z"
+                                fill="#8a9a8f"
+                              />
+                            </Svg>
+                          )}
+                        </View>
+
+                        {/* Compact Content */}
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              color: "#1a1a1a",
+                              fontSize: 15,
+                              fontWeight: "600",
+                              marginBottom: 3,
+                              letterSpacing: -0.2,
+                            }}
+                          >
+                            {suggestion.text}
+                          </Text>
+                          <Text
+                            style={{
+                              color: "#5a5a5a",
+                              fontSize: 12,
+                              fontWeight: "400",
+                              lineHeight: 16,
+                            }}
+                          >
+                            {suggestion.type === "kitchens"
+                              ? `${suggestion.category} • ${suggestion.rating}★ • ${suggestion.time}`
+                              : `${suggestion.category} • ${suggestion.kitchen} • ${suggestion.time}`}
+                          </Text>
+                        </View>
+
+                        {/* Compact Action Icon */}
+                        <View
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 14,
+                            backgroundColor: "rgba(255, 255, 255, 0.08)",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginLeft: 8,
+                          }}
+                        >
+                          <Svg
+                            width={12}
+                            height={12}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <Path
+                              d="M7 17L17 7M17 7H7M17 7V17"
+                              stroke="#8a9a8f"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </Svg>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+
+                    {/* No Results State */}
+                    {searchQuery.trim() && filteredSuggestions.length === 0 && (
+                      <View
+                        style={{
+                          alignItems: "center",
+                          paddingVertical: 48,
+                          paddingHorizontal: 24,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 32,
+                            backgroundColor: "rgba(255, 255, 255, 0.08)",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: 16,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 2,
+                          }}
+                        >
+                          <Svg
+                            width={28}
+                            height={28}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <Path
+                              d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z"
+                              stroke="#8a9a8f"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </Svg>
+                        </View>
+                        <Text
+                          style={{
+                            color: "#2a2a2a",
+                            fontSize: 17,
+                            fontWeight: "600",
+                            marginBottom: 6,
+                            textAlign: "center",
+                            letterSpacing: -0.2,
+                          }}
+                        >
+                          No results found
                         </Text>
-                        <SharedOrderingIcon size={14} />
+                        <Text
+                          style={{
+                            color: "#6a6a6a",
+                            fontSize: 14,
+                            textAlign: "center",
+                            lineHeight: 20,
+                            fontWeight: "400",
+                          }}
+                        >
+                          Try adjusting your search or{"\n"}browse different
+                          categories
+                        </Text>
                       </View>
+                    )}
+                  </View>
+                </View>
+              ) : (
+                <>
+                  {/* Normal Content - Show when not in search focus mode */}
+
+                  {/* Search Input - Visible when collapsed (above title) */}
+                  <Animated.View
+                    style={[
+                      searchInputStyle,
+                      { marginBottom: 16, marginTop: 0 },
+                      collapsedSearchStyle,
+                    ]}
+                  >
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (
+                          currentSnapPointValue.value === SNAP_POINTS.COLLAPSED
+                        ) {
+                          handleSearchTap();
+                        }
+                      }}
+                      activeOpacity={1}
+                      disabled={buttonDisabledState}
+                      style={{ flex: 1 }}
+                    >
+                      <Animated.View
+                        style={[
+                          searchInteractionStyle,
+                          expandedSearchPointerStyle,
+                        ]}
+                      >
+                        <SearchArea
+                          ref={searchInputRef}
+                          onSparklesPress={onOpenAIChat}
+                          placeholder={searchPrompt.placeholder}
+                          editable={false}
+                        />
+                      </Animated.View>
                     </TouchableOpacity>
-                  </Button>
-                </Animated.View>
+                  </Animated.View>
 
-                {/* Food Illustration - Only show when expanded */}
-                <Animated.View style={[contentOpacityStyle, { alignItems: 'center', marginBottom: 8 }]}>
-                  <SafeImage 
-                    source={require('../../assets/images/cribnoshpackaging.png')}
-                    style={{ 
-                      width: 180, 
-                      height: 135, 
-                      resizeMode: 'contain' 
-                    }}
-                  />
-                </Animated.View>
+                  {/* Title Section - Only show when expanded */}
+                  <Animated.View
+                    style={[{ marginBottom: 2 }, contentOpacityStyle]}
+                  >
+                    <Text
+                      style={{
+                        color: "#1a1a1a",
+                        fontSize: 32,
+                        fontWeight: "700",
+                        letterSpacing: -0.5,
+                        lineHeight: 36,
+                        marginBottom: 10,
+                      }}
+                    >
+                      {headerMessage.mainMessage}
+                    </Text>
+                    <Text
+                      style={{
+                        color: "#4a4a4a",
+                        fontSize: 15,
+                        lineHeight: 19,
+                        fontWeight: "400",
+                      }}
+                    >
+                      {headerMessage.subMessage}
+                    </Text>
+                  </Animated.View>
 
+                  {/* Search Input - Visible when expanded (below title) */}
+                  <Animated.View
+                    style={[
+                      searchInputStyle,
+                      { marginBottom: 16 },
+                      contentOpacityStyle,
+                    ]}
+                  >
+                    <TouchableOpacity
+                      onPress={handleSearchFocus}
+                      activeOpacity={1}
+                      style={{ flex: 1 }}
+                    >
+                      <Animated.View style={[searchInteractionStyle]}>
+                        <SearchArea
+                          ref={searchInputRef}
+                          placeholder={searchPrompt.placeholder}
+                          editable={false}
+                          onSparklesPress={onOpenAIChat}
+                        />
+                      </Animated.View>
+                    </TouchableOpacity>
+                  </Animated.View>
 
-              </>
-            )}
-          </ScrollView>
+                  {/* Filter Chips - Only show when expanded */}
+                  <Animated.View
+                    style={[contentOpacityStyle, { marginBottom: 20 }]}
+                  >
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{
+                        paddingHorizontal: 0,
+                        gap: 6,
+                      }}
+                    >
+                      {filterCategories.map((filter) => {
+                        const isActive = activeFilter === filter.id;
+
+                        return (
+                          <TouchableOpacity
+                            key={filter.id}
+                            onPress={() => handleFilterPress(filter.id)}
+                            style={{
+                              borderRadius: 20,
+                              overflow: "hidden",
+                              minWidth: 60,
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: isActive ? 0.3 : 0.15,
+                              shadowRadius: isActive ? 6 : 4,
+                              elevation: isActive ? 5 : 3,
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <BlurView
+                              intensity={isActive ? 50 : 70}
+                              tint="light"
+                              style={{
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                backgroundColor: isActive
+                                  ? `${filter.color}90` // More transparent for glass effect
+                                  : "rgba(255, 255, 255, 0.2)", // Enhanced glass effect
+                                borderWidth: 1,
+                                borderColor: isActive
+                                  ? `${filter.color}80` // More transparent border
+                                  : "rgba(255, 255, 255, 0.3)", // Enhanced glass border
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexDirection: "row",
+                                gap: 4,
+                              }}
+                            >
+                              {filter.icon}
+                              <Text
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: isActive ? "600" : "500",
+                                  color: isActive ? filter.color : "#2a2a2a",
+                                  textAlign: "center",
+                                  textShadowColor: isActive
+                                    ? "rgba(255, 255, 255, 0.8)"
+                                    : "rgba(255, 255, 255, 0.9)",
+                                  textShadowOffset: { width: 0, height: 1 },
+                                  textShadowRadius: 2,
+                                }}
+                              >
+                                {filter.label}
+                              </Text>
+                            </BlurView>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </Animated.View>
+
+                  {/* Try It's on me Section - Only show when expanded */}
+                  <Animated.View
+                    style={[contentOpacityStyle, { marginBottom: 16 }]}
+                  >
+                    <Text
+                      style={{
+                        color: "#1a1a1a",
+                        fontSize: 18,
+                        fontWeight: "700",
+                        lineHeight: 22,
+                        marginBottom: 6,
+                      }}
+                    >
+                      Try It&apos;s on me
+                    </Text>
+                    <Text
+                      style={{
+                        color: "#4a4a4a",
+                        fontSize: 13,
+                        lineHeight: 17,
+                        fontWeight: "400",
+                        marginBottom: 16,
+                      }}
+                    >
+                      Send a link to a friend so they can order{"\n"}food on
+                      you.
+                    </Text>
+
+                    {/* Invite Buttons Row */}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        gap: 8,
+                        marginBottom: 12,
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          backgroundColor="#4a5d4f"
+                          textColor="#ffffff"
+                          borderRadius={20}
+                          paddingVertical={10}
+                          paddingHorizontal={12}
+                          onPress={() => {}}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: "#ffffff",
+                                fontSize: 13,
+                                fontWeight: "600",
+                              }}
+                            >
+                              Invite Friend
+                            </Text>
+                            <UserIcon size={12} />
+                          </View>
+                        </Button>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          backgroundColor="#4a5d4f"
+                          textColor="#ffffff"
+                          borderRadius={20}
+                          paddingVertical={10}
+                          paddingHorizontal={12}
+                          onPress={() => {}}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: "#ffffff",
+                                fontSize: 13,
+                                fontWeight: "600",
+                              }}
+                            >
+                              Setup Family
+                            </Text>
+                            <FamilyIcon size={12} />
+                          </View>
+                        </Button>
+                      </View>
+                    </View>
+
+                    {/* Start Group Order Button */}
+
+                    <Button
+                      backgroundColor="#ef4444"
+                      textColor="#ffffff"
+                      borderRadius={20}
+                      paddingVertical={12}
+                      paddingHorizontal={16}
+                      onPress={() => {
+                        // Group order functionality would be implemented here
+                      }}
+                      style={{ width: "100%" }}
+                    >
+                      <TouchableOpacity
+                        style={{
+                          width: "100%",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onPress={handleNavigate}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: "#ffffff",
+                              fontSize: 15,
+                              fontWeight: "600",
+                            }}
+                          >
+                            Start Group Order
+                          </Text>
+                          <GroupOrderIcon size={14} />
+                        </View>
+                      </TouchableOpacity>
+                    </Button>
+
+                    {/* Shared Ordering Button */}
+                    <Button
+                      backgroundColor="#16a34a"
+                      textColor="#ffffff"
+                      borderRadius={20}
+                      paddingVertical={12}
+                      paddingHorizontal={16}
+                      onPress={() => {
+                        // Shared ordering functionality would be implemented here
+                      }}
+                      style={{ width: "100%", marginTop: 8 }}
+                    >
+                      <TouchableOpacity
+                        style={{
+                          width: "100%",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onPress={handleSharedOrderingNavigate}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: "#ffffff",
+                              fontSize: 15,
+                              fontWeight: "600",
+                            }}
+                          >
+                            Shared Ordering
+                          </Text>
+                          <SharedOrderingIcon size={14} />
+                        </View>
+                      </TouchableOpacity>
+                    </Button>
+                  </Animated.View>
+
+                  {/* Food Illustration - Only show when expanded */}
+                  <Animated.View
+                    style={[
+                      contentOpacityStyle,
+                      { alignItems: "center", marginBottom: 8 },
+                    ]}
+                  >
+                    <SafeImage
+                      source={require("../../assets/images/cribnoshpackaging.png")}
+                      style={{
+                        width: 180,
+                        height: 135,
+                        resizeMode: "contain",
+                      }}
+                    />
+                  </Animated.View>
+                </>
+              )}
+            </ScrollView>
           </Animated.View>
         </Animated.View>
       </GestureDetector>
-
-      
     </>
   );
 }
 
-
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingTop: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    sheetContent: {
-        flex: 1,
-        // alignItems: 'center',
-        // padding: 20,
-        paddingHorizontal: 16,
-        backgroundColor: '#02120A',
-    },
-    button: {
-        paddingVertical: 12,
-        paddingHorizontal: 25,
-        backgroundColor: '#007bff',
-        borderRadius: 6,
-        marginTop: 10,
-    },
-    buttonText: {
-        color: '#fff',
-        // fontSize: 16,
-    },
-      avatarWrapper: {
-    position: 'absolute',
-  },
-  floatingButtons: {
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  right: 0,
-  // backgroundColor: '#02120A',
-  paddingVertical: 16,
-  gap: 12,
-  
-},
-coverEverything:{
-  color:'#fff',
-  fontWeight:400,
-  fontSize:14,
-  backgroundColor:"#5E685F",
-  textAlign:'center',
-  marginHorizontal:'auto',
-  paddingHorizontal:16,
-  paddingVertical:5,
-  borderRadius:10
-}
-
-    
-});
+// Removed unused styles object

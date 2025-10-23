@@ -1,6 +1,7 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { ProfileAvatar } from './ProfileAvatar';
 import { VerificationBanner } from './VerificationBanner';
@@ -95,7 +96,8 @@ export function UserAccountDetailsScreen({
 }: UserAccountDetailsScreenProps) {
   const router = useRouter();
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | undefined>();
-
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { logout } = useAuthContext();
   const handleBackPress = () => {
     router.back();
   };
@@ -103,6 +105,18 @@ export function UserAccountDetailsScreen({
   const handleProfileImageSelected = (imageUri: string) => {
     setSelectedProfileImage(imageUri);
   };
+  const handleLogOut = () => {
+    setShowLogoutModal(true);
+  }
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
+  }
+
+  const handleCancelLogout = () => {
+    setShowLogoutModal(false);
+  }
 
   return (
     <View style={styles.mainContainer}>
@@ -189,7 +203,7 @@ export function UserAccountDetailsScreen({
       
       {/* Bottom Actions */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity style={styles.logOutButton}>
+        <TouchableOpacity style={styles.logOutButton} onPress={handleLogOut}>
           <Text style={styles.logOutText}>Log Out</Text>
         </TouchableOpacity>
         
@@ -201,6 +215,39 @@ export function UserAccountDetailsScreen({
         </TouchableOpacity>
       </View>
       </ScrollView>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelLogout}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Log Out</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to log out? You&apos;ll need to sign in again to access your account.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalCancelButton} 
+                onPress={handleCancelLogout}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalLogoutButton} 
+                onPress={handleConfirmLogout}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalLogoutText}>Log Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -376,5 +423,84 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40, // Adjust as needed to center the title
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontFamily: 'Archivo',
+    fontStyle: 'normal',
+    fontWeight: '700',
+    fontSize: 20,
+    lineHeight: 28,
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#F5F5F5',
+  },
+  modalCancelText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '500',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  modalLogoutButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#FF4444',
+  },
+  modalLogoutText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '500',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
 });

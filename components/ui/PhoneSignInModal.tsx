@@ -1,63 +1,194 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BigPackaging from './BigPackaging';
-import { Button } from './Button';
-import { CountryCodePicker } from './CountryCodePicker';
-import { CribNoshLogo } from './CribNoshLogo';
-import { Input } from './Input';
-
-interface Country {
-  name: string;
-  code: string;
-  dialCode: string;
-  flag: string;
-}
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
+import { Ionicons } from "@expo/vector-icons";
+import { useRef, useState } from "react";
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { showError, showSuccess } from "../../lib/GlobalToastManager";
+import BigPackaging from "./BigPackaging";
+import { Button } from "./Button";
+import { CountryCodePicker } from "./CountryCodePicker";
+import { CribNoshLogo } from "./CribNoshLogo";
+import { Input } from "./Input";
 
 interface PhoneSignInModalProps {
   isVisible: boolean;
   onClose: () => void;
   onPhoneSubmit?: (phoneNumber: string) => void;
+  onSignInSuccess?: () => void;
 }
 
-export function PhoneSignInModal({ 
-  isVisible, 
-  onClose, 
-  onPhoneSubmit 
+export function PhoneSignInModal({
+  isVisible,
+  onClose,
+  onPhoneSubmit,
+  onSignInSuccess,
 }: PhoneSignInModalProps) {
   const insets = useSafeAreaInsets();
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [step, setStep] = useState<'phone' | 'verification'>('phone');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [countryCode, setCountryCode] = useState('+1');
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [step, setStep] = useState<"phone" | "verification">("phone");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [countryCode, setCountryCode] = useState("+1");
   const [isCountryPickerVisible, setIsCountryPickerVisible] = useState(false);
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
+  const [isCompletingSignIn, setIsCompletingSignIn] = useState(false);
+  const { handleSendOTP, handlePhoneLogin } = useAuth();
+  const { login } = useAuthContext();
 
-  const handlePhoneSubmit = () => {
-    if (phoneNumber.trim()) {
-      setStep('verification');
-      onPhoneSubmit?.(phoneNumber.trim());
+  const handlePhoneSubmit = async () => {
+    if (isSendingOTP) return;
+    setIsSendingOTP(true);
+    try {
+      const cleanPhoneNumber = phoneNumber.replace(/\D/g, "");
+      // Ensure country code doesn't have + prefix when concatenating
+      const countryCodeClean = countryCode.startsWith("+")
+        ? countryCode.slice(1)
+        : countryCode;
+      const fullPhoneNumber = `+${countryCodeClean}${cleanPhoneNumber}`;
+      const res = await handleSendOTP(fullPhoneNumber);
+      if (res.data.success) {
+        onPhoneSubmit?.(fullPhoneNumber);
+        showSuccess(
+          "OTP Sent",
+          res.data.message || "Verification code sent to your phone"
+        );
+        setStep("verification");
+      }
+    } catch (error: any) {
+      // Error sending OTP
+
+      // Extract precise error message from API response
+      let errorTitle = "Failed to Send OTP";
+      let errorMessage = "Please check your phone number and try again";
+
+      if (error?.data?.error) {
+        const apiError = error.data.error;
+
+        if (apiError === "Too many requests") {
+          errorTitle = "Too Many Requests";
+          // Check if there's a retryAfter field in the error
+          const retryAfter = error?.data?.retryAfter;
+          if (retryAfter) {
+            errorMessage = `Please wait ${retryAfter} seconds before requesting another code`;
+          } else {
+            errorMessage =
+              "Please wait a moment before requesting another code";
+          }
+        } else if (apiError.includes("Invalid phone number")) {
+          errorTitle = "Invalid Phone Number";
+          errorMessage = "Please enter a valid phone number";
+        } else if (apiError.includes("Phone number not found")) {
+          errorTitle = "Phone Number Not Found";
+          errorMessage = "This phone number is not registered with us";
+        } else {
+          errorMessage = apiError;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      showError(errorTitle, errorMessage);
+    } finally {
+      setIsSendingOTP(false);
     }
   };
 
-  const handleVerificationSubmit = () => {
-    if (verificationCode.trim()) {
-      // Handle verification code submission
-      console.log('Verification code submitted:', verificationCode);
-      onClose();
+  const handleVerificationSubmit = async () => {
+    if (isCompletingSignIn) return;
+    setIsCompletingSignIn(true);
+    try {
+      const cleanPhoneNumber = phoneNumber.replace(/\D/g, "");
+      // Ensure country code doesn't have + prefix when concatenating
+      const countryCodeClean = countryCode.startsWith("+")
+        ? countryCode.slice(1)
+        : countryCode;
+      const fullPhoneNumber = `+${countryCodeClean}${cleanPhoneNumber}`;
+      const res = await handlePhoneLogin(fullPhoneNumber, verificationCode);
+      if (res.data?.token && res.data?.user) {
+        // Ensure user data has all required fields
+        const userData = res.data.user;
+
+        if (userData.user_id && userData.name) {
+          // Use the auth state hook to store data
+          await login(res.data.token, {
+            user_id: userData.user_id,
+            email: userData.email || "", // Allow empty email for phone-only auth
+            name: userData.name,
+            roles: userData.roles || [],
+            picture: userData.picture || "",
+            isNewUser: userData.isNewUser || false,
+            provider: userData.provider || "phone",
+          });
+
+          // Show success toast
+          showSuccess("Sign In Successful", "Welcome to CribNosh!");
+
+          // Close modal and notify parent after a short delay
+          setTimeout(() => {
+            onClose();
+            setStep("phone");
+            onSignInSuccess?.();
+          }, 1500); // Give time for toast to show
+        } else {
+          throw new Error("Invalid user data received");
+        }
+      }
+    } catch (error: any) {
+      // Error completing sign in
+
+      // Extract precise error message from API response
+      let errorTitle = "Sign In Failed";
+      let errorMessage = "Please check your verification code and try again";
+
+      if (error?.data?.error) {
+        const apiError = error.data.error;
+
+        if (
+          apiError.includes("Invalid verification code") ||
+          apiError.includes("Invalid OTP")
+        ) {
+          errorTitle = "Invalid Verification Code";
+          errorMessage = "The code you entered is incorrect. Please try again";
+        } else if (apiError.includes("Code expired")) {
+          errorTitle = "Code Expired";
+          errorMessage =
+            "Your verification code has expired. Please request a new one";
+        } else if (apiError.includes("Too many attempts")) {
+          errorTitle = "Too Many Attempts";
+          errorMessage =
+            "You have made too many attempts. Please wait before trying again";
+        } else if (apiError.includes("Account not found")) {
+          errorTitle = "Account Not Found";
+          errorMessage = "No account found with this phone number";
+        } else {
+          errorMessage = apiError;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      showError(errorTitle, errorMessage);
+    } finally {
+      setIsCompletingSignIn(false);
     }
   };
 
   const handleBackToPhone = () => {
-    setStep('phone');
-    setVerificationCode('');
+    setStep("phone");
+    setVerificationCode("");
   };
 
   const formatPhoneNumber = (text: string) => {
-    // Remove all non-digits
-    const cleaned = text.replace(/\D/g, '');
-    
-    // Format as (XXX) XXX-XXXX
+    const cleaned = text.replace(/\D/g, "");
+
     if (cleaned.length <= 3) {
       return cleaned;
     } else if (cleaned.length <= 6) {
@@ -70,6 +201,19 @@ export function PhoneSignInModal({
   const handlePhoneChange = (text: string) => {
     const formatted = formatPhoneNumber(text);
     setPhoneNumber(formatted);
+
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+
+  const handleVerificationChange = (text: string) => {
+    setVerificationCode(text);
+
+    // Scroll to show button when typing
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
   return (
@@ -82,17 +226,17 @@ export function PhoneSignInModal({
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.closeButton} 
+          <TouchableOpacity
+            style={styles.closeButton}
             onPress={onClose}
             activeOpacity={0.7}
           >
             <Ionicons name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          
-          {step === 'verification' && (
-            <TouchableOpacity 
-              style={styles.backButton} 
+
+          {step === "verification" && (
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={handleBackToPhone}
               activeOpacity={0.7}
             >
@@ -107,18 +251,26 @@ export function PhoneSignInModal({
         </View>
 
         {/* Content */}
-        <View style={styles.content}>
-          {step === 'phone' ? (
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={true}
+        >
+          {step === "phone" ? (
             <>
               <View style={styles.contentWrapper}>
-                              <Text style={styles.title}>Get started with CribNosh</Text>
-              <Text style={styles.subtitle}>
-                Enter your phone number and we'll send you a secure verification code to sign in
-              </Text>
-                
+                <Text style={styles.title}>Get started with CribNosh</Text>
+                <Text style={styles.subtitle}>
+                  Enter your phone number and we&apos;ll send you a secure
+                  verification code to sign in
+                </Text>
+
                 <View style={styles.inputContainer}>
                   <View style={styles.phoneInputWrapper}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.countryCodeButton}
                       onPress={() => setIsCountryPickerVisible(true)}
                       activeOpacity={0.7}
@@ -136,7 +288,11 @@ export function PhoneSignInModal({
                       size="lg"
                       style={styles.phoneInput}
                       leftIcon={
-                        <Ionicons name="call-outline" size={20} color="#E6FFE8" />
+                        <Ionicons
+                          name="call-outline"
+                          size={20}
+                          color="#E6FFE8"
+                        />
                       }
                     />
                   </View>
@@ -144,7 +300,8 @@ export function PhoneSignInModal({
 
                 <Button
                   onPress={handlePhoneSubmit}
-                  disabled={phoneNumber.length < 10}
+                  disabled={phoneNumber.length < 10 || isSendingOTP}
+                  loading={isSendingOTP}
                   size="lg"
                   style={styles.submitButton}
                   elevated
@@ -157,20 +314,21 @@ export function PhoneSignInModal({
             <>
               <Text style={styles.title}>Verify your phone</Text>
               <Text style={styles.subtitle}>
-                We've sent a 6-digit code to {phoneNumber}
+                We&apos;ve sent a 6-digit code to {phoneNumber}
               </Text>
-              
+
               <View style={styles.contentWrapper}>
                 <Text style={styles.title}>Almost there!</Text>
                 <Text style={styles.subtitle}>
-                  We've sent a 6-digit code to {phoneNumber}. Enter it below to complete your sign in.
+                  We&apos;ve sent a 6-digit code to {phoneNumber}. Enter it
+                  below to complete your sign in.
                 </Text>
-                
+
                 <View style={styles.inputContainer}>
                   <Input
                     placeholder="Enter 6-digit code"
                     value={verificationCode}
-                    onChangeText={setVerificationCode}
+                    onChangeText={handleVerificationChange}
                     keyboardType="number-pad"
                     maxLength={6}
                     size="lg"
@@ -182,11 +340,12 @@ export function PhoneSignInModal({
 
                 <Button
                   onPress={handleVerificationSubmit}
-                  disabled={verificationCode.length < 6}
+                  disabled={verificationCode.length < 6 || isCompletingSignIn}
+                  loading={isCompletingSignIn}
                   size="lg"
-                  style={styles.submitButton}
+                  style={[styles.submitButton, { paddingHorizontal: 32 }]}
                   backgroundColor="#4ADE80"
-                  textColor="#000000"
+                  textColor="#FFFFFF"
                   borderRadius={20}
                   paddingVertical={20}
                   elevated
@@ -194,24 +353,28 @@ export function PhoneSignInModal({
                   Complete Sign In
                 </Button>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.resendButton}
-                  onPress={() => console.log('Resend code')}
+                  onPress={() => {}}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.resendText}>Didn't get the code? Tap to resend</Text>
+                  <Text style={styles.resendText}>
+                    Didn&apos;t get the code? Tap to resend
+                  </Text>
                 </TouchableOpacity>
               </View>
             </>
           )}
-        </View>
-        
+        </ScrollView>
+
+        {/* Modal Toast removed - using global toast instead */}
+
         {/* BigPackaging decoration - bottom right */}
         <View style={styles.packagingDecoration}>
           <BigPackaging />
         </View>
       </View>
-      
+
       {/* Country Code Picker */}
       <CountryCodePicker
         isVisible={isCountryPickerVisible}
@@ -228,12 +391,12 @@ export function PhoneSignInModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#02120A',
+    backgroundColor: "#02120A",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     zIndex: 10,
@@ -242,126 +405,129 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoContainer: {
-    position: 'absolute',
+    position: "absolute",
     left: 23,
     top: 80,
     zIndex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 80,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
+    paddingBottom: 200,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
   },
   contentWrapper: {
-    alignItems: 'flex-start',
-    width: '100%',
+    alignItems: "flex-start",
+    width: "100%",
     maxWidth: 400,
   },
   title: {
-    fontFamily: 'Poppins',
-    fontStyle: 'normal',
-    fontWeight: '700',
+    fontFamily: "Poppins",
+    fontStyle: "normal",
+    fontWeight: "700",
     fontSize: 32,
     lineHeight: 40,
-    color: '#FFFFFF',
-    textAlign: 'left',
+    color: "#FFFFFF",
+    textAlign: "left",
     marginBottom: 20,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '400',
+    fontFamily: "SF Pro",
+    fontStyle: "normal",
+    fontWeight: "400",
     fontSize: 17,
     lineHeight: 24,
-    color: '#E5E7EB',
-    textAlign: 'left',
+    color: "#E5E7EB",
+    textAlign: "left",
     marginBottom: 48,
     opacity: 0.9,
     maxWidth: 280,
   },
   inputContainer: {
-    width: '100%',
+    width: "100%",
     marginBottom: 32,
     maxWidth: 320,
   },
   phoneInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4A4A4A',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4A4A4A",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-    width: '100%',
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    overflow: "hidden",
+    width: "100%",
   },
   countryCodeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255, 255, 255, 0.1)',
+    borderRightColor: "rgba(255, 255, 255, 0.1)",
   },
   countryCodeText: {
-    color: '#E6FFE8',
+    color: "#E6FFE8",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginRight: 8,
   },
   phoneInputDivider: {
     width: 1,
     height: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   phoneInput: {
     flex: 1,
     borderWidth: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     marginRight: 8,
     minWidth: 0,
   },
   submitButton: {
-    width: '100%',
+    width: "100%",
     marginBottom: 24,
-    maxWidth: 320,
-    shadowColor: '#000',
+    maxWidth: 400,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 8,
-    minHeight: 56,
+    minHeight: 64,
   },
   resendButton: {
     paddingVertical: 12,
   },
   resendText: {
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '500',
+    fontFamily: "SF Pro",
+    fontStyle: "normal",
+    fontWeight: "500",
     fontSize: 14,
     lineHeight: 18,
-    color: '#4ADE80',
-    textAlign: 'center',
+    color: "#4ADE80",
+    textAlign: "center",
   },
   packagingDecoration: {
-    position: 'absolute',
+    position: "absolute",
     bottom: -60,
     right: -80,
     zIndex: 1,

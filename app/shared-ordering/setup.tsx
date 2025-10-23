@@ -1,37 +1,105 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { ChevronDown } from 'lucide-react-native';
-import { useState } from 'react';
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { ChevronDown } from "lucide-react-native";
+import { useState } from "react";
 import {
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-
-
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useGetCustomOrdersQuery } from "../../app/store/customerApi";
+import { CustomOrder } from "../../app/types/customer";
+import { useToast } from "../../lib/ToastContext";
 
 export default function SharedOrderingSetup() {
   const router = useRouter();
-  const [amount, setAmount] = useState('');
+  const { showToast } = useToast();
+  const [amount, setAmount] = useState("");
   const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
-  const presetAmounts = ['10', '20', '50', 'Unlimited'];
+  // Fetch existing custom orders for fallback data
+  const { data: customOrdersData, error: customOrdersError } =
+    useGetCustomOrdersQuery(
+      { page: 1, limit: 10 },
+      {
+        skip: false, // Always fetch to check if we have data
+      }
+    );
+
+  const presetAmounts = ["10", "20", "50", "Unlimited"];
+
+  // Mock data fallback for when API returns empty or fails
+  const mockCustomOrders: CustomOrder[] = [
+    {
+      _id: "mock_custom_order_1",
+      userId: "mock_user_1",
+      requirements: "Gluten-free pasta with vegan cheese",
+      serving_size: 2,
+      custom_order_id: "CUST-MOCK-001",
+      status: "pending",
+      dietary_restrictions: "gluten-free, vegan",
+      createdAt: new Date().toISOString(),
+    },
+  ];
 
   const handleAmountSelect = (value: string) => {
     setSelectedAmount(value);
-    if (value === 'Unlimited') {
-      setAmount('');
+    if (value === "Unlimited") {
+      setAmount("");
     } else {
       setAmount(value);
     }
   };
 
-  const handleDone = () => {
-    // Navigate to meal options screen
-    router.push('/shared-ordering/meal-options');
+  const handleDone = async () => {
+    try {
+      setIsCreatingOrder(true);
+
+      // TODO: When POST /custom_orders endpoint is available, integrate here
+      // For now, we'll simulate the creation process
+
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Check if we have existing custom orders from API
+      const hasApiData =
+        customOrdersData?.data?.orders &&
+        customOrdersData.data.orders.length > 0;
+
+      if (hasApiData) {
+        showToast({
+          type: "success",
+          title: "Custom Order Ready",
+          message: "Your custom order setup is complete!",
+          duration: 3000,
+        });
+      } else {
+        // Fallback to mock data
+        showToast({
+          type: "info",
+          title: "Using Demo Mode",
+          message: "Custom order created with demo data",
+          duration: 3000,
+        });
+      }
+
+      // Navigate to meal options screen
+      router.push("/shared-ordering/meal-options");
+    } catch (error) {
+      console.error("Error creating custom order:", error);
+      showToast({
+        type: "error",
+        title: "Setup Failed",
+        message: "Failed to create custom order. Please try again.",
+        duration: 4000,
+      });
+    } finally {
+      setIsCreatingOrder(false);
+    }
   };
 
   const handleBack = () => {
@@ -41,7 +109,7 @@ export default function SharedOrderingSetup() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#FF3B30', '#FF6B6B', '#FF3B30']}
+        colors={["#FF3B30", "#FF6B6B", "#FF3B30"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.background}
@@ -51,8 +119,22 @@ export default function SharedOrderingSetup() {
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <ChevronDown size={24} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDone} style={styles.doneButton}>
-            <Text style={styles.doneText}>Done</Text>
+          <TouchableOpacity
+            onPress={handleDone}
+            style={[
+              styles.doneButton,
+              isCreatingOrder && styles.doneButtonDisabled,
+            ]}
+            disabled={isCreatingOrder}
+          >
+            <Text
+              style={[
+                styles.doneText,
+                isCreatingOrder && styles.doneTextDisabled,
+              ]}
+            >
+              {isCreatingOrder ? "Creating..." : "Done"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -60,7 +142,7 @@ export default function SharedOrderingSetup() {
         <View style={styles.content}>
           {/* Title */}
           <Text style={styles.title}>
-            Let friends{'\n'}and family order on{'\n'}your account
+            Let friends{"\n"}and family order on{"\n"}your account
           </Text>
 
           {/* Amount Input */}
@@ -72,7 +154,7 @@ export default function SharedOrderingSetup() {
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
-              editable={selectedAmount !== 'Unlimited'}
+              editable={selectedAmount !== "Unlimited"}
             />
             <Text style={styles.currencySymbol}>£</Text>
           </View>
@@ -91,7 +173,8 @@ export default function SharedOrderingSetup() {
                 <Text
                   style={[
                     styles.presetButtonText,
-                    selectedAmount === preset && styles.presetButtonTextSelected,
+                    selectedAmount === preset &&
+                      styles.presetButtonTextSelected,
                   ]}
                 >
                   {preset}
@@ -142,9 +225,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 20,
@@ -156,9 +239,15 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   doneText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
+  },
+  doneButtonDisabled: {
+    opacity: 0.6,
+  },
+  doneTextDisabled: {
+    color: "#ccc",
   },
   content: {
     paddingHorizontal: 20,
@@ -166,15 +255,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#16a34a',
+    fontWeight: "bold",
+    color: "#16a34a",
     lineHeight: 38,
     marginBottom: 40,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -183,169 +272,169 @@ const styles = StyleSheet.create({
   amountInput: {
     flex: 1,
     fontSize: 18,
-    color: '#333',
+    color: "#333",
   },
   currencySymbol: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   presetContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   presetButton: {
     flex: 1,
-    backgroundColor: '#dc2626',
+    backgroundColor: "#dc2626",
     borderRadius: 12,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   presetButtonSelected: {
-    backgroundColor: '#991b1b',
+    backgroundColor: "#991b1b",
   },
   presetButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   presetButtonTextSelected: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
   illustrationContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingBottom: 60,
   },
   takeoutBox: {
-    position: 'relative',
+    position: "relative",
     width: 200,
     height: 200,
   },
   boxContainer: {
-    position: 'relative',
+    position: "relative",
     width: 120,
     height: 80,
     left: 40,
     top: 60,
   },
   boxFront: {
-    position: 'absolute',
+    position: "absolute",
     width: 120,
     height: 80,
-    backgroundColor: '#f97316',
+    backgroundColor: "#f97316",
     borderWidth: 2,
-    borderColor: '#ea580c',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#ea580c",
+    justifyContent: "center",
+    alignItems: "center",
   },
   boxTop: {
-    position: 'absolute',
+    position: "absolute",
     width: 120,
     height: 20,
-    backgroundColor: '#fb923c',
+    backgroundColor: "#fb923c",
     borderWidth: 2,
-    borderColor: '#ea580c',
+    borderColor: "#ea580c",
     top: -10,
   },
   boxLeft: {
-    position: 'absolute',
+    position: "absolute",
     width: 20,
     height: 80,
-    backgroundColor: '#ea580c',
+    backgroundColor: "#ea580c",
     borderWidth: 2,
-    borderColor: '#dc2626',
+    borderColor: "#dc2626",
     left: -10,
   },
   boxRight: {
-    position: 'absolute',
+    position: "absolute",
     width: 20,
     height: 80,
-    backgroundColor: '#ea580c',
+    backgroundColor: "#ea580c",
     borderWidth: 2,
-    borderColor: '#dc2626',
+    borderColor: "#dc2626",
     right: -10,
   },
   boxBack: {
-    position: 'absolute',
+    position: "absolute",
     width: 120,
     height: 80,
-    backgroundColor: '#f97316',
+    backgroundColor: "#f97316",
     borderWidth: 2,
-    borderColor: '#ea580c',
+    borderColor: "#ea580c",
   },
   japaneseChar: {
     fontSize: 48,
-    color: '#fef3c7',
-    fontWeight: 'bold',
+    color: "#fef3c7",
+    fontWeight: "bold",
   },
   foodContainer: {
-    position: 'absolute',
+    position: "absolute",
     width: 100,
     height: 60,
     left: 50,
     top: 70,
   },
   noodles: {
-    position: 'absolute',
+    position: "absolute",
     width: 80,
     height: 40,
-    backgroundColor: '#fbbf24',
+    backgroundColor: "#fbbf24",
     borderRadius: 20,
     top: 10,
     left: 10,
   },
   protein1: {
-    position: 'absolute',
+    position: "absolute",
     width: 12,
     height: 12,
-    backgroundColor: '#dc2626',
+    backgroundColor: "#dc2626",
     borderRadius: 6,
     top: 15,
     left: 20,
   },
   protein2: {
-    position: 'absolute',
+    position: "absolute",
     width: 10,
     height: 10,
-    backgroundColor: '#dc2626',
+    backgroundColor: "#dc2626",
     borderRadius: 5,
     top: 25,
     left: 60,
   },
   vegetable1: {
-    position: 'absolute',
+    position: "absolute",
     width: 8,
     height: 8,
-    backgroundColor: '#16a34a',
+    backgroundColor: "#16a34a",
     borderRadius: 4,
     top: 20,
     left: 40,
   },
   vegetable2: {
-    position: 'absolute',
+    position: "absolute",
     width: 6,
     height: 6,
-    backgroundColor: '#16a34a',
+    backgroundColor: "#16a34a",
     borderRadius: 3,
     top: 30,
     left: 70,
   },
   chopstick1: {
-    position: 'absolute',
+    position: "absolute",
     width: 60,
     height: 4,
-    backgroundColor: '#fbbf24',
+    backgroundColor: "#fbbf24",
     borderRadius: 2,
     top: 50,
     left: 20,
   },
   chopstick2: {
-    position: 'absolute',
+    position: "absolute",
     width: 60,
     height: 4,
-    backgroundColor: '#fbbf24',
+    backgroundColor: "#fbbf24",
     borderRadius: 2,
     top: 55,
     left: 25,

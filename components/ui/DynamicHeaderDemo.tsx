@@ -1,3 +1,4 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import {
     getCompleteDynamicHeader,
     getCurrentTimeContext,
@@ -10,7 +11,8 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 
 export function DynamicHeaderDemo() {
   const [currentTime, setCurrentTime] = useState(getCurrentTimeContext());
-  const [userName, setUserName] = useState('Joshua');
+  const { user } = useAuthContext();
+  const [userName, setUserName] = useState(user?.name);
   const [showSubtitle, setShowSubtitle] = useState(false);
 
   const demoTimes: { label: string; context: Partial<TimeContext> }[] = [
