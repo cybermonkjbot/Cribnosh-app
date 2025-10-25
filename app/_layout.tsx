@@ -7,61 +7,30 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import 'react-native-reanimated';
-import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+// Removed react-native-reanimated imports as they're not available in current version
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
-import { Provider } from 'react-redux';
-import { GlobalToastContainer } from '../components/ui/GlobalToastContainer';
-import { AuthProvider } from '../contexts/AuthContext';
-import { handleDeepLink } from '../lib/deepLinkHandler';
 import { ToastProvider } from '../lib/ToastContext';
+import { handleDeepLink } from '../lib/deepLinkHandler';
 import { logMockStatus } from '../utils/mockConfig';
-import { store } from './store';
 
-// Disable Reanimated strict mode warnings
-configureReanimatedLogger({
-  level: ReanimatedLogLevel.error,
-  strict: false,
-});
+// Reanimated configuration removed - not needed for current version
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-// Main Navigator Component
-function MainNavigator() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="shared-ordering" />
-        <Stack.Screen name="shared-link" />
-        <Stack.Screen 
-          name="sign-in" 
-          options={{ 
-            presentation: 'modal',
-            animationTypeForReplace: 'push'
-          }} 
-        />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
-}
+// MainNavigator component removed as it was unused
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     'Space Mono': require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const [showSplash, setShowSplash] = useState(true);
+  const colorScheme = useColorScheme();
 
   // Initialize deep link handler and log mock status
   useEffect(() => {
@@ -124,6 +93,13 @@ export default function RootLayout() {
                     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                     <Stack.Screen name="shared-ordering" options={{ headerShown: false }} />
                     <Stack.Screen name="shared-link" options={{ headerShown: false }} />
+                    <Stack.Screen 
+                      name="sign-in" 
+                      options={{ 
+                        presentation: 'modal',
+                        animationTypeForReplace: 'push'
+                      }} 
+                    />
                     <Stack.Screen name="+not-found" />
                   </Stack>
                   <StatusBar style="auto" />
