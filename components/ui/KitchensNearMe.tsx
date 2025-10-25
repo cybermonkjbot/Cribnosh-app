@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { MapPin } from 'lucide-react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 interface Kitchen {
@@ -12,6 +13,7 @@ interface Kitchen {
 
 interface KitchensNearMeProps {
   onKitchenPress?: (kitchen: Kitchen) => void;
+  onMapPress?: () => void;
 }
 
 const kitchens: Kitchen[] = [
@@ -32,7 +34,7 @@ const kitchens: Kitchen[] = [
   }
 ];
 
-export function KitchensNearMe({ onKitchenPress }: KitchensNearMeProps) {
+export function KitchensNearMe({ onKitchenPress, onMapPress }: KitchensNearMeProps) {
   return (
     <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>
       <View style={{ 
@@ -44,9 +46,27 @@ export function KitchensNearMe({ onKitchenPress }: KitchensNearMeProps) {
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           Kitchens near me
         </Text>
-        <TouchableOpacity>
-          <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#f3f4f6',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 20,
+              marginRight: 8
+            }}
+            onPress={onMapPress}
+            activeOpacity={0.7}
+          >
+            <MapPin size={16} color="#666" />
+            <Text style={{ fontSize: 14, color: '#666', marginLeft: 4 }}>Map</Text>
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       <View>

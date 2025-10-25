@@ -12,7 +12,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAuthContext } from "../../contexts/AuthContext";
 
+import { ChefMarker } from "../../app/types/maps";
 import { CONFIG } from "../../constants/config";
+import { useUserLocation } from "../../hooks/useUserLocation";
+import { getDirections, getNearbyChefs } from "../../utils/appleMapsService";
 import { UserBehavior } from "../../utils/hiddenSections";
 import {
   getCurrentTimeContext,
@@ -38,6 +41,7 @@ import { HiddenSections } from "./HiddenSections";
 import { KitchenMainScreen } from "./KitchenMainScreen";
 import { KitchensNearMe } from "./KitchensNearMe";
 import LiveContent from "./LiveContent";
+import { MapBottomSheet } from "./MapBottomSheet";
 import { MealItemDetails } from "./MealItemDetails";
 import { MultiStepLoader } from "./MultiStepLoader";
 import { MealData, NoshHeavenPlayer } from "./NoshHeavenPlayer";
@@ -535,6 +539,9 @@ export function MainScreen() {
 
   const [addToCart] = useAddToCartMutation();
 
+  // Location hook for map functionality
+  const locationState = useUserLocation();
+
   // Data transformation functions
   const transformCuisinesData = useCallback((apiCuisines: Cuisine[]) => {
     return apiCuisines.map((cuisine) => ({
@@ -654,6 +661,10 @@ export function MainScreen() {
 
   // Camera modal state management
   const [isCameraVisible, setIsCameraVisible] = useState(false);
+  
+  // Map state management
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [mapChefs, setMapChefs] = useState<ChefMarker[]>([]);
 
   // Periodic token expiration check
   useEffect(() => {
@@ -1106,6 +1117,85 @@ export function MainScreen() {
     setIsKitchenMainScreenVisible(true);
   }, []);
 
+  // Map handlers
+  const handleMapToggle = useCallback(() => {
+    setIsMapVisible(!isMapVisible);
+  }, [isMapVisible]);
+
+  const handleMapChefSelect = useCallback((chef: ChefMarker) => {
+    // Convert ChefMarker to kitchen format for existing handler
+    const kitchenData = {
+      id: chef.id,
+      name: chef.kitchen_name,
+      cuisine: chef.cuisine,
+      deliveryTime: chef.delivery_time,
+      distance: chef.distance,
+      image: chef.image_url || "https://avatar.iran.liara.run/public/44",
+      sentiment: chef.sentiment,
+    };
+    setSelectedKitchen(kitchenData);
+    setIsKitchenMainScreenVisible(true);
+    setIsMapVisible(false); // Close map when selecting a chef
+  }, []);
+
+  const handleMapDirections = useCallback(async (chef: ChefMarker) => {
+    if (!locationState.location || !chef.location) {
+      showError('Location Required', 'Please enable location services to get directions.');
+      return;
+    }
+
+    try {
+      const directions = await getDirections(locationState.location, chef.location, 'driving');
+      
+      if (directions.success) {
+        const route = directions.data.routes[0];
+        showInfo(
+          `Distance: ${route.distance.text}\nDuration: ${route.duration.text}`,
+          `Directions to ${chef.kitchen_name}`
+        );
+      }
+    } catch (error) {
+      console.error('Directions error:', error);
+      showError('Directions Error', 'Failed to get directions. Please try again.');
+    }
+  }, [locationState.location]);
+
+  // Initialize map chefs with real data from API
+  useEffect(() => {
+    const loadNearbyChefs = async () => {
+      try {
+        // Default to San Francisco coordinates if no user location
+        const defaultLocation = { latitude: 37.7749, longitude: -122.4194 };
+        
+        // Try to get user location first
+        let userLocation = defaultLocation;
+        if (locationState.location) {
+          userLocation = locationState.location;
+        }
+        
+        const result = await getNearbyChefs(
+          userLocation.latitude,
+          userLocation.longitude,
+          5, // 5km radius
+          20, // limit to 20 chefs
+          1 // first page
+        );
+        
+        setMapChefs(result.chefs);
+        showSuccess(`Loaded ${result.chefs.length} nearby chefs`, "Map Updated");
+      } catch (error) {
+        console.error('Failed to load nearby chefs:', error);
+        showError('Failed to load chefs', 'Unable to load nearby chefs. Please try again.');
+        // Fallback to empty array on error
+        setMapChefs([]);
+      }
+    };
+
+    if (isAuthenticated) {
+      loadNearbyChefs();
+    }
+  }, [isAuthenticated, locationState.location]);
+
   const handleMealPress = useCallback((meal: any) => {
     // Convert meal data to MealItemDetails format
     const mealData = {
@@ -1501,7 +1591,10 @@ export function MainScreen() {
                 offers={mockOffers}
                 onOfferPress={handleOfferPress}
               />
-              <KitchensNearMe onKitchenPress={handleFeaturedKitchenPress} />
+              <KitchensNearMe 
+                onKitchenPress={handleFeaturedKitchenPress}
+                onMapPress={handleMapToggle}
+              />
               <TopKebabs onOpenDrawer={handleOpenTopKebabsDrawer} />
               <TakeAways onOpenDrawer={handleOpenTakeawayDrawer} />
               <TooFreshToWaste
@@ -1718,6 +1811,15 @@ export function MainScreen() {
       >
         <CameraModalScreen onClose={() => setIsCameraVisible(false)} />
       </Modal>
+
+      {/* Map Bottom Sheet */}
+      <MapBottomSheet
+        isVisible={isMapVisible}
+        onToggleVisibility={handleMapToggle}
+        chefs={mapChefs}
+        onChefSelect={handleMapChefSelect}
+        onGetDirections={handleMapDirections}
+      />
     </View>
   );
 }

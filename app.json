@@ -11,11 +11,13 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cribnosh.com",
+      "bundleIdentifier": "com.cribnosh.co.uk",
       "associatedDomains": ["applinks:cribnosh.com"],
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile pictures.",
         "NSCameraUsageDescription": "This app needs access to your camera to take photos.",
+        "NSLocationWhenInUseUsageDescription": "CribNosh needs your location to show nearby chefs and provide delivery services",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "CribNosh needs your location to show nearby chefs and provide delivery services",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -25,7 +27,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.cribnosh.com",
+      "package": "com.cribnosh.co.uk",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -42,7 +44,9 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
       ]
     },
     "web": {

@@ -76,6 +76,11 @@ export interface Chef {
     | "solid"
     | "average"
     | "skip";
+  location?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  };
   created_at: string;
 }
 
