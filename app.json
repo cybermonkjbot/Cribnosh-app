@@ -13,6 +13,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.cribnosh.co.uk",
       "associatedDomains": ["applinks:cribnosh.com"],
+      "appleTeamId": "9H45CVD35P",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile pictures.",
         "NSCameraUsageDescription": "This app needs access to your camera to take photos.",
