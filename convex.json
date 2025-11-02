@@ -1,0 +1,16 @@
+{
+  "functions": "packages/convex",
+  "node": {
+    "runtime": "nodejs"
+  },
+  "production": {
+    "variables": {
+      "AGORA_APP_ID": {
+        "description": "Agora App ID for live streaming"
+      },
+      "AGORA_APP_CERTIFICATE": {
+        "description": "Agora App Certificate for live streaming"
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+[install]
+# Prevent hoisting - each app should use its own node_modules
+hoist = false
+# Only hoist development tools
+hoist-pattern = ["*eslint*", "*prettier*", "typescript", "@types/*"]
+
