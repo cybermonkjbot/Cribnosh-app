@@ -1,0 +1,6 @@
+[submodule "convex-backend"]
+	path = convex-backend
+	url = https://github.com/cybermonkjbot/cribland.git
+[submodule "convex-backend-submodule"]
+	path = convex-backend-submodule
+	url = https://github.com/cybermonkjbot/cribland.git
