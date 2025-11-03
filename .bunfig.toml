@@ -1,0 +1,9 @@
+[workspaces]
+# Prevent all packages from being hoisted to root
+# Each workspace will have its own isolated node_modules
+nohoist = ["**"]
+
+[install]
+# Use isolated linker - no packages will be hoisted to root
+# Each workspace manages its own dependencies independently
+linker = "isolated"

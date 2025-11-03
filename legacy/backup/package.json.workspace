@@ -1,0 +1,28 @@
+{
+  "name": "cribnosh-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    ".",
+    "cribnoshWeb"
+  ],
+  "scripts": {
+    "mobile:dev": "expo start",
+    "mobile:android": "expo run:android",
+    "mobile:ios": "expo run:ios",
+    "web:dev": "cd cribnoshWeb && next dev --turbo",
+    "web:build": "cd cribnoshWeb && next build",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "dev:all": "concurrently \"npm run convex:dev\" \"npm run web:dev\" \"npm run mobile:dev\" --names \"CONVEX,WEB,MOBILE\""
+  },
+  "dependencies": {
+    "@convex-dev/crons": "^0.1.9",
+    "@convex-dev/resend": "^0.1.13",
+    "convex": "^1.28.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
+

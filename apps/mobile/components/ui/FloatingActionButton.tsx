@@ -1,0 +1,490 @@
+import { useGetCartQuery } from '@/store/customerApi';
+import { useRouter } from 'expo-router';
+import { Camera, ChefHat, Plus, ShoppingCart } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+
+interface FloatingActionButtonProps {
+  bottomPosition?: number;
+  rightPosition?: number;
+  onCameraPress?: () => void;
+  onRecipePress?: () => void;
+  onCartPress?: () => void;
+  showCartCounter?: boolean;
+}
+
+export function FloatingActionButton({
+  bottomPosition = 120,
+  rightPosition = 20,
+  onCameraPress,
+  onRecipePress,
+  onCartPress,
+  showCartCounter = true,
+}: FloatingActionButtonProps) {
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [lastUsedFunction, setLastUsedFunction] = useState<'camera' | 'recipe' | 'cart' | null>(null);
+  const router = useRouter();
+  
+  // Fetch cart data
+  const { data: cartData } = useGetCartQuery();
+  
+  // Calculate cart item count
+  const cartItemCount = cartData?.data?.items
+    ? cartData.data.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
+    : 0;
+  
+  // Animation values for badge and icon
+  const badgeScale = useSharedValue(cartItemCount > 0 ? 1 : 0);
+  const iconOpacity = useSharedValue(1);
+  const prevCartCountRef = useRef(cartItemCount);
+  const prevLastFunctionRef = useRef<'camera' | 'recipe' | 'cart' | null>(null);
+  const isInitialMount = useRef(true);
+
+  // Circular menu configuration
+  const menuRadius = 120; // Radius in pixels for circular arrangement
+
+  // Animation values for each menu item (scale, opacity, position)
+  const cameraScale = useSharedValue(0);
+  const cameraOpacity = useSharedValue(0);
+  const cameraTranslateX = useSharedValue(0);
+  const cameraTranslateY = useSharedValue(0);
+
+  const recipeScale = useSharedValue(0);
+  const recipeOpacity = useSharedValue(0);
+  const recipeTranslateX = useSharedValue(0);
+  const recipeTranslateY = useSharedValue(0);
+
+  const cartScale = useSharedValue(0);
+  const cartOpacity = useSharedValue(0);
+  const cartTranslateX = useSharedValue(0);
+  const cartTranslateY = useSharedValue(0);
+  
+  // Animate badge when cart count changes
+  useEffect(() => {
+    if (cartItemCount > 0) {
+      badgeScale.value = withSpring(1, {
+        damping: 15,
+        stiffness: 150,
+      });
+    } else {
+      badgeScale.value = withTiming(0, {
+        duration: 100,
+      });
+    }
+    prevCartCountRef.current = cartItemCount;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartItemCount]);
+  
+  // Animate icon opacity when switching (only if values actually changed)
+  useEffect(() => {
+    // Skip animation on initial mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      prevLastFunctionRef.current = lastUsedFunction;
+      prevCartCountRef.current = cartItemCount;
+      return;
+    }
+    
+    const shouldAnimate = 
+      prevLastFunctionRef.current !== lastUsedFunction || 
+      prevCartCountRef.current !== cartItemCount;
+    
+    if (shouldAnimate) {
+      iconOpacity.value = withTiming(0, { duration: 100 }, () => {
+        iconOpacity.value = withTiming(1, { duration: 200 });
+      });
+    }
+    prevLastFunctionRef.current = lastUsedFunction;
+    prevCartCountRef.current = cartItemCount;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastUsedFunction, cartItemCount]);
+
+  // Get main button icon based on context
+  const getMainButtonIcon = () => {
+    // Context-aware: Show cart icon if cart has items
+    if (cartItemCount > 0) {
+      return <ShoppingCart size={20} color="#FFFFFF" />;
+    }
+    
+    // Show icon based on last used function if cart is empty
+    if (lastUsedFunction === 'camera') {
+      return <Camera size={20} color="#FFFFFF" />;
+    }
+    if (lastUsedFunction === 'recipe') {
+      return <ChefHat size={20} color="#FFFFFF" />;
+    }
+    if (lastUsedFunction === 'cart') {
+      return <ShoppingCart size={20} color="#FFFFFF" />;
+    }
+    
+    // Default plus icon
+    return <Plus size={20} color="#FFFFFF" strokeWidth={3} />;
+  };
+
+  const handleCameraPress = () => {
+    setLastUsedFunction('camera');
+    if (onCameraPress) {
+      onCameraPress();
+    } else {
+      router.push('/camera-modal' as any);
+    }
+    setIsActionMenuOpen(false);
+  };
+
+  const handleRecipePress = () => {
+    setLastUsedFunction('recipe');
+    if (onRecipePress) {
+      onRecipePress();
+    } else {
+      console.log('Recipe Share pressed');
+    }
+    setIsActionMenuOpen(false);
+  };
+
+  const handleCartPress = () => {
+    setLastUsedFunction('cart');
+    if (onCartPress) {
+      onCartPress();
+    } else {
+      router.push('/orders/cart' as any);
+    }
+    setIsActionMenuOpen(false);
+  };
+
+  // Main button press handler - context-aware
+  const handleMainButtonPress = () => {
+    // If cart has items, navigate directly to cart
+    if (cartItemCount > 0) {
+      handleCartPress();
+    } else {
+      // Otherwise, toggle menu
+      setIsActionMenuOpen(!isActionMenuOpen);
+    }
+  };
+
+  // Badge animation style
+  const badgeAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: badgeScale.value }],
+      opacity: badgeScale.value > 0 ? 1 : 0,
+    };
+  });
+
+  // Icon animation style for smooth transitions
+  const iconAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: iconOpacity.value,
+    };
+  });
+
+  // Format cart count for display (show "9+" if more than 9)
+  const displayCartCount = cartItemCount > 99 ? '99+' : cartItemCount.toString();
+
+  // Calculate circular positions using trigonometry
+  const calculatePosition = (angle: number, radius: number) => {
+    const angleInRadians = (angle * Math.PI) / 180;
+    return {
+      x: radius * Math.cos(angleInRadians),
+      y: radius * Math.sin(angleInRadians),
+    };
+  };
+
+  // Animate menu items when menu opens/closes
+  useEffect(() => {
+    const springConfig = {
+      damping: 15,
+      stiffness: 150,
+    };
+
+    const timingConfig = {
+      duration: 200,
+    };
+
+    if (isActionMenuOpen) {
+      // Opening animation - stagger each item slightly
+      // Angles: All positioned towards top and top-left (240°, 270°, 210°)
+      const cameraPos = calculatePosition(270, menuRadius); // Top
+      const recipePos = calculatePosition(240, menuRadius); // Top-left
+      const cartPos = calculatePosition(210, menuRadius); // More towards left
+
+      cameraTranslateX.value = withDelay(0, withSpring(cameraPos.x, springConfig));
+      cameraTranslateY.value = withDelay(0, withSpring(cameraPos.y, springConfig));
+      cameraScale.value = withDelay(0, withSpring(1, springConfig));
+      cameraOpacity.value = withDelay(0, withTiming(1, timingConfig));
+
+      recipeTranslateX.value = withDelay(50, withSpring(recipePos.x, springConfig));
+      recipeTranslateY.value = withDelay(50, withSpring(recipePos.y, springConfig));
+      recipeScale.value = withDelay(50, withSpring(1, springConfig));
+      recipeOpacity.value = withDelay(50, withTiming(1, timingConfig));
+
+      cartTranslateX.value = withDelay(100, withSpring(cartPos.x, springConfig));
+      cartTranslateY.value = withDelay(100, withSpring(cartPos.y, springConfig));
+      cartScale.value = withDelay(100, withSpring(1, springConfig));
+      cartOpacity.value = withDelay(100, withTiming(1, timingConfig));
+    } else {
+      // Closing animation - animate back to center
+      cameraTranslateX.value = withTiming(0, timingConfig);
+      cameraTranslateY.value = withTiming(0, timingConfig);
+      cameraScale.value = withTiming(0, timingConfig);
+      cameraOpacity.value = withTiming(0, timingConfig);
+
+      recipeTranslateX.value = withTiming(0, timingConfig);
+      recipeTranslateY.value = withTiming(0, timingConfig);
+      recipeScale.value = withTiming(0, timingConfig);
+      recipeOpacity.value = withTiming(0, timingConfig);
+
+      cartTranslateX.value = withTiming(0, timingConfig);
+      cartTranslateY.value = withTiming(0, timingConfig);
+      cartScale.value = withTiming(0, timingConfig);
+      cartOpacity.value = withTiming(0, timingConfig);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActionMenuOpen]);
+
+  // Animated styles for menu items
+  const cameraAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: cameraTranslateX.value },
+      { translateY: cameraTranslateY.value },
+      { scale: cameraScale.value },
+    ],
+    opacity: cameraOpacity.value,
+  }));
+
+  const recipeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: recipeTranslateX.value },
+      { translateY: recipeTranslateY.value },
+      { scale: recipeScale.value },
+    ],
+    opacity: recipeOpacity.value,
+  }));
+
+  const cartAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: cartTranslateX.value },
+      { translateY: cartTranslateY.value },
+      { scale: cartScale.value },
+    ],
+    opacity: cartOpacity.value,
+  }));
+
+  return (
+    <View style={[styles.floatingActionButton, { bottom: bottomPosition, right: rightPosition }]}>
+      <TouchableOpacity
+        style={[
+          styles.mainActionButton,
+          isActionMenuOpen && styles.mainActionButtonOpen
+        ]}
+        onPress={handleMainButtonPress}
+        activeOpacity={0.8}
+      >
+        <Animated.View style={[styles.mainButtonIcon, iconAnimatedStyle]}>
+          {getMainButtonIcon()}
+        </Animated.View>
+        
+        {/* Cart Counter Badge - Always render for smooth animations */}
+        {showCartCounter && (
+          <Animated.View style={[styles.cartBadge, badgeAnimatedStyle]}>
+            {cartItemCount > 0 && (
+              <Text style={styles.cartBadgeText}>{displayCartCount}</Text>
+            )}
+          </Animated.View>
+        )}
+      </TouchableOpacity>
+
+      {/* Circular Icon Menu Items */}
+      {/* Camera Button - Top */}
+      <Animated.View
+        style={[
+          styles.circularMenuItem,
+          cameraAnimatedStyle,
+          { position: 'absolute', top: 0, right: 0 },
+        ]}
+        pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
+      >
+          <TouchableOpacity
+          style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#FF3B30' }]}
+            onPress={handleCameraPress}
+            activeOpacity={0.8}
+          accessibilityLabel="Create Food Content"
+          accessibilityRole="button"
+          >
+          <Camera size={24} color="#FF3B30" />
+          </TouchableOpacity>
+      </Animated.View>
+
+      {/* Recipe Share Button - Top Right */}
+      <Animated.View
+        style={[
+          styles.circularMenuItem,
+          recipeAnimatedStyle,
+          { position: 'absolute', top: 0, right: 0 },
+        ]}
+        pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
+      >
+          <TouchableOpacity
+          style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#0B9E58' }]}
+            onPress={handleRecipePress}
+            activeOpacity={0.8}
+          accessibilityLabel="Recipe Share"
+          accessibilityRole="button"
+          >
+          <ChefHat size={24} color="#0B9E58" />
+          </TouchableOpacity>
+      </Animated.View>
+
+      {/* Cart Button - Top Left */}
+      <Animated.View
+        style={[
+          styles.circularMenuItem,
+          cartAnimatedStyle,
+          { position: 'absolute', top: 0, right: 0 },
+        ]}
+        pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
+      >
+          <TouchableOpacity
+          style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#0B9E58' }]}
+            onPress={handleCartPress}
+            activeOpacity={0.8}
+          accessibilityLabel={cartItemCount > 0 ? `Cart (${cartItemCount} items)` : 'View Cart'}
+          accessibilityRole="button"
+        >
+          <ShoppingCart size={24} color="#0B9E58" />
+          {cartItemCount > 0 && showCartCounter && (
+            <Animated.View style={[styles.cartBadgeSmall, badgeAnimatedStyle]}>
+              <Text style={styles.cartBadgeTextSmall}>{displayCartCount}</Text>
+            </Animated.View>
+          )}
+          </TouchableOpacity>
+      </Animated.View>
+
+      {/* Backdrop - closes menu when tapped - rendered last so it's behind menu items */}
+      {isActionMenuOpen && (
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={() => setIsActionMenuOpen(false)}
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  floatingActionButton: {
+    position: 'absolute',
+    zIndex: 1000,
+    alignItems: 'flex-end',
+  },
+  mainActionButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FF3B30', // Cribnosh red
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  mainActionButtonOpen: {
+    transform: [{ translateY: -20 }], // Move button up by 20px when open
+  },
+  mainButtonIcon: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#0B9E58', // Cribnosh green
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: -Dimensions.get('window').height,
+    left: -Dimensions.get('window').width,
+    right: -Dimensions.get('window').width,
+    bottom: -Dimensions.get('window').height,
+    width: Dimensions.get('window').width * 3,
+    height: Dimensions.get('window').height * 3,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 999,
+  },
+  circularMenuItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  circularIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    position: 'relative',
+  },
+  cartBadgeSmall: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#0B9E58',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 4,
+  },
+  cartBadgeTextSmall: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+});
