@@ -9,7 +9,14 @@ export default function SignInModal() {
   const router = useRouter();
   const { isAuthenticated, login } = useAuthContext();
   const { handleAppleSignIn: appleSignInApi } = useAuth();
-  const params = useLocalSearchParams<{ returnPath?: string; returnParams?: string }>();
+  const params = useLocalSearchParams<{ 
+    returnPath?: string; 
+    returnParams?: string;
+    notDismissable?: string; // Passed as string in URL params
+  }>();
+  
+  // Parse notDismissable from params (comes as string from URL)
+  const notDismissable = params.notDismissable === 'true';
 
   // Mark sign-in as visible when component mounts
   useEffect(() => {
@@ -50,6 +57,11 @@ export default function SignInModal() {
   }, [isAuthenticated, router, params.returnPath, params.returnParams]);
 
   const handleClose = () => {
+    // If notDismissable is true, don't allow closing
+    if (notDismissable) {
+      return;
+    }
+    
     // Mark as hidden before closing
     markSignInAsHidden();
     
@@ -99,7 +111,11 @@ export default function SignInModal() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SignInScreen onClose={handleClose} onAppleSignIn={handleAppleSignIn} />
+      <SignInScreen 
+        onClose={handleClose} 
+        onAppleSignIn={handleAppleSignIn}
+        notDismissable={notDismissable}
+      />
     </>
   );
 }

@@ -40,6 +40,7 @@ const isOnSignInRoute = (): boolean => {
 export const navigateToSignIn = (params?: {
   returnPath?: string;
   returnParams?: Record<string, any>;
+  notDismissable?: boolean; // If true, sign-in screen cannot be dismissed
 }): boolean => {
   // If sign-in is already visible, skip navigation
   if (isSignInVisible) {
@@ -76,6 +77,9 @@ export const navigateToSignIn = (params?: {
     signInParams.returnParams = encodeURIComponent(
       JSON.stringify(params.returnParams)
     );
+  }
+  if (params?.notDismissable) {
+    signInParams.notDismissable = 'true';
   }
 
   // Navigate to sign-in

@@ -9,20 +9,26 @@ import Animated, {
   useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withSpring,
   withTiming
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Mascot } from '../../components/Mascot';
 import { ThemedText } from '../../components/ThemedText';
 import { CalorieCompareCard, CuisineScoreCard, MealsLoggedCard } from '../../components/ui';
 import { Avatar } from '../../components/ui/Avatar';
 import { CaloriesNoshPointsCards } from '../../components/ui/CaloriesNoshPointsCards';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { KPICards } from '../../components/ui/KPICards';
 import { ProfileScreenBackground } from '../../components/ui/ProfileScreenBackground';
+import {
+  BraggingCardsSkeleton,
+  CaloriesNoshPointsSkeleton,
+  ForkPrintScoreSkeleton,
+  KPICardsSkeleton,
+} from '../../components/ui/ProfileScreenSkeletons';
 import { useAuthContext } from '../../contexts/AuthContext';
 import {
   useGetCaloriesProgressQuery,
@@ -31,7 +37,7 @@ import {
   useGetNoshPointsQuery,
   useGetWeeklySummaryQuery,
 } from '../../store/customerApi';
-import { sampleWeeklyData } from '../../utils/braggingCardsData';
+import { navigateToSignIn } from '../../utils/signInNavigationGuard';
 
 // Constants moved outside component to prevent recreation
 const SHEET_SNAP_POINT = 200; // Distance to pull up to open sheet
@@ -61,14 +67,28 @@ const safeHapticFeedback = async (style: Haptics.ImpactFeedbackStyle) => {
 
 export default function ProfileScreen() {
   const { isAuthenticated, isLoading: authLoading } = useAuthContext();
-  const [braggingData, setBraggingData] = useState(sampleWeeklyData);
-  const [showDebug] = useState(__DEV__); // Only show debug in development
+  const insets = useSafeAreaInsets();
+  const [braggingData, setBraggingData] = useState<{
+    weekMeals: number[];
+    avgMeals: number;
+    kcalToday: number;
+    kcalYesterday: number;
+    cuisines: string[];
+  }>({
+    weekMeals: [],
+    avgMeals: 0,
+    kcalToday: 0,
+    kcalYesterday: 0,
+    cuisines: [],
+  });
+  const router = useRouter();
 
   // API Queries
   const {
     data: forkPrintData,
     isLoading: forkPrintLoading,
     error: forkPrintError,
+    refetch: refetchForkPrint,
   } = useGetForkPrintScoreQuery(undefined, {
     skip: !isAuthenticated,
   });
@@ -77,6 +97,7 @@ export default function ProfileScreen() {
     data: noshPointsData,
     isLoading: noshPointsLoading,
     error: noshPointsError,
+    refetch: refetchNoshPoints,
   } = useGetNoshPointsQuery(undefined, {
     skip: !isAuthenticated,
   });
@@ -85,6 +106,7 @@ export default function ProfileScreen() {
     data: caloriesProgressData,
     isLoading: caloriesProgressLoading,
     error: caloriesProgressError,
+    refetch: refetchCaloriesProgress,
   } = useGetCaloriesProgressQuery(undefined, {
     skip: !isAuthenticated,
   });
@@ -93,6 +115,7 @@ export default function ProfileScreen() {
     data: monthlyOverviewData,
     isLoading: monthlyOverviewLoading,
     error: monthlyOverviewError,
+    refetch: refetchMonthlyOverview,
   } = useGetMonthlyOverviewQuery(undefined, {
     skip: !isAuthenticated,
   });
@@ -113,17 +136,6 @@ export default function ProfileScreen() {
   // Simple shared values
   const scrollY = useSharedValue(0);
   
-  // Derived value and state for scrollY display (to avoid Reanimated warnings)
-  const scrollYDisplay = useDerivedValue(() => {
-    return Math.round(scrollY.value).toString();
-  });
-  
-  const [scrollYDisplayState, setScrollYDisplayState] = useState('0');
-  
-  // Sync derived value to React state for JSX access
-  useDerivedValue(() => {
-    runOnJS(setScrollYDisplayState)(scrollYDisplay.value);
-  });
   
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -317,11 +329,11 @@ export default function ProfileScreen() {
     if (weeklySummaryData?.success && weeklySummaryData.data) {
       const weeklyData = weeklySummaryData.data;
       setBraggingData({
-        weekMeals: weeklyData.week_meals,
-        avgMeals: weeklyData.avg_meals,
-        kcalToday: weeklyData.kcal_today,
-        kcalYesterday: weeklyData.kcal_yesterday,
-        cuisines: weeklyData.cuisines,
+        weekMeals: weeklyData.week_meals || [],
+        avgMeals: weeklyData.avg_meals || 0,
+        kcalToday: weeklyData.kcal_today || 0,
+        kcalYesterday: weeklyData.kcal_yesterday || 0,
+        cuisines: weeklyData.cuisines || [],
       });
     }
   }, [weeklySummaryData]);
@@ -361,7 +373,16 @@ export default function ProfileScreen() {
     windowSize: 5, // Reduce window size for better performance
   }), [scrollHandler]);
 
-  const router = useRouter();
+  // Automatically trigger sign-in when not authenticated (similar to app-wide behavior)
+  // Make it non-dismissable so users can't dismiss and see forever loading
+  useEffect(() => {
+    if (!isAuthenticated && !authLoading) {
+      navigateToSignIn({
+        returnPath: '/(tabs)/profile',
+        notDismissable: true,
+      });
+    }
+  }, [isAuthenticated, authLoading]);
 
   return (
     <ProfileScreenBackground>
@@ -390,103 +411,184 @@ export default function ProfileScreen() {
             {/* ForkPrint Score and Tastemaker Section */}
             <Animated.View style={[scoreAnimatedStyle, resistanceAnimatedStyle]}>
               <View style={styles.scoreSectionContainer}>
-                <View style={styles.scoreRow}>
-                  <View style={styles.scoreContent}>
-                    <Text style={styles.scoreLabel}>
-                      Score
-                    </Text>
-                    
-                    <ForkPrintImage />
-                    
-                    <Text style={styles.scoreValue}>
-                      {forkPrintLoading ? '...' : forkPrintData?.data?.score ?? 799}
-                    </Text>
+                {!isAuthenticated || forkPrintLoading ? (
+                  <ForkPrintScoreSkeleton />
+                ) : forkPrintError ? (
+                      <EmptyState
+                        title="Unable to Load ForkPrint Score"
+                        subtitle="Failed to load your ForkPrint score. Please try again."
+                        icon="alert-circle-outline"
+                        titleColor="#FFFFFF"
+                        subtitleColor="rgba(255, 255, 255, 0.8)"
+                        iconColor="#FFFFFF"
+                        actionButton={{
+                          label: "Retry",
+                          onPress: () => refetchForkPrint(),
+                        }}
+                      />
+                    ) : forkPrintData?.data ? (
+                      <>
+                        <View style={styles.scoreRow}>
+                          <View style={styles.scoreContent}>
+                            <Text style={styles.scoreLabel}>
+                              Score
+                            </Text>
+                            
+                            <ForkPrintImage />
+                            
+                            <Text style={styles.scoreValue}>
+                              {forkPrintData.data.score}
+                            </Text>
+                          </View>
+                        </View>
+                        
+                        <View style={styles.mascotContainer}>
+                          <Mascot 
+                            emotion="happy" 
+                            size={280}
+                            style={styles.mascotImage}
+                          />
+                          
+                          <ThemedText style={styles.mascotStatus}>
+                            {forkPrintData.data.status}
+                          </ThemedText>
+                          <ThemedText style={styles.mascotSubtext}>
+                            {forkPrintData.data.points_to_next} Points to {forkPrintData.data.next_level}
+                          </ThemedText>
+                        </View>
+                      </>
+                    ) : null}
                   </View>
-                </View>
-                
-                <View style={styles.mascotContainer}>
-                  <Mascot 
-                    emotion="happy" 
-                    size={280}
-                    style={styles.mascotImage}
-                  />
-                  
-                  <ThemedText style={styles.mascotStatus}>
-                    {forkPrintLoading ? '...' : forkPrintData?.data?.status ?? 'Tastemaker'}
-                  </ThemedText>
-                  <ThemedText style={styles.mascotSubtext}>
-                    {forkPrintLoading ? '...' : `${forkPrintData?.data?.points_to_next ?? 3} Points to ${forkPrintData?.data?.next_level ?? 'Food Influencer'}`}
-                  </ThemedText>
-                </View>
-              </View>
-            </Animated.View>
+                </Animated.View>
 
             {/* Data Cards */}
             <Animated.View style={cardsAnimatedStyle}>
               <View style={styles.dataCardsContainer}>
-                <CaloriesNoshPointsCards 
-                  caloriesProgress={caloriesProgressLoading ? 0 : caloriesProgressData?.data?.progress_percentage ?? 23}
-                  noshPointsProgress={noshPointsLoading ? 0 : noshPointsData?.data?.progress_percentage ?? 40}
-                  availableCoins={noshPointsData?.data?.available_points}
-                />
-              </View>
-            </Animated.View>
+                {!isAuthenticated || caloriesProgressLoading || noshPointsLoading ? (
+                  <CaloriesNoshPointsSkeleton />
+                ) : caloriesProgressError || noshPointsError ? (
+                      <EmptyState
+                        title="Unable to Load Progress Data"
+                        subtitle="Failed to load calories and Nosh Points progress. Please try again."
+                        icon="alert-circle-outline"
+                        titleColor="#FFFFFF"
+                        subtitleColor="rgba(255, 255, 255, 0.8)"
+                        iconColor="#FFFFFF"
+                        actionButton={{
+                          label: "Retry",
+                          onPress: () => {
+                            refetchCaloriesProgress();
+                            refetchNoshPoints();
+                          },
+                        }}
+                      />
+                    ) : caloriesProgressData?.data && noshPointsData?.data ? (
+                      <CaloriesNoshPointsCards 
+                        caloriesProgress={caloriesProgressData.data.progress_percentage ?? 0}
+                        noshPointsProgress={noshPointsData.data.progress_percentage ?? 0}
+                        availableCoins={noshPointsData.data.available_points}
+                      />
+                    ) : null}
+                  </View>
+                </Animated.View>
 
             {/* KPI Cards */}
             <Animated.View style={cardsAnimatedStyle}>
               <View style={styles.kpiCardsContainer}>
-                <KPICards
-                  mealsLogged={monthlyOverviewData?.data?.meals?.count?.toString()}
-                  caloriesTracked={monthlyOverviewData?.data?.calories?.tracked?.toString()}
-                  streakDays={monthlyOverviewData?.data?.streak?.current?.toString()}
-                />
-              </View>
-            </Animated.View>
+                {!isAuthenticated || monthlyOverviewLoading ? (
+                  <KPICardsSkeleton />
+                ) : monthlyOverviewError ? (
+                      <EmptyState
+                        title="Unable to Load Monthly Overview"
+                        subtitle="Failed to load your monthly statistics. Please try again."
+                        icon="alert-circle-outline"
+                        titleColor="#FFFFFF"
+                        subtitleColor="rgba(255, 255, 255, 0.8)"
+                        iconColor="#FFFFFF"
+                        actionButton={{
+                          label: "Retry",
+                          onPress: () => refetchMonthlyOverview(),
+                        }}
+                      />
+                    ) : monthlyOverviewData?.data ? (
+                      <KPICards
+                        mealsLogged={monthlyOverviewData.data.meals?.count?.toString()}
+                        caloriesTracked={monthlyOverviewData.data.calories?.tracked?.toString()}
+                        streakDays={monthlyOverviewData.data.streak?.current?.toString()}
+                      />
+                    ) : null}
+                  </View>
+                </Animated.View>
 
             {/* Breakpoint Trigger Area */}
-            <View style={styles.triggerArea}>
-              <View style={styles.triggerContent}>
-                <Text style={styles.triggerText}>
-                  Pull up to view your food stats
-                </Text>
-                <View style={styles.triggerIndicator} />
-                
-
+            {isAuthenticated && (
+              <View style={styles.triggerArea}>
+                <View style={styles.triggerContent}>
+                  <Text style={styles.triggerText}>
+                    Pull up to view your food stats
+                  </Text>
+                  <View style={styles.triggerIndicator} />
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Bragging Cards Section - Sheet */}
             <GestureDetector gesture={sheetGesture}>
               <Animated.View style={[braggingCardsAnimatedStyle, statsSectionAnimatedStyle, sheetAnimatedStyle]}>
                 <Animated.View style={[styles.sheetContent, sheetBackgroundAnimatedStyle]}>
-                  <View style={styles.sheetHeader}>
-                    <Text style={styles.sheetTitle}>
-                      Your Food Stats
-                    </Text>
-                    <TouchableOpacity onPress={refreshBraggingData} activeOpacity={0.7}>
-                      <Text style={styles.sheetRefresh}>
-                        Refresh
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  
-                  {/* Individual Bragging Cards */}
-                  <MealsLoggedCard
-                    weekMeals={braggingData.weekMeals}
-                    avgMeals={braggingData.avgMeals}
-                    onPress={handleMealsPress}
-                  />
-                  
-                  <CalorieCompareCard
-                    kcalToday={braggingData.kcalToday}
-                    kcalYesterday={braggingData.kcalYesterday}
-                    onPress={handleCaloriesPress}
-                  />
-                  
-                  <CuisineScoreCard
-                    cuisines={braggingData.cuisines}
-                    onPress={handleCuisinePress}
-                  />
+                  {!isAuthenticated ? (
+                    <BraggingCardsSkeleton />
+                  ) : (
+                    <>
+                      <View style={styles.sheetHeader}>
+                        <Text style={styles.sheetTitle}>
+                          Your Food Stats
+                        </Text>
+                        <TouchableOpacity onPress={refreshBraggingData} activeOpacity={0.7}>
+                          <Text style={styles.sheetRefresh}>
+                            Refresh
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      
+                      {weeklySummaryLoading ? (
+                        <BraggingCardsSkeleton />
+                      ) : weeklySummaryError ? (
+                        <EmptyState
+                          title="Unable to Load Weekly Summary"
+                          subtitle="Failed to load your weekly food statistics. Please try again."
+                          icon="alert-circle-outline"
+                          titleColor="#FFFFFF"
+                          subtitleColor="rgba(255, 255, 255, 0.8)"
+                          iconColor="#FFFFFF"
+                          actionButton={{
+                            label: "Retry",
+                            onPress: () => refetchWeeklySummary(),
+                          }}
+                        />
+                      ) : braggingData.weekMeals.length > 0 || braggingData.cuisines.length > 0 ? (
+                        <>
+                          {/* Individual Bragging Cards */}
+                          <MealsLoggedCard
+                            weekMeals={braggingData.weekMeals}
+                            avgMeals={braggingData.avgMeals}
+                            onPress={handleMealsPress}
+                          />
+                          
+                          <CalorieCompareCard
+                            kcalToday={braggingData.kcalToday}
+                            kcalYesterday={braggingData.kcalYesterday}
+                            onPress={handleCaloriesPress}
+                          />
+                          
+                          <CuisineScoreCard
+                            cuisines={braggingData.cuisines}
+                            onPress={handleCuisinePress}
+                          />
+                        </>
+                      ) : null}
+                    </>
+                  )}
                 </Animated.View>
               </Animated.View>
             </GestureDetector>
@@ -495,11 +597,10 @@ export default function ProfileScreen() {
             <View style={styles.bottomPadding} />
           </Animated.ScrollView>
 
-          {/* Debug Tester - Only in development */}
-          {__DEV__ && showDebug && (
-            <View style={styles.debugContainer}>
-              <Text style={styles.debugText}>Scroll Y: {scrollYDisplayState}</Text>
-              <Text style={styles.debugText}>Expanded: {isExpanded ? 'Yes' : 'No'}</Text>
+          {/* Not Logged In Indicator - Pill shaped at bottom center */}
+          {!isAuthenticated && !authLoading && (
+            <View style={[styles.notLoggedInIndicator, { bottom: Math.max(insets.bottom, 20) + 100 }]}>
+              <Text style={styles.notLoggedInText}>Not logged in</Text>
             </View>
           )}
         </SafeAreaView>
@@ -656,11 +757,31 @@ const styles = StyleSheet.create({
   bottomPadding: {
     height: 200,
   },
-  debugContainer: {
-    padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+  notLoggedInIndicator: {
+    position: 'absolute',
+    bottom: 20,
+    left: '50%',
+    transform: [{ translateX: -75 }], // Half of width (150/2)
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minWidth: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  debugText: {
-    color: 'white',
+  notLoggedInText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: 'Mukta',
+    letterSpacing: 0.2,
   },
 }); 
