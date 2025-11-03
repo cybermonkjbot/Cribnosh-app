@@ -7,6 +7,7 @@ module.exports = function (api) {
     ],
     plugins: [
       // react-native-worklets/plugin is handled automatically by babel-preset-expo in Expo SDK 54
+      // "react-native-reanimated/plugin", // TEMPORARILY DISABLED - Enable after building dev client
     ],
   };
 };

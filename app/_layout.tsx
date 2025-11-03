@@ -1,26 +1,34 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-// import 'react-native-reanimated';
-import * as Linking from 'expo-linking';
-import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+// react-native-reanimated must be imported FIRST, before any other imports
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { useFonts } from "expo-font";
+import * as Linking from "expo-linking";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import "react-native-reanimated";
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from "react-native-reanimated";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { AppProvider } from '@/utils/AppContext';
-import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
-import { Provider } from 'react-redux';
-import { GlobalToastContainer } from '../components/ui/GlobalToastContainer';
-import { AuthProvider } from '../contexts/AuthContext';
-import { handleDeepLink } from '../lib/deepLinkHandler';
-import { ToastProvider } from '../lib/ToastContext';
-import { logMockStatus } from '../utils/mockConfig';
-import { store } from './store';
+import { AnimatedSplashScreen } from "@/components/AnimatedSplashScreen";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { AppProvider } from "@/utils/AppContext";
+import { EmotionsUIProvider } from "@/utils/EmotionsUIContext";
+import { Provider } from "react-redux";
+import { GlobalToastContainer } from "../components/ui/GlobalToastContainer";
+import { AuthProvider } from "../contexts/AuthContext";
+import { handleDeepLink } from "../lib/deepLinkHandler";
+import { ToastProvider } from "../lib/ToastContext";
+import { logMockStatus } from "../utils/mockConfig";
+import { store } from "./store";
 
 // Disable Reanimated strict mode warnings
 configureReanimatedLogger({
@@ -36,18 +44,18 @@ function MainNavigator() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="shared-ordering" />
         <Stack.Screen name="shared-link" />
-        <Stack.Screen 
-          name="sign-in" 
-          options={{ 
-            presentation: 'modal',
-            animationTypeForReplace: 'push'
-          }} 
+        <Stack.Screen
+          name="sign-in"
+          options={{
+            presentation: "modal",
+            animationTypeForReplace: "push",
+          }}
         />
         <Stack.Screen name="+not-found" />
       </Stack>
@@ -58,7 +66,7 @@ function MainNavigator() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    'Space Mono': require('../assets/fonts/SpaceMono-Regular.ttf'),
+    "Space Mono": require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
   const [showSplash, setShowSplash] = useState(true);
 
@@ -71,7 +79,11 @@ export default function RootLayout() {
 
         // Handle deep links when app is opened from a closed state
         const initialUrl = await Linking.getInitialURL();
-        if (initialUrl && (initialUrl.includes('cribnoshapp://') || initialUrl.includes('cribnosh.com'))) {
+        if (
+          initialUrl &&
+          (initialUrl.includes("cribnoshapp://") ||
+            initialUrl.includes("cribnosh.com"))
+        ) {
           handleDeepLink({ url: initialUrl });
         }
 
@@ -85,7 +97,7 @@ export default function RootLayout() {
     };
 
     initializeDeepLinks();
-    
+
     // Log mock authentication status
     logMockStatus();
   }, []);
@@ -108,7 +120,12 @@ export default function RootLayout() {
 
   // Show animated splash for a bit even after fonts load for better UX
   if (showSplash) {
-    return <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} duration={2000} />;
+    return (
+      <AnimatedSplashScreen
+        onAnimationComplete={handleSplashComplete}
+        duration={2000}
+      />
+    );
   }
 
   return (
@@ -120,13 +137,13 @@ export default function RootLayout() {
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <SafeAreaProvider>
                   <MainNavigator />
+                  <GlobalToastContainer />
                 </SafeAreaProvider>
               </GestureHandlerRootView>
             </ToastProvider>
           </AppProvider>
         </EmotionsUIProvider>
       </AuthProvider>
-      <GlobalToastContainer />
     </Provider>
   );
 }

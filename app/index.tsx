@@ -5,8 +5,10 @@ import { ActivityIndicator, Animated, StyleSheet, Text, View } from 'react-nativ
 
 export default function Index() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthContext();
   const navigatedRef = useRef(false);
+  
+  // Get auth context - will be available since _layout.tsx wraps all routes with AuthProvider
+  const { isAuthenticated, isLoading } = useAuthContext();
 
   // Animated values for subtle logo motion
   const scale = useRef(new Animated.Value(0.9)).current;
