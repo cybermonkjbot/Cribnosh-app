@@ -40,6 +40,8 @@ interface MealItemDetailsProps {
     imageUrl?: string;
     kitchenName: string;
     kitchenAvatar?: string;
+    kitchenId?: string;
+    foodcreatorId?: string;
     calories: number;
     fat: string;
     protein: string;
@@ -71,6 +73,7 @@ interface MealItemDetailsProps {
   };
   onAddToCart?: (mealId: string, quantity: number) => void;
   onSimilarMealPress?: (mealId: string) => void;
+  onKitchenNamePress?: (kitchenName: string, kitchenId?: string, foodcreatorId?: string) => void;
 }
 
 export function MealItemDetails({
@@ -81,6 +84,7 @@ export function MealItemDetails({
   mealData,
   onAddToCart,
   onSimilarMealPress,
+  onKitchenNamePress,
 }: MealItemDetailsProps) {
   const [quantity] = useState(2);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -136,6 +140,7 @@ export function MealItemDetails({
             <KitchenInfo
               kitchenName={mealData.kitchenName}
               kitchenAvatar={mealData.kitchenAvatar}
+              onPress={() => onKitchenNamePress?.(mealData.kitchenName, mealData.kitchenId, mealData.foodcreatorId)}
             />
           ) : (
             <KitchenInfoSkeleton />
@@ -170,6 +175,7 @@ export function MealItemDetails({
             <MealDescription
               description={mealData.description}
               kitchenName={mealData.kitchenName}
+              onKitchenNamePress={() => onKitchenNamePress?.(mealData.kitchenName, mealData.kitchenId, mealData.foodcreatorId)}
             />
           ) : (
             <MealDescriptionSkeleton />

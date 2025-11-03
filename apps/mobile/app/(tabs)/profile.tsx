@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   },
   notLoggedInIndicator: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 140,
     left: '50%',
     transform: [{ translateX: -75 }], // Half of width (150/2)
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

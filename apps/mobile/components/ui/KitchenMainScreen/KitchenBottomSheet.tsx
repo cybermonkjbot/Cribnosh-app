@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 
 import { Mascot } from '../../Mascot';
 import SearchArea from '../../SearchArea';
 import { CartButton } from '../CartButton';
+import { useGetKitchenDetailsQuery } from '@/store/customerApi';
 import { KitchenBottomSheetContent } from './KitchenBottomSheetContent';
 import { KitchenBottomSheetHeader } from './KitchenBottomSheetHeader';
 
@@ -22,7 +23,7 @@ interface KitchenBottomSheetProps {
 export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   deliveryTime,
   cartItems,
-  kitchenName = "Amara's Kitchen",
+  kitchenName: propKitchenName,
   distance = "0.8 km",
   kitchenId,
   onCartPress,
@@ -36,6 +37,25 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   const [currentSnapPoint, setCurrentSnapPoint] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch kitchen details if kitchenId is provided
+  const { data: kitchenDetails, isLoading: isLoadingKitchenDetails } = useGetKitchenDetailsQuery(
+    { kitchenId: kitchenId || '' },
+    { skip: !kitchenId }
+  );
+
+  // Extract kitchen name from API response
+  // ResponseFactory returns: { success: true, data: { kitchenName, ... }, message: ... }
+  // RTK Query returns the full response, so we access .data
+  const apiKitchenName = (kitchenDetails as any)?.data?.kitchenName;
+
+  // Use fetched kitchen name from API
+  // If kitchenId is provided, prioritize API data and don't use demo name from prop
+  // Only use prop if it's not the demo name "Amara's Kitchen"
+  const isDemoName = propKitchenName === "Amara's Kitchen";
+  const kitchenName = kitchenId 
+    ? (apiKitchenName || (!isDemoName && propKitchenName) || "Amara's Kitchen")
+    : (propKitchenName || "Amara's Kitchen");
 
   const snapPoints = ['57%', '90%'];
   const isExpanded = currentSnapPoint === 1;

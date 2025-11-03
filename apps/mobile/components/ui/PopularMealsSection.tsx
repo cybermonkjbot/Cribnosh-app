@@ -1,6 +1,11 @@
+import { useGetPopularMealsQuery } from '@/store/customerApi';
 import { Image } from 'expo-image';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { showError } from '../../lib/GlobalToastManager';
+import { PopularMealsSectionEmpty } from './PopularMealsSectionEmpty';
+import { PopularMealsSectionSkeleton } from './PopularMealsSectionSkeleton';
 import { SentimentRating } from './SentimentRating';
 
 interface Meal {
@@ -17,20 +22,99 @@ interface Meal {
 }
 
 interface PopularMealsSectionProps {
-  meals: Meal[];
+  meals?: Meal[];
   onMealPress?: (meal: Meal) => void;
   onSeeAllPress?: () => void;
   title?: string;
   showTitle?: boolean;
+  isLoading?: boolean;
+  useBackend?: boolean;
 }
 
 export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
-  meals,
+  meals: propMeals,
   onMealPress,
   onSeeAllPress,
   title,
-  showTitle = true
+  showTitle = true,
+  isLoading: propIsLoading,
+  useBackend = true,
 }) => {
+  const { isAuthenticated } = useAuthContext();
+
+  // Backend API integration
+  const {
+    data: popularMealsData,
+    isLoading: backendLoading,
+    error: backendError,
+  } = useGetPopularMealsQuery(
+    { limit: 20 },
+    {
+      skip: !useBackend || !isAuthenticated,
+    }
+  );
+
+  // Transform API data to component format
+  const transformMealData = useCallback((apiMeal: any): Meal | null => {
+    if (!apiMeal?.meal) return null;
+
+    const meal = apiMeal.meal;
+    const chef = apiMeal.chef;
+
+    return {
+      id: meal._id || meal.id || '',
+      name: meal.name || 'Unknown Meal',
+      kitchen: chef?.kitchen_name || chef?.name || 'Unknown Kitchen',
+      price: meal.price ? `£${(meal.price / 100).toFixed(2)}` : '£0.00',
+      originalPrice: meal.original_price ? `£${(meal.original_price / 100).toFixed(2)}` : undefined,
+      image: {
+        uri: meal.image_url || meal.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop',
+      },
+      isPopular: true, // These are popular meals by definition
+      isNew: meal.is_new || false,
+      sentiment: meal.sentiment || 'solid',
+      deliveryTime: meal.delivery_time || '30 min',
+    };
+  }, []);
+
+  // Process meals data
+  const meals: Meal[] = useMemo(() => {
+    // If propMeals provided, use them (for filtered view)
+    if (propMeals && propMeals.length > 0) {
+      return propMeals;
+    }
+
+    // Otherwise, use backend data if available
+    if (useBackend && popularMealsData?.success && popularMealsData.data?.popular) {
+      const transformedMeals = popularMealsData.data.popular
+        .map(transformMealData)
+        .filter((meal): meal is Meal => meal !== null);
+      return transformedMeals;
+    }
+
+    // Fallback to empty array
+    return [];
+  }, [propMeals, popularMealsData, useBackend, transformMealData]);
+
+  // Determine loading state
+  const isLoading = propIsLoading !== undefined ? propIsLoading : (useBackend && backendLoading);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (backendError && isAuthenticated) {
+      showError('Failed to load popular meals', 'Please try again');
+    }
+  }, [backendError, isAuthenticated]);
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return <PopularMealsSectionSkeleton itemCount={8} />;
+  }
+
+  // Show empty state if no meals
+  if (meals.length === 0) {
+    return <PopularMealsSectionEmpty onBrowseAll={onSeeAllPress} />;
+  }
   const renderMealCard = (meal: Meal, index: number) => (
     <TouchableOpacity
       key={meal.id}

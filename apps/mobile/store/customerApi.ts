@@ -13,6 +13,7 @@ import {
   CheckoutRequest,
   CheckoutResponse,
   // New search types
+  Chef,
   ChefSearchParams,
   ChefSearchResponse,
   CreateCustomOrderRequest,
@@ -31,6 +32,8 @@ import {
   EmotionsSearchResponse,
   GenerateSharedOrderLinkRequest,
   GenerateSharedOrderLinkResponse,
+  GetActiveOffersParams,
+  GetActiveOffersResponse,
   GetAllergiesResponse,
   GetBalanceTransactionsResponse,
   GetCaloriesProgressResponse,
@@ -474,6 +477,47 @@ export const customerApi = createApi({
       ],
     }),
 
+    /**
+     * Get nearby chefs by location
+     * GET /customer/chefs/nearby
+     */
+    getNearbyChefs: builder.query<
+      {
+        success: boolean;
+        data: {
+          chefs: Chef[];
+          pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+          };
+        };
+      },
+      {
+        latitude: number;
+        longitude: number;
+        radius?: number;
+        limit?: number;
+        page?: number;
+      }
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("latitude", params.latitude.toString());
+        searchParams.append("longitude", params.longitude.toString());
+        if (params.radius) searchParams.append("radius", params.radius.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.page) searchParams.append("page", params.page.toString());
+
+        return {
+          url: `/customer/chefs/nearby?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Chefs"],
+    }),
+
     // ========================================================================
     // CART ENDPOINTS
     // ========================================================================
@@ -716,6 +760,112 @@ export const customerApi = createApi({
         };
       },
       providesTags: ["Offers"],
+    }),
+
+    // ========================================================================
+    // MEALS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get popular meals (global)
+     * GET /reviews/popular-picks
+     */
+    getPopularMeals: builder.query<
+      {
+        success: boolean;
+        data: {
+          popular: {
+            mealId: string;
+            meal: any;
+            avgRating: number;
+            reviewCount: number;
+            chef: any;
+          }[];
+        };
+      },
+      { limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        // Note: limit is handled by the endpoint itself, but we can add it if needed
+        return {
+          url: `/reviews/popular-picks${searchParams.toString() ? `?${searchParams.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get takeaway items
+     * Uses search with query for takeaway items
+     * NOTE: Backend needs category/tag support for proper filtering
+     */
+    getTakeawayItems: builder.query<
+      SearchResponse,
+      { limit?: number; page?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("q", "takeaway");
+        searchParams.append("type", "dishes");
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.page) searchParams.append("page", params.page.toString());
+
+        return {
+          url: `/customer/search?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get too fresh to waste items
+     * Uses search with sustainability-related query
+     * NOTE: Backend needs sustainability tag/category support for proper filtering
+     */
+    getTooFreshItems: builder.query<
+      SearchResponse,
+      { limit?: number; page?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("q", "sustainability too fresh waste");
+        searchParams.append("type", "dishes");
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.page) searchParams.append("page", params.page.toString());
+
+        return {
+          url: `/customer/search?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get top kebabs
+     * Uses search with kebab query and cuisine filter
+     */
+    getTopKebabs: builder.query<
+      SearchResponse,
+      { limit?: number; page?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("q", "kebab");
+        searchParams.append("type", "dishes");
+        searchParams.append("cuisine", "middle eastern");
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.page) searchParams.append("page", params.page.toString());
+
+        return {
+          url: `/customer/search?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
     }),
 
     // ========================================================================
@@ -2024,6 +2174,40 @@ export const customerApi = createApi({
         { type: "KitchenCategories", id: kitchenId },
       ],
     }),
+
+    /**
+     * Get kitchen details by ID
+     * GET /api/customer/kitchens/{kitchenId}
+     */
+    getKitchenDetails: builder.query<
+      { kitchenId: string; chefId: string; chefName: string; kitchenName: string; address: string; certified: boolean },
+      { kitchenId: string }
+    >({
+      query: ({ kitchenId }) => ({
+        url: `/api/customer/kitchens/${kitchenId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenMeals", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Get kitchen tags (dietary tags from kitchen meals)
+     * GET /api/customer/kitchens/{kitchenId}/tags
+     */
+    getKitchenTags: builder.query<
+      { tag: string; count: number }[],
+      { kitchenId: string }
+    >({
+      query: ({ kitchenId }) => ({
+        url: `/api/customer/kitchens/${kitchenId}/tags`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenTags", id: kitchenId },
+      ],
+    }),
   }),
 });
 
@@ -2075,6 +2259,7 @@ export const {
   useSearchChefsByLocationMutation,
   useSearchChefsWithQueryMutation,
   useGetPopularChefDetailsQuery,
+  useGetNearbyChefsQuery,
 } = customerApi;
 
 // Cart
@@ -2107,6 +2292,14 @@ export const {
 // Special Offers
 export const {
   useGetActiveOffersQuery,
+} = customerApi;
+
+// Meals
+export const {
+  useGetPopularMealsQuery,
+  useGetTakeawayItemsQuery,
+  useGetTooFreshItemsQuery,
+  useGetTopKebabsQuery,
 } = customerApi;
 
 // Search
@@ -2147,6 +2340,8 @@ export const {
   useSearchKitchenMealsQuery,
   useGetKitchenPopularMealsQuery,
   useGetKitchenCategoriesQuery,
+  useGetKitchenDetailsQuery,
+  useGetKitchenTagsQuery,
 } = customerApi;
 
 // Live Streaming

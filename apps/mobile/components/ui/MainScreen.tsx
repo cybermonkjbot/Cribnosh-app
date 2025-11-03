@@ -1617,6 +1617,40 @@ export function MainScreen() {
     // In a real app, this would open search
   }, []);
 
+  // Handle kitchen name press from meal details
+  const handleKitchenNamePressFromMeal = useCallback((kitchenName: string, kitchenId?: string, foodcreatorId?: string) => {
+    // Try to find kitchen in mockKitchens by name
+    const foundKitchen = mockKitchens.find(k => k.name === kitchenName || k.name === `${kitchenName}'s Kitchen`);
+    
+    // Create kitchen object with all necessary properties
+    const kitchen: any = foundKitchen 
+      ? {
+          ...foundKitchen,
+          kitchenId: kitchenId || foundKitchen.id,
+          foodcreatorId: foodcreatorId,
+          ownerId: foodcreatorId,
+          userId: foodcreatorId,
+        }
+      : {
+          id: kitchenId || `kitchen-${kitchenName.toLowerCase().replace(/\s+/g, '-')}`,
+          name: kitchenName,
+          cuisine: "Nigerian",
+          deliveryTime: "30-45 Mins",
+          distance: "0.8 km",
+          image: undefined,
+          sentiment: "elite" as const,
+          kitchenId: kitchenId,
+          foodcreatorId: foodcreatorId,
+          ownerId: foodcreatorId,
+          userId: foodcreatorId,
+        };
+    
+    setSelectedKitchen(kitchen);
+    setIsKitchenMainScreenVisible(true);
+    // Close meal details modal
+    setIsMealDetailsVisible(false);
+  }, []);
+
   const handleDrawerAddToCart = useCallback(
     async (id: string) => {
       if (!isAuthenticated) {
@@ -2170,6 +2204,7 @@ export function MainScreen() {
               // Handle add to cart logic here
               setIsMealDetailsVisible(false);
             }}
+            onKitchenNamePress={handleKitchenNamePressFromMeal}
           />
         )}
       </Modal>
@@ -2193,7 +2228,7 @@ export function MainScreen() {
       >
         {selectedKitchen && (
           <KitchenMainScreen
-            kitchenName={selectedKitchen.name}
+            kitchenName={selectedKitchen.name && selectedKitchen.name !== "Amara's Kitchen" ? selectedKitchen.name : undefined}
             cuisine={selectedKitchen.cuisine}
             deliveryTime={selectedKitchen.deliveryTime}
             distance={selectedKitchen.distance}
