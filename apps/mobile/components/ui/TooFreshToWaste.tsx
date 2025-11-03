@@ -1,6 +1,12 @@
+import { useGetTooFreshItemsQuery } from '@/store/customerApi';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { showError } from '../../lib/GlobalToastManager';
+import { TooFreshToWasteEmpty } from './TooFreshToWasteEmpty';
+import { TooFreshToWasteSkeleton } from './TooFreshToWasteSkeleton';
 
 interface FreshItem {
   id: string;
@@ -12,30 +18,81 @@ interface FreshItem {
 interface TooFreshToWasteProps {
   onOpenDrawer?: () => void;
   onOpenSustainability?: () => void;
+  useBackend?: boolean;
+  onItemPress?: (item: FreshItem) => void;
 }
 
-const freshItems: FreshItem[] = [
-  {
-    id: '1',
-    name: 'Salmon Fillet',
-    cuisine: 'African',
-    image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=120&h=160&fit=crop'
-  },
-  {
-    id: '2',
-    name: 'Parsley Bunch',
-    cuisine: 'African',
-    image: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=120&h=160&fit=crop'
-  },
-  {
-    id: '3',
-    name: 'Meat Cut',
-    cuisine: 'African',
-    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=120&h=160&fit=crop'
-  },
-];
+export function TooFreshToWaste({ 
+  onOpenDrawer, 
+  onOpenSustainability,
+  useBackend = true,
+  onItemPress,
+}: TooFreshToWasteProps) {
+  const { isAuthenticated } = useAuthContext();
 
-export function TooFreshToWaste({ onOpenDrawer, onOpenSustainability }: TooFreshToWasteProps) {
+  // Backend API integration
+  const {
+    data: tooFreshData,
+    isLoading: backendLoading,
+    error: backendError,
+  } = useGetTooFreshItemsQuery(
+    { limit: 20, page: 1 },
+    {
+      skip: !useBackend || !isAuthenticated,
+    }
+  );
+
+  // Transform API data to component format
+  const transformFreshItem = useCallback((apiItem: any): FreshItem | null => {
+    if (!apiItem) return null;
+
+    // Handle different response structures
+    const item = apiItem.dish || apiItem.meal || apiItem;
+    
+    return {
+      id: item._id || item.id || '',
+      name: item.name || 'Unknown Item',
+      cuisine: item.cuisine?.[0] || item.cuisine || 'Various',
+      image: item.image_url || item.image || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=120&h=160&fit=crop',
+    };
+  }, []);
+
+  // Process fresh items data
+  const freshItems: FreshItem[] = useMemo(() => {
+    if (!useBackend || !tooFreshData?.success || !tooFreshData.data) {
+      return [];
+    }
+
+    // SearchResponse.data is an array of SearchResult
+    const items = Array.isArray(tooFreshData.data) ? tooFreshData.data : [];
+    
+    const transformedItems = items
+      .map((item: any) => transformFreshItem(item))
+      .filter((item): item is FreshItem => item !== null);
+    
+    return transformedItems;
+  }, [tooFreshData, useBackend, transformFreshItem]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (backendError && isAuthenticated) {
+      showError('Failed to load sustainability items', 'Please try again');
+    }
+  }, [backendError, isAuthenticated]);
+
+  // Show skeleton while loading
+  if (useBackend && backendLoading) {
+    return <TooFreshToWasteSkeleton itemCount={3} />;
+  }
+
+  // Show empty state if no items
+  if (freshItems.length === 0) {
+    return (
+      <TooFreshToWasteEmpty
+        onOpenSustainability={onOpenSustainability}
+      />
+    );
+  }
   return (
     <View style={{ paddingVertical: 20 }}>
       <View style={{ 
@@ -78,6 +135,8 @@ export function TooFreshToWaste({ onOpenDrawer, onOpenSustainability }: TooFresh
               shadowRadius: 8,
               elevation: 3
             }}
+            onPress={() => onItemPress?.(item)}
+            activeOpacity={0.8}
           >
             <View style={{ position: 'relative' }}>
               <Image

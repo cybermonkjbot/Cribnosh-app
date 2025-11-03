@@ -44,7 +44,8 @@ async function logEmotionsEngineInteraction({ userId, context, provider, query, 
  * Matches recommendation item names to actual dish records
  */
 async function lookupDishes(
-  recommendations: Array<{ item_name: string; reason?: string; tags?: string[]; badge?: string }>
+  recommendations: Array<{ item_name: string; reason?: string; tags?: string[]; badge?: string }>,
+  filters?: { category?: string; tag?: string }
 ): Promise<DishRecommendation[]> {
   if (!recommendations || recommendations.length === 0) {
     return [];
@@ -69,12 +70,34 @@ async function lookupDishes(
         const mealDesc = meal.description?.toLowerCase() || '';
         const mealCuisine = meal.cuisine?.map((c: string) => c.toLowerCase()) || [];
         
-        return (
+        // Match by name/description/cuisine
+        const nameMatch = (
           mealName.includes(searchTerm) ||
           mealDesc.includes(searchTerm) ||
           mealCuisine.some((c: string) => c.includes(searchTerm)) ||
           searchTerm.includes(mealName)
         );
+        
+        if (!nameMatch) return false;
+        
+        // Apply category filter if provided
+        if (filters?.category) {
+          const mealCategory = meal.category?.toLowerCase() || '';
+          const categoryMatch = mealCategory === filters.category.toLowerCase() ||
+            mealCuisine.some((c: string) => c === filters.category!.toLowerCase());
+          if (!categoryMatch) return false;
+        }
+        
+        // Apply tag filter if provided
+        if (filters?.tag) {
+          const mealTags = meal.tags?.map((t: string) => t.toLowerCase()) || [];
+          const tagMatch = mealTags.includes(filters.tag.toLowerCase()) ||
+            mealDesc.includes(filters.tag.toLowerCase()) ||
+            mealName.includes(filters.tag.toLowerCase());
+          if (!tagMatch) return false;
+        }
+        
+        return true;
       }).slice(0, 1); // Take first match
       
       // Transform matched meals to DishRecommendation format
@@ -160,7 +183,12 @@ export async function runInference(
     // Lookup actual dishes if recommendations are present
     let dishes: DishRecommendation[] = [];
     if (parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
-      dishes = await lookupDishes(parsed.recommendations);
+      // Extract category and tag filters from request
+      const filters = {
+        category: (request as any).category,
+        tag: (request as any).tag,
+      };
+      dishes = await lookupDishes(parsed.recommendations, filters);
     }
     
     // Log to Convex

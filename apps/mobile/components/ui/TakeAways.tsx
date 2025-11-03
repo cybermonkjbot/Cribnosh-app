@@ -1,9 +1,12 @@
+import { useAddToCartMutation, useGetTakeawayItemsQuery } from '@/store/customerApi';
 import { Image } from 'expo-image';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useAddToCartMutation } from '@/store/customerApi';
-import { showError, showSuccess, showWarning } from '../../lib/GlobalToastManager';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { showError, showSuccess, showWarning } from '../../lib/GlobalToastManager';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
+import { TakeAwaysEmpty } from './TakeAwaysEmpty';
+import { TakeAwaysSkeleton } from './TakeAwaysSkeleton';
 
 interface TakeAwayItem {
   id: string;
@@ -15,35 +18,73 @@ interface TakeAwayItem {
 
 interface TakeAwaysProps {
   onOpenDrawer?: () => void;
+  useBackend?: boolean;
 }
 
-const takeAwayItems: TakeAwayItem[] = [
-  {
-    id: '1',
-    name: 'Chicken burger', 
-    description: '100 gr chicken + tomato + cheese Lettuce',
-    price: '£20.00',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=180&h=120&fit=crop'
-  },
-  {
-    id: '2',
-    name: 'Chicken burger', 
-    description: '100 gr chicken + tomato + cheese Lettuce',
-    price: '£20.00',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=180&h=120&fit=crop'
-  },
-  {
-    id: '3',
-    name: 'Chicken burger', 
-    description: '100 gr chicken + tomato + cheese Lettuce',
-    price: '£20.00',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=180&h=120&fit=crop'
-  },
-];
-
-export function TakeAways({ onOpenDrawer }: TakeAwaysProps) {
+export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
   const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
   const { isAuthenticated } = useAuthContext();
+
+  // Backend API integration
+  const {
+    data: takeawayData,
+    isLoading: backendLoading,
+    error: backendError,
+  } = useGetTakeawayItemsQuery(
+    { limit: 20, page: 1 },
+    {
+      skip: !useBackend || !isAuthenticated,
+    }
+  );
+
+  // Transform API data to component format
+  const transformTakeawayItem = useCallback((apiItem: any): TakeAwayItem | null => {
+    if (!apiItem) return null;
+
+    // Handle different response structures
+    const item = apiItem.dish || apiItem.meal || apiItem;
+    
+    return {
+      id: item._id || item.id || '',
+      name: item.name || 'Unknown Item',
+      description: item.description || '',
+      price: item.price ? `£${(item.price / 100).toFixed(2)}` : '£0.00',
+      image: item.image_url || item.image || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=180&h=120&fit=crop',
+    };
+  }, []);
+
+  // Process takeaway items data
+  const takeAwayItems: TakeAwayItem[] = useMemo(() => {
+    if (!useBackend || !takeawayData?.success || !takeawayData.data) {
+      return [];
+    }
+
+    // SearchResponse.data is an array of SearchResult
+    const items = Array.isArray(takeawayData.data) ? takeawayData.data : [];
+    
+    const transformedItems = items
+      .map((item: any) => transformTakeawayItem(item))
+      .filter((item): item is TakeAwayItem => item !== null);
+    
+    return transformedItems;
+  }, [takeawayData, useBackend, transformTakeawayItem]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (backendError && isAuthenticated) {
+      showError('Failed to load takeaway items', 'Please try again');
+    }
+  }, [backendError, isAuthenticated]);
+
+  // Show skeleton while loading
+  if (useBackend && backendLoading) {
+    return <TakeAwaysSkeleton itemCount={3} />;
+  }
+
+  // Show empty state if no items
+  if (takeAwayItems.length === 0) {
+    return <TakeAwaysEmpty />;
+  }
 
   const handleAddToCart = async (item: TakeAwayItem) => {
     // Check authentication

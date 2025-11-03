@@ -1,6 +1,11 @@
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useGetFeaturedKitchensQuery } from '@/store/customerApi';
 import { Image } from 'expo-image';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { showError } from '../../lib/GlobalToastManager';
+import { FeaturedKitchensSectionEmpty } from './FeaturedKitchensSectionEmpty';
+import { FeaturedKitchensSectionSkeleton } from './FeaturedKitchensSectionSkeleton';
 import { KitchenRating } from './KitchenRating';
 
 interface Kitchen {
@@ -16,20 +21,96 @@ interface Kitchen {
 }
 
 interface FeaturedKitchensSectionProps {
-  kitchens: Kitchen[];
+  kitchens?: Kitchen[];
   onKitchenPress?: (kitchen: Kitchen) => void;
   onSeeAllPress?: () => void;
   title?: string;
   showTitle?: boolean;
+  isLoading?: boolean;
+  useBackend?: boolean;
 }
 
 export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = ({
-  kitchens,
+  kitchens: propKitchens,
   onKitchenPress,
   onSeeAllPress,
   title,
-  showTitle = true
+  showTitle = true,
+  isLoading: propIsLoading = false,
+  useBackend = true,
 }) => {
+  const { isAuthenticated } = useAuthContext();
+
+  // Backend API integration
+  const {
+    data: featuredKitchensData,
+    isLoading: backendLoading,
+    error: backendError,
+  } = useGetFeaturedKitchensQuery(
+    { limit: 20 },
+    {
+      skip: !useBackend || !isAuthenticated,
+    }
+  );
+
+  // Transform API data to component format
+  const transformKitchenData = useCallback((apiKitchen: any): Kitchen | null => {
+    if (!apiKitchen) return null;
+
+    // Ensure sentiment type matches component interface
+    const validSentiments: Kitchen['sentiment'][] = [
+      'bussing', 'mid', 'notIt', 'fire', 'slaps', 'decent', 
+      'meh', 'trash', 'elite', 'solid', 'average', 'skip'
+    ];
+    const sentiment = validSentiments.includes(apiKitchen.sentiment as Kitchen['sentiment'])
+      ? apiKitchen.sentiment as Kitchen['sentiment']
+      : 'average';
+
+    // Default kitchen image if null
+    const imageUrl = apiKitchen.image_url || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop';
+
+    return {
+      id: apiKitchen.id,
+      name: apiKitchen.name || 'Unknown Kitchen',
+      cuisine: apiKitchen.cuisine || 'Various',
+      sentiment,
+      deliveryTime: apiKitchen.delivery_time || '25-30 min',
+      distance: apiKitchen.distance || 'N/A',
+      image: { uri: imageUrl },
+      isLive: apiKitchen.is_live || false,
+      liveViewers: apiKitchen.live_viewers || undefined,
+    };
+  }, []);
+
+  // Process kitchens data
+  const kitchens: Kitchen[] = useMemo(() => {
+    // If propKitchens provided, use them (for filtered view)
+    if (propKitchens && propKitchens.length > 0) {
+      return propKitchens;
+    }
+
+    // Otherwise, use backend data if available
+    if (useBackend && featuredKitchensData?.success && featuredKitchensData.data?.kitchens) {
+      const apiKitchens = featuredKitchensData.data.kitchens;
+      const transformedKitchens = apiKitchens
+        .map(transformKitchenData)
+        .filter((kitchen): kitchen is Kitchen => kitchen !== null);
+      return transformedKitchens;
+    }
+
+    // Fallback to empty array
+    return [];
+  }, [propKitchens, featuredKitchensData, useBackend, transformKitchenData]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (backendError && isAuthenticated) {
+      showError('Failed to load featured kitchens', 'Please try again');
+    }
+  }, [backendError, isAuthenticated]);
+
+  // Determine loading state
+  const isLoading = propIsLoading || (useBackend && backendLoading && isAuthenticated);
   const renderKitchenCard = (kitchen: Kitchen, index: number) => (
     <TouchableOpacity
       key={kitchen.id}
@@ -146,9 +227,14 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
     </TouchableOpacity>
   );
 
-  // Don't render section if kitchens array is empty
+  // Show skeleton while loading
+  if (isLoading && useBackend) {
+    return <FeaturedKitchensSectionSkeleton itemCount={4} />;
+  }
+
+  // Show empty state if no kitchens
   if (kitchens.length === 0) {
-    return null;
+    return <FeaturedKitchensSectionEmpty />;
   }
 
   // Don't show "See All" button inside drawers - only on main screen

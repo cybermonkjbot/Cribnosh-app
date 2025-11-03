@@ -1,6 +1,11 @@
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useGetCuisineCategoriesQuery } from '@/store/customerApi';
 import { Image } from 'expo-image';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
+import { showError } from '../../lib/GlobalToastManager';
+import { CuisineCategoriesSectionEmpty } from './CuisineCategoriesSectionEmpty';
+import { CuisineCategoriesSectionSkeleton } from './CuisineCategoriesSectionSkeleton';
 
 interface Cuisine {
   id: string;
@@ -11,18 +16,91 @@ interface Cuisine {
 }
 
 interface CuisineCategoriesSectionProps {
-  cuisines: Cuisine[];
+  cuisines?: Cuisine[];
   onCuisinePress?: (cuisine: Cuisine) => void;
   onSeeAllPress?: () => void;
   showTitle?: boolean;
+  isLoading?: boolean;
+  useBackend?: boolean;
 }
 
 export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> = ({
-  cuisines,
+  cuisines: propCuisines,
   onCuisinePress,
   onSeeAllPress,
-  showTitle = true
+  showTitle = true,
+  isLoading: propIsLoading = false,
+  useBackend = true,
 }) => {
+  const { isAuthenticated } = useAuthContext();
+
+  // Backend API integration
+  const {
+    data: categoriesData,
+    isLoading: backendLoading,
+    error: backendError,
+  } = useGetCuisineCategoriesQuery(
+    undefined,
+    {
+      skip: !useBackend || !isAuthenticated,
+    }
+  );
+
+  // Transform API data to component format
+  const transformCuisineData = useCallback((apiCategory: any): Cuisine | null => {
+    if (!apiCategory) return null;
+
+    // Default cuisine images mapping
+    const defaultCuisineImages: Record<string, string> = {
+      'italian': 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400&h=400&fit=crop',
+      'indian': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=400&fit=crop',
+      'chinese': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop',
+      'nigerian': 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=400&fit=crop',
+      'mexican': 'https://images.unsplash.com/photo-1565299585323-38174c3d1e3d?w=400&h=400&fit=crop',
+      'japanese': 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=400&fit=crop',
+    };
+
+    const cuisineNameLower = apiCategory.name.toLowerCase();
+    const imageUrl = apiCategory.image_url || defaultCuisineImages[cuisineNameLower] || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop';
+
+    return {
+      id: apiCategory.id || cuisineNameLower,
+      name: apiCategory.name,
+      image: { uri: imageUrl },
+      restaurantCount: apiCategory.kitchen_count || 0,
+      isActive: apiCategory.is_active ?? true,
+    };
+  }, []);
+
+  // Process cuisines data
+  const cuisines: Cuisine[] = useMemo(() => {
+    // If propCuisines provided, use them (for filtered view)
+    if (propCuisines && propCuisines.length > 0) {
+      return propCuisines;
+    }
+
+    // Otherwise, use backend data if available
+    if (useBackend && categoriesData?.success && categoriesData.data?.categories) {
+      const categories = categoriesData.data.categories;
+      const transformedCuisines = categories
+        .map(transformCuisineData)
+        .filter((cuisine): cuisine is Cuisine => cuisine !== null);
+      return transformedCuisines;
+    }
+
+    // Fallback to empty array
+    return [];
+  }, [propCuisines, categoriesData, useBackend, transformCuisineData]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (backendError && isAuthenticated) {
+      showError('Failed to load cuisine categories', 'Please try again');
+    }
+  }, [backendError, isAuthenticated]);
+
+  // Determine loading state
+  const isLoading = propIsLoading || (useBackend && backendLoading && isAuthenticated);
   const renderCuisineCard = (cuisine: Cuisine, index: number) => (
     <TouchableOpacity
       key={cuisine.id}
@@ -115,9 +193,14 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
     </TouchableOpacity>
   );
 
-  // Don't render section if cuisines array is empty
+  // Show skeleton while loading
+  if (isLoading && useBackend) {
+    return <CuisineCategoriesSectionSkeleton itemCount={4} />;
+  }
+
+  // Show empty state if no cuisines
   if (cuisines.length === 0) {
-    return null;
+    return <CuisineCategoriesSectionEmpty />;
   }
 
   return (

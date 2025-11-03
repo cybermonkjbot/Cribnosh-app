@@ -113,7 +113,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
 
   // Show empty state if no meals
   if (meals.length === 0) {
-    return <PopularMealsSectionEmpty onBrowseAll={onSeeAllPress} />;
+    return <PopularMealsSectionEmpty />;
   }
   const renderMealCard = (meal: Meal, index: number) => (
     <TouchableOpacity

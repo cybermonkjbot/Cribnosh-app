@@ -154,7 +154,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
 
   // Show empty state if no offers
   if (offers.length === 0) {
-    return <SpecialOffersSectionEmpty onBrowseAll={onSeeAllPress} />;
+    return <SpecialOffersSectionEmpty />;
   }
   const renderOfferCard = (offer: SpecialOffer, index: number) => (
     <TouchableOpacity

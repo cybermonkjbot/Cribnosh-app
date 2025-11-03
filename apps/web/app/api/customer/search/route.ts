@@ -82,6 +82,14 @@ const EMOTIONS_ENGINE_URL = process.env.EMOTIONS_ENGINE_URL || 'http://localhost
  *                     enum: [mild, medium, hot, spicy, extra-hot]
  *                     description: Spice level filter
  *                     example: "spicy"
+ *                   category:
+ *                     type: string
+ *                     description: Category filter (e.g., "takeaway", "dine-in", "delivery")
+ *                     example: "takeaway"
+ *                   tag:
+ *                     type: string
+ *                     description: Tag filter (e.g., "too-fresh", "sustainability", "eco-friendly")
+ *                     example: "too-fresh"
  *     responses:
  *       200:
  *         description: Search completed successfully
@@ -124,6 +132,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       ...body,
       searchQuery,
       preferences: Object.keys(preferences).length > 0 ? preferences : undefined,
+      // Pass category and tag filters directly to emotions engine
+      category: body.filters?.category || body.category,
+      tag: body.filters?.tag || body.tag,
     };
 
     const res = await fetch(EMOTIONS_ENGINE_URL, {
@@ -186,6 +197,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
  *           enum: [mild, medium, hot, spicy, extra-hot]
  *         description: Spice level preference
  *         example: "spicy"
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Category filter (e.g., "takeaway", "dine-in", "delivery")
+ *         example: "takeaway"
+ *       - in: query
+ *         name: tag
+ *         schema:
+ *           type: string
+ *         description: Tag filter (e.g., "too-fresh", "sustainability", "eco-friendly")
+ *         example: "too-fresh"
  *     responses:
  *       200:
  *         description: Search completed successfully
@@ -261,6 +284,18 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const priceRange = searchParams.get('price_range');
     if (priceRange) {
       body.price_range = priceRange;
+    }
+
+    // Parse category filter if provided
+    const category = searchParams.get('category');
+    if (category) {
+      body.category = category;
+    }
+
+    // Parse tag filter if provided
+    const tag = searchParams.get('tag');
+    if (tag) {
+      body.tag = tag;
     }
 
     const res = await fetch(EMOTIONS_ENGINE_URL, {

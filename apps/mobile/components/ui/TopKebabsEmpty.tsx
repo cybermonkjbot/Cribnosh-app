@@ -1,11 +1,11 @@
 import React from 'react';
 import { EmptyState } from './EmptyState';
 
-export const PopularMealsSectionEmpty: React.FC = () => {
+export const TopKebabsEmpty: React.FC = () => {
   return (
     <EmptyState
-      title="No Popular Meals"
-      subtitle="We couldn't find any popular meals at the moment. Check back soon!"
+      title="No Top Kebabs"
+      subtitle="We couldn't find any kebabs from top kitchens at the moment. Check back soon!"
       icon="restaurant-outline"
       style={{
         paddingVertical: 40,

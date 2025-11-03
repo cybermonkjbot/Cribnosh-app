@@ -349,6 +349,21 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Get cuisine categories with kitchen counts
+     * GET /customer/cuisines/categories
+     */
+    getCuisineCategories: builder.query<
+      { success: boolean; data: { categories: { id: string; name: string; kitchen_count: number; image_url: string | null; is_active: boolean }[]; total: number } },
+      void
+    >({
+      query: () => ({
+        url: "/customer/cuisines/categories",
+        method: "GET",
+      }),
+      providesTags: ["Cuisines"],
+    }),
+
+    /**
      * Get top/popular cuisines
      * GET /customer/cuisines/top
      */
@@ -396,6 +411,28 @@ export const customerApi = createApi({
         const queryString = searchParams.toString();
         return {
           url: `/customer/chefs/popular${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Chefs"],
+    }),
+
+    /**
+     * Get featured kitchens with filtering
+     * GET /customer/chefs/featured
+     */
+    getFeaturedKitchens: builder.query<
+      { success: boolean; data: { kitchens: any[]; total: number; limit: number } },
+      { sentiment?: string; is_live?: boolean; limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.sentiment) searchParams.append("sentiment", params.sentiment);
+        if (params.is_live !== undefined) searchParams.append("is_live", params.is_live.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/chefs/featured${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -604,6 +641,26 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Get recent dishes for order again
+     * GET /customer/orders/recent-dishes
+     */
+    getRecentDishes: builder.query<
+      { success: boolean; data: { dishes: any[]; total: number; limit: number } },
+      { limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/orders/recent-dishes${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Orders"],
+    }),
+
+    /**
      * Create new order
      * POST /customer/orders
      */
@@ -798,8 +855,7 @@ export const customerApi = createApi({
 
     /**
      * Get takeaway items
-     * Uses search with query for takeaway items
-     * NOTE: Backend needs category/tag support for proper filtering
+     * Uses search with category filter for takeaway items
      */
     getTakeawayItems: builder.query<
       SearchResponse,
@@ -807,8 +863,9 @@ export const customerApi = createApi({
     >({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
-        searchParams.append("q", "takeaway");
+        searchParams.append("q", "");
         searchParams.append("type", "dishes");
+        searchParams.append("category", "takeaway");
         if (params.limit) searchParams.append("limit", params.limit.toString());
         if (params.page) searchParams.append("page", params.page.toString());
 
@@ -822,8 +879,7 @@ export const customerApi = createApi({
 
     /**
      * Get too fresh to waste items
-     * Uses search with sustainability-related query
-     * NOTE: Backend needs sustainability tag/category support for proper filtering
+     * Uses search with sustainability tag filter
      */
     getTooFreshItems: builder.query<
       SearchResponse,
@@ -831,8 +887,9 @@ export const customerApi = createApi({
     >({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
-        searchParams.append("q", "sustainability too fresh waste");
+        searchParams.append("q", "");
         searchParams.append("type", "dishes");
+        searchParams.append("tag", "too-fresh");
         if (params.limit) searchParams.append("limit", params.limit.toString());
         if (params.page) searchParams.append("page", params.page.toString());
 
@@ -2250,7 +2307,7 @@ export const {
 } = customerApi;
 
 // Cuisines
-export const { useGetCuisinesQuery, useGetTopCuisinesQuery } = customerApi;
+export const { useGetCuisinesQuery, useGetTopCuisinesQuery, useGetCuisineCategoriesQuery } = customerApi;
 
 // Chefs
 export const {
@@ -2260,6 +2317,7 @@ export const {
   useSearchChefsWithQueryMutation,
   useGetPopularChefDetailsQuery,
   useGetNearbyChefsQuery,
+  useGetFeaturedKitchensQuery,
 } = customerApi;
 
 // Cart
@@ -2273,6 +2331,7 @@ export const {
 // Orders
 export const {
   useGetOrdersQuery,
+  useGetRecentDishesQuery,
   useGetOrderQuery,
   useGetOrderStatusQuery,
   useCreateOrderMutation,

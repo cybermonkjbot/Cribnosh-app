@@ -1903,23 +1903,26 @@ export function MainScreen() {
                   <OrderAgainSection
                     isHeaderSticky={isHeaderSticky}
                     isAuthenticated={isAuthenticated}
+                    onItemPress={(item) => {
+                      // Navigate to kitchen/meal from order item
+                      handleKitchenPress(item.name);
+                    }}
                   />
                   <CuisinesSection 
                     onCuisinePress={handleCuisinePress} 
                     onSeeAllPress={handleOpenCuisinesDrawer}
                   />
                   <CuisineCategoriesSection
-                    cuisines={cuisines}
                     onCuisinePress={handleCuisinePress}
                     onSeeAllPress={handleOpenCuisineCategoriesDrawer}
+                    useBackend={true}
                   />
                   <FeaturedKitchensSection
-                    kitchens={kitchens}
                     onKitchenPress={handleFeaturedKitchenPress}
                     onSeeAllPress={handleOpenFeaturedKitchensDrawer}
+                    useBackend={true}
                   />
                   <PopularMealsSection
-                    meals={mockMeals}
                     onMealPress={handleMealPress}
                     onSeeAllPress={handleOpenPopularMealsDrawer}
                   />
@@ -1930,7 +1933,6 @@ export function MainScreen() {
                   )}
 
                   <SpecialOffersSection
-                    offers={mockOffers}
                     onOfferPress={handleOfferPress}
                     onSeeAllPress={handleOpenSpecialOffersDrawer}
                   />
@@ -1938,11 +1940,21 @@ export function MainScreen() {
                     onKitchenPress={handleFeaturedKitchenPress}
                     onMapPress={handleMapToggle}
                   />
-                  <TopKebabs onOpenDrawer={handleOpenTopKebabsDrawer} />
+                  <TopKebabs 
+                    onOpenDrawer={handleOpenTopKebabsDrawer}
+                    onKebabPress={(kebab) => {
+                      // Filter by kebab cuisine
+                      handleCuisinePress({ id: kebab.id, name: kebab.name, image: kebab.image });
+                    }}
+                  />
                   <TakeAways onOpenDrawer={handleOpenTakeawayDrawer} />
                   <TooFreshToWaste
                     onOpenDrawer={handleOpenTooFreshDrawer}
                     onOpenSustainability={handleOpenSustainabilityDrawer}
+                    onItemPress={(item) => {
+                      // Navigate to meal details from sustainability item
+                      handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
+                    }}
                   />
                   <EventBanner />
                 </>
@@ -2000,6 +2012,7 @@ export function MainScreen() {
                           cuisines={filteredCuisines}
                           onCuisinePress={handleCuisinePress}
                           showTitle={false}
+                          isLoading={cuisinesLoading}
                         />
                       )}
                       {filteredKitchens.length > 0 && (
@@ -2007,6 +2020,7 @@ export function MainScreen() {
                           kitchens={filteredKitchens}
                           onKitchenPress={handleFeaturedKitchenPress}
                           showTitle={false}
+                          isLoading={chefsLoading}
                         />
                       )}
                       {filteredMeals.length > 0 && (
@@ -2014,6 +2028,7 @@ export function MainScreen() {
                           meals={filteredMeals}
                           onMealPress={handleMealPress}
                           showTitle={false}
+                          useBackend={false}
                         />
                       )}
                     </View>

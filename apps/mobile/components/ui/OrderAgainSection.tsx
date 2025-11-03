@@ -10,11 +10,12 @@ import {
 } from "react-native";
 
 // Customer API imports
-import { useGetOrdersQuery } from "@/store/customerApi";
-import { Order } from "@/types/customer";
+import { useGetRecentDishesQuery } from "@/store/customerApi";
 
 // Global toast imports
 import { showError, showInfo } from "../../lib/GlobalToastManager";
+import { OrderAgainSectionEmpty } from "./OrderAgainSectionEmpty";
+import { OrderAgainSectionSkeleton } from "./OrderAgainSectionSkeleton";
 
 interface OrderItem {
   id: string;
@@ -27,6 +28,7 @@ interface OrderItem {
 interface OrderAgainSectionProps {
   isHeaderSticky?: boolean;
   isAuthenticated?: boolean;
+  onItemPress?: (item: OrderItem) => void;
 }
 
 const mockOrderItems: OrderItem[] = [
@@ -58,60 +60,75 @@ const mockOrderItems: OrderItem[] = [
 export function OrderAgainSection({
   isHeaderSticky = false,
   isAuthenticated = false,
+  onItemPress,
 }: OrderAgainSectionProps) {
   const horizontalScrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
-  // Orders API hook
+  // Recent dishes API hook
   const {
-    data: ordersData,
-    isLoading: ordersLoading,
-    error: ordersError,
-    refetch: refetchOrders,
-  } = useGetOrdersQuery(
-    { page: 1, limit: 10, sort_by: "created_at", sort_order: "desc" },
+    data: recentDishesData,
+    isLoading: dishesLoading,
+    error: dishesError,
+    refetch: refetchDishes,
+  } = useGetRecentDishesQuery(
+    { limit: 10 },
     {
       skip: !isAuthenticated, // Only fetch when authenticated
     }
   );
 
-  // Transform API orders to component format
-  const transformOrdersData = useCallback((apiOrders: Order[]) => {
-    return apiOrders.map((order) => ({
-      id: order.id,
-      name: order.items[0]?.dish_name || "Previous Order",
-      price: `£${(order.total / 100).toFixed(0)}`, // Convert from cents to pounds
-      image:
-        "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=120&h=120&fit=crop", // Default image
-      hasBussinBadge: order.status === "delivered", // Show badge for delivered orders
+  // Transform API dishes to component format
+  const transformDishesData = useCallback((apiDishes: any[]) => {
+    return apiDishes.map((dish) => ({
+      id: dish.dish_id,
+      name: dish.name || "Previous Order",
+      price: `£${(dish.price / 100).toFixed(2)}`, // Convert from pence to pounds
+      image: dish.image_url || "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=120&h=120&fit=crop", // Default image if null
+      hasBussinBadge: dish.has_bussin_badge || false,
     }));
   }, []);
 
-  // Process orders data from API or fallback to mock data
+  // Process dishes data from API or fallback to mock data
   const orderItems = useMemo(() => {
-    if (ordersData?.success && ordersData.data && isAuthenticated) {
-      const transformedData = transformOrdersData(ordersData.data);
-      // Show success toast when orders are loaded
-      if (transformedData.length > 0) {
-        showInfo(
-          `Loaded ${transformedData.length} previous orders`,
-          "Order History"
-        );
-      }
+    if (recentDishesData?.success && recentDishesData.data?.dishes && isAuthenticated) {
+      const dishes = recentDishesData.data.dishes;
+      const transformedData = transformDishesData(dishes);
       return transformedData;
     }
 
     // Fallback to mock data when not authenticated or no API results
     return mockOrderItems;
-  }, [ordersData, isAuthenticated, transformOrdersData]);
+  }, [recentDishesData, isAuthenticated, transformDishesData]);
 
-  // Handle orders API errors
+  // Handle dishes API errors
   useEffect(() => {
-    if (ordersError && isAuthenticated) {
-      showError("Failed to load order history", "Please try again");
+    if (dishesError && isAuthenticated) {
+      showError("Failed to load recent dishes", "Please try again");
     }
-  }, [ordersError, isAuthenticated]);
+  }, [dishesError, isAuthenticated]);
+
+  // Show skeleton while loading
+  if (dishesLoading && isAuthenticated) {
+    return <OrderAgainSectionSkeleton itemCount={3} />;
+  }
+
+  // Show empty state if no orders
+  if (orderItems.length === 0 && isAuthenticated) {
+    return (
+      <Animated.View
+        style={{
+          marginBottom: 24,
+          paddingTop: 28,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}
+      >
+        <OrderAgainSectionEmpty />
+      </Animated.View>
+    );
+  }
 
   // Handle entrance and exit animations based on header state
   useEffect(() => {
@@ -209,6 +226,7 @@ export function OrderAgainSection({
               shadowRadius: 8,
               elevation: 3,
             }}
+            onPress={() => onItemPress?.(item)}
             activeOpacity={0.8}
           >
             <View style={{ position: "relative", marginBottom: 8 }}>
