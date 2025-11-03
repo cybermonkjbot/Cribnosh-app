@@ -1,0 +1,18 @@
+# Nixpacks configuration for Next.js app
+[phases.setup]
+nixPkgs = ["nodejs", "bun"]
+
+[phases.install]
+cmds = ["bun install || npm install"]
+
+[phases.build]
+cmds = ["bun run build || npm run build"]
+
+[phases.start]
+cmd = "bun run start || npm run start"
+
+# Set the default port for Next.js
+[variables]
+PORT = "3000"
+
+# Bun is optional, fallback to npm if not present

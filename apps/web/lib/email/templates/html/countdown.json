@@ -1,0 +1,15 @@
+﻿{
+  "subject": "The Countdown is On, Get Ready for Exclusive Perks",
+  "variables": [
+    "firstName",
+    "city",
+    "perk",
+    "daysSinceSignup",
+    "expectedLaunchDate",
+    "daysToLaunch",
+    "chefName",
+    "chefCuisine",
+    "unsubscribeUrl",
+    "companyAddress"
+  ]
+}

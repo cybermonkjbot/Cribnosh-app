@@ -1,0 +1,276 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { withErrorHandling } from '@/lib/errors';
+import { ResponseFactory } from '@/lib/api';
+import { getConvexClient } from '@/lib/conxed-client';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import jwt from 'jsonwebtoken';
+import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+
+interface JWTPayload {
+  user_id?: string | Id<'users'>;
+  roles?: string[];
+  [key: string]: unknown;
+}
+
+interface DataSharingPreferencesBody {
+  analytics_enabled?: boolean;
+  personalization_enabled?: boolean;
+  marketing_enabled?: boolean;
+}
+
+/**
+ * @swagger
+ * /customer/data-sharing-preferences:
+ *   get:
+ *     summary: Get customer's data sharing preferences
+ *     description: Get customer's preferences for data sharing (analytics, personalization, marketing)
+ *     tags: [Customer]
+ *     responses:
+ *       200:
+ *         description: Data sharing preferences retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     analytics_enabled:
+ *                       type: boolean
+ *                       example: true
+ *                     personalization_enabled:
+ *                       type: boolean
+ *                       example: true
+ *                     marketing_enabled:
+ *                       type: boolean
+ *                       example: false
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-10T10:00:00Z"
+ *       401:
+ *         description: Unauthorized - invalid or missing token
+ *     security:
+ *       - bearerAuth: []
+ */
+async function handleGET(request: NextRequest): Promise<NextResponse> {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return createSpecErrorResponse(
+        'Invalid or missing token',
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    let payload: JWTPayload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    } catch {
+      return createSpecErrorResponse(
+        'Invalid or expired token',
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
+    if (!payload.roles?.includes('customer')) {
+      return createSpecErrorResponse(
+        'Only customers can access data sharing preferences',
+        'FORBIDDEN',
+        403
+      );
+    }
+
+    const convex = getConvexClient();
+    const userId = payload.user_id as Id<'users'>;
+
+    // Query data sharing preferences from database
+    const preferences = await convex.query(api.queries.dataSharingPreferences.getByUserId, {
+      userId,
+    });
+
+    return ResponseFactory.success(preferences);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch data sharing preferences';
+    return createSpecErrorResponse(
+      errorMessage,
+      'INTERNAL_ERROR',
+      500
+    );
+  }
+}
+
+/**
+ * @swagger
+ * /customer/data-sharing-preferences:
+ *   put:
+ *     summary: Update customer's data sharing preferences
+ *     description: Update customer's preferences for data sharing (analytics, personalization, marketing)
+ *     tags: [Customer]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               analytics_enabled:
+ *                 type: boolean
+ *                 example: true
+ *               personalization_enabled:
+ *                 type: boolean
+ *                 example: true
+ *               marketing_enabled:
+ *                 type: boolean
+ *                 example: false
+ *     responses:
+ *       200:
+ *         description: Data sharing preferences updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Data sharing preferences updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     analytics_enabled:
+ *                       type: boolean
+ *                       example: true
+ *                     personalization_enabled:
+ *                       type: boolean
+ *                       example: true
+ *                     marketing_enabled:
+ *                       type: boolean
+ *                       example: false
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T10:30:00Z"
+ *       400:
+ *         description: Invalid preference data
+ *       401:
+ *         description: Unauthorized - invalid or missing token
+ *     security:
+ *       - bearerAuth: []
+ */
+async function handlePUT(request: NextRequest): Promise<NextResponse> {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return createSpecErrorResponse(
+        'Invalid or missing token',
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    let payload: JWTPayload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    } catch {
+      return createSpecErrorResponse(
+        'Invalid or expired token',
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
+    if (!payload.roles?.includes('customer')) {
+      return createSpecErrorResponse(
+        'Only customers can update data sharing preferences',
+        'FORBIDDEN',
+        403
+      );
+    }
+
+    // Parse and validate request body
+    let body: DataSharingPreferencesBody;
+    try {
+      body = await request.json() as DataSharingPreferencesBody;
+    } catch {
+      return createSpecErrorResponse(
+        'Invalid JSON body',
+        'BAD_REQUEST',
+        400
+      );
+    }
+
+    const { analytics_enabled, personalization_enabled, marketing_enabled } = body;
+
+    // Validation
+    if (analytics_enabled !== undefined && typeof analytics_enabled !== 'boolean') {
+      return createSpecErrorResponse(
+        'analytics_enabled must be a boolean',
+        'BAD_REQUEST',
+        400
+      );
+    }
+    if (personalization_enabled !== undefined && typeof personalization_enabled !== 'boolean') {
+      return createSpecErrorResponse(
+        'personalization_enabled must be a boolean',
+        'BAD_REQUEST',
+        400
+      );
+    }
+    if (marketing_enabled !== undefined && typeof marketing_enabled !== 'boolean') {
+      return createSpecErrorResponse(
+        'marketing_enabled must be a boolean',
+        'BAD_REQUEST',
+        400
+      );
+    }
+
+    const convex = getConvexClient();
+    const userId = payload.user_id as Id<'users'>;
+
+    // Update data sharing preferences in database
+    await convex.mutation(api.mutations.dataSharingPreferences.updateByUserId, {
+      userId,
+      analytics_enabled,
+      personalization_enabled,
+      marketing_enabled,
+    });
+
+    // Get updated preferences
+    const updatedPreferences = await convex.query(api.queries.dataSharingPreferences.getByUserId, {
+      userId,
+    });
+
+    return ResponseFactory.success(
+      updatedPreferences,
+      'Data sharing preferences updated successfully'
+    );
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update data sharing preferences';
+    return createSpecErrorResponse(
+      errorMessage,
+      'INTERNAL_ERROR',
+      500
+    );
+  }
+}
+
+export const GET = withAPIMiddleware(withErrorHandling(handleGET));
+export const PUT = withAPIMiddleware(withErrorHandling(handlePUT));
+

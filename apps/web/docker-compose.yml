@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: production
+    
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      # JWT and Authentication
+      - JWT_SECRET=${JWT_SECRET:-cribnosh-dev-secret}
+      # Stripe Configuration
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      # Agora Live Streaming
+      - AGORA_APP_ID=${AGORA_APP_ID}
+      - AGORA_APP_CERTIFICATE=${AGORA_APP_CERTIFICATE}
+      # Emotions Engine
+      - EMOTIONS_ENGINE_URL=${EMOTIONS_ENGINE_URL:-http://localhost:3000/api/emotions-engine}
+      # Email Configuration
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-onboarding@cribnosh.com}
+      - RESEND_AUDIENCE_ID=${RESEND_AUDIENCE_ID:-93c15e49-f327-478e-8fc7-b7846fd19a23}
+      # AI Provider Keys
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HF_TOKEN=${HF_TOKEN}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Admin and Monitoring
+      - ADMIN_WEBHOOK_URL=${ADMIN_WEBHOOK_URL}
+      # AWS Configuration
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-eu-west-2}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      # SMTP Configuration
+      - SMTP_PASS=${SMTP_PASS}
+      # Disable custom cursor by default to prevent cursor issues
+      - NEXT_PUBLIC_USE_CUSTOM_POINTER=${NEXT_PUBLIC_USE_CUSTOM_POINTER:-false}
+      - DISABLE_TRY_IT=${DISABLE_TRY_IT:-true}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - app-logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 1G
+          cpus: '0.25'
+    labels:
+      - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.services.app.loadbalancer.server.port=3000"
+
+volumes:
+  app-logs:
+    driver: local

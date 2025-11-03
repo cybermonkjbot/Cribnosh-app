@@ -1,0 +1,451 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { Download, BarChart as BarChartIcon, List, FileText, DollarSign, Users, Clock, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { Id } from '@/convex/_generated/dataModel';
+import { Bar, BarChart as RechartsBarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PayrollReportsSummarySkeleton, PayrollReportsChartSkeleton, PayrollReportsTableSkeleton } from '@/components/admin/skeletons';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { DataTable } from '@/components/admin/payroll/payroll-data-table';
+import { columns } from '@/components/admin/payroll/reports/columns';
+
+export default function PayrollReportsPage() {
+  const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+    to: new Date(),
+  });
+  
+  // Type-safe handler for date range selection
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    if (range) {
+      setDateRange({
+        from: range.from,
+        to: range.to
+      });
+    }
+  };
+  
+  // Get the selected date range for the Calendar component
+  const selectedDateRange = {
+    from: dateRange?.from,
+    to: dateRange?.to
+  };
+  
+  const [department, setDepartment] = useState<string>('all');
+  const [departments, setDepartments] = useState<{value: string; label: string}[]>([]);
+  
+  // Define types for the API responses
+  interface PayrollSummary {
+    totalPayroll?: number;
+    totalEmployees?: number;
+    totalHours?: number;
+    totalOvertime?: number;
+    byDepartment?: Record<string, any>;
+    byPayPeriod?: Record<string, any>;
+  }
+
+  interface PayrollDetails {
+    period: {
+      _id: Id<"payPeriods">;
+      _creationTime: number;
+      notes?: string;
+      processedAt?: number;
+      processedBy?: Id<"users">;
+      status: "pending" | "paid" | "in_progress" | "processed";
+      startDate: number;
+      endDate: number;
+    } | null;
+    employeeName: string;
+    department: string;
+    hoursWorked: number;
+    overtimeHours: number;
+    regularPay: number;
+    overtimePay: number;
+    totalPay: number;
+    netPay: number;
+  }
+
+  // Fetch summary report data with proper typing
+  const summary = useQuery(api.payroll.reports.getPayrollSummary, 
+    dateRange?.from && dateRange.to 
+      ? {
+          startDate: dateRange.from.getTime(),
+          endDate: dateRange.to.getTime(),
+          department: department !== 'all' ? department : undefined,
+        }
+      : 'skip'
+  ) as PayrollSummary | null;
+
+  // Fetch detailed report data with proper typing
+  const details = useQuery(api.payroll.reports.getPayrollDetails,
+    dateRange?.from && dateRange.to
+      ? {
+          startDate: dateRange.from.getTime(),
+          endDate: dateRange.to.getTime(),
+          department: department !== 'all' ? department : undefined,
+        }
+      : 'skip'
+  ) as unknown as PayrollDetails[] | null;
+
+  const isLoadingSummary = summary === undefined;
+  const isLoadingDetails = details === undefined;
+  
+  // Load departments
+  useEffect(() => {
+    // In a real app, you would fetch this from your API
+    const depts = [
+      { value: 'all', label: 'All Departments' },
+      { value: 'sales', label: 'Sales' },
+      { value: 'marketing', label: 'Marketing' },
+      { value: 'engineering', label: 'Engineering' },
+      { value: 'hr', label: 'Human Resources' },
+      { value: 'operations', label: 'Operations' },
+    ];
+    
+    setDepartments(depts);
+  }, []);
+  
+  // Format data for charts with proper typing
+  interface DepartmentData {
+    name: string;
+    payroll: number;
+    employees: number;
+    hours: number;
+    overtime: number;
+  }
+
+  const departmentData: DepartmentData[] = summary && 'byDepartment' in summary && summary.byDepartment
+    ? Object.entries(summary.byDepartment).map(([dept, data]: [string, any]) => ({
+        name: dept,
+        payroll: data.payroll || 0,
+        employees: data.employees || 0,
+        hours: data.hours || 0,
+        overtime: data.overtime || 0,
+      }))
+    : [];
+    
+  interface PeriodData {
+    name: string;
+    payroll: number;
+    employees: number;
+  }
+
+  const periodData: PeriodData[] = summary && 'byPayPeriod' in summary && summary.byPayPeriod
+    ? Object.entries(summary.byPayPeriod)
+        .map(([_, data]: [string, any]) => ({
+          name: `${format(new Date(data.startDate), 'MMM d')} - ${format(new Date(data.endDate), 'MMM d, yyyy')}`,
+          payroll: data.payroll || 0,
+          employees: data.employees || 0,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+  
+  // Handle export
+  const handleExport = (format: 'csv' | 'pdf') => {
+    // In a real app, this would call your export API
+    
+    // For demo purposes, we'll just show a toast
+    toast({
+      title: "Export Started",
+      description: `Exporting ${format.toUpperCase()} report for ${dateRange?.from?.toLocaleDateString()} to ${dateRange?.to?.toLocaleDateString()}`,
+      variant: "default"
+    });
+    
+    // In a real app, you would do something like:
+    // const exportData = await fetch(`/api/export-payroll?format=${format}&start=${dateRange?.from?.toISOString()}&end=${dateRange?.to?.toISOString()}`);
+    // const blob = await exportData.blob();
+    // const url = window.URL.createObjectURL(blob);
+    // const a = document.createElement('a');
+    // a.href = url;
+    // a.download = `payroll-report-${new Date().toISOString().split('T')[0]}.${format}`;
+    // document.body.appendChild(a);
+    // a.click();
+    // document.body.removeChild(a);
+  };
+
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Payroll Reports</h1>
+          <p className="text-muted-foreground">
+            Generate and analyze payroll reports
+          </p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="min-w-[250px]">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={selectedDateRange}
+                  onSelect={handleDateRangeSelect}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          <Select value={department} onValueChange={setDepartment}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select department" />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map((dept) => (
+                <SelectItem key={dept.value} value={dept.value}>
+                  {dept.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleExport('csv')}>
+              <Download className="mr-2 h-4 w-4" /> CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleExport('pdf')}>
+              <Download className="mr-2 h-4 w-4" /> PDF
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      <Tabs defaultValue="summary" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="summary">
+            <BarChartIcon className="h-4 w-4 mr-2" />
+            Summary
+          </TabsTrigger>
+          <TabsTrigger value="details">
+            <List className="h-4 w-4 mr-2" />
+            Detailed Report
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="summary" className="space-y-4">
+          {isLoadingSummary ? (
+            <PayrollReportsSummarySkeleton />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Payroll
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    ${summary?.totalPayroll?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {dateRange?.from && dateRange?.to
+                      ? `${format(dateRange.from, 'MMM d, yyyy')} - ${format(dateRange.to, 'MMM d, yyyy')}`
+                      : 'Select date range'}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Employees
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {summary?.totalEmployees || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {summary?.totalHours?.toFixed(1) || '0'} total hours
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Overtime
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {summary?.totalOvertime?.toFixed(1) || '0'} hours
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {summary?.totalOvertime ? 
+                      `$${(summary.totalOvertime * 22.5).toFixed(2)}` : 
+                      '$0.00'} total overtime pay
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Average Pay
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    ${summary?.totalEmployees && summary?.totalPayroll !== undefined
+                      ? (summary.totalPayroll / summary.totalEmployees).toLocaleString('en-US', { 
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: 2 
+                        })
+                      : '0.00'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    per employee
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Payroll by Department</CardTitle>
+                <CardDescription>
+                  Total payroll amount by department
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                {isLoadingSummary ? (
+                  <PayrollReportsChartSkeleton />
+                ) : departmentData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart
+                      data={departmentData}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis dataKey="name" type="category" width={100} />
+                      <Tooltip 
+                        formatter={(value) => [`$${value.toLocaleString()}`, 'Payroll']}
+                        labelFormatter={(label) => `Department: ${label}`}
+                      />
+                      <Bar dataKey="payroll" fill="#8884d8" name="Payroll" />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
+                    No data available for the selected filters
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Payroll Over Time</CardTitle>
+                <CardDescription>
+                  Payroll amount by pay period
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                {isLoadingSummary ? (
+                  <PayrollReportsChartSkeleton />
+                ) : periodData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart
+                      data={periodData}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value) => [`$${value.toLocaleString()}`, 'Payroll']}
+                        labelFormatter={(label) => `Period: ${label}`}
+                      />
+                      <Bar dataKey="payroll" fill="#82ca9d" name="Payroll" />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
+                    No data available for the selected filters
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="details" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payroll Details</CardTitle>
+              <CardDescription>
+                Detailed payroll information for each employee
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingDetails ? (
+                <PayrollReportsTableSkeleton rowCount={5} />
+              ) : details && details.length > 0 ? (
+                <DataTable 
+                  columns={columns} 
+                  data={details} 
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground" />
+                  <h3 className="text-lg font-medium">No payroll data found</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Try adjusting your filters or select a different date range
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
