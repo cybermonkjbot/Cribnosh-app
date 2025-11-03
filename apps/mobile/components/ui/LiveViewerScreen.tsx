@@ -137,7 +137,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ onClose }) => {
           onTreatSomeone={handleTreatSomeone}
           onExpandedChange={setIsBottomSheetExpanded}
           onSnapPointChange={setCurrentSnapPoint}
-          // mealData={safeMealData}
+          mealData={safeMealData}
         />
       </View>
     </Modal>

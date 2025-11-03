@@ -46,33 +46,18 @@ const styles = StyleSheet.create({
 customButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 30,
-    height: 35,
-    minWidth: 150,
-    paddingHorizontal: 16,
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-    backgroundColor: 'blue',
   },
     buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 30,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-    
-    
-    
+    minHeight: 35,
+    width: '100%',
   },
   buttonText: {
     fontFamily: 'Lato',

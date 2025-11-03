@@ -161,9 +161,10 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
           bottom: 0,
           left: 0,
           right: 0,
+          paddingHorizontal: 0,
         }}
       >
-        <View style={[styles.contentContainer, { marginTop: -550 }]}>
+        <View style={styles.contentContainer}>
 
           {/* Title with Sparkles Icon */}
           <View style={styles.titleContainer}>
@@ -209,9 +210,9 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
             {/* Treat Someone Button */}
             <CustomLiveButton
               text="Treat Someone"
-              icon={<ExternalLink color="#094327" size={16} strokeWidth={1.33} />}
+              icon={<ExternalLink color="#FFFFFF" size={16} strokeWidth={1.33} />}
               backgroundColor="rgba(0, 0, 0, 0.3)"
-              textColor="#094327"
+              textColor="#FFFFFF"
               style={{ flex: 1 }}
               onPress={onTreatSomeone}
             />
@@ -227,6 +228,8 @@ export default OnTheStoveBottomSheet
 const styles = StyleSheet.create({
   contentContainer: {
     flex: 1, // flex-1
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   titleContainer: {
     flexDirection: 'row', // flex-row

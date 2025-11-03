@@ -310,15 +310,15 @@ export function FloatingActionButton({
         ]}
         pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
       >
-        <TouchableOpacity
+          <TouchableOpacity
           style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#FF3B30' }]}
-          onPress={handleCameraPress}
-          activeOpacity={0.8}
+            onPress={handleCameraPress}
+            activeOpacity={0.8}
           accessibilityLabel="Create Food Content"
           accessibilityRole="button"
-        >
+          >
           <Camera size={24} color="#FF3B30" />
-        </TouchableOpacity>
+          </TouchableOpacity>
       </Animated.View>
 
       {/* Recipe Share Button - Top Right */}
@@ -330,15 +330,15 @@ export function FloatingActionButton({
         ]}
         pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
       >
-        <TouchableOpacity
+          <TouchableOpacity
           style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#0B9E58' }]}
-          onPress={handleRecipePress}
-          activeOpacity={0.8}
+            onPress={handleRecipePress}
+            activeOpacity={0.8}
           accessibilityLabel="Recipe Share"
           accessibilityRole="button"
-        >
+          >
           <ChefHat size={24} color="#0B9E58" />
-        </TouchableOpacity>
+          </TouchableOpacity>
       </Animated.View>
 
       {/* Cart Button - Top Left */}
@@ -350,10 +350,10 @@ export function FloatingActionButton({
         ]}
         pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
       >
-        <TouchableOpacity
+          <TouchableOpacity
           style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#0B9E58' }]}
-          onPress={handleCartPress}
-          activeOpacity={0.8}
+            onPress={handleCartPress}
+            activeOpacity={0.8}
           accessibilityLabel={cartItemCount > 0 ? `Cart (${cartItemCount} items)` : 'View Cart'}
           accessibilityRole="button"
         >
@@ -363,7 +363,7 @@ export function FloatingActionButton({
               <Text style={styles.cartBadgeTextSmall}>{displayCartCount}</Text>
             </Animated.View>
           )}
-        </TouchableOpacity>
+          </TouchableOpacity>
       </Animated.View>
 
       {/* Backdrop - closes menu when tapped - rendered last so it's behind menu items */}
