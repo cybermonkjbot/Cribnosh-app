@@ -240,11 +240,6 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         <View style={[styles.cardContainer, { bottom: 0 }]}>
           {(() => {
             const shouldShowCard = !(isAuthenticated && !isSessionExpired);
-            console.log('SignInScreen - Card visibility:', {
-              isAuthenticated,
-              isSessionExpired,
-              shouldShowCard
-            });
             return shouldShowCard ? (
               <SignInSocialSelectionCard
                 onGoogleSignIn={handleGoogleSignIn}

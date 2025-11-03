@@ -14,12 +14,14 @@ interface CuisineCategoriesSectionProps {
   cuisines: Cuisine[];
   onCuisinePress?: (cuisine: Cuisine) => void;
   onSeeAllPress?: () => void;
+  showTitle?: boolean;
 }
 
 export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> = ({
   cuisines,
   onCuisinePress,
-  onSeeAllPress
+  onSeeAllPress,
+  showTitle = true
 }) => {
   const renderCuisineCard = (cuisine: Cuisine, index: number) => (
     <TouchableOpacity
@@ -120,32 +122,36 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
 
   return (
     <View style={{ marginBottom: 24 }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-        paddingHorizontal: 12,
-      }}>
-        <Text style={{
-          color: '#1a1a1a',
-          fontSize: 20,
-          fontWeight: '700',
-          lineHeight: 24,
+      {showTitle && (
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+          paddingHorizontal: 12,
         }}>
-          Cuisine Categories
-        </Text>
-        
-        <TouchableOpacity onPress={onSeeAllPress}>
           <Text style={{
-            color: '#ef4444',
-            fontSize: 14,
-            fontWeight: '600',
+            color: '#1a1a1a',
+            fontSize: 20,
+            fontWeight: '700',
+            lineHeight: 24,
           }}>
-            See All
+            Cuisine Categories
           </Text>
-        </TouchableOpacity>
-      </View>
+          
+          {onSeeAllPress && (
+            <TouchableOpacity onPress={onSeeAllPress}>
+              <Text style={{
+                color: '#ef4444',
+                fontSize: 14,
+                fontWeight: '600',
+              }}>
+                See All
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       
       {/* Grid Layout */}
       <View style={{

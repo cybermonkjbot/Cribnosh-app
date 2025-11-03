@@ -23,7 +23,6 @@ import { Avatar } from '../../components/ui/Avatar';
 import { CaloriesNoshPointsCards } from '../../components/ui/CaloriesNoshPointsCards';
 import { KPICards } from '../../components/ui/KPICards';
 import { ProfileScreenBackground } from '../../components/ui/ProfileScreenBackground';
-import { SignInOverlay } from '../../components/ui/SignInOverlay';
 import { useAuthContext } from '../../contexts/AuthContext';
 import {
   useGetCaloriesProgressQuery,
@@ -367,11 +366,6 @@ export default function ProfileScreen() {
   return (
     <ProfileScreenBackground>
       <SafeAreaView style={styles.safeArea}>
-        {/* Sign In Overlay - Shows when user is not authenticated */}
-        {!isAuthenticated && !authLoading && (
-          <SignInOverlay isVisible={true} />
-        )}
-
         <Animated.ScrollView 
           {...scrollViewProps}
           scrollEnabled={isAuthenticated || authLoading}

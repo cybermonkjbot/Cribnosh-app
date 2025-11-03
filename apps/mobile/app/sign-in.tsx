@@ -3,7 +3,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { resetSignInNavigationGuard } from '@/utils/signInNavigationGuard';
+import { markSignInAsVisible, markSignInAsHidden } from '@/utils/signInNavigationGuard';
 
 export default function SignInModal() {
   const router = useRouter();
@@ -11,14 +11,22 @@ export default function SignInModal() {
   const { handleAppleSignIn: appleSignInApi } = useAuth();
   const params = useLocalSearchParams<{ returnPath?: string; returnParams?: string }>();
 
-  // Reset navigation guard when sign-in screen mounts
+  // Mark sign-in as visible when component mounts
   useEffect(() => {
-    resetSignInNavigationGuard();
+    markSignInAsVisible();
+    
+    // Mark as hidden when component unmounts
+    return () => {
+      markSignInAsHidden();
+    };
   }, []);
 
   // Close modal if user becomes authenticated
   useEffect(() => {
     if (isAuthenticated) {
+      // Mark as hidden before navigating away
+      markSignInAsHidden();
+      
       // If there's a return path, navigate there with params
       if (params.returnPath) {
         try {
@@ -42,6 +50,9 @@ export default function SignInModal() {
   }, [isAuthenticated, router, params.returnPath, params.returnParams]);
 
   const handleClose = () => {
+    // Mark as hidden before closing
+    markSignInAsHidden();
+    
     // When user cancels from sign-in:
     // - If we have a returnPath (came from 401 redirect from a modal),
     //   we need to dismiss both modals (sign-in and the previous one like shared-ordering)

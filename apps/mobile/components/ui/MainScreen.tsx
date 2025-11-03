@@ -1862,51 +1862,9 @@ export function MainScreen() {
 
               {/* <SharedOrderingButton /> */}
               
-              {/* Filtered State Indicator */}
-              {activeCategoryFilter !== 'all' && (
-                <View style={{
-                  marginHorizontal: 16,
-                  marginBottom: 16,
-                  marginTop: 8,
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                  borderRadius: 12,
-                  padding: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  borderWidth: 1,
-                  borderColor: '#FF3B30',
-                }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <Filter size={16} color="#FF3B30" style={{ marginRight: 8 }} />
-                    <Text style={{
-                      fontSize: 14,
-                      fontWeight: '600',
-                      color: '#1a1a1a',
-                      textTransform: 'capitalize',
-                    }}>
-                      Showing {activeCategoryFilter} cuisine
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => setActiveCategoryFilter('all')}
-                    style={{
-                      padding: 4,
-                      marginLeft: 8,
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <X size={18} color="#666666" />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {isAllSectionsEmpty ? (
-                <FilteredEmptyState
-                  filterName={activeCategoryFilter}
-                  onClearFilter={() => setActiveCategoryFilter('all')}
-                />
-              ) : (
+              {/* Conditional Rendering: Normal View vs Filtered View */}
+              {activeCategoryFilter === 'all' ? (
+                // Normal View - Show all sections when filter is 'all'
                 <>
                   <OrderAgainSection
                     isHeaderSticky={isHeaderSticky}
@@ -1917,44 +1875,117 @@ export function MainScreen() {
                     onSeeAllPress={handleOpenCuisinesDrawer}
                   />
                   <CuisineCategoriesSection
-                    cuisines={filteredCuisines}
+                    cuisines={cuisines}
                     onCuisinePress={handleCuisinePress}
                     onSeeAllPress={handleOpenCuisineCategoriesDrawer}
                   />
                   <FeaturedKitchensSection
-                    kitchens={filteredKitchens}
+                    kitchens={kitchens}
                     onKitchenPress={handleFeaturedKitchenPress}
                     onSeeAllPress={handleOpenFeaturedKitchensDrawer}
                   />
                   <PopularMealsSection
-                    meals={filteredMeals}
+                    meals={mockMeals}
                     onMealPress={handleMealPress}
                     onSeeAllPress={handleOpenPopularMealsDrawer}
                   />
+
+                  {/* Hidden Sections - dynamically shown based on conditions */}
+                  {orderedSections.some((section) => section.isHidden) && (
+                    <HiddenSections userBehavior={userBehavior} />
+                  )}
+
+                  <SpecialOffersSection
+                    offers={mockOffers}
+                    onOfferPress={handleOfferPress}
+                    onSeeAllPress={handleOpenSpecialOffersDrawer}
+                  />
+                  <KitchensNearMe 
+                    onKitchenPress={handleFeaturedKitchenPress}
+                    onMapPress={handleMapToggle}
+                  />
+                  <TopKebabs onOpenDrawer={handleOpenTopKebabsDrawer} />
+                  <TakeAways onOpenDrawer={handleOpenTakeawayDrawer} />
+                  <TooFreshToWaste
+                    onOpenDrawer={handleOpenTooFreshDrawer}
+                    onOpenSustainability={handleOpenSustainabilityDrawer}
+                  />
+                  <EventBanner />
+                </>
+              ) : (
+                // Filtered View - Show only filtered sections when filter is active
+                <>
+                  {/* Filtered State Indicator */}
+                  <View style={{
+                    marginHorizontal: 16,
+                    marginBottom: 16,
+                    marginTop: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    borderRadius: 12,
+                    padding: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderWidth: 1,
+                    borderColor: '#FF3B30',
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <Filter size={16} color="#FF3B30" style={{ marginRight: 8 }} />
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: '#1a1a1a',
+                        textTransform: 'capitalize',
+                      }}>
+                        Showing {activeCategoryFilter} cuisine
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setActiveCategoryFilter('all')}
+                      style={{
+                        padding: 4,
+                        marginLeft: 8,
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <X size={18} color="#666666" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Filtered Content - Continuous Section */}
+                  {isAllSectionsEmpty ? (
+                    <FilteredEmptyState
+                      filterName={activeCategoryFilter}
+                      onClearFilter={() => setActiveCategoryFilter('all')}
+                    />
+                  ) : (
+                    <View style={{ marginHorizontal: 12 }}>
+                      {/* Continuous filtered content without section headers */}
+                      {filteredCuisines.length > 0 && (
+                        <CuisineCategoriesSection
+                          cuisines={filteredCuisines}
+                          onCuisinePress={handleCuisinePress}
+                          showTitle={false}
+                        />
+                      )}
+                      {filteredKitchens.length > 0 && (
+                        <FeaturedKitchensSection
+                          kitchens={filteredKitchens}
+                          onKitchenPress={handleFeaturedKitchenPress}
+                          showTitle={false}
+                        />
+                      )}
+                      {filteredMeals.length > 0 && (
+                        <PopularMealsSection
+                          meals={filteredMeals}
+                          onMealPress={handleMealPress}
+                          showTitle={false}
+                        />
+                      )}
+                    </View>
+                  )}
                 </>
               )}
-
-              {/* Hidden Sections - dynamically shown based on conditions */}
-              {orderedSections.some((section) => section.isHidden) && (
-                <HiddenSections userBehavior={userBehavior} />
-              )}
-
-              <SpecialOffersSection
-                offers={mockOffers}
-                onOfferPress={handleOfferPress}
-                onSeeAllPress={handleOpenSpecialOffersDrawer}
-              />
-              <KitchensNearMe 
-                onKitchenPress={handleFeaturedKitchenPress}
-                onMapPress={handleMapToggle}
-              />
-              <TopKebabs onOpenDrawer={handleOpenTopKebabsDrawer} />
-              <TakeAways onOpenDrawer={handleOpenTakeawayDrawer} />
-              <TooFreshToWaste
-                onOpenDrawer={handleOpenTooFreshDrawer}
-                onOpenSustainability={handleOpenSustainabilityDrawer}
-              />
-              <EventBanner />
             </Animated.View>
           </Animated.ScrollView>
         ) : (
