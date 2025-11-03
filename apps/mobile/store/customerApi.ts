@@ -217,12 +217,16 @@ export const customerApi = createApi({
   reducerPath: "customerApi",
   baseQuery,
   tagTypes: [
+    "VideoCollections",
+    "VideoComments",
+    "UserFollows",
     "CustomerProfile",
     "Cuisines",
     "Chefs",
     "Cart",
     "CartItem",
     "Orders",
+    "Offers",
     "SearchResults",
     "LiveStreams",
     "PaymentIntent",
@@ -1457,7 +1461,422 @@ export const customerApi = createApi({
         url: `/api/nosh-heaven/videos/${videoId}`,
         method: "GET",
       }),
+      providesTags: (result, error, { videoId }) => [
+        { type: "Videos", id: videoId },
+      ],
+    }),
+
+    /**
+     * Get video feed (paginated)
+     * GET /api/nosh-heaven/videos
+     */
+    getVideoFeed: builder.query<
+      { videos: any[]; nextCursor?: string },
+      { limit?: number; cursor?: string }
+    >({
+      query: ({ limit, cursor }) => {
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", limit.toString());
+        if (cursor) params.append("cursor", cursor);
+        return {
+          url: `/api/nosh-heaven/videos${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
       providesTags: ["Videos"],
+    }),
+
+    /**
+     * Get trending videos
+     * GET /api/nosh-heaven/trending
+     */
+    getTrendingVideos: builder.query<
+      any[],
+      { limit?: number; timeRange?: "24h" | "7d" | "30d" | "all" }
+    >({
+      query: ({ limit, timeRange }) => {
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", limit.toString());
+        if (timeRange) params.append("timeRange", timeRange);
+        return {
+          url: `/api/nosh-heaven/trending${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Videos"],
+    }),
+
+    /**
+     * Search videos
+     * GET /api/nosh-heaven/search/videos
+     */
+    searchVideos: builder.query<
+      { videos: any[]; nextCursor?: string },
+      {
+        q: string;
+        cuisine?: string;
+        difficulty?: "beginner" | "intermediate" | "advanced";
+        tags?: string[];
+        limit?: number;
+        cursor?: string;
+      }
+    >({
+      query: ({ q, cuisine, difficulty, tags, limit, cursor }) => {
+        const params = new URLSearchParams();
+        params.append("q", q);
+        if (cuisine) params.append("cuisine", cuisine);
+        if (difficulty) params.append("difficulty", difficulty);
+        if (tags && tags.length > 0) {
+          tags.forEach((tag) => params.append("tags", tag));
+        }
+        if (limit) params.append("limit", limit.toString());
+        if (cursor) params.append("cursor", cursor);
+        return {
+          url: `/api/nosh-heaven/search/videos?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Videos"],
+    }),
+
+    /**
+     * Get user's videos
+     * GET /api/nosh-heaven/users/{userId}/videos
+     */
+    getUserVideos: builder.query<
+      { videos: any[]; nextCursor?: string },
+      { userId: string; limit?: number; cursor?: string }
+    >({
+      query: ({ userId, limit, cursor }) => {
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", limit.toString());
+        if (cursor) params.append("cursor", cursor);
+        return {
+          url: `/api/nosh-heaven/users/${userId}/videos${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Videos"],
+    }),
+
+    /**
+     * Get video collections
+     * GET /api/nosh-heaven/collections
+     */
+    getVideoCollections: builder.query<
+      { collections: any[]; nextCursor?: string },
+      { limit?: number; cursor?: string; publicOnly?: boolean }
+    >({
+      query: ({ limit, cursor, publicOnly }) => {
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", limit.toString());
+        if (cursor) params.append("cursor", cursor);
+        if (publicOnly !== undefined) params.append("publicOnly", publicOnly.toString());
+        return {
+          url: `/api/nosh-heaven/collections${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["VideoCollections"],
+    }),
+
+    /**
+     * Like a video
+     * POST /api/nosh-heaven/videos/{videoId}/like
+     */
+    likeVideo: builder.mutation<void, { videoId: string }>({
+      query: ({ videoId }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}/like`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "Videos", id: videoId },
+        "Videos",
+      ],
+    }),
+
+    /**
+     * Unlike a video
+     * DELETE /api/nosh-heaven/videos/{videoId}/like
+     */
+    unlikeVideo: builder.mutation<void, { videoId: string }>({
+      query: ({ videoId }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}/like`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "Videos", id: videoId },
+        "Videos",
+      ],
+    }),
+
+    /**
+     * Share a video
+     * POST /api/nosh-heaven/videos/{videoId}/share
+     */
+    shareVideo: builder.mutation<
+      void,
+      { videoId: string; platform?: "internal" | "facebook" | "twitter" | "instagram" | "whatsapp" | "other" }
+    >({
+      query: ({ videoId, platform }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}/share`,
+        method: "POST",
+        body: platform ? { platform } : undefined,
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "Videos", id: videoId },
+      ],
+    }),
+
+    /**
+     * Report a video
+     * POST /api/nosh-heaven/videos/{videoId}/report
+     */
+    reportVideo: builder.mutation<
+      void,
+      {
+        videoId: string;
+        reason: "inappropriate_content" | "spam" | "harassment" | "violence" | "copyright" | "other";
+        description?: string;
+        timestamp?: number;
+      }
+    >({
+      query: ({ videoId, reason, description, timestamp }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}/report`,
+        method: "POST",
+        body: { reason, description, timestamp },
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "Videos", id: videoId },
+      ],
+    }),
+
+    /**
+     * Record video view
+     * POST /api/nosh-heaven/videos/{videoId}/view
+     */
+    recordVideoView: builder.mutation<
+      void,
+      {
+        videoId: string;
+        watchDuration: number;
+        completionRate: number;
+        deviceInfo?: { type?: string; os?: string; browser?: string };
+      }
+    >({
+      query: ({ videoId, watchDuration, completionRate, deviceInfo }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}/view`,
+        method: "POST",
+        body: { watchDuration, completionRate, deviceInfo },
+      }),
+    }),
+
+    /**
+     * Get video comments
+     * GET /api/nosh-heaven/videos/{videoId}/comments
+     */
+    getVideoComments: builder.query<
+      { comments: any[]; nextCursor?: string },
+      { videoId: string; limit?: number; cursor?: string }
+    >({
+      query: ({ videoId, limit, cursor }) => {
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", limit.toString());
+        if (cursor) params.append("cursor", cursor);
+        return {
+          url: `/api/nosh-heaven/videos/${videoId}/comments${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { videoId }) => [
+        { type: "VideoComments", id: videoId },
+      ],
+    }),
+
+    /**
+     * Add comment to video
+     * POST /api/nosh-heaven/videos/{videoId}/comments
+     */
+    addVideoComment: builder.mutation<
+      any,
+      { videoId: string; content: string; parentCommentId?: string }
+    >({
+      query: ({ videoId, content, parentCommentId }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}/comments`,
+        method: "POST",
+        body: { content, parentCommentId },
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "VideoComments", id: videoId },
+        { type: "Videos", id: videoId },
+      ],
+    }),
+
+    /**
+     * Edit video comment
+     * PUT /api/nosh-heaven/videos/{videoId}/comments/{commentId}
+     */
+    editVideoComment: builder.mutation<
+      void,
+      { videoId: string; commentId: string; content: string }
+    >({
+      query: ({ videoId, commentId, content }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}/comments/${commentId}`,
+        method: "PUT",
+        body: { content },
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "VideoComments", id: videoId },
+      ],
+    }),
+
+    /**
+     * Delete video comment
+     * DELETE /api/nosh-heaven/videos/{videoId}/comments/{commentId}
+     */
+    deleteVideoComment: builder.mutation<
+      void,
+      { videoId: string; commentId: string }
+    >({
+      query: ({ videoId, commentId }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}/comments/${commentId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "VideoComments", id: videoId },
+        { type: "Videos", id: videoId },
+      ],
+    }),
+
+    /**
+     * Create video post
+     * POST /api/nosh-heaven/videos
+     */
+    createVideoPost: builder.mutation<
+      { videoId: string },
+      {
+        title: string;
+        description?: string;
+        videoStorageId: string;
+        thumbnailStorageId?: string;
+        kitchenId?: string;
+        duration: number;
+        fileSize: number;
+        resolution: { width: number; height: number };
+        tags: string[];
+        cuisine?: string;
+        difficulty?: "beginner" | "intermediate" | "advanced";
+        visibility?: "public" | "followers" | "private";
+        isLive?: boolean;
+        liveSessionId?: string;
+      }
+    >({
+      query: (body) => ({
+        url: "/api/nosh-heaven/videos",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Videos"],
+    }),
+
+    /**
+     * Update video post
+     * PUT /api/nosh-heaven/videos/{videoId}
+     */
+    updateVideoPost: builder.mutation<
+      void,
+      {
+        videoId: string;
+        title?: string;
+        description?: string;
+        tags?: string[];
+        cuisine?: string;
+        difficulty?: "beginner" | "intermediate" | "advanced";
+        visibility?: "public" | "followers" | "private";
+      }
+    >({
+      query: ({ videoId, ...body }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "Videos", id: videoId },
+        "Videos",
+      ],
+    }),
+
+    /**
+     * Delete video post
+     * DELETE /api/nosh-heaven/videos/{videoId}
+     */
+    deleteVideoPost: builder.mutation<void, { videoId: string }>({
+      query: ({ videoId }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { videoId }) => [
+        { type: "Videos", id: videoId },
+        "Videos",
+      ],
+    }),
+
+    /**
+     * Get video upload URL
+     * POST /api/nosh-heaven/videos/upload-url
+     */
+    getVideoUploadUrl: builder.mutation<
+      { uploadUrl: string; key: string; publicUrl: string },
+      { fileName: string; fileSize: number; contentType: string }
+    >({
+      query: (body) => ({
+        url: "/api/nosh-heaven/videos/upload-url",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    /**
+     * Get thumbnail upload URL
+     * POST /api/nosh-heaven/videos/thumbnail-upload-url
+     */
+    getThumbnailUploadUrl: builder.mutation<
+      { uploadUrl: string; key: string; publicUrl: string },
+      { videoId: string; fileName: string; fileSize: number; contentType: string }
+    >({
+      query: (body) => ({
+        url: "/api/nosh-heaven/videos/thumbnail-upload-url",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    /**
+     * Follow user
+     * POST /api/nosh-heaven/users/{userId}/follow
+     */
+    followUser: builder.mutation<void, { userId: string }>({
+      query: ({ userId }) => ({
+        url: `/api/nosh-heaven/users/${userId}/follow`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { userId }) => [
+        { type: "UserFollows", id: userId },
+      ],
+    }),
+
+    /**
+     * Unfollow user
+     * DELETE /api/nosh-heaven/users/{userId}/follow
+     */
+    unfollowUser: builder.mutation<void, { userId: string }>({
+      query: ({ userId }) => ({
+        url: `/api/nosh-heaven/users/${userId}/follow`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { userId }) => [
+        { type: "UserFollows", id: userId },
+      ],
     }),
 
     /**
@@ -1768,6 +2187,27 @@ export const {
 export const {
   useGetKitchenFeaturedVideoQuery,
   useGetVideoByIdQuery,
+  useGetVideoFeedQuery,
+  useGetTrendingVideosQuery,
+  useSearchVideosQuery,
+  useGetUserVideosQuery,
+  useGetVideoCollectionsQuery,
+  useLikeVideoMutation,
+  useUnlikeVideoMutation,
+  useShareVideoMutation,
+  useReportVideoMutation,
+  useRecordVideoViewMutation,
+  useGetVideoCommentsQuery,
+  useAddVideoCommentMutation,
+  useEditVideoCommentMutation,
+  useDeleteVideoCommentMutation,
+  useCreateVideoPostMutation,
+  useUpdateVideoPostMutation,
+  useDeleteVideoPostMutation,
+  useGetVideoUploadUrlMutation,
+  useGetThumbnailUploadUrlMutation,
+  useFollowUserMutation,
+  useUnfollowUserMutation,
 } = customerApi;
 
 // ============================================================================

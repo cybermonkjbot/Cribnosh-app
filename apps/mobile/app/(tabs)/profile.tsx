@@ -9,6 +9,7 @@ import Animated, {
   useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withSpring,
@@ -112,6 +113,18 @@ export default function ProfileScreen() {
   
   // Simple shared values
   const scrollY = useSharedValue(0);
+  
+  // Derived value and state for scrollY display (to avoid Reanimated warnings)
+  const scrollYDisplay = useDerivedValue(() => {
+    return Math.round(scrollY.value).toString();
+  });
+  
+  const [scrollYDisplayState, setScrollYDisplayState] = useState('0');
+  
+  // Sync derived value to React state for JSX access
+  useDerivedValue(() => {
+    runOnJS(setScrollYDisplayState)(scrollYDisplay.value);
+  });
   
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -491,7 +504,7 @@ export default function ProfileScreen() {
           {/* Debug Tester - Only in development */}
           {__DEV__ && showDebug && (
             <View style={styles.debugContainer}>
-              <Text style={styles.debugText}>Scroll Y: {scrollY.value}</Text>
+              <Text style={styles.debugText}>Scroll Y: {scrollYDisplayState}</Text>
               <Text style={styles.debugText}>Expanded: {isExpanded ? 'Yes' : 'No'}</Text>
             </View>
           )}

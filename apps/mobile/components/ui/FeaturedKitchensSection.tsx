@@ -1,6 +1,6 @@
+import { Image } from 'expo-image';
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
 import { KitchenRating } from './KitchenRating';
 
 interface Kitchen {
@@ -19,12 +19,16 @@ interface FeaturedKitchensSectionProps {
   kitchens: Kitchen[];
   onKitchenPress?: (kitchen: Kitchen) => void;
   onSeeAllPress?: () => void;
+  title?: string;
+  showTitle?: boolean;
 }
 
 export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = ({
   kitchens,
   onKitchenPress,
-  onSeeAllPress
+  onSeeAllPress,
+  title,
+  showTitle = true
 }) => {
   const renderKitchenCard = (kitchen: Kitchen, index: number) => (
     <TouchableOpacity
@@ -142,34 +146,46 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
     </TouchableOpacity>
   );
 
+  // Don't render section if kitchens array is empty
+  if (kitchens.length === 0) {
+    return null;
+  }
+
+  // Don't show "See All" button inside drawers - only on main screen
+  const shouldShowSeeAll = showTitle && onSeeAllPress;
+
   return (
     <View style={{ marginBottom: 24 }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-        paddingHorizontal: 12,
-      }}>
-        <Text style={{
-          color: '#1a1a1a',
-          fontSize: 20,
-          fontWeight: '700',
-          lineHeight: 24,
+      {showTitle && (
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+          paddingHorizontal: 12,
         }}>
-          Featured Kitchens
-        </Text>
-        
-        <TouchableOpacity onPress={onSeeAllPress}>
           <Text style={{
-            color: '#ef4444',
-            fontSize: 14,
-            fontWeight: '600',
+            color: '#1a1a1a',
+            fontSize: 20,
+            fontWeight: '700',
+            lineHeight: 24,
           }}>
-            See All
+            {title || 'Featured Kitchens'}
           </Text>
-        </TouchableOpacity>
-      </View>
+          
+          {shouldShowSeeAll && (
+            <TouchableOpacity onPress={onSeeAllPress}>
+              <Text style={{
+                color: '#ef4444',
+                fontSize: 14,
+                fontWeight: '600',
+              }}>
+                See All
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       
       <ScrollView
         horizontal

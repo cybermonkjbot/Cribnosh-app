@@ -1,8 +1,9 @@
 import { useAppContext } from "@/utils/AppContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { Filter, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Modal, RefreshControl, Text, View } from "react-native";
+import { Modal, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   runOnJS,
   useAnimatedReaction,
@@ -19,9 +20,9 @@ import { useUserLocation } from "../../hooks/useUserLocation";
 import { getDirections, getNearbyChefs } from "../../utils/appleMapsService";
 import { UserBehavior } from "../../utils/hiddenSections";
 import {
+  OrderingContext,
   getCurrentTimeContext,
   getOrderedSectionsWithHidden,
-  OrderingContext,
 } from "../../utils/sectionOrdering";
 import { NotLoggedInNotice } from "../NotLoggedInNotice";
 import { AIChatDrawer } from "./AIChatDrawer";
@@ -35,6 +36,7 @@ import { NoshHeavenErrorBoundary } from "./ErrorBoundary";
 import { EventBanner } from "./EventBanner";
 import { FeaturedKitchensDrawer } from "./FeaturedKitchensDrawer";
 import { FeaturedKitchensSection } from "./FeaturedKitchensSection";
+import { FilteredEmptyState } from "./FilteredEmptyState";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { GeneratingSuggestionsLoader } from "./GeneratingSuggestionsLoader";
 import { Header } from "./Header";
@@ -53,11 +55,14 @@ import { PopularMealsSection } from "./PopularMealsSection";
 import { PullToNoshHeavenTrigger } from "./PullToNoshHeavenTrigger";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 // import { ShakeDebugger } from './ShakeDebugger';
+import { CuisineCategoriesDrawer } from "./CuisineCategoriesDrawer";
+import { CuisinesDrawer } from "./CuisinesDrawer";
 import { ShakeToEatFlow } from "./ShakeToEatFlow";
+import { SpecialOffersDrawer } from "./SpecialOffersDrawer";
 import { SpecialOffersSection } from "./SpecialOffersSection";
 import { SustainabilityDrawer } from "./SustainabilityDrawer";
-import { TakeawayCategoryDrawer } from "./TakeawayCategoryDrawer";
 import { TakeAways } from "./TakeAways";
+import { TakeawayCategoryDrawer } from "./TakeawayCategoryDrawer";
 import { TooFreshToWaste } from "./TooFreshToWaste";
 import { TooFreshToWasteDrawer } from "./TooFreshToWasteDrawer";
 import { TopKebabs } from "./TopKebabs";
@@ -68,8 +73,13 @@ import {
   useGetCartQuery,
   useGetCuisinesQuery,
   useGetPopularChefsQuery,
+  useGetVideoFeedQuery,
+  useLikeVideoMutation,
+  useRecordVideoViewMutation,
+  useShareVideoMutation,
+  useUnlikeVideoMutation,
 } from "@/store/customerApi";
-import { Chef, Cuisine } from "@/types/customer";
+import { Chef, Cuisine, VideoPost } from "@/types/customer";
 
 // Global toast imports
 import {
@@ -466,7 +476,7 @@ const mockOffers = [
     image: {
       uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
     },
-    validUntil: "Dec 31, 2024",
+    validUntil: "Dec 31",
     isLimited: true,
     remainingTime: "2 days left",
   },
@@ -478,7 +488,7 @@ const mockOffers = [
     image: {
       uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
     },
-    validUntil: "Dec 15, 2024",
+    validUntil: "Dec 15",
     remainingTime: "5 days left",
   },
   {
@@ -489,14 +499,19 @@ const mockOffers = [
     image: {
       uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
     },
-    validUntil: "Dec 20, 2024",
+    validUntil: "Dec 20",
     isLimited: true,
     remainingTime: "1 day left",
   },
 ];
 
 export function MainScreen() {
-  const { activeHeaderTab, registerScrollToTopCallback } = useAppContext();
+  const { 
+    activeHeaderTab, 
+    registerScrollToTopCallback,
+    activeCategoryFilter,
+    setActiveCategoryFilter,
+  } = useAppContext();
   const router = useRouter();
   const {
     isAuthenticated,
@@ -541,6 +556,27 @@ export function MainScreen() {
 
   const [addToCart] = useAddToCartMutation();
 
+  // Nosh Heaven state - must be declared before hooks that use it
+  const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
+  const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>([]);
+  const [videoCursor, setVideoCursor] = useState<string | undefined>(undefined);
+
+  // Nosh Heaven video hooks
+  const {
+    data: videoFeedData,
+    isLoading: isLoadingVideos,
+    error: videoFeedError,
+    refetch: refetchVideos,
+  } = useGetVideoFeedQuery(
+    { limit: 20, cursor: videoCursor },
+    { skip: !isNoshHeavenVisible } // Only fetch when Nosh Heaven is visible
+  );
+
+  const [likeVideo] = useLikeVideoMutation();
+  const [unlikeVideo] = useUnlikeVideoMutation();
+  const [shareVideo] = useShareVideoMutation();
+  const [recordVideoView] = useRecordVideoViewMutation();
+
   // Location hook for map functionality
   const locationState = useUserLocation();
 
@@ -583,6 +619,21 @@ export function MainScreen() {
     }));
   }, []);
 
+  // Transform VideoPost to MealData format
+  const transformVideoToMeal = useCallback((video: VideoPost): MealData => {
+    return {
+      id: video._id,
+      videoSource: video.videoUrl || "",
+      title: video.title,
+      description: video.description || "",
+      kitchenName: video.creator.name,
+      price: "", // Videos don't have prices
+      chef: video.creator.name,
+      likes: video.likesCount,
+      comments: video.commentsCount,
+    };
+  }, []);
+
   // Process API data
   const cuisines = useMemo(() => {
     if (cuisinesData?.success && cuisinesData.data && Array.isArray(cuisinesData.data)) {
@@ -611,6 +662,91 @@ export function MainScreen() {
     return mockKitchens; // Fallback to mock data
   }, [chefsData, transformChefsData]);
 
+  // Helper function to normalize cuisine names for filtering
+  const normalizeCuisineForFilter = useCallback((cuisineName: string): string => {
+    // Normalize cuisine name to match filter category format
+    // Handles variations like "Italian" -> "italian", "Thai Food" -> "thai"
+    const normalized = cuisineName.toLowerCase().trim();
+    
+    // Map common variations
+    const variations: Record<string, string> = {
+      'italian': 'italian',
+      'japanese': 'japanese',
+      'chinese': 'chinese',
+      'indian': 'indian',
+      'mexican': 'mexican',
+      'thai': 'thai',
+      'sushi': 'sushi',
+      'pizza': 'pizza',
+      'burgers': 'burgers',
+      'burger': 'burgers',
+      'french': 'italian', // Can map to closest match or leave unfiltered
+      'nigerian': 'all', // Not in filter list
+      'moroccan': 'all',
+      'korean': 'all',
+    };
+    
+    // Check if normalized name matches any variation key
+    for (const [key, value] of Object.entries(variations)) {
+      if (normalized.includes(key)) {
+        return value;
+      }
+    }
+    
+    return normalized;
+  }, []);
+
+  // Filtered kitchens based on activeCategoryFilter
+  const filteredKitchens = useMemo(() => {
+    if (activeCategoryFilter === 'all') {
+      return kitchens;
+    }
+    
+    return kitchens.filter((kitchen) => {
+      const cuisineNormalized = normalizeCuisineForFilter(kitchen.cuisine || '');
+      return cuisineNormalized === activeCategoryFilter || cuisineNormalized === 'all';
+    });
+  }, [kitchens, activeCategoryFilter, normalizeCuisineForFilter]);
+
+  // Filtered meals based on filtered kitchens
+  const filteredMeals = useMemo(() => {
+    if (activeCategoryFilter === 'all') {
+      return mockMeals;
+    }
+    
+    // Get set of kitchen names from filtered kitchens for fast lookup
+    const filteredKitchenNames = new Set(filteredKitchens.map(k => k.name.toLowerCase()));
+    
+    return mockMeals.filter((meal) => {
+      // Match meal's kitchen to filtered kitchens
+      return filteredKitchenNames.has(meal.kitchen.toLowerCase());
+    });
+  }, [mockMeals, filteredKitchens, activeCategoryFilter]);
+
+  // Filtered cuisines based on activeCategoryFilter
+  const filteredCuisines = useMemo(() => {
+    if (activeCategoryFilter === 'all') {
+      return cuisines;
+    }
+    
+    return cuisines.filter((cuisine) => {
+      const cuisineNormalized = normalizeCuisineForFilter(cuisine.name || '');
+      return cuisineNormalized === activeCategoryFilter || cuisineNormalized === 'all';
+    });
+  }, [cuisines, activeCategoryFilter, normalizeCuisineForFilter]);
+
+  // Check if all filtered sections are empty
+  const isAllSectionsEmpty = useMemo(() => {
+    if (activeCategoryFilter === 'all') {
+      return false;
+    }
+    return (
+      filteredKitchens.length === 0 &&
+      filteredMeals.length === 0 &&
+      filteredCuisines.length === 0
+    );
+  }, [activeCategoryFilter, filteredKitchens, filteredMeals, filteredCuisines]);
+
   // Cart data processing - removed unused variables
 
   const [isChatVisible, setIsChatVisible] = useState(false);
@@ -638,9 +774,38 @@ export function MainScreen() {
     }
   }, [cartError, isAuthenticated]);
 
-  const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
-  const [noshHeavenMeals, setNoshHeavenMeals] =
-    useState<MealData[]>(mockMealData);
+  // Transform video feed data to meal format
+  useEffect(() => {
+    if (videoFeedData?.success && videoFeedData.data?.videos) {
+      const transformedMeals = videoFeedData.data.videos.map(transformVideoToMeal);
+      if (videoCursor) {
+        // Append for pagination
+        setNoshHeavenMeals((prev) => [...prev, ...transformedMeals]);
+      } else {
+        // Replace for initial load
+        setNoshHeavenMeals(transformedMeals);
+      }
+      // Update cursor for next page
+      if (videoFeedData.data.nextCursor) {
+        setVideoCursor(videoFeedData.data.nextCursor);
+      }
+    }
+  }, [videoFeedData, transformVideoToMeal]);
+
+  // Handle video feed errors
+  useEffect(() => {
+    if (videoFeedError && isNoshHeavenVisible) {
+      showError("Failed to load videos", "Please try again");
+    }
+  }, [videoFeedError, isNoshHeavenVisible]);
+
+  // Reset video state when Nosh Heaven closes
+  useEffect(() => {
+    if (!isNoshHeavenVisible) {
+      setNoshHeavenMeals([]);
+      setVideoCursor(undefined);
+    }
+  }, [isNoshHeavenVisible]);
 
   // Category drawer state management
   const [activeDrawer, setActiveDrawer] = useState<
@@ -650,8 +815,27 @@ export function MainScreen() {
     | "featuredKitchens"
     | "popularMeals"
     | "sustainability"
+    | "specialOffers"
+    | "cuisineCategories"
+    | "cuisines"
     | null
   >(null);
+
+  // Filter state for Top Kebabs drawer
+  const [topKebabsFilters, setTopKebabsFilters] = useState<string[]>([]);
+  
+  // Handle filter changes for Top Kebabs
+  const handleTopKebabsFilterChange = useCallback((filterId: string) => {
+    setTopKebabsFilters(prev => {
+      if (prev.includes(filterId)) {
+        // Remove filter if already active
+        return prev.filter(id => id !== filterId);
+      } else {
+        // Add filter if not active
+        return [...prev, filterId];
+      }
+    });
+  }, []);
 
   // Shake to Eat state management
   // ShakeToEatFlow now handles its own visibility with sustained shake detection
@@ -1059,37 +1243,88 @@ export function MainScreen() {
 
   // Load more meals for Nosh Heaven
   const handleLoadMoreMeals = useCallback(() => {
-    // In a real app, this would load from an API
-    const moreMeals: MealData[] = [
-      {
-        id: `new-${Date.now()}`,
-        videoSource:
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-        title: "Fresh Sushi Platter",
-        description:
-          "Premium sushi selection with fresh salmon, tuna, and sea bream. Crafted by our master sushi chef.",
-        kitchenName: "Tokyo Dreams",
-        price: "£28",
-        chef: "Chef Takeshi Yamamoto",
-        likes: 234,
-        comments: 67,
-      },
-    ];
-    setNoshHeavenMeals((prev) => [...prev, ...moreMeals]);
-  }, []);
+    // Trigger next page load if cursor is available
+    if (videoCursor && !isLoadingVideos) {
+      // Cursor is already set, refetch will use it automatically
+      refetchVideos();
+    }
+  }, [videoCursor, isLoadingVideos, refetchVideos]);
 
   // Handle meal interactions
-  const handleMealLike = useCallback((mealId: string) => {
-    // In a real app, this would update the backend
-  }, []);
+  const handleMealLike = useCallback(
+    async (mealId: string) => {
+      if (!isAuthenticated) {
+        showWarning("Authentication Required", "Please sign in to like videos");
+        navigateToSignIn();
+        return;
+      }
+
+      try {
+        const video = noshHeavenMeals.find((m) => m.id === mealId);
+        if (!video) return;
+
+        // Optimistically update UI
+        setNoshHeavenMeals((prev) =>
+          prev.map((meal) =>
+            meal.id === mealId
+              ? { ...meal, likes: meal.likes + 1 }
+              : meal
+          )
+        );
+
+        await likeVideo({ videoId: mealId }).unwrap();
+      } catch (error) {
+        // Revert optimistic update on error
+        setNoshHeavenMeals((prev) =>
+          prev.map((meal) =>
+            meal.id === mealId
+              ? { ...meal, likes: Math.max(0, meal.likes - 1) }
+              : meal
+          )
+        );
+        showError("Failed to like video", "Please try again");
+      }
+    },
+    [isAuthenticated, noshHeavenMeals, likeVideo]
+  );
 
   const handleMealComment = useCallback((mealId: string) => {
-    // In a real app, this would open a comment modal
+    // TODO: Navigate to comments screen or open comment modal
+    showInfo("Comments coming soon", "This feature is in development");
   }, []);
 
-  const handleMealShare = useCallback((mealId: string) => {
-    // In a real app, this would open share sheet
-  }, []);
+  const handleMealShare = useCallback(
+    async (mealId: string) => {
+      try {
+        await shareVideo({ videoId: mealId }).unwrap();
+        showSuccess("Video shared!", "Thanks for sharing");
+      } catch (error) {
+        showError("Failed to share video", "Please try again");
+      }
+    },
+    [shareVideo]
+  );
+
+  // Handle video view tracking
+  const handleVideoView = useCallback(
+    async (mealId: string, watchDuration: number, completionRate: number) => {
+      try {
+        await recordVideoView({
+          videoId: mealId,
+          watchDuration,
+          completionRate,
+          deviceInfo: {
+            type: "mobile",
+            os: "iOS", // Could be dynamic
+          },
+        }).unwrap();
+      } catch (error) {
+        // Silently fail view tracking
+        console.warn("Failed to record video view:", error);
+      }
+    },
+    [recordVideoView]
+  );
 
   const handleAddToCart = useCallback(
     async (mealId: string) => {
@@ -1336,6 +1571,18 @@ export function MainScreen() {
 
   const handleOpenSustainabilityDrawer = useCallback(() => {
     setActiveDrawer("sustainability");
+  }, []);
+
+  const handleOpenSpecialOffersDrawer = useCallback(() => {
+    setActiveDrawer("specialOffers");
+  }, []);
+
+  const handleOpenCuisineCategoriesDrawer = useCallback(() => {
+    setActiveDrawer("cuisineCategories");
+  }, []);
+
+  const handleOpenCuisinesDrawer = useCallback(() => {
+    setActiveDrawer("cuisines");
   }, []);
 
   const handleCloseDrawer = useCallback(() => {
@@ -1614,25 +1861,78 @@ export function MainScreen() {
               )}
 
               {/* <SharedOrderingButton /> */}
-              <OrderAgainSection
-                isHeaderSticky={isHeaderSticky}
-                isAuthenticated={isAuthenticated}
-              />
-              <CuisinesSection onCuisinePress={handleCuisinePress} />
-              <CuisineCategoriesSection
-                cuisines={cuisines}
-                onCuisinePress={handleCuisinePress}
-              />
-              <FeaturedKitchensSection
-                kitchens={kitchens}
-                onKitchenPress={handleFeaturedKitchenPress}
-                onSeeAllPress={handleOpenFeaturedKitchensDrawer}
-              />
-              <PopularMealsSection
-                meals={mockMeals}
-                onMealPress={handleMealPress}
-                onSeeAllPress={handleOpenPopularMealsDrawer}
-              />
+              
+              {/* Filtered State Indicator */}
+              {activeCategoryFilter !== 'all' && (
+                <View style={{
+                  marginHorizontal: 16,
+                  marginBottom: 16,
+                  marginTop: 8,
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: 12,
+                  padding: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderWidth: 1,
+                  borderColor: '#FF3B30',
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Filter size={16} color="#FF3B30" style={{ marginRight: 8 }} />
+                    <Text style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: '#1a1a1a',
+                      textTransform: 'capitalize',
+                    }}>
+                      Showing {activeCategoryFilter} cuisine
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setActiveCategoryFilter('all')}
+                    style={{
+                      padding: 4,
+                      marginLeft: 8,
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <X size={18} color="#666666" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {isAllSectionsEmpty ? (
+                <FilteredEmptyState
+                  filterName={activeCategoryFilter}
+                  onClearFilter={() => setActiveCategoryFilter('all')}
+                />
+              ) : (
+                <>
+                  <OrderAgainSection
+                    isHeaderSticky={isHeaderSticky}
+                    isAuthenticated={isAuthenticated}
+                  />
+                  <CuisinesSection 
+                    onCuisinePress={handleCuisinePress} 
+                    onSeeAllPress={handleOpenCuisinesDrawer}
+                  />
+                  <CuisineCategoriesSection
+                    cuisines={filteredCuisines}
+                    onCuisinePress={handleCuisinePress}
+                    onSeeAllPress={handleOpenCuisineCategoriesDrawer}
+                  />
+                  <FeaturedKitchensSection
+                    kitchens={filteredKitchens}
+                    onKitchenPress={handleFeaturedKitchenPress}
+                    onSeeAllPress={handleOpenFeaturedKitchensDrawer}
+                  />
+                  <PopularMealsSection
+                    meals={filteredMeals}
+                    onMealPress={handleMealPress}
+                    onSeeAllPress={handleOpenPopularMealsDrawer}
+                  />
+                </>
+              )}
 
               {/* Hidden Sections - dynamically shown based on conditions */}
               {orderedSections.some((section) => section.isHidden) && (
@@ -1642,6 +1942,7 @@ export function MainScreen() {
               <SpecialOffersSection
                 offers={mockOffers}
                 onOfferPress={handleOfferPress}
+                onSeeAllPress={handleOpenSpecialOffersDrawer}
               />
               <KitchensNearMe 
                 onKitchenPress={handleFeaturedKitchenPress}
@@ -1737,7 +2038,7 @@ export function MainScreen() {
       >
         {activeDrawer === "takeaway" && (
           <TakeawayCategoryDrawer
-            categoryName="All Available Takeaway's"
+            categoryName="All Takeaway's"
             onBack={handleCloseDrawer}
             onAddToCart={handleDrawerAddToCart}
             onItemPress={handleDrawerItemPress}
@@ -1761,7 +2062,9 @@ export function MainScreen() {
               { id: "french", label: "French" },
               { id: "turkish", label: "Turkish" },
             ]}
-            activeFilters={[]}
+            activeFilters={topKebabsFilters}
+            onFilterChange={handleTopKebabsFilterChange}
+            showTabs={false}
           >
             <View
               style={{
@@ -1795,6 +2098,26 @@ export function MainScreen() {
         )}
         {activeDrawer === "sustainability" && (
           <SustainabilityDrawer onBack={handleCloseDrawer} />
+        )}
+        {activeDrawer === "specialOffers" && (
+          <SpecialOffersDrawer
+            onBack={handleCloseDrawer}
+            offers={mockOffers}
+            onOfferPress={handleOfferPress}
+          />
+        )}
+        {activeDrawer === "cuisineCategories" && (
+          <CuisineCategoriesDrawer
+            onBack={handleCloseDrawer}
+            cuisines={cuisines}
+            onCuisinePress={handleCuisinePress}
+          />
+        )}
+        {activeDrawer === "cuisines" && (
+          <CuisinesDrawer
+            onBack={handleCloseDrawer}
+            onCuisinePress={handleCuisinePress}
+          />
         )}
       </Modal>
 

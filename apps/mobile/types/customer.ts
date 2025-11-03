@@ -1638,3 +1638,199 @@ export interface GetTopCuisinesResponse {
   };
   message?: string;
 }
+
+// ============================================================================
+// NOSH HEAVEN VIDEO TYPES
+// ============================================================================
+
+export interface VideoCreator {
+  _id: string;
+  name: string;
+  avatar?: string;
+  roles?: string[];
+}
+
+export interface VideoPost {
+  _id: string;
+  _creationTime: number;
+  creatorId: string;
+  kitchenId?: string;
+  title: string;
+  description?: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
+  duration: number;
+  fileSize: number;
+  resolution: {
+    width: number;
+    height: number;
+  };
+  tags: string[];
+  cuisine?: string;
+  difficulty?: "beginner" | "intermediate" | "advanced";
+  status: "draft" | "published" | "archived" | "flagged" | "removed";
+  visibility: "public" | "followers" | "private";
+  isLive?: boolean;
+  liveSessionId?: string;
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number;
+  viewsCount: number;
+  publishedAt?: number;
+  createdAt: number;
+  updatedAt: number;
+  creator: VideoCreator;
+  isLiked: boolean;
+}
+
+export interface VideoComment {
+  _id: string;
+  videoId: string;
+  userId: string;
+  user: VideoCreator;
+  content: string;
+  parentCommentId?: string;
+  likesCount: number;
+  repliesCount: number;
+  createdAt: number;
+  updatedAt: number;
+  isLiked: boolean;
+}
+
+export interface VideoFeedResponse {
+  success: boolean;
+  data: {
+    videos: VideoPost[];
+    nextCursor?: string;
+  };
+  message?: string;
+}
+
+export interface CreateVideoRequest {
+  title: string;
+  description?: string;
+  videoStorageId: string;
+  thumbnailStorageId?: string;
+  kitchenId?: string;
+  duration: number;
+  fileSize: number;
+  resolution: {
+    width: number;
+    height: number;
+  };
+  tags: string[];
+  cuisine?: string;
+  difficulty?: "beginner" | "intermediate" | "advanced";
+  visibility?: "public" | "followers" | "private";
+  isLive?: boolean;
+  liveSessionId?: string;
+}
+
+export interface CreateVideoResponse {
+  success: boolean;
+  data: {
+    videoId: string;
+  };
+  message?: string;
+}
+
+export interface UpdateVideoRequest {
+  videoId: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+  cuisine?: string;
+  difficulty?: "beginner" | "intermediate" | "advanced";
+  visibility?: "public" | "followers" | "private";
+}
+
+export interface VideoInteractionResponse {
+  success: boolean;
+  message?: string;
+}
+
+export interface VideoViewRequest {
+  videoId: string;
+  watchDuration: number;
+  completionRate: number;
+  deviceInfo?: {
+    type?: string;
+    os?: string;
+    browser?: string;
+  };
+}
+
+export interface VideoCommentsResponse {
+  success: boolean;
+  data: {
+    comments: VideoComment[];
+    nextCursor?: string;
+  };
+  message?: string;
+}
+
+export interface AddVideoCommentRequest {
+  videoId: string;
+  content: string;
+  parentCommentId?: string;
+}
+
+export interface VideoUploadUrlResponse {
+  success: boolean;
+  data: {
+    uploadUrl: string;
+    key: string;
+    publicUrl: string;
+  };
+  message?: string;
+}
+
+export interface GetVideoByIdResponse {
+  success: boolean;
+  data: VideoPost;
+  message?: string;
+}
+
+export interface GetTrendingVideosResponse {
+  success: boolean;
+  data: VideoPost[];
+  message?: string;
+}
+
+export interface SearchVideosResponse {
+  success: boolean;
+  data: {
+    videos: VideoPost[];
+    nextCursor?: string;
+  };
+  message?: string;
+}
+
+export interface GetUserVideosResponse {
+  success: boolean;
+  data: {
+    videos: VideoPost[];
+    nextCursor?: string;
+  };
+  message?: string;
+}
+
+export interface VideoCollection {
+  _id: string;
+  name: string;
+  description?: string;
+  videoIds: string[];
+  coverImageUrl?: string;
+  isPublic: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface GetVideoCollectionsResponse {
+  success: boolean;
+  data: {
+    collections: VideoCollection[];
+    nextCursor?: string;
+  };
+  message?: string;
+}

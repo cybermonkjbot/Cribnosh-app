@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 import { PopularMealsSection } from './PopularMealsSection';
 
@@ -185,87 +185,18 @@ export function PopularMealsDrawer({
       searchPlaceholder="Search meals by name or kitchen..."
     >
       <View style={styles.content}>
-        {/* Trending Meals Section */}
-        {trendingMeals.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Trending Now</Text>
-            <Text style={styles.sectionDescription}>
-              Most popular dishes loved by our community
-            </Text>
-            <PopularMealsSection
-              meals={trendingMeals}
-              onMealPress={onMealPress}
-            />
-          </View>
-        )}
-
-        {/* New Arrivals Section */}
-        {newMeals.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>New Arrivals</Text>
-            <Text style={styles.sectionDescription}>
-              Fresh additions to our menu collection
-            </Text>
-            <PopularMealsSection
-              meals={newMeals}
-              onMealPress={onMealPress}
-            />
-          </View>
-        )}
-
-        {/* Elite Meals Section */}
-        {eliteMeals.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Elite Dishes</Text>
-            <Text style={styles.sectionDescription}>
-              Exceptional meals with outstanding quality
-            </Text>
-            <PopularMealsSection
-              meals={eliteMeals}
-              onMealPress={onMealPress}
-            />
-          </View>
-        )}
-
-        {/* Quick Delivery Section */}
-        {quickMeals.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick & Fresh</Text>
-            <Text style={styles.sectionDescription}>
-              Delicious meals ready in 30 minutes or less
-            </Text>
-            <PopularMealsSection
-              meals={quickMeals}
-              onMealPress={onMealPress}
-            />
-          </View>
-        )}
-
-        {/* Budget-Friendly Section */}
-        {budgetMeals.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Budget-Friendly</Text>
-            <Text style={styles.sectionDescription}>
-              Great value meals under £15
-            </Text>
-            <PopularMealsSection
-              meals={budgetMeals}
-              onMealPress={onMealPress}
-            />
-          </View>
-        )}
-
-        {/* All Meals Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>All Popular Meals</Text>
-          <Text style={styles.sectionDescription}>
-            Complete collection of our most loved dishes
-          </Text>
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <PopularMealsSection
             meals={displayMeals}
             onMealPress={onMealPress}
+            showTitle={false}
+            onSeeAllPress={undefined}
           />
-        </View>
+        </ScrollView>
       </View>
     </CategoryFullDrawer>
   );
@@ -275,21 +206,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  section: {
-    marginBottom: 32,
+  scrollView: {
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#094327',
-    marginBottom: 4,
-    paddingHorizontal: 16,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    lineHeight: 20,
+  scrollContent: {
+    paddingBottom: 24,
   },
 }); 

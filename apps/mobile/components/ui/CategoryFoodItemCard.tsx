@@ -85,9 +85,6 @@ export function CategoryFoodItemCard({
             <Text style={styles.title as any} numberOfLines={1}>
               {title}
             </Text>
-            <Text style={styles.description as any} numberOfLines={2}>
-              {description}
-            </Text>
             
             {/* Prep Time */}
             {prepTime && (
@@ -201,13 +198,6 @@ const styles = StyleSheet.create({
     color: '#0D0D0D',
     lineHeight: 20,
     letterSpacing: -0.02,
-  } as const,
-  description: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#6B7280',
-    lineHeight: 16,
-    letterSpacing: -0.01,
   } as const,
   prepTimeContainer: {
     flexDirection: 'row',

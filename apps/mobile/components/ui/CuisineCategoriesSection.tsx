@@ -1,6 +1,6 @@
+import { Image } from 'expo-image';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
 
 interface Cuisine {
   id: string;
@@ -13,11 +13,13 @@ interface Cuisine {
 interface CuisineCategoriesSectionProps {
   cuisines: Cuisine[];
   onCuisinePress?: (cuisine: Cuisine) => void;
+  onSeeAllPress?: () => void;
 }
 
 export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> = ({
   cuisines,
-  onCuisinePress
+  onCuisinePress,
+  onSeeAllPress
 }) => {
   const renderCuisineCard = (cuisine: Cuisine, index: number) => (
     <TouchableOpacity
@@ -111,6 +113,11 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
     </TouchableOpacity>
   );
 
+  // Don't render section if cuisines array is empty
+  if (cuisines.length === 0) {
+    return null;
+  }
+
   return (
     <View style={{ marginBottom: 24 }}>
       <View style={{
@@ -129,7 +136,7 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
           Cuisine Categories
         </Text>
         
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onSeeAllPress}>
           <Text style={{
             color: '#ef4444',
             fontSize: 14,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 import { TakeawayCategoryDrawer } from './TakeawayCategoryDrawer';
@@ -26,7 +26,7 @@ export function CategoryDrawerDemo() {
       case 'takeaway':
         return (
           <TakeawayCategoryDrawer
-            categoryName="All Available Takeaway's"
+            categoryName="All Takeaway's"
             onBack={handleCloseDrawer}
             onAddToCart={handleAddToCart}
             onItemPress={handleItemPress}

@@ -1,6 +1,6 @@
+import { Image } from 'expo-image';
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
 import { SentimentRating } from './SentimentRating';
 
 interface Meal {
@@ -20,12 +20,16 @@ interface PopularMealsSectionProps {
   meals: Meal[];
   onMealPress?: (meal: Meal) => void;
   onSeeAllPress?: () => void;
+  title?: string;
+  showTitle?: boolean;
 }
 
 export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
   meals,
   onMealPress,
-  onSeeAllPress
+  onSeeAllPress,
+  title,
+  showTitle = true
 }) => {
   const renderMealCard = (meal: Meal, index: number) => (
     <TouchableOpacity
@@ -164,34 +168,46 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
     </TouchableOpacity>
   );
 
+  // Don't render section if meals array is empty
+  if (meals.length === 0) {
+    return null;
+  }
+
+  // Don't show "See All" button inside drawers - only on main screen
+  const shouldShowSeeAll = showTitle && onSeeAllPress;
+
   return (
     <View style={{ marginBottom: 24 }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-        paddingHorizontal: 12,
-      }}>
-        <Text style={{
-          color: '#1a1a1a',
-          fontSize: 20,
-          fontWeight: '700',
-          lineHeight: 24,
+      {showTitle && (
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+          paddingHorizontal: 12,
         }}>
-          Popular Meals
-        </Text>
-        
-        <TouchableOpacity onPress={onSeeAllPress}>
           <Text style={{
-            color: '#ef4444',
-            fontSize: 14,
-            fontWeight: '600',
+            color: '#1a1a1a',
+            fontSize: 20,
+            fontWeight: '700',
+            lineHeight: 24,
           }}>
-            See All
+            {title || 'Popular Meals'}
           </Text>
-        </TouchableOpacity>
-      </View>
+          
+          {shouldShowSeeAll && (
+            <TouchableOpacity onPress={onSeeAllPress}>
+              <Text style={{
+                color: '#ef4444',
+                fontSize: 14,
+                fontWeight: '600',
+              }}>
+                See All
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       
       {/* First Row */}
       <ScrollView

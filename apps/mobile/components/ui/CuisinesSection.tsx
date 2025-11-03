@@ -9,6 +9,7 @@ interface Cuisine {
 
 interface CuisinesSectionProps {
   onCuisinePress?: (cuisine: Cuisine) => void;
+  onSeeAllPress?: () => void;
 }
 
 const cuisines: Cuisine[] = [
@@ -29,7 +30,7 @@ const cuisines: Cuisine[] = [
   },
 ];
 
-export function CuisinesSection({ onCuisinePress }: CuisinesSectionProps) {
+export function CuisinesSection({ onCuisinePress, onSeeAllPress }: CuisinesSectionProps) {
   return (
     <View style={{ paddingVertical: 20 }}>
       <View style={{ 
@@ -42,7 +43,7 @@ export function CuisinesSection({ onCuisinePress }: CuisinesSectionProps) {
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           Cuisines
         </Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onSeeAllPress}>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
         </TouchableOpacity>
       </View>

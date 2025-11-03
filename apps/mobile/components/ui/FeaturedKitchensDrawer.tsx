@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 import { FeaturedKitchensSection } from './FeaturedKitchensSection';
 
@@ -149,73 +149,18 @@ export function FeaturedKitchensDrawer({
       searchPlaceholder="Search kitchens by name or cuisine..."
     >
       <View style={styles.content}>
-        {/* Live Kitchens Section */}
-        {liveKitchens.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Live Now</Text>
-            <Text style={styles.sectionDescription}>
-              Watch these kitchens cook in real-time
-            </Text>
-            <FeaturedKitchensSection
-              kitchens={liveKitchens}
-              onKitchenPress={onKitchenPress}
-            />
-          </View>
-        )}
-
-        {/* Elite Kitchens Section */}
-        {eliteKitchens.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Elite Kitchens</Text>
-            <Text style={styles.sectionDescription}>
-              Top-rated kitchens with exceptional food quality
-            </Text>
-            <FeaturedKitchensSection
-              kitchens={eliteKitchens}
-              onKitchenPress={onKitchenPress}
-            />
-          </View>
-        )}
-
-        {/* Quick Delivery Section */}
-        {quickKitchens.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Delivery</Text>
-            <Text style={styles.sectionDescription}>
-              Get your food in 30 minutes or less
-            </Text>
-            <FeaturedKitchensSection
-              kitchens={quickKitchens}
-              onKitchenPress={onKitchenPress}
-            />
-          </View>
-        )}
-
-        {/* Nearby Kitchens Section */}
-        {nearbyKitchens.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nearby</Text>
-            <Text style={styles.sectionDescription}>
-              Great kitchens close to your location
-            </Text>
-            <FeaturedKitchensSection
-              kitchens={nearbyKitchens}
-              onKitchenPress={onKitchenPress}
-            />
-          </View>
-        )}
-
-        {/* All Kitchens Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>All Featured Kitchens</Text>
-          <Text style={styles.sectionDescription}>
-            Complete collection of our featured home kitchens
-          </Text>
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <FeaturedKitchensSection
             kitchens={displayKitchens}
             onKitchenPress={onKitchenPress}
+            showTitle={false}
+            onSeeAllPress={undefined}
           />
-        </View>
+        </ScrollView>
       </View>
     </CategoryFullDrawer>
   );
@@ -225,21 +170,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  section: {
-    marginBottom: 32,
+  scrollView: {
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#094327',
-    marginBottom: 4,
-    paddingHorizontal: 16,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    lineHeight: 20,
+  scrollContent: {
+    paddingBottom: 24,
   },
 }); 

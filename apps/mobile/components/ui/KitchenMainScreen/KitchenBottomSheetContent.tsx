@@ -1,11 +1,11 @@
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { forwardRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
 import { Circle, Path, Rect, Svg } from 'react-native-svg';
-import * as Haptics from 'expo-haptics';
 
-import { useGetKitchenCategoriesQuery, useGetKitchenPopularMealsQuery, useSearchKitchenMealsQuery, useGetKitchenMealsQuery } from '@/store/customerApi';
+import { useGetKitchenCategoriesQuery, useGetKitchenMealsQuery, useGetKitchenPopularMealsQuery, useSearchKitchenMealsQuery } from '@/store/customerApi';
 
 interface KitchenBottomSheetContentProps {
   isExpanded?: boolean;
@@ -472,7 +472,10 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
               </TouchableOpacity>
             )}
             {!selectedCategoryId && activeFilters.size === 0 && (
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => {
+                // All items are already shown when no filters are active
+                // This button can be used to scroll to top or trigger expansion
+              }}>
                 <Text style={styles.seeAllText}>See all</Text>
               </TouchableOpacity>
             )}

@@ -40,7 +40,7 @@ export function CategoryFullDrawer({
   onFilterChange,
   activeFilters = [],
   children,
-  showTabs = true,
+  showTabs = false,
   showSearch = true
 }: CategoryFullDrawerProps) {
   // Memoize filter chips rendering

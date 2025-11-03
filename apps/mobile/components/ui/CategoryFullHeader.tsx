@@ -21,13 +21,10 @@ export function CategoryFullHeader({
   onSegmentChange,
   onSearch,
   searchPlaceholder = "Search Stans Kitchens",
-  showTabs = true
+  showTabs = false
 }: CategoryFullHeaderProps) {
   return (
     <View style={styles.container as ViewStyle}>
-      {/* Drag Handle */}
-      <View style={styles.dragHandle as ViewStyle} />
-      
       {/* Header Content */}
       <View style={styles.headerContent as ViewStyle}>
         {/* Back Button */}
@@ -87,14 +84,6 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: 20,
     paddingBottom: 24,
-  },
-  dragHandle: {
-    width: 36,
-    height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
   },
   headerContent: {
     gap: 20,

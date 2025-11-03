@@ -1,6 +1,6 @@
+import { Image } from 'expo-image';
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
 
 interface SpecialOffer {
   id: string;
@@ -13,14 +13,35 @@ interface SpecialOffer {
   remainingTime?: string;
 }
 
+// Utility function to format date without year
+const formatDateWithoutYear = (dateString: string): string => {
+  // If it's already formatted without year, return as is
+  if (!dateString.includes(',')) {
+    return dateString;
+  }
+  
+  // Parse date and format without year
+  try {
+    const date = new Date(dateString);
+    const month = date.toLocaleString('en-GB', { month: 'short' });
+    const day = date.getDate();
+    return `${month} ${day}`;
+  } catch (e) {
+    // If parsing fails, try to remove year from string
+    return dateString.replace(/,?\s*\d{4}$/, '');
+  }
+};
+
 interface SpecialOffersSectionProps {
   offers: SpecialOffer[];
   onOfferPress?: (offer: SpecialOffer) => void;
+  onSeeAllPress?: () => void;
 }
 
 export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
   offers,
-  onOfferPress
+  onOfferPress,
+  onSeeAllPress
 }) => {
   const renderOfferCard = (offer: SpecialOffer, index: number) => (
     <TouchableOpacity
@@ -142,7 +163,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
             fontSize: 12,
             fontWeight: '600',
           }}>
-            Valid until {offer.validUntil}
+            Valid until {formatDateWithoutYear(offer.validUntil)}
           </Text>
           
           <TouchableOpacity style={{
@@ -182,7 +203,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
           Special Offers
         </Text>
         
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onSeeAllPress}>
           <Text style={{
             color: '#ef4444',
             fontSize: 14,

@@ -63,6 +63,7 @@ interface Order {
   items?: string[];
   orderType?: OrderType;
   groupOrder?: GroupOrder;
+  _uniqueKey?: string; // Unique key for React list rendering
 }
 
 export default function OrdersScreen() {
@@ -203,8 +204,12 @@ export default function OrdersScreen() {
         ? `#${apiOrder.id}` 
         : `#${apiOrder._id || 'ORD-001'}`;
 
+    // Generate a unique ID for the order
+    const uniqueId = apiOrder._id || apiOrder.id || `api-${Math.random().toString(36).slice(2, 11)}`;
+    const numericId = parseInt(uniqueId.toString().replace(/\D/g, "")) || Math.random() * 1000;
+
     const baseOrder: Order = {
-      id: parseInt((apiOrder._id || apiOrder.id || Math.random().toString()).replace(/\D/g, "")) || Math.random() * 1000,
+      id: numericId,
       time: formattedTime,
       description,
       price,
@@ -214,6 +219,8 @@ export default function OrdersScreen() {
       orderNumber,
       items,
       orderType: apiOrder.is_group_order ? "group" : "individual",
+      // Store unique identifier for key generation
+      _uniqueKey: `api-${uniqueId}`,
     };
 
       // Add group order info if applicable
@@ -250,8 +257,12 @@ export default function OrdersScreen() {
       cancelled: "cancelled",
     };
 
+    // Generate a unique ID for the custom order
+    const uniqueId = customOrder._id || `custom-${Math.random().toString(36).slice(2, 11)}`;
+    const numericId = parseInt(uniqueId.toString().replace(/\D/g, "")) || Math.random() * 1000;
+
     return {
-      id: parseInt(customOrder._id.replace(/\D/g, "")) || Math.random() * 1000,
+      id: numericId,
       time: new Date(customOrder.createdAt).toLocaleString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
@@ -269,6 +280,8 @@ export default function OrdersScreen() {
       orderNumber: customOrder.custom_order_id,
       items: [customOrder.requirements],
       orderType: "individual",
+      // Store unique identifier for key generation
+      _uniqueKey: `custom-${uniqueId}`,
     };
   };
 
@@ -345,6 +358,7 @@ export default function OrdersScreen() {
       orderNumber: "#ORD-2024-001",
       items: ["Keto Burger", "Sweet Potato Fries", "Diet Coke"],
       orderType: "individual",
+      _uniqueKey: "mock-ongoing-1",
     },
     {
       id: 2,
@@ -362,6 +376,7 @@ export default function OrdersScreen() {
         "Fresh Juice",
       ],
       orderType: "group",
+      _uniqueKey: "mock-ongoing-2",
       groupOrder: {
         id: "group-1",
         users: [
@@ -385,6 +400,7 @@ export default function OrdersScreen() {
       orderNumber: "#ORD-2024-003",
       items: ["Grilled Chicken Salad", "Balsamic Dressing", "Iced Tea"],
       orderType: "individual",
+      _uniqueKey: "mock-ongoing-3",
     },
     {
       id: 4,
@@ -397,6 +413,7 @@ export default function OrdersScreen() {
       orderNumber: "#ORD-2024-004",
       items: ["Salmon Nigiri Set", "Tuna Rolls", "Miso Soup", "Green Tea"],
       orderType: "group",
+      _uniqueKey: "mock-ongoing-4",
       groupOrder: {
         id: "group-2",
         users: [
@@ -422,6 +439,7 @@ export default function OrdersScreen() {
       orderNumber: "#ORD-2024-005",
       items: ["Butter Chicken", "Basmati Rice", "Naan Bread"],
       orderType: "individual",
+      _uniqueKey: "mock-ongoing-5",
     },
   ];
 
@@ -432,6 +450,7 @@ export default function OrdersScreen() {
       description: "Vegan Pizza from Pizza Palace",
       price: "£22",
       status: "delivered",
+      _uniqueKey: "mock-past-6",
     },
     {
       id: 7,
@@ -439,6 +458,7 @@ export default function OrdersScreen() {
       description: "Chicken Salad from Fresh Bites",
       price: "£18",
       status: "delivered",
+      _uniqueKey: "mock-past-7",
     },
   ];
 
@@ -536,9 +556,11 @@ export default function OrdersScreen() {
         {/* All Orders (Regular + Custom) - Sorted by time */}
         {sortedOrders.map((order, index) => {
           const isCustomOrder = order.description.includes("(Custom Order)");
+          // Use _uniqueKey if available, otherwise fall back to id
+          const uniqueKey = order._uniqueKey || `order-${order.id}-${index}`;
           return (
             <OrderCard
-              key={order.id}
+              key={uniqueKey}
               time={order.time}
               description={order.description}
               price={order.price}
