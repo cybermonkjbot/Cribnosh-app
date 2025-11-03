@@ -1,13 +1,15 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Circle, Path, Svg } from 'react-native-svg';
 import HearEmoteIcon from '../HearEmoteIcon';
+import { useGetKitchenFavoriteStatusQuery, useAddKitchenFavoriteMutation, useRemoveKitchenFavoriteMutation } from '@/store/customerApi';
 
 interface KitchenBottomSheetHeaderProps {
   deliveryTime: string;
   kitchenName?: string;
   currentSnapPoint?: number;
   distance?: string;
+  kitchenId?: string;
   onHeartPress?: () => void;
   onSearchPress?: () => void;
 }
@@ -17,12 +19,45 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
   kitchenName = "Amara's Kitchen",
   currentSnapPoint = 0,
   distance = "0.8 km",
+  kitchenId,
   onHeartPress,
   onSearchPress,
 }) => {
   // Determine title text based on snap point
   const titleText = currentSnapPoint === 1 ? kitchenName : "Kitchen Story";
   const isExpanded = currentSnapPoint === 1;
+
+  // Fetch favorite status if kitchenId is provided
+  const {
+    data: favoriteStatus,
+    isLoading: isLoadingFavorite,
+  } = useGetKitchenFavoriteStatusQuery(
+    { kitchenId: kitchenId || '' },
+    { skip: !kitchenId }
+  );
+
+  const [addFavorite] = useAddKitchenFavoriteMutation();
+  const [removeFavorite] = useRemoveKitchenFavoriteMutation();
+
+  const isFavorited = favoriteStatus?.data?.isFavorited || false;
+
+  const handleHeartPress = async () => {
+    if (!kitchenId) {
+      onHeartPress?.();
+      return;
+    }
+
+    try {
+      if (isFavorited) {
+        await removeFavorite({ kitchenId }).unwrap();
+      } else {
+        await addFavorite({ kitchenId }).unwrap();
+      }
+      onHeartPress?.();
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -40,9 +75,15 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
           )}
         </View>
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={onHeartPress}>
-            <HearEmoteIcon width={32} height={32} />
-          </TouchableOpacity>
+          {isLoadingFavorite ? (
+            <View style={styles.actionButton}>
+              <ActivityIndicator size="small" color="#F3F4F6" />
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.actionButton} onPress={handleHeartPress}>
+              <HearEmoteIcon width={32} height={32} liked={isFavorited} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.actionButton} onPress={onSearchPress}>
             <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
               <Circle cx="14.67" cy="14.67" r="10.67" stroke="#F3F4F6" strokeWidth="2.67" />

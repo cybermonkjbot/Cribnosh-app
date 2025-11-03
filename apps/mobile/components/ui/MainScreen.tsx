@@ -1844,6 +1844,8 @@ export function MainScreen() {
             deliveryTime={selectedKitchen.deliveryTime}
             distance={selectedKitchen.distance}
             cartItems={2}
+            kitchenId={selectedKitchen.id || selectedKitchen.kitchenId}
+            foodcreatorId={selectedKitchen.ownerId || selectedKitchen.foodcreatorId || selectedKitchen.userId}
             onCartPress={handleKitchenCartPress}
             onHeartPress={handleKitchenHeartPress}
             onSearchPress={handleKitchenSearchPress}

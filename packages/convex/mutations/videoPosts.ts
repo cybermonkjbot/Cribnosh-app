@@ -2,13 +2,46 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 
+// Generate upload URL for video
+export const generateVideoUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    // Get user from token
+    const email = identity.tokenIdentifier.split(':')[1];
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', q => q.eq('email', email))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check if user is a chef or food creator
+    const isChef = user.roles?.includes('chef') || user.roles?.includes('staff') || user.roles?.includes('admin');
+    if (!isChef) {
+      throw new Error("Only chefs and food creators can upload videos");
+    }
+
+    const uploadUrl = await ctx.storage.generateUploadUrl();
+    return uploadUrl;
+  },
+});
+
 // Create a new video post
 export const createVideoPost = mutation({
   args: {
     title: v.string(),
     description: v.optional(v.string()),
-    videoUrl: v.string(),
-    thumbnailUrl: v.optional(v.string()),
+    videoStorageId: v.id("_storage"),
+    thumbnailStorageId: v.optional(v.id("_storage")),
+    kitchenId: v.optional(v.id("kitchens")),
     duration: v.number(),
     fileSize: v.number(),
     resolution: v.object({
@@ -56,10 +89,11 @@ export const createVideoPost = mutation({
 
     const videoId = await ctx.db.insert('videoPosts', {
       creatorId: user._id,
+      kitchenId: args.kitchenId,
       title: args.title,
       description: args.description,
-      videoUrl: args.videoUrl,
-      thumbnailUrl: args.thumbnailUrl,
+      videoStorageId: args.videoStorageId,
+      thumbnailStorageId: args.thumbnailStorageId,
       duration: args.duration,
       fileSize: args.fileSize,
       resolution: args.resolution,

@@ -2,6 +2,40 @@ import { query } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 
+// Helper: Get video URL from storage ID
+export const getVideoUrl = query({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    try {
+      const url = await ctx.storage.getUrl(args.storageId);
+      return url;
+    } catch (error) {
+      console.error('Failed to get video URL:', error);
+      return null;
+    }
+  },
+});
+
+// Helper: Get thumbnail URL from storage ID
+export const getThumbnailUrl = query({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    try {
+      const url = await ctx.storage.getUrl(args.storageId);
+      return url;
+    } catch (error) {
+      console.error('Failed to get thumbnail URL:', error);
+      return null;
+    }
+  },
+});
+
 // Get video feed with pagination
 export const getVideoFeed = query({
   args: {
@@ -87,6 +121,12 @@ export const getVideoFeed = query({
           throw new Error("Creator not found");
         }
 
+        // Generate URLs from Convex storage IDs
+        const videoUrl = await ctx.storage.getUrl(video.videoStorageId) || '';
+        const thumbnailUrl = video.thumbnailStorageId 
+          ? await ctx.storage.getUrl(video.thumbnailStorageId) || undefined
+          : undefined;
+
         // Check if current user liked this video
         let isLiked = false;
         try {
@@ -112,6 +152,8 @@ export const getVideoFeed = query({
 
         return {
           ...video,
+          videoUrl,
+          thumbnailUrl,
           creator: {
             _id: creator._id,
             name: creator.name,
@@ -199,6 +241,12 @@ export const getVideoById = query({
       throw new Error("Creator not found");
     }
 
+    // Generate URLs from Convex storage IDs
+    const videoUrl = await ctx.storage.getUrl(video.videoStorageId) || '';
+    const thumbnailUrl = video.thumbnailStorageId 
+      ? await ctx.storage.getUrl(video.thumbnailStorageId) || undefined
+      : undefined;
+
     // Check if current user liked this video
     let isLiked = false;
     try {
@@ -224,6 +272,8 @@ export const getVideoById = query({
 
     return {
       ...video,
+      videoUrl,
+      thumbnailUrl,
       creator: {
         _id: creator._id,
         name: creator.name,
@@ -308,9 +358,15 @@ export const getVideosByCreator = query({
     const hasMore = videos.length > limit;
     const videosToReturn = hasMore ? videos.slice(0, limit) : videos;
 
-    // Check if current user liked each video
+    // Check if current user liked each video and generate URLs
     const videosWithLikes = await Promise.all(
       videosToReturn.map(async (video) => {
+        // Generate URLs from Convex storage IDs
+        const videoUrl = await ctx.storage.getUrl(video.videoStorageId) || '';
+        const thumbnailUrl = video.thumbnailStorageId 
+          ? await ctx.storage.getUrl(video.thumbnailStorageId) || undefined
+          : undefined;
+
         let isLiked = false;
         try {
           const identity = await ctx.auth.getUserIdentity();
@@ -335,6 +391,8 @@ export const getVideosByCreator = query({
 
         return {
           ...video,
+          videoUrl,
+          thumbnailUrl,
           isLiked,
         };
       })
@@ -464,6 +522,12 @@ export const searchVideos = query({
           throw new Error("Creator not found");
         }
 
+        // Generate URLs from Convex storage IDs
+        const videoUrl = await ctx.storage.getUrl(video.videoStorageId) || '';
+        const thumbnailUrl = video.thumbnailStorageId 
+          ? await ctx.storage.getUrl(video.thumbnailStorageId) || undefined
+          : undefined;
+
         let isLiked = false;
         try {
           const identity = await ctx.auth.getUserIdentity();
@@ -488,6 +552,8 @@ export const searchVideos = query({
 
         return {
           ...video,
+          videoUrl,
+          thumbnailUrl,
           creator: {
             _id: creator._id,
             name: creator.name,
@@ -608,6 +674,12 @@ export const getTrendingVideos = query({
           throw new Error("Creator not found");
         }
 
+        // Generate URLs from Convex storage IDs
+        const videoUrl = await ctx.storage.getUrl(video.videoStorageId) || '';
+        const thumbnailUrl = video.thumbnailStorageId 
+          ? await ctx.storage.getUrl(video.thumbnailStorageId) || undefined
+          : undefined;
+
         // Calculate engagement score (likes + comments + shares) / views
         const engagementScore = video.viewsCount > 0 
           ? (video.likesCount + video.commentsCount + video.sharesCount) / video.viewsCount
@@ -637,6 +709,8 @@ export const getTrendingVideos = query({
 
         return {
           ...video,
+          videoUrl,
+          thumbnailUrl,
           creator: {
             _id: creator._id,
             name: creator.name,

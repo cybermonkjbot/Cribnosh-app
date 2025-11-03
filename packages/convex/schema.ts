@@ -537,6 +537,7 @@ export default defineSchema({
     certified: v.boolean(),
     inspectionDates: v.optional(v.array(v.string())),
     images: v.optional(v.array(v.string())),
+    featuredVideoId: v.optional(v.id("videoPosts")), // Featured video for this kitchen
   }),
   // Perks table
   perks: defineTable({
@@ -2643,10 +2644,11 @@ export default defineSchema({
   // Video Posts table
   videoPosts: defineTable({
     creatorId: v.id("users"), // Must be chef or food creator
+    kitchenId: v.optional(v.id("kitchens")), // Kitchen associated with this video
     title: v.string(),
     description: v.optional(v.string()),
-    videoUrl: v.string(), // S3 URL
-    thumbnailUrl: v.optional(v.string()), // S3 URL for thumbnail
+    videoStorageId: v.id("_storage"), // Convex storage ID for video
+    thumbnailStorageId: v.optional(v.id("_storage")), // Convex storage ID for thumbnail
     duration: v.number(), // Duration in seconds
     fileSize: v.number(), // File size in bytes
     resolution: v.object({
@@ -2685,6 +2687,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_creator", ["creatorId"])
+    .index("by_kitchen", ["kitchenId"])
     .index("by_status", ["status"])
     .index("by_visibility", ["visibility"])
     .index("by_published", ["publishedAt"])

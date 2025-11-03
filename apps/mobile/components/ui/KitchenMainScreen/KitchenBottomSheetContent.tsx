@@ -1,21 +1,70 @@
 import { BlurView } from 'expo-blur';
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Circle, Path, Rect, Svg } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
+
+import { useGetKitchenCategoriesQuery, useGetKitchenPopularMealsQuery, useSearchKitchenMealsQuery, useGetKitchenMealsQuery } from '@/store/customerApi';
 
 interface KitchenBottomSheetContentProps {
   isExpanded?: boolean;
   onScrollAttempt?: () => void;
   deliveryTime?: string;
+  kitchenId?: string;
+  searchQuery?: string;
 }
 
 const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetContentProps>(({
   isExpanded = false,
   onScrollAttempt,
   deliveryTime = "30-45 mins",
+  kitchenId,
+  searchQuery,
 }, ref) => {
-  const categories = [
+  // State for selected category ID and active filters
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
+
+  // Fetch categories
+  const { data: categoriesData, isLoading: isLoadingCategories } = useGetKitchenCategoriesQuery(
+    { kitchenId: kitchenId || '' },
+    { skip: !kitchenId }
+  );
+
+  // Map real categories to display format (with icons)
+  const categoryIcons: Record<string, React.ReactNode> = {
+    'italian': (
+      <Svg width={35} height={35} viewBox="0 0 35 35" fill="none">
+        <Rect x="2" y="2" width="31" height="31" rx="4" fill="#EAEAEA" stroke="#EAEAEA" strokeWidth="1" />
+        <Circle cx="17.5" cy="17.5" r="8" fill="#FFD700" />
+      </Svg>
+    ),
+    'chinese': (
+      <Svg width={35} height={35} viewBox="0 0 35 35" fill="none">
+        <Rect x="2" y="2" width="31" height="31" rx="4" fill="#EAEAEA" stroke="#EAEAEA" strokeWidth="1" />
+        <Circle cx="12" cy="12" r="3" fill="#4CAF50" />
+        <Circle cx="23" cy="12" r="3" fill="#4CAF50" />
+        <Circle cx="17.5" cy="17.5" r="3" fill="#4CAF50" />
+      </Svg>
+    ),
+    // Add more icons as needed
+  };
+
+  const realCategories = categoriesData?.data?.categories || [];
+  const categories = realCategories.length > 0
+    ? realCategories.map((cat) => ({
+        id: cat.category.toLowerCase().replace(/\s+/g, '-'),
+        name: cat.category,
+        icon: categoryIcons[cat.category.toLowerCase()] || (
+          <Svg width={35} height={35} viewBox="0 0 35 35" fill="none">
+            <Rect x="2" y="2" width="31" height="31" rx="4" fill="#EAEAEA" stroke="#EAEAEA" strokeWidth="1" />
+            <Circle cx="17.5" cy="17.5" r="8" fill="#FFD700" />
+          </Svg>
+        ),
+        backgroundColor: 'rgba(16, 185, 129, 0.9)',
+      }))
+    : [
     {
       id: 'candy',
       name: 'Sweet Treats',
@@ -70,7 +119,81 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
     },
   ];
 
-  const popularMeals = [
+  // Get category name from selected category ID
+  const selectedCategoryName = selectedCategoryId
+    ? categories.find((cat) => cat.id === selectedCategoryId)?.name || null
+    : null;
+
+  // Fetch meals with filters
+  const { data: filteredMealsData, isLoading: isLoadingFilteredMeals } = useGetKitchenMealsQuery(
+    {
+      kitchenId: kitchenId || '',
+      category: selectedCategoryName || undefined,
+      dietary: activeFilters.size > 0 ? Array.from(activeFilters) : undefined,
+      limit: 20,
+    },
+    { skip: !kitchenId || !selectedCategoryName && activeFilters.size === 0 }
+  );
+
+  // Fetch popular meals (when no filters/category selected)
+  const { data: popularMealsData, isLoading: isLoadingPopularMeals } = useGetKitchenPopularMealsQuery(
+    { kitchenId: kitchenId || '', limit: 10 },
+    { skip: !kitchenId || selectedCategoryId !== null || activeFilters.size > 0 }
+  );
+
+  // Fetch search results if searchQuery is provided
+  const { data: searchResults, isLoading: isLoadingSearch } = useSearchKitchenMealsQuery(
+    { kitchenId: kitchenId || '', q: searchQuery || '' },
+    { skip: !kitchenId || !searchQuery || searchQuery.trim().length === 0 }
+  );
+
+  // Handle category selection
+  const handleCategoryPress = (categoryId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (selectedCategoryId === categoryId) {
+      // Deselect if already selected
+      setSelectedCategoryId(null);
+    } else {
+      setSelectedCategoryId(categoryId);
+    }
+  };
+
+  // Handle filter chip toggle
+  const handleFilterPress = (filterId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveFilters((prev) => {
+      const newFilters = new Set(prev);
+      if (newFilters.has(filterId)) {
+        newFilters.delete(filterId);
+      } else {
+        newFilters.add(filterId);
+      }
+      return newFilters;
+    });
+  };
+
+  // Use real data or fallback to placeholder data
+  const realPopularMeals = popularMealsData?.data?.meals || [];
+  const filteredMeals = filteredMealsData?.data?.meals || [];
+  const searchMeals = searchResults?.data?.meals || [];
+
+  // Map meals to display format
+  const mapMealToDisplay = (meal: any) => ({
+    id: meal._id || meal.id,
+    name: meal.name || 'Unknown Meal',
+    price: `£${meal.price?.toFixed(2) || '0.00'}`,
+    originalPrice: meal.originalPrice ? `£${meal.originalPrice.toFixed(2)}` : undefined,
+    image: meal.image ? { uri: meal.image } : require('../../../assets/images/cribnoshpackaging.png'),
+    isPopular: meal.averageRating >= 4.5 || meal.reviewCount > 10,
+    deliveryTime: `${meal.prepTime || 30} min`,
+    averageRating: meal.averageRating,
+    reviewCount: meal.reviewCount,
+  });
+
+  // Map popular meals to display format
+  const popularMeals = realPopularMeals.length > 0
+    ? realPopularMeals.map(mapMealToDisplay)
+    : [
     {
       id: '1',
       name: 'Jollof Rice',
@@ -96,6 +219,20 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
       deliveryTime: '30 min',
     },
   ];
+
+  // Determine which meals to display
+  const displayMeals = searchQuery && searchQuery.trim().length > 0
+    ? searchMeals.map(mapMealToDisplay)
+    : selectedCategoryId !== null || activeFilters.size > 0
+    ? filteredMeals.map(mapMealToDisplay)
+    : popularMeals;
+
+  const isLoadingMeals = searchQuery && searchQuery.trim().length > 0
+    ? isLoadingSearch
+    : selectedCategoryId !== null || activeFilters.size > 0
+    ? isLoadingFilteredMeals
+    : isLoadingPopularMeals;
+
 
   const featuredItems = [
     {
@@ -137,21 +274,25 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
       {/* Feature chips */}
       <View style={styles.chipsContainer}>
         <TouchableOpacity
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            backgroundColor: '#10B981',
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: '#10B981',
-            shadowColor: '#10B981',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.4,
-            shadowRadius: 6,
-            elevation: 4,
-            overflow: 'hidden',
-          }}
+          style={[
+            {
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              backgroundColor: '#10B981',
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: '#10B981',
+              shadowColor: '#10B981',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.4,
+              shadowRadius: 6,
+              elevation: 4,
+              overflow: 'hidden',
+            },
+            activeFilters.has('keto') && styles.chipActive,
+          ]}
           activeOpacity={0.8}
+          onPress={() => handleFilterPress('keto')}
         >
           <BlurView
             intensity={40}
@@ -182,21 +323,25 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            backgroundColor: '#F59E0B',
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: '#F59E0B',
-            shadowColor: '#F59E0B',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.4,
-            shadowRadius: 6,
-            elevation: 4,
-            overflow: 'hidden',
-          }}
+          style={[
+            {
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              backgroundColor: '#F59E0B',
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: '#F59E0B',
+              shadowColor: '#F59E0B',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.4,
+              shadowRadius: 6,
+              elevation: 4,
+              overflow: 'hidden',
+            },
+            activeFilters.has('late-night') && styles.chipActive,
+          ]}
           activeOpacity={0.8}
+          onPress={() => handleFilterPress('late-night')}
         >
           <BlurView
             intensity={40}
@@ -236,60 +381,160 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContainer}
         >
-          {categories.map((category) => (
-            <TouchableOpacity key={category.id} style={styles.categoryItem}>
-              <View style={[styles.categoryIcon, { backgroundColor: category.backgroundColor }]}>
-                {category.icon}
-              </View>
-              <Text style={styles.categoryName}>{category.name}</Text>
-            </TouchableOpacity>
-          ))}
+          {categories.map((category) => {
+            const isSelected = selectedCategoryId === category.id;
+            return (
+              <TouchableOpacity
+                key={category.id}
+                style={[styles.categoryItem, isSelected && styles.categoryItemSelected]}
+                onPress={() => handleCategoryPress(category.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.categoryIcon,
+                  { backgroundColor: category.backgroundColor },
+                  isSelected && styles.categoryIconSelected
+                ]}>
+                  {category.icon}
+                </View>
+                <Text style={[styles.categoryName, isSelected && styles.categoryNameSelected]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
-      {/* Popular Meals Section */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Popular Meals</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>See all</Text>
-          </TouchableOpacity>
+      {/* Show search results if search query is provided, otherwise show filtered/popular meals */}
+      {searchQuery && searchQuery.trim().length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Search Results</Text>
+          {isLoadingSearch ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Searching...</Text>
+            </View>
+          ) : searchMeals.length > 0 ? (
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.mealsContainer}
+            >
+              {searchMeals.map((meal: any) => (
+                <TouchableOpacity
+                  key={meal._id || meal.id}
+                  style={styles.mealCard}
+                  onPress={() => {
+                    // Navigate to meal details or add to cart
+                    console.log('Meal pressed:', meal);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.mealImageContainer}>
+                    <Image 
+                      source={meal.image ? { uri: meal.image } : require('../../../assets/images/cribnoshpackaging.png')} 
+                      style={styles.mealImage} 
+                    />
+                    {meal.averageRating >= 4.5 && (
+                      <View style={styles.popularBadge}>
+                        <Text style={styles.badgeText}>Popular</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.mealInfo}>
+                    <Text style={styles.mealName} numberOfLines={1}>{meal.name}</Text>
+                    <View style={styles.mealPriceRow}>
+                      <Text style={styles.mealPrice}>£{meal.price?.toFixed(2) || '0.00'}</Text>
+                      {meal.originalPrice && (
+                        <Text style={styles.originalPrice}>£{meal.originalPrice.toFixed(2)}</Text>
+                      )}
+                    </View>
+                    <Text style={styles.deliveryTime}>{meal.prepTime || 30} min</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No meals found</Text>
+            </View>
+          )}
         </View>
-        
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.mealsContainer}
-        >
-          {popularMeals.map((meal) => (
-            <TouchableOpacity key={meal.id} style={styles.mealCard}>
-              <View style={styles.mealImageContainer}>
-                <Image source={meal.image} style={styles.mealImage} />
-                {meal.isPopular && (
-                  <View style={styles.popularBadge}>
-                    <Text style={styles.badgeText}>Popular</Text>
+      ) : (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {selectedCategoryId || activeFilters.size > 0 ? 'Filtered Meals' : 'Popular Meals'}
+            </Text>
+            {(selectedCategoryId || activeFilters.size > 0) && (
+              <TouchableOpacity onPress={() => { setSelectedCategoryId(null); setActiveFilters(new Set()); }}>
+                <Text style={styles.seeAllText}>Clear filters</Text>
+              </TouchableOpacity>
+            )}
+            {!selectedCategoryId && activeFilters.size === 0 && (
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See all</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          {isLoadingMeals ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading...</Text>
+            </View>
+          ) : displayMeals.length > 0 ? (
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.mealsContainer}
+            >
+              {displayMeals.map((meal: any) => (
+                <TouchableOpacity
+                  key={meal._id || meal.id}
+                  style={styles.mealCard}
+                  onPress={() => {
+                    // Navigate to meal details or add to cart
+                    console.log('Meal pressed:', meal);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.mealImageContainer}>
+                    <Image source={meal.image} style={styles.mealImage} />
+                    {meal.isPopular && (
+                      <View style={styles.popularBadge}>
+                        <Text style={styles.badgeText}>Popular</Text>
+                      </View>
+                    )}
+                    {meal.isNew && (
+                      <View style={styles.newBadge}>
+                        <Text style={styles.badgeText}>New</Text>
+                      </View>
+                    )}
                   </View>
-                )}
-                {meal.isNew && (
-                  <View style={styles.newBadge}>
-                    <Text style={styles.badgeText}>New</Text>
+                  <View style={styles.mealInfo}>
+                    <Text style={styles.mealName} numberOfLines={1}>{meal.name}</Text>
+                    <View style={styles.mealPriceRow}>
+                      <Text style={styles.mealPrice}>{meal.price}</Text>
+                      {meal.originalPrice && (
+                        <Text style={styles.originalPrice}>{meal.originalPrice}</Text>
+                      )}
+                    </View>
+                    <Text style={styles.deliveryTime}>{meal.deliveryTime}</Text>
                   </View>
-                )}
-              </View>
-              <View style={styles.mealInfo}>
-                <Text style={styles.mealName} numberOfLines={1}>{meal.name}</Text>
-                <View style={styles.mealPriceRow}>
-                  <Text style={styles.mealPrice}>{meal.price}</Text>
-                  {meal.originalPrice && (
-                    <Text style={styles.originalPrice}>{meal.originalPrice}</Text>
-                  )}
-                </View>
-                <Text style={styles.deliveryTime}>{meal.deliveryTime}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {selectedCategoryId || activeFilters.size > 0 
+                  ? 'No meals found with selected filters'
+                  : 'No meals available'}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Featured Items Section */}
       <View style={[styles.section, styles.lastSection]}>
@@ -328,7 +573,8 @@ export { KitchenBottomSheetContent };
 
 const styles = StyleSheet.create({
   container: {
-    paddingLeft: 20, // Reduced from 25 for better visual balance
+    paddingLeft: 10, // Reduced horizontal padding for better content visibility
+    paddingRight: 10, // Added right padding for consistency
     paddingBottom: 250, // Increased from 180 to 250 for much more bottom padding
   },
   deliveryInfo: {
@@ -340,7 +586,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.03,
     color: '#FAFAFA',
     marginBottom: 15,
-    paddingHorizontal: 10,
+    paddingHorizontal: 5, // Reduced horizontal padding
     paddingVertical: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 10,
@@ -350,6 +596,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     gap: 12,
     marginBottom: 15,
+    paddingHorizontal: 0, // Remove extra padding
   },
   section: {
     marginBottom: 20,
@@ -387,7 +634,7 @@ const styles = StyleSheet.create({
   categoryItem: {
     width: 75,
     height: 102,
-    marginRight: 30,
+    marginRight: 15, // Reduced margin for better horizontal space utilization
     alignItems: 'center',
   },
   categoryIcon: {
@@ -417,7 +664,7 @@ const styles = StyleSheet.create({
   mealCard: {
     width: 150,
     height: 200,
-    marginRight: 15,
+    marginRight: 10, // Reduced margin for better horizontal space utilization
     backgroundColor: 'rgba(255, 255, 255, 0.1)', // Changed to semi-transparent white for dark background
     borderRadius: 10,
     overflow: 'hidden',
@@ -600,5 +847,44 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textDecorationLine: 'line-through',
     marginLeft: 5,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontFamily: 'Lato',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontFamily: 'Lato',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  chipActive: {
+    opacity: 0.8,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  categoryItemSelected: {
+    opacity: 0.9,
+  },
+  categoryIconSelected: {
+    borderWidth: 2,
+    borderColor: '#FF3B30', // Cribnosh orange-red
+    opacity: 1,
+  },
+  categoryNameSelected: {
+    color: '#FF3B30', // Cribnosh orange-red
+    fontWeight: '700',
   },
 }); 

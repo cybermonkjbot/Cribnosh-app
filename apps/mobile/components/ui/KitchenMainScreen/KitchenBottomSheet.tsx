@@ -12,6 +12,7 @@ interface KitchenBottomSheetProps {
   cartItems: number;
   kitchenName?: string;
   distance?: string;
+  kitchenId?: string;
   onCartPress?: () => void;
   onHeartPress?: () => void;
   onSearchPress?: () => void;
@@ -23,6 +24,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   cartItems,
   kitchenName = "Amara's Kitchen",
   distance = "0.8 km",
+  kitchenId,
   onCartPress,
   onHeartPress,
   onSearchPress,
@@ -114,15 +116,14 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
               />
             </View>
             
-            {/* Search Results Placeholder */}
-            <View style={styles.searchResultsContainer}>
-              <View style={styles.mascotContainer}>
-                <Mascot emotion="excited" size={120} />
-              </View>
-              <Text style={styles.searchResultsText}>
-                {searchQuery.trim() ? 'Search results will appear here...' : `Start typing to search ${kitchenName}`}
-              </Text>
-            </View>
+            {/* Search Results - Content component handles displaying search results */}
+            <KitchenBottomSheetContent 
+              ref={contentScrollRef}
+              isExpanded={true}
+              deliveryTime={deliveryTime}
+              kitchenId={kitchenId}
+              searchQuery={searchQuery}
+            />
           </View>
         ) : (
           // Normal Content Interface
@@ -133,6 +134,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
               kitchenName={kitchenName}
               currentSnapPoint={currentSnapPoint}
               distance={distance}
+              kitchenId={kitchenId}
               onHeartPress={onHeartPress}
               onSearchPress={handleSearchPress}
             />
@@ -143,6 +145,8 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
               isExpanded={isExpanded}
               onScrollAttempt={() => !isExpanded && bottomSheetRef.current?.snapToIndex(1)}
               deliveryTime={deliveryTime}
+              kitchenId={kitchenId}
+              searchQuery={isSearchMode ? searchQuery : undefined}
             />
           </>
         )}
@@ -187,7 +191,8 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flex: 1,
-    padding: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 10, // Reduced horizontal padding for search mode
   },
   searchHeader: {
     flexDirection: 'row',

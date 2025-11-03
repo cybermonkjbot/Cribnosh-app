@@ -1,14 +1,16 @@
-import { BlurView } from 'expo-blur';
-import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useGetKitchenFeaturedVideoQuery } from '@/store/customerApi';
 import { useTopPosition } from '@/utils/positioning';
-import { Circle, Path, Svg } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
+import { useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { Circle, Path, Svg } from 'react-native-svg';
 import { Mascot } from '../Mascot';
 import { BackgroundElements } from './KitchenMainScreen/BackgroundElements';
 import { FoodIllustrations } from './KitchenMainScreen/FoodIllustrations';
@@ -24,6 +26,8 @@ interface KitchenMainScreenProps {
   deliveryTime?: string;
   cartItems?: number;
   distance?: string;
+  kitchenId?: string;
+  foodcreatorId?: string;
   onCartPress?: () => void;
   onHeartPress?: () => void;
   onSearchPress?: () => void;
@@ -36,13 +40,26 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   deliveryTime = "30-45 Mins",
   cartItems = 2,
   distance = "0.8 km",
+  kitchenId,
+  foodcreatorId,
   onCartPress,
   onHeartPress,
   onSearchPress,
   onClose,
 }) => {
+  const router = useRouter();
   const topPosition = useTopPosition(20);
   const playIconScale = useSharedValue(1);
+  
+  // Fetch featured video if kitchenId is available
+  const {
+    data: featuredVideoData,
+    isLoading: isLoadingVideo,
+    error: videoError,
+  } = useGetKitchenFeaturedVideoQuery(
+    { kitchenId: kitchenId || '' },
+    { skip: !kitchenId }
+  );
 
   // Continuous play icon animation
   useEffect(() => {
@@ -61,8 +78,75 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   });
 
   const handlePlayPress = () => {
-    // Play button press handler
-    console.log('Play button pressed');
+    console.log('Play button pressed', {
+      kitchenId,
+      foodcreatorId,
+      isLoadingVideo,
+      hasVideoData: !!featuredVideoData,
+      videoData: featuredVideoData,
+      videoError,
+    });
+
+    if (!kitchenId || !foodcreatorId) {
+      console.warn('Kitchen ID or Food Creator ID missing', { kitchenId, foodcreatorId });
+      return;
+    }
+
+    // The API response structure from ResponseFactory.success():
+    // { success: true, data: { _id: ..., ... }, message: "..." }
+    // RTK Query wraps this as: { data: { success: true, data: {...}, message: "..." } }
+    // So we need to access: featuredVideoData?.data?.data?._id
+    // However, some endpoints might unwrap automatically, so check both paths
+    const videoData = featuredVideoData?.data?.data || featuredVideoData?.data;
+    const videoId = videoData?._id;
+
+    console.log('Video data extraction:', {
+      rawData: featuredVideoData,
+      dataPath1: featuredVideoData?.data,
+      dataPath2: featuredVideoData?.data?.data,
+      videoData,
+      videoId,
+    });
+
+    if (videoId) {
+      console.log('Navigating to video page:', {
+        pathname: '/foodcreator/[foodcreatorId]/kitchen/[kitchenId]/video/[videoId]',
+        params: {
+          foodcreatorId,
+          kitchenId,
+          videoId,
+        },
+      });
+      
+      try {
+        router.push({
+          pathname: '/foodcreator/[foodcreatorId]/kitchen/[kitchenId]/video/[videoId]',
+          params: {
+            foodcreatorId: String(foodcreatorId),
+            kitchenId: String(kitchenId),
+            videoId: String(videoId),
+          },
+        });
+        console.log('Navigation triggered successfully');
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
+    } else if (videoError) {
+      console.error('Error loading featured video:', videoError);
+      // Could show an error toast here
+    } else if (!isLoadingVideo) {
+      // Video not found or not available
+      console.warn('Featured video not available for this kitchen', {
+        featuredVideoData,
+        videoData,
+        checkedPaths: {
+          path1: featuredVideoData?.data?._id,
+          path2: featuredVideoData?.data?.data?._id,
+        },
+      });
+    } else {
+      console.log('Still loading video data...');
+    }
   };
 
   return (
@@ -112,12 +196,13 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
 
       {/* Bottom Sheet */}
       <KitchenBottomSheet
-        deliveryTime="30-45 mins"
-        cartItems={3}
+        deliveryTime={deliveryTime}
+        cartItems={cartItems}
         kitchenName={kitchenName}
         distance={distance}
-        onCartPress={() => console.log('Cart pressed')}
-        onHeartPress={() => console.log('Heart pressed')}
+        kitchenId={kitchenId}
+        onCartPress={onCartPress}
+        onHeartPress={onHeartPress}
         onSearchSubmit={(query) => console.log('Search submitted:', query)}
       />
 
@@ -126,6 +211,12 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
         style={styles.floatingPlayButton} 
         onPress={handlePlayPress} 
         activeOpacity={0.8}
+        disabled={
+          isLoadingVideo || 
+          !kitchenId || 
+          !foodcreatorId || 
+          !(featuredVideoData?.data?.data?._id || featuredVideoData?.data?._id)
+        }
       >
         <BlurView
           intensity={60}
@@ -139,15 +230,19 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
             borderRadius: 50,
           }}
         />
-        <Animated.View style={[
-          { position: 'absolute' },
-          playIconAnimatedStyle
-        ]}>
-          <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
-            <Circle cx="18" cy="18" r="18" fill="rgba(76, 63, 89, 0.3)" stroke="rgba(255, 255, 255, 0.6)" strokeWidth="1" />
-            <Path d="M15 12 L27 18 L15 24 Z" fill="#094327" />
-          </Svg>
-        </Animated.View>
+        {isLoadingVideo ? (
+          <ActivityIndicator size="small" color="#094327" />
+        ) : (
+          <Animated.View style={[
+            { position: 'absolute' },
+            playIconAnimatedStyle
+          ]}>
+            <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
+              <Circle cx="18" cy="18" r="18" fill="rgba(76, 63, 89, 0.3)" stroke="rgba(255, 255, 255, 0.6)" strokeWidth="1" />
+              <Path d="M15 12 L27 18 L15 24 Z" fill="#094327" />
+            </Svg>
+          </Animated.View>
+        )}
       </TouchableOpacity>
 
       {/* Mascot */}
@@ -228,7 +323,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    zIndex: 1000,
+    zIndex: 9998, // High z-index, but below bottom sheet (9999)
   },
   mascotContainer: {
     position: 'absolute',

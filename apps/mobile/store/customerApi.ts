@@ -227,6 +227,10 @@ export const customerApi = createApi({
     "LiveStreams",
     "PaymentIntent",
     "CustomOrders",
+    "Videos",
+    "KitchenFavorites",
+    "KitchenMeals",
+    "KitchenCategories",
     "Dishes",
   ],
   endpoints: (builder) => ({
@@ -1431,6 +1435,176 @@ export const customerApi = createApi({
       },
       providesTags: ["CustomerProfile"],
     }),
+
+    /**
+     * Get featured video for a kitchen
+     * GET /api/nosh-heaven/kitchens/{kitchenId}/featured-video
+     */
+    getKitchenFeaturedVideo: builder.query<any, { kitchenId: string }>({
+      query: ({ kitchenId }) => ({
+        url: `/api/nosh-heaven/kitchens/${kitchenId}/featured-video`,
+        method: "GET",
+      }),
+      providesTags: ["Videos"],
+    }),
+
+    /**
+     * Get video by ID
+     * GET /api/nosh-heaven/videos/{videoId}
+     */
+    getVideoById: builder.query<any, { videoId: string }>({
+      query: ({ videoId }) => ({
+        url: `/api/nosh-heaven/videos/${videoId}`,
+        method: "GET",
+      }),
+      providesTags: ["Videos"],
+    }),
+
+    /**
+     * Check if kitchen is favorited
+     * GET /api/customer/kitchens/{kitchenId}/favorite
+     */
+    getKitchenFavoriteStatus: builder.query<
+      { isFavorited: boolean; favoriteId?: string; chefId?: string },
+      { kitchenId: string }
+    >({
+      query: ({ kitchenId }) => ({
+        url: `/api/customer/kitchens/${kitchenId}/favorite`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenFavorites", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Add kitchen to favorites
+     * POST /api/customer/kitchens/{kitchenId}/favorite
+     */
+    addKitchenFavorite: builder.mutation<void, { kitchenId: string }>({
+      query: ({ kitchenId }) => ({
+        url: `/api/customer/kitchens/${kitchenId}/favorite`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenFavorites", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Remove kitchen from favorites
+     * DELETE /api/customer/kitchens/{kitchenId}/favorite
+     */
+    removeKitchenFavorite: builder.mutation<void, { kitchenId: string }>({
+      query: ({ kitchenId }) => ({
+        url: `/api/customer/kitchens/${kitchenId}/favorite`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenFavorites", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Get meals for a kitchen
+     * GET /api/customer/kitchens/{kitchenId}/meals
+     */
+    getKitchenMeals: builder.query<
+      { meals: any[] },
+      {
+        kitchenId: string;
+        limit?: number;
+        offset?: number;
+        category?: string;
+        dietary?: string[];
+      }
+    >({
+      query: ({ kitchenId, limit, offset, category, dietary }) => {
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", limit.toString());
+        if (offset) params.append("offset", offset.toString());
+        if (category) params.append("category", category);
+        if (dietary && dietary.length > 0) {
+          dietary.forEach((d) => params.append("dietary", d));
+        }
+        return {
+          url: `/api/customer/kitchens/${kitchenId}/meals${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenMeals", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Search meals within a kitchen
+     * GET /api/customer/kitchens/{kitchenId}/meals/search
+     */
+    searchKitchenMeals: builder.query<
+      { meals: any[]; query: string },
+      {
+        kitchenId: string;
+        q: string;
+        category?: string;
+        dietary?: string[];
+        limit?: number;
+      }
+    >({
+      query: ({ kitchenId, q, category, dietary, limit }) => {
+        const params = new URLSearchParams({ q });
+        if (category) params.append("category", category);
+        if (dietary && dietary.length > 0) {
+          dietary.forEach((d) => params.append("dietary", d));
+        }
+        if (limit) params.append("limit", limit.toString());
+        return {
+          url: `/api/customer/kitchens/${kitchenId}/meals/search?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenMeals", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Get popular meals for a kitchen
+     * GET /api/customer/kitchens/{kitchenId}/meals/popular
+     */
+    getKitchenPopularMeals: builder.query<
+      { meals: any[] },
+      { kitchenId: string; limit?: number }
+    >({
+      query: ({ kitchenId, limit }) => {
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", limit.toString());
+        return {
+          url: `/api/customer/kitchens/${kitchenId}/meals/popular${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenMeals", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Get meal categories for a kitchen
+     * GET /api/customer/kitchens/{kitchenId}/categories
+     */
+    getKitchenCategories: builder.query<
+      { categories: { category: string; count: number }[] },
+      { kitchenId: string }
+    >({
+      query: ({ kitchenId }) => ({
+        url: `/api/customer/kitchens/${kitchenId}/categories`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenCategories", id: kitchenId },
+      ],
+    }),
   }),
 });
 
@@ -1541,6 +1715,21 @@ export const {
   useSetupFamilyProfileMutation,
 } = customerApi;
 
+// Kitchen Favorites
+export const {
+  useGetKitchenFavoriteStatusQuery,
+  useAddKitchenFavoriteMutation,
+  useRemoveKitchenFavoriteMutation,
+} = customerApi;
+
+// Kitchen Meals
+export const {
+  useGetKitchenMealsQuery,
+  useSearchKitchenMealsQuery,
+  useGetKitchenPopularMealsQuery,
+  useGetKitchenCategoriesQuery,
+} = customerApi;
+
 // Live Streaming
 export const { useGetLiveStreamsQuery } = customerApi;
 
@@ -1573,6 +1762,12 @@ export const {
 export const {
   useGetChefMenusQuery,
   useGetMenuDetailsQuery,
+} = customerApi;
+
+// Videos
+export const {
+  useGetKitchenFeaturedVideoQuery,
+  useGetVideoByIdQuery,
 } = customerApi;
 
 // ============================================================================
