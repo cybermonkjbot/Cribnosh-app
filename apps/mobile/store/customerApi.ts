@@ -2265,6 +2265,136 @@ export const customerApi = createApi({
         { type: "KitchenTags", id: kitchenId },
       ],
     }),
+
+    /**
+     * Get user behavior analytics
+     * GET /customer/analytics/user-behavior
+     */
+    getUserBehavior: builder.query<
+      {
+        success: boolean;
+        data: {
+          totalOrders: number;
+          daysActive: number;
+          usualDinnerItems: {
+            dish_id: string;
+            dish_name: string;
+            order_count: number;
+            last_ordered_at: number;
+            kitchen_name: string;
+            image_url?: string;
+          }[];
+          colleagueConnections: number;
+          playToWinHistory: {
+            gamesPlayed: number;
+            gamesWon: number;
+            lastPlayed?: number;
+          };
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/analytics/user-behavior",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Get usual dinner items
+     * GET /customer/orders/usual-dinner-items
+     */
+    getUsualDinnerItems: builder.query<
+      {
+        success: boolean;
+        data: {
+          items: {
+            dish_id: string;
+            name: string;
+            price: number;
+            image_url?: string;
+            kitchen_name: string;
+            kitchen_id: string;
+            order_count: number;
+            last_ordered_at: number;
+            avg_rating?: number;
+          }[];
+          total: number;
+        };
+      },
+      { limit?: number; time_range?: 'week' | 'month' | 'all' }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.time_range) searchParams.append("time_range", params.time_range);
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/orders/usual-dinner-items${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Orders"],
+    }),
+
+    /**
+     * Get colleague connections
+     * GET /customer/social/colleagues
+     */
+    getColleagueConnections: builder.query<
+      {
+        success: boolean;
+        data: {
+          colleagueCount: number;
+          colleagues: {
+            user_id: string;
+            user_name: string;
+            user_initials: string;
+            user_avatar?: string;
+            is_available: boolean;
+          }[];
+          total: number;
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/social/colleagues",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Get Play to Win game history
+     * GET /customer/games/play-to-win/history
+     */
+    getPlayToWinHistory: builder.query<
+      {
+        success: boolean;
+        data: {
+          gamesPlayed: number;
+          gamesWon: number;
+          lastPlayed?: number;
+          recentGames: {
+            game_id: string;
+            group_order_id: string;
+            played_at: number;
+            won: boolean;
+            participants: number;
+            total_amount: number;
+          }[];
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/games/play-to-win/history",
+        method: "GET",
+      }),
+      providesTags: ["Orders"],
+    }),
   }),
 });
 
@@ -2332,12 +2462,20 @@ export const {
 export const {
   useGetOrdersQuery,
   useGetRecentDishesQuery,
+  useGetUsualDinnerItemsQuery,
   useGetOrderQuery,
   useGetOrderStatusQuery,
   useCreateOrderMutation,
   useCreateOrderFromCartMutation,
   useCancelOrderMutation,
   useRateOrderMutation,
+} = customerApi;
+
+// Analytics & User Behavior
+export const {
+  useGetUserBehaviorQuery,
+  useGetColleagueConnectionsQuery,
+  useGetPlayToWinHistoryQuery,
 } = customerApi;
 
 // Group Orders

@@ -8,6 +8,10 @@ export type ContentSection = {
 	checklist?: string[];
 	proTips?: string[];
 	callout?: { variant: CalloutVariant; text: string };
+	image?: string;
+	imageAlt?: string;
+	video?: string;
+	videoThumbnail?: string;
 };
 
 export type ByUsPost = {
@@ -595,6 +599,133 @@ export const POSTS: ByUsPost[] = [
 			"Mix mild and bold dishes; request labeling for dietary needs.",
 			"Timekeeper: stagger delivery 20–30 minutes before your meeting so setup is stress–free and food is hot when people arrive.",
 			"Office setup: request serving utensils and extra napkins in notes so you're not scrambling when guests sit down."
+		]
+	},
+	{
+		title: "Pierogi Power: UK-Based Polish Home Cooks Rescuing Grandmas' Recipes",
+		slug: "pierogi-power-uk-polish-home-cooks",
+		coverImage: "/backgrounds/masonry-1.jpg",
+		date: "August 2025",
+		author: { name: "CribNosh Editorial", avatar: "/card-images/IMG_2262.png" },
+		categories: ["Cultural Heritage"],
+		description:
+			"If you've ever walked through a Polish neighbourhood in London, Manchester, or Birmingham, you've probably caught a whiff of something nostalgic; the warm, buttery scent of pierogi sizzling on a pan.",
+		body: [
+			"If you've ever walked through a Polish neighbourhood in London, Manchester, or Birmingham, you've probably caught a whiff of something nostalgic; the warm, buttery scent of pierogi sizzling on a pan.",
+			"It's the kind of smell that doesn't just make you hungry; it takes you home.",
+			"For thousands of Polish families across the UK, the kitchen has become the bridge between home and here.",
+			"And for many home food creators, that bridge has become a small, thriving business."
+		],
+		headings: [
+			{ id: "taste-that-travels", text: "A Taste That Travels, But Never Changes" },
+			{ id: "community", text: "The rise of Polish home food creators isn't just about nostalgia" },
+			{ id: "flavours", text: "The Flavours That Define Poland Abroad" },
+			{ id: "adapting", text: "Adapting Tradition in a New Country" },
+			{ id: "voices", text: "Community Voices" },
+			{ id: "cribnosh", text: "How we, at CribNosh, Connects the Dots" },
+			{ id: "join", text: "Join the Movement" }
+		],
+		sections: [
+			{
+				id: "taste-that-travels",
+				title: "A Taste That Travels, But Never Changes",
+				paragraphs: [
+					"When Ania moved from Kraków to Birmingham five years ago, her suitcase was half-filled with clothes; and half with her mum's spice packets.",
+					"She laughs about it now. \"You can find flour anywhere,\" she says, \"but not the taste of home.\"",
+					"That sentiment echoes through hundreds of Polish kitchens across the UK; where creators recreate comfort food like bigos, żurek, and pierogi ruskie from their family notebooks.",
+					"Take a look at how @HarissonPaulUK explains the intricacies and delicacies of some amazing Polish indigenous foods."
+				],
+				video: "/blog/Harrison Paul UK TikTok Video.mp4",
+				videoThumbnail: "/blog/Harrison Paul UK TikTok Video.mp4"
+			},
+			{
+				id: "community",
+				title: "The rise of Polish home food creators isn't just about nostalgia",
+				paragraphs: [
+					"It's also about community…",
+					"Across Facebook groups, Polish markets, and pop-up stalls, creators are rediscovering how powerful food can be in connecting people far from home.",
+					"Take Percy Kleśta for example; she started posting short reels of her dumpling-making nights on Instagram, just to show her friends back home what she was cooking. Within weeks, her neighbours in Edinburgh began asking, \"Can I order that?\"",
+					"That's how a family dinner turned into a home-based business."
+				],
+				image: "/blog/Percy Klesta IG Profile.png",
+				imageAlt: "Percy Klesta Instagram profile showing Polish dumpling-making content"
+			},
+			{
+				id: "flavours",
+				title: "The Flavours That Define Poland Abroad",
+				paragraphs: [
+					"Each Polish dish tells a story; usually of patience, simplicity, and warmth."
+				],
+				bullets: [
+					"a. Pierogi: Stuffed dumplings that come in sweet or savoury varieties, often made with cheese, potatoes, or cabbage.",
+					"b. Bigos: A slow-cooked hunter's stew of sauerkraut and meats, simmered for hours.",
+					"c. Żurek: A sour rye soup often served with sausage and egg, especially during Easter.",
+					"d. Makowiec: A poppy-seed roll that fills Polish homes with the smell of celebration."
+				],
+				image: "/blog/Zurek.png",
+				imageAlt: "Traditional Polish żurek soup served with sausage and egg",
+				callout: {
+					variant: "note",
+					text: "Read more in-depth about these dishes from the blog post by PolishHouseWife.com here: https://polishhousewife.com/makowiec-polish-poppy-seed-roll/"
+				}
+			},
+			{
+				id: "adapting",
+				title: "Adapting Tradition in a New Country",
+				paragraphs: [
+					"Cooking Polish food in the UK comes with its own challenges.",
+					"Some ingredients are easy to find; flour, cabbage, butter; but others, like twaróg (Polish white cheese), need creativity or imports from specialty stores.",
+					"Polish Food Deli in London Polish Food Market in Brexit",
+					"Still, the heart of Polish cooking is not in the ingredients; it's in the ritual.",
+					"The early morning kneading of dough.",
+					"The laughter over imperfect dumpling shapes.",
+					"The joy of feeding people; whether they're from Warsaw or Wolverhampton."
+				],
+				image: "/blog/Polish Food Deli in London.png",
+				imageAlt: "Polish Food Deli in London offering traditional Polish ingredients"
+			},
+			{
+				id: "voices",
+				title: "Community Voices",
+				bullets: [
+					"\"I never planned to sell food. It started when my neighbour tried my barszcz and told everyone in the building.\"; @AniaEatsLondon",
+					"\"I make bigos the same way my grandmother did. It smells like her house; that's why I keep doing it.\"; @TasteofPolandUK",
+					"\"We are going to be having traditional Polish food for breakfast, lunch and dinner\"; @Jay-and-Karolina"
+				],
+				paragraphs: [
+					"These voices represent what CribNosh is all about; real people sharing food, memory, and home.",
+					"Each of these voices reminds us that home isn't a place you leave behind; it's something you recreate wherever you are.",
+					"From the quiet hum of a London flat kitchen to the laughter over dumpling dough in Manchester, Polish home food creators are proving that recipes can travel across borders without losing their soul.",
+					"They're not just cooking for others; they're keeping a heritage alive, one meal, one memory, one plate at a time."
+				]
+			},
+			{
+				id: "cribnosh",
+				title: "How we, at CribNosh, Connects the Dots",
+				paragraphs: [
+					"CribNosh celebrates exactly these kinds of creators; people who turn family recipes into community experiences.",
+					"Through our platform, Polish home food creators in the UK can:"
+				],
+				checklist: [
+					"List their meals for local delivery.",
+					"Share their personal stories and food origins.",
+					"Be discovered by both Polish and non-Polish customers craving authentic comfort food."
+				],
+				callout: {
+					variant: "tip",
+					text: "So whether it's pierogi, placki, or poppy-seed rolls, there's a story worth sharing; and we want to help you tell it."
+				}
+			},
+			{
+				id: "join",
+				title: "Join the Movement",
+				paragraphs: [
+					"From Kraków kitchens to UK tables; every story deserves to be told.",
+					"If you're a Polish home food creator in the UK, join CribNosh today.",
+					"Let's bring the sound, scent, and soul of your cooking to people who miss home; and those discovering it for the first time.",
+					"👉 [Join CribNosh and start your journey.]"
+				]
+			}
 		]
 	}
 ];

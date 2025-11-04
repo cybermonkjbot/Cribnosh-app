@@ -1,9 +1,9 @@
+import { JsonLd } from "@/components/JsonLd";
+import { getAllSlugs, getPostBySlug } from "@/lib/byus/posts";
+import { sanitizeByUsPost } from "@/lib/utils/content-sanitizer";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import type { Metadata } from "next";
-import { getAllSlugs, getPostBySlug } from "@/lib/byus/posts";
-import { JsonLd } from "@/components/JsonLd";
-import { sanitizeByUsPost } from "@/lib/utils/content-sanitizer";
 
 type Params = { slug: string };
 
@@ -112,6 +112,29 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
               {section.paragraphs.map((p: string, i: number) => (
                 <p key={`${section.id}-p-${i}`}>{p}</p>
               ))}
+              {section.image && (
+                <div className="my-6 rounded-xl overflow-hidden">
+                  <Image 
+                    src={section.image} 
+                    alt={section.imageAlt || section.title} 
+                    width={800}
+                    height={600}
+                    className="w-full h-auto object-cover"
+                  />
+                </div>
+              )}
+              {section.video && (
+                <div className="my-6 rounded-xl overflow-hidden">
+                  <video 
+                    src={section.video}
+                    controls
+                    className="w-full h-auto"
+                    poster={section.videoThumbnail}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              )}
               {section.bullets && section.bullets.length > 0 && (
                 <ul className="list-disc pl-6">
                   {section.bullets.map((b: string, i: number) => (

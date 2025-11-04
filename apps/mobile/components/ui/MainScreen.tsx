@@ -73,6 +73,7 @@ import {
   useGetCartQuery,
   useGetCuisinesQuery,
   useGetPopularChefsQuery,
+  useGetUserBehaviorQuery,
   useGetVideoFeedQuery,
   useLikeVideoMutation,
   useRecordVideoViewMutation,
@@ -871,33 +872,56 @@ export function MainScreen() {
 
   // Hidden sections state
   const [orderedSections, setOrderedSections] = useState<any[]>([]);
-  const [userBehavior] = useState<UserBehavior>({
-    totalOrders: 5,
-    daysActive: 14,
-    usualDinnerItems: [
-      "Pizza Margherita",
-      "Chicken Curry",
-      "Pasta Carbonara",
-      "Sushi Roll",
-    ],
-    favoriteSections: [
-      "featured_kitchens",
-      "popular_meals",
-      "cuisine_categories",
-    ],
-    clickedSections: [
-      "featured_kitchens",
-      "popular_meals",
-      "cuisine_categories",
-    ],
-    colleagueConnections: 3,
-    playToWinHistory: {
-      gamesPlayed: 2,
-      gamesWon: 1,
-      lastPlayed: new Date("2024-01-10T12:00:00"),
-    },
-    freeFoodPreferences: ["Pizza", "Burger", "Sushi"],
-  });
+  
+  // Fetch user behavior data from API
+  const {
+    data: userBehaviorData,
+    isLoading: userBehaviorLoading,
+    error: userBehaviorError,
+  } = useGetUserBehaviorQuery(
+    undefined,
+    {
+      skip: !isAuthenticated, // Only fetch when authenticated
+    }
+  );
+
+  // Transform API response to UserBehavior format
+  const userBehavior: UserBehavior = useMemo(() => {
+    if (userBehaviorData?.success && userBehaviorData.data) {
+      const data = userBehaviorData.data;
+      return {
+        totalOrders: data.totalOrders || 0,
+        daysActive: data.daysActive || 0,
+        usualDinnerItems: data.usualDinnerItems?.map((item: { dish_name: string }) => item.dish_name) || [],
+        favoriteSections: [], // Will be populated from other analytics if needed
+        clickedSections: [], // Will be populated from other analytics if needed
+        colleagueConnections: data.colleagueConnections || 0,
+        playToWinHistory: {
+          gamesPlayed: data.playToWinHistory?.gamesPlayed || 0,
+          gamesWon: data.playToWinHistory?.gamesWon || 0,
+          lastPlayed: data.playToWinHistory?.lastPlayed
+            ? new Date(data.playToWinHistory.lastPlayed)
+            : undefined,
+        },
+        freeFoodPreferences: [], // Will be populated from preferences if needed
+      };
+    }
+    
+    // Fallback to empty/default values when not authenticated or no data
+    return {
+      totalOrders: 0,
+      daysActive: 0,
+      usualDinnerItems: [],
+      favoriteSections: [],
+      clickedSections: [],
+      colleagueConnections: 0,
+      playToWinHistory: {
+        gamesPlayed: 0,
+        gamesWon: 0,
+      },
+      freeFoodPreferences: [],
+    };
+  }, [userBehaviorData]);
 
   const scrollY = useSharedValue(0);
   const stickyHeaderOpacity = useSharedValue(0);
