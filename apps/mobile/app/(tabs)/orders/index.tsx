@@ -602,7 +602,8 @@ export default function OrdersScreen() {
             onPress={() => {
               const offer = offersData.data.offers[0];
               if (offer.action_type === "group_order") {
-                router.push("/orders/group");
+                // Navigate to create group order screen (user will need to select chef)
+                router.push("/orders/group/create");
               } else if (offer.action_type === "navigate") {
                 router.push(offer.action_target as any);
               }

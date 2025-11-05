@@ -1192,6 +1192,20 @@ export default defineSchema({
       v.literal("delivered"),
       v.literal("cancelled")
     ),
+    // Budget tracking
+    initial_budget: v.number(), // Initial budget set by creator
+    total_budget: v.number(), // Sum of initial_budget + all budget contributions
+    budget_contributions: v.array(v.object({
+      user_id: v.id("users"),
+      amount: v.number(),
+      contributed_at: v.number(),
+    })),
+    // Selection phase tracking
+    selection_phase: v.union(
+      v.literal("budgeting"),
+      v.literal("selecting"),
+      v.literal("ready")
+    ),
     participants: v.array(v.object({
       user_id: v.id("users"),
       user_name: v.string(),
@@ -1199,6 +1213,9 @@ export default defineSchema({
       user_color: v.optional(v.string()),
       avatar_url: v.optional(v.string()),
       joined_at: v.number(),
+      // Budget contribution (separate from order items)
+      budget_contribution: v.number(), // Amount participant chipped into budget bucket
+      // Order items selected by participant
       order_items: v.array(v.object({
         dish_id: v.id("meals"),
         name: v.string(),
@@ -1206,7 +1223,14 @@ export default defineSchema({
         price: v.number(),
         special_instructions: v.optional(v.string()),
       })),
-      total_contribution: v.number(),
+      // Selection status
+      selection_status: v.union(
+        v.literal("not_ready"),
+        v.literal("ready")
+      ),
+      selection_ready_at: v.optional(v.number()), // Timestamp when marked ready
+      // Order totals (sum of order items)
+      total_contribution: v.number(), // Sum of order_items (what they selected to eat)
       payment_status: v.union(
         v.literal("pending"),
         v.literal("paid"),

@@ -860,7 +860,17 @@ export interface GroupOrderParticipant {
   user_initials: string;
   user_color?: string;
   avatar_url?: string;
-  total_contribution: number;
+  budget_contribution: number; // Amount chipped into budget bucket
+  order_items: {
+    dish_id: string;
+    name: string;
+    quantity: number;
+    price: number;
+    special_instructions?: string;
+  }[];
+  selection_status: "not_ready" | "ready";
+  selection_ready_at?: number;
+  total_contribution: number; // Sum of order items (what they selected to eat)
   payment_status: "pending" | "paid" | "failed";
 }
 
@@ -871,6 +881,16 @@ export interface GroupOrder {
   restaurant_name: string;
   title: string;
   status: "active" | "closed" | "confirmed" | "preparing" | "ready" | "on_the_way" | "delivered" | "cancelled";
+  // Budget tracking
+  initial_budget: number;
+  total_budget: number;
+  budget_contributions: {
+    user_id: string;
+    amount: number;
+    contributed_at: number;
+  }[];
+  // Selection phase
+  selection_phase: "budgeting" | "selecting" | "ready";
   participants: GroupOrderParticipant[];
   total_amount: number;
   discount_percentage?: number;
@@ -885,6 +905,7 @@ export interface GroupOrder {
 export interface CreateGroupOrderRequest {
   chef_id: string;
   restaurant_name: string;
+  initial_budget: number; // Required initial budget
   title?: string;
   delivery_address?: CustomerAddress;
   delivery_time?: string;

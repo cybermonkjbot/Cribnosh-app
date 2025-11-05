@@ -6,14 +6,13 @@ interface AmountInputProps {
   setAmount: (val: string) => void;
 }
 
-const AmountInput: React.FC<AmountInputProps> = () => {
-    const [amount, setAmount] = React.useState<string>();
+const AmountInput: React.FC<AmountInputProps> = ({ amount, setAmount }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.currency}>£</Text>
       <TextInput
         value={amount}
-        onChangeText={(e) => setAmount(e)}
+        onChangeText={setAmount}
         keyboardType="numeric"
         placeholder="0"
         placeholderTextColor="#ccc"

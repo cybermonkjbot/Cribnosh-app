@@ -129,3 +129,138 @@ export const getSuggestedParticipants = query({
   },
 });
 
+// Get participant's selections
+export const getParticipantSelections = query({
+  args: {
+    group_order_id: v.string(),
+    participant_user_id: v.optional(v.id('users')),
+  },
+  handler: async (ctx, args) => {
+    const groupOrder = await ctx.db
+      .query('group_orders')
+      .withIndex('by_group_order_id', q => q.eq('group_order_id', args.group_order_id))
+      .first();
+    
+    if (!groupOrder) {
+      return null;
+    }
+    
+    // If specific participant requested, return that participant's selections
+    if (args.participant_user_id) {
+      const participant = groupOrder.participants.find(
+        p => p.user_id === args.participant_user_id
+      );
+      
+      if (!participant) {
+        return null;
+      }
+      
+      return {
+        user_id: participant.user_id,
+        user_name: participant.user_name,
+        user_initials: participant.user_initials,
+        user_color: participant.user_color,
+        order_items: participant.order_items,
+        total_contribution: participant.total_contribution,
+        selection_status: participant.selection_status,
+        selection_ready_at: participant.selection_ready_at,
+      };
+    }
+    
+    // Return all participants' selections
+    return groupOrder.participants.map(p => ({
+      user_id: p.user_id,
+      user_name: p.user_name,
+      user_initials: p.user_initials,
+      user_color: p.user_color,
+      order_items: p.order_items,
+      total_contribution: p.total_contribution,
+      selection_status: p.selection_status,
+      selection_ready_at: p.selection_ready_at,
+    }));
+  },
+});
+
+// Get budget contributions
+export const getBudgetContributions = query({
+  args: { group_order_id: v.string() },
+  handler: async (ctx, args) => {
+    const groupOrder = await ctx.db
+      .query('group_orders')
+      .withIndex('by_group_order_id', q => q.eq('group_order_id', args.group_order_id))
+      .first();
+    
+    if (!groupOrder) {
+      return null;
+    }
+    
+    // Enrich budget contributions with user details
+    const enrichedContributions = await Promise.all(
+      groupOrder.budget_contributions.map(async (contrib) => {
+        const user = await ctx.db.get(contrib.user_id);
+        const participant = groupOrder.participants.find(p => p.user_id === contrib.user_id);
+        
+        return {
+          user_id: contrib.user_id,
+          user_name: user?.name || 'Unknown',
+          user_initials: participant?.user_initials || 'U',
+          user_color: participant?.user_color,
+          amount: contrib.amount,
+          contributed_at: contrib.contributed_at,
+        };
+      })
+    );
+    
+    return {
+      initial_budget: groupOrder.initial_budget,
+      total_budget: groupOrder.total_budget,
+      contributions: enrichedContributions,
+      participants_summary: groupOrder.participants.map(p => ({
+        user_id: p.user_id,
+        user_name: p.user_name,
+        budget_contribution: p.budget_contribution,
+      })),
+    };
+  },
+});
+
+// Get group order status summary
+export const getGroupOrderStatus = query({
+  args: { group_order_id: v.string() },
+  handler: async (ctx, args) => {
+    const groupOrder = await ctx.db
+      .query('group_orders')
+      .withIndex('by_group_order_id', q => q.eq('group_order_id', args.group_order_id))
+      .first();
+    
+    if (!groupOrder) {
+      return null;
+    }
+    
+    const readyCount = groupOrder.participants.filter(p => p.selection_status === 'ready').length;
+    const notReadyCount = groupOrder.participants.filter(p => p.selection_status === 'not_ready').length;
+    const allReady = groupOrder.participants.length > 0 && readyCount === groupOrder.participants.length;
+    
+    return {
+      selection_phase: groupOrder.selection_phase,
+      status: groupOrder.status,
+      budget: {
+        initial_budget: groupOrder.initial_budget,
+        total_budget: groupOrder.total_budget,
+        contributions_count: groupOrder.budget_contributions.length,
+      },
+      selections: {
+        total_participants: groupOrder.participants.length,
+        ready_count: readyCount,
+        not_ready_count: notReadyCount,
+        all_ready: allReady,
+      },
+      order: {
+        total_amount: groupOrder.total_amount,
+        discount_amount: groupOrder.discount_amount,
+        final_amount: groupOrder.final_amount,
+      },
+    };
+  },
+});
+

@@ -477,7 +477,9 @@ export function BottomSearchDrawer({
 
   // Removed unused bottomSheetRef
   const handleNavigate = (): void => {
-    router.push("/orders/group");
+    // Navigate to create group order screen
+    // User will need to select a chef/restaurant if not already selected
+    router.push("/orders/group/create");
   };
 
   // Custom order and link generation hooks

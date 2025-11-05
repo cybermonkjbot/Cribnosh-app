@@ -63,10 +63,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const body = await request.json();
-    const { chef_id, restaurant_name, title, delivery_address, delivery_time, expires_in_hours } = body;
+    const { chef_id, restaurant_name, initial_budget, title, delivery_address, delivery_time, expires_in_hours } = body;
     
     if (!chef_id || !restaurant_name) {
       return ResponseFactory.validationError('chef_id and restaurant_name are required.');
+    }
+    
+    if (initial_budget === undefined || initial_budget === null || initial_budget <= 0) {
+      return ResponseFactory.validationError('initial_budget is required and must be a positive number.');
     }
     
     const convex = getConvexClient();
@@ -74,6 +78,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       created_by: payload.user_id as any,
       chef_id: chef_id as any,
       restaurant_name,
+      initial_budget: initial_budget as number,
       title,
       delivery_address,
       delivery_time,

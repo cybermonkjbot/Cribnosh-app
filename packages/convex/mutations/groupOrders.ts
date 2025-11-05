@@ -8,6 +8,7 @@ export const create = mutation({
     created_by: v.id('users'),
     chef_id: v.id('chefs'),
     restaurant_name: v.string(),
+    initial_budget: v.number(), // Required initial budget
     title: v.optional(v.string()),
     delivery_address: v.optional(v.object({
       street: v.string(),
@@ -42,6 +43,12 @@ export const create = mutation({
       restaurant_name: args.restaurant_name,
       title: args.title || `${userName}'s group order from ${args.restaurant_name}`,
       status: 'active',
+      // Budget tracking
+      initial_budget: args.initial_budget,
+      total_budget: args.initial_budget, // Start with initial budget
+      budget_contributions: [],
+      // Selection phase
+      selection_phase: 'budgeting',
       participants: [],
       total_amount: 0,
       final_amount: 0,
@@ -70,13 +77,14 @@ export const join = mutation({
   args: {
     group_order_id: v.id('group_orders'),
     user_id: v.id('users'),
-    order_items: v.array(v.object({
+    order_items: v.optional(v.array(v.object({
       dish_id: v.id('meals'),
       name: v.string(),
       quantity: v.number(),
       price: v.number(),
       special_instructions: v.optional(v.string()),
-    })),
+    }))),
+    initial_budget_contribution: v.optional(v.number()), // Optional initial budget contribution on join
   },
   handler: async (ctx, args) => {
     const groupOrder = await ctx.db.get(args.group_order_id);
@@ -102,8 +110,9 @@ export const join = mutation({
       throw new Error('User not found');
     }
     
-    // Calculate user's contribution
-    const totalContribution = args.order_items.reduce(
+    // Calculate user's order contribution (sum of order items)
+    const orderItems = args.order_items || [];
+    const totalContribution = orderItems.reduce(
       (sum, item) => sum + (item.price * item.quantity), 
       0
     );
@@ -119,14 +128,19 @@ export const join = mutation({
     const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9', '#F8C471'];
     const userColor = colors[groupOrder.participants.length % colors.length];
     
+    const now = Date.now();
+    const budgetContribution = args.initial_budget_contribution || 0;
+    
     // Add participant
     const newParticipant = {
       user_id: args.user_id,
       user_name: user.name || 'User',
       user_initials: userInitials,
       user_color: userColor,
-      joined_at: Date.now(),
-      order_items: args.order_items,
+      joined_at: now,
+      budget_contribution: budgetContribution,
+      order_items: orderItems,
+      selection_status: 'not_ready' as const,
       total_contribution: totalContribution,
       payment_status: 'pending' as const,
     };
@@ -138,6 +152,18 @@ export const join = mutation({
       0
     );
     
+    // Update budget if initial contribution provided
+    let newTotalBudget = groupOrder.total_budget;
+    const updatedBudgetContributions = [...groupOrder.budget_contributions];
+    if (budgetContribution > 0) {
+      newTotalBudget = groupOrder.total_budget + budgetContribution;
+      updatedBudgetContributions.push({
+        user_id: args.user_id,
+        amount: budgetContribution,
+        contributed_at: now,
+      });
+    }
+    
     // Calculate discount (25% for group orders with 2+ participants)
     const discountPercentage = updatedParticipants.length >= 2 ? 25 : 0;
     const discountAmount = discountPercentage > 0 
@@ -147,16 +173,17 @@ export const join = mutation({
     
     await ctx.db.patch(args.group_order_id, {
       participants: updatedParticipants,
+      total_budget: newTotalBudget,
+      budget_contributions: updatedBudgetContributions,
       total_amount: newTotalAmount,
       discount_percentage: discountPercentage,
       discount_amount: discountAmount,
       final_amount: finalAmount,
-      updated_at: Date.now(),
+      updated_at: now,
     });
     
     // Automatically create connection between joiner and all existing participants
     // This tracks group order relationships
-    const now = Date.now();
     for (const existingParticipant of groupOrder.participants) {
       // Create bidirectional connections (joiner -> existing, existing -> joiner)
       // Check if connection already exists
@@ -242,6 +269,13 @@ export const close = mutation({
       throw new Error('Cannot close empty group order');
     }
     
+    // Check if all participants are ready (creator can still close even if not all ready)
+    const allReady = groupOrder.participants.every(p => p.selection_status === 'ready');
+    if (!allReady) {
+      // Warn but allow creator to close anyway
+      console.warn('Not all participants have marked selections as ready, but creator is closing the order');
+    }
+    
     const now = Date.now();
     
     // Create main order from group order
@@ -287,6 +321,251 @@ export const close = mutation({
       success: true,
       main_order_id: mainOrderId,
       order_id: mainOrder?.order_id,
+    };
+  },
+});
+
+// Chip into budget bucket
+export const chipInToBudget = mutation({
+  args: {
+    group_order_id: v.id('group_orders'),
+    user_id: v.id('users'),
+    amount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const groupOrder = await ctx.db.get(args.group_order_id);
+    if (!groupOrder) {
+      throw new Error('Group order not found');
+    }
+    
+    if (groupOrder.status !== 'active') {
+      throw new Error('Group order is no longer accepting contributions');
+    }
+    
+    // Find participant
+    const participantIndex = groupOrder.participants.findIndex(
+      p => p.user_id === args.user_id
+    );
+    
+    if (participantIndex === -1) {
+      throw new Error('User must join the group order before contributing to budget');
+    }
+    
+    const now = Date.now();
+    const participant = groupOrder.participants[participantIndex];
+    
+    // Update participant's budget contribution (additive)
+    const newBudgetContribution = participant.budget_contribution + args.amount;
+    const updatedParticipants = [...groupOrder.participants];
+    updatedParticipants[participantIndex] = {
+      ...participant,
+      budget_contribution: newBudgetContribution,
+    };
+    
+    // Update total budget
+    const newTotalBudget = groupOrder.total_budget + args.amount;
+    
+    // Add to budget contributions array
+    const updatedBudgetContributions = [...groupOrder.budget_contributions, {
+      user_id: args.user_id,
+      amount: args.amount,
+      contributed_at: now,
+    }];
+    
+    await ctx.db.patch(args.group_order_id, {
+      participants: updatedParticipants,
+      total_budget: newTotalBudget,
+      budget_contributions: updatedBudgetContributions,
+      updated_at: now,
+    });
+    
+    return {
+      success: true,
+      budget_contribution: newBudgetContribution,
+      total_budget: newTotalBudget,
+    };
+  },
+});
+
+// Update participant's selections
+export const updateParticipantSelections = mutation({
+  args: {
+    group_order_id: v.id('group_orders'),
+    user_id: v.id('users'),
+    order_items: v.array(v.object({
+      dish_id: v.id('meals'),
+      name: v.string(),
+      quantity: v.number(),
+      price: v.number(),
+      special_instructions: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const groupOrder = await ctx.db.get(args.group_order_id);
+    if (!groupOrder) {
+      throw new Error('Group order not found');
+    }
+    
+    // Only allow if selection phase is "selecting" or "ready"
+    if (groupOrder.selection_phase === 'budgeting') {
+      throw new Error('Selection phase has not started yet');
+    }
+    
+    // Find participant
+    const participantIndex = groupOrder.participants.findIndex(
+      p => p.user_id === args.user_id
+    );
+    
+    if (participantIndex === -1) {
+      throw new Error('User must join the group order before selecting items');
+    }
+    
+    const now = Date.now();
+    const participant = groupOrder.participants[participantIndex];
+    
+    // Calculate new total contribution (sum of order items)
+    const totalContribution = args.order_items.reduce(
+      (sum, item) => sum + (item.price * item.quantity),
+      0
+    );
+    
+    // Update participant's selections and total contribution
+    const updatedParticipants = [...groupOrder.participants];
+    updatedParticipants[participantIndex] = {
+      ...participant,
+      order_items: args.order_items,
+      total_contribution: totalContribution,
+      // Reset ready status if selections changed
+      selection_status: 'not_ready',
+      selection_ready_at: undefined,
+    };
+    
+    // Recalculate group order totals
+    const newTotalAmount = updatedParticipants.reduce(
+      (sum, p) => sum + p.total_contribution,
+      0
+    );
+    
+    // Calculate discount (25% for group orders with 2+ participants)
+    const discountPercentage = updatedParticipants.length >= 2 ? 25 : 0;
+    const discountAmount = discountPercentage > 0
+      ? (newTotalAmount * discountPercentage) / 100
+      : 0;
+    const finalAmount = newTotalAmount - discountAmount;
+    
+    // Transition to "selecting" phase if still in "budgeting"
+    let newSelectionPhase = groupOrder.selection_phase;
+    if (groupOrder.selection_phase === 'budgeting') {
+      newSelectionPhase = 'selecting';
+    }
+    
+    await ctx.db.patch(args.group_order_id, {
+      participants: updatedParticipants,
+      total_amount: newTotalAmount,
+      discount_percentage: discountPercentage,
+      discount_amount: discountAmount,
+      final_amount: finalAmount,
+      selection_phase: newSelectionPhase,
+      updated_at: now,
+    });
+    
+    return {
+      success: true,
+      total_contribution,
+      total_amount: newTotalAmount,
+      final_amount: finalAmount,
+    };
+  },
+});
+
+// Mark selections as ready
+export const markSelectionsReady = mutation({
+  args: {
+    group_order_id: v.id('group_orders'),
+    user_id: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    const groupOrder = await ctx.db.get(args.group_order_id);
+    if (!groupOrder) {
+      throw new Error('Group order not found');
+    }
+    
+    // Find participant
+    const participantIndex = groupOrder.participants.findIndex(
+      p => p.user_id === args.user_id
+    );
+    
+    if (participantIndex === -1) {
+      throw new Error('User is not a participant in this group order');
+    }
+    
+    const now = Date.now();
+    const participant = groupOrder.participants[participantIndex];
+    
+    // Check if participant has selections
+    if (participant.order_items.length === 0) {
+      throw new Error('Cannot mark ready without any selections');
+    }
+    
+    // Update participant's ready status
+    const updatedParticipants = [...groupOrder.participants];
+    updatedParticipants[participantIndex] = {
+      ...participant,
+      selection_status: 'ready',
+      selection_ready_at: now,
+    };
+    
+    // Check if all participants are ready
+    const allReady = updatedParticipants.every(p => p.selection_status === 'ready');
+    let newSelectionPhase = groupOrder.selection_phase;
+    if (allReady && groupOrder.selection_phase === 'selecting') {
+      newSelectionPhase = 'ready';
+    }
+    
+    await ctx.db.patch(args.group_order_id, {
+      participants: updatedParticipants,
+      selection_phase: newSelectionPhase,
+      updated_at: now,
+    });
+    
+    return {
+      success: true,
+      all_ready: allReady,
+      selection_phase: newSelectionPhase,
+    };
+  },
+});
+
+// Start selection phase (creator only)
+export const startSelectionPhase = mutation({
+  args: {
+    group_order_id: v.id('group_orders'),
+    user_id: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    const groupOrder = await ctx.db.get(args.group_order_id);
+    if (!groupOrder) {
+      throw new Error('Group order not found');
+    }
+    
+    if (groupOrder.created_by !== args.user_id) {
+      throw new Error('Only the creator can start the selection phase');
+    }
+    
+    if (groupOrder.selection_phase !== 'budgeting') {
+      throw new Error(`Selection phase is already ${groupOrder.selection_phase}`);
+    }
+    
+    const now = Date.now();
+    
+    await ctx.db.patch(args.group_order_id, {
+      selection_phase: 'selecting',
+      updated_at: now,
+    });
+    
+    return {
+      success: true,
+      selection_phase: 'selecting',
     };
   },
 });

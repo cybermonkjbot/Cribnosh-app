@@ -43,10 +43,12 @@ async function handlePOST(
     }
     
     const body = await request.json();
-    const { order_items, share_token } = body;
+    const { order_items, share_token, initial_budget_contribution } = body;
     
-    if (!Array.isArray(order_items) || order_items.length === 0) {
-      return ResponseFactory.validationError('order_items array is required.');
+    // Order items are now optional (can be added later)
+    // Only validate if provided
+    if (order_items !== undefined && (!Array.isArray(order_items) || order_items.length === 0)) {
+      return ResponseFactory.validationError('order_items must be a non-empty array if provided.');
     }
     
     const convex = getConvexClient();
@@ -71,13 +73,14 @@ async function handlePOST(
     const result = await convex.mutation(api.mutations.groupOrders.join, {
       group_order_id: groupOrder._id as any,
       user_id: payload.user_id as any,
-      order_items: order_items.map((item: any) => ({
+      order_items: order_items ? order_items.map((item: any) => ({
         dish_id: item.dish_id as any,
         name: item.name,
         quantity: item.quantity,
         price: item.price,
         special_instructions: item.special_instructions,
-      })),
+      })) : undefined,
+      initial_budget_contribution: initial_budget_contribution || undefined,
     });
     
     return ResponseFactory.success(result, 'Successfully joined group order');

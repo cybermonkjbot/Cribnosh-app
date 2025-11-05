@@ -1000,13 +1000,13 @@ export const customerApi = createApi({
     getUserConnections: builder.query<
       {
         success: boolean;
-        data: Array<{
+        data: {
           user_id: string;
           user_name: string;
           connection_type: string;
           source: string;
           metadata?: any;
-        }>;
+        }[];
       },
       void
     >({
@@ -1063,7 +1063,7 @@ export const customerApi = createApi({
     getTreats: builder.query<
       {
         success: boolean;
-        data: Array<any>;
+        data: any[];
       },
       { type?: "given" | "received" | "all" }
     >({
@@ -1122,6 +1122,216 @@ export const customerApi = createApi({
         method: "GET",
       }),
       providesTags: ["Treats"],
+    }),
+
+    // ========================================================================
+    // GROUP ORDER BUDGET & SELECTIONS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Chip into budget
+     * POST /customer/group-orders/{group_order_id}/budget/chip-in
+     */
+    chipInToBudget: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          success: boolean;
+          budget_contribution: number;
+          total_budget: number;
+        };
+      },
+      { group_order_id: string; amount: number }
+    >({
+      query: ({ group_order_id, amount }) => ({
+        url: `/customer/group-orders/${group_order_id}/budget/chip-in`,
+        method: "POST",
+        body: { amount },
+      }),
+      invalidatesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Get budget details
+     * GET /customer/group-orders/{group_order_id}/budget
+     */
+    getBudgetDetails: builder.query<
+      {
+        success: boolean;
+        data: {
+          initial_budget: number;
+          total_budget: number;
+          contributions: {
+            user_id: string;
+            user_name: string;
+            user_initials: string;
+            user_color?: string;
+            amount: number;
+            contributed_at: number;
+          }[];
+          participants_summary: {
+            user_id: string;
+            user_name: string;
+            budget_contribution: number;
+          }[];
+        };
+      },
+      string
+    >({
+      query: (groupOrderId) => ({
+        url: `/customer/group-orders/${groupOrderId}/budget`,
+        method: "GET",
+      }),
+      providesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Update participant selections
+     * POST /customer/group-orders/{group_order_id}/selections
+     */
+    updateParticipantSelections: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          success: boolean;
+          total_contribution: number;
+          total_amount: number;
+          final_amount: number;
+        };
+      },
+      {
+        group_order_id: string;
+        order_items: {
+          dish_id: string;
+          name: string;
+          quantity: number;
+          price: number;
+          special_instructions?: string;
+        }[];
+      }
+    >({
+      query: ({ group_order_id, order_items }) => ({
+        url: `/customer/group-orders/${group_order_id}/selections`,
+        method: "POST",
+        body: { order_items },
+      }),
+      invalidatesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Get participant selections
+     * GET /customer/group-orders/{group_order_id}/selections
+     */
+    getParticipantSelections: builder.query<
+      {
+        success: boolean;
+        data: {
+          user_id: string;
+          user_name: string;
+          user_initials: string;
+          user_color?: string;
+          order_items: {
+            dish_id: string;
+            name: string;
+            quantity: number;
+            price: number;
+            special_instructions?: string;
+          }[];
+          total_contribution: number;
+          selection_status: "not_ready" | "ready";
+          selection_ready_at?: number;
+        }[];
+      },
+      { group_order_id: string; user_id?: string }
+    >({
+      query: ({ group_order_id, user_id }) => {
+        const params = user_id ? `?user_id=${user_id}` : "";
+        return {
+          url: `/customer/group-orders/${group_order_id}/selections${params}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Mark selections as ready
+     * POST /customer/group-orders/{group_order_id}/ready
+     */
+    markSelectionsReady: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          success: boolean;
+          all_ready: boolean;
+          selection_phase: string;
+        };
+      },
+      string
+    >({
+      query: (groupOrderId) => ({
+        url: `/customer/group-orders/${groupOrderId}/ready`,
+        method: "POST",
+      }),
+      invalidatesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Get group order status
+     * GET /customer/group-orders/{group_order_id}/status
+     */
+    getGroupOrderStatus: builder.query<
+      {
+        success: boolean;
+        data: {
+          selection_phase: "budgeting" | "selecting" | "ready";
+          status: string;
+          budget: {
+            initial_budget: number;
+            total_budget: number;
+            contributions_count: number;
+          };
+          selections: {
+            total_participants: number;
+            ready_count: number;
+            not_ready_count: number;
+            all_ready: boolean;
+          };
+          order: {
+            total_amount: number;
+            discount_amount?: number;
+            final_amount: number;
+          };
+        };
+      },
+      string
+    >({
+      query: (groupOrderId) => ({
+        url: `/customer/group-orders/${groupOrderId}/status`,
+        method: "GET",
+      }),
+      providesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Start selection phase
+     * POST /customer/group-orders/{group_order_id}/start-selection
+     */
+    startSelectionPhase: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          success: boolean;
+          selection_phase: string;
+        };
+      },
+      string
+    >({
+      query: (groupOrderId) => ({
+        url: `/customer/group-orders/${groupOrderId}/start-selection`,
+        method: "POST",
+      }),
+      invalidatesTags: ["GroupOrders"],
     }),
 
     // ========================================================================
@@ -3193,6 +3403,20 @@ export const {
   useGetGroupOrderQuery,
   useJoinGroupOrderMutation,
   useCloseGroupOrderMutation,
+  useChipInToBudgetMutation,
+  useGetBudgetDetailsQuery,
+  useGetParticipantSelectionsQuery,
+  useUpdateParticipantSelectionsMutation,
+  useMarkSelectionsReadyMutation,
+  useGetGroupOrderStatusQuery,
+  useStartSelectionPhaseMutation,
+} = customerApi;
+
+// Connections
+export const {
+  useGetUserConnectionsQuery,
+  useCreateConnectionMutation,
+  useRemoveConnectionMutation,
 } = customerApi;
 
 // Special Offers
