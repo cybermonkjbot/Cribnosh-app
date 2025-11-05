@@ -408,14 +408,21 @@ export default function ProfileScreen() {
                   contentFit="contain"
                 />
                 <TouchableOpacity onPress={() => router.push('/account-details')}>
-                  <Avatar 
-                    size="md"
-                    source={
-                      isAuthenticated && profileData?.data?.picture
-                        ? { uri: profileData.data.picture }
-                        : undefined
-                    }
-                  />
+                  {isAuthenticated && profileData?.data?.picture ? (
+                    <Avatar 
+                      size="md"
+                      source={{ uri: profileData.data.picture }}
+                    />
+                  ) : (
+                    <View style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 28,
+                      backgroundColor: '#E5E7EB',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }} />
+                  )}
                 </TouchableOpacity>
               </View>
             </Animated.View>
