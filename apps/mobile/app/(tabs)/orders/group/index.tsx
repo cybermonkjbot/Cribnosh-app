@@ -5,44 +5,29 @@ import { Avatar } from '@/components/ui/Avatar';
 import { GroupMealSelection } from '@/components/ui/GroupMealSelection';
 import { Input } from '@/components/ui/Input';
 import ScatteredGroupMembers from '@/components/ui/ScatteredGroupMembers';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { ChevronLeft, SearchIcon, X } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
-import { Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const avatars = [
-    { uri: require('@/assets/images/demo/avatar-1.png') },
-    { uri: require('@/assets/images/demo/avatar-2.png') },
-    { uri: require('@/assets/images/demo/avatar-3.png') },
-    { uri: require('@/assets/images/demo/avatar-4.png') },
-    { uri: require('@/assets/images/demo/avatar-5.png') },
-]
-
-const groupMembers = [
-  { name: 'Fola', avatarUri: require('@/assets/images/demo/avatar-1.png'), top: 0, left: 0, status: 'Contributing £3', isDone: false },
-  { name: 'Josh', avatarUri: require('@/assets/images/demo/avatar-2.png'), top: 50, left: 50, status: 'Selecting meal', isDone: true },
-  { name: 'Sarah', avatarUri: require('@/assets/images/demo/avatar-3.png'), top: 100, left: 100, status: 'Browsing menu', isDone: false },
-  { name: 'Mike', avatarUri: require('@/assets/images/demo/avatar-4.png'), top: 150, left: 150, status: 'Contributing £5', isDone: true },
-  { name: 'Emma', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 200, left: 200, status: 'Adding sides', isDone: false },
-  { name: 'Alex', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 250, left: 250, status: 'Ready to order', isDone: true },
-];
-
-// Mock data for users that can be invited
-const availableUsers = [
-  { id: '1', name: 'Alice Johnson', avatarUri: require('@/assets/images/demo/avatar-1.png'), mutualFriends: 3 },
-  { id: '2', name: 'Bob Smith', avatarUri: require('@/assets/images/demo/avatar-2.png'), mutualFriends: 5 },
-  { id: '3', name: 'Carol Davis', avatarUri: require('@/assets/images/demo/avatar-3.png'), mutualFriends: 2 },
-  { id: '4', name: 'David Wilson', avatarUri: require('@/assets/images/demo/avatar-4.png'), mutualFriends: 7 },
-  { id: '5', name: 'Eva Brown', avatarUri: require('@/assets/images/demo/avatar-5.png'), mutualFriends: 4 },
-  { id: '6', name: 'Frank Miller', avatarUri: require('@/assets/images/demo/avatar-1.png'), mutualFriends: 1 },
-  { id: '7', name: 'Grace Lee', avatarUri: require('@/assets/images/demo/avatar-2.png'), mutualFriends: 6 },
-  { id: '8', name: 'Henry Taylor', avatarUri: require('@/assets/images/demo/avatar-3.png'), mutualFriends: 3 },
-];
+import { 
+  useGetGroupOrderQuery, 
+  useGetGroupOrderStatusQuery,
+  useGetUserConnectionsQuery,
+  useMarkSelectionsReadyMutation,
+  useStartSelectionPhaseMutation,
+  useCreateConnectionMutation,
+} from '@/store/customerApi';
+import { useAuthState } from '@/hooks/useAuthState';
+import { GroupOrder, GroupOrderParticipant } from '@/types/customer';
 
 export default function GroupOrdersScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ group_order_id?: string }>();
+  const { user } = useAuthState();
+  const groupOrderId = params.group_order_id || '';
+  
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showStickySearch, setShowStickySearch] = useState(false);
@@ -50,22 +35,147 @@ export default function GroupOrdersScreen() {
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  
+  // API Queries
+  const { 
+    data: groupOrderData, 
+    isLoading: isLoadingGroupOrder,
+    error: groupOrderError,
+    refetch: refetchGroupOrder 
+  } = useGetGroupOrderQuery(groupOrderId, {
+    skip: !groupOrderId,
+    pollingInterval: 5000, // Poll every 5 seconds for real-time updates
+  });
+  
+  const { 
+    data: statusData,
+    isLoading: isLoadingStatus 
+  } = useGetGroupOrderStatusQuery(groupOrderId, {
+    skip: !groupOrderId,
+    pollingInterval: 5000,
+  });
+  
+  const { 
+    data: connectionsData,
+    isLoading: isLoadingConnections 
+  } = useGetUserConnectionsQuery(undefined, {
+    skip: !searchQuery, // Only fetch when searching
+  });
+  
+  // Mutations
+  const [markSelectionsReady, { isLoading: isMarkingReady }] = useMarkSelectionsReadyMutation();
+  const [startSelectionPhase, { isLoading: isStartingPhase }] = useStartSelectionPhaseMutation();
+  const [createConnection] = useCreateConnectionMutation();
+  
+  const groupOrder = groupOrderData?.data;
+  const status = statusData?.data;
 
+  // Map participants to ScatteredGroupMembers format
+  const groupMembers = useMemo(() => {
+    if (!groupOrder?.participants) return [];
+    const selectionPhase = status?.selection_phase || groupOrder.selection_phase || 'budgeting';
+    
+    return groupOrder.participants.map((participant: GroupOrderParticipant) => {
+      let statusText = '';
+      const isCurrentUser = participant.user_id === user?.user_id;
+      
+      if (selectionPhase === 'budgeting') {
+        if (participant.budget_contribution > 0) {
+          statusText = `Contributing £${participant.budget_contribution.toFixed(2)}`;
+        } else {
+          statusText = 'Chip in to budget';
+        }
+      } else if (selectionPhase === 'selecting') {
+        if (participant.selection_status === 'ready') {
+          statusText = 'Ready';
+        } else if (participant.order_items && participant.order_items.length > 0) {
+          statusText = 'Selecting meal';
+        } else {
+          statusText = 'Select meal';
+        }
+      } else if (selectionPhase === 'ready') {
+        statusText = participant.selection_status === 'ready' ? 'Ready' : 'Not ready';
+      }
+      
+      return {
+        name: isCurrentUser ? 'You' : participant.user_name,
+        avatarUri: participant.avatar_url || { uri: '' },
+        user_id: participant.user_id,
+        status: statusText,
+        isDone: participant.selection_status === 'ready',
+        budget_contribution: participant.budget_contribution,
+        order_items: participant.order_items || [],
+        selection_status: participant.selection_status,
+      };
+    });
+  }, [groupOrder?.participants, groupOrder?.selection_phase, status?.selection_phase, user?.user_id]);
+  
+  // Get avatars for budget card
+  const avatars = useMemo(() => {
+    if (!groupOrder?.participants) return [];
+    return groupOrder.participants.slice(0, 5).map((p: GroupOrderParticipant) => ({
+      uri: p.avatar_url || '',
+      user_id: p.user_id,
+    }));
+  }, [groupOrder?.participants]);
+  
+  // Get current participant's selection count
+  const currentParticipant = useMemo(() => {
+    if (!groupOrder?.participants || !user?.user_id) return null;
+    return groupOrder.participants.find((p: GroupOrderParticipant) => p.user_id === user.user_id);
+  }, [groupOrder?.participants, user?.user_id]);
+  
+  const selectionCount = currentParticipant?.order_items?.length || 0;
+  
+  // Filter connections by search query
+  const filteredUsers = useMemo(() => {
+    if (!connectionsData?.data || !searchQuery) return [];
+    const query = searchQuery.toLowerCase();
+    return connectionsData.data.filter(conn => 
+      conn.user_name.toLowerCase().includes(query)
+    );
+  }, [connectionsData?.data, searchQuery]);
+  
   const handleNavigate = () => {
     // Close any active modals before navigating
     setShowShareModal(false);
     setIsGeneratingLink(false);
-    router.push('/orders/group/details');
+    if (groupOrderId) {
+      router.push({
+        pathname: '/orders/group/details',
+        params: { group_order_id: groupOrderId },
+      });
+    }
+  };
+  
+  const handleNavigateToMealSelection = () => {
+    if (groupOrderId) {
+      router.push({
+        pathname: '/orders/group/select-meal',
+        params: { group_order_id: groupOrderId },
+      });
+    }
+  };
+  
+  const handleNavigateToParticipantSelections = (participantUserId: string) => {
+    if (groupOrderId) {
+      router.push({
+        pathname: '/orders/group/[participant_id]/selections',
+        params: { 
+          group_order_id: groupOrderId,
+          participant_id: participantUserId,
+        },
+      });
+    }
   };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    // Simulate a brief loading state
-    setTimeout(() => {
+    refetchGroupOrder().finally(() => {
       setRefreshKey(prev => prev + 1);
       setRefreshing(false);
-    }, 500);
-  }, []);
+    });
+  }, [refetchGroupOrder]);
 
   const handleScroll = (event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -81,34 +191,93 @@ export default function GroupOrdersScreen() {
   };
 
   const handleInvitePress = async () => {
+    if (!groupOrder?.share_link) {
+      Alert.alert('Error', 'Share link not available');
+      return;
+    }
+    
     setShowShareModal(true);
     setIsGeneratingLink(true);
     
-    // Simulate generating the share link
-    setTimeout(async () => {
-      setIsGeneratingLink(false);
+    try {
+      // Use the actual share link from the group order
+      const groupOrderLink = groupOrder.share_link || `https://cribnosh.app/group-order/${groupOrderId}`;
       
-      // Generate a unique group order link
-      const groupOrderLink = `https://cribnosh.app/group-order/${Date.now()}`;
-      
-      try {
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(groupOrderLink, {
-            mimeType: 'text/plain',
-            dialogTitle: 'Invite friends to join your group order',
-          });
-        }
-      } catch (error) {
-        console.error('Error sharing:', error);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(groupOrderLink, {
+          mimeType: 'text/plain',
+          dialogTitle: 'Invite friends to join your group order',
+        });
       }
       
+      setIsGeneratingLink(false);
       setShowShareModal(false);
-    }, 2000); // 2 second delay to show the loading state
+    } catch (error) {
+      console.error('Error sharing:', error);
+      setIsGeneratingLink(false);
+      setShowShareModal(false);
+      Alert.alert('Error', 'Failed to share link');
+    }
   };
-
-  const filteredUsers = availableUsers.filter(user => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  
+  const handleSwipeToComplete = async () => {
+    if (!groupOrderId) return;
+    
+    try {
+      await markSelectionsReady(groupOrderId).unwrap();
+      // Success - UI will update via cache invalidation
+    } catch (error: any) {
+      Alert.alert('Error', error?.data?.message || 'Failed to mark selections as ready');
+    }
+  };
+  
+  const handleStartSelectionPhase = async () => {
+    if (!groupOrderId) return;
+    
+    Alert.alert(
+      'Start Selection Phase',
+      'Are you sure you want to start the selection phase? Participants can now select their meals.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Start',
+          onPress: async () => {
+            try {
+              await startSelectionPhase(groupOrderId).unwrap();
+              // Success - UI will update via cache invalidation
+            } catch (error: any) {
+              Alert.alert('Error', error?.data?.message || 'Failed to start selection phase');
+            }
+          },
+        },
+      ]
+    );
+  };
+  
+  const handleInviteSelectedUsers = async () => {
+    if (selectedUsers.length === 0) {
+      handleInvitePress();
+      return;
+    }
+    
+    // Create connections for selected users
+    try {
+      await Promise.all(
+        selectedUsers.map(userId => 
+          createConnection({
+            connected_user_id: userId,
+            connection_type: 'friend',
+          }).unwrap()
+        )
+      );
+      
+      // Then share the group order link
+      handleInvitePress();
+      setSelectedUsers([]);
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to invite users');
+    }
+  };
 
   const handleSearchFocus = () => {
     setShowStickySearch(true);
@@ -131,10 +300,54 @@ export default function GroupOrdersScreen() {
 
   const getSelectedCountText = () => {
     if (selectedUsers.length === 0) return '';
-    if (selectedUsers.length === 1) return selectedUsers.length.toString();
-    if (selectedUsers.length === 2) return selectedUsers.length.toString();
     return selectedUsers.length.toString();
   };
+  
+  // Show loading state
+  if (isLoadingGroupOrder && !groupOrder) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E6FFE8" />
+          <Text style={styles.loadingText}>Loading group order...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  
+  // Show error state
+  if (groupOrderError && !groupOrder) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Failed to load group order</Text>
+          <TouchableOpacity onPress={() => refetchGroupOrder()} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  
+  if (!groupOrder) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Group order not found</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  
+  const isCreator = groupOrder.created_by === user?.user_id;
+  const selectionPhase = status?.selection_phase || groupOrder.selection_phase || 'budgeting';
+  const showStartSelectionButton = isCreator && selectionPhase === 'budgeting';
+  const showSwipeButton = selectionPhase === 'selecting' || selectionPhase === 'ready';
+  const showMealSelectionButton = selectionPhase === 'selecting' || selectionPhase === 'ready';
+  const totalBudget = groupOrder.total_budget || groupOrder.initial_budget || 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -164,7 +377,7 @@ export default function GroupOrdersScreen() {
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <ChevronLeft color="#E6FFE8" />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleInvitePress} style={styles.inviteButton}>
+            <TouchableOpacity onPress={handleInviteSelectedUsers} style={styles.inviteButton}>
               <Text style={styles.inviteButtonText}>
                 {selectedUsers.length > 0 ? `Invite ${getSelectedCountText()}` : 'Invite'}
               </Text>
@@ -189,21 +402,37 @@ export default function GroupOrdersScreen() {
       >
         {!showStickySearch && (
           <View>
-            <Text 
-            style={styles.title}
-            >
-                Josh and friend&apos;s party order
+            <Text style={styles.title}>
+              {groupOrder.title || 'Group Order'}
             </Text>
             <View style={{ marginTop: 20 }}>
-                <Input
-                 placeholder="Search friends..."
-                   leftIcon={<SearchIcon color="#E6FFE8"  />}
-                   value={searchQuery}
-                   onChangeText={setSearchQuery}
-                   onFocus={handleSearchFocus}
-                  />
+              <Input
+                placeholder="Search friends..."
+                leftIcon={<SearchIcon color="#E6FFE8" />}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={handleSearchFocus}
+              />
             </View>
-
+            
+            {/* Creator Controls */}
+            {showStartSelectionButton && (
+              <View style={{ marginTop: 20 }}>
+                <TouchableOpacity 
+                  onPress={handleStartSelectionPhase}
+                  style={styles.startSelectionButton}
+                  disabled={isStartingPhase}
+                >
+                  {isStartingPhase ? (
+                    <ActivityIndicator size="small" color="#E6FFE8" />
+                  ) : (
+                    <Text style={styles.startSelectionButtonText}>
+                      Start Selection Phase
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
 
@@ -211,18 +440,23 @@ export default function GroupOrdersScreen() {
         {searchQuery && (
           <View style={{ marginTop: 20 }}>
             <Text style={styles.searchResultsTitle}>
-              {filteredUsers.length > 0 ? `Found ${filteredUsers.length} people` : 'No results found'}
+              {isLoadingConnections ? 'Searching...' : 
+               filteredUsers.length > 0 ? `Found ${filteredUsers.length} people` : 'No results found'}
             </Text>
-            {filteredUsers.map((user) => (
-              <View key={user.id} style={styles.userResultItem}>
+            {!isLoadingConnections && filteredUsers.map((conn) => (
+              <View key={conn.user_id} style={styles.userResultItem}>
                 <TouchableOpacity 
                   style={styles.userResultContent}
-                  onPress={() => toggleUserSelection(user.id)}
+                  onPress={() => toggleUserSelection(conn.user_id)}
                 >
                   <View style={styles.userAvatarContainer}>
-                    <Avatar source={{ uri: user.avatarUri }} size="sm" />
+                    <Avatar 
+                      source={{ uri: '' }} 
+                      size="sm" 
+                      initials={conn.user_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    />
                     <View style={styles.selectionIndicator}>
-                      {selectedUsers.includes(user.id) ? (
+                      {selectedUsers.includes(conn.user_id) ? (
                         <View style={styles.selectedCircle}>
                           <Text style={styles.checkmark}>✓</Text>
                         </View>
@@ -232,9 +466,9 @@ export default function GroupOrdersScreen() {
                     </View>
                   </View>
                   <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{user.name}</Text>
+                    <Text style={styles.userName}>{conn.user_name}</Text>
                     <Text style={styles.mutualFriends}>
-                      {user.mutualFriends} mutual friends
+                      {conn.connection_type} • {conn.source}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -246,14 +480,44 @@ export default function GroupOrdersScreen() {
         <ScatteredGroupMembers 
           members={groupMembers} 
           refreshKey={refreshKey}
+          onParticipantPress={handleNavigateToParticipantSelections}
         />
 
       </ScrollView>
       
       <View style={styles.floatingButtons}>
-        <GroupTotalSpendCard amount="3000" avatars={avatars} />
-        <SwipeButton onSwipeSuccess={() => console.log('yes')} />
-        <GroupMealSelection quantity={4} onPress={handleNavigate} />
+        <GroupTotalSpendCard 
+          amount={totalBudget.toFixed(2)} 
+          avatars={avatars}
+          onPress={() => {
+            if (groupOrderId) {
+              router.push({
+                pathname: '/orders/group/details',
+                params: { group_order_id: groupOrderId },
+              });
+            }
+          }}
+        />
+        {showSwipeButton && (
+          <SwipeButton 
+            onSwipeSuccess={handleSwipeToComplete}
+            disabled={!currentParticipant || currentParticipant.order_items.length === 0 || isMarkingReady}
+          />
+        )}
+        {showMealSelectionButton && (
+          <GroupMealSelection 
+            quantity={selectionCount} 
+            onPress={handleNavigateToMealSelection}
+          />
+        )}
+        {selectionPhase === 'budgeting' && (
+          <TouchableOpacity 
+            style={styles.chipInButton}
+            onPress={handleNavigate}
+          >
+            <Text style={styles.chipInButtonText}>Chip in to budget</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Full Screen Loading Modal */}
@@ -705,5 +969,64 @@ const styles = StyleSheet.create({
         color: '#EAEAEA',
         fontSize: 14,
         opacity: 0.8,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+    },
+    loadingText: {
+        color: '#E6FFE8',
+        fontSize: 16,
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+        gap: 16,
+    },
+    errorText: {
+        color: '#FF3B30',
+        fontSize: 16,
+        textAlign: 'center',
+    },
+    retryButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        backgroundColor: '#E6FFE8',
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: '#094327',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    startSelectionButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        backgroundColor: '#FF3B30',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    startSelectionButtonText: {
+        color: '#E6FFE8',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    chipInButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        backgroundColor: '#094327',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    chipInButtonText: {
+        color: '#E6FFE8',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

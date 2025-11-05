@@ -1,0 +1,70 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ Dark-mode-killed, production ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-2
+  APP_NAME: cribnosh
+  ENVIRONMENT: production
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/Dark-mode-killed' || github.ref == 'refs/heads/production'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Login to Amazon ECR
+      id: ecr-login
+      uses: aws-actions/amazon-ecr-login@v2
+      
+    - name: Get ECR repository URL
+      id: ecr-url
+      run: |
+        REPO_URL=$(aws ecr describe-repositories --repository-names cribnosh-production --query 'repositories[0].repositoryUri' --output text)
+        echo "ecr-url=$REPO_URL" >> $GITHUB_OUTPUT
+        echo "ECR Repository URL: $REPO_URL"
+        
+    - name: Build Docker image
+      working-directory: apps/web
+      run: |
+        docker build -f Dockerfile.aws -t ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }} -t ${{ steps.ecr-url.outputs.ecr-url }}:latest .
+        
+    - name: Push Docker image to ECR
+      run: |
+        docker push ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }}
+        docker push ${{ steps.ecr-url.outputs.ecr-url }}:latest
+        
+    - name: Update App Runner service
+      run: |
+        echo "🚀 Updating App Runner service with new image..."
+        aws apprunner start-deployment --service-arn $(aws apprunner list-services --query 'ServiceSummaryList[0].ServiceArn' --output text)
+        
+    - name: Wait for deployment
+      run: |
+        echo "⏳ Waiting for App Runner deployment to complete..."
+        aws apprunner wait service-updated --service-arn $(aws apprunner list-services --query 'ServiceSummaryList[0].ServiceArn' --output text)
+        
+    - name: Get service URL
+      run: |
+        SERVICE_URL=$(aws apprunner describe-service --service-arn $(aws apprunner list-services --query 'ServiceSummaryList[0].ServiceArn' --output text) --query 'Service.ServiceUrl' --output text)
+        echo "🎉 App Runner service URL: $SERVICE_URL"
+        
+    - name: Health check
+      run: |
+        SERVICE_URL=$(aws apprunner describe-service --service-arn $(aws apprunner list-services --query 'ServiceSummaryList[0].ServiceArn' --output text) --query 'Service.ServiceUrl' --output text)
+        echo "🔍 Performing health check on $SERVICE_URL/api/health"
+        curl -f "$SERVICE_URL/api/health" || echo "⚠️ Health check failed, but deployment completed"
+

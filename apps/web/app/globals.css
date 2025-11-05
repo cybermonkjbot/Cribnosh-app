@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+html {
+  color-scheme: light !important;
+  background-color: #fdfdfc !important;
+}
+
+:root {
+  --background: #fdfdfc;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-satoshi);
+  --font-display: var(--font-asgard);
+  --shadow-input:
+  0px 2px 3px -1px rgba(0, 0, 0, 0.1),
+  0px 1px 0px 0px rgba(25, 28, 33, 0.02),
+  0px 0px 0px 1px rgba(25, 28, 33, 0.08);
+}
+
+body {
+  background-color: #fdfdfc !important;
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-weight: 700;
+}
+
+.font-display {
+  font-family: var(--font-display), serif;
+}
+
+/* Cursor styles only apply when custom pointer is enabled */
+[data-custom-pointer="true"] {
+  /* Hide cursor for interactive elements when custom pointer is active */
+  a,
+  button,
+  [role="button"] {
+    cursor: none;
+  }
+
+  input,
+  textarea,
+  select {
+    cursor: text;
+  }
+
+  /* Hide cursor for pointer elements */
+  .cursor-pointer {
+    cursor: none;
+  }
+
+  /* Hide system cursor on draggable elements */
+  [draggable="true"] {
+    cursor: none !important;
+  }
+
+  /* Hide system cursor on elements with hover states */
+  *:hover {
+    cursor: none !important;
+  }
+}
+
+/* Default cursor styles when custom pointer is disabled */
+[data-custom-pointer="false"] {
+  a,
+  button,
+  [role="button"] {
+    cursor: pointer !important;
+  }
+
+  input,
+  textarea,
+  select {
+    cursor: text !important;
+  }
+
+  .cursor-pointer {
+    cursor: pointer !important;
+  }
+
+  [draggable="true"] {
+    cursor: grab !important;
+  }
+
+  /* Ensure all hover states show proper cursors */
+  *:hover {
+    cursor: inherit !important;
+  }
+}
+
+/* Fallback: Ensure system cursor is always visible when custom pointer is not explicitly enabled */
+body:not([data-custom-pointer="true"]) {
+  a,
+  button,
+  [role="button"] {
+    cursor: pointer !important;
+  }
+
+  input,
+  textarea,
+  select {
+    cursor: text !important;
+  }
+
+  .cursor-pointer {
+    cursor: pointer !important;
+  }
+
+  [draggable="true"] {
+    cursor: grab !important;
+  }
+
+  *:hover {
+    cursor: inherit !important;
+  }
+}
+
+/* Hide scrollbars for better mobile experience */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Mobile-specific improvements for admin dashboard */
+@media (max-width: 640px) {
+  /* Ensure touch targets are at least 44px for accessibility */
+  .admin-filter-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve touch scrolling for filter panels */
+  .admin-filter-panel {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Better mobile spacing for filter elements */
+  .admin-filter-grid {
+    gap: 8px;
+  }
+  
+  /* Ensure filter buttons don't get cut off on small screens */
+  .admin-filter-option {
+    min-width: 0;
+    flex-shrink: 0;
+  }
+  
+  /* Improve mobile search input */
+  .admin-search-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    -webkit-appearance: none;
+    border-radius: 8px;
+  }
+  
+  /* Better mobile filter toggle button */
+  .admin-filter-toggle {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Smooth animations for filter transitions */
+.admin-filter-transition {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Active filter indicator */
+.admin-filter-indicator {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CribNosh Activity Tracker</title>
+  <style>
+    body { font-family: sans-serif; min-width: 250px; padding: 16px; }
+    .status { font-weight: bold; margin-bottom: 8px; }
+    .info { font-size: 0.95em; color: #555; margin-bottom: 12px; }
+    .privacy { font-size: 0.9em; color: #00796b; text-decoration: underline; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="status" id="status">Checking status...</div>
+  <div class="info">
+    This extension tracks your active tab, page title, and idle/active time <b>only when you are clocked in</b> on the staff portal.<br>
+    No tracking occurs outside work hours.
+  </div>
+  <div id="not-tracked-notice" style="display:none; color:#b71c1c; font-weight:bold; margin-top:8px;">
+    You are <u>not</u> being tracked at the moment (clocked out).
+  </div>
+  <div>
+    <a class="privacy" href="https://your-staff-portal-domain.com/privacy" target="_blank">Privacy Info</a>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 

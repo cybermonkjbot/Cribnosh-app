@@ -1,0 +1,304 @@
+import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
+import "./globals.css";
+import { ClientLayout } from "../components/layout/client-layout";
+import { JsonLd } from "../components/JsonLd";
+import { AiMetadata } from "../components/AiMetadata";
+import { ScrollToTop } from "../components/ui/scroll-to-top";
+import { CustomScrollbar } from "../components/ui/custom-scrollbar";
+import RootLayoutClient from "./layout-client";
+import { LocationProvider } from '../context/location-context';
+import AppProviders from './providers';
+import { ConvexClientProvider } from '../components/ConvexClientProvider';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover'
+};
+
+// Helper to get a valid base URL
+function getBaseUrl() {
+  const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  try {
+    if (envUrl && /^https?:\/\//.test(envUrl)) {
+      return new URL(envUrl);
+    }
+  } catch (e) {
+    // ignore invalid URL
+  }
+  return new URL('https://cribnosh.com');
+}
+
+export const metadata: Metadata = {
+  metadataBase: getBaseUrl(),
+  title: "Cribnosh | The app for foodies",
+  description: "Personalized meal platform with cultural awareness and family-oriented recipes",
+  keywords: [
+    "meals",
+    "cultural food",
+    "family recipes",
+    "healthy eating",
+    "sustainable food",
+    "food tech startup UK",
+    "order meals online UK",
+    "chef-made meals UK",
+    "home-cooked meals delivery UK",
+    "meal delivery app UK",
+    "food delivery Midlands",
+    "affordable meal delivery UK",
+    "best food delivery platform UK",
+    "UK chef food delivery service",
+    "CribNosh UK",
+    "food delivery Birmingham",
+    "food delivery Leicester",
+    "meal delivery Nottingham",
+    "chefs in the Midlands UK",
+    "Birmingham meal prep services",
+    "Leicester home-cooked meals",
+    "Nottingham food delivery app",
+    "Midlands food startup",
+    "local chefs Midlands",
+    "Midlands food tech app",
+    "become a chef on CribNosh",
+    "earn money cooking UK",
+    "join as a chef UK",
+    "freelance chef platform",
+    "chef job platform UK",
+    "Food Creators wanted Midlands",
+    "UK chef marketplace",
+    "cooking from home UK",
+    "CribNosh for chefs UK",
+    "fresh meals delivered to your door",
+    "chef-curated meals Midlands",
+    "affordable gourmet meals UK",
+    "healthy food delivery Midlands",
+    "local meals to order UK",
+    "meals from real chefs",
+    "food delivery made easy",
+    "restaurant-quality food at home",
+    "trusted chefs UK",
+    "Nigerian meals UK",
+    "Caribbean food delivery Midlands",
+    "vegetarian meals UK delivery",
+    "halal meal delivery UK",
+    "gluten-free food delivery UK",
+    "traditional UK meals to order",
+    "comfort food delivery Midlands",
+    "Sunday roast delivery UK",
+    "authentic homemade meals UK",
+    "CribNosh login UK",
+    "CribNosh chefs UK",
+    "CribNosh Midlands",
+    "CribNosh food app",
+    "chef food delivery platform",
+    "order food from chefs app",
+    "online chef meals UK",
+    "CribNosh reviews",
+    "CribNosh menu",
+    "Midlands food entrepreneurs",
+    "food delivery business UK",
+    "food marketplace platform UK",
+    "chef food tech platform",
+    "CribNosh business model",
+    "cloud kitchen Midlands",
+    "chef-powered food delivery",
+    "local food tech startup",
+    "food innovation Midlands",
+    "best food delivery service in the Midlands",
+    "food delivery with Food Creators",
+    "food ordering apps UK 2025",
+    "local chef food options Midlands",
+    "top chef meal platforms UK",
+    "where to find Food Creators UK",
+    "Midlands chef meal plans",
+    "how to cook and sell meals legally UK",
+    "best app to sell food UK",
+    "food that feels like home",
+    "meals with a personal touch UK",
+    "experience chef cooking at home",
+    "support local chefs",
+    "taste of home Midlands",
+    "meals you can trust UK",
+    "real food from real chefs",
+    "discover new chefs UK",
+    "made-to-order food UK",
+    "meal delivery Midlands UK",
+    "chef meals UK",
+    "family meals delivery UK",
+    "order food online Midlands",
+    "food delivery for busy professionals UK",
+    "Midlands food delivery app",
+    "food from local chefs",
+    "ready-to-eat meals UK",
+    "CribNosh order now"
+  ],
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    other: [
+      { rel: 'icon', url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { rel: 'icon', url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' }
+    ]
+  },
+  manifest: '/site.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'CribNosh',
+    startupImage: '/apple-icon.png'
+  }
+};
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const h = await headers();
+  const pathname = h.get('x-pathname') || '/';
+  const canonical = `https://cribnosh.com${pathname}`;
+  const altCom = `https://cribnosh.com${pathname}`;
+  const altUk = `https://cribnosh.co.uk${pathname}`;
+  return (
+    <html lang="en-GB" className="light" suppressHydrationWarning>
+      <head>
+        {/* iOS/Safari specific meta tags */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="CribNosh" />
+        <meta name="mobile-web-app-capable" content="yes" />
+
+        {/* Google Search/SEO improvements */}
+        <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <meta name="googlebot" content="index, follow" />
+        <meta name="google-site-verification" content="YOUR_GOOGLE_SITE_VERIFICATION_CODE" />
+        <link rel="canonical" href={canonical} />
+        <link rel="alternate" href={altCom} hrefLang="en" />
+        <link rel="alternate" href={altUk} hrefLang="en-gb" />
+        <link rel="alternate" href={altCom} hrefLang="x-default" />
+        <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
+
+        {/* Open Graph tags */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Cribnosh | The app for foodies" />
+        <meta property="og:description" content="Personalized meal platform with cultural awareness and family-oriented recipes" />
+        <meta property="og:url" content={getBaseUrl().toString()} />
+        <meta property="og:image" content="/apple-icon.png" />
+        <meta property="og:site_name" content="Cribnosh" />
+
+        {/* Twitter Card tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Cribnosh | The app for foodies" />
+        <meta name="twitter:description" content="Personalized meal platform with cultural awareness and family-oriented recipes" />
+        <meta name="twitter:image" content="/apple-icon.png" />
+        <meta name="twitter:site" content="@cribnosh" />
+
+        {/* Theme colors */}
+        <meta name="color-scheme" content="light" />
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+        {/* <meta n ame="theme-color" content="#000000" media="(prefers-color-scheme: dark)" /> */}
+        
+        {/* iOS icons and splash screens */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
+        {/* Recommended additional Apple icon sizes for best compatibility */}
+        <link rel="apple-touch-icon" sizes="120x120" href="/apple-icon.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/apple-icon.png" />
+        {/*
+          To support iOS splash screens, add images named and sized as per Apple's documentation:
+          https://developer.apple.com/design/human-interface-guidelines/ios/icons-and-images/launch-screen/
+          Example:
+          <link rel="apple-touch-startup-image" href="/apple-splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+          (Add these files to /public and uncomment the lines above for full support.)
+        */}
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#ff3b30" />
+        
+        {/* Other meta tags */}
+        <meta name="msapplication-TileColor" content="#ffffff" />
+        <link 
+          rel="preload" 
+          href="https://my.spline.design/iphoneprocopy-pV22kwixcmjbCyehvGuZGps0/" 
+          as="fetch" 
+          crossOrigin="anonymous" 
+        />
+        
+        {/* PWA manifest */}
+        <link rel="manifest" href="/site.webmanifest" />
+        
+        <JsonLd />
+        {/* Organization and WebSite structured data */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'Cribnosh',
+          url: getBaseUrl().toString(),
+          logo: '/apple-icon.png',
+          address: {
+            '@type': 'PostalAddress',
+            addressCountry: 'GB',
+            addressRegion: 'United Kingdom'
+          },
+          sameAs: [
+            'https://www.facebook.com/share/16yzxEUqpx/',
+            'https://www.instagram.com/cribnoshuk?igsh=MXM3NWxsOHpsbDB1bA==',
+            'https://x.com/CribNosh?t=YDYNvB1ZIaVe0IX5NDe9YQ&s=09'
+          ]
+        }) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          url: getBaseUrl().toString(),
+          name: 'Cribnosh',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${getBaseUrl().toString()}search?q={search_term_string}`,
+            'query-input': 'required name=search_term_string'
+          }
+        }) }} />
+        <AiMetadata />
+
+        {/* Additional SEO enhancements */}
+        <meta name="author" content="Cribnosh Team" />
+        <meta name="copyright" content="Cribnosh, All rights reserved" />
+        <meta name="application-name" content="Cribnosh" />
+        <meta name="HandheldFriendly" content="True" />
+        <meta name="MobileOptimized" content="320" />
+        <meta name="rating" content="General" />
+        <meta name="distribution" content="global" />
+        <meta name="subject" content="Food, Recipes, Culture, Family Meals" />
+        <meta name="category" content="Food & Drink" />
+        <meta name="revisit-after" content="7 days" />
+        <meta name="format-detection" content="telephone=no, email=no, address=no" />
+        {/* Example shortlink, update if you have a real short URL */}
+        <link rel="shortlink" href={getBaseUrl().toString()} />
+        {/* Example hreflang for English, add more for other languages */}
+        <link rel="alternate" href={getBaseUrl().toString()} hrefLang="en-gb" />
+        <link rel="alternate" href={getBaseUrl().toString()} hrefLang="en" />
+      </head>
+      <body>
+        <ConvexClientProvider>
+          <AppProviders>
+            <RootLayoutClient>
+              <ClientLayout>
+                <LocationProvider>
+                  {children}
+                  <ScrollToTop />
+                  <CustomScrollbar />
+                </LocationProvider>
+              </ClientLayout>
+            </RootLayoutClient>
+          </AppProviders>
+        </ConvexClientProvider>
+      </body>
+    </html>
+  );
+}

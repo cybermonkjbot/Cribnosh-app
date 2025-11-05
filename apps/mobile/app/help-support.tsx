@@ -1,14 +1,18 @@
+import {
+  useCreateSupportCaseMutation,
+  useGetOrdersQuery,
+  useGetSupportCasesQuery,
+} from '@/store/customerApi';
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
+import { HelpCategorySheet } from '../components/ui/HelpCategorySheet';
 import { LiveChatDrawer } from '../components/ui/LiveChatDrawer';
-import {
-  useGetSupportCasesQuery,
-  useCreateSupportCaseMutation,
-} from '@/store/customerApi';
+import { SupportCasesSheet } from '../components/ui/SupportCasesSheet';
 import { useToast } from '../lib/ToastContext';
+import { formatOrderDate } from '../utils/dateFormat';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -42,14 +46,64 @@ export default function HelpSupportScreen() {
 
   // Fetch support cases from API
   const { data: supportCasesData, isLoading: supportCasesLoading } = useGetSupportCasesQuery(
-    { page: 1, limit: 10 },
-    {
-      skip: false, // Backend endpoint needed: GET /customer/support-cases
-    }
+    { page: 1, limit: 10, status: 'open' }
   );
+
+  // Fetch recent orders (limit to 1 most recent)
+  const { data: ordersData, isLoading: ordersLoading } = useGetOrdersQuery({
+    limit: 1,
+    offset: 0,
+    status: 'all',
+  });
 
   const [createSupportCase] = useCreateSupportCaseMutation();
   const [isLiveChatVisible, setIsLiveChatVisible] = useState(false);
+  const [isSupportCasesSheetVisible, setIsSupportCasesSheetVisible] = useState(false);
+  const [selectedChatCaseId, setSelectedChatCaseId] = useState<string | null>(null);
+  const [selectedHelpCategory, setSelectedHelpCategory] = useState<{
+    title: string;
+    content: string;
+    sections?: Array<{
+      title: string;
+      content: string;
+    }>;
+  } | null>(null);
+
+  // Get the most recent order
+  const recentOrder = useMemo(() => {
+    if (ordersData?.data?.orders && ordersData.data.orders.length > 0) {
+      return ordersData.data.orders[0];
+    }
+    return null;
+  }, [ordersData]);
+
+  // Format order items into a display string
+  const orderDisplayText = useMemo(() => {
+    if (!recentOrder?.order_items || recentOrder.order_items.length === 0) {
+      return 'Order';
+    }
+    
+    const items = recentOrder.order_items;
+    const itemNames = items
+      .map((item: any) => item.name)
+      .filter((name: string) => name);
+    
+    if (itemNames.length === 0) {
+      return 'Order';
+    } else if (itemNames.length === 1) {
+      return itemNames[0];
+    } else if (itemNames.length === 2) {
+      return `${itemNames[0]}, ${itemNames[1]}`;
+    } else {
+      return `${itemNames[0]} and ${itemNames.length - 1} more`;
+    }
+  }, [recentOrder]);
+
+  // Format order date
+  const orderDateText = useMemo(() => {
+    if (!recentOrder?.createdAt) return '';
+    return formatOrderDate(recentOrder.createdAt);
+  }, [recentOrder]);
 
   const handleBack = () => {
     router.back();
@@ -61,6 +115,162 @@ export default function HelpSupportScreen() {
 
   const handleCloseLiveChat = () => {
     setIsLiveChatVisible(false);
+  };
+
+  const handleSupportCasesPress = () => {
+    setIsSupportCasesSheetVisible(true);
+  };
+
+  const handleSelectSupportCase = (caseId: string) => {
+    setSelectedChatCaseId(caseId);
+    setIsLiveChatVisible(true);
+  };
+
+  const handleCloseSupportCasesSheet = () => {
+    setIsSupportCasesSheetVisible(false);
+  };
+
+  const handleRecentOrderPress = () => {
+    if (recentOrder?._id || recentOrder?.order_id) {
+      // Navigate to order details page where user can get help with this specific order
+      // The order details page should allow creating a support case for this order
+      // Use order_id (string) if available, otherwise fall back to _id
+      const orderId = recentOrder.order_id || recentOrder._id;
+      router.push(`/order-details?id=${orderId}&support=true`);
+    }
+  };
+
+  const handleSelectOlderOrder = () => {
+    router.push('/(tabs)/orders');
+  };
+
+  const handleFoodSafetyPress = () => {
+    setSelectedHelpCategory({
+      title: 'Food safety on Cribnosh',
+      content: 'We take food safety seriously. All our chefs are certified and follow strict hygiene standards. Here\'s what you need to know about food safety on Cribnosh.',
+      sections: [
+        {
+          title: 'Chef Certification',
+          content: 'All chefs on Cribnosh are required to have valid food safety certifications. We verify these certifications before allowing chefs to join our platform.',
+        },
+        {
+          title: 'Kitchen Standards',
+          content: 'All kitchens must meet our strict hygiene and safety standards. We conduct regular inspections to ensure compliance.',
+        },
+        {
+          title: 'Allergen Information',
+          content: 'You can set your allergies and dietary preferences in your account settings. Chefs will be notified of your requirements, and you\'ll see allergen information for each dish.',
+        },
+        {
+          title: 'Reporting Issues',
+          content: 'If you encounter any food safety concerns, please contact our support team immediately. We take all reports seriously and will investigate promptly.',
+        },
+      ],
+    });
+  };
+
+  const handleAppFeaturesPress = () => {
+    setSelectedHelpCategory({
+      title: 'App and features',
+      content: 'Cribnosh offers a variety of features to enhance your food ordering experience. Learn more about what you can do with the app.',
+      sections: [
+        {
+          title: 'Ordering',
+          content: 'Browse menus from local chefs, customize your orders, and track deliveries in real-time. You can also place custom orders for special occasions.',
+        },
+        {
+          title: 'Group Orders',
+          content: 'Share orders with friends and family. Create group orders to split costs and enjoy meals together.',
+        },
+        {
+          title: 'Live Sessions',
+          content: 'Watch chefs prepare meals live. Place orders directly from live cooking sessions and interact with chefs.',
+        },
+        {
+          title: 'Personalization',
+          content: 'Our AI learns your preferences to recommend dishes you\'ll love. Set dietary restrictions and preferences for personalized recommendations.',
+        },
+      ],
+    });
+  };
+
+  const handleAccountDataPress = () => {
+    setSelectedHelpCategory({
+      title: 'Account and data',
+      content: 'Manage your account settings, privacy preferences, and data. Your privacy is important to us.',
+      sections: [
+        {
+          title: 'Account Settings',
+          content: 'Update your profile, change your password, and manage your account preferences in the Account Details section.',
+        },
+        {
+          title: 'Data Privacy',
+          content: 'You control your data. Manage your data sharing preferences and download your account data at any time.',
+        },
+        {
+          title: 'Delete Account',
+          content: 'You can delete your account at any time. Your data will be permanently removed according to our privacy policy.',
+        },
+        {
+          title: 'Data Download',
+          content: 'Download a copy of all your account data, including order history, preferences, and profile information.',
+        },
+      ],
+    });
+  };
+
+  const handlePaymentsPricingPress = () => {
+    setSelectedHelpCategory({
+      title: 'Payments and pricing',
+      content: 'Learn about payment methods, pricing, refunds, and how to manage your payment information.',
+      sections: [
+        {
+          title: 'Payment Methods',
+          content: 'We accept various payment methods including credit cards, debit cards, and digital wallets. Add and manage payment methods in your account settings.',
+        },
+        {
+          title: 'Pricing',
+          content: 'Prices are set by individual chefs and include preparation costs. Delivery fees may apply based on your location.',
+        },
+        {
+          title: 'Refunds',
+          content: 'If you\'re not satisfied with your order, you can request a refund within 24 hours of delivery. Refunds are processed within 5-7 business days.',
+        },
+        {
+          title: 'Payment Issues',
+          content: 'If you experience payment issues, check your payment method and ensure sufficient funds. Contact support if problems persist.',
+        },
+      ],
+    });
+  };
+
+  const handleUsingCribnoshPress = () => {
+    setSelectedHelpCategory({
+      title: 'Using Cribnosh',
+      content: 'Get started with Cribnosh and learn how to make the most of our platform.',
+      sections: [
+        {
+          title: 'Getting Started',
+          content: 'Create an account, set your preferences, and start browsing local chefs. Add your delivery address to see available options.',
+        },
+        {
+          title: 'Placing Orders',
+          content: 'Browse menus, add items to your cart, customize your order, and checkout. You can track your order in real-time.',
+        },
+        {
+          title: 'Custom Orders',
+          content: 'Need something special? Place a custom order and describe what you\'re looking for. Chefs can create personalized meals for you.',
+        },
+        {
+          title: 'Tips and Tricks',
+          content: 'Follow your favorite chefs to see their latest dishes. Use the shake feature to let Cribnosh decide for you when you can\'t choose. Save your favorite dishes for quick reordering.',
+        },
+      ],
+    });
+  };
+
+  const handleCloseHelpCategory = () => {
+    setSelectedHelpCategory(null);
   };
 
   return (
@@ -90,87 +300,130 @@ export default function HelpSupportScreen() {
           {/* Support Cases Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Support cases</Text>
-            <TouchableOpacity
-              style={styles.supportCaseItem}
-              onPress={() => {
-                if (supportCasesData?.data?.cases && supportCasesData.data.cases.length > 0) {
-                  Alert.alert(
-                    'Support Cases',
-                    `You have ${supportCasesData.data.cases.length} open support case(s).`,
-                    [{ text: 'OK' }]
-                  );
-                } else {
-                  showToast({
-                    type: "info",
-                    title: "No Support Cases",
-                    message: "You don't have any open support cases.",
-                    duration: 3000,
-                  });
-                }
-              }}
-            >
-              <View style={styles.supportCaseLeft}>
-                <View style={styles.messageIcon}>
-                  <SvgXml xml={messageIconSVG} width={20} height={20} />
-                </View>
-                <View style={styles.supportCaseText}>
-                  <Text style={styles.supportCaseTitle}>Inbox</Text>
-                  <Text style={styles.supportCaseSubtitle}>
-                    {supportCasesData?.data?.cases && supportCasesData.data.cases.length > 0
-                      ? `${supportCasesData.data.cases.length} open case(s)`
-                      : "View open supports"}
-                  </Text>
-                </View>
+            {supportCasesLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#094327" />
               </View>
-              <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
-            </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.supportCaseItem}
+                onPress={handleSupportCasesPress}
+              >
+                <View style={styles.supportCaseLeft}>
+                  <View style={styles.messageIcon}>
+                    <SvgXml xml={messageIconSVG} width={20} height={20} />
+                  </View>
+                  <View style={styles.supportCaseText}>
+                    <Text style={styles.supportCaseTitle}>Inbox</Text>
+                    <Text style={styles.supportCaseSubtitle}>
+                      {supportCasesData?.data?.cases && supportCasesData.data.cases.length > 0
+                        ? `${supportCasesData.data.cases.length} open case(s)`
+                        : "View open supports"}
+                    </Text>
+                  </View>
+                </View>
+                <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Recent Order Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Get help with a recent order</Text>
-            <View style={styles.orderCard}>
-              <View style={styles.orderImageContainer}>
-                <View style={styles.orderImage}>
-                  <SvgXml xml={burgerIconSVG} width={40} height={40} />
+            {ordersLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#094327" />
+              </View>
+            ) : recentOrder ? (
+              <>
+                <TouchableOpacity 
+                  style={styles.orderCard}
+                  onPress={handleRecentOrderPress}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Get help with order from ${orderDateText}`}
+                  accessibilityHint="Tap to create a support case for this order"
+                >
+                  <View style={styles.orderImageContainer}>
+                    <View style={styles.orderImage}>
+                      <SvgXml xml={burgerIconSVG} width={40} height={40} />
+                    </View>
+                  </View>
+                  <View style={styles.orderDetails}>
+                    <Text style={styles.orderTitle} numberOfLines={2}>
+                      {orderDisplayText}
+                    </Text>
+                    <Text style={styles.orderTime}>{orderDateText}</Text>
+                  </View>
+                  <Text style={styles.orderPrice}>
+                    £{(recentOrder.total_amount || 0).toFixed(2)}
+                  </Text>
+                </TouchableOpacity>
+                <View style={styles.separator} />
+                <TouchableOpacity 
+                  style={styles.olderOrderLink}
+                  onPress={handleSelectOlderOrder}
+                >
+                  <Text style={styles.olderOrderText}>Select a much older order</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.emptyStateContainer}>
+                <View style={styles.emptyStateCard}>
+                  <View style={styles.orderImageContainer}>
+                    <View style={styles.orderImage}>
+                      <SvgXml xml={burgerIconSVG} width={40} height={40} />
+                    </View>
+                  </View>
+                  <View style={styles.emptyStateText}>
+                    <Text style={styles.emptyStateTitle}>No recent orders</Text>
+                    <Text style={styles.emptyStateSubtitle}>
+                      You haven't placed any orders yet
+                    </Text>
+                  </View>
                 </View>
               </View>
-              <View style={styles.orderDetails}>
-                <Text style={styles.orderTitle}>Keto Diet, Burger from Mr.s Burger</Text>
-                <Text style={styles.orderTime}>6 Jun, 7:18 PM</Text>
-              </View>
-              <Text style={styles.orderPrice}>£28</Text>
-            </View>
-            <View style={styles.separator} />
-            <TouchableOpacity style={styles.olderOrderLink}>
-              <Text style={styles.olderOrderText}>Select a much older order</Text>
-            </TouchableOpacity>
+            )}
           </View>
 
           {/* Other Help Categories */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Get help with something else</Text>
-            <TouchableOpacity style={styles.helpCategoryItem}>
+            <TouchableOpacity 
+              style={styles.helpCategoryItem}
+              onPress={handleFoodSafetyPress}
+            >
               <Text style={styles.helpCategoryText}>Food safety on Cribnosh</Text>
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity style={styles.helpCategoryItem}>
+            <TouchableOpacity 
+              style={styles.helpCategoryItem}
+              onPress={handleAppFeaturesPress}
+            >
               <Text style={styles.helpCategoryText}>App and features</Text>
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity style={styles.helpCategoryItem}>
+            <TouchableOpacity 
+              style={styles.helpCategoryItem}
+              onPress={handleAccountDataPress}
+            >
               <Text style={styles.helpCategoryText}>Account and data</Text>
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity style={styles.helpCategoryItem}>
+            <TouchableOpacity 
+              style={styles.helpCategoryItem}
+              onPress={handlePaymentsPricingPress}
+            >
               <Text style={styles.helpCategoryText}>Payments and pricing</Text>
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity style={styles.helpCategoryItem}>
+            <TouchableOpacity 
+              style={styles.helpCategoryItem}
+              onPress={handleUsingCribnoshPress}
+            >
               <Text style={styles.helpCategoryText}>Using Cribnosh</Text>
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
@@ -190,6 +443,22 @@ export default function HelpSupportScreen() {
         <LiveChatDrawer 
           isVisible={isLiveChatVisible}
           onClose={handleCloseLiveChat}
+          caseId={selectedChatCaseId || undefined}
+        />
+
+        {/* Help Category Sheet */}
+        <HelpCategorySheet
+          isVisible={selectedHelpCategory !== null}
+          onClose={handleCloseHelpCategory}
+          category={selectedHelpCategory}
+        />
+        {/* Support Cases Sheet */}
+        <SupportCasesSheet
+          isVisible={isSupportCasesSheetVisible}
+          onClose={handleCloseSupportCasesSheet}
+          cases={supportCasesData?.data?.cases || []}
+          isLoading={supportCasesLoading}
+          onSelectCase={handleSelectSupportCase}
         />
       </SafeAreaView>
     </>
@@ -419,5 +688,50 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     borderWidth: 2,
     borderColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateContainer: {
+    marginBottom: 16,
+  },
+  emptyStateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyStateText: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  emptyStateTitle: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#111827',
+    marginBottom: 4,
+  },
+  emptyStateSubtitle: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B7280',
   },
 });

@@ -75,7 +75,16 @@ export const useAuth = () => {
       try {
         const result = await appleSignIn({ identityToken }).unwrap();
 
-        if (result.success && result.data.success && result.data.token) {
+        // Check if 2FA is required
+        if (result.success && result.data.success && result.data.requires2FA && result.data.verificationToken) {
+          // Return 2FA requirement - caller should handle navigation
+          return {
+            requires2FA: true,
+            verificationToken: result.data.verificationToken,
+          };
+        }
+
+        if (result.success && result.data.success && result.data.token && result.data.user) {
           return {
             token: result.data.token,
             user: result.data.user,

@@ -1,0 +1,15 @@
+{
+  "subject": "Refer a Friend: Spread the Flavor",
+  "variables": [
+    "firstName",
+    "city",
+    "perk",
+    "daysSinceSignup",
+    "expectedLaunchDate",
+    "daysToLaunch",
+    "chefName",
+    "chefCuisine",
+    "unsubscribeUrl",
+    "companyAddress"
+  ]
+}

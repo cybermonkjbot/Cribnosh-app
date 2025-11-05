@@ -14,6 +14,9 @@ const config = getDefaultConfig(projectRoot);
 // Mobile app's node_modules path
 const mobileNodeModules = path.resolve(projectRoot, 'node_modules');
 
+// Workspace root node_modules path
+const workspaceNodeModulesPath = path.join(workspaceRoot, 'node_modules');
+
 // React-related packages that must resolve from mobile app's node_modules
 const reactPackages = [
   'react',
@@ -51,6 +54,10 @@ config.resolver.extraNodeModules = {
     }
     return acc;
   }, {}),
+  // Resolve @stripe packages from workspace root if not in mobile app's node_modules
+  '@stripe/stripe-react-native': fs.existsSync(path.join(mobileNodeModules, '@stripe', 'stripe-react-native'))
+    ? path.join(mobileNodeModules, '@stripe', 'stripe-react-native')
+    : path.join(workspaceNodeModulesPath, '@stripe', 'stripe-react-native'),
 };
 
 // Block resolution from parent node_modules for React and react-dom
@@ -66,7 +73,6 @@ config.resolver.blockList = [
 
 // Ensure node_modules resolution can find packages in both locations
 // but prioritize mobile app's node_modules (for React packages)
-const workspaceNodeModulesPath = path.join(workspaceRoot, 'node_modules');
 config.resolver.nodeModulesPaths = [
   mobileNodeModules,
   workspaceNodeModulesPath,

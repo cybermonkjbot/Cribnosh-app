@@ -56,6 +56,21 @@ export const createOrder = mutation({
     })),
   },
   handler: async (ctx, args) => {
+    // Check regional availability if delivery address is provided
+    if (args.delivery_address) {
+      const { checkRegionAvailability } = await import('../queries/admin');
+      const isRegionSupported = await checkRegionAvailability(ctx, {
+        address: {
+          city: args.delivery_address.city,
+          country: args.delivery_address.country,
+        },
+      });
+      
+      if (!isRegionSupported) {
+        throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+      }
+    }
+    
     const now = Date.now();
     // Convert order items to the correct type
     const orderItems: OrderItem[] = args.order_items.map(item => ({
@@ -444,6 +459,21 @@ export const createOrderFromLiveSession = mutation({
       const chef = await ctx.db.get(session.chef_id);
       if (!chef) {
         throw new Error('Chef not found');
+      }
+      
+      // Check regional availability if delivery address is provided
+      if (args.orderData.deliveryAddress) {
+        const { checkRegionAvailability } = await import('../queries/admin');
+        const isRegionSupported = await checkRegionAvailability(ctx, {
+          address: {
+            city: args.orderData.deliveryAddress.city,
+            country: args.orderData.deliveryAddress.country,
+          },
+        });
+        
+        if (!isRegionSupported) {
+          throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+        }
       }
       
       // Calculate total amount

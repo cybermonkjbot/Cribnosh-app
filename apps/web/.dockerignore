@@ -1,0 +1,68 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build outputs
+dist
+build
+.output
+.next
+
+# Version control
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Additional caches
+**/.turbo
+**/.cache
+**/bun-*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large directories that slow builds
+backups/
+docs/
+tests/
+analytics-data/
+chrome-extension/
+
+# Log files
+*.log
+combined.log
+error.log
+
+# Development files
+tsconfig.tsbuildinfo
+jest.config.js
+vitest.config.ts
+eslint.config.mjs
+
+# Scripts and configs not needed in production
+# scripts/ - Commented out to allow swagger generation script
+config-script.sh
+fix-dynamic-routes.sh
+entrypoint.sh
+
+# Work reports and documentation
+WORK_DONE_REPORT_35_DAYS.md
+adminstories.md

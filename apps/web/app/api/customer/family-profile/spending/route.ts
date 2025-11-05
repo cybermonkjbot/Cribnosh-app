@@ -1,0 +1,117 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { withErrorHandling } from '@/lib/errors';
+import { ResponseFactory } from '@/lib/api';
+import { getConvexClient } from '@/lib/conxed-client';
+import { api } from '@/convex/_generated/api';
+import jwt from 'jsonwebtoken';
+import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+
+function getAuthPayload(request: NextRequest): any {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('Invalid or missing token');
+  }
+
+  const token = authHeader.replace('Bearer ', ');
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    throw new Error('Invalid or expired token');
+  }
+}
+
+/**
+ * @swagger
+ * /customer/family-profile/spending:
+ *   get:
+ *     summary: Get spending summary
+ *     description: Get spending summary for all family members
+ *     tags: [Customer]
+ *     responses:
+ *       200:
+ *         description: Spending summary retrieved successfully
+ */
+async function handleGET(request: NextRequest): Promise<NextResponse> {
+  try {
+    const payload = getAuthPayload(request);
+    if (!payload.roles?.includes('customer')) {
+      return createSpecErrorResponse('Only customers can view spending', 'FORBIDDEN', 403);
+    }
+
+    const convex = getConvexClient();
+    const userId = payload.user_id as string;
+
+    // Get family profile
+    const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
+      userId: userId as any,
+    });
+
+    if (!familyProfile) {
+      return ResponseFactory.success({ members: [], total_spending: 0 }, 'No family profile found');
+    }
+
+    // Get spending for each member
+    const memberSpending = await Promise.all(
+      familyProfile.member_user_ids.map(async (memberUserId: any) => {
+        const dailyBudget = await convex.query(api.queries.familyProfiles.getMemberBudgets, {
+          family_profile_id: familyProfile._id,
+          member_user_id: memberUserId,
+          period_type: 'daily',
+        });
+
+        const weeklyBudget = await convex.query(api.queries.familyProfiles.getMemberBudgets, {
+          family_profile_id: familyProfile._id,
+          member_user_id: memberUserId,
+          period_type: 'weekly',
+        });
+
+        const monthlyBudget = await convex.query(api.queries.familyProfiles.getMemberBudgets, {
+          family_profile_id: familyProfile._id,
+          member_user_id: memberUserId,
+          period_type: 'monthly',
+        });
+
+        const member = familyProfile.family_members.find((m: any) => m.user_id === memberUserId);
+
+        return {
+          member_id: member?.id,
+          user_id: memberUserId,
+          name: member?.name,
+          daily_spent: dailyBudget?.spent_amount || 0,
+          daily_limit: dailyBudget?.limit_amount || 0,
+          weekly_spent: weeklyBudget?.spent_amount || 0,
+          weekly_limit: weeklyBudget?.limit_amount || 0,
+          monthly_spent: monthlyBudget?.spent_amount || 0,
+          monthly_limit: monthlyBudget?.limit_amount || 0,
+          currency: dailyBudget?.currency || weeklyBudget?.currency || monthlyBudget?.currency || 'gbp',
+        };
+      })
+    );
+
+    const totalSpending = memberSpending.reduce((sum, m) => sum + (m.monthly_spent || 0), 0);
+
+    return ResponseFactory.success(
+      {
+        members: memberSpending,
+        total_spending: totalSpending,
+        currency: 'gbp',
+      },
+      'Spending summary retrieved successfully'
+    );
+  } catch (error: any) {
+    if (error.message === 'Invalid or missing token' || error.message === 'Invalid or expired token') {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    }
+    return createSpecErrorResponse(
+      error.message || 'Failed to get spending summary',
+      'INTERNAL_ERROR',
+      500
+    );
+  }
+}
+
+export const GET = withAPIMiddleware(withErrorHandling(handleGET));
+

@@ -1,21 +1,103 @@
 import { Ionicons } from '@expo/vector-icons'; // Added Ionicons import
+import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useGetUsualDinnerItemsQuery, useGetColleagueConnectionsQuery, useGetPlayToWinHistoryQuery } from '@/store/customerApi';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { showError } from '../../lib/GlobalToastManager';
 import {
   getPlayToWinData,
   getUsualDinnerData,
   UserBehavior
 } from '../../utils/hiddenSections';
+import { UsualDinnerSectionSkeleton } from './UsualDinnerSectionSkeleton';
+import { UsualDinnerSectionEmpty } from './UsualDinnerSectionEmpty';
+import { PlayToWinSectionSkeleton } from './PlayToWinSectionSkeleton';
+import { PlayToWinSectionEmpty } from './PlayToWinSectionEmpty';
+
+interface UsualDinnerItem {
+  dish_id: string;
+  name: string;
+  price: number;
+  image_url?: string;
+  kitchen_name: string;
+  kitchen_id: string;
+  order_count: number;
+  last_ordered_at: number;
+  avg_rating?: number;
+}
 
 // Usual Dinner Section Component
 export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavior }) {
-  const data = getUsualDinnerData(userBehavior);
+  const { isAuthenticated } = useAuthContext();
   
-  const handleItemPress = (item: string) => {
+  // Fetch usual dinner items from API
+  const {
+    data: dinnerItemsData,
+    isLoading: dinnerItemsLoading,
+    error: dinnerItemsError,
+  } = useGetUsualDinnerItemsQuery(
+    { limit: 6 },
+    {
+      skip: !isAuthenticated,
+    }
+  );
+
+  // Transform API data to component format
+  const dinnerItems: UsualDinnerItem[] = useMemo(() => {
+    if (dinnerItemsData?.success && dinnerItemsData.data?.items && dinnerItemsData.data.items.length > 0) {
+      return dinnerItemsData.data.items;
+    }
+    // Fallback to userBehavior data if API fails or no data
+    if (userBehavior.usualDinnerItems && userBehavior.usualDinnerItems.length > 0) {
+      const fallbackData = getUsualDinnerData(userBehavior);
+      return fallbackData.items.map((itemName: string, index: number) => ({
+        dish_id: `fallback-${index}`,
+        name: itemName,
+        price: 0,
+        kitchen_name: 'Unknown Kitchen',
+        kitchen_id: '',
+        order_count: 1,
+        last_ordered_at: Date.now(),
+      }));
+    }
+    return [];
+  }, [dinnerItemsData, userBehavior]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (dinnerItemsError && isAuthenticated) {
+      showError('Failed to load dinner favorites', 'Please try again');
+    }
+  }, [dinnerItemsError, isAuthenticated]);
+  
+  const handleItemPress = useCallback((item: UsualDinnerItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log('Selected usual dinner item:', item);
-    // Handle item selection
-  };
+    // Navigate to meal details
+    if (item.dish_id) {
+      router.push({
+        pathname: '/meal-details',
+        params: { mealId: item.dish_id },
+      });
+    } else if (item.kitchen_id) {
+      router.push({
+        pathname: '/kitchen',
+        params: { kitchenId: item.kitchen_id },
+      });
+    }
+  }, [router]);
+
+  // Show skeleton while loading
+  if (dinnerItemsLoading && isAuthenticated) {
+    return <UsualDinnerSectionSkeleton itemCount={4} />;
+  }
+
+  // Hide section if no items (don't show empty state)
+  if (dinnerItems.length === 0) {
+    return null;
+  }
 
   return (
     <View style={{ marginBottom: 24 }}>
@@ -32,7 +114,7 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
           fontWeight: '700',
           lineHeight: 24,
         }}>
-          {data.title}
+          Your Dinner Favourites
         </Text>
       </View>
 
@@ -40,13 +122,13 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingLeft: 12, // Changed from paddingHorizontal to paddingLeft only
+          paddingLeft: 12,
           gap: 12,
         }}
       >
-        {data.items.map((item, index) => (
+        {dinnerItems.map((item) => (
           <TouchableOpacity
-            key={index}
+            key={item.dish_id}
             onPress={() => handleItemPress(item)}
             style={{
               width: 120,
@@ -62,21 +144,33 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
             activeOpacity={0.8}
           >
             <View style={{ position: 'relative', marginBottom: 8 }}>
-              <View style={{ 
-                width: 96, 
-                height: 96, 
-                borderRadius: 12,
-                backgroundColor: '#f5f5f5',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Text style={{ fontSize: 24 }}>🍽️</Text>
-              </View>
+              {item.image_url ? (
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={{
+                    width: 96,
+                    height: 96,
+                    borderRadius: 12,
+                  }}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={{ 
+                  width: 96, 
+                  height: 96, 
+                  borderRadius: 12,
+                  backgroundColor: '#f5f5f5',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{ fontSize: 24 }}>🍽️</Text>
+                </View>
+              )}
               <View style={{
                 position: 'absolute',
                 top: 6,
                 right: 6,
-                backgroundColor: '#F59E0B', // Changed to Cribnosh golden/orange color for prep time
+                backgroundColor: '#F59E0B',
                 borderRadius: 12,
                 paddingHorizontal: 6,
                 paddingVertical: 2,
@@ -96,14 +190,14 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
               color: '#000',
               marginBottom: 4 
             }} numberOfLines={1}>
-              {item}
+              {item.name}
             </Text>
             <Text style={{ 
               fontSize: 14, 
               fontWeight: 'bold', 
               color: '#000' 
             }}>
-              Order again
+              £{(item.price / 100).toFixed(2)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -114,19 +208,87 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
 
 // Play to Win Section Component
 export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior }) {
-  const data = getPlayToWinData(userBehavior);
+  const { isAuthenticated } = useAuthContext();
   
-  const handleStartGame = () => {
+  // Fetch colleague connections and game history from API
+  const {
+    data: colleaguesData,
+    isLoading: colleaguesLoading,
+    error: colleaguesError,
+  } = useGetColleagueConnectionsQuery(
+    undefined,
+    {
+      skip: !isAuthenticated,
+    }
+  );
+
+  const {
+    data: playToWinHistoryData,
+    isLoading: playToWinHistoryLoading,
+    error: playToWinHistoryError,
+  } = useGetPlayToWinHistoryQuery(
+    undefined,
+    {
+      skip: !isAuthenticated,
+    }
+  );
+
+  // Combine API data with userBehavior fallback
+  const data = useMemo(() => {
+    const baseData = getPlayToWinData(userBehavior);
+    
+    // Override with API data if available
+    if (colleaguesData?.success && colleaguesData.data) {
+      baseData.colleagueConnections = colleaguesData.data.colleagueCount;
+    }
+    
+    if (playToWinHistoryData?.success && playToWinHistoryData.data) {
+      baseData.playHistory = {
+        gamesPlayed: playToWinHistoryData.data.gamesPlayed,
+        gamesWon: playToWinHistoryData.data.gamesWon,
+        lastPlayed: playToWinHistoryData.data.lastPlayed
+          ? new Date(playToWinHistoryData.data.lastPlayed)
+          : undefined,
+      };
+    }
+    
+    return baseData;
+  }, [userBehavior, colleaguesData, playToWinHistoryData]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (colleaguesError && isAuthenticated) {
+      showError('Failed to load colleague connections', 'Please try again');
+    }
+    if (playToWinHistoryError && isAuthenticated) {
+      showError('Failed to load game history', 'Please try again');
+    }
+  }, [colleaguesError, playToWinHistoryError, isAuthenticated]);
+  
+  const handleStartGame = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     console.log('Starting play to win game');
-    // Handle game start
-  };
+    // Navigate to game creation screen
+    router.push('/play-to-win/create');
+  }, [router]);
 
-  const handleInviteColleagues = () => {
+  const handleInviteColleagues = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log('Inviting colleagues');
-    // Handle colleague invitation
-  };
+    // Navigate to colleague invitation screen
+    router.push('/play-to-win/invite');
+  }, [router]);
+
+  // Show skeleton while loading
+  if ((colleaguesLoading || playToWinHistoryLoading) && isAuthenticated) {
+    return <PlayToWinSectionSkeleton />;
+  }
+
+  // Hide section if no colleagues available (don't show empty state)
+  if ((colleaguesData?.success && colleaguesData.data?.colleagueCount === 0) ||
+      (data.colleagueConnections === 0 && isAuthenticated)) {
+    return null;
+  }
 
   return (
     <View style={{ marginBottom: 24 }}>

@@ -165,6 +165,8 @@ const KitchenCard = React.memo(({
   </TouchableOpacity>
 ));
 
+KitchenCard.displayName = 'KitchenCard';
+
 export default function LiveContent({
   scrollViewRef: externalScrollViewRef,
   scrollY: externalScrollY,
@@ -180,6 +182,8 @@ export default function LiveContent({
     externalIsHeaderSticky || false
   );
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedKitchen, setSelectedKitchen] = useState<LiveKitchen | null>(null);
   const internalScrollViewRef = useRef<any>(null);
   const scrollViewRef = externalScrollViewRef || internalScrollViewRef;
   const internalContentFadeAnim = useRef({ value: 1 });
@@ -237,12 +241,16 @@ export default function LiveContent({
   }, [liveStreamsError, isAuthenticated]);
 
   const handleKitchenPress = useCallback((kitchen: LiveKitchen) => {
-    // Live kitchen functionality would be implemented here
+    // Pass session ID and kitchen data when opening live viewer
+    setSelectedSessionId(kitchen.id);
+    setSelectedKitchen(kitchen);
     setShowLiveModal(true);
   }, []);
 
   const handleCloseLiveModal = useCallback(() => {
     setShowLiveModal(false);
+    setSelectedSessionId(null);
+    setSelectedKitchen(null);
   }, []);
 
   // Function to format numbers to K, M format
@@ -365,7 +373,13 @@ export default function LiveContent({
       </LinearGradient>
 
       {/* Live Screen Modal */}
-      {showLiveModal && <LiveScreenView onClose={handleCloseLiveModal} />}
+      {showLiveModal && selectedSessionId && (
+        <LiveScreenView 
+          sessionId={selectedSessionId} 
+          mockKitchenData={selectedKitchen}
+          onClose={handleCloseLiveModal} 
+        />
+      )}
     </>
   );
 }

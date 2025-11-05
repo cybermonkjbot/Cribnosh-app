@@ -1,5 +1,6 @@
+import { useGetDishDetailsQuery, useGetSimilarDishesQuery } from "@/store/customerApi";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CartButton } from "./CartButton";
@@ -40,6 +41,8 @@ interface MealItemDetailsProps {
     imageUrl?: string;
     kitchenName: string;
     kitchenAvatar?: string;
+    kitchenId?: string;
+    foodcreatorId?: string;
     calories: number;
     fat: string;
     protein: string;
@@ -71,26 +74,104 @@ interface MealItemDetailsProps {
   };
   onAddToCart?: (mealId: string, quantity: number) => void;
   onSimilarMealPress?: (mealId: string) => void;
+  onKitchenNamePress?: (kitchenName: string, kitchenId?: string, foodcreatorId?: string) => void;
 }
 
 export function MealItemDetails({
   mealId,
   onBack,
-  isLoading = false,
-  isLoadingSimilarMeals = false,
+  isLoading: propIsLoading = false,
+  isLoadingSimilarMeals: isLoadingSimilarMealsProp = false,
   mealData,
   onAddToCart,
   onSimilarMealPress,
+  onKitchenNamePress,
 }: MealItemDetailsProps) {
   const [quantity] = useState(2);
   const [isFavorite, setIsFavorite] = useState(false);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  // Fetch dish details from API if mealData is not provided
+  const { data: dishDetailsData, isLoading: isLoadingDishDetails } = useGetDishDetailsQuery(
+    mealId,
+    {
+      skip: !mealId || mealData !== undefined,
+    }
+  );
+
+  // Transform API dish details to mealData format
+  const apiMealData = useMemo(() => {
+    if (!dishDetailsData?.success || !dishDetailsData.data) return undefined;
+    
+    const dish = dishDetailsData.data as any; // Type assertion for API response
+    return {
+      title: dish.name || '',
+      description: dish.description || '',
+      price: typeof dish.price === 'string' 
+        ? parseFloat((dish.price as string).replace(/[£$]/g, '')) * 100 
+        : (dish.price || 0),
+      imageUrl: dish.image_url || (dish as any).images?.[0],
+      kitchenName: dish.kitchen_name || (dish as any).chef?.name || '',
+      kitchenAvatar: (dish as any).chef?.profile_image || (dish as any).kitchen_image,
+      kitchenId: dish.kitchen_id || (dish as any).chef?.id,
+      foodcreatorId: (dish as any).chef?.id,
+      calories: dish.calories || 0,
+      fat: dish.fat || '0g',
+      protein: dish.protein || '0g',
+      carbs: dish.carbs || '0g',
+      dietCompatibility: dish.diet_compatibility || 0,
+      dietMessage: dish.diet_message || '',
+      ingredients: dish.ingredients?.map((ing: any) => ({
+        name: ing.name || ing,
+        quantity: ing.quantity || '',
+        isAllergen: ing.is_allergen || false,
+        allergenType: ing.allergen_type,
+      })) || [],
+      isVegetarian: dish.is_vegetarian || (dish as any).dietary?.includes('vegetarian'),
+      isSafeForYou: dish.is_safe_for_you !== undefined ? dish.is_safe_for_you : true,
+      prepTime: dish.prep_time || (dish as any).preparation_time,
+      deliveryTime: dish.delivery_time,
+      chefName: (dish as any).chef?.name,
+      chefStory: (dish as any).chef?.story || (dish as any).chef?.bio,
+      chefTips: (dish as any).chef_tips || (dish as any).tips || [],
+    };
+  }, [dishDetailsData]);
+
+  // Use API mealData if props not provided, otherwise use props
+  const finalMealData = mealData || apiMealData;
+  const isLoading = isLoadingDishDetails || (propIsLoading && !mealData);
+
+  // Fetch similar meals if not provided via props
+  const { data: similarDishesData, isLoading: isLoadingSimilarMealsFromApi } = useGetSimilarDishesQuery(
+    { dishId: mealId, limit: 5 },
+    { skip: !mealId || (mealData?.similarMeals !== undefined) }
+  );
+
+  // Use provided similar meals or fetch from API
+  const similarMeals = useMemo(() => {
+    if (mealData?.similarMeals) {
+      return mealData.similarMeals;
+    }
+    if (similarDishesData?.success && similarDishesData.data?.dishes) {
+      return similarDishesData.data.dishes.map((dish) => ({
+        id: dish.id,
+        name: dish.name,
+        price: dish.price,
+        imageUrl: dish.image_url,
+        sentiment: dish.sentiment,
+        isVegetarian: dish.is_vegetarian,
+      }));
+    }
+    return undefined;
+  }, [mealData?.similarMeals, similarDishesData]);
+
+  const isLoadingSimilarMeals = isLoadingSimilarMealsProp || isLoadingSimilarMealsFromApi;
+
   const handleAddToCart = () => {
-    if (!mealData?.title) return;
+    if (!finalMealData?.title) return;
     onAddToCart?.(mealId, quantity);
-    console.log(`Added ${quantity} of ${mealData.title} to cart`);
+    console.log(`Added ${quantity} of ${finalMealData.title} to cart`);
     router.push("/orders/cart");  
   };
 
@@ -99,18 +180,18 @@ export function MealItemDetails({
   };
 
   // Determine which sections have data
-  const hasBasicInfo = !isLoading && mealData?.title && mealData?.kitchenName;
-  const hasKitchenInfo = hasBasicInfo && mealData.kitchenName;
-  const hasMealImage = hasBasicInfo && (mealData.imageUrl !== undefined || mealData.title);
-  const hasMealTitle = hasBasicInfo && mealData.title;
-  const hasMealBadges = hasBasicInfo && (mealData.isVegetarian !== undefined || mealData.isSafeForYou !== undefined);
-  const hasMealDescription = hasBasicInfo && mealData.description;
-  const hasMealInfo = hasBasicInfo && (mealData.prepTime || mealData.deliveryTime);
-  const hasDietCompatibility = hasBasicInfo && mealData.dietCompatibility !== undefined;
-  const hasNutritionalInfo = hasBasicInfo && mealData.calories !== undefined;
-  const hasIngredients = hasBasicInfo && mealData.ingredients && mealData.ingredients.length > 0;
-  const hasChefNotes = hasBasicInfo && (mealData.chefStory || (mealData.chefTips && mealData.chefTips.length > 0));
-  const hasSimilarMeals = !isLoadingSimilarMeals && mealData?.similarMeals && mealData.similarMeals.length > 0;
+  const hasBasicInfo = !isLoading && finalMealData?.title && finalMealData?.kitchenName;
+  const hasKitchenInfo = hasBasicInfo && finalMealData.kitchenName;
+  const hasMealImage = hasBasicInfo && (finalMealData.imageUrl !== undefined || finalMealData.title);
+  const hasMealTitle = hasBasicInfo && finalMealData.title;
+  const hasMealBadges = hasBasicInfo && (finalMealData.isVegetarian !== undefined || finalMealData.isSafeForYou !== undefined);
+  const hasMealDescription = hasBasicInfo && finalMealData.description;
+  const hasMealInfo = hasBasicInfo && (finalMealData.prepTime || finalMealData.deliveryTime);
+  const hasDietCompatibility = hasBasicInfo && finalMealData.dietCompatibility !== undefined;
+  const hasNutritionalInfo = hasBasicInfo && finalMealData.calories !== undefined;
+  const hasIngredients = hasBasicInfo && finalMealData.ingredients && finalMealData.ingredients.length > 0;
+  const hasChefNotes = hasBasicInfo && (finalMealData.chefStory || (finalMealData.chefTips && finalMealData.chefTips.length > 0));
+  const hasSimilarMeals = !isLoadingSimilarMeals && similarMeals && similarMeals.length > 0;
 
   return (
     <View style={styles.container}>
@@ -134,8 +215,9 @@ export function MealItemDetails({
           {/* Kitchen Info Component - positioned at top */}
           {hasKitchenInfo ? (
             <KitchenInfo
-              kitchenName={mealData.kitchenName}
-              kitchenAvatar={mealData.kitchenAvatar}
+              kitchenName={finalMealData.kitchenName}
+              kitchenAvatar={finalMealData.kitchenAvatar}
+              onPress={() => onKitchenNamePress?.(finalMealData.kitchenName, finalMealData.kitchenId, finalMealData.foodcreatorId)}
             />
           ) : (
             <KitchenInfoSkeleton />
@@ -143,14 +225,14 @@ export function MealItemDetails({
 
           {/* Meal Image Component */}
           {hasMealImage ? (
-            <MealImage imageUrl={mealData.imageUrl} title={mealData.title} />
+            <MealImage imageUrl={finalMealData.imageUrl} title={finalMealData.title} />
           ) : (
             <MealImageSkeleton />
           )}
 
           {/* Meal Title Component */}
           {hasMealTitle ? (
-            <MealTitle title={mealData.title} />
+            <MealTitle title={finalMealData.title} />
           ) : (
             <MealTitleSkeleton />
           )}
@@ -158,8 +240,8 @@ export function MealItemDetails({
           {/* Meal Badges Component - chips under the title */}
           {hasMealBadges ? (
             <MealBadges
-              isVegetarian={mealData.isVegetarian}
-              isSafeForYou={mealData.isSafeForYou}
+              isVegetarian={finalMealData.isVegetarian}
+              isSafeForYou={finalMealData.isSafeForYou}
             />
           ) : (
             <MealBadgesSkeleton />
@@ -168,8 +250,9 @@ export function MealItemDetails({
           {/* Meal Description Component */}
           {hasMealDescription ? (
             <MealDescription
-              description={mealData.description}
-              kitchenName={mealData.kitchenName}
+              description={finalMealData.description}
+              kitchenName={finalMealData.kitchenName}
+              onKitchenNamePress={() => onKitchenNamePress?.(finalMealData.kitchenName, finalMealData.kitchenId, finalMealData.foodcreatorId)}
             />
           ) : (
             <MealDescriptionSkeleton />
@@ -178,8 +261,8 @@ export function MealItemDetails({
           {/* Meal Info Component */}
           {hasMealInfo ? (
             <MealInfo
-              prepTime={mealData.prepTime || "15 min"}
-              deliveryTime={mealData.deliveryTime || "30 min"}
+              prepTime={finalMealData.prepTime || "15 min"}
+              deliveryTime={finalMealData.deliveryTime || "30 min"}
             />
           ) : (
             <MealInfoSkeleton />
@@ -187,7 +270,7 @@ export function MealItemDetails({
 
           {/* Diet Compatibility Bar Component */}
           {hasDietCompatibility ? (
-            <DietCompatibilityBar compatibility={mealData.dietCompatibility} />
+            <DietCompatibilityBar compatibility={finalMealData.dietCompatibility} />
           ) : (
             <DietCompatibilityBarSkeleton />
           )}
@@ -195,11 +278,11 @@ export function MealItemDetails({
           {/* Nutritional Info Component */}
           {hasNutritionalInfo ? (
             <NutritionalInfo
-              calories={mealData.calories}
-              fat={mealData.fat}
-              protein={mealData.protein}
-              carbs={mealData.carbs}
-              dietMessage={mealData.dietMessage}
+              calories={finalMealData.calories}
+              fat={finalMealData.fat}
+              protein={finalMealData.protein}
+              carbs={finalMealData.carbs}
+              dietMessage={finalMealData.dietMessage}
             />
           ) : (
             <NutritionalInfoSkeleton />
@@ -207,7 +290,7 @@ export function MealItemDetails({
 
           {/* Ingredients Component */}
           {hasIngredients ? (
-            <MealIngredients ingredients={mealData.ingredients} />
+            <MealIngredients ingredients={finalMealData.ingredients} />
           ) : (
             <MealIngredientsSkeleton />
           )}
@@ -215,10 +298,10 @@ export function MealItemDetails({
           {/* Chef Notes Component */}
           {hasChefNotes ? (
             <ChefNotes
-              story={mealData.chefStory}
-              tips={mealData.chefTips}
-              chefName={mealData.chefName}
-              chefAvatar={mealData.kitchenAvatar}
+              story={finalMealData.chefStory}
+              tips={finalMealData.chefTips}
+              chefName={finalMealData.chefName}
+              chefAvatar={finalMealData.kitchenAvatar}
             />
           ) : (
             <ChefNotesSkeleton />
@@ -226,7 +309,7 @@ export function MealItemDetails({
 
           {/* Similar Meals Component */}
           <SimilarMeals
-            meals={hasSimilarMeals ? mealData.similarMeals : undefined}
+            meals={hasSimilarMeals ? similarMeals : undefined}
             isLoading={isLoadingSimilarMeals || !hasSimilarMeals}
             onMealPress={onSimilarMealPress}
           />

@@ -1,23 +1,27 @@
+import { AddPaymentMethodModal } from "@/components/AddPaymentMethodScreen";
+import { useGetCribnoshBalanceQuery, useGetFamilyProfileQuery } from "@/store/customerApi";
 import { Entypo, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { Users } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
-    Image,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Image,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import { AddPaymentMethodModal } from "@/components/AddPaymentMethodScreen";
 
 const PAYMENT_METHOD_STORAGE_KEY = "cart_selected_payment_method";
 
 export default function PaymentMethodSelection() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card");
   const [isAddPaymentMethodModalVisible, setIsAddPaymentMethodModalVisible] = useState(false);
+  const { data: familyProfileData } = useGetFamilyProfileQuery();
+  const { data: balanceData } = useGetCribnoshBalanceQuery();
 
   // Load currently selected payment method
   useEffect(() => {
@@ -37,13 +41,29 @@ export default function PaymentMethodSelection() {
     loadPaymentMethod();
   }, []);
 
+  // Check if user is a family member
+  const isFamilyMember = familyProfileData?.data?.member_user_ids?.includes('current_user_id' as any) || false;
+  const familyPaymentEnabled = familyProfileData?.data?.settings?.shared_payment_methods || false;
+
   const paymentMethods = [
+    ...(isFamilyMember && familyPaymentEnabled
+      ? [
+          {
+            id: 'family',
+            name: 'Family Payment Method',
+            icon: null,
+            description: 'Using parent account payment',
+            isDefault: true,
+            isFamily: true,
+          },
+        ]
+      : []),
     {
       id: "card",
       name: "Credit/Debit Card",
       icon: require("@/assets/images/mastercard-logo.png"),
       description: "**** **** **** 3095",
-      isDefault: true,
+      isDefault: !isFamilyMember || !familyPaymentEnabled,
     },
     {
       id: "apple",
@@ -56,11 +76,20 @@ export default function PaymentMethodSelection() {
       id: "balance",
       name: "Cribnosh Balance",
       icon: require("@/assets/images/nosh-pass.png"),
-      description: "Use your available balance",
+      description: balanceData?.data?.is_available 
+        ? `£${((balanceData.data.balance || 0) / 100).toFixed(2)} available`
+        : "Balance not available",
       isDefault: false,
-      disabled: true,
+      disabled: !balanceData?.data?.is_available || (balanceData?.data?.balance || 0) <= 0,
     },
   ];
+
+  // Set default to family payment if available
+  useEffect(() => {
+    if (isFamilyMember && familyPaymentEnabled && paymentMethods.find((m) => m.id === 'family')) {
+      setSelectedPaymentMethod('family');
+    }
+  }, [isFamilyMember, familyPaymentEnabled]);
 
   const handleBack = () => {
     router.back();
@@ -153,7 +182,13 @@ export default function PaymentMethodSelection() {
               disabled={method.disabled}
             >
               <View style={styles.methodLeft}>
-                {renderPaymentMethodIcon(method)}
+                {method.isFamily ? (
+                  <View style={styles.familyIconContainer}>
+                    <Users size={24} color="#094327" />
+                  </View>
+                ) : (
+                  renderPaymentMethodIcon(method)
+                )}
                 <View style={styles.methodInfo}>
                   <Text style={styles.methodName}>
                     {method.name}
@@ -164,6 +199,11 @@ export default function PaymentMethodSelection() {
                   {method.isDefault && (
                     <Text style={styles.methodDefault}>
                       Default
+                    </Text>
+                  )}
+                  {method.isFamily && (
+                    <Text style={styles.familyBudgetText}>
+                      Budget limits apply
                     </Text>
                   )}
                 </View>
@@ -354,5 +394,20 @@ const styles = StyleSheet.create({
     fontSize: 18, // text-lg
     fontWeight: '700', // font-bold
     color: '#FFFFFF', // text-white
+  },
+  familyIconContainer: {
+    width: 48, // w-12
+    height: 32, // h-8
+    marginRight: 16, // mr-4
+    backgroundColor: '#E6FFE8', // bg-green-50
+    borderRadius: 8, // rounded-lg
+    alignItems: 'center', // items-center
+    justifyContent: 'center', // justify-center
+  },
+  familyBudgetText: {
+    fontSize: 12, // text-xs
+    color: '#094327', // text-green-700
+    fontWeight: '500', // font-medium
+    marginTop: 4, // mt-1
   },
 });

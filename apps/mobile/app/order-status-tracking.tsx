@@ -26,6 +26,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomSheetBase } from "../components/BottomSheetBase";
+import { useEffect, useRef } from "react";
+import {
+  startOrderLiveActivity,
+  updateOrderLiveActivity,
+  endOrderLiveActivity,
+  hasActiveLiveActivity,
+} from "@/lib/live-activity/orderLiveActivity";
 
 export default function OrderStatusTrackingScreen() {
   const router = useRouter();
@@ -72,6 +79,77 @@ export default function OrderStatusTrackingScreen() {
   const orderStatus =
     apiData?.data ||
     (apiLoading === false && !apiData && !orderId ? mockOrderStatus : undefined);
+
+  // Track previous status to detect changes
+  const previousStatusRef = useRef<string | undefined>(undefined);
+
+  // Live Activity integration
+  useEffect(() => {
+    if (!orderStatus || !orderId) return;
+
+    const currentStatus = orderStatus.current_status;
+    const orderNumber = orderStatus.order_id || orderId.substring(0, 8).toUpperCase();
+    
+    // Calculate estimated minutes
+    let estimatedMinutes: number | undefined;
+    if (orderStatus.estimated_delivery_time) {
+      const now = new Date();
+      const deliveryTime = new Date(orderStatus.estimated_delivery_time);
+      estimatedMinutes = Math.ceil((deliveryTime.getTime() - now.getTime()) / (1000 * 60));
+    }
+
+    const handleLiveActivity = async () => {
+      try {
+        // Check if status changed
+        const statusChanged = previousStatusRef.current !== currentStatus;
+        
+        // Normalize status values
+        let normalizedStatus = currentStatus;
+        if (currentStatus === 'on-the-way') {
+          normalizedStatus = 'out_for_delivery';
+        } else if (currentStatus === 'on_the_way') {
+          normalizedStatus = 'out_for_delivery';
+        }
+
+        // End Live Activity for completed orders
+        if (normalizedStatus === 'delivered' || normalizedStatus === 'cancelled') {
+          if (hasActiveLiveActivity(orderId)) {
+            await endOrderLiveActivity(orderId, normalizedStatus as any);
+          }
+          return;
+        }
+
+        // Start or update Live Activity for active orders
+        if (!hasActiveLiveActivity(orderId)) {
+          // Start new Live Activity
+          await startOrderLiveActivity({
+            orderId: orderId,
+            orderNumber: orderNumber,
+            status: normalizedStatus as any,
+            statusText: getStatusText(currentStatus),
+            estimatedDeliveryTime: orderStatus.estimated_delivery_time,
+            estimatedMinutes: estimatedMinutes && estimatedMinutes > 0 ? estimatedMinutes : undefined,
+            totalAmount: 0, // Will be updated if we get order details
+            deliveryPersonName: orderStatus.delivery_person?.name,
+          });
+        } else if (statusChanged) {
+          // Update existing Live Activity when status changes
+          await updateOrderLiveActivity(orderId, {
+            status: normalizedStatus as any,
+            statusText: getStatusText(currentStatus),
+            estimatedDeliveryTime: orderStatus.estimated_delivery_time,
+            estimatedMinutes: estimatedMinutes && estimatedMinutes > 0 ? estimatedMinutes : undefined,
+            deliveryPersonName: orderStatus.delivery_person?.name,
+          });
+        }
+      } catch (error) {
+        console.error('Error managing Live Activity:', error);
+      }
+    };
+
+    handleLiveActivity();
+    previousStatusRef.current = currentStatus;
+  }, [orderStatus, orderId]);
 
   const handleBack = () => {
     router.back();

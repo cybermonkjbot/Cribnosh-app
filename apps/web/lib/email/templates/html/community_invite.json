@@ -1,0 +1,15 @@
+{
+  "subject": "You’re Invited: CribNosh Community",
+  "variables": [
+    "firstName",
+    "city",
+    "perk",
+    "daysSinceSignup",
+    "expectedLaunchDate",
+    "daysToLaunch",
+    "chefName",
+    "chefCuisine",
+    "unsubscribeUrl",
+    "companyAddress"
+  ]
+}

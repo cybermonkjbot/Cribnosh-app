@@ -1,6 +1,13 @@
 import { Image } from 'expo-image';
 import { MapPin } from 'lucide-react-native';
+import React, { useCallback, useMemo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
+import { useGetNearbyChefsQuery } from '@/store/customerApi';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useUserLocation } from '../../hooks/useUserLocation';
+import { showError } from '../../lib/GlobalToastManager';
+import { KitchensNearMeEmpty } from './KitchensNearMeEmpty';
+import { KitchensNearMeSkeleton } from './KitchensNearMeSkeleton';
 
 interface Kitchen {
   id: string;
@@ -14,27 +21,87 @@ interface Kitchen {
 interface KitchensNearMeProps {
   onKitchenPress?: (kitchen: Kitchen) => void;
   onMapPress?: () => void;
+  useBackend?: boolean;
 }
 
-const kitchens: Kitchen[] = [
-  {
-    id: '1',
-    name: "Clara's Kitchen",
-    description: 'Get great burgers, chicken and pastries',
-    distance: '0.5km away from you',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face',
-    isVerified: true
-  },
-  {
-    id: '2',
-    name: "Chef Mike's", 
-    description: 'Fresh local ingredients daily',
-    distance: '1.2km away from you',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face'
-  }
-];
+export function KitchensNearMe({ 
+  onKitchenPress, 
+  onMapPress,
+  useBackend = true,
+}: KitchensNearMeProps) {
+  const { isAuthenticated } = useAuthContext();
+  const locationState = useUserLocation();
 
-export function KitchensNearMe({ onKitchenPress, onMapPress }: KitchensNearMeProps) {
+  // Backend API integration
+  const {
+    data: nearbyChefsData,
+    isLoading: backendLoading,
+    error: backendError,
+  } = useGetNearbyChefsQuery(
+    {
+      latitude: locationState.location?.latitude || 0,
+      longitude: locationState.location?.longitude || 0,
+      radius: 5, // 5km radius
+      limit: 10,
+      page: 1,
+    },
+    {
+      skip: !useBackend || !isAuthenticated || !locationState.location?.latitude || !locationState.location?.longitude,
+    }
+  );
+
+  // Transform API data to component format
+  const transformKitchenData = useCallback((apiChef: any): Kitchen | null => {
+    if (!apiChef) return null;
+
+    // Format distance
+    const distanceKm = apiChef.distance || 0;
+    const distanceText = distanceKm < 1 
+      ? `${Math.round(distanceKm * 1000)}m away from you`
+      : `${distanceKm.toFixed(1)}km away from you`;
+
+    // Get cuisine as description
+    const description = apiChef.cuisine || 'Various cuisines available';
+
+    return {
+      id: apiChef.id || '',
+      name: apiChef.name || 'Unknown Kitchen',
+      description,
+      distance: distanceText,
+      image: apiChef.image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face',
+      isVerified: apiChef.rating ? apiChef.rating >= 4.0 : false, // Verified if high rating
+    };
+  }, []);
+
+  // Process kitchens data
+  const kitchens: Kitchen[] = useMemo(() => {
+    if (!useBackend || !nearbyChefsData?.success || !nearbyChefsData.data?.chefs) {
+      return [];
+    }
+
+    const transformedKitchens = nearbyChefsData.data.chefs
+      .map(transformKitchenData)
+      .filter((kitchen): kitchen is Kitchen => kitchen !== null);
+    
+    return transformedKitchens;
+  }, [nearbyChefsData, useBackend, transformKitchenData]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (backendError && isAuthenticated) {
+      showError('Failed to load nearby kitchens', 'Please try again');
+    }
+  }, [backendError, isAuthenticated]);
+
+  // Show skeleton while loading
+  if (useBackend && backendLoading) {
+    return <KitchensNearMeSkeleton itemCount={2} />;
+  }
+
+  // Hide section if no kitchens (don't show empty state)
+  if (kitchens.length === 0) {
+    return null;
+  }
   return (
     <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>
       <View style={{ 

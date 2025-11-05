@@ -1,0 +1,13 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://cribnosh.com/sitemap.xml
+
+# Disallow admin and api routes
+Disallow: /api/*
+Disallow: /admin/*
+
+# Crawl-delay for all bots
+Crawl-delay: 1 

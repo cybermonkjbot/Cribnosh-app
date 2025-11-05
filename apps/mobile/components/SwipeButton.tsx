@@ -17,23 +17,28 @@ const BORDER_RADIUS = 28;
 interface SwipeButtonProps {
   onSwipeSuccess?: () => void;
   text?: string;
+  disabled?: boolean;
 }
 
 export const SwipeButton: React.FC<SwipeButtonProps> = ({
   onSwipeSuccess,
-      text = 'Swipe to complete selection',
+  text = 'Swipe to complete selection',
+  disabled = false,
 }) => {
   const translateX = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
+    .enabled(!disabled)
     .onUpdate((event) => {
-      translateX.value = Math.min(
-        Math.max(0, event.translationX),
-        TRACK_WIDTH - THUMB_SIZE
-      );
+      if (!disabled) {
+        translateX.value = Math.min(
+          Math.max(0, event.translationX),
+          TRACK_WIDTH - THUMB_SIZE
+        );
+      }
     })
     .onEnd(() => {
-      if (translateX.value >= TRACK_WIDTH - THUMB_SIZE - 10) {
+      if (!disabled && translateX.value >= TRACK_WIDTH - THUMB_SIZE - 10) {
         if (onSwipeSuccess) {
           runOnJS(onSwipeSuccess)();
         }
@@ -55,13 +60,13 @@ export const SwipeButton: React.FC<SwipeButtonProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.track}>
-        <Animated.Text style={[styles.text, textStyle]}>
+      <View style={[styles.track, disabled && styles.trackDisabled]}>
+        <Animated.Text style={[styles.text, textStyle, disabled && styles.textDisabled]}>
           {text}
         </Animated.Text>
 
         <GestureDetector gesture={panGesture}>
-          <Animated.View style={[styles.thumb, thumbStyle]}>
+          <Animated.View style={[styles.thumb, thumbStyle, disabled && styles.thumbDisabled]}>
             <Text style={styles.arrow}>{'→'}</Text>
           </Animated.View>
         </GestureDetector>
@@ -83,11 +88,17 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
+  trackDisabled: {
+    opacity: 0.5,
+  },
   text: {
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
     color: '#094327',
+  },
+  textDisabled: {
+    opacity: 0.6,
   },
   thumb: {
     position: 'absolute',
@@ -97,6 +108,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#094327',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  thumbDisabled: {
+    opacity: 0.6,
   },
   arrow: {
     color: '#E6FFE8',

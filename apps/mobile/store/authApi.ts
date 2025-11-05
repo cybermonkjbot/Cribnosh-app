@@ -6,6 +6,8 @@ import {
   PhoneLoginData,
   PhoneLoginResponse,
   SendLoginOTPResponse,
+  Verify2FARequest,
+  Verify2FAResponse,
 } from "@/types/auth";
 
 import { API_CONFIG } from '@/constants/api';
@@ -140,8 +142,8 @@ export const authApi = createApi({
         data: {
           success: boolean;
           message: string;
-          token: string;
-          user: {
+          token?: string;
+          user?: {
             user_id: string;
             email: string;
             name: string;
@@ -150,6 +152,8 @@ export const authApi = createApi({
             isNewUser: boolean;
             provider: string;
           };
+          requires2FA?: boolean;
+          verificationToken?: string;
         };
         message: string;
       },
@@ -157,6 +161,13 @@ export const authApi = createApi({
     >({
       query: (data) => ({
         url: "/auth/apple-signin",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    verify2FA: builder.mutation<Verify2FAResponse, Verify2FARequest>({
+      query: (data) => ({
+        url: "/auth/verify-2fa",
         method: "POST",
         body: data,
       }),

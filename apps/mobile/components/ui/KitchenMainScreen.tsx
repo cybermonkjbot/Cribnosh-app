@@ -1,4 +1,4 @@
-import { useGetKitchenFeaturedVideoQuery } from '@/store/customerApi';
+import { useGetKitchenDetailsQuery, useGetKitchenFeaturedVideoQuery } from '@/store/customerApi';
 import { useTopPosition } from '@/utils/positioning';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
@@ -35,7 +35,7 @@ interface KitchenMainScreenProps {
 }
 
 export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
-  kitchenName = "Amara's Kitchen",
+  kitchenName: propKitchenName,
   cuisine = "Nigerian",
   deliveryTime = "30-45 Mins",
   cartItems = 2,
@@ -50,6 +50,28 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   const router = useRouter();
   const topPosition = useTopPosition(20);
   const playIconScale = useSharedValue(1);
+
+  // Fetch kitchen details if kitchenId is provided
+  const { data: kitchenDetails, isLoading: isLoadingKitchenDetails } = useGetKitchenDetailsQuery(
+    { kitchenId: kitchenId || '' },
+    { skip: !kitchenId }
+  );
+
+  // Extract kitchen name from API response
+  // ResponseFactory returns: { success: true, data: { kitchenName, ... }, message: ... }
+  // RTK Query returns the full response, so we access .data
+  const apiKitchenName = (kitchenDetails as any)?.data?.kitchenName;
+
+  // Debug: Log to see what we're getting
+  // console.log('Kitchen Details Debug:', { kitchenId, kitchenDetails, apiKitchenName, propKitchenName });
+
+  // Use fetched kitchen name from API
+  // If kitchenId is provided, always prioritize API data over prop
+  // Never use "Amara's Kitchen" prop when we have a kitchenId
+  const isDemoName = propKitchenName === "Amara's Kitchen";
+  const kitchenName = kitchenId 
+    ? (apiKitchenName || (!isDemoName && propKitchenName) || (isLoadingKitchenDetails ? undefined : "Kitchen"))
+    : (propKitchenName || "Amara's Kitchen");
   
   // Fetch featured video if kitchenId is available
   const {
@@ -69,7 +91,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       -1, // infinite repeat
       true // reverse: scale back from 1.1 to 1
     );
-  }, []);
+  }, [playIconScale]);
 
   const playIconAnimatedStyle = useAnimatedStyle(() => {
     return {

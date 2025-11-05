@@ -5,6 +5,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from '@react-navigation/native';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import { useFonts } from 'expo-font';
 import * as Linking from 'expo-linking';
 import { Stack } from 'expo-router';
@@ -17,6 +18,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
+import { STRIPE_CONFIG } from '@/constants/api';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { store } from '@/store/index';
@@ -101,39 +103,47 @@ export default function RootLayout() {
         <EmotionsUIProvider>
           <AppProvider>
             <ToastProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <SafeAreaProvider>
-                  <BottomSheetModalProvider>
-                    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                      <Stack>
-                        <Stack.Screen name="index" options={{ headerShown: false }} />
-                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                        <Stack.Screen 
-                          name="shared-ordering" 
-                          options={{ 
-                            headerShown: false,
-                            presentation: 'modal',
-                            animation: 'slide_from_bottom',
-                            gestureEnabled: true,
-                          }} 
-                        />
-                        <Stack.Screen name="shared-link" options={{ headerShown: false }} />
-                        <Stack.Screen 
-                          name="sign-in" 
-                          options={{ 
-                            headerShown: false,
-                            presentation: 'modal',
-                            animationTypeForReplace: 'push'
-                          }} 
-                        />
-                        <Stack.Screen name="+not-found" />
-                      </Stack>
-                      <StatusBar translucent backgroundColor="transparent" barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-                    </ThemeProvider>
-                  </BottomSheetModalProvider>
-                  <GlobalToastContainer />
-                </SafeAreaProvider>
-              </GestureHandlerRootView>
+              <StripeProvider publishableKey={STRIPE_CONFIG.publishableKey}>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <SafeAreaProvider>
+                    <BottomSheetModalProvider>
+                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                        <Stack>
+                          <Stack.Screen name="index" options={{ headerShown: false }} />
+                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                          <Stack.Screen 
+                            name="shared-ordering" 
+                            options={{ 
+                              headerShown: false,
+                              presentation: 'modal',
+                              animation: 'slide_from_bottom',
+                              gestureEnabled: true,
+                            }} 
+                          />
+                          <Stack.Screen name="shared-link" options={{ headerShown: false }} />
+                          <Stack.Screen 
+                            name="sign-in" 
+                            options={{ 
+                              headerShown: false,
+                              presentation: 'modal',
+                              animationTypeForReplace: 'push'
+                            }} 
+                          />
+                          <Stack.Screen 
+                            name="payment-settings" 
+                            options={{ 
+                              headerShown: false,
+                            }} 
+                          />
+                          <Stack.Screen name="+not-found" />
+                        </Stack>
+                        <StatusBar translucent backgroundColor="transparent" barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+                      </ThemeProvider>
+                    </BottomSheetModalProvider>
+                    <GlobalToastContainer />
+                  </SafeAreaProvider>
+                </GestureHandlerRootView>
+              </StripeProvider>
             </ToastProvider>
           </AppProvider>
         </EmotionsUIProvider>

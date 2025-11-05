@@ -1,5 +1,5 @@
-import { mutation } from '../_generated/server';
 import { v } from 'convex/values';
+import { mutation } from '../_generated/server';
 
 export const create = mutation({
   args: {
@@ -39,6 +39,79 @@ export const create = mutation({
     });
 
     return caseId;
+  },
+});
+
+export const assignAgent = mutation({
+  args: {
+    caseId: v.id('supportCases'),
+    agentId: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    await ctx.db.patch(args.caseId, {
+      assigned_agent_id: args.agentId,
+      updated_at: now,
+    });
+    return { success: true };
+  },
+});
+
+export const createSupportChat = mutation({
+  args: {
+    caseId: v.id('supportCases'),
+    agentId: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    const supportCase = await ctx.db.get(args.caseId);
+    if (!supportCase) {
+      throw new Error('Support case not found');
+    }
+
+    // Check if chat already exists
+    if (supportCase.chat_id) {
+      const existingChat = await ctx.db.get(supportCase.chat_id);
+      if (existingChat) {
+        return { chatId: supportCase.chat_id };
+      }
+    }
+
+    // Create new chat with customer and agent
+    const now = Date.now();
+    const chatId = await ctx.db.insert('chats', {
+      participants: [supportCase.userId, args.agentId],
+      createdAt: now,
+      lastMessageAt: undefined,
+      metadata: {
+        support_case_id: args.caseId,
+        is_support_chat: true,
+        agent_id: args.agentId,
+      },
+    });
+
+    // Link chat to support case and assign agent
+    await ctx.db.patch(args.caseId, {
+      chat_id: chatId,
+      assigned_agent_id: args.agentId,
+      updated_at: now,
+    });
+
+    return { chatId };
+  },
+});
+
+export const addMessageToCase = mutation({
+  args: {
+    caseId: v.id('supportCases'),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    await ctx.db.patch(args.caseId, {
+      last_message: args.message,
+      updated_at: now,
+    });
+    return { success: true };
   },
 });
 

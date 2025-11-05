@@ -1,5 +1,11 @@
 import { Image } from 'expo-image';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useGetCuisinesQuery } from '@/store/customerApi';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { showError } from '../../lib/GlobalToastManager';
+import { CuisinesSectionEmpty } from './CuisinesSectionEmpty';
+import { CuisinesSectionSkeleton } from './CuisinesSectionSkeleton';
 
 interface Cuisine {
   id: string;
@@ -8,29 +14,79 @@ interface Cuisine {
 }
 
 interface CuisinesSectionProps {
+  cuisines?: Cuisine[];
   onCuisinePress?: (cuisine: Cuisine) => void;
   onSeeAllPress?: () => void;
+  useBackend?: boolean;
 }
 
-const cuisines: Cuisine[] = [
-  {
-    id: '1',
-    name: 'Italian',
-    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop'
-  },
-  {
-    id: '2', 
-    name: 'Mexican',
-    image: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=80&h=80&fit=crop'
-  },
-  {
-    id: '3',
-    name: 'French',
-    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=80&h=80&fit=crop'
-  },
-];
+export function CuisinesSection({ 
+  cuisines: propCuisines,
+  onCuisinePress, 
+  onSeeAllPress,
+  useBackend = true,
+}: CuisinesSectionProps) {
+  const { isAuthenticated } = useAuthContext();
 
-export function CuisinesSection({ onCuisinePress, onSeeAllPress }: CuisinesSectionProps) {
+  // Backend API integration
+  const {
+    data: cuisinesData,
+    isLoading: backendLoading,
+    error: backendError,
+  } = useGetCuisinesQuery(
+    { page: 1, limit: 20 },
+    {
+      skip: !useBackend || !isAuthenticated,
+    }
+  );
+
+  // Transform API data to component format
+  const transformCuisineData = useCallback((apiCuisine: any): Cuisine | null => {
+    if (!apiCuisine) return null;
+
+    return {
+      id: apiCuisine.id || '',
+      name: apiCuisine.name || 'Unknown Cuisine',
+      image: apiCuisine.image_url || apiCuisine.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop',
+    };
+  }, []);
+
+  // Process cuisines data
+  const cuisines: Cuisine[] = useMemo(() => {
+    // If propCuisines provided, use them (for filtered view)
+    if (propCuisines && propCuisines.length > 0) {
+      return propCuisines;
+    }
+
+    // Otherwise, use backend data if available
+    if (useBackend && cuisinesData?.success && cuisinesData.data) {
+      const cuisinesArray = Array.isArray(cuisinesData.data) ? cuisinesData.data : [];
+      const transformedCuisines = cuisinesArray
+        .map(transformCuisineData)
+        .filter((cuisine): cuisine is Cuisine => cuisine !== null);
+      return transformedCuisines;
+    }
+
+    // Fallback to empty array
+    return [];
+  }, [propCuisines, cuisinesData, useBackend, transformCuisineData]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (backendError && isAuthenticated) {
+      showError('Failed to load cuisines', 'Please try again');
+    }
+  }, [backendError, isAuthenticated]);
+
+  // Show skeleton while loading
+  if (useBackend && backendLoading) {
+    return <CuisinesSectionSkeleton itemCount={3} />;
+  }
+
+  // Hide section if no cuisines (don't show empty state)
+  if (cuisines.length === 0) {
+    return null;
+  }
   return (
     <View style={{ paddingVertical: 20 }}>
       <View style={{ 

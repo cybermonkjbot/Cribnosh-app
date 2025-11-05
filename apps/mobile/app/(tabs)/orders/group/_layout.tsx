@@ -15,6 +15,24 @@ export default function GroupLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="select-meal"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="[participant_id]/selections"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="create"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

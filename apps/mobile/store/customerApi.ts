@@ -1,6 +1,8 @@
 // store/customerApi.ts
 import { API_CONFIG } from '@/constants/api';
 import {
+  AcceptFamilyInvitationRequest,
+  AcceptFamilyInvitationResponse,
   AddPaymentMethodRequest,
   AddPaymentMethodResponse,
   // Request types
@@ -8,15 +10,21 @@ import {
   AddToCartResponse,
   CancelOrderRequest,
   CancelOrderResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   ChatMessageRequest,
   ChatMessageResponse,
   CheckoutRequest,
   CheckoutResponse,
   // New search types
+  Chef,
   ChefSearchParams,
   ChefSearchResponse,
+  CloseGroupOrderResponse,
   CreateCustomOrderRequest,
   CreateCustomOrderResponse,
+  CreateGroupOrderRequest,
+  CreateGroupOrderResponse,
   CreateOrderFromCartRequest,
   CreateOrderFromCartResponse,
   CreateOrderRequest,
@@ -26,11 +34,15 @@ import {
   DeleteAccountFeedbackRequest,
   DeleteAccountResponse,
   DeleteCustomOrderResponse,
+  DisableTwoFactorRequest,
+  DisableTwoFactorResponse,
   DownloadAccountDataResponse,
   EmotionsSearchRequest,
   EmotionsSearchResponse,
   GenerateSharedOrderLinkRequest,
   GenerateSharedOrderLinkResponse,
+  GetActiveOffersParams,
+  GetActiveOffersResponse,
   GetAllergiesResponse,
   GetBalanceTransactionsResponse,
   GetCaloriesProgressResponse,
@@ -47,7 +59,12 @@ import {
   GetDataSharingPreferencesResponse,
   GetDietaryPreferencesResponse,
   GetDishDetailsResponse,
+  GetFamilyOrdersResponse,
+  GetFamilyProfileResponse,
+  GetFamilySpendingResponse,
   GetForkPrintScoreResponse,
+  GetGroupOrderResponse,
+  GetLiveSessionDetailsResponse,
   GetLiveStreamsResponse,
   GetMenuDetailsResponse,
   GetMonthlyOverviewResponse,
@@ -58,15 +75,26 @@ import {
   GetPaymentMethodsResponse,
   GetPopularChefDetailsResponse,
   GetPopularChefsResponse,
+  GetQuickRepliesResponse,
+  GetSessionsResponse,
   GetSimilarDishesResponse,
+  GetSupportAgentResponse,
   GetSupportCasesResponse,
+  GetSupportChatMessagesResponse,
+  GetSupportChatResponse,
   GetTopCuisinesParams,
   GetTopCuisinesResponse,
   GetWeeklySummaryResponse,
+  InviteFamilyMemberRequest,
+  InviteFamilyMemberResponse,
+  JoinGroupOrderRequest,
+  JoinGroupOrderResponse,
   PaginationParams,
   RateOrderRequest,
   RateOrderResponse,
   RemoveCartItemResponse,
+  RemoveFamilyMemberRequest,
+  RevokeSessionResponse,
   SearchChefsByLocationRequest,
   SearchChefsByLocationResponse,
   SearchChefsRequest,
@@ -75,10 +103,15 @@ import {
   SearchResponse,
   SearchSuggestionsParams,
   SearchSuggestionsResponse,
+  SendSupportMessageRequest,
+  SendSupportMessageResponse,
   SetDefaultPaymentMethodResponse,
   SetupFamilyProfileRequest,
   SetupFamilyProfileResponse,
+  SetupTwoFactorResponse,
   SortParams,
+  TopUpBalanceRequest,
+  TopUpBalanceResponse,
   TrendingSearchParams,
   TrendingSearchResponse,
   UpdateAllergiesRequest,
@@ -95,6 +128,12 @@ import {
   UpdateDataSharingPreferencesResponse,
   UpdateDietaryPreferencesRequest,
   UpdateDietaryPreferencesResponse,
+  UpdateMemberBudgetRequest,
+  UpdateMemberPreferencesRequest,
+  UpdateMemberRequest,
+  UploadProfileImageResponse,
+  ValidateFamilyMemberEmailRequest,
+  ValidateFamilyMemberEmailResponse
 } from "@/types/customer";
 import { isTokenExpired } from "@/utils/jwtUtils";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
@@ -128,6 +167,76 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Custom baseQuery wrapper to handle non-JSON responses (e.g., HTML 404 pages)
 const baseQuery = async (args: any, api: any, extraOptions: any) => {
+  // For FormData requests, don't set content-type (let browser set it with boundary)
+  if (args.body instanceof FormData) {
+    // Create a custom fetchBaseQuery that doesn't set content-type
+    const customBaseQuery = fetchBaseQuery({
+      baseUrl: API_CONFIG.baseUrlNoTrailing,
+      prepareHeaders: async (headers) => {
+        const token = await SecureStore.getItemAsync("cribnosh_token");
+        if (token) {
+          if (isTokenExpired(token)) {
+            await SecureStore.deleteItemAsync("cribnosh_token");
+            await SecureStore.deleteItemAsync("cribnosh_user");
+          } else {
+            headers.set("authorization", `Bearer ${token}`);
+          }
+        }
+        headers.set("accept", "application/json");
+        // Don't set content-type for FormData - let browser set it with boundary
+        return headers;
+      },
+    });
+    const result = await customBaseQuery(args, api, extraOptions);
+    
+    // Process result through error handling
+    if (result.error) {
+      const errorStatus = typeof result.error.status === "number" 
+        ? result.error.status 
+        : (result.error as any).originalStatus || 500;
+      
+      const errorData = result.error.data;
+
+      if (errorStatus === 401 || errorStatus === "401") {
+        await SecureStore.deleteItemAsync("cribnosh_token");
+        await SecureStore.deleteItemAsync("cribnosh_user");
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { handle401Error } = require("@/utils/authErrorHandler");
+        handle401Error(result.error);
+      }
+
+      if (errorData && typeof errorData === "object" && "error" in errorData) {
+        return result;
+      }
+
+      const normalizedErrorData = errorData && typeof errorData === "object" 
+        ? (errorData as any)
+        : {};
+      
+      return {
+        error: {
+          status: errorStatus,
+          data: {
+            success: false,
+            error: {
+              code: `${errorStatus}`,
+              message: 
+                normalizedErrorData?.error?.message ||
+                normalizedErrorData?.message ||
+                (errorStatus === 401 ? "Unauthorized. Please sign in again." :
+                 errorStatus === 403 ? "Forbidden. You don't have permission." :
+                 errorStatus === 404 ? "Resource not found." :
+                 errorStatus === 500 ? "Internal server error. Please try again later." :
+                 `Request failed with status ${errorStatus}`),
+            },
+          },
+        },
+      };
+    }
+    
+    return result;
+  }
+  
   const result = await rawBaseQuery(args, api, extraOptions);
 
   // Handle parsing errors (when server returns HTML instead of JSON)
@@ -226,6 +335,9 @@ export const customerApi = createApi({
     "Cart",
     "CartItem",
     "Orders",
+    "GroupOrders",
+    "Connections",
+    "Treats",
     "Offers",
     "SearchResults",
     "LiveStreams",
@@ -235,8 +347,10 @@ export const customerApi = createApi({
     "KitchenFavorites",
     "KitchenMeals",
     "KitchenCategories",
+    "KitchenTags",
     "Dishes",
-  ],
+    "SupportChat",
+  ] as const,
   endpoints: (builder) => ({
     // ========================================================================
     // CUSTOMER PROFILE ENDPOINTS
@@ -267,6 +381,20 @@ export const customerApi = createApi({
         url: "/customer/profile/me",
         method: "PUT",
         body: data,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Upload customer profile image
+     * POST /images/customer/profile
+     * Backend endpoint: POST /images/customer/profile
+     */
+    uploadProfileImage: builder.mutation<UploadProfileImageResponse, FormData>({
+      query: (formData) => ({
+        url: "/images/customer/profile",
+        method: "POST",
+        body: formData,
       }),
       invalidatesTags: ["CustomerProfile"],
     }),
@@ -316,6 +444,71 @@ export const customerApi = createApi({
       }),
     }),
 
+    /**
+     * Change customer password
+     * PUT /customer/account/password
+     * Backend endpoint: PUT /customer/account/password
+     */
+    changePassword: builder.mutation<ChangePasswordResponse, ChangePasswordRequest>({
+      query: (data) => ({
+        url: "/customer/account/password",
+        method: "PUT",
+        body: data,
+      }),
+    }),
+
+    /**
+     * Get customer active sessions
+     * GET /customer/account/sessions
+     * Backend endpoint: GET /customer/account/sessions
+     */
+    getSessions: builder.query<GetSessionsResponse, void>({
+      query: () => ({
+        url: "/customer/account/sessions",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Revoke customer session
+     * DELETE /customer/account/sessions/:session_id
+     * Backend endpoint: DELETE /customer/account/sessions/:session_id
+     */
+    revokeSession: builder.mutation<RevokeSessionResponse, string>({
+      query: (sessionId) => ({
+        url: `/customer/account/sessions/${sessionId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Setup Two-Factor Authentication
+     * POST /customer/account/two-factor/setup
+     * Backend endpoint: POST /customer/account/two-factor/setup
+     */
+    setupTwoFactor: builder.mutation<SetupTwoFactorResponse, void>({
+      query: () => ({
+        url: "/customer/account/two-factor/setup",
+        method: "POST",
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Disable Two-Factor Authentication
+     * DELETE /customer/account/two-factor
+     * Backend endpoint: DELETE /customer/account/two-factor
+     */
+    disableTwoFactor: builder.mutation<DisableTwoFactorResponse, DisableTwoFactorRequest>({
+      query: (data) => ({
+        url: "/customer/account/two-factor",
+        method: "DELETE",
+        body: data,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
     // ========================================================================
     // CUISINE ENDPOINTS
     // ========================================================================
@@ -342,6 +535,21 @@ export const customerApi = createApi({
           method: "GET",
         };
       },
+      providesTags: ["Cuisines"],
+    }),
+
+    /**
+     * Get cuisine categories with kitchen counts
+     * GET /customer/cuisines/categories
+     */
+    getCuisineCategories: builder.query<
+      { success: boolean; data: { categories: { id: string; name: string; kitchen_count: number; image_url: string | null; is_active: boolean }[]; total: number } },
+      void
+    >({
+      query: () => ({
+        url: "/customer/cuisines/categories",
+        method: "GET",
+      }),
       providesTags: ["Cuisines"],
     }),
 
@@ -393,6 +601,28 @@ export const customerApi = createApi({
         const queryString = searchParams.toString();
         return {
           url: `/customer/chefs/popular${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Chefs"],
+    }),
+
+    /**
+     * Get featured kitchens with filtering
+     * GET /customer/chefs/featured
+     */
+    getFeaturedKitchens: builder.query<
+      { success: boolean; data: { kitchens: any[]; total: number; limit: number } },
+      { sentiment?: string; is_live?: boolean; limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.sentiment) searchParams.append("sentiment", params.sentiment);
+        if (params.is_live !== undefined) searchParams.append("is_live", params.is_live.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/chefs/featured${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -474,6 +704,47 @@ export const customerApi = createApi({
       ],
     }),
 
+    /**
+     * Get nearby chefs by location
+     * GET /customer/chefs/nearby
+     */
+    getNearbyChefs: builder.query<
+      {
+        success: boolean;
+        data: {
+          chefs: Chef[];
+          pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+          };
+        };
+      },
+      {
+        latitude: number;
+        longitude: number;
+        radius?: number;
+        limit?: number;
+        page?: number;
+      }
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("latitude", params.latitude.toString());
+        searchParams.append("longitude", params.longitude.toString());
+        if (params.radius) searchParams.append("radius", params.radius.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.page) searchParams.append("page", params.page.toString());
+
+        return {
+          url: `/customer/chefs/nearby?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Chefs"],
+    }),
+
     // ========================================================================
     // CART ENDPOINTS
     // ========================================================================
@@ -553,6 +824,26 @@ export const customerApi = createApi({
         const queryString = searchParams.toString();
         return {
           url: `/customer/orders${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Orders"],
+    }),
+
+    /**
+     * Get recent dishes for order again
+     * GET /customer/orders/recent-dishes
+     */
+    getRecentDishes: builder.query<
+      { success: boolean; data: { dishes: any[]; total: number; limit: number } },
+      { limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/orders/recent-dishes${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -699,6 +990,351 @@ export const customerApi = createApi({
     }),
 
     // ========================================================================
+    // CONNECTIONS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get all user connections
+     * GET /customer/connections
+     */
+    getUserConnections: builder.query<
+      {
+        success: boolean;
+        data: {
+          user_id: string;
+          user_name: string;
+          connection_type: string;
+          source: string;
+          metadata?: any;
+        }[];
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/connections",
+        method: "GET",
+      }),
+      providesTags: ["Connections"],
+    }),
+
+    /**
+     * Create manual connection
+     * POST /customer/connections
+     */
+    createConnection: builder.mutation<
+      { success: boolean; data: { success: boolean } },
+      {
+        connected_user_id: string;
+        connection_type: "colleague" | "friend";
+        company?: string;
+      }
+    >({
+      query: (data) => ({
+        url: "/customer/connections",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Connections"],
+    }),
+
+    /**
+     * Remove connection
+     * DELETE /customer/connections/{connection_id}
+     */
+    removeConnection: builder.mutation<
+      { success: boolean; data: { success: boolean } },
+      string
+    >({
+      query: (connectionId) => ({
+        url: `/customer/connections/${connectionId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Connections"],
+    }),
+
+    // ========================================================================
+    // TREATS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get user's treats
+     * GET /customer/treats
+     */
+    getTreats: builder.query<
+      {
+        success: boolean;
+        data: any[];
+      },
+      { type?: "given" | "received" | "all" }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.type) searchParams.append("type", params.type);
+        return {
+          url: `/customer/treats${searchParams.toString() ? `?${searchParams}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Treats"],
+    }),
+
+    /**
+     * Create treat
+     * POST /customer/treats
+     */
+    createTreat: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          treat_id: string;
+          treat_token: string;
+          expires_at: number;
+        };
+      },
+      {
+        treated_user_id?: string;
+        order_id?: string;
+        expires_in_hours?: number;
+        metadata?: any;
+      }
+    >({
+      query: (data) => ({
+        url: "/customer/treats",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Treats", "Connections"],
+    }),
+
+    /**
+     * Get treat by token
+     * GET /customer/treats/{treat_token}
+     */
+    getTreatByToken: builder.query<
+      {
+        success: boolean;
+        data: any;
+      },
+      string
+    >({
+      query: (treatToken) => ({
+        url: `/customer/treats/${treatToken}`,
+        method: "GET",
+      }),
+      providesTags: ["Treats"],
+    }),
+
+    // ========================================================================
+    // GROUP ORDER BUDGET & SELECTIONS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Chip into budget
+     * POST /customer/group-orders/{group_order_id}/budget/chip-in
+     */
+    chipInToBudget: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          success: boolean;
+          budget_contribution: number;
+          total_budget: number;
+        };
+      },
+      { group_order_id: string; amount: number }
+    >({
+      query: ({ group_order_id, amount }) => ({
+        url: `/customer/group-orders/${group_order_id}/budget/chip-in`,
+        method: "POST",
+        body: { amount },
+      }),
+      invalidatesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Get budget details
+     * GET /customer/group-orders/{group_order_id}/budget
+     */
+    getBudgetDetails: builder.query<
+      {
+        success: boolean;
+        data: {
+          initial_budget: number;
+          total_budget: number;
+          contributions: {
+            user_id: string;
+            user_name: string;
+            user_initials: string;
+            user_color?: string;
+            amount: number;
+            contributed_at: number;
+          }[];
+          participants_summary: {
+            user_id: string;
+            user_name: string;
+            budget_contribution: number;
+          }[];
+        };
+      },
+      string
+    >({
+      query: (groupOrderId) => ({
+        url: `/customer/group-orders/${groupOrderId}/budget`,
+        method: "GET",
+      }),
+      providesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Update participant selections
+     * POST /customer/group-orders/{group_order_id}/selections
+     */
+    updateParticipantSelections: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          success: boolean;
+          total_contribution: number;
+          total_amount: number;
+          final_amount: number;
+        };
+      },
+      {
+        group_order_id: string;
+        order_items: {
+          dish_id: string;
+          name: string;
+          quantity: number;
+          price: number;
+          special_instructions?: string;
+        }[];
+      }
+    >({
+      query: ({ group_order_id, order_items }) => ({
+        url: `/customer/group-orders/${group_order_id}/selections`,
+        method: "POST",
+        body: { order_items },
+      }),
+      invalidatesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Get participant selections
+     * GET /customer/group-orders/{group_order_id}/selections
+     */
+    getParticipantSelections: builder.query<
+      {
+        success: boolean;
+        data: {
+          user_id: string;
+          user_name: string;
+          user_initials: string;
+          user_color?: string;
+          order_items: {
+            dish_id: string;
+            name: string;
+            quantity: number;
+            price: number;
+            special_instructions?: string;
+          }[];
+          total_contribution: number;
+          selection_status: "not_ready" | "ready";
+          selection_ready_at?: number;
+        }[];
+      },
+      { group_order_id: string; user_id?: string }
+    >({
+      query: ({ group_order_id, user_id }) => {
+        const params = user_id ? `?user_id=${user_id}` : "";
+        return {
+          url: `/customer/group-orders/${group_order_id}/selections${params}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Mark selections as ready
+     * POST /customer/group-orders/{group_order_id}/ready
+     */
+    markSelectionsReady: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          success: boolean;
+          all_ready: boolean;
+          selection_phase: string;
+        };
+      },
+      string
+    >({
+      query: (groupOrderId) => ({
+        url: `/customer/group-orders/${groupOrderId}/ready`,
+        method: "POST",
+      }),
+      invalidatesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Get group order status
+     * GET /customer/group-orders/{group_order_id}/status
+     */
+    getGroupOrderStatus: builder.query<
+      {
+        success: boolean;
+        data: {
+          selection_phase: "budgeting" | "selecting" | "ready";
+          status: string;
+          budget: {
+            initial_budget: number;
+            total_budget: number;
+            contributions_count: number;
+          };
+          selections: {
+            total_participants: number;
+            ready_count: number;
+            not_ready_count: number;
+            all_ready: boolean;
+          };
+          order: {
+            total_amount: number;
+            discount_amount?: number;
+            final_amount: number;
+          };
+        };
+      },
+      string
+    >({
+      query: (groupOrderId) => ({
+        url: `/customer/group-orders/${groupOrderId}/status`,
+        method: "GET",
+      }),
+      providesTags: ["GroupOrders"],
+    }),
+
+    /**
+     * Start selection phase
+     * POST /customer/group-orders/{group_order_id}/start-selection
+     */
+    startSelectionPhase: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          success: boolean;
+          selection_phase: string;
+        };
+      },
+      string
+    >({
+      query: (groupOrderId) => ({
+        url: `/customer/group-orders/${groupOrderId}/start-selection`,
+        method: "POST",
+      }),
+      invalidatesTags: ["GroupOrders"],
+    }),
+
+    // ========================================================================
     // SPECIAL OFFERS ENDPOINTS
     // ========================================================================
 
@@ -716,6 +1352,114 @@ export const customerApi = createApi({
         };
       },
       providesTags: ["Offers"],
+    }),
+
+    // ========================================================================
+    // MEALS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get popular meals (global)
+     * GET /reviews/popular-picks
+     */
+    getPopularMeals: builder.query<
+      {
+        success: boolean;
+        data: {
+          popular: {
+            mealId: string;
+            meal: any;
+            avgRating: number;
+            reviewCount: number;
+            chef: any;
+          }[];
+        };
+      },
+      { limit?: number; userId?: string }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.userId) searchParams.append("userId", params.userId);
+        const queryString = searchParams.toString();
+        return {
+          url: `/reviews/popular-picks${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get takeaway items
+     * Uses search with category filter for takeaway items
+     */
+    getTakeawayItems: builder.query<
+      SearchResponse,
+      { limit?: number; page?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("q", "");
+        searchParams.append("type", "dishes");
+        searchParams.append("category", "takeaway");
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.page) searchParams.append("page", params.page.toString());
+
+        return {
+          url: `/customer/search?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get too fresh to waste items
+     * Uses search with sustainability tag filter
+     */
+    getTooFreshItems: builder.query<
+      SearchResponse,
+      { limit?: number; page?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("q", "");
+        searchParams.append("type", "dishes");
+        searchParams.append("tag", "too-fresh");
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.page) searchParams.append("page", params.page.toString());
+
+        return {
+          url: `/customer/search?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get top kebabs
+     * Uses search with kebab query and cuisine filter
+     */
+    getTopKebabs: builder.query<
+      SearchResponse,
+      { limit?: number; page?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("q", "kebab");
+        searchParams.append("type", "dishes");
+        searchParams.append("cuisine", "middle eastern");
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.page) searchParams.append("page", params.page.toString());
+
+        return {
+          url: `/customer/search?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
     }),
 
     // ========================================================================
@@ -992,9 +1736,36 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Top up Cribnosh balance
+     * POST /customer/balance/top-up
+     */
+    topUpBalance: builder.mutation<
+      TopUpBalanceResponse,
+      TopUpBalanceRequest
+    >({
+      query: (data) => ({
+        url: "/customer/balance/top-up",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["PaymentIntent"],
+    }),
+
+    /**
+     * Get family profile
+     * GET /customer/family-profile
+     */
+    getFamilyProfile: builder.query<GetFamilyProfileResponse, void>({
+      query: () => ({
+        url: "/customer/family-profile",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
      * Setup family profile
      * POST /customer/family-profile
-     * Backend endpoint needed: POST /customer/family-profile
      */
     setupFamilyProfile: builder.mutation<
       SetupFamilyProfileResponse,
@@ -1006,6 +1777,160 @@ export const customerApi = createApi({
         body: data,
       }),
       invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Invite family member
+     * POST /customer/family-profile/invite
+     */
+    inviteFamilyMember: builder.mutation<
+      InviteFamilyMemberResponse,
+      InviteFamilyMemberRequest
+    >({
+      query: (data) => ({
+        url: "/customer/family-profile/invite",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Validate family member email
+     * POST /customer/family-profile/validate-member
+     */
+    validateFamilyMemberEmail: builder.mutation<
+      ValidateFamilyMemberEmailResponse,
+      ValidateFamilyMemberEmailRequest
+    >({
+      query: (data) => ({
+        url: "/customer/family-profile/validate-member",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    /**
+     * Accept family invitation
+     * POST /customer/family-profile/accept
+     */
+    acceptFamilyInvitation: builder.mutation<
+      AcceptFamilyInvitationResponse,
+      AcceptFamilyInvitationRequest
+    >({
+      query: (data) => ({
+        url: "/customer/family-profile/accept",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Update member budget
+     * PUT /customer/family-profile/members/:memberId
+     */
+    updateMemberBudget: builder.mutation<
+      { success: boolean; message: string },
+      UpdateMemberBudgetRequest
+    >({
+      query: (data) => ({
+        url: `/customer/family-profile/members/${data.member_id}`,
+        method: "PUT",
+        body: {
+          budget_settings: data.budget_settings,
+        },
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Update member preferences
+     * PUT /customer/family-profile/members/:memberId
+     */
+    updateMemberPreferences: builder.mutation<
+      { success: boolean; message: string },
+      UpdateMemberPreferencesRequest
+    >({
+      query: (data) => ({
+        url: `/customer/family-profile/members/${data.member_id}`,
+        method: "PUT",
+        body: {
+          preferences: data.preferences,
+        },
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Update member (budget and/or preferences)
+     * PUT /customer/family-profile/members/:memberId
+     */
+    updateMember: builder.mutation<
+      { success: boolean; message: string },
+      UpdateMemberRequest
+    >({
+      query: (data) => ({
+        url: `/customer/family-profile/members/${data.member_id}`,
+        method: "PUT",
+        body: {
+          budget_settings: data.budget_settings,
+          preferences: data.preferences,
+        },
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Remove family member
+     * DELETE /customer/family-profile/members/:memberId
+     */
+    removeFamilyMember: builder.mutation<
+      { success: boolean; message: string },
+      RemoveFamilyMemberRequest
+    >({
+      query: (data) => ({
+        url: `/customer/family-profile/members/${data.member_id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Get family orders
+     * GET /customer/family-profile/orders
+     */
+    getFamilyOrders: builder.query<
+      GetFamilyOrdersResponse,
+      { member_user_id?: string; limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.member_user_id) {
+          searchParams.append("member_user_id", params.member_user_id);
+        }
+        if (params.limit) {
+          searchParams.append("limit", params.limit.toString());
+        }
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/family-profile/orders${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Orders"],
+    }),
+
+    /**
+     * Get family spending
+     * GET /customer/family-profile/spending
+     */
+    getFamilySpending: builder.query<GetFamilySpendingResponse, void>({
+      query: () => ({
+        url: "/customer/family-profile/spending",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
     }),
 
     // ========================================================================
@@ -1136,13 +2061,22 @@ export const customerApi = createApi({
     /**
      * Get support cases
      * GET /customer/support-cases
-     * Backend endpoint needed: GET /customer/support-cases
      */
-    getSupportCases: builder.query<GetSupportCasesResponse, void>({
-      query: () => ({
-        url: "/customer/support-cases",
-        method: "GET",
-      }),
+    getSupportCases: builder.query<
+      GetSupportCasesResponse,
+      { page?: number; limit?: number; status?: "open" | "closed" | "resolved" }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.page) searchParams.append("page", params.page.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.status) searchParams.append("status", params.status);
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/support-cases${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
       providesTags: ["CustomerProfile"],
     }),
 
@@ -1161,6 +2095,90 @@ export const customerApi = createApi({
         body: data,
       }),
       invalidatesTags: ["CustomerProfile"],
+    }),
+
+    // ========================================================================
+    // SUPPORT CHAT ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get or create active support chat
+     * GET /customer/support-chat
+     */
+    getSupportChat: builder.query<GetSupportChatResponse, { caseId?: string } | void>({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        if (params && params.caseId) {
+          searchParams.append("caseId", params.caseId);
+        }
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/support-chat${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SupportChat"],
+    }),
+
+    /**
+     * Get support chat messages
+     * GET /customer/support-chat/messages
+     */
+    getSupportChatMessages: builder.query<
+      GetSupportChatMessagesResponse,
+      { limit?: number; offset?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.offset) searchParams.append("offset", params.offset.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/support-chat/messages${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SupportChat"],
+    }),
+
+    /**
+     * Send message in support chat
+     * POST /customer/support-chat/messages
+     */
+    sendSupportMessage: builder.mutation<
+      SendSupportMessageResponse,
+      SendSupportMessageRequest
+    >({
+      query: (data) => ({
+        url: "/customer/support-chat/messages",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["SupportChat"],
+    }),
+
+    /**
+     * Get assigned support agent info
+     * GET /customer/support-chat/agent
+     */
+    getSupportAgent: builder.query<GetSupportAgentResponse, void>({
+      query: () => ({
+        url: "/customer/support-chat/agent",
+        method: "GET",
+      }),
+      providesTags: ["SupportChat"],
+    }),
+
+    /**
+     * Get quick reply suggestions
+     * GET /customer/support-chat/quick-replies
+     */
+    getQuickReplies: builder.query<GetQuickRepliesResponse, void>({
+      query: () => ({
+        url: "/customer/support-chat/quick-replies",
+        method: "GET",
+      }),
+      providesTags: ["SupportChat"],
     }),
 
     // ========================================================================
@@ -1186,6 +2204,20 @@ export const customerApi = createApi({
       providesTags: ["LiveStreams"],
     }),
 
+    /**
+     * Get live session details with meal
+     * GET /api/live-streaming/sessions/{sessionId}
+     */
+    getLiveSession: builder.query<GetLiveSessionDetailsResponse, string>({
+      query: (sessionId) => ({
+        url: `/api/live-streaming/sessions/${sessionId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, sessionId) => [
+        { type: "LiveStreams", id: sessionId },
+      ],
+    }),
+
     // ========================================================================
     // DISH ENDPOINTS
     // ========================================================================
@@ -1206,7 +2238,8 @@ export const customerApi = createApi({
 
     /**
      * Get similar dishes
-     * GET /customer/dishes/{dish_id}/similar
+     * GET /customer/meals/similar/{meal_id}
+     * Note: Uses new meals API endpoint that respects user preferences
      */
     getSimilarDishes: builder.query<
       GetSimilarDishesResponse,
@@ -1217,13 +2250,40 @@ export const customerApi = createApi({
         if (limit) params.append("limit", limit.toString());
         const queryString = params.toString();
         return {
-          url: `/customer/dishes/${dishId}/similar${queryString ? `?${queryString}` : ""}`,
+          url: `/customer/meals/similar/${dishId}${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
       providesTags: (result, error, { dishId }) => [
         { type: "Dishes", id: `${dishId}/similar` },
       ],
+    }),
+
+    /**
+     * Get personalized meal recommendations
+     * GET /customer/meals/recommended
+     */
+    getRecommendedMeals: builder.query<
+      {
+        success: boolean;
+        data: {
+          recommendations: any[];
+          count: number;
+          limit: number;
+        };
+      },
+      { limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/meals/recommended${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
     }),
 
     // ========================================================================
@@ -2024,6 +3084,224 @@ export const customerApi = createApi({
         { type: "KitchenCategories", id: kitchenId },
       ],
     }),
+
+    /**
+     * Get kitchen details by ID
+     * GET /api/customer/kitchens/{kitchenId}
+     */
+    getKitchenDetails: builder.query<
+      { kitchenId: string; chefId: string; chefName: string; kitchenName: string; address: string; certified: boolean },
+      { kitchenId: string }
+    >({
+      query: ({ kitchenId }) => ({
+        url: `/api/customer/kitchens/${kitchenId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenMeals", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Get kitchen tags (dietary tags from kitchen meals)
+     * GET /api/customer/kitchens/{kitchenId}/tags
+     */
+    getKitchenTags: builder.query<
+      { tag: string; count: number }[],
+      { kitchenId: string }
+    >({
+      query: ({ kitchenId }) => ({
+        url: `/api/customer/kitchens/${kitchenId}/tags`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { kitchenId }) => [
+        { type: "KitchenTags", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Get user behavior analytics
+     * GET /customer/analytics/user-behavior
+     */
+    getUserBehavior: builder.query<
+      {
+        success: boolean;
+        data: {
+          totalOrders: number;
+          daysActive: number;
+          usualDinnerItems: {
+            dish_id: string;
+            dish_name: string;
+            order_count: number;
+            last_ordered_at: number;
+            kitchen_name: string;
+            image_url?: string;
+          }[];
+          colleagueConnections: number;
+          playToWinHistory: {
+            gamesPlayed: number;
+            gamesWon: number;
+            lastPlayed?: number;
+          };
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/analytics/user-behavior",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Get usual dinner items
+     * GET /customer/orders/usual-dinner-items
+     */
+    getUsualDinnerItems: builder.query<
+      {
+        success: boolean;
+        data: {
+          items: {
+            dish_id: string;
+            name: string;
+            price: number;
+            image_url?: string;
+            kitchen_name: string;
+            kitchen_id: string;
+            order_count: number;
+            last_ordered_at: number;
+            avg_rating?: number;
+          }[];
+          total: number;
+        };
+      },
+      { limit?: number; time_range?: 'week' | 'month' | 'all' }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.time_range) searchParams.append("time_range", params.time_range);
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/orders/usual-dinner-items${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Orders"],
+    }),
+
+    /**
+     * Get colleague connections
+     * GET /customer/social/colleagues
+     */
+    getColleagueConnections: builder.query<
+      {
+        success: boolean;
+        data: {
+          colleagueCount: number;
+          colleagues: {
+            user_id: string;
+            user_name: string;
+            user_initials: string;
+            user_avatar?: string;
+            is_available: boolean;
+          }[];
+          total: number;
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/social/colleagues",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Get Play to Win game history
+     * GET /customer/games/play-to-win/history
+     */
+    getPlayToWinHistory: builder.query<
+      {
+        success: boolean;
+        data: {
+          gamesPlayed: number;
+          gamesWon: number;
+          lastPlayed?: number;
+          recentGames: {
+            game_id: string;
+            group_order_id: string;
+            played_at: number;
+            won: boolean;
+            participants: number;
+            total_amount: number;
+          }[];
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/games/play-to-win/history",
+        method: "GET",
+      }),
+      providesTags: ["Orders"],
+    }),
+
+    /**
+     * Get regional availability configuration
+     * GET /customer/regional-availability/config
+     */
+    getRegionalAvailabilityConfig: builder.query<
+      {
+        success: boolean;
+        data: {
+          enabled: boolean;
+          supportedRegions: string[];
+          supportedCities: string[];
+          supportedCountries: string[];
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/regional-availability/config",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Check region availability
+     * POST /customer/regional-availability/check
+     */
+    checkRegionAvailability: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          isSupported: boolean;
+        };
+      },
+      {
+        city?: string;
+        country?: string;
+        address?: {
+          city?: string;
+          country?: string;
+          coordinates?: {
+            latitude: number;
+            longitude: number;
+          };
+        };
+      }
+    >({
+      query: (data) => ({
+        url: "/customer/regional-availability/check",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -2035,6 +3313,9 @@ export const customerApi = createApi({
 export const {
   useGetCustomerProfileQuery,
   useUpdateCustomerProfileMutation,
+  useUploadProfileImageMutation,
+  useSetupTwoFactorMutation,
+  useDisableTwoFactorMutation,
 } = customerApi;
 
 // Account Management
@@ -2042,6 +3323,9 @@ export const {
   useDeleteAccountMutation,
   useSubmitDeleteAccountFeedbackMutation,
   useDownloadAccountDataMutation,
+  useChangePasswordMutation,
+  useGetSessionsQuery,
+  useRevokeSessionMutation,
 } = customerApi;
 
 // Food Safety
@@ -2066,7 +3350,7 @@ export const {
 } = customerApi;
 
 // Cuisines
-export const { useGetCuisinesQuery, useGetTopCuisinesQuery } = customerApi;
+export const { useGetCuisinesQuery, useGetTopCuisinesQuery, useGetCuisineCategoriesQuery } = customerApi;
 
 // Chefs
 export const {
@@ -2075,6 +3359,8 @@ export const {
   useSearchChefsByLocationMutation,
   useSearchChefsWithQueryMutation,
   useGetPopularChefDetailsQuery,
+  useGetNearbyChefsQuery,
+  useGetFeaturedKitchensQuery,
 } = customerApi;
 
 // Cart
@@ -2088,6 +3374,8 @@ export const {
 // Orders
 export const {
   useGetOrdersQuery,
+  useGetRecentDishesQuery,
+  useGetUsualDinnerItemsQuery,
   useGetOrderQuery,
   useGetOrderStatusQuery,
   useCreateOrderMutation,
@@ -2096,17 +3384,52 @@ export const {
   useRateOrderMutation,
 } = customerApi;
 
+// Analytics & User Behavior
+export const {
+  useGetUserBehaviorQuery,
+  useGetColleagueConnectionsQuery,
+  useGetPlayToWinHistoryQuery,
+} = customerApi;
+
+// Regional Availability
+export const {
+  useGetRegionalAvailabilityConfigQuery,
+  useCheckRegionAvailabilityMutation,
+} = customerApi;
+
 // Group Orders
 export const {
   useCreateGroupOrderMutation,
   useGetGroupOrderQuery,
   useJoinGroupOrderMutation,
   useCloseGroupOrderMutation,
+  useChipInToBudgetMutation,
+  useGetBudgetDetailsQuery,
+  useGetParticipantSelectionsQuery,
+  useUpdateParticipantSelectionsMutation,
+  useMarkSelectionsReadyMutation,
+  useGetGroupOrderStatusQuery,
+  useStartSelectionPhaseMutation,
+} = customerApi;
+
+// Connections
+export const {
+  useGetUserConnectionsQuery,
+  useCreateConnectionMutation,
+  useRemoveConnectionMutation,
 } = customerApi;
 
 // Special Offers
 export const {
   useGetActiveOffersQuery,
+} = customerApi;
+
+// Meals
+export const {
+  useGetPopularMealsQuery,
+  useGetTakeawayItemsQuery,
+  useGetTooFreshItemsQuery,
+  useGetTopKebabsQuery,
 } = customerApi;
 
 // Search
@@ -2131,7 +3454,18 @@ export const {
   useSetDefaultPaymentMethodMutation,
   useGetCribnoshBalanceQuery,
   useGetBalanceTransactionsQuery,
+  useTopUpBalanceMutation,
+  useGetFamilyProfileQuery,
   useSetupFamilyProfileMutation,
+  useInviteFamilyMemberMutation,
+  useValidateFamilyMemberEmailMutation,
+  useAcceptFamilyInvitationMutation,
+  useUpdateMemberBudgetMutation,
+  useUpdateMemberPreferencesMutation,
+  useUpdateMemberMutation,
+  useRemoveFamilyMemberMutation,
+  useGetFamilyOrdersQuery,
+  useGetFamilySpendingQuery,
 } = customerApi;
 
 // Kitchen Favorites
@@ -2147,10 +3481,20 @@ export const {
   useSearchKitchenMealsQuery,
   useGetKitchenPopularMealsQuery,
   useGetKitchenCategoriesQuery,
+  useGetKitchenDetailsQuery,
+  useGetKitchenTagsQuery,
 } = customerApi;
 
 // Live Streaming
-export const { useGetLiveStreamsQuery } = customerApi;
+export const { useGetLiveStreamsQuery, useGetLiveSessionQuery } = customerApi;
+
+export const {
+  useGetSupportChatQuery,
+  useGetSupportChatMessagesQuery,
+  useSendSupportMessageMutation,
+  useGetSupportAgentQuery,
+  useGetQuickRepliesQuery,
+} = customerApi;
 
 // Profile Screen Endpoints
 export const {
@@ -2175,6 +3519,7 @@ export const {
 export const {
   useGetDishDetailsQuery,
   useGetSimilarDishesQuery,
+  useGetRecommendedMealsQuery,
 } = customerApi;
 
 // Menus

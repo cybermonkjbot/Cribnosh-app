@@ -21,6 +21,7 @@ interface SignInScreenProps {
   onEmailSignIn?: () => void;
   onClose?: () => void;
   backgroundImage?: any;
+  notDismissable?: boolean; // If true, hides close button and prevents dismissal
 }
 
 export const SignInScreen: React.FC<SignInScreenProps> = ({
@@ -28,6 +29,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
   onAppleSignIn,
   onClose,
   backgroundImage,
+  notDismissable = false,
 }) => {
   const insets = useSafeAreaInsets();
   const { isAuthenticated, isSessionExpired, login } = useAuthContext();
@@ -224,8 +226,8 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        {/* Close Button */}
-        {onClose && (
+        {/* Close Button - only show if notDismissable is false */}
+        {onClose && !notDismissable && (
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>

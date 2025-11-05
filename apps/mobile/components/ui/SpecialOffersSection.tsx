@@ -1,6 +1,11 @@
+import { useGetActiveOffersQuery } from '@/store/customerApi';
 import { Image } from 'expo-image';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { showError } from '../../lib/GlobalToastManager';
+import { SpecialOffersSectionEmpty } from './SpecialOffersSectionEmpty';
+import { SpecialOffersSectionSkeleton } from './SpecialOffersSectionSkeleton';
 
 interface SpecialOffer {
   id: string;
@@ -14,35 +19,143 @@ interface SpecialOffer {
 }
 
 // Utility function to format date without year
-const formatDateWithoutYear = (dateString: string): string => {
-  // If it's already formatted without year, return as is
-  if (!dateString.includes(',')) {
-    return dateString;
+const formatDateWithoutYear = (dateString: string | number): string => {
+  // Handle timestamp
+  let date: Date;
+  if (typeof dateString === 'number') {
+    date = new Date(dateString);
+  } else {
+    // If it's already formatted without year, return as is
+    if (!dateString.includes(',')) {
+      return dateString;
+    }
+    date = new Date(dateString);
   }
   
   // Parse date and format without year
   try {
-    const date = new Date(dateString);
     const month = date.toLocaleString('en-GB', { month: 'short' });
     const day = date.getDate();
     return `${month} ${day}`;
-  } catch (e) {
+  } catch {
     // If parsing fails, try to remove year from string
-    return dateString.replace(/,?\s*\d{4}$/, '');
+    return typeof dateString === 'string' ? dateString.replace(/,?\s*\d{4}$/, '') : '';
+  }
+};
+
+// Utility function to calculate remaining time
+const calculateRemainingTime = (endsAt: number): string | undefined => {
+  const now = Date.now();
+  const diff = endsAt - now;
+  
+  if (diff <= 0) return undefined;
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  
+  if (days > 0) {
+    return `${days} ${days === 1 ? 'day' : 'days'} left`;
+  } else if (hours > 0) {
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'} left`;
+  } else {
+    return 'Ending soon';
   }
 };
 
 interface SpecialOffersSectionProps {
-  offers: SpecialOffer[];
+  offers?: SpecialOffer[];
   onOfferPress?: (offer: SpecialOffer) => void;
   onSeeAllPress?: () => void;
+  useBackend?: boolean;
 }
 
 export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
-  offers,
+  offers: propOffers,
   onOfferPress,
-  onSeeAllPress
+  onSeeAllPress,
+  useBackend = true,
 }) => {
+  const { isAuthenticated } = useAuthContext();
+
+  // Backend API integration
+  const {
+    data: offersData,
+    isLoading: backendLoading,
+    error: backendError,
+  } = useGetActiveOffersQuery(
+    { target: 'all' },
+    {
+      skip: !useBackend || !isAuthenticated,
+    }
+  );
+
+  // Transform API data to component format
+  const transformOfferData = useCallback((apiOffer: any): SpecialOffer | null => {
+    if (!apiOffer) return null;
+
+    // Format discount value
+    let discountText = '';
+    if (apiOffer.discount_type === 'percentage') {
+      discountText = `${apiOffer.discount_value}%`;
+    } else if (apiOffer.discount_type === 'fixed_amount') {
+      discountText = `£${(apiOffer.discount_value / 100).toFixed(2)}`;
+    } else if (apiOffer.discount_type === 'free_delivery') {
+      discountText = 'Free Delivery';
+    }
+
+    // Format valid until date
+    const validUntil = formatDateWithoutYear(apiOffer.ends_at);
+    const remainingTime = calculateRemainingTime(apiOffer.ends_at);
+
+    return {
+      id: apiOffer.offer_id || apiOffer._id || '',
+      title: apiOffer.title || 'Special Offer',
+      description: apiOffer.description || '',
+      discount: discountText,
+      image: {
+        uri: apiOffer.background_image_url || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop',
+      },
+      validUntil,
+      isLimited: apiOffer.offer_type === 'limited_time',
+      remainingTime,
+    };
+  }, []);
+
+  // Process offers data
+  const offers: SpecialOffer[] = useMemo(() => {
+    // If propOffers provided, use them
+    if (propOffers && propOffers.length > 0) {
+      return propOffers;
+    }
+
+    // Otherwise, use backend data if available
+    if (useBackend && offersData?.success && offersData.data?.offers) {
+      const transformedOffers = offersData.data.offers
+        .map(transformOfferData)
+        .filter((offer): offer is SpecialOffer => offer !== null);
+      return transformedOffers;
+    }
+
+    // Fallback to empty array
+    return [];
+  }, [propOffers, offersData, useBackend, transformOfferData]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (backendError && isAuthenticated) {
+      showError('Failed to load special offers', 'Please try again');
+    }
+  }, [backendError, isAuthenticated]);
+
+  // Show skeleton while loading
+  if (useBackend && backendLoading) {
+    return <SpecialOffersSectionSkeleton itemCount={3} />;
+  }
+
+  // Hide section if no offers (don't show empty state)
+  if (offers.length === 0) {
+    return null;
+  }
   const renderOfferCard = (offer: SpecialOffer, index: number) => (
     <TouchableOpacity
       key={offer.id}

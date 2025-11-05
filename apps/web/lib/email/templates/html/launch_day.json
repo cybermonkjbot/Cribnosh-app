@@ -1,0 +1,15 @@
+{
+  "subject": "You’re In! Welcome to the New Food Frontier",
+  "variables": [
+    "firstName",
+    "city",
+    "perk",
+    "daysSinceSignup",
+    "expectedLaunchDate",
+    "daysToLaunch",
+    "chefName",
+    "chefCuisine",
+    "unsubscribeUrl",
+    "companyAddress"
+  ]
+}

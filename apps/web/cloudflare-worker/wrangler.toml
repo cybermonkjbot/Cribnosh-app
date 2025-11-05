@@ -1,0 +1,21 @@
+name = "cribnosh-warmer"
+main = "src/index.js"
+compatibility_date = "2024-01-15"
+workers_dev = false
+
+# Environment variables
+[vars]
+SERVICE_URL = "https://cribnosh.com"  # CribNosh production URL
+WARMING_INTERVAL = "300"  # 5 minutes in seconds
+REQUEST_TIMEOUT = "10000"  # 10 seconds timeout
+
+# Cron trigger - runs every 5 minutes
+[[triggers]]
+crons = ["*/5 * * * *"]
+
+# KV namespace for storing warming statistics (optional)
+# Uncomment and configure if you want statistics tracking
+# [[kv_namespaces]]
+# binding = "WARMING_STATS"
+# id = "your-kv-namespace-id"
+# preview_id = "your-preview-kv-namespace-id"

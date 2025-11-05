@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AISparkles } from './ui/AISparkles';
 import { Avatar } from './ui/Avatar';
 import { formatNumberWithCommas } from './ui/utils';
@@ -7,8 +7,9 @@ import { formatNumberWithCommas } from './ui/utils';
 interface GroupTotalSpendCardProps {
   amount: string;
   label?: string;
-  avatars: { uri: string }[];
+  avatars: { uri: string; user_id?: string }[];
   glow?: boolean;
+  onPress?: () => void;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -17,11 +18,15 @@ const CARD_HEIGHT = CARD_WIDTH * 0.28;
 const AVATAR_SIZE = screenWidth < 375 ? 32 : 36;
 const AVATAR_OVERLAP = screenWidth < 375 ? 14 : 18;
 
-const GroupTotalSpendCard: React.FC<GroupTotalSpendCardProps> = ({ amount, label = 'Chip in to budget', avatars, glow }) => {
+const GroupTotalSpendCard: React.FC<GroupTotalSpendCardProps> = ({ amount, label = 'Chip in to budget', avatars, glow, onPress }) => {
   const mainCardHeight = CARD_HEIGHT * 0.78;
 
+  const CardWrapper = onPress ? TouchableOpacity : View;
+  const wrapperProps = onPress ? { onPress, activeOpacity: 0.8 } : {};
+
   return (
-    <View
+    <CardWrapper
+      {...wrapperProps}
       style={[
         styles.container,
         { width: CARD_WIDTH, height: CARD_HEIGHT },
@@ -115,7 +120,7 @@ const GroupTotalSpendCard: React.FC<GroupTotalSpendCardProps> = ({ amount, label
           ))}
         </View>
       </View>
-    </View>
+    </CardWrapper>
   );
 };
 

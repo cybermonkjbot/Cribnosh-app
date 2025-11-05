@@ -2,6 +2,7 @@ import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import { AlertCircle, Search } from "lucide-react-native";
 import React, {
   useCallback,
   useEffect,
@@ -40,6 +41,7 @@ import {
   getDynamicSearchPrompt,
 } from "../../utils/dynamicSearchPrompts";
 import SearchArea from "../SearchArea";
+import { SearchSuggestionsSkeleton } from "./BottomSearchDrawer/SearchSkeletons";
 import { Button } from "./Button";
 
 // Customer API imports
@@ -412,7 +414,7 @@ export function BottomSearchDrawer({
 
   // Search API hooks with dietary filters
   const dietaryFilters = getDietaryFiltersFromActiveFilter(activeFilter);
-  const { data: searchData, error: searchError } = useSearchQuery(
+  const { data: searchData, isLoading: isLoadingSearch, isError: isErrorSearch, error: searchError } = useSearchQuery(
     {
       query: searchQuery,
       type:
@@ -429,11 +431,8 @@ export function BottomSearchDrawer({
   // Emotions search mutation for natural language queries
   const [searchWithEmotions, { isLoading: isSearchingWithEmotions }] = useSearchWithEmotionsMutation();
   
-  // Combined loading state for all search operations
-  const isSearching = isLoading || isSearchingWithEmotions;
-
   // Chef search hook
-  const { data: chefSearchData, error: chefSearchError } = useSearchChefsQuery(
+  const { data: chefSearchData, isLoading: isLoadingChefSearch, isError: isErrorChefSearch, error: chefSearchError } = useSearchChefsQuery(
     {
       q: searchQuery,
       limit: maxSuggestions,
@@ -447,7 +446,7 @@ export function BottomSearchDrawer({
   );
 
   // Search suggestions hook
-  const { data: suggestionsData, error: suggestionsError } =
+  const { data: suggestionsData, isLoading: isLoadingSuggestionsQuery, isError: isErrorSuggestionsQuery, error: suggestionsError } =
     useGetSearchSuggestionsQuery(
       {
         q: searchQuery,
@@ -461,7 +460,7 @@ export function BottomSearchDrawer({
     );
 
   // Trending search hook
-  const { data: trendingData, error: trendingError } =
+  const { data: trendingData, isLoading: isLoadingTrendingQuery, isError: isErrorTrendingQuery, error: trendingError } =
     useGetTrendingSearchQuery(
       {
         limit: maxSuggestions,
@@ -473,9 +472,14 @@ export function BottomSearchDrawer({
       }
     );
 
+  // Combined loading state for all search operations
+  const isSearching = isLoading || isSearchingWithEmotions || isLoadingSearch || isLoadingChefSearch || isLoadingSuggestionsQuery || isLoadingTrendingQuery;
+
   // Removed unused bottomSheetRef
   const handleNavigate = (): void => {
-    router.push("/orders/group");
+    // Navigate to create group order screen
+    // User will need to select a chef/restaurant if not already selected
+    router.push("/orders/group/create");
   };
 
   // Custom order and link generation hooks
@@ -896,6 +900,7 @@ export function BottomSearchDrawer({
   const [scrollEnabledState, setScrollEnabledState] = useState(false);
   const [buttonDisabledState, setButtonDisabledState] = useState(false);
   const [snapPointState, setSnapPointState] = useState(SNAP_POINTS.COLLAPSED);
+  const [isExpandedState, setIsExpandedState] = useState(false);
 
   // Derived values for safe access in JSX
   const currentGestureState = useDerivedValue(() => gestureState.value);
@@ -929,6 +934,10 @@ export function BottomSearchDrawer({
   useDerivedValue(() => {
     runOnJS(setIsSearchFocusedState)(isSearchFocused);
   }, [isSearchFocused]);
+
+  useDerivedValue(() => {
+    runOnJS(setIsExpandedState)(isExpandedCondition.value);
+  });
 
   // Backdrop with proper opacity and interaction blocking
   const backdropStyle = useAnimatedStyle(() => {
@@ -1173,15 +1182,30 @@ export function BottomSearchDrawer({
     }));
   }, []);
 
-  // Process search suggestions from multiple API sources or fallback to mock data
+  // Determine which loading state to use based on active query
+  const isLoadingSuggestions = searchQuery.trim() 
+    ? (activeSearchFilter === "chefs" ? isLoadingChefSearch : isLoadingSuggestionsQuery || isLoadingSearch)
+    : isLoadingTrendingQuery;
+
+  // Determine which error state to use based on active query
+  const isErrorSuggestions = searchQuery.trim()
+    ? (activeSearchFilter === "chefs" ? isErrorChefSearch : isErrorSuggestionsQuery || isErrorSearch)
+    : isErrorTrendingQuery;
+
+  // Process search suggestions from multiple API sources - no fallback to mock data
   const searchSuggestions = useMemo(() => {
+    // If not authenticated, return empty array (no mock data)
+    if (!isAuthenticated) {
+      return [];
+    }
+
     let apiResults: any[] = [];
 
     // Priority 1: Use search suggestions API if available
     if (
       suggestionsData?.success &&
       suggestionsData.data?.suggestions &&
-      isAuthenticated
+      searchQuery.trim()
     ) {
       apiResults = transformSuggestionResults(suggestionsData.data.suggestions);
     }
@@ -1189,107 +1213,26 @@ export function BottomSearchDrawer({
     else if (
       chefSearchData?.success &&
       chefSearchData.data?.chefs &&
-      isAuthenticated &&
-      activeSearchFilter === "chefs"
+      activeSearchFilter === "chefs" &&
+      searchQuery.trim()
     ) {
       apiResults = transformChefResults(chefSearchData.data.chefs);
     }
     // Priority 3: Use general search API if available
-    else if (searchData?.success && searchData.data && isAuthenticated) {
+    else if (searchData?.success && searchData.data && searchQuery.trim()) {
       apiResults = transformSearchResults(searchData.data);
     }
-    // Priority 4: Use trending search API if no query and authenticated
+    // Priority 4: Use trending search API if no query
     else if (
       trendingData?.success &&
       trendingData.data?.trending &&
-      isAuthenticated &&
       !searchQuery.trim()
     ) {
       apiResults = transformTrendingResults(trendingData.data.trending);
     }
 
-    // If we have API results, return them
-    if (apiResults.length > 0) {
-      // Show success toast when search results are loaded
-      showInfo(`Found ${apiResults.length} results`, "Search Results");
-      return apiResults;
-    }
-
-    // Fallback to mock data when not authenticated or no API results
-    return [
-      {
-        id: 1,
-        text: "Pizza",
-        category: "Italian",
-        kitchen: "Mario's Kitchen",
-        time: "25 min",
-        distance: "0.8 mi",
-        type: "meals",
-      },
-      {
-        id: 2,
-        text: "Sushi",
-        category: "Japanese",
-        kitchen: "Tokyo Express",
-        time: "30 min",
-        distance: "1.2 mi",
-        type: "meals",
-      },
-      {
-        id: 3,
-        text: "Burger",
-        category: "American",
-        kitchen: "Street Grill",
-        time: "20 min",
-        distance: "0.5 mi",
-        type: "meals",
-      },
-      {
-        id: 4,
-        text: "Tacos",
-        category: "Mexican",
-        kitchen: "Casa Miguel",
-        time: "15 min",
-        distance: "0.3 mi",
-        type: "meals",
-      },
-      {
-        id: 5,
-        text: "Pad Thai",
-        category: "Thai",
-        kitchen: "Bangkok Bites",
-        time: "35 min",
-        distance: "1.5 mi",
-        type: "meals",
-      },
-      {
-        id: 6,
-        text: "Mario's Kitchen",
-        category: "Italian",
-        rating: "4.8",
-        time: "25 min",
-        distance: "0.8 mi",
-        type: "kitchens",
-      },
-      {
-        id: 7,
-        text: "Tokyo Express",
-        category: "Japanese",
-        rating: "4.6",
-        time: "30 min",
-        distance: "1.2 mi",
-        type: "kitchens",
-      },
-      {
-        id: 8,
-        text: "Street Grill",
-        category: "American",
-        rating: "4.4",
-        time: "20 min",
-        distance: "0.5 mi",
-        type: "kitchens",
-      },
-    ];
+    // Return API results (empty array if no results)
+    return apiResults;
   }, [
     searchData,
     chefSearchData,
@@ -1553,7 +1496,7 @@ export function BottomSearchDrawer({
   return (
     <>
       {/* Backdrop - Only show when expanded or search focused */}
-      {isSearchFocused || isExpandedCondition.value ? (
+      {isSearchFocused || isExpandedState ? (
         <Animated.View
           style={[
             backdropStyle,
@@ -1812,38 +1755,93 @@ export function BottomSearchDrawer({
 
                   {/* Search Results - Compact list */}
                   <View>
-                    {searchQuery.trim() ? (
-                      <Text
+                    {isLoadingSuggestions ? (
+                      <SearchSuggestionsSkeleton />
+                    ) : isErrorSuggestions ? (
+                      <View
                         style={{
-                          color: "#2a2a2a",
-                          fontSize: 12,
-                          fontWeight: "700",
-                          marginBottom: 16,
-                          textTransform: "uppercase",
-                          letterSpacing: 1,
-                          opacity: 0.8,
+                          alignItems: "center",
+                          paddingVertical: 48,
+                          paddingHorizontal: 24,
                         }}
                       >
-                        {filteredSuggestions.length} RESULTS FOR &quot;
-                        {searchQuery.toUpperCase()}&quot;
-                      </Text>
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 32,
+                            backgroundColor: "rgba(255, 255, 255, 0.08)",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: 16,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 2,
+                          }}
+                        >
+                          <AlertCircle size={32} color="#6B7280" />
+                        </View>
+                        <Text
+                          style={{
+                            color: "#2a2a2a",
+                            fontSize: 17,
+                            fontWeight: "600",
+                            marginBottom: 6,
+                            textAlign: "center",
+                            letterSpacing: -0.2,
+                          }}
+                        >
+                          Failed to load results
+                        </Text>
+                        <Text
+                          style={{
+                            color: "#6a6a6a",
+                            fontSize: 14,
+                            textAlign: "center",
+                            lineHeight: 20,
+                            fontWeight: "400",
+                          }}
+                        >
+                          Please try again later
+                        </Text>
+                      </View>
                     ) : (
-                      <Text
-                        style={{
-                          color: "#2a2a2a",
-                          fontSize: 12,
-                          fontWeight: "700",
-                          marginBottom: 16,
-                          textTransform: "uppercase",
-                          letterSpacing: 1,
-                          opacity: 0.8,
-                        }}
-                      >
-                        POPULAR {activeSearchFilter.toUpperCase()}
-                      </Text>
-                    )}
+                      <>
+                        {searchQuery.trim() ? (
+                          <Text
+                            style={{
+                              color: "#2a2a2a",
+                              fontSize: 12,
+                              fontWeight: "700",
+                              marginBottom: 16,
+                              textTransform: "uppercase",
+                              letterSpacing: 1,
+                              opacity: 0.8,
+                            }}
+                          >
+                            {filteredSuggestions.length} RESULTS FOR &quot;
+                            {searchQuery.toUpperCase()}&quot;
+                          </Text>
+                        ) : (
+                          <Text
+                            style={{
+                              color: "#2a2a2a",
+                              fontSize: 12,
+                              fontWeight: "700",
+                              marginBottom: 16,
+                              textTransform: "uppercase",
+                              letterSpacing: 1,
+                              opacity: 0.8,
+                            }}
+                          >
+                            POPULAR {activeSearchFilter.toUpperCase()}
+                          </Text>
+                        )}
 
-                    {filteredSuggestions.map((suggestion, index) => (
+                        {filteredSuggestions.length > 0 ? (
+                          filteredSuggestions.map((suggestion, index) => (
                       <TouchableOpacity
                         key={suggestion.id}
                         style={{
@@ -1957,73 +1955,61 @@ export function BottomSearchDrawer({
                           </Svg>
                         </View>
                       </TouchableOpacity>
-                    ))}
-
-                    {/* No Results State */}
-                    {searchQuery.trim() && filteredSuggestions.length === 0 && (
-                      <View
-                        style={{
-                          alignItems: "center",
-                          paddingVertical: 48,
-                          paddingHorizontal: 24,
-                        }}
-                      >
-                        <View
-                          style={{
-                            width: 64,
-                            height: 64,
-                            borderRadius: 32,
-                            backgroundColor: "rgba(255, 255, 255, 0.08)",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: 16,
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 4,
-                            elevation: 2,
-                          }}
-                        >
-                          <Svg
-                            width={28}
-                            height={28}
-                            viewBox="0 0 24 24"
-                            fill="none"
+                    ))
+                        ) : (
+                          <View
+                            style={{
+                              alignItems: "center",
+                              paddingVertical: 48,
+                              paddingHorizontal: 24,
+                            }}
                           >
-                            <Path
-                              d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z"
-                              stroke="#8a9a8f"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </Svg>
-                        </View>
-                        <Text
-                          style={{
-                            color: "#2a2a2a",
-                            fontSize: 17,
-                            fontWeight: "600",
-                            marginBottom: 6,
-                            textAlign: "center",
-                            letterSpacing: -0.2,
-                          }}
-                        >
-                          No results found
-                        </Text>
-                        <Text
-                          style={{
-                            color: "#6a6a6a",
-                            fontSize: 14,
-                            textAlign: "center",
-                            lineHeight: 20,
-                            fontWeight: "400",
-                          }}
-                        >
-                          Try adjusting your search or{"\n"}browse different
-                          categories
-                        </Text>
-                      </View>
+                            <View
+                              style={{
+                                width: 64,
+                                height: 64,
+                                borderRadius: 32,
+                                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginBottom: 16,
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.1,
+                                shadowRadius: 4,
+                                elevation: 2,
+                              }}
+                            >
+                              <Search size={32} color="#6B7280" />
+                            </View>
+                            <Text
+                              style={{
+                                color: "#2a2a2a",
+                                fontSize: 17,
+                                fontWeight: "600",
+                                marginBottom: 6,
+                                textAlign: "center",
+                                letterSpacing: -0.2,
+                              }}
+                            >
+                              {searchQuery.trim() ? "No results found" : "No trending items"}
+                            </Text>
+                            <Text
+                              style={{
+                                color: "#6a6a6a",
+                                fontSize: 14,
+                                textAlign: "center",
+                                lineHeight: 20,
+                                fontWeight: "400",
+                              }}
+                            >
+                              {searchQuery.trim() 
+                                ? "Try adjusting your search or\nbrowse different categories"
+                                : "Check back later for trending items"}
+                            </Text>
+                          </View>
+                        )}
+                      </>
                     )}
                   </View>
                 </View>

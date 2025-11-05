@@ -1,8 +1,20 @@
-import { Stack, useRouter } from 'expo-router';
+import { BalanceInfoSheet } from '@/components/ui/BalanceInfoSheet';
+import { BalanceTransactionsSheet } from '@/components/ui/BalanceTransactionsSheet';
+import { TopUpBalanceSheet } from '@/components/ui/TopUpBalanceSheet';
+import {
+  useAddPaymentMethodMutation,
+  useGetBalanceTransactionsQuery,
+  useGetCribnoshBalanceQuery,
+  useGetPaymentMethodsQuery,
+  useSetDefaultPaymentMethodMutation,
+  useSetupFamilyProfileMutation,
+} from '@/store/customerApi';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
+import { useToast } from '../lib/ToastContext';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -11,7 +23,7 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 
 // Icons
 const checkIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M16 4L7 13L4 10" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M16 4L7 13L4 10" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
 const clockIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,14 +32,6 @@ const clockIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none
 <path d="M9.17993 5.84514C9.17993 5.38674 9.55152 5.01514 10.0099 5.01514C10.4683 5.01514 10.8399 5.38674 10.8399 5.84514L10.8399 9.48203L13.7012 10.9127L13.7749 10.9548C14.1303 11.18 14.2646 11.642 14.0724 12.0264C13.8802 12.4108 13.4299 12.5808 13.0365 12.4316L12.9587 12.3976L9.63867 10.7376C9.35755 10.597 9.17993 10.3095 9.17993 9.99514L9.17993 5.84514Z" fill="#8E8E93"/>
 </svg>`;
 
-const applePayIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.31-.38.92-.77 1.53-.64.27.12.51.4.66.69.14.31.19.76.08 1.13-.1.37-.31.69-.62.96-.31.27-.82.49-1.13.38-.27-.12-.51-.4-.66-.69-.14-.31-.19-.76-.08-1.13.1-.37.31-.69.62-.96" fill="#000000"/>
-</svg>`;
-
-const cardIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="2" y="5" width="20" height="14" rx="2" stroke="#FF3B30" stroke-width="2"/>
-  <path d="M2 10H22" stroke="#FF3B30" stroke-width="2"/>
-</svg>`;
 
 const plusIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M19 11C19.5523 11 20 11.4477 20 12C20 12.5523 19.5523 13 19 13L5 13C4.44772 13 4 12.5523 4 12C4 11.4477 4.44772 11 5 11L19 11Z" fill="#094327"/>
@@ -54,6 +58,9 @@ export default function PaymentSettingsScreen() {
   const { showToast } = useToast();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('apple-pay');
   const [isAddingCard, setIsAddingCard] = useState(false);
+  const [isBalanceInfoVisible, setIsBalanceInfoVisible] = useState(false);
+  const [isTransactionsVisible, setIsTransactionsVisible] = useState(false);
+  const [isTopUpVisible, setIsTopUpVisible] = useState(false);
 
   // Fetch payment data from API
   const { data: paymentMethodsData } = useGetPaymentMethodsQuery(undefined, {
@@ -122,44 +129,24 @@ export default function PaymentSettingsScreen() {
   };
 
   const handleFamilyProfile = () => {
-    // Navigate to family account setup screen
-    router.push('/shared-ordering/setup');
+    // Navigate to family profile management screen
+    router.push('/family-profile/manage');
   };
 
   const handleBalanceInfo = () => {
-    Alert.alert(
-      'Cribnosh Balance',
-      'Cribnosh balance is a digital wallet that allows you to store funds and use them for orders. It\'s not available with all payment methods.',
-      [{ text: 'Got it', style: 'default' }]
-    );
+    setIsBalanceInfoVisible(true);
   };
 
   const handleBalanceTransactions = () => {
-    // Navigate to transactions screen or show transactions data
-    if (transactionsData?.data?.transactions && transactionsData.data.transactions.length > 0) {
-      Alert.alert(
-        'Balance Transactions',
-        `You have ${transactionsData.data.transactions.length} transaction(s). Full transaction history would be displayed here.`,
-        [{ text: 'OK' }]
-      );
-    } else {
-      Alert.alert(
-        'No Transactions',
-        'You don\'t have any balance transactions yet.',
-        [{ text: 'OK' }]
-      );
-    }
+    setIsTransactionsVisible(true);
+  };
+
+  const handleTopUpBalance = () => {
+    setIsTopUpVisible(true);
   };
 
   return (
-    <>
-      <Stack.Screen 
-        options={{ 
-          headerShown: false,
-          title: 'Payment'
-        }} 
-      />
-      <SafeAreaView style={styles.mainContainer}>
+    <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
         
         {/* Header with back button */}
@@ -210,6 +197,16 @@ export default function PaymentSettingsScreen() {
               </View>
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.balanceItem} onPress={handleTopUpBalance}>
+              <View style={styles.itemLeft}>
+                <View style={styles.itemIcon}>
+                  <SvgXml xml={plusIconSVG} width={20} height={20} />
+                </View>
+                <Text style={styles.itemText}>Top up balance</Text>
+              </View>
+              <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+            </TouchableOpacity>
           </View>
 
           {/* Payment Methods Section */}
@@ -226,13 +223,17 @@ export default function PaymentSettingsScreen() {
                       activeOpacity={0.7}
                     >
                       <View style={styles.methodLeft}>
-                        <View style={styles.methodIcon}>
-                          {method.type === "apple_pay" ? (
-                            <SvgXml xml={applePayIconSVG} width={24} height={24} />
-                          ) : (
-                            <SvgXml xml={cardIconSVG} width={24} height={24} />
-                          )}
-                        </View>
+                        {method.type === "apple_pay" ? (
+                          <View style={styles.appleIconContainer}>
+                            <Text style={styles.appleIconText}>Apple</Text>
+                          </View>
+                        ) : (
+                          <Image
+                            source={require("@/assets/images/mastercard-logo.png")}
+                            style={styles.methodIcon}
+                            resizeMode="contain"
+                          />
+                        )}
                         <Text style={styles.methodText}>
                           {method.type === "apple_pay"
                             ? "Apple Pay"
@@ -263,8 +264,8 @@ export default function PaymentSettingsScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.methodLeft}>
-                      <View style={styles.methodIcon}>
-                        <SvgXml xml={applePayIconSVG} width={24} height={24} />
+                      <View style={styles.appleIconContainer}>
+                        <Text style={styles.appleIconText}>Apple</Text>
                       </View>
                       <Text style={styles.methodText}>Apple Pay</Text>
                     </View>
@@ -283,9 +284,11 @@ export default function PaymentSettingsScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.methodLeft}>
-                      <View style={styles.methodIcon}>
-                        <SvgXml xml={cardIconSVG} width={24} height={24} />
-                      </View>
+                      <Image
+                        source={require("@/assets/images/mastercard-logo.png")}
+                        style={styles.methodIcon}
+                        resizeMode="contain"
+                      />
                       <Text style={styles.methodText}>... 8601</Text>
                     </View>
                     <View
@@ -332,8 +335,25 @@ export default function PaymentSettingsScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Balance Info Sheet */}
+        <BalanceInfoSheet
+          isVisible={isBalanceInfoVisible}
+          onClose={() => setIsBalanceInfoVisible(false)}
+        />
+
+        {/* Balance Transactions Sheet */}
+        <BalanceTransactionsSheet
+          isVisible={isTransactionsVisible}
+          onClose={() => setIsTransactionsVisible(false)}
+        />
+
+        {/* Top Up Balance Sheet */}
+        <TopUpBalanceSheet
+          isVisible={isTopUpVisible}
+          onClose={() => setIsTopUpVisible(false)}
+        />
       </SafeAreaView>
-    </>
   );
 }
 
@@ -495,7 +515,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   methodIcon: {
+    width: 48,
+    height: 32,
     marginRight: 16,
+  },
+  appleIconContainer: {
+    width: 48,
+    height: 32,
+    marginRight: 16,
+    backgroundColor: '#000000',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleIconText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
   },
   methodText: {
     fontFamily: 'Inter',

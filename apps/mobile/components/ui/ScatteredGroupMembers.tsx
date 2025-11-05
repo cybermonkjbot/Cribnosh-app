@@ -1,6 +1,6 @@
 import GroupOrderMember from '@/components/GroupOrderMember';
 import React, { useMemo } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface GroupMember {
   name: string;
@@ -16,6 +16,7 @@ interface ScatteredGroupMembersProps {
   marginTop?: number;
   refreshKey?: number;
   searchQuery?: string;
+  onParticipantPress?: (userId: string) => void;
 }
 
 interface Position {
@@ -28,7 +29,8 @@ const ScatteredGroupMembers: React.FC<ScatteredGroupMembersProps> = ({
   members, 
   marginTop = 24,
   refreshKey = 0,
-  searchQuery = ''
+  searchQuery = '',
+  onParticipantPress
 }) => {
   const screenWidth = Dimensions.get('window').width;
 
@@ -154,6 +156,7 @@ const ScatteredGroupMembers: React.FC<ScatteredGroupMembersProps> = ({
       ) : (
         members.map((member, idx) => {
           const position = positions[idx] || { top: 0, left: 0, scale: 1.0 };
+          const memberWithUserId = member as GroupMember & { user_id?: string };
           
           return (
             <View 
@@ -168,24 +171,30 @@ const ScatteredGroupMembers: React.FC<ScatteredGroupMembersProps> = ({
                 }
               ]}
             >
-              <GroupOrderMember
-                name={member.name}
-                avatarUri={member.avatarUri}
-                showMessageIcon={true}
-                textColor="#E6FFE8"
-              />
-              
-              {/* Status Text */}
-              <Text style={styles.statusText}>
-                {member.status}
-              </Text>
-              
-              {/* Done Indicator */}
-              {member.isDone && (
-                <View style={styles.doneIndicator}>
-                  <Text style={styles.doneText}>✓</Text>
-                </View>
-              )}
+              <TouchableOpacity
+                onPress={() => memberWithUserId.user_id && onParticipantPress?.(memberWithUserId.user_id)}
+                activeOpacity={0.7}
+                disabled={!onParticipantPress || !memberWithUserId.user_id}
+              >
+                <GroupOrderMember
+                  name={member.name}
+                  avatarUri={member.avatarUri}
+                  showMessageIcon={true}
+                  textColor="#E6FFE8"
+                />
+                
+                {/* Status Text */}
+                <Text style={styles.statusText}>
+                  {member.status}
+                </Text>
+                
+                {/* Done Indicator */}
+                {member.isDone && (
+                  <View style={styles.doneIndicator}>
+                    <Text style={styles.doneText}>✓</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
           );
         })

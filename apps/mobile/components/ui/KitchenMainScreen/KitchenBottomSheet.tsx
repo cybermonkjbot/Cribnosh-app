@@ -1,7 +1,9 @@
+import { useGetKitchenDetailsQuery } from '@/store/customerApi';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView } from '@gorhom/bottom-sheet';
+import { useRouter } from 'expo-router';
+import { Users } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Mascot } from '../../Mascot';
 import SearchArea from '../../SearchArea';
 import { CartButton } from '../CartButton';
 import { KitchenBottomSheetContent } from './KitchenBottomSheetContent';
@@ -22,7 +24,7 @@ interface KitchenBottomSheetProps {
 export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   deliveryTime,
   cartItems,
-  kitchenName = "Amara's Kitchen",
+  kitchenName: propKitchenName,
   distance = "0.8 km",
   kitchenId,
   onCartPress,
@@ -30,12 +32,32 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   onSearchPress,
   onSearchSubmit,
 }) => {
+  const router = useRouter();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const contentScrollRef = useRef<ScrollView>(null);
   const searchInputRef = useRef<TextInput>(null);
   const [currentSnapPoint, setCurrentSnapPoint] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch kitchen details if kitchenId is provided
+  const { data: kitchenDetails } = useGetKitchenDetailsQuery(
+    { kitchenId: kitchenId || '' },
+    { skip: !kitchenId }
+  );
+
+  // Extract kitchen name from API response
+  // ResponseFactory returns: { success: true, data: { kitchenName, ... }, message: ... }
+  // RTK Query returns the full response, so we access .data
+  const apiKitchenName = (kitchenDetails as any)?.data?.kitchenName;
+
+  // Use fetched kitchen name from API
+  // If kitchenId is provided, prioritize API data and don't use demo name from prop
+  // Only use prop if it's not the demo name "Amara's Kitchen"
+  const isDemoName = propKitchenName === "Amara's Kitchen";
+  const kitchenName = kitchenId 
+    ? (apiKitchenName || (!isDemoName && propKitchenName) || "Amara's Kitchen")
+    : (propKitchenName || "Amara's Kitchen");
 
   const snapPoints = ['57%', '90%'];
   const isExpanded = currentSnapPoint === 1;
@@ -67,6 +89,21 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
     setIsSearchMode(false);
     setSearchQuery('');
     searchInputRef.current?.blur();
+  };
+  
+  const handleCreateGroupOrder = () => {
+    if (!kitchenId || !kitchenName) {
+      return;
+    }
+    
+    // Navigate to create group order screen with chef_id and restaurant_name
+    router.push({
+      pathname: '/orders/group/create',
+      params: {
+        chef_id: kitchenId,
+        restaurant_name: kitchenName,
+      },
+    });
   };
 
   const renderBackdrop = (props: BottomSheetBackdropProps) => (
@@ -151,17 +188,30 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
           </>
         )}
         
-        {/* Cart Button */}
-        <CartButton
-          quantity={cartItems}
-          onPress={onCartPress ?? (() => {})}
-          variant="view"
-          position="absolute"
-          bottom={60}
-          left={20}
-          right={20}
-          showIcon={true}
-        />
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
+          {/* Create Group Order Button */}
+          <TouchableOpacity
+            style={styles.createGroupOrderButton}
+            onPress={handleCreateGroupOrder}
+            activeOpacity={0.8}
+          >
+            <Users size={20} color="#E6FFE8" />
+            <Text style={styles.createGroupOrderText}>Create Group Order</Text>
+          </TouchableOpacity>
+          
+          {/* Cart Button */}
+          <CartButton
+            quantity={cartItems}
+            onPress={onCartPress ?? (() => {})}
+            variant="view"
+            position="relative"
+            bottom={0}
+            left={0}
+            right={0}
+            showIcon={true}
+          />
+        </View>
       </BottomSheetView>
     </BottomSheet>
   );
@@ -226,5 +276,27 @@ const styles = StyleSheet.create({
   },
   mascotContainer: {
     marginBottom: 20,
+  },
+  actionButtonsContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    gap: 12,
+  },
+  createGroupOrderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF3B30',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  createGroupOrderText: {
+    color: '#E6FFE8',
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

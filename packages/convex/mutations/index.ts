@@ -150,3 +150,9 @@ export {
 
 // Export group orders mutations
 export * from './groupOrders';
+
+// Export treats mutations
+export * from './treats';
+
+// Export user connections mutations
+export * from './userConnections';

@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { mutation } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
+import { estimateCustomOrderPrice } from '../utils/priceEstimation';
 
 // Define the expected shape of the details object
 const orderDetailsSchema = v.object({
@@ -22,6 +23,15 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    
+    // Calculate estimated price
+    const estimatedPrice = await estimateCustomOrderPrice(
+      ctx,
+      args.requirements,
+      args.servingSize,
+      args.dietaryRestrictions
+    );
+    
     const orderId = await ctx.db.insert('custom_orders', {
       userId: args.userId,
       requirements: args.requirements,
@@ -31,6 +41,7 @@ export const create = mutation({
       custom_order_id: args.customOrderId,
       order_id: args.orderId,
       status: "pending",
+      estimatedPrice,
       createdAt: now,
       updatedAt: now,
     });
@@ -51,10 +62,22 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { orderId, updates } = args;
     
+    // Get current order to check if price needs recalculation
+    const currentOrder = await ctx.db.get(orderId);
+    if (!currentOrder) {
+      throw new Error('Order not found');
+    }
+    
     // Transform camelCase to snake_case for database fields
     const dbUpdates: Record<string, any> = {
       updatedAt: Date.now(), // Always update the timestamp
     };
+    
+    // Check if price-affecting fields are being updated
+    const shouldRecalculatePrice = 
+      ('servingSize' in updates && updates.servingSize !== undefined) ||
+      ('dietaryRestrictions' in updates) ||
+      ('requirements' in updates && updates.requirements !== undefined);
     
     if ('servingSize' in updates && updates.servingSize !== undefined) {
       dbUpdates.serving_size = updates.servingSize;
@@ -67,6 +90,27 @@ export const update = mutation({
     }
     if ('requirements' in updates && updates.requirements !== undefined) {
       dbUpdates.requirements = updates.requirements;
+    }
+    
+    // Recalculate price if price-affecting fields changed
+    if (shouldRecalculatePrice) {
+      const finalRequirements = updates.requirements !== undefined 
+        ? updates.requirements 
+        : currentOrder.requirements;
+      const finalServingSize = updates.servingSize !== undefined 
+        ? updates.servingSize 
+        : currentOrder.serving_size;
+      const finalDietaryRestrictions = 'dietaryRestrictions' in updates
+        ? updates.dietaryRestrictions
+        : currentOrder.dietary_restrictions;
+      
+      const estimatedPrice = await estimateCustomOrderPrice(
+        ctx,
+        finalRequirements,
+        finalServingSize,
+        finalDietaryRestrictions
+      );
+      dbUpdates.estimatedPrice = estimatedPrice;
     }
     
     await ctx.db.patch(orderId, dbUpdates);

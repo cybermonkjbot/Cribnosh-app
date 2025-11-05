@@ -1,6 +1,7 @@
 import { query } from '../_generated/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
+import { estimateCustomOrderPrice } from '../utils/priceEstimation';
 
 /**
  * Get a custom order by its ID
@@ -53,4 +54,26 @@ export const getByUserId = query({
       .filter(q => q.eq(q.field('userId'), args.userId))
       .collect();
   }
+});
+
+/**
+ * Estimate price for a custom order without creating it
+ */
+export const estimatePrice = query({
+  args: {
+    requirements: v.string(),
+    servingSize: v.number(),
+    dietaryRestrictions: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const estimatedPrice = await estimateCustomOrderPrice(
+      ctx,
+      args.requirements,
+      args.servingSize,
+      args.dietaryRestrictions
+    );
+    return {
+      estimatedPrice,
+    };
+  },
 });

@@ -1,0 +1,15 @@
+{
+  "subject": "Foodie Spotlight: Community Stories",
+  "variables": [
+    "firstName",
+    "city",
+    "perk",
+    "daysSinceSignup",
+    "expectedLaunchDate",
+    "daysToLaunch",
+    "chefName",
+    "chefCuisine",
+    "unsubscribeUrl",
+    "companyAddress"
+  ]
+}

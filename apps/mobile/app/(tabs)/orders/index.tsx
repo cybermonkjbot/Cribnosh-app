@@ -132,6 +132,7 @@ export default function OrdersScreen() {
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
+      "worklet";
       scrollY.value = event.contentOffset.y;
     },
   });
@@ -601,7 +602,8 @@ export default function OrdersScreen() {
             onPress={() => {
               const offer = offersData.data.offers[0];
               if (offer.action_type === "group_order") {
-                router.push("/orders/group");
+                // Navigate to create group order screen (user will need to select chef)
+                router.push("/orders/group/create");
               } else if (offer.action_type === "navigate") {
                 router.push(offer.action_target as any);
               }
@@ -628,7 +630,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+    paddingTop: 8,
     paddingBottom: 100, // Account for tab bar
   },
 });

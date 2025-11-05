@@ -52,6 +52,7 @@ import { OrderAgainSection } from "./OrderAgainSection";
 import { usePerformanceOptimizations } from "./PerformanceMonitor";
 import { PopularMealsDrawer } from "./PopularMealsDrawer";
 import { PopularMealsSection } from "./PopularMealsSection";
+import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { PullToNoshHeavenTrigger } from "./PullToNoshHeavenTrigger";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 // import { ShakeDebugger } from './ShakeDebugger';
@@ -73,6 +74,7 @@ import {
   useGetCartQuery,
   useGetCuisinesQuery,
   useGetPopularChefsQuery,
+  useGetUserBehaviorQuery,
   useGetVideoFeedQuery,
   useLikeVideoMutation,
   useRecordVideoViewMutation,
@@ -871,33 +873,56 @@ export function MainScreen() {
 
   // Hidden sections state
   const [orderedSections, setOrderedSections] = useState<any[]>([]);
-  const [userBehavior] = useState<UserBehavior>({
-    totalOrders: 5,
-    daysActive: 14,
-    usualDinnerItems: [
-      "Pizza Margherita",
-      "Chicken Curry",
-      "Pasta Carbonara",
-      "Sushi Roll",
-    ],
-    favoriteSections: [
-      "featured_kitchens",
-      "popular_meals",
-      "cuisine_categories",
-    ],
-    clickedSections: [
-      "featured_kitchens",
-      "popular_meals",
-      "cuisine_categories",
-    ],
-    colleagueConnections: 3,
-    playToWinHistory: {
-      gamesPlayed: 2,
-      gamesWon: 1,
-      lastPlayed: new Date("2024-01-10T12:00:00"),
-    },
-    freeFoodPreferences: ["Pizza", "Burger", "Sushi"],
-  });
+  
+  // Fetch user behavior data from API
+  const {
+    data: userBehaviorData,
+    isLoading: userBehaviorLoading,
+    error: userBehaviorError,
+  } = useGetUserBehaviorQuery(
+    undefined,
+    {
+      skip: !isAuthenticated, // Only fetch when authenticated
+    }
+  );
+
+  // Transform API response to UserBehavior format
+  const userBehavior: UserBehavior = useMemo(() => {
+    if (userBehaviorData?.success && userBehaviorData.data) {
+      const data = userBehaviorData.data;
+      return {
+        totalOrders: data.totalOrders || 0,
+        daysActive: data.daysActive || 0,
+        usualDinnerItems: data.usualDinnerItems?.map((item: { dish_name: string }) => item.dish_name) || [],
+        favoriteSections: [], // Will be populated from other analytics if needed
+        clickedSections: [], // Will be populated from other analytics if needed
+        colleagueConnections: data.colleagueConnections || 0,
+        playToWinHistory: {
+          gamesPlayed: data.playToWinHistory?.gamesPlayed || 0,
+          gamesWon: data.playToWinHistory?.gamesWon || 0,
+          lastPlayed: data.playToWinHistory?.lastPlayed
+            ? new Date(data.playToWinHistory.lastPlayed)
+            : undefined,
+        },
+        freeFoodPreferences: [], // Will be populated from preferences if needed
+      };
+    }
+    
+    // Fallback to empty/default values when not authenticated or no data
+    return {
+      totalOrders: 0,
+      daysActive: 0,
+      usualDinnerItems: [],
+      favoriteSections: [],
+      clickedSections: [],
+      colleagueConnections: 0,
+      playToWinHistory: {
+        gamesPlayed: 0,
+        gamesWon: 0,
+      },
+      freeFoodPreferences: [],
+    };
+  }, [userBehaviorData]);
 
   const scrollY = useSharedValue(0);
   const stickyHeaderOpacity = useSharedValue(0);
@@ -1289,9 +1314,12 @@ export function MainScreen() {
   );
 
   const handleMealComment = useCallback((mealId: string) => {
-    // TODO: Navigate to comments screen or open comment modal
-    showInfo("Comments coming soon", "This feature is in development");
-  }, []);
+    // Navigate to comments screen or open comment modal
+    router.push({
+      pathname: '/meal-comments',
+      params: { mealId },
+    });
+  }, [router]);
 
   const handleMealShare = useCallback(
     async (mealId: string) => {
@@ -1470,13 +1498,30 @@ export function MainScreen() {
   }, [isAuthenticated, locationState.location]);
 
   const handleMealPress = useCallback((meal: any) => {
+    // Ensure we have a valid meal ID - use _id if id is missing
+    const mealId = meal.id || meal._id || meal.mealId || `meal-${Date.now()}`;
+    
+    // Parse price safely - handle different formats
+    let priceInCents = 0;
+    if (meal.price) {
+      if (typeof meal.price === 'string') {
+        // Remove currency symbols and parse
+        const priceStr = meal.price.replace(/[£$€,]/g, '').trim();
+        const priceNum = parseFloat(priceStr);
+        priceInCents = isNaN(priceNum) ? 0 : Math.round(priceNum * 100);
+      } else if (typeof meal.price === 'number') {
+        // If already a number, assume it's in cents or pounds
+        priceInCents = meal.price < 1000 ? Math.round(meal.price * 100) : meal.price;
+      }
+    }
+    
     // Convert meal data to MealItemDetails format
     const mealData = {
-      title: meal.name,
-      description: `Delicious ${meal.name} from ${meal.kitchen}. Experience authentic flavors crafted with the finest ingredients and traditional cooking methods.`,
-      price: parseInt(meal.price.replace("£", "")) * 100, // Convert to cents
-      imageUrl: meal.image?.uri,
-      kitchenName: meal.kitchen,
+      title: meal.name || 'Unknown Meal',
+      description: `Delicious ${meal.name || 'meal'} from ${meal.kitchen || 'Unknown Kitchen'}. Experience authentic flavors crafted with the finest ingredients and traditional cooking methods.`,
+      price: priceInCents,
+      imageUrl: meal.image?.uri || meal.image_url || meal.image,
+      kitchenName: meal.kitchen || meal.kitchenName || 'Unknown Kitchen',
       kitchenAvatar: undefined,
       calories: Math.floor(Math.random() * 500) + 300, // Random calories between 300-800
       fat: `${Math.floor(Math.random() * 20) + 5}g`,
@@ -1540,7 +1585,8 @@ export function MainScreen() {
       ],
     };
 
-    setSelectedMeal({ id: meal.id, data: mealData });
+    // Always open meal details modal - never fall back to kitchen
+    setSelectedMeal({ id: mealId, data: mealData });
     setIsMealDetailsVisible(true);
   }, []);
 
@@ -1615,6 +1661,40 @@ export function MainScreen() {
 
   const handleKitchenSearchPress = useCallback(() => {
     // In a real app, this would open search
+  }, []);
+
+  // Handle kitchen name press from meal details
+  const handleKitchenNamePressFromMeal = useCallback((kitchenName: string, kitchenId?: string, foodcreatorId?: string) => {
+    // Try to find kitchen in mockKitchens by name
+    const foundKitchen = mockKitchens.find(k => k.name === kitchenName || k.name === `${kitchenName}'s Kitchen`);
+    
+    // Create kitchen object with all necessary properties
+    const kitchen: any = foundKitchen 
+      ? {
+          ...foundKitchen,
+          kitchenId: kitchenId || foundKitchen.id,
+          foodcreatorId: foodcreatorId,
+          ownerId: foodcreatorId,
+          userId: foodcreatorId,
+        }
+      : {
+          id: kitchenId || `kitchen-${kitchenName.toLowerCase().replace(/\s+/g, '-')}`,
+          name: kitchenName,
+          cuisine: "Nigerian",
+          deliveryTime: "30-45 Mins",
+          distance: "0.8 km",
+          image: undefined,
+          sentiment: "elite" as const,
+          kitchenId: kitchenId,
+          foodcreatorId: foodcreatorId,
+          ownerId: foodcreatorId,
+          userId: foodcreatorId,
+        };
+    
+    setSelectedKitchen(kitchen);
+    setIsKitchenMainScreenVisible(true);
+    // Close meal details modal
+    setIsMealDetailsVisible(false);
   }, []);
 
   const handleDrawerAddToCart = useCallback(
@@ -1869,25 +1949,40 @@ export function MainScreen() {
                   <OrderAgainSection
                     isHeaderSticky={isHeaderSticky}
                     isAuthenticated={isAuthenticated}
+                    onItemPress={(item) => {
+                      // Navigate to meal details from order item
+                      handleMealPress({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        kitchen: '', // Order items don't have kitchen info
+                        image: { uri: item.image },
+                      });
+                    }}
                   />
                   <CuisinesSection 
                     onCuisinePress={handleCuisinePress} 
                     onSeeAllPress={handleOpenCuisinesDrawer}
                   />
                   <CuisineCategoriesSection
-                    cuisines={cuisines}
                     onCuisinePress={handleCuisinePress}
                     onSeeAllPress={handleOpenCuisineCategoriesDrawer}
+                    useBackend={true}
                   />
                   <FeaturedKitchensSection
-                    kitchens={kitchens}
                     onKitchenPress={handleFeaturedKitchenPress}
                     onSeeAllPress={handleOpenFeaturedKitchensDrawer}
+                    useBackend={true}
                   />
                   <PopularMealsSection
-                    meals={mockMeals}
                     onMealPress={handleMealPress}
                     onSeeAllPress={handleOpenPopularMealsDrawer}
+                  />
+                  
+                  {/* Recommended For You Section */}
+                  <RecommendedMealsSection
+                    onMealPress={handleMealPress}
+                    limit={8}
                   />
 
                   {/* Hidden Sections - dynamically shown based on conditions */}
@@ -1896,7 +1991,6 @@ export function MainScreen() {
                   )}
 
                   <SpecialOffersSection
-                    offers={mockOffers}
                     onOfferPress={handleOfferPress}
                     onSeeAllPress={handleOpenSpecialOffersDrawer}
                   />
@@ -1904,11 +1998,21 @@ export function MainScreen() {
                     onKitchenPress={handleFeaturedKitchenPress}
                     onMapPress={handleMapToggle}
                   />
-                  <TopKebabs onOpenDrawer={handleOpenTopKebabsDrawer} />
+                  <TopKebabs 
+                    onOpenDrawer={handleOpenTopKebabsDrawer}
+                    onKebabPress={(kebab) => {
+                      // Filter by kebab cuisine
+                      handleCuisinePress({ id: kebab.id, name: kebab.name, image: kebab.image });
+                    }}
+                  />
                   <TakeAways onOpenDrawer={handleOpenTakeawayDrawer} />
                   <TooFreshToWaste
                     onOpenDrawer={handleOpenTooFreshDrawer}
                     onOpenSustainability={handleOpenSustainabilityDrawer}
+                    onItemPress={(item) => {
+                      // Navigate to meal details from sustainability item
+                      handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
+                    }}
                   />
                   <EventBanner />
                 </>
@@ -1966,6 +2070,7 @@ export function MainScreen() {
                           cuisines={filteredCuisines}
                           onCuisinePress={handleCuisinePress}
                           showTitle={false}
+                          isLoading={cuisinesLoading}
                         />
                       )}
                       {filteredKitchens.length > 0 && (
@@ -1973,6 +2078,7 @@ export function MainScreen() {
                           kitchens={filteredKitchens}
                           onKitchenPress={handleFeaturedKitchenPress}
                           showTitle={false}
+                          isLoading={chefsLoading}
                         />
                       )}
                       {filteredMeals.length > 0 && (
@@ -1980,6 +2086,7 @@ export function MainScreen() {
                           meals={filteredMeals}
                           onMealPress={handleMealPress}
                           showTitle={false}
+                          useBackend={false}
                         />
                       )}
                     </View>
@@ -2170,6 +2277,7 @@ export function MainScreen() {
               // Handle add to cart logic here
               setIsMealDetailsVisible(false);
             }}
+            onKitchenNamePress={handleKitchenNamePressFromMeal}
           />
         )}
       </Modal>
@@ -2193,7 +2301,7 @@ export function MainScreen() {
       >
         {selectedKitchen && (
           <KitchenMainScreen
-            kitchenName={selectedKitchen.name}
+            kitchenName={selectedKitchen.name && selectedKitchen.name !== "Amara's Kitchen" ? selectedKitchen.name : undefined}
             cuisine={selectedKitchen.cuisine}
             deliveryTime={selectedKitchen.deliveryTime}
             distance={selectedKitchen.distance}

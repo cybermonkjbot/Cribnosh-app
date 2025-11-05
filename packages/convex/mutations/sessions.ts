@@ -168,4 +168,21 @@ export const extendSession = mutation({
 
     return true;
   },
+});
+
+// Delete session from sessions table (for JWT-based sessions)
+export const deleteUserSession = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx: MutationCtx, { sessionId }) => {
+    const session = await ctx.db.get(sessionId);
+    
+    if (!session) {
+      return false;
+    }
+
+    await ctx.db.delete(sessionId);
+    return true;
+  },
 }); 

@@ -67,8 +67,17 @@ export {
 // Export group orders queries
 export * from './groupOrders';
 
+// Export treats queries
+export * from './treats';
+
+// Export user connections queries
+export * from './userConnections';
+
 // Export special offers queries
 export * from './specialOffers';
+
+// Export admin queries
+export * from './admin';
 
 // Export users queries (explicit exports to avoid conflicts)
 export {

@@ -143,6 +143,60 @@ export const createSystemSetting = mutation({
   },
 });
 
+export const updateRegionalAvailabilityConfig = mutation({
+  args: {
+    config: v.object({
+      enabled: v.boolean(),
+      supportedRegions: v.array(v.string()),
+      supportedCities: v.array(v.string()),
+      supportedCountries: v.array(v.string()),
+    }),
+    modifiedBy: v.id("users"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    try {
+      const existing = await ctx.db
+        .query("systemSettings")
+        .withIndex("by_key", (q) => q.eq("key", "regional_availability_config"))
+        .first();
+
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          value: args.config,
+          lastModified: Date.now(),
+          modifiedBy: args.modifiedBy,
+        });
+      } else {
+        await ctx.db.insert("systemSettings", {
+          key: "regional_availability_config",
+          value: args.config,
+          lastModified: Date.now(),
+          modifiedBy: args.modifiedBy,
+        });
+      }
+
+      // Log the activity
+      await ctx.db.insert('adminActivity', {
+        type: "regional_availability_update",
+        description: `Updated regional availability configuration`,
+        timestamp: Date.now(),
+        metadata: {
+          entityType: "system_setting",
+          details: { config: args.config }
+        }
+      });
+
+      return { success: true, message: "Regional availability configuration updated successfully" };
+    } catch (error) {
+      throw handleConvexError(error);
+    }
+  },
+});
+
 export const createContent = mutation({
   args: {
     title: v.string(),

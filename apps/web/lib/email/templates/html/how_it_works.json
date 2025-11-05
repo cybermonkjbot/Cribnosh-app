@@ -1,0 +1,15 @@
+{
+  "subject": "How It Works: CribNosh 101",
+  "variables": [
+    "firstName",
+    "city",
+    "perk",
+    "daysSinceSignup",
+    "expectedLaunchDate",
+    "daysToLaunch",
+    "chefName",
+    "chefCuisine",
+    "unsubscribeUrl",
+    "companyAddress"
+  ]
+}

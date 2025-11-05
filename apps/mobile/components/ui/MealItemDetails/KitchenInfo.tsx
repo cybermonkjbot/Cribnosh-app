@@ -1,19 +1,20 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 
 interface KitchenInfoProps {
   kitchenName: string;
   kitchenAvatar?: string;
+  onPress?: () => void;
 }
 
-export function KitchenInfo({ kitchenName, kitchenAvatar }: KitchenInfoProps) {
+export function KitchenInfo({ kitchenName, kitchenAvatar, onPress }: KitchenInfoProps) {
   // Split kitchen name to separate "Stans Kitchen's" and "Burgers"
   const nameParts = kitchenName.split("'s ");
   const kitchenNamePart = nameParts[0] + "'s";
   const categoryPart = nameParts[1] || "";
 
-  return (
-    <View style={styles.container}>
+  const content = (
+    <>
       {/* Kitchen Avatar */}
       <View style={styles.avatarContainer}>
         {kitchenAvatar ? (
@@ -36,6 +37,24 @@ export function KitchenInfo({ kitchenName, kitchenAvatar }: KitchenInfoProps) {
         <Text style={styles.kitchenName}>{kitchenNamePart}</Text>
         <Text style={styles.categoryName}>{categoryPart}</Text>
       </View>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity 
+        style={styles.container}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {content}
     </View>
   );
 }

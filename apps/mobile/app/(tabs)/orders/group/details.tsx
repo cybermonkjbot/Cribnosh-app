@@ -1,45 +1,159 @@
 import AmountInput from '@/components/AmountInput'
 import { Button } from '@/components/ui/Button'
 import { CartButton } from '@/components/ui/CartButton'
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useRouter, useLocalSearchParams } from 'expo-router'
+import { useState, useMemo } from 'react'
+import { useGetGroupOrderQuery, useGetBudgetDetailsQuery, useChipInToBudgetMutation } from '@/store/customerApi'
+import { useAuthState } from '@/hooks/useAuthState'
 
 export default function GroupOrderDetails() {
+  const router = useRouter()
+  const params = useLocalSearchParams<{ group_order_id?: string }>()
+  const { user } = useAuthState()
+  const groupOrderId = params.group_order_id || ''
+  
+  const [amount, setAmount] = useState('')
+  
+  const { data: groupOrderData, isLoading: isLoadingOrder } = useGetGroupOrderQuery(groupOrderId, {
+    skip: !groupOrderId,
+  })
+  
+  const { data: budgetData, isLoading: isLoadingBudget } = useGetBudgetDetailsQuery(groupOrderId, {
+    skip: !groupOrderId,
+  })
+  
+  const [chipInToBudget, { isLoading: isChippingIn }] = useChipInToBudgetMutation()
+  
+  const groupOrder = groupOrderData?.data
+  const budget = budgetData?.data
+  
+  // Calculate remaining budget needed
+  const remainingBudget = useMemo(() => {
+    if (!budget) return 0
+    const totalNeeded = budget.total_budget
+    const currentTotal = budget.total_budget
+    // This is a simplified calculation - you may want to use order total_amount
+    return Math.max(0, totalNeeded - currentTotal)
+  }, [budget])
+  
+  const handleCoverEverything = () => {
+    if (remainingBudget > 0) {
+      setAmount(remainingBudget.toFixed(2))
+    }
+  }
+  
+  const handleConfirm = async () => {
+    if (!groupOrderId) {
+      Alert.alert('Error', 'Group order ID is missing')
+      return
+    }
+    
+    const amountNum = parseFloat(amount)
+    if (isNaN(amountNum) || amountNum <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount')
+      return
+    }
+    
+    try {
+      await chipInToBudget({
+        group_order_id: groupOrderId,
+        amount: amountNum,
+      }).unwrap()
+      
+      Alert.alert('Success', 'Your contribution has been added', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ])
+    } catch (error: any) {
+      Alert.alert('Error', error?.data?.message || 'Failed to chip in to budget')
+    }
+  }
+  
+  if (isLoadingOrder || isLoadingBudget) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E6FFE8" />
+          <Text style={styles.loadingText}>Loading budget details...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+  
+  if (!groupOrder || !budget) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Failed to load budget details</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    )
+  }
+  
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content}>
         <View>
           <Text 
-          style={[
-            styles.title,
-            {
-          textShadowColor: '#FF3B30',
-          textShadowOffset: { width: 4, height: 1.5 },
-          textShadowRadius: 0.2,
-            }
-          ]}
+            style={[
+              styles.title,
+              {
+                textShadowColor: '#FF3B30',
+                textShadowOffset: { width: 4, height: 1.5 },
+                textShadowRadius: 0.2,
+              }
+            ]}
           >
-          Chip in an amount towards party order                   
-           </Text>
-          <Text style={{color:'#EAEAEA', paddingTop: 10, paddingBottom: 20}}>
-             Enter the amount you want to chip in, it&apos;ll 
-             go towards the total order cost
+            Chip in an amount towards party order                   
           </Text>
-          <View >
-            <AmountInput amount='' setAmount={() => {}}/>
-            <TouchableOpacity>
-              <Text style={styles.coverEverything}>
-                Cover everything
+          <Text style={{color:'#EAEAEA', paddingTop: 10, paddingBottom: 20}}>
+            Enter the amount you want to chip in, it&apos;ll 
+            go towards the total order cost
+          </Text>
+          
+          {/* Budget Summary */}
+          <View style={styles.budgetSummary}>
+            <Text style={styles.budgetLabel}>Current Budget:</Text>
+            <Text style={styles.budgetAmount}>£{budget.total_budget.toFixed(2)}</Text>
+            {budget.initial_budget > 0 && (
+              <Text style={styles.budgetInitial}>
+                Initial: £{budget.initial_budget.toFixed(2)}
               </Text>
-            </TouchableOpacity>
+            )}
+          </View>
+          
+          <View>
+            <AmountInput amount={amount} setAmount={setAmount} />
+            {remainingBudget > 0 && (
+              <TouchableOpacity onPress={handleCoverEverything} style={styles.coverEverythingButton}>
+                <Text style={styles.coverEverything}>
+                  Cover everything (£{remainingBudget.toFixed(2)})
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </ScrollView>
       
       <View style={styles.bottomActions}>
-        <CartButton quantity={4} onPress={() => console.log('yes')} /> 
-        <Button variant='danger' size='lg'>
-          <Text>Confirm</Text>
+        <Button 
+          variant='danger' 
+          size='lg'
+          onPress={handleConfirm}
+          disabled={isChippingIn || !amount || parseFloat(amount) <= 0}
+        >
+          {isChippingIn ? (
+            <ActivityIndicator size="small" color="#E6FFE8" />
+          ) : (
+            <Text>Confirm</Text>
+          )}
         </Button>
       </View>
     </SafeAreaView>
@@ -82,5 +196,66 @@ const styles = StyleSheet.create({
         fontSize: 24, // text-2xl
         marginTop: 16, // mt-4
         fontWeight: '700', // font-bold
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+    },
+    loadingText: {
+        color: '#E6FFE8',
+        fontSize: 16,
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+        gap: 16,
+    },
+    errorText: {
+        color: '#FF3B30',
+        fontSize: 16,
+        textAlign: 'center',
+    },
+    retryButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        backgroundColor: '#E6FFE8',
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: '#094327',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    budgetSummary: {
+        backgroundColor: 'rgba(230, 255, 232, 0.1)',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(230, 255, 232, 0.2)',
+    },
+    budgetLabel: {
+        color: '#E6FFE8',
+        fontSize: 14,
+        marginBottom: 8,
+    },
+    budgetAmount: {
+        color: '#E6FFE8',
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    budgetInitial: {
+        color: '#EAEAEA',
+        fontSize: 12,
+        opacity: 0.8,
+    },
+    coverEverythingButton: {
+        marginTop: 12,
+        alignSelf: 'center',
     },
 })
