@@ -29,7 +29,7 @@ export function DownloadAccountDataSheet({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadAccountData] = useDownloadAccountDataMutation();
 
-  const snapPoints = useMemo(() => ['75%', '90%'], []);
+  const snapPoints = useMemo(() => ['85%', '100%'], []);
 
   const handleSheetChanges = useCallback((index: number) => {
     if (index === -1) {
@@ -87,6 +87,7 @@ export function DownloadAccountDataSheet({
       index={0}
       onChange={handleSheetChanges}
       enablePanDownToClose={true}
+      bottomInset={0}
       backgroundStyle={{
         backgroundColor: '#FAFFFA',
         borderTopLeftRadius: 24,

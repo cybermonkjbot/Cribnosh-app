@@ -100,27 +100,64 @@ export async function startOrderLiveActivity(
       deliveryPersonName: order.deliveryPersonName,
     };
 
+    // Map order data to expo-live-activity structure
+    const estimatedDeliveryDate = order.estimatedDeliveryTime 
+      ? new Date(order.estimatedDeliveryTime).getTime()
+      : order.estimatedMinutes 
+        ? Date.now() + (order.estimatedMinutes * 60 * 1000)
+        : undefined;
+
+    // Format title and subtitle for Live Activity
+    const title = order.statusText || getStatusText(order.status);
+    const subtitle = order.restaurantName 
+      ? `Order #${order.orderNumber} • ${order.restaurantName}`
+      : `Order #${order.orderNumber}`;
+    
+    // Format total amount in pounds
+    const totalInPounds = (order.totalAmount / 100).toFixed(2);
+    const amountText = `£${totalInPounds}`;
+
+    // Build activity attributes matching expo-live-activity structure
+    const activityAttributes = {
+      name: 'OrderStatus',
+      backgroundColor: '#02120A', // Cribnosh brand color
+      titleColor: '#E6FFE8', // Light green text
+      subtitleColor: '#C0DCC0', // Lighter green for subtitle
+      progressViewTint: '#10B981', // Green progress bar
+      deepLinkUrl: `cribnoshapp://order-status-tracking?id=${order.orderId}`,
+      timerType: 'circular' as const,
+    };
+
+    const contentState = {
+      title: title,
+      subtitle: subtitle,
+      timerEndDateInMilliseconds: estimatedDeliveryDate,
+      progress: undefined, // We'll use timer instead of progress
+      imageName: undefined, // Can add order icon later if needed
+      dynamicIslandImageName: undefined,
+    };
+
     // Try different API patterns based on expo-live-activity version
     let activityId: string | null = null;
     
     try {
-      // Try startActivityAsync pattern
+      // Try startActivityAsync pattern (most common)
       if (typeof LiveActivity.startActivityAsync === 'function') {
         activityId = await LiveActivity.startActivityAsync({
-          name: 'OrderStatus',
-          state: activityState,
+          attributes: activityAttributes,
+          contentState: contentState,
         });
       } 
       // Try startActivity pattern
       else if (typeof LiveActivity.startActivity === 'function') {
         activityId = await LiveActivity.startActivity({
-          name: 'OrderStatus',
-          state: activityState,
+          attributes: activityAttributes,
+          contentState: contentState,
         });
       }
       // Try alternative API format
       else if (typeof (LiveActivity as any).start === 'function') {
-        activityId = await (LiveActivity as any).start('OrderStatus', activityState);
+        activityId = await (LiveActivity as any).start(activityAttributes, contentState);
       }
     } catch (apiError) {
       console.error('Error calling Live Activity API:', apiError);
@@ -164,23 +201,41 @@ export async function updateOrderLiveActivity(
 
     const statusText = order.status ? getStatusText(order.status) : undefined;
     
-    const updatedState: Partial<OrderLiveActivityState> = {
-      ...order,
-      statusText: order.statusText || statusText || undefined,
+    // Calculate estimated delivery date if provided
+    const estimatedDeliveryDate = order.estimatedDeliveryTime 
+      ? new Date(order.estimatedDeliveryTime).getTime()
+      : order.estimatedMinutes 
+        ? Date.now() + (order.estimatedMinutes * 60 * 1000)
+        : undefined;
+
+    // Build updated content state
+    const updatedContentState: any = {
+      title: order.statusText || statusText || 'Order Update',
+      subtitle: order.restaurantName 
+        ? `Order #${order.orderNumber || orderId.substring(0, 8)} • ${order.restaurantName}`
+        : `Order #${order.orderNumber || orderId.substring(0, 8)}`,
     };
+
+    if (estimatedDeliveryDate) {
+      updatedContentState.timerEndDateInMilliseconds = estimatedDeliveryDate;
+    }
+
+    if (order.deliveryPersonName) {
+      updatedContentState.subtitle = `${updatedContentState.subtitle} • ${order.deliveryPersonName}`;
+    }
 
     // Try different API patterns
     try {
       if (typeof LiveActivity.updateActivityAsync === 'function') {
         await LiveActivity.updateActivityAsync(activityId, {
-          state: updatedState,
+          contentState: updatedContentState,
         });
       } else if (typeof LiveActivity.updateActivity === 'function') {
         await LiveActivity.updateActivity(activityId, {
-          state: updatedState,
+          contentState: updatedContentState,
         });
       } else if (typeof (LiveActivity as any).update === 'function') {
-        await (LiveActivity as any).update(activityId, updatedState);
+        await (LiveActivity as any).update(activityId, updatedContentState);
       }
     } catch (apiError) {
       console.error('Error calling Live Activity update API:', apiError);

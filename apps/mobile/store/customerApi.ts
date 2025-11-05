@@ -2881,6 +2881,12 @@ export const {
   useGetPlayToWinHistoryQuery,
 } = customerApi;
 
+// Regional Availability
+export const {
+  useGetRegionalAvailabilityConfigQuery,
+  useCheckRegionAvailabilityMutation,
+} = customerApi;
+
 // Group Orders
 export const {
   useCreateGroupOrderMutation,

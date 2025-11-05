@@ -14,6 +14,7 @@ interface BottomSheetProps {
   handleIndicatorStyle?: any;
   backgroundStyle?: any;
   containerStyle?: any;
+  bottomInset?: number;
 }
 
 export function BottomSheetBase({
@@ -26,6 +27,7 @@ export function BottomSheetBase({
   handleIndicatorStyle,
   backgroundStyle,
   containerStyle,
+  bottomInset,
 }: BottomSheetProps) {
   const colorScheme = useColorScheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -77,6 +79,7 @@ export function BottomSheetBase({
       backgroundStyle={defaultBackgroundStyle}
       containerStyle={containerStyle}
       android_keyboardInputMode="adjustResize"
+      bottomInset={bottomInset}
     >
       <BottomSheetView style={[styles.contentContainer, containerStyle]}>
         {children}

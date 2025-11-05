@@ -8,7 +8,6 @@ import { SvgXml } from 'react-native-svg';
 import { ProfileAvatar } from './ProfileAvatar';
 import { VerificationBanner } from './VerificationBanner';
 import { AddressSelectionSheet } from './ui/AddressSelectionSheet';
-import { DownloadAccountDataSheet } from './ui/DownloadAccountDataSheet';
 
 interface UserAccountDetailsScreenProps {
   userName?: string;
@@ -104,7 +103,6 @@ export function UserAccountDetailsScreen({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
   const [addressSheetMode, setAddressSheetMode] = useState<'home' | 'work' | null>(null);
-  const [isDownloadAccountDataSheetVisible, setIsDownloadAccountDataSheetVisible] = useState(false);
   const { logout, isAuthenticated } = useAuthContext();
 
   // Fetch profile data from backend
@@ -426,7 +424,7 @@ export function UserAccountDetailsScreen({
         <MenuItem 
           icon={filePenIconSVG} 
           text="Download your account data" 
-          onPress={() => setIsDownloadAccountDataSheetVisible(true)}
+          onPress={() => router.push('/download-account-data')}
         />
         <MenuItem 
           icon={heartHandshakeIconSVG} 
@@ -506,12 +504,6 @@ export function UserAccountDetailsScreen({
           addressLabel={addressSheetMode}
         />
       )}
-
-      {/* Download Account Data Sheet */}
-      <DownloadAccountDataSheet
-        isVisible={isDownloadAccountDataSheetVisible}
-        onClose={() => setIsDownloadAccountDataSheetVisible(false)}
-      />
     </View>
   );
 }
