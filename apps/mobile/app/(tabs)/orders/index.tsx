@@ -369,11 +369,19 @@ export default function OrdersScreen() {
       return (
         <EmptyState
           title="Place your first order to see orders here"
-          subtitle=""
+          subtitle="Browse kitchens and meals to get started with your first order"
           icon="receipt-outline"
           titleColor="#094327"
-          subtitleColor="#4B5563"
-          iconColor="#6B7280"
+          subtitleColor="#6B7280"
+          iconColor="#10B981"
+          style={{
+            paddingVertical: 80,
+            paddingHorizontal: 32,
+          }}
+          actionButton={{
+            label: "Browse Kitchens",
+            onPress: () => router.push("/(tabs)/"),
+          }}
         />
       );
     }
