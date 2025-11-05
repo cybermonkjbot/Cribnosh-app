@@ -25,8 +25,8 @@ import { store } from '@/store/index';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
 import { GlobalToastContainer } from '../components/ui/GlobalToastContainer';
-import { handleDeepLink } from '../lib/deepLinkHandler';
 import { ToastProvider } from '../lib/ToastContext';
+import { handleDeepLink } from '../lib/deepLinkHandler';
 import { logMockStatus } from '../utils/mockConfig';
 
 // Check if we're running in Expo Go (which doesn't support native modules like Stripe)
