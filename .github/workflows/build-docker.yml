@@ -38,6 +38,7 @@ jobs:
         echo "ECR Repository URL: $REPO_URL"
         
     - name: Build Docker image
+      working-directory: apps/web
       run: |
         docker build -f Dockerfile.aws -t ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }} -t ${{ steps.ecr-url.outputs.ecr-url }}:latest .
         
@@ -66,3 +67,4 @@ jobs:
         SERVICE_URL=$(aws apprunner describe-service --service-arn $(aws apprunner list-services --query 'ServiceSummaryList[0].ServiceArn' --output text) --query 'Service.ServiceUrl' --output text)
         echo "🔍 Performing health check on $SERVICE_URL/api/health"
         curl -f "$SERVICE_URL/api/health" || echo "⚠️ Health check failed, but deployment completed"
+
