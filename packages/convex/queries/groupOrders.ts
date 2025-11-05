@@ -89,3 +89,43 @@ export const getByStatus = query({
   },
 });
 
+// Get suggested participants based on user's connections
+export const getSuggestedParticipants = query({
+  args: { 
+    user_id: v.id('users'),
+    connection_types: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    // Call the unified connections query using ctx.runQuery
+    const allConnections = await ctx.runQuery(api.queries.userConnections.getAllUserConnections, {
+      user_id: args.user_id,
+    });
+    
+    // Filter by connection types if specified
+    let filteredConnections = allConnections;
+    if (args.connection_types && args.connection_types.length > 0) {
+      filteredConnections = allConnections.filter(conn => 
+        args.connection_types!.includes(conn.connection_type)
+      );
+    }
+    
+    // Enrich with user details
+    const enriched = await Promise.all(
+      filteredConnections.map(async (conn) => {
+        const user = await ctx.db.get(conn.user_id);
+        return {
+          user_id: conn.user_id,
+          user_name: conn.user_name,
+          connection_type: conn.connection_type,
+          source: conn.source,
+          metadata: conn.metadata,
+          avatar: user?.avatar,
+          email: user?.email,
+        };
+      })
+    );
+    
+    return enriched;
+  },
+});
+

@@ -138,12 +138,12 @@ export interface Order {
     | "cancelled";
   order_status?: string;
   items: OrderItem[];
-  order_items?: Array<{
+  order_items?: {
     dish_id: string;
     name: string;
     quantity: number;
     price: number;
-  }>;
+  }[];
   subtotal: number; // in cents
   delivery_fee: number; // in cents
   tax: number; // in cents
@@ -909,13 +909,13 @@ export interface GetGroupOrderResponse {
 export interface JoinGroupOrderRequest {
   group_order_id: string;
   share_token?: string;
-  order_items: Array<{
+  order_items: {
     dish_id: string;
     name: string;
     quantity: number;
     price: number;
     special_instructions?: string;
-  }>;
+  }[];
 }
 
 export interface JoinGroupOrderResponse {
@@ -1267,7 +1267,7 @@ export interface TopUpBalanceResponse {
 }
 
 export interface SetupFamilyProfileRequest {
-  family_members?: Array<{
+  family_members?: {
     name: string;
     email: string;
     phone?: string;
@@ -1278,7 +1278,7 @@ export interface SetupFamilyProfileRequest {
       monthly_limit?: number;
       currency?: string;
     };
-  }>;
+  }[];
   settings?: {
     shared_payment_methods: boolean;
     shared_orders: boolean;
@@ -1443,7 +1443,7 @@ export interface GetFamilyOrdersResponse {
 export interface GetFamilySpendingResponse {
   success: boolean;
   data: {
-    members: Array<{
+    members: {
       member_id: string;
       user_id: string;
       name: string;
@@ -1454,7 +1454,7 @@ export interface GetFamilySpendingResponse {
       monthly_spent: number;
       monthly_limit: number;
       currency: string;
-    }>;
+    }[];
     total_spending: number;
     currency: string;
   };
@@ -1468,6 +1468,7 @@ export interface GetFamilySpendingResponse {
 export interface Allergy {
   id: string;
   name: string;
+  type: "allergy" | "intolerance";
   severity: "mild" | "moderate" | "severe";
   notes?: string;
 }
@@ -1481,6 +1482,7 @@ export interface GetAllergiesResponse {
 export interface UpdateAllergiesRequest {
   allergies: {
     name: string;
+    type: "allergy" | "intolerance";
     severity: "mild" | "moderate" | "severe";
     notes?: string;
   }[];
@@ -1500,17 +1502,29 @@ export interface DietaryPreference {
 
 export interface GetDietaryPreferencesResponse {
   success: boolean;
-  data: DietaryPreference[];
+  data: {
+    preferences: string[];
+    religious_requirements: string[];
+    health_driven: string[];
+    updated_at: string;
+  };
   message: string;
 }
 
 export interface UpdateDietaryPreferencesRequest {
-  preferences: DietaryPreference[];
+  preferences: string[];
+  religious_requirements: string[];
+  health_driven: string[];
 }
 
 export interface UpdateDietaryPreferencesResponse {
   success: boolean;
-  data: DietaryPreference[];
+  data: {
+    preferences: string[];
+    religious_requirements: string[];
+    health_driven: string[];
+    updated_at: string;
+  };
   message: string;
 }
 

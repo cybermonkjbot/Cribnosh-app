@@ -3309,4 +3309,49 @@ export default defineSchema({
   })
     .index("by_token", ["sessionToken"])
     .index("by_user", ["userId"]),
+
+  // Treats table - Track who treated whom to meals
+  treats: defineTable({
+    treater_id: v.id("users"), // User who is treating
+    treated_user_id: v.optional(v.id("users")), // User being treated (if known)
+    order_id: v.optional(v.id("orders")), // Order associated with treat (if applicable)
+    treat_token: v.string(), // Unique token for sharing
+    status: v.union(
+      v.literal("pending"),
+      v.literal("claimed"),
+      v.literal("expired"),
+      v.literal("cancelled")
+    ),
+    created_at: v.number(),
+    claimed_at: v.optional(v.number()),
+    expires_at: v.optional(v.number()),
+    metadata: v.optional(v.any()), // Additional treat information
+  })
+    .index("by_treater", ["treater_id"])
+    .index("by_treated_user", ["treated_user_id"])
+    .index("by_token", ["treat_token"])
+    .index("by_status", ["status"]),
+
+  // User Connections table - Track manual colleague/friend connections
+  user_connections: defineTable({
+    user_id: v.id("users"),
+    connected_user_id: v.id("users"),
+    connection_type: v.union(
+      v.literal("colleague"),
+      v.literal("friend")
+    ),
+    company: v.optional(v.string()), // Company name if colleague connection
+    status: v.union(
+      v.literal("active"),
+      v.literal("removed"),
+      v.literal("blocked")
+    ),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_connected_user", ["connected_user_id"])
+    .index("by_user_connected", ["user_id", "connected_user_id"])
+    .index("by_type", ["connection_type"])
+    .index("by_status", ["status"]),
 });

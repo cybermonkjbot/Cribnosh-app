@@ -274,7 +274,7 @@ export function TopUpBalanceSheet({
           <TouchableOpacity
             style={[styles.topUpButton, (!amountInPence || isProcessing) && styles.topUpButtonDisabled]}
             onPress={handleTopUp}
-            disabled={!amountInPence || isProcessing || paymentMethods.length === 0}
+            disabled={!amountInPence || isProcessing}
           >
             {isProcessing ? (
               <ActivityIndicator size="small" color="#FFFFFF" />

@@ -264,9 +264,6 @@ export default function PersonalInfoScreen() {
 
         {/* Content */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Main Title */}
-          <Text style={styles.mainTitle}>Personal Info</Text>
-
           {/* Profile Picture Section */}
           <View style={styles.profileSection}>
             <View style={styles.avatarContainer}>
@@ -418,6 +415,7 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: 'center',
+    marginTop: 16,
     marginBottom: 32,
   },
   avatarContainer: {

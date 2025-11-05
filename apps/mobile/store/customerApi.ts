@@ -336,6 +336,8 @@ export const customerApi = createApi({
     "CartItem",
     "Orders",
     "GroupOrders",
+    "Connections",
+    "Treats",
     "Offers",
     "SearchResults",
     "LiveStreams",
@@ -985,6 +987,141 @@ export const customerApi = createApi({
         method: "POST",
       }),
       invalidatesTags: ["Orders", "GroupOrders"],
+    }),
+
+    // ========================================================================
+    // CONNECTIONS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get all user connections
+     * GET /customer/connections
+     */
+    getUserConnections: builder.query<
+      {
+        success: boolean;
+        data: Array<{
+          user_id: string;
+          user_name: string;
+          connection_type: string;
+          source: string;
+          metadata?: any;
+        }>;
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/connections",
+        method: "GET",
+      }),
+      providesTags: ["Connections"],
+    }),
+
+    /**
+     * Create manual connection
+     * POST /customer/connections
+     */
+    createConnection: builder.mutation<
+      { success: boolean; data: { success: boolean } },
+      {
+        connected_user_id: string;
+        connection_type: "colleague" | "friend";
+        company?: string;
+      }
+    >({
+      query: (data) => ({
+        url: "/customer/connections",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Connections"],
+    }),
+
+    /**
+     * Remove connection
+     * DELETE /customer/connections/{connection_id}
+     */
+    removeConnection: builder.mutation<
+      { success: boolean; data: { success: boolean } },
+      string
+    >({
+      query: (connectionId) => ({
+        url: `/customer/connections/${connectionId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Connections"],
+    }),
+
+    // ========================================================================
+    // TREATS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get user's treats
+     * GET /customer/treats
+     */
+    getTreats: builder.query<
+      {
+        success: boolean;
+        data: Array<any>;
+      },
+      { type?: "given" | "received" | "all" }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.type) searchParams.append("type", params.type);
+        return {
+          url: `/customer/treats${searchParams.toString() ? `?${searchParams}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Treats"],
+    }),
+
+    /**
+     * Create treat
+     * POST /customer/treats
+     */
+    createTreat: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          treat_id: string;
+          treat_token: string;
+          expires_at: number;
+        };
+      },
+      {
+        treated_user_id?: string;
+        order_id?: string;
+        expires_in_hours?: number;
+        metadata?: any;
+      }
+    >({
+      query: (data) => ({
+        url: "/customer/treats",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Treats", "Connections"],
+    }),
+
+    /**
+     * Get treat by token
+     * GET /customer/treats/{treat_token}
+     */
+    getTreatByToken: builder.query<
+      {
+        success: boolean;
+        data: any;
+      },
+      string
+    >({
+      query: (treatToken) => ({
+        url: `/customer/treats/${treatToken}`,
+        method: "GET",
+      }),
+      providesTags: ["Treats"],
     }),
 
     // ========================================================================

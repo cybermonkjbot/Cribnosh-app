@@ -154,6 +154,61 @@ export const join = mutation({
       updated_at: Date.now(),
     });
     
+    // Automatically create connection between joiner and all existing participants
+    // This tracks group order relationships
+    const now = Date.now();
+    for (const existingParticipant of groupOrder.participants) {
+      // Create bidirectional connections (joiner -> existing, existing -> joiner)
+      // Check if connection already exists
+      const existingConnection1 = await ctx.db
+        .query('user_connections')
+        .withIndex('by_user_connected', q => 
+          q.eq('user_id', args.user_id).eq('connected_user_id', existingParticipant.user_id)
+        )
+        .first();
+      
+      if (!existingConnection1 || existingConnection1.status !== 'active') {
+        // Create connection: joiner -> existing participant
+        if (existingConnection1) {
+          await ctx.db.patch(existingConnection1._id, {
+            status: 'active',
+            updated_at: now,
+          });
+        } else {
+          await ctx.db.insert('user_connections', {
+            user_id: args.user_id,
+            connected_user_id: existingParticipant.user_id,
+            connection_type: 'friend', // Group order participants are friends
+            status: 'active',
+            created_at: now,
+          });
+        }
+        
+        // Create reverse connection: existing participant -> joiner
+        const existingConnection2 = await ctx.db
+          .query('user_connections')
+          .withIndex('by_user_connected', q => 
+            q.eq('user_id', existingParticipant.user_id).eq('connected_user_id', args.user_id)
+          )
+          .first();
+        
+        if (existingConnection2) {
+          await ctx.db.patch(existingConnection2._id, {
+            status: 'active',
+            updated_at: now,
+          });
+        } else {
+          await ctx.db.insert('user_connections', {
+            user_id: existingParticipant.user_id,
+            connected_user_id: args.user_id,
+            connection_type: 'friend',
+            status: 'active',
+            created_at: now,
+          });
+        }
+      }
+    }
+    
     return {
       success: true,
       participant: newParticipant,
