@@ -2350,8 +2350,34 @@ export function BottomSearchDrawer({
                         {discoveredFeatures.includes("noshHeaven") && (
                           <TouchableOpacity
                             onPress={() => {
-                              if (onNoshHeavenPress) {
-                                onNoshHeavenPress();
+                              try {
+                                // Blur search input if focused
+                                searchInputRef.current?.blur();
+                                // Close search focus first
+                                handleSearchBlur();
+                                // Collapse drawer if expanded
+                                if (snapPointState !== SNAP_POINTS.COLLAPSED) {
+                                  animateToSnapPoint(SNAP_POINTS.COLLAPSED);
+                                  // Wait for drawer to collapse before opening Nosh Heaven
+                                  setTimeout(() => {
+                                    if (onNoshHeavenPress) {
+                                      triggerHaptic();
+                                      onNoshHeavenPress();
+                                    }
+                                  }, 300);
+                                } else {
+                                  // Drawer is already collapsed, open immediately
+                                  if (onNoshHeavenPress) {
+                                    triggerHaptic();
+                                    onNoshHeavenPress();
+                                  }
+                                }
+                              } catch (error) {
+                                console.error("Error opening Nosh Heaven:", error);
+                                // Fallback: try to open anyway
+                                if (onNoshHeavenPress) {
+                                  onNoshHeavenPress();
+                                }
                               }
                             }}
                             style={{
