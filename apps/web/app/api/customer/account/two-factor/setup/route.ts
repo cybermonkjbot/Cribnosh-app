@@ -104,8 +104,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const serviceName = 'Cribnosh';
     const accountName = user.email || user.phone_number || user.name || `user_${userId}`;
     
-    // Generate otpauth URL using keyuri utility
-    const otpauthUrl = keyuri(accountName, serviceName, secret);
+    // Generate otpauth URL in standard format: otpauth://totp/ISSUER:ACCOUNT?secret=SECRET&issuer=ISSUER
+    const encodedServiceName = encodeURIComponent(serviceName);
+    const encodedAccountName = encodeURIComponent(accountName);
+    const otpauthUrl = `otpauth://totp/${encodedServiceName}:${encodedAccountName}?secret=${secret}&issuer=${encodedServiceName}`;
     const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
     
     return ResponseFactory.success({
