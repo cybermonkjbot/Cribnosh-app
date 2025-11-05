@@ -355,6 +355,40 @@ export interface DeleteAccountResponse {
   };
 }
 
+// PUT /customer/account/password
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+// GET /customer/account/sessions
+export interface CustomerSession {
+  session_id: string;
+  device: string;
+  location: string;
+  created_at: string;
+  expires_at: string;
+  is_current: boolean;
+}
+
+export interface GetSessionsResponse {
+  success: boolean;
+  data: {
+    sessions: CustomerSession[];
+  };
+}
+
+// DELETE /customer/account/sessions/:session_id
+export interface RevokeSessionResponse {
+  success: boolean;
+  message: string;
+}
+
 // POST /customer/account/delete-feedback
 export interface DeleteAccountFeedbackRequest {
   feedback_options: number[]; // Array of selected option indices

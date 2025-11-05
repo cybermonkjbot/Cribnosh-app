@@ -10,7 +10,12 @@ import {
   AddToCartResponse,
   CancelOrderRequest,
   CancelOrderResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   ChatMessageRequest,
+  CustomerSession,
+  GetSessionsResponse,
+  RevokeSessionResponse,
   ChatMessageResponse,
   CheckoutRequest,
   CheckoutResponse,
@@ -348,6 +353,44 @@ export const customerApi = createApi({
         url: "/customer/account/download-data",
         method: "POST",
       }),
+    }),
+
+    /**
+     * Change customer password
+     * PUT /customer/account/password
+     * Backend endpoint: PUT /customer/account/password
+     */
+    changePassword: builder.mutation<ChangePasswordResponse, ChangePasswordRequest>({
+      query: (data) => ({
+        url: "/customer/account/password",
+        method: "PUT",
+        body: data,
+      }),
+    }),
+
+    /**
+     * Get customer active sessions
+     * GET /customer/account/sessions
+     * Backend endpoint: GET /customer/account/sessions
+     */
+    getSessions: builder.query<GetSessionsResponse, void>({
+      query: () => ({
+        url: "/customer/account/sessions",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Revoke customer session
+     * DELETE /customer/account/sessions/:session_id
+     * Backend endpoint: DELETE /customer/account/sessions/:session_id
+     */
+    revokeSession: builder.mutation<RevokeSessionResponse, string>({
+      query: (sessionId) => ({
+        url: `/customer/account/sessions/${sessionId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["CustomerProfile"],
     }),
 
     // ========================================================================
@@ -2816,6 +2859,9 @@ export const {
   useDeleteAccountMutation,
   useSubmitDeleteAccountFeedbackMutation,
   useDownloadAccountDataMutation,
+  useChangePasswordMutation,
+  useGetSessionsQuery,
+  useRevokeSessionMutation,
 } = customerApi;
 
 // Food Safety

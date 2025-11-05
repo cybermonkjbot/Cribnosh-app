@@ -2,11 +2,11 @@ import { query } from '../_generated/server';
 import { v } from 'convex/values';
 
 export const getSessionsByUserId = query({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   handler: async (ctx, args) => {
     const sessions = await ctx.db
       .query('sessions')
-      .filter((q) => q.eq(q.field('userId'), args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .collect();
     
     return sessions;

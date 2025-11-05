@@ -388,7 +388,11 @@ export function UserAccountDetailsScreen({
       
       {/* Main Settings Section */}
       <View style={styles.section}>
-        <MenuItem icon={userIconSVG} text="Personal info" />
+        <MenuItem 
+          icon={userIconSVG} 
+          text="Personal info" 
+          onPress={() => router.push('/personal-info')}
+        />
         <MenuItem 
           icon={shieldIconSVG} 
           text="Payments and Family" 
@@ -399,8 +403,16 @@ export function UserAccountDetailsScreen({
           text="Food safety" 
           onPress={() => router.push('/food-safety')}
         />
-        <MenuItem icon={lockIconSVG} text="Login & security" />
-        <MenuItem icon={handIconSVG} text="Privacy" />
+        <MenuItem 
+          icon={lockIconSVG} 
+          text="Login & security" 
+          onPress={() => router.push('/login-security')}
+        />
+        <MenuItem 
+          icon={handIconSVG} 
+          text="Privacy" 
+          onPress={() => router.push('/privacy')}
+        />
       </View>
       
       {/* Saved Places Section */}
