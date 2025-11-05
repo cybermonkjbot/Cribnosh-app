@@ -103,7 +103,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Use email if available, otherwise fallback to phone number or user ID
     const serviceName = 'Cribnosh';
     const accountName = user.email || user.phone_number || user.name || `user_${userId}`;
-    const otpauthUrl = authenticator.keyuri(accountName, serviceName, secret);
+    
+    // Generate otpauth URL using keyuri utility
+    const otpauthUrl = keyuri(accountName, serviceName, secret);
     const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
     
     return ResponseFactory.success({
