@@ -56,61 +56,8 @@ export default function OrderDetailsScreen() {
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
   const [rateOrder, { isLoading: isRating }] = useRateOrderMutation();
 
-  // Mock data fallback
-  const mockOrder: ApiOrder = {
-    id: orderId || "mock_order_fallback",
-    customer_id: "mock_user_1",
-    kitchen_id: "mock_kitchen_1",
-    kitchen_name: "Mr.s Burger",
-    status: "preparing",
-    items: [
-      {
-        id: "item_1",
-        dish_id: "dish_1",
-        dish_name: "Keto Burger",
-        quantity: 1,
-        price: 1200, // in cents
-        special_instructions: "No pickles",
-      },
-      {
-        id: "item_2",
-        dish_id: "dish_2",
-        dish_name: "Sweet Potato Fries",
-        quantity: 1,
-        price: 600,
-      },
-      {
-        id: "item_3",
-        dish_id: "dish_3",
-        dish_name: "Diet Coke",
-        quantity: 1,
-        price: 200,
-      },
-    ],
-    subtotal: 2000,
-    delivery_fee: 300,
-    tax: 200,
-    total: 2500,
-    delivery_address: {
-      street: "123 Mockingbird Lane",
-      city: "Faketown",
-      state: "FS",
-      postal_code: "12345",
-      country: "Mockland",
-      coordinates: { latitude: 0, longitude: 0 },
-    },
-    special_instructions: "Please leave at the back door and ring twice.",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    estimated_delivery_time: new Date(
-      Date.now() + 30 * 60 * 1000
-    ).toISOString(), // 30 minutes from now
-  };
-
-  // Only use mock data if API explicitly fails (error), not if data is just empty
-  const order: ApiOrder | undefined =
-    apiData?.data ||
-    (apiLoading === false && !apiData && !orderId ? mockOrder : undefined);
+  // Use only API data - no mock fallback
+  const order: ApiOrder | undefined = apiData?.data || undefined;
 
   const handleBack = () => {
     router.back();
@@ -135,8 +82,12 @@ export default function OrderDetailsScreen() {
             }).unwrap();
             Alert.alert("Success", "Order has been cancelled successfully");
             router.back();
-          } catch {
-            Alert.alert("Error", "Failed to cancel order. Please try again.");
+          } catch (error: any) {
+            console.error("Error cancelling order:", error);
+            Alert.alert(
+              "Error",
+              error?.data?.error?.message || "Failed to cancel order. Please try again."
+            );
           }
         },
       },
@@ -158,8 +109,12 @@ export default function OrderDetailsScreen() {
       setShowRatingModal(false);
       setRating(0);
       setReview("");
-    } catch {
-      Alert.alert("Error", "Failed to submit rating. Please try again.");
+    } catch (error: any) {
+      console.error("Error rating order:", error);
+      Alert.alert(
+        "Error",
+        error?.data?.error?.message || "Failed to submit rating. Please try again."
+      );
     }
   };
 

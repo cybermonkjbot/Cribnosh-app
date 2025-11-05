@@ -5,7 +5,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from '@react-navigation/native';
-import { StripeProvider } from '@stripe/stripe-react-native';
+import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import * as Linking from 'expo-linking';
 import { Stack } from 'expo-router';
@@ -28,6 +28,19 @@ import { GlobalToastContainer } from '../components/ui/GlobalToastContainer';
 import { handleDeepLink } from '../lib/deepLinkHandler';
 import { ToastProvider } from '../lib/ToastContext';
 import { logMockStatus } from '../utils/mockConfig';
+
+// Check if we're running in Expo Go (which doesn't support native modules like Stripe)
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+// Conditionally import StripeProvider - only available in development builds
+let StripeProvider: any = null;
+if (!isExpoGo) {
+  try {
+    StripeProvider = require('@stripe/stripe-react-native').StripeProvider;
+  } catch (error) {
+    console.warn('StripeProvider not available:', error);
+  }
+}
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -97,53 +110,65 @@ export default function RootLayout() {
     );
   }
 
+  // Main app content JSX
+  const appContent = (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <BottomSheetModalProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="shared-ordering" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                  gestureEnabled: true,
+                }} 
+              />
+              <Stack.Screen name="shared-link" options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="sign-in" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'modal',
+                  animationTypeForReplace: 'push'
+                }} 
+              />
+              <Stack.Screen 
+                name="payment-settings" 
+                options={{ 
+                  headerShown: false,
+                }} 
+              />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar translucent backgroundColor="transparent" barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+          </ThemeProvider>
+        </BottomSheetModalProvider>
+        <GlobalToastContainer />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+
+  // Wrap in StripeProvider only if available (not in Expo Go)
+  const wrappedContent = StripeProvider && STRIPE_CONFIG.publishableKey ? (
+    <StripeProvider publishableKey={STRIPE_CONFIG.publishableKey}>
+      {appContent}
+    </StripeProvider>
+  ) : (
+    appContent
+  );
+
   return (
     <Provider store={store}>
       <AuthProvider>
         <EmotionsUIProvider>
           <AppProvider>
             <ToastProvider>
-              <StripeProvider publishableKey={STRIPE_CONFIG.publishableKey}>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                  <SafeAreaProvider>
-                    <BottomSheetModalProvider>
-                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                        <Stack>
-                          <Stack.Screen name="index" options={{ headerShown: false }} />
-                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                          <Stack.Screen 
-                            name="shared-ordering" 
-                            options={{ 
-                              headerShown: false,
-                              presentation: 'modal',
-                              animation: 'slide_from_bottom',
-                              gestureEnabled: true,
-                            }} 
-                          />
-                          <Stack.Screen name="shared-link" options={{ headerShown: false }} />
-                          <Stack.Screen 
-                            name="sign-in" 
-                            options={{ 
-                              headerShown: false,
-                              presentation: 'modal',
-                              animationTypeForReplace: 'push'
-                            }} 
-                          />
-                          <Stack.Screen 
-                            name="payment-settings" 
-                            options={{ 
-                              headerShown: false,
-                            }} 
-                          />
-                          <Stack.Screen name="+not-found" />
-                        </Stack>
-                        <StatusBar translucent backgroundColor="transparent" barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-                      </ThemeProvider>
-                    </BottomSheetModalProvider>
-                    <GlobalToastContainer />
-                  </SafeAreaProvider>
-                </GestureHandlerRootView>
-              </StripeProvider>
+              {wrappedContent}
             </ToastProvider>
           </AppProvider>
         </EmotionsUIProvider>

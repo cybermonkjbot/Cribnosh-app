@@ -1,26 +1,28 @@
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
-    useDeleteCustomOrderMutation,
-    useGetCustomOrderQuery,
+  useDeleteCustomOrderMutation,
+  useGenerateSharedOrderLinkMutation,
+  useGetCustomOrderQuery,
 } from "@/store/customerApi";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    ChevronLeft,
-    Clock,
-    DollarSign,
-    Edit3,
-    MapPin,
-    Trash2,
-    User,
+  ChevronLeft,
+  Clock,
+  DollarSign,
+  Edit3,
+  MapPin,
+  Share2,
+  Trash2,
+  User,
 } from "lucide-react-native";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useToast } from "../lib/ToastContext";
@@ -29,7 +31,7 @@ export default function CustomOrderDetailsScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const { id } = useLocalSearchParams();
-  
+
   // Get custom order ID from route params
   const customOrderId = typeof id === "string" ? id : undefined;
 
@@ -42,33 +44,11 @@ export default function CustomOrderDetailsScreen() {
   );
 
   const [deleteCustomOrder] = useDeleteCustomOrderMutation();
+  const [generateSharedLink, { isLoading: isGeneratingLink }] =
+    useGenerateSharedOrderLinkMutation();
 
-  // Only use mock data if API explicitly fails, not if data is just empty or loading
-  const customOrder = customOrderData?.data 
-    ? customOrderData.data
-    : (!isLoading && !customOrderData && customOrderId)
-      ? {
-          _id: customOrderId || "mock_custom_order_1",
-          userId: "mock_user_1",
-          requirements: "Gluten-free pasta with vegan cheese",
-          serving_size: 2,
-          custom_order_id: customOrderId || "CUST-MOCK-001",
-          status: "pending",
-          dietary_restrictions: "gluten-free, vegan",
-          estimatedPrice: 25.99,
-          deliveryDate: "2024-01-15T18:00:00Z",
-          deliveryAddress: {
-            street: "123 Main Street",
-            city: "London",
-            state: "England",
-            postal_code: "SW1A 1AA",
-            country: "UK",
-          },
-          specialInstructions: "Please avoid nuts and make it extra spicy",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      : undefined;
+  // Use only API data - no mock fallback
+  const customOrder = customOrderData?.data || undefined;
 
   const handleBack = () => {
     router.back();
@@ -83,6 +63,45 @@ export default function CustomOrderDetailsScreen() {
         "Edit functionality will be implemented when POST/PUT endpoints are available",
       duration: 3000,
     });
+  };
+
+  const handleShare = async () => {
+    if (!customOrderId) {
+      showToast({
+        type: "error",
+        title: "Error",
+        message: "Order ID is missing",
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      const result = await generateSharedLink({
+        order_id: customOrderId,
+      }).unwrap();
+      if (result.success && result.data?.shareLink) {
+        // Copy to clipboard or share the link
+        const shareLink = result.data.shareLink;
+        // You can use expo-sharing or Clipboard API here
+        showToast({
+          type: "success",
+          title: "Share Link Generated",
+          message: `Share link: ${shareLink}`,
+          duration: 5000,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error generating share link:", error);
+      showToast({
+        type: "error",
+        title: "Share Failed",
+        message:
+          error?.data?.error?.message ||
+          "Failed to generate share link. Please try again.",
+        duration: 4000,
+      });
+    }
   };
 
   const handleDelete = () => {
@@ -109,12 +128,14 @@ export default function CustomOrderDetailsScreen() {
                 duration: 3000,
               });
               router.back();
-            } catch (error) {
+            } catch (error: any) {
               console.error("Error deleting custom order:", error);
               showToast({
                 type: "error",
                 title: "Delete Failed",
-                message: "Failed to delete custom order. Please try again.",
+                message:
+                  error?.data?.error?.message ||
+                  "Failed to delete custom order. Please try again.",
                 duration: 4000,
               });
             }
@@ -196,6 +217,13 @@ export default function CustomOrderDetailsScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Custom Order Details</Text>
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={handleShare}
+              style={styles.actionButton}
+              disabled={isGeneratingLink}
+            >
+              <Share2 size={20} color="#E6FFE8" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={handleEdit} style={styles.actionButton}>
               <Edit3 size={20} color="#E6FFE8" />
             </TouchableOpacity>
@@ -229,7 +257,7 @@ export default function CustomOrderDetailsScreen() {
               </View>
             </View>
             <Text style={styles.orderId}>
-              Order ID: {customOrder.custom_order_id}
+              Order ID: {customOrder.custom_order_id || customOrder._id}
             </Text>
           </View>
 
