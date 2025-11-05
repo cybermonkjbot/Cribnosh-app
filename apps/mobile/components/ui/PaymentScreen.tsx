@@ -14,6 +14,7 @@ import {
 import { Mascot } from "@/components/Mascot";
 import { useRegionAvailability } from "@/hooks/useRegionAvailability";
 import { RegionAvailabilityModal } from "./RegionAvailabilityModal";
+import { startOrderLiveActivity } from "@/lib/live-activity/orderLiveActivity";
 
 interface PaymentScreenProps {
   orderTotal?: number;
@@ -119,6 +120,23 @@ export default function PaymentScreen({
         const orderId = orderResult.data.order_id;
 
         setPaymentStatus('success');
+
+        // Start Live Activity for the new order
+        try {
+          // Start with minimal data - will be updated when order status screen loads
+          const orderNumber = orderId.substring(0, 8).toUpperCase();
+          
+          await startOrderLiveActivity({
+            orderId: orderId,
+            orderNumber: orderNumber,
+            status: 'pending',
+            statusText: 'Order Confirmed',
+            totalAmount: calculatedTotal,
+          });
+        } catch (error) {
+          console.error('Error starting Live Activity:', error);
+          // Don't fail the payment flow if Live Activity fails
+        }
         
         // Call success handler with order ID
         if (onPaymentSuccess) {

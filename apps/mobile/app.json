@@ -20,7 +20,8 @@
         "NSLocationWhenInUseUsageDescription": "CribNosh needs your location to show nearby chefs and provide delivery services",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "CribNosh needs your location to show nearby chefs and provide delivery services",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "deploymentTarget": "16.2"
     },
     "android": {
       "adaptiveIcon": {
@@ -81,6 +82,12 @@
         "@stripe/stripe-react-native",
         {
           "merchantIdentifier": "merchant.com.cribnosh.co.uk"
+        }
+      ],
+      [
+        "expo-live-activity",
+        {
+          "enablePushNotifications": true
         }
       ]
     ],

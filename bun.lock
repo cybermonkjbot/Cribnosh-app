@@ -36,6 +36,7 @@
         "expo-keep-awake": "^15.0.7",
         "expo-linear-gradient": "~15.0.7",
         "expo-linking": "~8.0.8",
+        "expo-live-activity": "^0.4.1",
         "expo-location": "^19.0.7",
         "expo-maps": "^0.12.8",
         "expo-media-library": "~18.2.0",
@@ -2432,6 +2433,8 @@
     "expo-linear-gradient": ["expo-linear-gradient@15.0.7", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-yF+y+9Shpr/OQFfy/wglB/0bykFMbwHBTuMRa5Of/r2P1wbkcacx8rg0JsUWkXH/rn2i2iWdubyqlxSJa3ggZA=="],
 
     "expo-linking": ["expo-linking@8.0.8", "", { "dependencies": { "expo-constants": "~18.0.8", "invariant": "^2.2.4" }, "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-MyeMcbFDKhXh4sDD1EHwd0uxFQNAc6VCrwBkNvvvufUsTYFq3glTA9Y8a+x78CPpjNqwNAamu74yIaIz7IEJyg=="],
+
+    "expo-live-activity": ["expo-live-activity@0.4.1", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-8x5q0T38j3wkqW/WJX0dnjfkHYLnfQZNotbckUwijmGyLjXGeR658buhTqWlNcrwBRxVS5nee5TDXw8zRohPNw=="],
 
     "expo-location": ["expo-location@19.0.7", "", { "peerDependencies": { "expo": "*" } }, "sha512-YNkh4r9E6ECbPkBCAMG5A5yHDgS0pw+Rzyd0l2ZQlCtjkhlODB55nMCKr5CZnUI0mXTkaSm8CwfoCO8n2MpYfg=="],
 
