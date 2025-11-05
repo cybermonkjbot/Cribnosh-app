@@ -1,3 +1,9 @@
+import { GradientBackground } from '@/components/ui/GradientBackground';
+import { SuperButton } from '@/components/ui/SuperButton';
+import { useToast } from '@/lib/ToastContext';
+import { useInviteFamilyMemberMutation } from '@/store/customerApi';
+import { useRouter } from 'expo-router';
+import { ChevronLeft } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   ScrollView,
@@ -8,12 +14,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { GradientBackground } from '@/components/ui/GradientBackground';
-import { SuperButton } from '@/components/ui/SuperButton';
-import { useInviteFamilyMemberMutation } from '@/store/customerApi';
-import { useToast } from '@/lib/ToastContext';
 
 export default function AddFamilyMemberScreen() {
   const router = useRouter();

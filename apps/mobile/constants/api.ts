@@ -15,4 +15,9 @@ export const API_CONFIG = {
   },
 };
 
+// Stripe Configuration
+export const STRIPE_CONFIG = {
+  publishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+};
+
 export default API_CONFIG;

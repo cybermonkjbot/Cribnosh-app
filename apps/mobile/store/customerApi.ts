@@ -103,6 +103,8 @@ import {
   SetupFamilyProfileRequest,
   SetupFamilyProfileResponse,
   SortParams,
+  TopUpBalanceRequest,
+  TopUpBalanceResponse,
   TrendingSearchParams,
   TrendingSearchResponse,
   UpdateAllergiesRequest,
@@ -1227,6 +1229,22 @@ export const customerApi = createApi({
         };
       },
       providesTags: ["PaymentIntent"],
+    }),
+
+    /**
+     * Top up Cribnosh balance
+     * POST /customer/balance/top-up
+     */
+    topUpBalance: builder.mutation<
+      TopUpBalanceResponse,
+      TopUpBalanceRequest
+    >({
+      query: (data) => ({
+        url: "/customer/balance/top-up",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["PaymentIntent"],
     }),
 
     /**
@@ -2906,6 +2924,7 @@ export const {
   useSetDefaultPaymentMethodMutation,
   useGetCribnoshBalanceQuery,
   useGetBalanceTransactionsQuery,
+  useTopUpBalanceMutation,
   useGetFamilyProfileQuery,
   useSetupFamilyProfileMutation,
   useInviteFamilyMemberMutation,

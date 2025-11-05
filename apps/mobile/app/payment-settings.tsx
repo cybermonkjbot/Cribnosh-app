@@ -1,17 +1,20 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { SvgXml } from 'react-native-svg';
-import { useToast } from '../lib/ToastContext';
+import { BalanceInfoSheet } from '@/components/ui/BalanceInfoSheet';
+import { BalanceTransactionsSheet } from '@/components/ui/BalanceTransactionsSheet';
+import { TopUpBalanceSheet } from '@/components/ui/TopUpBalanceSheet';
 import {
-  useGetPaymentMethodsQuery,
-  useGetCribnoshBalanceQuery,
-  useGetBalanceTransactionsQuery,
   useAddPaymentMethodMutation,
+  useGetBalanceTransactionsQuery,
+  useGetCribnoshBalanceQuery,
+  useGetPaymentMethodsQuery,
   useSetDefaultPaymentMethodMutation,
   useSetupFamilyProfileMutation,
 } from '@/store/customerApi';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
+import { useToast } from '../lib/ToastContext';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,7 +23,7 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 
 // Icons
 const checkIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M16 4L7 13L4 10" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M16 4L7 13L4 10" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
 const clockIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -63,6 +66,9 @@ export default function PaymentSettingsScreen() {
   const { showToast } = useToast();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('apple-pay');
   const [isAddingCard, setIsAddingCard] = useState(false);
+  const [isBalanceInfoVisible, setIsBalanceInfoVisible] = useState(false);
+  const [isTransactionsVisible, setIsTransactionsVisible] = useState(false);
+  const [isTopUpVisible, setIsTopUpVisible] = useState(false);
 
   // Fetch payment data from API
   const { data: paymentMethodsData } = useGetPaymentMethodsQuery(undefined, {
@@ -136,28 +142,15 @@ export default function PaymentSettingsScreen() {
   };
 
   const handleBalanceInfo = () => {
-    Alert.alert(
-      'Cribnosh Balance',
-      'Cribnosh balance is a digital wallet that allows you to store funds and use them for orders. It\'s not available with all payment methods.',
-      [{ text: 'Got it', style: 'default' }]
-    );
+    setIsBalanceInfoVisible(true);
   };
 
   const handleBalanceTransactions = () => {
-    // Navigate to transactions screen or show transactions data
-    if (transactionsData?.data?.transactions && transactionsData.data.transactions.length > 0) {
-      Alert.alert(
-        'Balance Transactions',
-        `You have ${transactionsData.data.transactions.length} transaction(s). Full transaction history would be displayed here.`,
-        [{ text: 'OK' }]
-      );
-    } else {
-      Alert.alert(
-        'No Transactions',
-        'You don\'t have any balance transactions yet.',
-        [{ text: 'OK' }]
-      );
-    }
+    setIsTransactionsVisible(true);
+  };
+
+  const handleTopUpBalance = () => {
+    setIsTopUpVisible(true);
   };
 
   return (
@@ -209,6 +202,16 @@ export default function PaymentSettingsScreen() {
                   <SvgXml xml={clockIconSVG} width={20} height={20} />
                 </View>
                 <Text style={styles.itemText}>See balance transactions</Text>
+              </View>
+              <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.balanceItem} onPress={handleTopUpBalance}>
+              <View style={styles.itemLeft}>
+                <View style={styles.itemIcon}>
+                  <SvgXml xml={plusIconSVG} width={20} height={20} />
+                </View>
+                <Text style={styles.itemText}>Top up balance</Text>
               </View>
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
@@ -334,6 +337,24 @@ export default function PaymentSettingsScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Balance Info Sheet */}
+        <BalanceInfoSheet
+          isVisible={isBalanceInfoVisible}
+          onClose={() => setIsBalanceInfoVisible(false)}
+        />
+
+        {/* Balance Transactions Sheet */}
+        <BalanceTransactionsSheet
+          isVisible={isTransactionsVisible}
+          onClose={() => setIsTransactionsVisible(false)}
+        />
+
+        {/* Top Up Balance Sheet */}
+        <TopUpBalanceSheet
+          isVisible={isTopUpVisible}
+          onClose={() => setIsTopUpVisible(false)}
+        />
       </SafeAreaView>
   );
 }

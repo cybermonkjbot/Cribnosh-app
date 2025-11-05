@@ -1,0 +1,171 @@
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { withErrorHandling } from '@/lib/errors';
+import { getOrCreateCustomer, stripe } from '@/lib/stripe';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+const MIN_TOP_UP_AMOUNT = 100; // £1.00 minimum in pence
+
+/**
+ * @swagger
+ * /customer/balance/top-up:
+ *   post:
+ *     summary: Top up Cribnosh balance
+ *     description: Create a payment intent for adding funds to customer's Cribnosh balance
+ *     tags: [Customer, Payments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *             properties:
+ *               amount:
+ *                 type: integer
+ *                 minimum: 100
+ *                 description: Amount in smallest currency unit (pence for GBP)
+ *                 example: 1000
+ *               payment_method_id:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Payment method ID for immediate confirmation
+ *                 example: "pm_1234567890abcdef"
+ *     responses:
+ *       200:
+ *         description: Payment intent created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     clientSecret:
+ *                       type: string
+ *                       description: Stripe client secret for payment confirmation
+ *                       example: "pi_1234567890abcdef_secret_abcdef1234567890"
+ *                     paymentIntentId:
+ *                       type: string
+ *                       description: Stripe payment intent ID
+ *                       example: "pi_1234567890abcdef"
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *       400:
+ *         description: Validation error - invalid amount or missing required fields
+ *       401:
+ *         description: Unauthorized - invalid or missing token
+ *       500:
+ *         description: Internal server error or Stripe configuration error
+ *     security:
+ *       - bearerAuth: []
+ */
+async function handlePOST(request: NextRequest): Promise<NextResponse> {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return createSpecErrorResponse(
+        'Invalid or missing token',
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    let payload: any;
+    try {
+      payload = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return createSpecErrorResponse(
+        'Invalid or expired token',
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
+    if (!payload.roles?.includes('customer')) {
+      return createSpecErrorResponse(
+        'Only customers can top up balance',
+        'FORBIDDEN',
+        403
+      );
+    }
+
+    const { amount, payment_method_id } = await request.json();
+
+    // Validation
+    if (!amount || typeof amount !== 'number' || amount < MIN_TOP_UP_AMOUNT) {
+      return createSpecErrorResponse(
+        `Amount is required and must be at least £${(MIN_TOP_UP_AMOUNT / 100).toFixed(2)} (${MIN_TOP_UP_AMOUNT} pence)`,
+        'VALIDATION_ERROR',
+        400
+      );
+    }
+
+    const { email } = payload;
+    if (!email) {
+      return createSpecErrorResponse(
+        'User email required',
+        'VALIDATION_ERROR',
+        400
+      );
+    }
+
+    if (!stripe) {
+      return createSpecErrorResponse(
+        'Stripe is not configured',
+        'INTERNAL_ERROR',
+        500
+      );
+    }
+
+    // Get or create Stripe customer
+    const customer = await getOrCreateCustomer({ userId: payload.user_id, email });
+
+    // Create payment intent with balance top-up metadata
+    const params: any = {
+      amount,
+      currency: 'gbp',
+      customer: customer.id,
+      metadata: {
+        type: 'balance_topup',
+        user_id: payload.user_id,
+        source: 'mobile_app',
+      },
+      setup_future_usage: 'off_session',
+    };
+
+    // If payment method is provided, attach it
+    if (payment_method_id) {
+      params.payment_method = payment_method_id;
+      params.confirm = true;
+      params.off_session = true;
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create(params);
+
+    return ResponseFactory.success({
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+    });
+  } catch (error: any) {
+    return createSpecErrorResponse(
+      error.message || 'Failed to create top-up payment intent',
+      'INTERNAL_ERROR',
+      500
+    );
+  }
+}
+
+export const POST = withAPIMiddleware(withErrorHandling(handlePOST));
+

@@ -1,19 +1,19 @@
+import { AddPaymentMethodModal } from "@/components/AddPaymentMethodScreen";
+import { useGetCribnoshBalanceQuery, useGetFamilyProfileQuery } from "@/store/customerApi";
 import { Entypo, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { Users } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
-    Image,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Image,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import { AddPaymentMethodModal } from "@/components/AddPaymentMethodScreen";
-import { useGetFamilyProfileQuery } from "@/store/customerApi";
-import { Users } from "lucide-react-native";
 
 const PAYMENT_METHOD_STORAGE_KEY = "cart_selected_payment_method";
 
@@ -21,6 +21,7 @@ export default function PaymentMethodSelection() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card");
   const [isAddPaymentMethodModalVisible, setIsAddPaymentMethodModalVisible] = useState(false);
   const { data: familyProfileData } = useGetFamilyProfileQuery();
+  const { data: balanceData } = useGetCribnoshBalanceQuery();
 
   // Load currently selected payment method
   useEffect(() => {
@@ -75,9 +76,11 @@ export default function PaymentMethodSelection() {
       id: "balance",
       name: "Cribnosh Balance",
       icon: require("@/assets/images/nosh-pass.png"),
-      description: "Use your available balance",
+      description: balanceData?.data?.is_available 
+        ? `£${((balanceData.data.balance || 0) / 100).toFixed(2)} available`
+        : "Balance not available",
       isDefault: false,
-      disabled: true,
+      disabled: !balanceData?.data?.is_available || (balanceData?.data?.balance || 0) <= 0,
     },
   ];
 

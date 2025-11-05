@@ -1,11 +1,10 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { stripe } from '@/lib/stripe';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
+import { getConvexClient } from '@/lib/conxed-client';
+import { stripe } from '@/lib/stripe';
 import { headers } from 'next/headers';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -141,7 +140,27 @@ async function handlePOST(request: NextRequest) {
 
 async function handlePaymentSucceeded(paymentIntent: any, convex: any) {
   try {
-    const { userId, orderType } = paymentIntent.metadata;
+    const { userId, orderType, type } = paymentIntent.metadata;
+    
+    // Handle balance top-up payments
+    if (type === 'balance_topup' && userId) {
+      const amount = paymentIntent.amount; // Amount in pence
+      const userIdFromMetadata = userId;
+      
+      // Create balance transaction with type "credit" and status "completed"
+      await convex.mutation(api.mutations.customerBalance.addTransaction, {
+        userId: userIdFromMetadata as Id<'users'>,
+        type: 'credit',
+        amount: amount, // Positive amount for credit
+        currency: paymentIntent.currency.toUpperCase(),
+        description: `Top-up balance via payment`,
+        status: 'completed',
+        reference: paymentIntent.id,
+      });
+      
+      console.log(`Balance top-up succeeded for user ${userIdFromMetadata}, amount: £${(amount / 100).toFixed(2)}`);
+      return; // Early return to avoid processing as order payment
+    }
     
     if (orderType === 'customer_checkout' && userId) {
       // First, check if an order already exists for this payment intent

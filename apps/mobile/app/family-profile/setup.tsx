@@ -1,9 +1,10 @@
 import { RelationshipSelectionSheet } from '@/components/ui/RelationshipSelectionSheet';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/lib/ToastContext';
 import { useSetupFamilyProfileMutation, useValidateFamilyMemberEmailMutation } from '@/store/customerApi';
 import { Stack, useRouter } from 'expo-router';
 import { CheckCircle, Plus, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -33,6 +34,8 @@ interface MemberValidation {
   exists: boolean;
   isLoading: boolean;
   error?: string;
+  isDuplicate?: boolean;
+  isSelfEmail?: boolean;
 }
 
 const chevronRightIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -42,12 +45,14 @@ const chevronRightIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fil
 export default function FamilyProfileSetupScreen() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { user } = useAuthContext();
   const [step, setStep] = useState(1);
   const [members, setMembers] = useState<FamilyMemberForm[]>([]);
   const [setupFamilyProfile, { isLoading }] = useSetupFamilyProfileMutation();
   const [validateFamilyMemberEmail] = useValidateFamilyMemberEmailMutation();
   const [relationshipSheetIndex, setRelationshipSheetIndex] = useState<number | null>(null);
   const [memberValidationStatus, setMemberValidationStatus] = useState<Map<number, MemberValidation>>(new Map());
+  const validationTimeoutRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
 
   const handleBack = () => {
     if (step > 1) {
@@ -65,6 +70,18 @@ export default function FamilyProfileSetupScreen() {
     setMembers(members.filter((_, i) => i !== index));
   };
 
+  const checkDuplicateEmail = (email: string, currentIndex: number): boolean => {
+    const normalizedEmail = email.toLowerCase().trim();
+    return members.some((member, index) => 
+      index !== currentIndex && member.email.toLowerCase().trim() === normalizedEmail
+    );
+  };
+
+  const checkSelfEmail = (email: string): boolean => {
+    if (!user?.email) return false;
+    return email.toLowerCase().trim() === user.email.toLowerCase().trim();
+  };
+
   const updateMember = (index: number, field: keyof FamilyMemberForm, value: string) => {
     const updated = [...members];
     updated[index] = { ...updated[index], [field]: value };
@@ -72,31 +89,98 @@ export default function FamilyProfileSetupScreen() {
     
     // Clear validation status if email is changed
     if (field === 'email') {
+      // Clear any pending validation timeout
+      const timeout = validationTimeoutRef.current.get(index);
+      if (timeout) {
+        clearTimeout(timeout);
+        validationTimeoutRef.current.delete(index);
+      }
+
+      // Clear validation status
       const newStatus = new Map(memberValidationStatus);
       newStatus.delete(index);
       setMemberValidationStatus(newStatus);
+
+      // Check for duplicates and self-email immediately
+      const normalizedEmail = value.toLowerCase().trim();
+      if (normalizedEmail && normalizedEmail.includes('@')) {
+        const isDuplicate = checkDuplicateEmail(value, index);
+        const isSelfEmail = checkSelfEmail(value);
+        
+        if (isDuplicate || isSelfEmail) {
+          const updatedStatus = new Map(memberValidationStatus);
+          updatedStatus.set(index, {
+            exists: false,
+            isLoading: false,
+            isDuplicate,
+            isSelfEmail,
+          });
+          setMemberValidationStatus(updatedStatus);
+        }
+      }
     }
   };
 
-  const handleEmailBlur = async (index: number, email: string) => {
+  const performValidation = async (index: number, email: string) => {
     // Validate email format first
-    if (!email.trim() || !email.includes('@')) {
+    const normalizedEmail = email.toLowerCase().trim();
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      return;
+    }
+
+    // Check for duplicates
+    const isDuplicate = checkDuplicateEmail(email, index);
+    if (isDuplicate) {
+      const updatedStatus = new Map(memberValidationStatus);
+      updatedStatus.set(index, {
+        exists: false,
+        isLoading: false,
+        isDuplicate: true,
+      });
+      setMemberValidationStatus(updatedStatus);
+      showToast({
+        type: 'error',
+        title: 'Duplicate Email',
+        message: 'This email is already added to the family members list.',
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Check for self-email
+    const isSelfEmail = checkSelfEmail(email);
+    if (isSelfEmail) {
+      const updatedStatus = new Map(memberValidationStatus);
+      updatedStatus.set(index, {
+        exists: false,
+        isLoading: false,
+        isSelfEmail: true,
+      });
+      setMemberValidationStatus(updatedStatus);
+      showToast({
+        type: 'error',
+        title: 'Cannot Add Your Own Email',
+        message: 'You cannot add yourself as a family member.',
+        duration: 3000,
+      });
       return;
     }
 
     // Set loading state
     const newStatus = new Map(memberValidationStatus);
-    newStatus.set(index, { exists: false, isLoading: true });
+    newStatus.set(index, { exists: false, isLoading: true, isDuplicate: false, isSelfEmail: false });
     setMemberValidationStatus(newStatus);
 
     try {
-      const result = await validateFamilyMemberEmail({ email: email.trim() }).unwrap();
+      const result = await validateFamilyMemberEmail({ email: normalizedEmail }).unwrap();
       
       // Update validation status
       const updatedStatus = new Map(memberValidationStatus);
       updatedStatus.set(index, {
         exists: result.data?.exists || false,
         isLoading: false,
+        isDuplicate: false,
+        isSelfEmail: false,
       });
       setMemberValidationStatus(updatedStatus);
     } catch (error: any) {
@@ -106,10 +190,53 @@ export default function FamilyProfileSetupScreen() {
         exists: false,
         isLoading: false,
         error: error?.message,
+        isDuplicate: false,
+        isSelfEmail: false,
       });
       setMemberValidationStatus(updatedStatus);
     }
   };
+
+  const handleEmailBlur = async (index: number, email: string) => {
+    // Clear any pending timeout
+    const timeout = validationTimeoutRef.current.get(index);
+    if (timeout) {
+      clearTimeout(timeout);
+      validationTimeoutRef.current.delete(index);
+    }
+
+    // Perform validation immediately on blur
+    await performValidation(index, email);
+  };
+
+  const handleEmailChange = (index: number, email: string) => {
+    updateMember(index, 'email', email);
+
+    // Clear any pending validation timeout
+    const timeout = validationTimeoutRef.current.get(index);
+    if (timeout) {
+      clearTimeout(timeout);
+      validationTimeoutRef.current.delete(index);
+    }
+
+    // Debounce validation - wait 500ms after user stops typing
+    const normalizedEmail = email.toLowerCase().trim();
+    if (normalizedEmail && normalizedEmail.includes('@')) {
+      const newTimeout = setTimeout(() => {
+        performValidation(index, email);
+        validationTimeoutRef.current.delete(index);
+      }, 500);
+      validationTimeoutRef.current.set(index, newTimeout);
+    }
+  };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      validationTimeoutRef.current.forEach((timeout) => clearTimeout(timeout));
+      validationTimeoutRef.current.clear();
+    };
+  }, []);
 
   const getMemberValidation = (index: number): MemberValidation | undefined => {
     return memberValidationStatus.get(index);
@@ -136,6 +263,34 @@ export default function FamilyProfileSetupScreen() {
         duration: 3000,
       });
       return false;
+    }
+
+    // Check for duplicate emails
+    const emails = members.map(m => m.email.toLowerCase().trim());
+    const uniqueEmails = new Set(emails);
+    if (emails.length !== uniqueEmails.size) {
+      showToast({
+        type: 'error',
+        title: 'Duplicate Emails',
+        message: 'Please remove duplicate email addresses from the family members list.',
+        duration: 3000,
+      });
+      return false;
+    }
+
+    // Check for self-email
+    if (user?.email) {
+      const userEmail = user.email.toLowerCase().trim();
+      const hasSelfEmail = members.some(m => m.email.toLowerCase().trim() === userEmail);
+      if (hasSelfEmail) {
+        showToast({
+          type: 'error',
+          title: 'Cannot Add Your Own Email',
+          message: 'You cannot add yourself as a family member.',
+          duration: 3000,
+        });
+        return false;
+      }
     }
 
     for (const member of members) {
@@ -171,9 +326,17 @@ export default function FamilyProfileSetupScreen() {
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       if (validateStep1()) {
+        // Validate all emails before moving to review step
+        const validationPromises = members.map((member, index) => {
+          if (member.email.trim() && member.email.includes('@')) {
+            return performValidation(index, member.email);
+          }
+          return Promise.resolve();
+        });
+        await Promise.all(validationPromises);
         setStep(2);
       }
     } else if (step === 2) {
@@ -246,13 +409,16 @@ export default function FamilyProfileSetupScreen() {
 
           <View style={styles.emailInputContainer}>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                (getMemberValidation(index)?.isDuplicate || getMemberValidation(index)?.isSelfEmail) && styles.inputError,
+              ]}
               placeholder="Email"
               placeholderTextColor="#9CA3AF"
               keyboardType="email-address"
               autoCapitalize="none"
               value={member.email}
-              onChangeText={(text) => updateMember(index, 'email', text)}
+              onChangeText={(text) => handleEmailChange(index, text)}
               onBlur={() => handleEmailBlur(index, member.email)}
             />
             {(() => {
@@ -271,9 +437,48 @@ export default function FamilyProfileSetupScreen() {
                   </View>
                 );
               }
+              if (validation?.isDuplicate || validation?.isSelfEmail) {
+                return (
+                  <View style={styles.validationIndicator}>
+                    <X size={20} color="#EF4444" />
+                  </View>
+                );
+              }
               return null;
             })()}
           </View>
+          {(() => {
+            const validation = getMemberValidation(index);
+            if (validation?.isDuplicate) {
+              return (
+                <Text style={styles.validationMessage}>
+                  This email is already in the list
+                </Text>
+              );
+            }
+            if (validation?.isSelfEmail) {
+              return (
+                <Text style={styles.validationMessage}>
+                  You cannot add your own email
+                </Text>
+              );
+            }
+            if (validation?.exists) {
+              return (
+                <Text style={styles.validationSuccessMessage}>
+                  This member has a Cribnosh account. They'll receive an invitation to join.
+                </Text>
+              );
+            }
+            if (validation && !validation.isLoading && member.email.trim() && member.email.includes('@') && !validation.exists) {
+              return (
+                <Text style={styles.validationInfoMessage}>
+                  This member will receive an invitation to create an account.
+                </Text>
+              );
+            }
+            return null;
+          })()}
 
           <TextInput
             style={styles.input}
@@ -318,14 +523,35 @@ export default function FamilyProfileSetupScreen() {
 
       <View style={styles.reviewCard}>
         <Text style={styles.reviewTitle}>Family Members ({members.length})</Text>
-        {members.map((member, index) => (
-          <View key={index} style={styles.reviewMember}>
-            <Text style={styles.reviewMemberName}>{member.name}</Text>
-            <Text style={styles.reviewMemberDetails}>
-              {member.email} • {member.relationship}
-            </Text>
-          </View>
-        ))}
+        {members.map((member, index) => {
+          const validation = getMemberValidation(index);
+          return (
+            <View key={index} style={styles.reviewMember}>
+              <View style={styles.reviewMemberHeader}>
+                <Text style={styles.reviewMemberName}>{member.name}</Text>
+                {validation?.exists && (
+                  <View style={styles.reviewValidationBadge}>
+                    <CheckCircle size={16} color="#094327" />
+                    <Text style={styles.reviewValidationText}>Has Account</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.reviewMemberDetails}>
+                {member.email} • {member.relationship}
+              </Text>
+              {validation?.exists && (
+                <Text style={styles.reviewMemberNote}>
+                  This member will receive an invitation to join.
+                </Text>
+              )}
+              {validation && !validation.exists && !validation.isLoading && member.email.trim() && member.email.includes('@') && (
+                <Text style={styles.reviewMemberNote}>
+                  This member will receive an invitation to create an account.
+                </Text>
+              )}
+            </View>
+          );
+        })}
       </View>
 
       <View style={styles.settingsCard}>
@@ -551,6 +777,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 1,
+  },
+  validationMessage: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontFamily: 'Inter',
+    fontWeight: '400',
+    marginTop: -8,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  validationSuccessMessage: {
+    color: '#094327',
+    fontSize: 12,
+    fontFamily: 'Inter',
+    fontWeight: '400',
+    marginTop: -8,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  validationInfoMessage: {
+    color: '#6B7280',
+    fontSize: 12,
+    fontFamily: 'Inter',
+    fontWeight: '400',
+    marginTop: -8,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -594,18 +851,49 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+  reviewMemberHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   reviewMemberName: {
     color: '#094327',
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
     fontFamily: 'Inter',
+    flex: 1,
+  },
+  reviewValidationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F4FFF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  reviewValidationText: {
+    color: '#094327',
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+    marginLeft: 4,
   },
   reviewMemberDetails: {
     color: '#6B7280',
     fontSize: 14,
     fontFamily: 'Inter',
     fontWeight: '400',
+    marginBottom: 4,
+  },
+  reviewMemberNote: {
+    color: '#6B7280',
+    fontSize: 12,
+    fontFamily: 'Inter',
+    fontWeight: '400',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   settingsCard: {
     backgroundColor: '#FFFFFF',

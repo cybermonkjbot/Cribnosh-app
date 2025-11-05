@@ -76,7 +76,13 @@
       ],
       "expo-maps",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.cribnosh.co.uk"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

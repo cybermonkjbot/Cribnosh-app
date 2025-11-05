@@ -1187,6 +1187,20 @@ export interface GetBalanceTransactionsResponse {
   message: string;
 }
 
+export interface TopUpBalanceRequest {
+  amount: number; // in pence
+  payment_method_id?: string; // optional Stripe payment method ID
+}
+
+export interface TopUpBalanceResponse {
+  success: boolean;
+  data: {
+    clientSecret: string;
+    paymentIntentId: string;
+  };
+  message: string;
+}
+
 export interface SetupFamilyProfileRequest {
   family_members?: Array<{
     name: string;
