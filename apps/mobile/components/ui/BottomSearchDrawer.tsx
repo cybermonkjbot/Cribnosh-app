@@ -1,7 +1,7 @@
 import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { AlertCircle, Search, Play } from "lucide-react-native";
 import React, {
   useCallback,
@@ -43,11 +43,17 @@ import {
 import SearchArea from "../SearchArea";
 import { SearchSuggestionsSkeleton } from "./BottomSearchDrawer/SearchSkeletons";
 import { Button } from "./Button";
+import {
+  DynamicSearchContent,
+  DynamicContent,
+  DynamicContentType,
+} from "./BottomSearchDrawer/DynamicSearchContent";
 
 // Customer API imports
 import {
   useCreateCustomOrderMutation,
   useGenerateSharedOrderLinkMutation,
+  useGetActiveOffersQuery,
   useGetSearchSuggestionsQuery,
   useGetTrendingSearchQuery,
   useSearchChefsQuery,
@@ -305,7 +311,6 @@ const GroupOrderIcon = ({ size = 20, color = "#ffffff" }) => (
 
 interface BottomSearchDrawerProps {
   onOpenAIChat?: () => void;
-  onNoshHeavenPress?: () => void;
   onSearchSubmit?: (query: string, filter: string) => void;
   onSuggestionSelect?: (suggestion: any) => void;
   maxSuggestions?: number;
@@ -348,7 +353,6 @@ const GESTURE_THRESHOLD = 50; // Minimum distance to trigger snap change
 
 export function BottomSearchDrawer({
   onOpenAIChat,
-  onNoshHeavenPress,
   onSearchSubmit,
   onSuggestionSelect,
   maxSuggestions = 20,
@@ -357,6 +361,8 @@ export function BottomSearchDrawer({
   userName = "there",
   isAuthenticated = false,
 }: BottomSearchDrawerProps) {
+  const router = useRouter();
+  
   // Core animation values - using height instead of translateY
   const drawerHeight = useSharedValue(SNAP_POINTS.COLLAPSED);
   const currentSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
@@ -473,6 +479,14 @@ export function BottomSearchDrawer({
         skip: !isAuthenticated,
       }
     );
+
+  // Active offers query for dynamic content
+  const { data: offersData } = useGetActiveOffersQuery(
+    { target: "all" },
+    {
+      skip: !isAuthenticated,
+    }
+  );
 
   // Combined loading state for all search operations
   const isSearching = isLoading || isSearchingWithEmotions || isLoadingSearch || isLoadingChefSearch || isLoadingSuggestionsQuery || isLoadingTrendingQuery;
@@ -1434,6 +1448,71 @@ export function BottomSearchDrawer({
     return discoverFeaturesFromQuery(searchQuery);
   }, [searchQuery, discoverFeaturesFromQuery]);
 
+  // Notices array for swipable display
+  const notices = useMemo((): DynamicContent[] => {
+    return [
+      {
+        type: "notice",
+        id: "tip-1",
+        title: "Pro Tip",
+        description: "Try searching for cuisines or ingredients to discover new meals",
+        badgeText: "TIP",
+        backgroundColor: "#4a5d4f",
+      },
+      {
+        type: "notice",
+        id: "tip-2",
+        title: "Discover Nosh Heaven",
+        description: "Discover Nosh Heaven - an immersive video browsing experience",
+        badgeText: "NEW",
+        backgroundColor: "#ef4444",
+      },
+    ];
+  }, []);
+
+  // Determine dynamic content to show (promo, notice, or feature spotlight)
+  const dynamicContent = useMemo((): DynamicContent | null => {
+    // Priority 1: Show active promo if available
+    const activeOffer = offersData?.data?.offers?.[0];
+    if (activeOffer) {
+      return {
+        type: "promo",
+        id: activeOffer.offer_id,
+        title: activeOffer.title,
+        description: activeOffer.description,
+        callToActionText: activeOffer.call_to_action_text,
+        badgeText: activeOffer.badge_text || (activeOffer.offer_type === "limited_time" ? "LIMITED TIME" : ""),
+        backgroundColor: activeOffer.background_color || "#ef4444",
+        backgroundImageUrl: activeOffer.background_image_url,
+        offer: activeOffer,
+      };
+    }
+
+    // Priority 2: Show feature discovery spotlight if features were discovered via search
+    if (searchQuery.trim() && discoveredFeatures.length > 0) {
+      const featureNames = discoveredFeatures.map((f) => {
+        if (f === "inviteFriend") return "Invite Friend";
+        if (f === "setupFamily") return "Setup Family";
+        if (f === "groupOrder") return "Group Order";
+        if (f === "noshHeaven") return "Nosh Heaven";
+        return f;
+      }).join(", ");
+
+      return {
+        type: "feature_spotlight",
+        id: `feature-spotlight-${discoveredFeatures.join("-")}`,
+        title: `Discover: ${featureNames}`,
+        description: `We found ${discoveredFeatures.length} feature${discoveredFeatures.length > 1 ? "s" : ""} that match your search "${searchQuery}"`,
+        callToActionText: "Explore Features",
+        badgeText: "DISCOVERY",
+        backgroundColor: "#ef4444",
+      };
+    }
+
+    // Priority 3: Return null to indicate notices should be shown (handled separately)
+    return null;
+  }, [offersData, searchQuery, discoveredFeatures]);
+
   // Safe suggestion selection handler
   const handleSuggestionSelect = useCallback(
     (suggestion: any) => {
@@ -2350,33 +2429,28 @@ export function BottomSearchDrawer({
                         {discoveredFeatures.includes("noshHeaven") && (
                           <TouchableOpacity
                             onPress={() => {
+                              console.log('[BottomSearchDrawer] Nosh Heaven button pressed');
+                              triggerHaptic();
+                              
+                              // Blur search input if focused
+                              if (searchInputRef.current) {
+                                searchInputRef.current.blur();
+                              }
+                              
+                              // Close search focus
+                              handleSearchBlur();
+                              
+                              // Navigate to Nosh Heaven modal
+                              console.log('[BottomSearchDrawer] Navigating to /nosh-heaven');
                               try {
-                                // Blur search input if focused
-                                searchInputRef.current?.blur();
-                                // Close search focus first
-                                handleSearchBlur();
-                                // Collapse drawer if expanded
-                                if (snapPointState !== SNAP_POINTS.COLLAPSED) {
-                                  animateToSnapPoint(SNAP_POINTS.COLLAPSED);
-                                  // Wait for drawer to collapse before opening Nosh Heaven
-                                  setTimeout(() => {
-                                    if (onNoshHeavenPress) {
-                                      triggerHaptic();
-                                      onNoshHeavenPress();
-                                    }
-                                  }, 300);
-                                } else {
-                                  // Drawer is already collapsed, open immediately
-                                  if (onNoshHeavenPress) {
-                                    triggerHaptic();
-                                    onNoshHeavenPress();
-                                  }
-                                }
+                                router.push('/nosh-heaven' as any);
                               } catch (error) {
-                                console.error("Error opening Nosh Heaven:", error);
-                                // Fallback: try to open anyway
-                                if (onNoshHeavenPress) {
-                                  onNoshHeavenPress();
+                                console.error("[BottomSearchDrawer] Navigation error:", error);
+                                // Try alternative navigation method
+                                try {
+                                  router.navigate('/nosh-heaven' as any);
+                                } catch (navError) {
+                                  console.error("[BottomSearchDrawer] Alternative navigation also failed:", navError);
                                 }
                               }
                             }}
@@ -2632,34 +2706,64 @@ export function BottomSearchDrawer({
                     </Animated.View>
                   )}
 
-                  {/* Try It's on me Section - Only show when expanded */}
+                  {/* Dynamic Content Section - Promo, Notice, or Feature Spotlight */}
                   <Animated.View
                     style={[contentOpacityStyle, { marginBottom: 16 }]}
                   >
-                    <Text
-                      style={{
-                        color: "#1a1a1a",
-                        fontSize: 18,
-                        fontWeight: "700",
-                        lineHeight: 22,
-                        marginBottom: 6,
-                      }}
-                    >
-                      Try It&apos;s on me
-                    </Text>
-                    <Text
-                      style={{
-                        color: "#4a4a4a",
-                        fontSize: 13,
-                        lineHeight: 17,
-                        fontWeight: "400",
-                        marginBottom: 16,
-                      }}
-                    >
-                      Send a link to a friend so they can order{"\n"}food on
-                      you.
-                    </Text>
+                    {dynamicContent && (
+                      <DynamicSearchContent
+                        content={dynamicContent}
+                        onFeatureDiscovery={() => {
+                          // Scroll to discovered features or highlight them
+                          // This could trigger a focus on the features section
+                        }}
+                      />
+                    )}
 
+                    {/* Show swipable notices when no dynamic content */}
+                    {!dynamicContent && notices.length > 0 && (
+                      <DynamicSearchContent
+                        content={null}
+                        notices={notices}
+                        onFeatureDiscovery={() => {
+                          // Scroll to discovered features or highlight them
+                        }}
+                      />
+                    )}
+
+                    {/* Fallback: Try It's on me Section - Only show if no dynamic content and no notices */}
+                    {!dynamicContent && notices.length === 0 && (
+                      <>
+                        <Text
+                          style={{
+                            color: "#1a1a1a",
+                            fontSize: 18,
+                            fontWeight: "700",
+                            lineHeight: 22,
+                            marginBottom: 6,
+                          }}
+                        >
+                          Try It&apos;s on me
+                        </Text>
+                        <Text
+                          style={{
+                            color: "#4a4a4a",
+                            fontSize: 13,
+                            lineHeight: 17,
+                            fontWeight: "400",
+                            marginBottom: 16,
+                          }}
+                        >
+                          Send a link to a friend so they can order{"\n"}food on
+                          you.
+                        </Text>
+                      </>
+                    )}
+                  </Animated.View>
+
+                  <Animated.View
+                    style={[contentOpacityStyle, { marginBottom: 16 }]}
+                  >
                     {/* Invite Buttons Row */}
                     <View
                       style={{

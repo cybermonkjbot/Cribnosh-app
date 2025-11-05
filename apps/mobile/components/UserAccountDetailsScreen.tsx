@@ -75,13 +75,18 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
   <path d="M19 12H5M12 19L5 12L12 5" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const MenuItem = ({ icon, text, onPress }: { icon: string, text: string, onPress?: () => void }) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+const MenuItem = ({ icon, text, onPress, disabled }: { icon: string, text: string, onPress?: () => void, disabled?: boolean }) => (
+  <TouchableOpacity 
+    style={[styles.menuItem, disabled && styles.menuItemDisabled]} 
+    onPress={disabled ? undefined : onPress} 
+    activeOpacity={disabled ? 1 : 0.7}
+    disabled={disabled}
+  >
     <View style={styles.menuItemLeft}>
-      <View style={styles.iconContainer}>
+      <View style={[styles.iconContainer, disabled && styles.iconContainerDisabled]}>
         <SvgXml xml={icon} width={20} height={20} />
       </View>
-      <Text style={styles.menuItemText}>{text}</Text>
+      <Text style={[styles.menuItemText, disabled && styles.menuItemTextDisabled]}>{text}</Text>
     </View>
     <View style={styles.chevronContainer}>
       <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
@@ -300,12 +305,14 @@ export function UserAccountDetailsScreen({
             </TouchableOpacity>
             
             {/* Logout button in error state */}
-            <TouchableOpacity 
-              style={[styles.logOutButton, { marginTop: 16 }]} 
-              onPress={handleLogOut}
-            >
-              <Text style={styles.logOutText}>Log Out</Text>
-            </TouchableOpacity>
+            {isAuthenticated && (
+              <TouchableOpacity 
+                style={[styles.logOutButton, { marginTop: 16 }]} 
+                onPress={handleLogOut}
+              >
+                <Text style={styles.logOutText}>Log Out</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
 
@@ -367,6 +374,7 @@ export function UserAccountDetailsScreen({
             size={80} 
             onImageSelected={handleProfileImageSelected}
             selectedImageUri={displayPicture}
+            isAuthenticated={isAuthenticated}
           />
           {isUploadingImage && (
             <View style={styles.uploadOverlay}>
@@ -377,8 +385,8 @@ export function UserAccountDetailsScreen({
         <Text style={styles.userName}>{userName}</Text>
       </View>
       
-      {/* Verification Banner - Only show if not verified */}
-      {!isVerified && (
+      {/* Verification Banner - Only show if authenticated and not verified */}
+      {isAuthenticated && !isVerified && (
         <View style={styles.bannerContainer}>
           <VerificationBanner 
             text="Finish your verification to help kitchens serve you better"
@@ -392,26 +400,31 @@ export function UserAccountDetailsScreen({
           icon={userIconSVG} 
           text="Personal info" 
           onPress={() => router.push('/personal-info')}
+          disabled={!isAuthenticated}
         />
         <MenuItem 
           icon={shieldIconSVG} 
           text="Payments and Family" 
           onPress={() => router.push('/payment-settings')}
+          disabled={!isAuthenticated}
         />
         <MenuItem 
           icon={hopOffIconSVG} 
           text="Food safety" 
           onPress={() => router.push('/food-safety')}
+          disabled={!isAuthenticated}
         />
         <MenuItem 
           icon={lockIconSVG} 
           text="Login & security" 
           onPress={() => router.push('/login-security')}
+          disabled={!isAuthenticated}
         />
         <MenuItem 
           icon={handIconSVG} 
           text="Privacy" 
           onPress={() => router.push('/privacy')}
+          disabled={!isAuthenticated}
         />
       </View>
       
@@ -422,11 +435,13 @@ export function UserAccountDetailsScreen({
           icon={houseIconSVG} 
           text={hasHomeAddress ? "Change home address" : "Add home address"}
           onPress={() => handleOpenAddressSheet('home')}
+          disabled={!isAuthenticated}
         />
         <MenuItem 
           icon={briefcaseIconSVG} 
           text={hasWorkAddress ? "Change work address" : "Add work address"}
           onPress={() => handleOpenAddressSheet('work')}
+          disabled={!isAuthenticated}
         />
       </View>
       
@@ -437,11 +452,13 @@ export function UserAccountDetailsScreen({
           icon={filePenIconSVG} 
           text="Download your account data" 
           onPress={() => router.push('/download-account-data')}
+          disabled={!isAuthenticated}
         />
         <MenuItem 
           icon={heartHandshakeIconSVG} 
           text="Manage Data Sharing" 
           onPress={() => router.push('/manage-data-sharing')}
+          disabled={!isAuthenticated}
         />
       </View>
       
@@ -456,18 +473,20 @@ export function UserAccountDetailsScreen({
       </View>
       
       {/* Bottom Actions */}
-      <View style={styles.bottomActions}>
-        <TouchableOpacity style={styles.logOutButton} onPress={handleLogOut}>
-          <Text style={styles.logOutText}>Log Out</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.deleteAccountButton}
-          onPress={() => router.push('/delete-account')}
-        >
-          <Text style={styles.deleteAccountText}>Delete account</Text>
-        </TouchableOpacity>
-      </View>
+      {isAuthenticated && (
+        <View style={styles.bottomActions}>
+          <TouchableOpacity style={styles.logOutButton} onPress={handleLogOut}>
+            <Text style={styles.logOutText}>Log Out</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.deleteAccountButton}
+            onPress={() => router.push('/delete-account')}
+          >
+            <Text style={styles.deleteAccountText}>Delete account</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       </ScrollView>
 
       {/* Logout Confirmation Modal */}
@@ -659,6 +678,15 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  menuItemDisabled: {
+    opacity: 0.5,
+  },
+  iconContainerDisabled: {
+    opacity: 0.5,
+  },
+  menuItemTextDisabled: {
+    opacity: 0.5,
   },
   mainContainer: {
     flex: 1,

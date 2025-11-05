@@ -1,15 +1,22 @@
 import { ChefHat, Sparkles, Utensils } from 'lucide-react-native';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, Text, View } from 'react-native';
+import AnimatedReanimated, {
+    SharedValue,
+    useAnimatedStyle,
+    useDerivedValue,
+} from 'react-native-reanimated';
 
 interface PullToNoshHeavenTriggerProps {
   isVisible: boolean;
   onTrigger: () => void;
+  pullProgress?: SharedValue<number>;
 }
 
 export function PullToNoshHeavenTrigger({
   isVisible,
   onTrigger,
+  pullProgress,
 }: PullToNoshHeavenTriggerProps) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -31,6 +38,40 @@ export function PullToNoshHeavenTrigger({
     }
   }, [isVisible, fadeAnim]);
 
+  // Derived value for progress
+  const progressValue = useDerivedValue(() => {
+    return pullProgress?.value || 0;
+  }, [pullProgress]);
+
+  // Animated styles for icons and text based on progress
+  const iconScale = useAnimatedStyle(() => {
+    const scale = 1 + (progressValue.value * 0.2);
+    return {
+      transform: [{ scale }],
+    };
+  });
+
+  const textStyle = useAnimatedStyle(() => {
+    const opacity = 0.3 + (progressValue.value * 0.7);
+    return {
+      opacity,
+    };
+  });
+
+  const progressBarStyle = useAnimatedStyle(() => {
+    const width = progressValue.value * 100;
+    return {
+      width: `${width}%`,
+    };
+  });
+
+  const iconOpacity = useAnimatedStyle(() => {
+    const opacity = 0.5 + (progressValue.value * 0.5);
+    return {
+      opacity,
+    };
+  });
+
   return (
     <Animated.View 
       style={{
@@ -42,29 +83,70 @@ export function PullToNoshHeavenTrigger({
       }}
       pointerEvents={isVisible ? 'auto' : 'none'}
     >
-      {/* Icons */}
-      <View style={{ 
-          flexDirection: 'row', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: 16, 
-          paddingHorizontal: 16 
-        }}>
+      {/* Icons with progress-based animation */}
+      <AnimatedReanimated.View 
+        style={[
+          {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+            paddingHorizontal: 16,
+          },
+          iconScale,
+          iconOpacity,
+        ]}
+      >
         <Utensils size={20} color="#666" />
         <ChefHat size={20} color="#666" />
         <Sparkles size={20} color="#666" />
-      </View>
+      </AnimatedReanimated.View>
 
-      {/* Simple message text only */}
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#666',
-        textAlign: 'center',
-        lineHeight: 22,
-      }}>
-        Pull to Enter Nosh Heaven 🍽️
-      </Text>
+      {/* Message text with progress-based opacity */}
+      <AnimatedReanimated.View
+        style={[
+          {
+            marginBottom: 12,
+          },
+          textStyle,
+        ]}
+      >
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: '600',
+            color: '#666',
+            textAlign: 'center',
+            lineHeight: 22,
+          }}
+        >
+          Pull Harder to Enter Nosh Heaven 🍽️
+        </Text>
+      </AnimatedReanimated.View>
+
+      {/* Progress bar */}
+      {pullProgress && (
+        <View
+          style={{
+            width: 200,
+            height: 4,
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            borderRadius: 2,
+            overflow: 'hidden',
+          }}
+        >
+          <AnimatedReanimated.View
+            style={[
+              {
+                height: '100%',
+                backgroundColor: '#ef4444',
+                borderRadius: 2,
+              },
+              progressBarStyle,
+            ]}
+          />
+        </View>
+      )}
     </Animated.View>
   );
 } 

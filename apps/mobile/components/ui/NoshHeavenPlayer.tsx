@@ -7,6 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopPosition } from '@/utils/positioning';
 import { CribNoshLogo } from './CribNoshLogo';
 import { MealVideoCard } from './MealVideoCard';
@@ -49,6 +50,7 @@ export function NoshHeavenPlayer({
   onAddToCart,
   onKitchenPress,
 }: NoshHeavenPlayerProps) {
+  const insets = useSafeAreaInsets();
   const topPosition = useTopPosition(16);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [preloadedVideos, setPreloadedVideos] = useState<Set<string>>(new Set());
@@ -258,14 +260,8 @@ export function NoshHeavenPlayer({
     // Show skeleton loader when no meals are available
     return (
       <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        flex: 1,
         backgroundColor: '#000',
-        zIndex: 99999,
-        elevation: 99999,
       }}>
         <StatusBar hidden />
         <MealVideoCardSkeleton isVisible={true} />
@@ -303,18 +299,17 @@ export function NoshHeavenPlayer({
   }
 
   // Early return check moved after all hooks
-  if (!isVisible) return null;
+  console.log('[NoshHeavenPlayer] Render check, isVisible:', isVisible, 'meals.length:', meals.length);
+  if (!isVisible) {
+    console.log('[NoshHeavenPlayer] Not visible, returning null');
+    return null;
+  }
 
+  console.log('[NoshHeavenPlayer] Rendering player component');
   return (
     <View style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      flex: 1,
       backgroundColor: '#000',
-      zIndex: 99999, // Very high z-index to appear above everything except bottom tabs
-      elevation: 99999, // Android elevation
     }}>
       <StatusBar hidden />
       

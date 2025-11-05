@@ -40,74 +40,6 @@ interface LiveKitchen {
   chef: string;
 }
 
-const mockLiveKitchens: LiveKitchen[] = [
-  {
-    id: "1",
-    name: "Amara's Kitchen",
-    cuisine: "Nigerian",
-    viewers: 156,
-    isLive: true,
-    image:
-      "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
-    description: "Live cooking Nigerian Jollof Rice",
-    chef: "Chef Amara",
-  },
-  {
-    id: "2",
-    name: "Bangkok Bites",
-    cuisine: "Thai",
-    viewers: 89,
-    isLive: true,
-    image:
-      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    description: "Live Thai Green Curry preparation",
-    chef: "Chef Siriporn",
-  },
-  {
-    id: "3",
-    name: "Marrakech Delights",
-    cuisine: "Moroccan",
-    viewers: 234,
-    isLive: true,
-    image:
-      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    description: "Live Lamb Tagine cooking",
-    chef: "Chef Hassan",
-  },
-  {
-    id: "4",
-    name: "Seoul Street",
-    cuisine: "Korean",
-    viewers: 67,
-    isLive: true,
-    image:
-      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    description: "Live Bulgogi preparation",
-    chef: "Chef Min-jun",
-  },
-  {
-    id: "5",
-    name: "Nonna's Table",
-    cuisine: "Italian",
-    viewers: 189,
-    isLive: true,
-    image:
-      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    description: "Live Truffle Risotto cooking",
-    chef: "Chef Giuseppe",
-  },
-  {
-    id: "6",
-    name: "Tokyo Dreams",
-    cuisine: "Japanese",
-    viewers: 312,
-    isLive: true,
-    image:
-      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    description: "Live Sushi making session",
-    chef: "Chef Takeshi",
-  },
-];
 
 interface LiveContentProps {
   scrollViewRef?: React.RefObject<any>;
@@ -215,7 +147,7 @@ export default function LiveContent({
     }));
   }, []);
 
-  // Process live streams data from API or fallback to mock data
+  // Process live streams data from API
   const liveKitchens = useMemo(() => {
     if (liveStreamsData?.success && liveStreamsData.data && isAuthenticated) {
       const transformedData = transformLiveStreamsData(liveStreamsData.data);
@@ -229,8 +161,8 @@ export default function LiveContent({
       return transformedData;
     }
 
-    // Fallback to mock data when not authenticated or no API results
-    return mockLiveKitchens;
+    // Return empty array when not authenticated or no API results
+    return [];
   }, [liveStreamsData, isAuthenticated, transformLiveStreamsData]);
 
   // Handle live streams API errors
@@ -348,22 +280,11 @@ export default function LiveContent({
                 </View>
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateTitle}>No Live Kitchens</Text>
                   <Text style={styles.emptyStateSubtitle}>
-                    No kitchens are currently live
+                    You&apos;ll be able to order meals right from the stove from here when anyone goes live
                   </Text>
                 </View>
               )}
-            </View>
-
-            {/* Coming Soon Section */}
-            <View style={styles.comingSoonSection}>
-              <Text style={styles.comingSoonTitle}>Coming Up Next</Text>
-              <View style={styles.comingSoonCard}>
-                <Text style={styles.comingSoonText}>
-                  More live cooking sessions will be available soon!
-                </Text>
-              </View>
             </View>
 
             {/* Bottom Spacing */}
@@ -593,37 +514,9 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
     paddingTop: 40,
   },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#666",
-    marginBottom: 8,
-  },
   emptyStateSubtitle: {
     fontSize: 16,
     color: "#999",
-    textAlign: "center",
-  },
-  comingSoonSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-  },
-  comingSoonTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-  },
-  comingSoonCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  comingSoonText: {
-    fontSize: 16,
-    color: "#666",
     textAlign: "center",
   },
   bottomSpacing: {

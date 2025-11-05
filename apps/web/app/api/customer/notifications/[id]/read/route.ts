@@ -1,10 +1,10 @@
-import { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
-import { getConvexClient } from '@/lib/convex';
-import { api } from '@repo/convex';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/apiMiddleware';
+import { getConvexClient } from '@/lib/convex';
 import { withErrorHandling } from '@/lib/errors';
+import { api } from '@repo/convex';
+import jwt from 'jsonwebtoken';
+import { NextRequest } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 

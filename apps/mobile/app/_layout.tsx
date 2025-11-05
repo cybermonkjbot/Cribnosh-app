@@ -127,6 +127,15 @@ export default function RootLayout() {
                             }} 
                           />
                           <Stack.Screen 
+                            name="nosh-heaven" 
+                            options={{ 
+                              headerShown: false,
+                              presentation: 'fullScreenModal',
+                              animation: 'slide_from_bottom',
+                              gestureEnabled: true,
+                            }} 
+                          />
+                          <Stack.Screen 
                             name="payment-settings" 
                             options={{ 
                               headerShown: false,

@@ -1,11 +1,12 @@
+import { useGetNotificationStatsQuery } from '@/store/customerApi';
 import { useAppContext } from '@/utils/AppContext';
 import { BlurEffect } from '@/utils/blurEffects';
 import { getCompleteDynamicHeader } from '@/utils/dynamicHeaderMessages';
 import { shadowPresets } from '@/utils/platformStyles';
 import { useTopPosition } from '@/utils/positioning';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, Settings } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { Bell, Settings } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -15,9 +16,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { CribNoshLogo } from './CribNoshLogo';
-import { useGetNotificationStatsQuery } from '@/store/customerApi';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { CribNoshLogo } from './CribNoshLogo';
 
 interface HeaderProps {
   userName?: string;

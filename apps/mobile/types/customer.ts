@@ -350,8 +350,8 @@ export interface DeleteAccountResponse {
   success: boolean;
   message: string;
   data?: {
-    account_deleted_at: string;
-    deletion_scheduled?: boolean;
+    deletion_requested_at: string;
+    deletion_will_complete_at: string;
   };
 }
 
