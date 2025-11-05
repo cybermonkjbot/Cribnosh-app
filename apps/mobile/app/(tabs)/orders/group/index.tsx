@@ -330,11 +330,37 @@ export default function GroupOrdersScreen() {
   }
   
   if (!groupOrder) {
+    // If no group_order_id is provided, navigate back to orders screen
+    // This prevents the "Group order not found" error when coming from create screen
+    if (!groupOrderId) {
+      // Navigate back to orders screen or tabs if we can't go back
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)/orders');
+      }
+      // Return loading state while navigating
+      return (
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#E6FFE8" />
+          </View>
+        </SafeAreaView>
+      );
+    }
+    
+    // If group_order_id is provided but group order not found, show error
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Group order not found</Text>
-          <TouchableOpacity onPress={() => router.back()} style={styles.retryButton}>
+          <TouchableOpacity onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/orders');
+            }
+          }} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>

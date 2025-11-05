@@ -23,12 +23,15 @@ import {
   CloseGroupOrderResponse,
   CreateCustomOrderRequest,
   CreateCustomOrderResponse,
+  CreateEventChefRequestRequest,
+  CreateEventChefRequestResponse,
   CreateGroupOrderRequest,
   CreateGroupOrderResponse,
   CreateOrderFromCartRequest,
   CreateOrderFromCartResponse,
   CreateOrderRequest,
   CreateOrderResponse,
+  CreateSetupIntentResponse,
   CreateSupportCaseRequest,
   CreateSupportCaseResponse,
   DeleteAccountFeedbackRequest,
@@ -69,6 +72,8 @@ import {
   GetMenuDetailsResponse,
   GetMonthlyOverviewResponse,
   GetNoshPointsResponse,
+  GetNotificationStatsResponse,
+  GetNotificationsResponse,
   GetOrderResponse,
   GetOrderStatusResponse,
   GetOrdersResponse,
@@ -89,6 +94,7 @@ import {
   InviteFamilyMemberResponse,
   JoinGroupOrderRequest,
   JoinGroupOrderResponse,
+  MarkNotificationReadResponse,
   PaginationParams,
   RateOrderRequest,
   RateOrderResponse,
@@ -1669,6 +1675,21 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Create setup intent for adding payment method
+     * POST /api/payments/add-card
+     * Backend endpoint: POST /api/payments/add-card
+     */
+    createSetupIntent: builder.mutation<
+      CreateSetupIntentResponse,
+      void
+    >({
+      query: () => ({
+        url: "/payments/add-card",
+        method: "POST",
+      }),
+    }),
+
+    /**
      * Add payment method
      * POST /customer/payment-methods
      * Backend endpoint needed: POST /customer/payment-methods
@@ -2095,6 +2116,97 @@ export const customerApi = createApi({
         url: "/customer/support-cases",
         method: "POST",
         body: data,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Submit event chef request
+     * POST /customer/event-chef-request
+     * Backend endpoint: POST /customer/event-chef-request
+     */
+    createEventChefRequest: builder.mutation<
+      CreateEventChefRequestResponse,
+      CreateEventChefRequestRequest
+    >({
+      query: (data) => ({
+        url: "/customer/event-chef-request",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    // ========================================================================
+    // NOTIFICATIONS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get user notifications
+     * GET /customer/notifications
+     * Backend endpoint: GET /customer/notifications
+     */
+    getNotifications: builder.query<
+      GetNotificationsResponse,
+      { limit?: number; unreadOnly?: boolean } | void
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        if (params?.limit) {
+          searchParams.append('limit', params.limit.toString());
+        }
+        if (params?.unreadOnly) {
+          searchParams.append('unreadOnly', 'true');
+        }
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/notifications${queryString ? `?${queryString}` : ''}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Get notification stats (unread count, etc.)
+     * GET /customer/notifications/stats
+     * Backend endpoint: GET /customer/notifications/stats
+     */
+    getNotificationStats: builder.query<GetNotificationStatsResponse, void>({
+      query: () => ({
+        url: "/customer/notifications/stats",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Mark notification as read
+     * POST /customer/notifications/[id]/read
+     * Backend endpoint: POST /customer/notifications/[id]/read
+     */
+    markNotificationRead: builder.mutation<
+      MarkNotificationReadResponse,
+      { notificationId: string }
+    >({
+      query: ({ notificationId }) => ({
+        url: `/customer/notifications/${notificationId}/read`,
+        method: "POST",
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Mark all notifications as read
+     * POST /customer/notifications/read-all
+     * Backend endpoint: POST /customer/notifications/read-all
+     */
+    markAllNotificationsRead: builder.mutation<
+      MarkNotificationReadResponse,
+      void
+    >({
+      query: () => ({
+        url: "/customer/notifications/read-all",
+        method: "POST",
       }),
       invalidatesTags: ["CustomerProfile"],
     }),
@@ -3335,6 +3447,19 @@ export const {
   useCreateSupportCaseMutation,
 } = customerApi;
 
+// Event Chef Requests
+export const {
+  useCreateEventChefRequestMutation,
+} = customerApi;
+
+// Notifications
+export const {
+  useGetNotificationsQuery,
+  useGetNotificationStatsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+} = customerApi;
+
 // Cuisines
 export const { useGetCuisinesQuery, useGetTopCuisinesQuery, useGetCuisineCategoriesQuery } = customerApi;
 
@@ -3437,6 +3562,7 @@ export const {
   useCreateCheckoutMutation,
   useGetPaymentMethodsQuery,
   useAddPaymentMethodMutation,
+  useCreateSetupIntentMutation,
   useSetDefaultPaymentMethodMutation,
   useGetCribnoshBalanceQuery,
   useGetBalanceTransactionsQuery,

@@ -172,7 +172,9 @@ export function MealItemDetails({
     if (!finalMealData?.title) return;
     onAddToCart?.(mealId, quantity);
     console.log(`Added ${quantity} of ${finalMealData.title} to cart`);
-    router.push("/orders/cart");  
+    // Use absolute path with tabs prefix to ensure correct navigation
+    // This prevents navigation through group orders stack
+    router.push("/(tabs)/orders/cart" as any);
   };
 
   const handleFavorite = () => {

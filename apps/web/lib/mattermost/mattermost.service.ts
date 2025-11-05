@@ -184,6 +184,38 @@ export class MattermostService {
     return this.sendAPIMessage(this.buildAPIMessage({ text: ':chef: New chef application received!', attachments: [attachment] }));
   }
 
+  async notifyEventChefRequest(data: {
+    customerName: string;
+    email: string;
+    phone: string;
+    eventDate: string;
+    eventType: string;
+    numberOfGuests: number;
+    location: string;
+    dietaryRequirements?: string;
+    additionalNotes?: string;
+  }): Promise<boolean> {
+    const attachment: MattermostAttachment = {
+      fallback: `New event chef request from ${data.customerName}`,
+      color: '#ff6b35',
+      title: 'New Event Chef Request',
+      fields: [
+        { title: 'Customer', value: data.customerName, short: true },
+        { title: 'Email', value: data.email, short: true },
+        { title: 'Phone', value: data.phone, short: true },
+        { title: 'Event Date', value: data.eventDate, short: true },
+        { title: 'Event Type', value: data.eventType, short: true },
+        { title: 'Number of Guests', value: data.numberOfGuests.toString(), short: true },
+        { title: 'Location', value: data.location, short: false },
+        ...(data.dietaryRequirements ? [{ title: 'Dietary Requirements', value: data.dietaryRequirements, short: false }] : []),
+        ...(data.additionalNotes ? [{ title: 'Additional Notes', value: data.additionalNotes, short: false }] : []),
+      ],
+      footer: 'CribNosh Event Chef Requests',
+      ts: Math.floor(Date.now() / 1000),
+    };
+    return this.sendAPIMessage(this.buildAPIMessage({ text: ':calendar: New event chef request received!', attachments: [attachment] }));
+  }
+
   async notifyDriverApplication(data: {
     name: string;
     email: string;

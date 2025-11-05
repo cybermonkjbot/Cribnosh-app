@@ -3378,4 +3378,28 @@ export default defineSchema({
     .index("by_user_connected", ["user_id", "connected_user_id"])
     .index("by_type", ["connection_type"])
     .index("by_status", ["status"]),
+
+  // Event Chef Requests table - Track customer requests for event catering
+  eventChefRequests: defineTable({
+    customer_id: v.id("users"),
+    event_date: v.string(),
+    number_of_guests: v.number(),
+    event_type: v.string(),
+    event_location: v.string(),
+    phone_number: v.string(),
+    email: v.string(),
+    dietary_requirements: v.optional(v.string()),
+    additional_notes: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("contacted"),
+      v.literal("confirmed"),
+      v.literal("cancelled")
+    ),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_customer", ["customer_id"])
+    .index("by_status", ["status"])
+    .index("by_event_date", ["event_date"]),
 });

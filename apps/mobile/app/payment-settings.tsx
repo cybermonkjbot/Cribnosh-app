@@ -1,3 +1,4 @@
+import { AddCardSheet } from '@/components/ui/AddCardSheet';
 import { BalanceInfoSheet } from '@/components/ui/BalanceInfoSheet';
 import { BalanceTransactionsSheet } from '@/components/ui/BalanceTransactionsSheet';
 import { TopUpBalanceSheet } from '@/components/ui/TopUpBalanceSheet';
@@ -58,6 +59,7 @@ export default function PaymentSettingsScreen() {
   const { showToast } = useToast();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('apple-pay');
   const [isAddingCard, setIsAddingCard] = useState(false);
+  const [isAddCardVisible, setIsAddCardVisible] = useState(false);
   const [isBalanceInfoVisible, setIsBalanceInfoVisible] = useState(false);
   const [isTransactionsVisible, setIsTransactionsVisible] = useState(false);
   const [isTopUpVisible, setIsTopUpVisible] = useState(false);
@@ -113,19 +115,7 @@ export default function PaymentSettingsScreen() {
   };
 
   const handleAddCard = () => {
-    // Backend endpoint is available: POST /customer/payment-methods
-    // This requires integration with a payment processor SDK (e.g., Stripe, PayPal)
-    // to get the payment method token before calling the API
-    showToast({
-      type: "info",
-      title: "Payment Method Setup",
-      message: "Backend endpoint is ready. Integration with payment processor SDK needed to collect payment method token.",
-      duration: 4000,
-    });
-    // TODO: Integrate with payment processor SDK (e.g., @stripe/stripe-react-native)
-    // 1. Show payment method entry form using SDK
-    // 2. Get payment method token from SDK
-    // 3. Call addPaymentMethod mutation with: { payment_method_id: token, type: "card", set_as_default: false }
+    setIsAddCardVisible(true);
   };
 
   const handleFamilyProfile = () => {
@@ -352,6 +342,12 @@ export default function PaymentSettingsScreen() {
         <TopUpBalanceSheet
           isVisible={isTopUpVisible}
           onClose={() => setIsTopUpVisible(false)}
+        />
+
+        {/* Add Card Sheet */}
+        <AddCardSheet
+          isVisible={isAddCardVisible}
+          onClose={() => setIsAddCardVisible(false)}
         />
       </SafeAreaView>
   );

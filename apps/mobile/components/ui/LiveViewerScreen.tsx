@@ -365,7 +365,6 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
             {/* Live Header Info */}
             <View style={styles.liveInfoContainer}>
               <CribnoshLiveHeader
-                avatarSource={chefInfo.avatar}
                 kitchenTitle={chefInfo.name}
                 viewers={chefInfo.viewers}
               />

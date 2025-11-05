@@ -84,8 +84,9 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
 
   // Process kitchens data
   const kitchens: Kitchen[] = useMemo(() => {
-    // If propKitchens provided, use them (for filtered view)
-    if (propKitchens && propKitchens.length > 0) {
+    // If propKitchens provided (even if empty), use them (for filtered view)
+    // This allows empty arrays to be respected when filtering
+    if (propKitchens !== undefined) {
       return propKitchens;
     }
 

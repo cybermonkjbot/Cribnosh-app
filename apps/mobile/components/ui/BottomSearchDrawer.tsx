@@ -2,7 +2,7 @@ import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { AlertCircle, Search } from "lucide-react-native";
+import { AlertCircle, Search, Play } from "lucide-react-native";
 import React, {
   useCallback,
   useEffect,
@@ -305,6 +305,7 @@ const GroupOrderIcon = ({ size = 20, color = "#ffffff" }) => (
 
 interface BottomSearchDrawerProps {
   onOpenAIChat?: () => void;
+  onNoshHeavenPress?: () => void;
   onSearchSubmit?: (query: string, filter: string) => void;
   onSuggestionSelect?: (suggestion: any) => void;
   maxSuggestions?: number;
@@ -347,6 +348,7 @@ const GESTURE_THRESHOLD = 50; // Minimum distance to trigger snap change
 
 export function BottomSearchDrawer({
   onOpenAIChat,
+  onNoshHeavenPress,
   onSearchSubmit,
   onSuggestionSelect,
   maxSuggestions = 20,
@@ -1342,6 +1344,96 @@ export function BottomSearchDrawer({
     isAuthenticated,
   ]);
 
+  // Feature discovery logic - analyzes search query and matches to relevant features
+  const discoverFeaturesFromQuery = useCallback((query: string): string[] => {
+    if (!query || !query.trim()) return [];
+
+    const queryLower = query.toLowerCase().trim();
+    const discoveredFeatures: string[] = [];
+
+    // Match patterns for Invite Friend feature
+    const inviteFriendPatterns = [
+      /friend/i,
+      /invite/i,
+      /treat/i,
+      /share/i,
+      /gift/i,
+      /send/i,
+      /pay for/i,
+      /buy for/i,
+      /on me/i,
+    ];
+    if (inviteFriendPatterns.some((pattern) => pattern.test(queryLower))) {
+      discoveredFeatures.push("inviteFriend");
+    }
+
+    // Match patterns for Setup Family feature
+    const setupFamilyPatterns = [
+      /family/i,
+      /household/i,
+      /family member/i,
+      /relative/i,
+      /setup family/i,
+      /configure family/i,
+    ];
+    if (setupFamilyPatterns.some((pattern) => pattern.test(queryLower))) {
+      discoveredFeatures.push("setupFamily");
+    }
+
+    // Match patterns for Group Order feature
+    const groupOrderPatterns = [
+      /group/i,
+      /together/i,
+      /order together/i,
+      /group order/i,
+      /collaborate/i,
+      /team/i,
+      /multiple/i,
+      /split/i,
+      /share order/i,
+      /joint/i,
+    ];
+    if (groupOrderPatterns.some((pattern) => pattern.test(queryLower))) {
+      discoveredFeatures.push("groupOrder");
+    }
+
+    // Match patterns for Nosh Heaven feature
+    const noshHeavenPatterns = [
+      /nosh heaven/i,
+      /noshheaven/i,
+      /video/i,
+      /videos/i,
+      /watch/i,
+      /stream/i,
+      /feed/i,
+      /reels/i,
+      /tiktok/i,
+      /scroll/i,
+      /browse/i,
+      /discover/i,
+      /explore/i,
+      /doom scroll/i,
+      /endless/i,
+      /immersive/i,
+    ];
+    if (noshHeavenPatterns.some((pattern) => pattern.test(queryLower))) {
+      discoveredFeatures.push("noshHeaven");
+    }
+
+    // If no specific matches, show all features when query is long enough
+    if (queryLower.length >= 3 && discoveredFeatures.length === 0) {
+      // For general queries, show all features to encourage discovery
+      discoveredFeatures.push("inviteFriend", "setupFamily", "groupOrder", "noshHeaven");
+    }
+
+    return discoveredFeatures;
+  }, []);
+
+  // Get discovered features based on current search query
+  const discoveredFeatures = useMemo(() => {
+    return discoverFeaturesFromQuery(searchQuery);
+  }, [searchQuery, discoverFeaturesFromQuery]);
+
   // Safe suggestion selection handler
   const handleSuggestionSelect = useCallback(
     (suggestion: any) => {
@@ -2012,6 +2104,354 @@ export function BottomSearchDrawer({
                       </>
                     )}
                   </View>
+
+                  {/* Discovered Features Section - Show when search query is active */}
+                  {searchQuery.trim() && discoveredFeatures.length > 0 && (
+                    <View style={{ marginTop: 24 }}>
+                      <Text
+                        style={{
+                          color: "#2a2a2a",
+                          fontSize: 12,
+                          fontWeight: "700",
+                          marginBottom: 16,
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                          opacity: 0.8,
+                        }}
+                      >
+                        DISCOVERED FEATURES
+                      </Text>
+
+                      <View style={{ gap: 12 }}>
+                        {discoveredFeatures.includes("inviteFriend") && (
+                          <TouchableOpacity
+                            onPress={handleInviteFriend}
+                            disabled={isCreatingOrder || isGeneratingLink}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              paddingVertical: 14,
+                              paddingHorizontal: 16,
+                              backgroundColor: "rgba(74, 93, 79, 0.08)",
+                              borderRadius: 14,
+                              borderWidth: 1,
+                              borderColor: "rgba(74, 93, 79, 0.2)",
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 1 },
+                              shadowOpacity: 0.05,
+                              shadowRadius: 2,
+                              elevation: 1,
+                            }}
+                            activeOpacity={0.85}
+                          >
+                            <View
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: "rgba(74, 93, 79, 0.15)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginRight: 12,
+                              }}
+                            >
+                              <UserIcon size={18} color="#4a5d4f" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={{
+                                  color: "#1a1a1a",
+                                  fontSize: 15,
+                                  fontWeight: "600",
+                                  marginBottom: 3,
+                                  letterSpacing: -0.2,
+                                }}
+                              >
+                                Invite Friend
+                              </Text>
+                              <Text
+                                style={{
+                                  color: "#5a5a5a",
+                                  fontSize: 12,
+                                  fontWeight: "400",
+                                  lineHeight: 16,
+                                }}
+                              >
+                                Send a link to treat someone
+                              </Text>
+                            </View>
+                            {(isCreatingOrder || isGeneratingLink) ? (
+                              <ActivityIndicator size="small" color="#4a5d4f" />
+                            ) : (
+                              <Svg
+                                width={16}
+                                height={16}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <Path
+                                  d="M7 17L17 7M17 7H7M17 7V17"
+                                  stroke="#4a5d4f"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </Svg>
+                            )}
+                          </TouchableOpacity>
+                        )}
+
+                        {discoveredFeatures.includes("setupFamily") && (
+                          <TouchableOpacity
+                            onPress={handleSetupFamily}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              paddingVertical: 14,
+                              paddingHorizontal: 16,
+                              backgroundColor: "rgba(74, 93, 79, 0.08)",
+                              borderRadius: 14,
+                              borderWidth: 1,
+                              borderColor: "rgba(74, 93, 79, 0.2)",
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 1 },
+                              shadowOpacity: 0.05,
+                              shadowRadius: 2,
+                              elevation: 1,
+                            }}
+                            activeOpacity={0.85}
+                          >
+                            <View
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: "rgba(74, 93, 79, 0.15)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginRight: 12,
+                              }}
+                            >
+                              <FamilyIcon size={18} color="#4a5d4f" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={{
+                                  color: "#1a1a1a",
+                                  fontSize: 15,
+                                  fontWeight: "600",
+                                  marginBottom: 3,
+                                  letterSpacing: -0.2,
+                                }}
+                              >
+                                Setup Family
+                              </Text>
+                              <Text
+                                style={{
+                                  color: "#5a5a5a",
+                                  fontSize: 12,
+                                  fontWeight: "400",
+                                  lineHeight: 16,
+                                }}
+                              >
+                                Configure family members for shared orders
+                              </Text>
+                            </View>
+                            <Svg
+                              width={16}
+                              height={16}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <Path
+                                d="M7 17L17 7M17 7H7M17 7V17"
+                                stroke="#4a5d4f"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </Svg>
+                          </TouchableOpacity>
+                        )}
+
+                        {discoveredFeatures.includes("groupOrder") && (
+                          <TouchableOpacity
+                            onPress={handleNavigate}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              paddingVertical: 14,
+                              paddingHorizontal: 16,
+                              backgroundColor: "rgba(239, 68, 68, 0.08)",
+                              borderRadius: 14,
+                              borderWidth: 1,
+                              borderColor: "rgba(239, 68, 68, 0.2)",
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 1 },
+                              shadowOpacity: 0.05,
+                              shadowRadius: 2,
+                              elevation: 1,
+                            }}
+                            activeOpacity={0.85}
+                          >
+                            <View
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: "rgba(239, 68, 68, 0.15)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginRight: 12,
+                              }}
+                            >
+                              <GroupOrderIcon size={18} color="#ef4444" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={{
+                                  color: "#1a1a1a",
+                                  fontSize: 15,
+                                  fontWeight: "600",
+                                  marginBottom: 3,
+                                  letterSpacing: -0.2,
+                                }}
+                              >
+                                Start Group Order
+                              </Text>
+                              <Text
+                                style={{
+                                  color: "#5a5a5a",
+                                  fontSize: 12,
+                                  fontWeight: "400",
+                                  lineHeight: 16,
+                                }}
+                              >
+                                Order together with friends and family
+                              </Text>
+                            </View>
+                            <Svg
+                              width={16}
+                              height={16}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <Path
+                                d="M7 17L17 7M17 7H7M17 7V17"
+                                stroke="#ef4444"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </Svg>
+                          </TouchableOpacity>
+                        )}
+
+                        {discoveredFeatures.includes("noshHeaven") && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              try {
+                                // Blur search input if focused
+                                searchInputRef.current?.blur();
+                                // Close search focus first
+                                handleSearchBlur();
+                                // Collapse drawer if expanded
+                                if (snapPointState !== SNAP_POINTS.COLLAPSED) {
+                                  animateToSnapPoint(SNAP_POINTS.COLLAPSED);
+                                  // Wait for drawer to collapse before opening Nosh Heaven
+                                  setTimeout(() => {
+                                    if (onNoshHeavenPress) {
+                                      triggerHaptic();
+                                      onNoshHeavenPress();
+                                    }
+                                  }, 300);
+                                } else {
+                                  // Drawer is already collapsed, open immediately
+                                  if (onNoshHeavenPress) {
+                                    triggerHaptic();
+                                    onNoshHeavenPress();
+                                  }
+                                }
+                              } catch (error) {
+                                console.error("Error opening Nosh Heaven:", error);
+                                // Fallback: try to open anyway
+                                if (onNoshHeavenPress) {
+                                  onNoshHeavenPress();
+                                }
+                              }
+                            }}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              paddingVertical: 14,
+                              paddingHorizontal: 16,
+                              backgroundColor: "rgba(239, 68, 68, 0.08)",
+                              borderRadius: 14,
+                              borderWidth: 1,
+                              borderColor: "rgba(239, 68, 68, 0.2)",
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 1 },
+                              shadowOpacity: 0.05,
+                              shadowRadius: 2,
+                              elevation: 1,
+                            }}
+                            activeOpacity={0.85}
+                          >
+                            <View
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: "rgba(239, 68, 68, 0.15)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginRight: 12,
+                              }}
+                            >
+                              <Play size={18} color="#ef4444" fill="#ef4444" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={{
+                                  color: "#1a1a1a",
+                                  fontSize: 15,
+                                  fontWeight: "600",
+                                  marginBottom: 3,
+                                  letterSpacing: -0.2,
+                                }}
+                              >
+                                Nosh Heaven
+                              </Text>
+                              <Text
+                                style={{
+                                  color: "#5a5a5a",
+                                  fontSize: 12,
+                                  fontWeight: "400",
+                                  lineHeight: 16,
+                                }}
+                              >
+                                Immersive video browsing experience
+                              </Text>
+                            </View>
+                            <Svg
+                              width={16}
+                              height={16}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <Path
+                                d="M7 17L17 7M17 7H7M17 7V17"
+                                stroke="#ef4444"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </Svg>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  )}
                 </View>
               ) : (
                 <>
@@ -2150,6 +2590,48 @@ export function BottomSearchDrawer({
                     </ScrollView>
                   </Animated.View>
 
+                  {/* Discovered Features Banner - Show when searching and features are discovered */}
+                  {searchQuery.trim() && discoveredFeatures.length > 0 && (
+                    <Animated.View
+                      style={[contentOpacityStyle, { marginBottom: 20 }]}
+                    >
+                      <View
+                        style={{
+                          backgroundColor: "rgba(239, 68, 68, 0.08)",
+                          borderRadius: 16,
+                          padding: 16,
+                          borderWidth: 1,
+                          borderColor: "rgba(239, 68, 68, 0.2)",
+                          marginBottom: 16,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#1a1a1a",
+                            fontSize: 14,
+                            fontWeight: "700",
+                            marginBottom: 8,
+                            letterSpacing: -0.2,
+                          }}
+                        >
+                          Discovered for: &quot;{searchQuery}&quot;
+                        </Text>
+                        <Text
+                          style={{
+                            color: "#4a4a4a",
+                            fontSize: 12,
+                            lineHeight: 16,
+                            fontWeight: "400",
+                          }}
+                        >
+                          {discoveredFeatures.length === 1
+                            ? "We found a feature that matches your search"
+                            : `We found ${discoveredFeatures.length} features that match your search`}
+                        </Text>
+                      </View>
+                    </Animated.View>
+                  )}
+
                   {/* Try It's on me Section - Only show when expanded */}
                   <Animated.View
                     style={[contentOpacityStyle, { marginBottom: 16 }]}
@@ -2188,13 +2670,28 @@ export function BottomSearchDrawer({
                     >
                       <View style={{ flex: 1 }}>
                         <Button
-                          backgroundColor="#4a5d4f"
+                          backgroundColor={
+                            discoveredFeatures.includes("inviteFriend")
+                              ? "#ef4444"
+                              : "#4a5d4f"
+                          }
                           textColor="#ffffff"
                           borderRadius={20}
                           paddingVertical={10}
                           paddingHorizontal={12}
                           onPress={handleInviteFriend}
                           disabled={isCreatingOrder || isGeneratingLink}
+                          style={
+                            discoveredFeatures.includes("inviteFriend")
+                              ? {
+                                  shadowColor: "#ef4444",
+                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOpacity: 0.3,
+                                  shadowRadius: 4,
+                                  elevation: 4,
+                                }
+                              : undefined
+                          }
                         >
                           <View
                             style={{
@@ -2224,12 +2721,27 @@ export function BottomSearchDrawer({
                       </View>
                       <View style={{ flex: 1 }}>
                         <Button
-                          backgroundColor="#4a5d4f"
+                          backgroundColor={
+                            discoveredFeatures.includes("setupFamily")
+                              ? "#ef4444"
+                              : "#4a5d4f"
+                          }
                           textColor="#ffffff"
                           borderRadius={20}
                           paddingVertical={10}
                           paddingHorizontal={12}
                           onPress={handleSetupFamily}
+                          style={
+                            discoveredFeatures.includes("setupFamily")
+                              ? {
+                                  shadowColor: "#ef4444",
+                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOpacity: 0.3,
+                                  shadowRadius: 4,
+                                  elevation: 4,
+                                }
+                              : undefined
+                          }
                         >
                           <View
                             style={{
@@ -2256,13 +2768,28 @@ export function BottomSearchDrawer({
                     {/* Start Group Order Button */}
 
                     <Button
-                      backgroundColor="#ef4444"
+                      backgroundColor={
+                        discoveredFeatures.includes("groupOrder")
+                          ? "#ef4444"
+                          : "#ef4444"
+                      }
                       textColor="#ffffff"
                       borderRadius={20}
                       paddingVertical={12}
                       paddingHorizontal={16}
                       onPress={handleNavigate}
-                      style={{ width: "100%" }}
+                      style={
+                        discoveredFeatures.includes("groupOrder")
+                          ? {
+                              width: "100%",
+                              shadowColor: "#ef4444",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.4,
+                              shadowRadius: 6,
+                              elevation: 5,
+                            }
+                          : { width: "100%" }
+                      }
                     >
                       <View
                         style={{

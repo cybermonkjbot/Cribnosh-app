@@ -48,12 +48,13 @@ import { MapBottomSheet } from "./MapBottomSheet";
 import { MealItemDetails } from "./MealItemDetails";
 import { MultiStepLoader } from "./MultiStepLoader";
 import { MealData, NoshHeavenPlayer } from "./NoshHeavenPlayer";
+import { NotificationsSheet } from "./NotificationsSheet";
 import { OrderAgainSection } from "./OrderAgainSection";
 import { usePerformanceOptimizations } from "./PerformanceMonitor";
 import { PopularMealsDrawer } from "./PopularMealsDrawer";
 import { PopularMealsSection } from "./PopularMealsSection";
-import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { PullToNoshHeavenTrigger } from "./PullToNoshHeavenTrigger";
+import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 // import { ShakeDebugger } from './ShakeDebugger';
 import { CuisineCategoriesDrawer } from "./CuisineCategoriesDrawer";
@@ -74,6 +75,7 @@ import {
   useGetCartQuery,
   useGetCuisinesQuery,
   useGetPopularChefsQuery,
+  useGetPopularMealsQuery,
   useGetUserBehaviorQuery,
   useGetVideoFeedQuery,
   useLikeVideoMutation,
@@ -549,6 +551,21 @@ export function MainScreen() {
     }
   );
 
+  const {
+    data: popularMealsData,
+    isLoading: mealsLoading,
+    error: mealsError,
+    refetch: refetchMeals,
+  } = useGetPopularMealsQuery(
+    {
+      limit: 50,
+      userId: user?.id || user?._id || undefined,
+    },
+    {
+      skip: !isAuthenticated, // Only fetch when authenticated
+    }
+  );
+
   const { error: cartError, refetch: refetchCart } = useGetCartQuery(
     undefined,
     {
@@ -636,6 +653,41 @@ export function MainScreen() {
     };
   }, []);
 
+  // Transform API meal data to component format
+  const transformMealData = useCallback((apiMeal: any) => {
+    if (!apiMeal?.meal) return null;
+
+    const meal = apiMeal.meal;
+    const chef = apiMeal.chef;
+
+    return {
+      id: meal._id || meal.id || '',
+      name: meal.name || 'Unknown Meal',
+      kitchen: chef?.kitchen_name || chef?.name || 'Unknown Kitchen',
+      cuisine: chef?.cuisine || '', // Store cuisine for filtering
+      price: meal.price ? `£${(meal.price / 100).toFixed(2)}` : '£0.00',
+      originalPrice: meal.original_price ? `£${(meal.original_price / 100).toFixed(2)}` : undefined,
+      image: {
+        uri: meal.image_url || meal.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop',
+      },
+      isPopular: true,
+      isNew: meal.is_new || false,
+      sentiment: meal.sentiment || 'solid',
+      deliveryTime: meal.delivery_time || '30 min',
+    };
+  }, []);
+
+  // Process meals from API
+  const meals = useMemo(() => {
+    if (popularMealsData?.success && popularMealsData.data?.popular) {
+      const transformedMeals = popularMealsData.data.popular
+        .map(transformMealData)
+        .filter((meal): meal is NonNullable<ReturnType<typeof transformMealData>> => meal !== null);
+      return transformedMeals;
+    }
+    return []; // Return empty array instead of mockMeals
+  }, [popularMealsData, transformMealData]);
+
   // Process API data
   const cuisines = useMemo(() => {
     if (cuisinesData?.success && cuisinesData.data && Array.isArray(cuisinesData.data)) {
@@ -649,7 +701,7 @@ export function MainScreen() {
       }
       return transformedData;
     }
-    return mockCuisines; // Fallback to mock data
+    return []; // Return empty array instead of mock data
   }, [cuisinesData, transformCuisinesData]);
 
   const kitchens = useMemo(() => {
@@ -661,7 +713,7 @@ export function MainScreen() {
       }
       return transformedData;
     }
-    return mockKitchens; // Fallback to mock data
+    return []; // Return empty array instead of mock data
   }, [chefsData, transformChefsData]);
 
   // Helper function to normalize cuisine names for filtering
@@ -710,20 +762,27 @@ export function MainScreen() {
     });
   }, [kitchens, activeCategoryFilter, normalizeCuisineForFilter]);
 
-  // Filtered meals based on filtered kitchens
+  // Filtered meals based on activeCategoryFilter
   const filteredMeals = useMemo(() => {
     if (activeCategoryFilter === 'all') {
-      return mockMeals;
+      return meals;
     }
     
-    // Get set of kitchen names from filtered kitchens for fast lookup
-    const filteredKitchenNames = new Set(filteredKitchens.map(k => k.name.toLowerCase()));
-    
-    return mockMeals.filter((meal) => {
-      // Match meal's kitchen to filtered kitchens
+    // Filter meals by matching cuisine to the active category filter
+    return meals.filter((meal) => {
+      // First try to match by meal's cuisine if available
+      if (meal.cuisine) {
+        const cuisineNormalized = normalizeCuisineForFilter(meal.cuisine);
+        if (cuisineNormalized === activeCategoryFilter) {
+          return true;
+        }
+      }
+      
+      // Fallback: match by kitchen name to filtered kitchens
+      const filteredKitchenNames = new Set(filteredKitchens.map(k => k.name.toLowerCase()));
       return filteredKitchenNames.has(meal.kitchen.toLowerCase());
     });
-  }, [mockMeals, filteredKitchens, activeCategoryFilter]);
+  }, [meals, filteredKitchens, activeCategoryFilter, normalizeCuisineForFilter]);
 
   // Filtered cuisines based on activeCategoryFilter
   const filteredCuisines = useMemo(() => {
@@ -756,6 +815,7 @@ export function MainScreen() {
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
+  const [isNotificationsSheetVisible, setIsNotificationsSheetVisible] = useState(false);
 
   // Handle API errors with toast notifications
   useEffect(() => {
@@ -769,6 +829,12 @@ export function MainScreen() {
       showError("Failed to load chefs", "Please try again");
     }
   }, [chefsError, isAuthenticated]);
+
+  useEffect(() => {
+    if (mealsError && isAuthenticated) {
+      showError("Failed to load meals", "Please try again");
+    }
+  }, [mealsError, isAuthenticated]);
 
   useEffect(() => {
     if (cartError && isAuthenticated) {
@@ -1066,7 +1132,7 @@ export function MainScreen() {
     try {
       // Refetch API data when authenticated
       if (isAuthenticated) {
-        await Promise.all([refetchCuisines(), refetchChefs(), refetchCart()]);
+        await Promise.all([refetchCuisines(), refetchChefs(), refetchMeals(), refetchCart()]);
       }
 
       // Simulate the loading process with artificial delay
@@ -1088,6 +1154,7 @@ export function MainScreen() {
     isAuthenticated,
     refetchCuisines,
     refetchChefs,
+    refetchMeals,
     refetchCart,
   ]);
 
@@ -1852,7 +1919,7 @@ export function MainScreen() {
             stickyHeaderStyle,
           ]}
         >
-          <Header isSticky={true} userName={user?.name} />
+          <Header isSticky={true} userName={user?.name} onNotificationsPress={() => setIsNotificationsSheetVisible(true)} />
         </Animated.View>
 
         {/* Normal Header - positioned below sticky header */}
@@ -1869,7 +1936,7 @@ export function MainScreen() {
             normalHeaderStyle,
           ]}
         >
-          <Header isSticky={false} userName={user?.name} />
+          <Header isSticky={false} userName={user?.name} onNotificationsPress={() => setIsNotificationsSheetVisible(true)} />
         </Animated.View>
 
         {/* Category Filter Chips - positioned right under sticky header */}
@@ -1923,7 +1990,7 @@ export function MainScreen() {
               )}
 
               {/* Loading indicators for API data */}
-              {(cuisinesLoading || chefsLoading) && isAuthenticated && (
+              {(cuisinesLoading || chefsLoading || mealsLoading) && isAuthenticated && (
                 <View style={{ padding: 20, alignItems: "center" }}>
                   <Text style={{ color: "#666", fontSize: 16 }}>
                     Loading fresh content...
@@ -1932,7 +1999,7 @@ export function MainScreen() {
               )}
 
               {/* Error handling for API data */}
-              {(cuisinesError || chefsError) && isAuthenticated && (
+              {(cuisinesError || chefsError || mealsError) && isAuthenticated && (
                 <View style={{ padding: 20, alignItems: "center" }}>
                   <Text style={{ color: "#FF3B30", fontSize: 16 }}>
                     Failed to load content. Pull to refresh.
@@ -2014,7 +2081,7 @@ export function MainScreen() {
                       handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
                     }}
                   />
-                  <EventBanner />
+                  <EventBanner onPress={() => router.push('/event-chef-request')} />
                 </>
               ) : (
                 // Filtered View - Show only filtered sections when filter is active
@@ -2087,6 +2154,7 @@ export function MainScreen() {
                           onMealPress={handleMealPress}
                           showTitle={false}
                           useBackend={false}
+                          isLoading={mealsLoading}
                         />
                       )}
                     </View>
@@ -2162,6 +2230,7 @@ export function MainScreen() {
       {/* Bottom Search Drawer */}
       <BottomSearchDrawer
         onOpenAIChat={handleOpenAIChat}
+        onNoshHeavenPress={handleNoshHeavenTrigger}
         isAuthenticated={isAuthenticated}
       />
 
@@ -2335,6 +2404,12 @@ export function MainScreen() {
         chefs={mapChefs}
         onChefSelect={handleMapChefSelect}
         onGetDirections={handleMapDirections}
+      />
+
+      {/* Notifications Sheet */}
+      <NotificationsSheet
+        isVisible={isNotificationsSheetVisible}
+        onClose={() => setIsNotificationsSheetVisible(false)}
       />
     </View>
   );

@@ -3,10 +3,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-export function EventBanner() {
+interface EventBannerProps {
+  onPress?: () => void;
+}
+
+export function EventBanner({ onPress }: EventBannerProps) {
   return (
     <View style={{ paddingHorizontal: 16, paddingVertical: 20 }}>
-      <TouchableOpacity style={{ borderRadius: 16, overflow: 'hidden' }}>
+      <TouchableOpacity 
+        style={{ borderRadius: 16, overflow: 'hidden' }}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
         <View style={{ position: 'relative', height: 100 }}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=100&fit=crop' }}
