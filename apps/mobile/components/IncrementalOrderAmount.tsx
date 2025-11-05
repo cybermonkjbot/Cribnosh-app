@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface IncrementalOrderAmountProps {
@@ -6,6 +6,8 @@ interface IncrementalOrderAmountProps {
   min?: number;
   max?: number;
   onChange?: (value: number) => void;
+  onOrder?: () => void;
+  isOrdered?: boolean;
 }
 
 const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
@@ -13,13 +15,22 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
   min = 1,
   max = 99,
   onChange,
+  onOrder,
+  isOrdered: externalIsOrdered,
 }) => {
   const [value, setValue] = useState(initialValue);
-  const [isOrdered, setIsOrdered] = useState(false);
+  const [internalIsOrdered, setInternalIsOrdered] = useState(false);
+  
+  // Use external isOrdered if provided, otherwise use internal state
+  const isOrdered = externalIsOrdered !== undefined ? externalIsOrdered : internalIsOrdered;
 
   const handleOrderClick = () => {
-    setIsOrdered(true);
-    onChange && onChange(value);
+    if (onOrder) {
+      onOrder();
+    } else {
+      setInternalIsOrdered(true);
+      onChange && onChange(value);
+    }
   };
 
   const handleDecrement = () => {
@@ -41,6 +52,13 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
       });
     }
   };
+  
+  // Sync value with external isOrdered state
+  useEffect(() => {
+    if (externalIsOrdered !== undefined && externalIsOrdered && !internalIsOrdered) {
+      setInternalIsOrdered(true);
+    }
+  }, [externalIsOrdered, internalIsOrdered]);
 
   // Show "Order" button initially
   if (!isOrdered) {

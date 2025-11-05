@@ -1,11 +1,10 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
@@ -347,6 +346,23 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       return ResponseFactory.validationError('chef_id (or kitchen_id) and items (or order_items) are required.');
     }
     const convex = getConvexClient();
+    
+    // Check regional availability if delivery address is provided
+    if (delivery_address) {
+      const isRegionSupported = await convex.query(api.queries.admin.checkRegionAvailability, {
+        address: {
+          city: delivery_address.city,
+          country: delivery_address.country,
+          coordinates: delivery_address.coordinates,
+        },
+      });
+      
+      if (!isRegionSupported) {
+        return ResponseFactory.validationError(
+          'Oops, We do not serve this region yet, Ordering is not available in your region'
+        );
+      }
+    }
     // Calculate total_amount from order_items
     let total_amount = 0;
     for (const item of order_items) {

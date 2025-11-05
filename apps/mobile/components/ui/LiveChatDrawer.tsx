@@ -1,8 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useSupportChat } from '../../hooks/useSupportChat';
+import { useToast } from '../../lib/ToastContext';
+import { SupportMessage as SupportMessageType } from '../../types/customer';
 import { Avatar } from './Avatar';
 import { CribNoshLogo } from './CribNoshLogo';
 
@@ -223,11 +227,11 @@ const QuickResponse: React.FC<QuickResponseProps> = React.memo(({ responses, onS
 });
 
 // Chat Input Component (memoized)
-const ChatInput: React.FC<{ onSend: (message: string) => void }> = React.memo(({ onSend }) => {
+const ChatInput: React.FC<{ onSend: (message: string) => void; isSending?: boolean }> = React.memo(({ onSend, isSending = false }) => {
   const [message, setMessage] = useState('');
 
   const handleSend = () => {
-    if (message.trim()) {
+    if (message.trim() && !isSending) {
       onSend(message.trim());
       setMessage('');
     }
@@ -279,11 +283,12 @@ const ChatInput: React.FC<{ onSend: (message: string) => void }> = React.memo(({
       
       <TouchableOpacity
         onPress={handleSend}
+        disabled={isSending || !message.trim()}
         style={{
           width: 44,
           height: 44,
           borderRadius: 22,
-          backgroundColor: COLORS.red,
+          backgroundColor: isSending || !message.trim() ? COLORS.gray[300] : COLORS.red,
           justifyContent: 'center',
           alignItems: 'center',
           shadowColor: COLORS.red,
@@ -294,15 +299,19 @@ const ChatInput: React.FC<{ onSend: (message: string) => void }> = React.memo(({
         }}
         activeOpacity={0.8}
       >
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-          <Path
-            d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
-            stroke={COLORS.white}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
+        {isSending ? (
+          <ActivityIndicator size="small" color={COLORS.white} />
+        ) : (
+          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
+              stroke={COLORS.white}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -311,35 +320,51 @@ const ChatInput: React.FC<{ onSend: (message: string) => void }> = React.memo(({
 interface LiveChatDrawerProps {
   isVisible: boolean;
   onClose: () => void;
+  caseId?: string; // Optional: specific support case ID to load
 }
 
-interface Message {
-  id: number;
-  type: 'user' | 'support';
-  content: string;
-  agentName?: string;
-}
+export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClose, caseId }) => {
+  const { showToast } = useToast();
+  const { user } = useAuthContext();
+  const scrollViewRef = useRef<ScrollView>(null);
+  
+  // Use support chat hook
+  const {
+    messages,
+    agent,
+    quickReplies,
+    isLoading,
+    isLoadingMessages,
+    isSendingMessage,
+    error,
+    sendMessage,
+    refresh,
+  } = useSupportChat({
+    enabled: isVisible,
+    pollingInterval: 5000,
+    caseId,
+    onNewMessage: () => {
+      // Auto-scroll to bottom when new message arrives
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    },
+  });
 
-export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClose }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      type: 'support',
-      content: 'Hi there! Welcome to CribNosh support. I\'m here to help you with any questions about our service, orders, or account. How can I assist you today?',
-      agentName: 'Sarah',
-    },
-    {
-      id: 2,
-      type: 'user',
-      content: 'Hi! I have a question about my recent order.',
-    },
-    {
-      id: 3,
-      type: 'support',
-      content: 'Of course! I\'d be happy to help with your order. Could you please provide your order number or tell me more about what you need assistance with?',
-      agentName: 'Sarah',
-    },
-  ]);
+  // Convert API messages to UI format
+  const uiMessages = messages.map((msg: SupportMessageType, index: number) => {
+    // Determine if message is from user or support agent
+    // User messages have senderId matching current user ID
+    const currentUserId = user?._id || user?.id;
+    const isUserMessage = currentUserId && msg.senderId === currentUserId;
+    
+    return {
+      id: msg._id || `msg-${index}`,
+      type: isUserMessage ? 'user' as const : 'support' as const,
+      content: msg.content,
+      agentName: !isUserMessage && agent ? agent.name : undefined,
+    };
+  });
 
   // Animation values
   const scaleValue = useSharedValue(1);
@@ -370,31 +395,39 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
     }
   }, [isVisible, scaleValue, opacityValue, translateYValue]);
 
-  const handleSendMessage = (message: string) => {
-    if (message.trim()) {
-      const newMessage: Message = {
-        id: messages.length + 1,
-        type: 'user',
-        content: message
-      };
-      setMessages([...messages, newMessage]);
-      
-      // Simulate support agent response
-      setTimeout(() => {
-        const supportResponse: Message = {
-          id: messages.length + 2,
-          type: 'support',
-          content: 'Thank you for your message! I\'m looking into this for you. Is there anything else I can help you with while we wait?',
-          agentName: 'Sarah',
-        };
-        setMessages(prev => [...prev, supportResponse]);
-      }, 1500);
+  const handleSendMessage = async (message: string) => {
+    if (message.trim() && !isSendingMessage) {
+      const success = await sendMessage(message);
+      if (success) {
+        // Auto-scroll to bottom after sending
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      } else {
+        showToast('Failed to send message. Please try again.', 'error');
+      }
     }
   };
 
   const handleQuickResponse = (response: string) => {
     handleSendMessage(response);
   };
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (uiMessages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [uiMessages.length]);
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error && isVisible) {
+      showToast('Failed to load chat. Please try again.', 'error');
+    }
+  }, [error, isVisible, showToast]);
 
   // Animated styles
   const animatedContainerStyle = useAnimatedStyle(() => ({
@@ -482,51 +515,80 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
               justifyContent: 'center',
               alignItems: 'center',
             }}>
-              <View style={{
-                width: 12,
-                height: 12,
-                borderRadius: 6,
-                backgroundColor: COLORS.secondary,
-              }} />
+              {agent ? (
+                <View style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: agent.isOnline ? COLORS.secondary : COLORS.gray[400],
+                }} />
+              ) : isLoading ? (
+                <ActivityIndicator size="small" color={COLORS.secondary} />
+              ) : (
+                <View style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: COLORS.gray[400],
+                }} />
+              )}
             </View>
           </View>
 
           {/* Messages */}
           <ScrollView
+            ref={scrollViewRef}
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingVertical: 20 }}
             showsVerticalScrollIndicator={false}
             automaticallyAdjustKeyboardInsets={true}
           >
-            {messages.map((message) => (
-              <View key={message.id}>
-                {message.type === 'user' ? (
-                  <UserMessage
-                    message={message.content}
-                  />
-                ) : (
-                  <SupportMessage
-                    message={message.content}
-                    agentName={message.agentName}
+            {isLoadingMessages && uiMessages.length === 0 ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
+                <ActivityIndicator size="large" color={COLORS.secondary} />
+                <Text style={{ marginTop: 16, color: COLORS.gray[500], fontSize: 14 }}>
+                  Loading messages...
+                </Text>
+              </View>
+            ) : uiMessages.length === 0 ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
+                <Text style={{ color: COLORS.gray[500], fontSize: 16, textAlign: 'center' }}>
+                  {agent 
+                    ? `Hi! ${agent.name} is here to help. Send a message to get started.`
+                    : 'Starting a new conversation...'
+                  }
+                </Text>
+              </View>
+            ) : (
+              <>
+                {uiMessages.map((message) => (
+                  <View key={message.id}>
+                    {message.type === 'user' ? (
+                      <UserMessage
+                        message={message.content}
+                      />
+                    ) : (
+                      <SupportMessage
+                        message={message.content}
+                        agentName={message.agentName || agent?.name || 'Support Agent'}
+                      />
+                    )}
+                  </View>
+                ))}
+                
+                {/* Quick Response Buttons */}
+                {quickReplies.length > 0 && (
+                  <QuickResponse
+                    responses={quickReplies}
+                    onSelect={handleQuickResponse}
                   />
                 )}
-              </View>
-            ))}
-            
-            {/* Quick Response Buttons */}
-            <QuickResponse
-              responses={[
-                "Order status",
-                "Payment issue",
-                "Account problem",
-                "Technical support"
-              ]}
-              onSelect={handleQuickResponse}
-            />
+              </>
+            )}
           </ScrollView>
 
           {/* Chat Input */}
-          <ChatInput onSend={handleSendMessage} />
+          <ChatInput onSend={handleSendMessage} isSending={isSendingMessage} />
         </Animated.View>
       </LinearGradient>
     </Modal>

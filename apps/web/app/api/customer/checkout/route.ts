@@ -1,12 +1,11 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import { stripe, getOrCreateCustomer } from '@/lib/stripe';
+import { withErrorHandling } from '@/lib/errors';
+import { getOrCreateCustomer, stripe } from '@/lib/stripe';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -110,31 +109,78 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (total <= 0) {
       return ResponseFactory.validationError('Invalid order total.');
     }
+
+    // Check if user is a family member
+    const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
+      userId: payload.user_id as any,
+    });
+
+    let paymentUserId = payload.user_id;
+    let isFamilyMember = false;
+    let familyProfileId = null;
+    let memberUserId = null;
+    let budgetCheck: any = null;
+
+    if (familyProfile && familyProfile.member_user_ids.includes(payload.user_id as any)) {
+      // User is a family member - check if they can use family payment
+      isFamilyMember = true;
+      familyProfileId = familyProfile._id;
+      memberUserId = payload.user_id;
+
+      // Check budget limits
+      budgetCheck = await convex.query(api.queries.familyProfiles.checkBudgetAllowance, {
+        family_profile_id: familyProfile._id,
+        member_user_id: payload.user_id as any,
+        order_amount: total,
+        currency: 'gbp',
+      });
+
+      if (!budgetCheck.allowed) {
+        return ResponseFactory.validationError(
+          budgetCheck.reason || 'Order exceeds budget limits'
+        );
+      }
+
+      // Use parent's payment method
+      if (familyProfile.settings.shared_payment_methods) {
+        paymentUserId = familyProfile.parent_user_id;
+      }
+    }
     
     try {
       // Create real Stripe payment intent
       if (!stripe) {
-    return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
-  }
-  const paymentIntent = await stripe.paymentIntents.create({
+        return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(total * 100), // Convert to cents and ensure integer
         currency: 'gbp', // Using GBP as per CribNosh UK focus
         metadata: {
-          userId: payload.user_id,
-          orderType: 'customer_checkout',
-          cartId: (cart as any)._id || 'unknown'
+          userId: paymentUserId,
+          orderUserId: payload.user_id, // Original user who placed the order
+          orderType: isFamilyMember ? 'family_member_checkout' : 'customer_checkout',
+          cartId: (cart as any)._id || 'unknown',
+          ...(isFamilyMember && familyProfileId
+            ? {
+                family_profile_id: familyProfileId,
+                member_user_id: memberUserId,
+              }
+            : {}),
         },
         automatic_payment_methods: {
           enabled: true,
         },
-        // Add customer if they have a Stripe customer ID
+        // Add customer if they have a Stripe customer ID (use parent's if family member)
         customer: await getOrCreateCustomer({ 
-          userId: payload.user_id, 
+          userId: paymentUserId, 
           email: payload.email || 'customer@cribnosh.com' 
         }).then(customer => customer.id),
       });
       
-      console.log(`Created payment intent ${paymentIntent.id} for user ${payload.user_id}, amount: ${total} GBP`);
+      console.log(
+        `Created payment intent ${paymentIntent.id} for user ${payload.user_id}${isFamilyMember ? ' (family member, using parent payment)' : ''}, amount: ${total} GBP`
+      );
       
       return ResponseFactory.success({ 
         paymentIntent: {
@@ -142,7 +188,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           amount: total,
           currency: 'gbp',
           id: paymentIntent.id
-        }
+        },
+        is_family_member: isFamilyMember,
+        ...(isFamilyMember && budgetCheck
+          ? {
+              budget_check: {
+                allowed: budgetCheck.allowed,
+                remaining_daily: budgetCheck.remaining,
+                remaining_weekly: budgetCheck.remaining,
+                remaining_monthly: budgetCheck.remaining,
+              },
+            }
+          : {}),
       });
     } catch (stripeError: any) {
       console.error('Stripe payment intent creation failed:', stripeError);

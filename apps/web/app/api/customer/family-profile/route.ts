@@ -10,6 +10,86 @@ import { sendFamilyInvitationEmail } from '@/lib/services/email-service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
+function getAuthPayload(request: NextRequest): any {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('Invalid or missing token');
+  }
+
+  const token = authHeader.replace('Bearer ', ');
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    throw new Error('Invalid or expired token');
+  }
+}
+
+/**
+ * @swagger
+ * /customer/family-profile:
+ *   get:
+ *     summary: Get family profile details
+ *     description: Get the family profile for the authenticated user (as parent or member)
+ *     tags: [Customer]
+ *     responses:
+ *       200:
+ *         description: Family profile retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+async function handleGET(request: NextRequest): Promise<NextResponse> {
+  try {
+    const payload = getAuthPayload(request);
+    if (!payload.roles?.includes('customer')) {
+      return createSpecErrorResponse('Only customers can access family profiles', 'FORBIDDEN', 403);
+    }
+
+    const convex = getConvexClient();
+    const userId = payload.user_id as string;
+
+    const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
+      userId: userId as any,
+    });
+
+    if (!familyProfile) {
+      return ResponseFactory.success(null, 'No family profile found');
+    }
+
+    // Format response
+    const formattedProfile = {
+      family_profile_id: familyProfile._id,
+      parent_user_id: familyProfile.parent_user_id,
+      member_user_ids: familyProfile.member_user_ids,
+      family_members: familyProfile.family_members.map((member: any) => ({
+        id: member.id,
+        user_id: member.user_id || null,
+        name: member.name,
+        email: member.email,
+        phone: member.phone || null,
+        relationship: member.relationship,
+        status: member.status,
+        invited_at: member.invited_at ? new Date(member.invited_at).toISOString() : null,
+        accepted_at: member.accepted_at ? new Date(member.accepted_at).toISOString() : null,
+        budget_settings: member.budget_settings || null,
+      })),
+      settings: familyProfile.settings,
+      created_at: new Date(familyProfile.created_at).toISOString(),
+      updated_at: familyProfile.updated_at ? new Date(familyProfile.updated_at).toISOString() : null,
+    };
+
+    return ResponseFactory.success(formattedProfile, 'Family profile retrieved successfully');
+  } catch (error: any) {
+    if (error.message === 'Invalid or missing token' || error.message === 'Invalid or expired token') {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    }
+    return createSpecErrorResponse(
+      error.message || 'Failed to get family profile',
+      'INTERNAL_ERROR',
+      500
+    );
+  }
+}
+
 /**
  * @swagger
  * /customer/family-profile:
@@ -23,8 +103,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - family_members
  *             properties:
  *               family_members:
  *                 type: array
@@ -37,121 +115,45 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *                   properties:
  *                     name:
  *                       type: string
- *                       example: "John Doe"
  *                     email:
  *                       type: string
- *                       format: email
- *                       example: "john@example.com"
  *                     phone:
  *                       type: string
- *                       example: "+44123456789"
  *                     relationship:
  *                       type: string
- *                       example: "spouse"
- *               shared_payment_methods:
- *                 type: boolean
- *                 default: true
- *                 example: true
- *               shared_orders:
- *                 type: boolean
- *                 default: true
- *                 example: true
+ *                     budget_settings:
+ *                       type: object
+ *                       properties:
+ *                         daily_limit:
+ *                           type: number
+ *                         weekly_limit:
+ *                           type: number
+ *                         monthly_limit:
+ *                           type: number
+ *                         currency:
+ *                           type: string
+ *               settings:
+ *                 type: object
+ *                 properties:
+ *                   shared_payment_methods:
+ *                     type: boolean
+ *                   shared_orders:
+ *                     type: boolean
+ *                   allow_child_ordering:
+ *                     type: boolean
+ *                   require_approval_for_orders:
+ *                     type: boolean
+ *                   spending_notifications:
+ *                     type: boolean
  *     responses:
  *       200:
  *         description: Family profile setup successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Family profile setup successfully"
- *                 data:
- *                   type: object
- *                   properties:
- *                     family_profile_id:
- *                       type: string
- *                       example: "fp_123456"
- *                     family_members:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                             example: "fm_123"
- *                           name:
- *                             type: string
- *                             example: "John Doe"
- *                           email:
- *                             type: string
- *                             example: "john@example.com"
- *                           phone:
- *                             type: string
- *                             example: "+44123456789"
- *                           relationship:
- *                             type: string
- *                             example: "spouse"
- *                           status:
- *                             type: string
- *                             enum: [pending_invitation, accepted, declined]
- *                             example: "pending_invitation"
- *                     settings:
- *                       type: object
- *                       properties:
- *                         shared_payment_methods:
- *                           type: boolean
- *                           example: true
- *                         shared_orders:
- *                           type: boolean
- *                           example: true
- *                     created_at:
- *                       type: string
- *                       format: date-time
- *                       example: "2024-01-15T10:30:00Z"
- *       400:
- *         description: Invalid family member data or validation error
- *       401:
- *         description: Unauthorized - invalid or missing token
- *       409:
- *         description: Family profile already exists
- *     security:
- *       - bearerAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
+    const payload = getAuthPayload(request);
     if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can setup family profiles',
-        'FORBIDDEN',
-        403
-      );
+      return createSpecErrorResponse('Only customers can setup family profiles', 'FORBIDDEN', 403);
     }
 
     // Parse and validate request body
@@ -159,124 +161,107 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     try {
       body = await request.json();
     } catch {
-      return createSpecErrorResponse(
-        'Invalid JSON body',
-        'BAD_REQUEST',
-        400
-      );
+      return createSpecErrorResponse('Invalid JSON body', 'BAD_REQUEST', 400);
     }
 
-    const { family_members, shared_payment_methods = true, shared_orders = true } = body;
+    const { family_members = [], settings } = body;
 
-    // Validation
-    if (!Array.isArray(family_members) || family_members.length === 0) {
-      return createSpecErrorResponse(
-        'family_members is required and must be a non-empty array',
-        'BAD_REQUEST',
-        400
-      );
-    }
-
-    // Validate each family member
-    for (const member of family_members) {
-      if (!member.name || typeof member.name !== 'string') {
-        return createSpecErrorResponse(
-          'Each family member must have a name',
-          'BAD_REQUEST',
-          400
-        );
-      }
-      if (!member.email || typeof member.email !== 'string' || !member.email.includes('@')) {
-        return createSpecErrorResponse(
-          'Each family member must have a valid email',
-          'BAD_REQUEST',
-          400
-        );
-      }
-      if (!member.relationship || typeof member.relationship !== 'string') {
-        return createSpecErrorResponse(
-          'Each family member must have a relationship',
-          'BAD_REQUEST',
-          400
-        );
+    // Validate each family member if provided
+    if (Array.isArray(family_members)) {
+      for (const member of family_members) {
+        if (!member.name || typeof member.name !== 'string') {
+          return createSpecErrorResponse('Each family member must have a name', 'BAD_REQUEST', 400);
+        }
+        if (!member.email || typeof member.email !== 'string' || !member.email.includes('@')) {
+          return createSpecErrorResponse(
+            'Each family member must have a valid email',
+            'BAD_REQUEST',
+            400
+          );
+        }
+        if (!member.relationship || typeof member.relationship !== 'string') {
+          return createSpecErrorResponse(
+            'Each family member must have a relationship',
+            'BAD_REQUEST',
+            400
+          );
+        }
       }
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id;
+    const userId = payload.user_id as string;
 
     // Check if family profile already exists
     const existingProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
-      userId,
+      userId: userId as any,
     });
     if (existingProfile) {
-      return createSpecErrorResponse(
-        'Family profile already exists',
-        'CONFLICT',
-        409
-      );
+      return createSpecErrorResponse('Family profile already exists', 'CONFLICT', 409);
     }
 
     // Create family profile
     const familyProfileId = await convex.mutation(api.mutations.familyProfiles.create, {
-      userId,
-      family_members,
-      shared_payment_methods,
-      shared_orders,
+      userId: userId as any,
+      family_members: family_members.length > 0 ? family_members : undefined,
+      settings: settings
+        ? {
+            shared_payment_methods: settings.shared_payment_methods ?? true,
+            shared_orders: settings.shared_orders ?? true,
+            allow_child_ordering: settings.allow_child_ordering ?? true,
+            require_approval_for_orders: settings.require_approval_for_orders ?? false,
+            spending_notifications: settings.spending_notifications ?? true,
+          }
+        : undefined,
     });
 
     // Get the created profile
     const familyProfileData = await convex.query(api.queries.familyProfiles.getByUserId, {
-      userId,
+      userId: userId as any,
     });
 
     if (!familyProfileData) {
-      return createSpecErrorResponse(
-        'Failed to create family profile',
-        'INTERNAL_ERROR',
-        500
-      );
+      return createSpecErrorResponse('Failed to create family profile', 'INTERNAL_ERROR', 500);
     }
 
     // Format response
     const familyProfile = {
       family_profile_id: familyProfileId,
+      parent_user_id: familyProfileData.parent_user_id,
+      member_user_ids: familyProfileData.member_user_ids,
       family_members: familyProfileData.family_members.map((member: any) => ({
         id: member.id,
+        user_id: member.user_id || null,
         name: member.name,
         email: member.email,
         phone: member.phone || null,
         relationship: member.relationship,
         status: member.status,
+        budget_settings: member.budget_settings || null,
       })),
-      settings: {
-        shared_payment_methods: familyProfileData.shared_payment_methods,
-        shared_orders: familyProfileData.shared_orders,
-      },
+      settings: familyProfileData.settings,
       created_at: new Date(familyProfileData.created_at).toISOString(),
     };
 
     // Send invitation emails to family members
-    const inviterUser = await convex.query(api.queries.users.getById, { userId });
+    const inviterUser = await convex.query(api.queries.users.getById, { userId: userId as any });
     const inviterName = inviterUser?.name || 'A family member';
 
     for (const member of familyProfileData.family_members) {
-      if (member.status === 'pending_invitation' && member.email) {
-        sendFamilyInvitationEmail(
-          member.email,
-          inviterName,
-          familyProfileId
-        ).catch((error) => {
-          console.error(`Failed to send invitation to ${member.email}:`, error);
-        });
+      if (member.status === 'pending_invitation' && member.email && member.invitation_token) {
+        sendFamilyInvitationEmail(member.email, inviterName, familyProfileId, member.invitation_token).catch(
+          (error) => {
+            console.error(`Failed to send invitation to ${member.email}:`, error);
+          }
+        );
       }
     }
 
-    return ResponseFactory.success(
-      familyProfile,
-      'Family profile setup successfully'
-    );
+    return ResponseFactory.success(familyProfile, 'Family profile setup successfully');
   } catch (error: any) {
+    if (error.message === 'Invalid or missing token' || error.message === 'Invalid or expired token') {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    }
     return createSpecErrorResponse(
       error.message || 'Failed to setup family profile',
       'INTERNAL_ERROR',
@@ -285,5 +270,5 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
+export const GET = withAPIMiddleware(withErrorHandling(handleGET));
 export const POST = withAPIMiddleware(withErrorHandling(handlePOST));
-

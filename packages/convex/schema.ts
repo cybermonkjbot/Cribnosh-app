@@ -3032,23 +3032,73 @@ export default defineSchema({
 
   // Family Profiles table
   familyProfiles: defineTable({
-    userId: v.id("users"),
+    parent_user_id: v.id("users"), // The account owner (parent)
+    userId: v.id("users"), // Keep for backward compatibility, maps to parent_user_id
+    member_user_ids: v.array(v.id("users")), // Array of user IDs for accepted family members
     family_members: v.array(v.object({
       id: v.string(),
+      user_id: v.optional(v.id("users")), // Link to user account (if they have login)
       name: v.string(),
       email: v.string(),
       phone: v.optional(v.string()),
       relationship: v.string(),
-      status: v.union(v.literal("pending_invitation"), v.literal("accepted"), v.literal("declined")),
+      status: v.union(v.literal("pending_invitation"), v.literal("accepted"), v.literal("declined"), v.literal("removed")),
       invited_at: v.optional(v.number()),
       accepted_at: v.optional(v.number()),
+      invitation_token: v.optional(v.string()), // For accepting invitations
+      budget_settings: v.optional(v.object({
+        daily_limit: v.optional(v.number()),
+        weekly_limit: v.optional(v.number()),
+        monthly_limit: v.optional(v.number()),
+        currency: v.optional(v.string()),
+      })),
+      allergy_preferences: v.optional(v.array(v.id("allergies"))), // Array of allergy IDs
+      dietary_preference_id: v.optional(v.id("dietaryPreferences")), // Reference to dietary preferences
     })),
-    shared_payment_methods: v.boolean(),
-    shared_orders: v.boolean(),
+    settings: v.object({
+      shared_payment_methods: v.boolean(),
+      shared_orders: v.boolean(),
+      allow_child_ordering: v.boolean(),
+      require_approval_for_orders: v.boolean(),
+      spending_notifications: v.boolean(),
+    }),
+    shared_payment_methods: v.boolean(), // Keep for backward compatibility
+    shared_orders: v.boolean(), // Keep for backward compatibility
     created_at: v.number(),
     updated_at: v.optional(v.number()),
   })
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_parent_user", ["parent_user_id"]),
+
+  // Family Member Budgets table
+  familyMemberBudgets: defineTable({
+    family_profile_id: v.id("familyProfiles"),
+    member_user_id: v.id("users"),
+    period_start: v.number(), // Timestamp
+    period_type: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
+    spent_amount: v.number(),
+    limit_amount: v.number(),
+    currency: v.string(),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_family_profile", ["family_profile_id"])
+    .index("by_member_user", ["member_user_id"])
+    .index("by_period", ["family_profile_id", "member_user_id", "period_type", "period_start"]),
+
+  // Family Member Preferences table
+  familyMemberPreferences: defineTable({
+    family_profile_id: v.id("familyProfiles"),
+    member_user_id: v.id("users"),
+    allergy_ids: v.array(v.id("allergies")),
+    dietary_preference_id: v.optional(v.id("dietaryPreferences")),
+    parent_controlled: v.boolean(), // If parent manages preferences
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_family_profile", ["family_profile_id"])
+    .index("by_member_user", ["member_user_id"])
+    .index("by_family_member", ["family_profile_id", "member_user_id"]),
 
   // Allergies table
   allergies: defineTable({
@@ -3107,13 +3157,17 @@ export default defineSchema({
     attachments: v.array(v.string()),
     support_reference: v.string(),
     last_message: v.optional(v.string()),
+    chat_id: v.optional(v.id("chats")),
+    assigned_agent_id: v.optional(v.id("users")),
     created_at: v.number(),
     updated_at: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"])
     .index("by_category", ["category"])
-    .index("by_reference", ["support_reference"]),
+    .index("by_reference", ["support_reference"])
+    .index("by_chat", ["chat_id"])
+    .index("by_agent", ["assigned_agent_id"]),
 
   // Account Deletions table
   accountDeletions: defineTable({

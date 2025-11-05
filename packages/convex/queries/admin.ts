@@ -217,6 +217,164 @@ export const getSystemSettings = query({
   },
 });
 
+// Regional Availability Configuration Queries
+export const getRegionalAvailabilityConfig = query({
+  args: {},
+  handler: async (ctx) => {
+    const setting = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", "regional_availability_config"))
+      .first();
+
+    // Default configuration for Midland cities
+    const defaultConfig = {
+      enabled: true,
+      supportedRegions: ["Midlands", "West Midlands", "East Midlands"],
+      supportedCities: [
+        "Birmingham",
+        "Leicester",
+        "Nottingham",
+        "Coventry",
+        "Stoke-on-Trent",
+        "Derby",
+        "Wolverhampton",
+        "Northampton",
+      ],
+      supportedCountries: ["UK"],
+    };
+
+    if (setting) {
+      return setting.value as typeof defaultConfig;
+    }
+
+    return defaultConfig;
+  },
+});
+
+export const checkRegionAvailability = query({
+  args: {
+    city: v.optional(v.string()),
+    country: v.optional(v.string()),
+    coordinates: v.optional(v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+    })),
+    address: v.optional(v.object({
+      city: v.optional(v.string()),
+      country: v.optional(v.string()),
+      coordinates: v.optional(v.object({
+        latitude: v.number(),
+        longitude: v.number(),
+      })),
+    })),
+  },
+  handler: async (ctx, args) => {
+    // Get config directly to avoid circular dependency
+    const setting = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", "regional_availability_config"))
+      .first();
+
+    // Default configuration for Midland cities
+    const defaultConfig = {
+      enabled: true,
+      supportedRegions: ["Midlands", "West Midlands", "East Midlands"],
+      supportedCities: [
+        "Birmingham",
+        "Leicester",
+        "Nottingham",
+        "Coventry",
+        "Stoke-on-Trent",
+        "Derby",
+        "Wolverhampton",
+        "Northampton",
+      ],
+      supportedCountries: ["UK"],
+    };
+
+    const config = setting ? (setting.value as typeof defaultConfig) : defaultConfig;
+    
+    // If regional availability is disabled, allow all regions
+    if (!config.enabled) {
+      return true;
+    }
+
+    // Check from address object if provided
+    if (args.address) {
+      const city = args.address.city;
+      const country = args.address.country;
+      
+      if (city) {
+        const normalizedCity = city.trim().toLowerCase();
+        const isSupported = config.supportedCities.some(
+          (supportedCity) => supportedCity.toLowerCase() === normalizedCity
+        );
+        
+        if (!isSupported) {
+          return false;
+        }
+      }
+      
+      if (country) {
+        const normalizedCountry = country.trim();
+        const isSupported = config.supportedCountries.some(
+          (supportedCountry) => supportedCountry.toLowerCase() === normalizedCountry.toLowerCase()
+        );
+        
+        if (!isSupported) {
+          return false;
+        }
+      }
+      
+      // If we have both city and country and both are supported, return true
+      if (city && country) {
+        return true;
+      }
+    }
+
+    // Check from direct city parameter
+    if (args.city) {
+      const normalizedCity = args.city.trim().toLowerCase();
+      const isSupported = config.supportedCities.some(
+        (supportedCity) => supportedCity.toLowerCase() === normalizedCity
+      );
+      
+      if (!isSupported) {
+        return false;
+      }
+    }
+
+    // Check from country parameter
+    if (args.country) {
+      const normalizedCountry = args.country.trim();
+      const isSupported = config.supportedCountries.some(
+        (supportedCountry) => supportedCountry.toLowerCase() === normalizedCountry.toLowerCase()
+      );
+      
+      if (!isSupported) {
+        return false;
+      }
+    }
+
+    // If we have coordinates but no city/country, we'd need reverse geocoding
+    // For now, if coordinates are provided without city, we'll allow it
+    // (This can be enhanced later with reverse geocoding)
+    if (args.coordinates && !args.city && !args.country && !args.address) {
+      // Without reverse geocoding, we can't determine the city from coordinates
+      // For safety, we'll return false, but this can be enhanced
+      return false;
+    }
+
+    // If we have city or country and they're supported, return true
+    if (args.city || args.country || args.address) {
+      return true;
+    }
+
+    // Default to false if no valid location info provided
+    return false;
+  },
+});
+
 export const getContentItems = query({
   args: {},
   handler: async (ctx) => {

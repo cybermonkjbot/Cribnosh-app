@@ -43,9 +43,16 @@ export async function sendDataDownloadEmail(email: string, downloadUrl: string, 
   }
 }
 
-export async function sendFamilyInvitationEmail(email: string, inviterName: string, familyProfileId: string) {
+export async function sendFamilyInvitationEmail(
+  email: string,
+  inviterName: string,
+  familyProfileId: string,
+  invitationToken?: string
+) {
   try {
-    const acceptUrl = `https://cribnosh.com/family/accept?profile=${familyProfileId}`;
+    const acceptUrl = invitationToken
+      ? `https://cribnosh.com/family/accept?token=${invitationToken}`
+      : `https://cribnosh.com/family/accept?profile=${familyProfileId}`;
     const html = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
       title: 'Family Profile Invitation',
       message: `${inviterName} has invited you to join their family profile on CribNosh. Click here to accept: ${acceptUrl}`,

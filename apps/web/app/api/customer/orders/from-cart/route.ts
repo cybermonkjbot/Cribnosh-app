@@ -1,12 +1,79 @@
-import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { stripe } from '@/lib/stripe';
-import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getApiMutations, getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { stripe } from '@/lib/stripe';
+import type { FunctionReference } from 'convex/server';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
+
+// Type definitions for data structures
+interface RegionAvailabilityArgs extends Record<string, unknown> {
+  address: {
+    city: string;
+    country: string;
+    coordinates: number[];
+  };
+}
+
+interface CartData {
+  items?: Array<{
+    id: string;
+    dish_id?: string;
+    quantity: number;
+    price: number;
+    name?: string;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
+interface MealData {
+  _id: Id<'meals'>;
+  chefId?: Id<'chefs'>;
+  chef_id?: Id<'chefs'>;
+  price?: number;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface OrderData {
+  _id: Id<'orders'>;
+  order_id?: string;
+  [key: string]: unknown;
+}
+
+interface CreateOrderArgs extends Record<string, unknown> {
+  customer_id: string;
+  chef_id: string;
+  order_items: Array<{
+    dish_id: string;
+    quantity: number;
+    price: number;
+    name: string;
+  }>;
+  total_amount: number;
+  payment_method: string;
+  special_instructions?: string;
+  delivery_time?: string;
+  delivery_address?: {
+    city: string;
+    country: string;
+    coordinates: number[];
+    street?: string;
+    postal_code?: string;
+  };
+}
+
+interface MarkPaidArgs extends Record<string, unknown> {
+  order_id: string;
+  paymentIntentId: string;
+}
+
+interface ClearCartArgs extends Record<string, unknown> {
+  userId: string;
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -147,15 +214,48 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.forbidden('Payment intent does not belong to this user.');
     }
 
+    // Get type-safe accessors
+    const apiQueries = getApiQueries();
+    const apiMutations = getApiMutations();
+    
+    // Check regional availability if delivery address is provided
+    if (delivery_address) {
+      type RegionAvailabilityQuery = FunctionReference<"query", "public", RegionAvailabilityArgs, boolean>;
+      const isRegionSupported = await convex.query(
+        (apiQueries.admin.checkRegionAvailability as unknown as RegionAvailabilityQuery),
+        {
+          address: {
+            city: delivery_address.city,
+            country: delivery_address.country,
+            coordinates: delivery_address.coordinates,
+          },
+        }
+      ) as boolean;
+      
+      if (!isRegionSupported) {
+        return ResponseFactory.validationError(
+          'Oops, We do not serve this region yet, Ordering is not available in your region'
+        );
+      }
+    }
+
     // Get user's cart
-    const cart = await convex.query(api.queries.orders.getUserCart, { userId: payload.user_id });
+    type GetUserCartQuery = FunctionReference<"query", "public", { userId: string }, CartData>;
+    const cart = await convex.query(
+      (apiQueries.orders.getUserCart as unknown as GetUserCartQuery),
+      { userId: payload.user_id }
+    ) as CartData;
     
     if (!cart || !cart.items || cart.items.length === 0) {
       return ResponseFactory.validationError('Cart is empty. Cannot create order.');
     }
 
     // Get all meals to map cart items to meals and extract chef_id
-    const allMeals = await convex.query(api.queries.meals.getAll, {});
+    type MealsQuery = FunctionReference<"query", "public", Record<string, never>, MealData[]>;
+    const allMeals = await convex.query(
+      (apiQueries.meals.getAll as unknown as MealsQuery),
+      {}
+    ) as MealData[];
     
     // Convert cart items to order items and validate
     const orderItems = [];
@@ -165,14 +265,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     for (const cartItem of cart.items) {
       // Find meal by id (cart item id should be the meal _id)
       const meal = Array.isArray(allMeals)
-        ? allMeals.find((m: any) => m._id === cartItem.id || m._id === (cartItem as any).dish_id)
+        ? allMeals.find((m: MealData) => m._id === cartItem.id || m._id === cartItem.dish_id)
         : null;
 
       if (!meal) {
         return ResponseFactory.notFound(`Meal not found: ${cartItem.id}`);
       }
 
-      const chefId = (meal as any).chefId || (meal as any).chef_id;
+      const chefId = meal.chefId || meal.chef_id;
       if (!chefId) {
         return ResponseFactory.validationError(`Meal ${cartItem.id} does not have a chef_id.`);
       }
@@ -216,31 +316,41 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Create the order using existing mutation
-    const orderId = await convex.mutation(api.mutations.orders.createOrder, {
-      customer_id: payload.user_id,
-      chef_id,
-      order_items: orderItems,
-      total_amount: totalAmount,
-      payment_method: 'card',
-      special_instructions,
-      delivery_time,
-      delivery_address,
-    });
+    type CreateOrderMutation = FunctionReference<"mutation", "public", CreateOrderArgs, Id<'orders'>>;
+    const orderId = await convex.mutation(
+      (apiMutations.orders.createOrder as unknown as CreateOrderMutation),
+      {
+        customer_id: payload.user_id,
+        chef_id,
+        order_items: orderItems,
+        total_amount: totalAmount,
+        payment_method: 'card',
+        special_instructions,
+        delivery_time,
+        delivery_address,
+      }
+    ) as Id<'orders'>;
 
     // Link payment intent to order by updating order with payment_id
     // Get the order we just created to get its order_id
-    const allOrders = await convex.query(api.queries.orders.listByCustomer, {
-      customer_id: payload.user_id,
-    });
-    const order = allOrders.find((o: any) => o._id === orderId);
+    type ListOrdersQuery = FunctionReference<"query", "public", { customer_id: string }, OrderData[]>;
+    const allOrders = await convex.query(
+      (apiQueries.orders.listByCustomer as unknown as ListOrdersQuery),
+      { customer_id: payload.user_id }
+    ) as OrderData[];
+    const order = allOrders.find((o: OrderData) => o._id === orderId);
 
     if (order && order.order_id) {
       // Update order with payment_id and mark as paid
       try {
-        await convex.mutation(api.mutations.orders.markPaid, {
-          order_id: order.order_id,
-          paymentIntentId: payment_intent_id,
-        });
+        type MarkPaidMutation = FunctionReference<"mutation", "public", MarkPaidArgs, void>;
+        await convex.mutation(
+          (apiMutations.orders.markPaid as unknown as MarkPaidMutation),
+          {
+            order_id: order.order_id,
+            paymentIntentId: payment_intent_id,
+          }
+        );
       } catch (error) {
         console.warn('Could not link payment intent to order:', error);
         // Continue - order is created, just payment link failed
@@ -249,19 +359,22 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Clear cart after order creation
     try {
-      await convex.mutation(api.mutations.orders.clearCart, {
-        userId: payload.user_id,
-      });
+      type ClearCartMutation = FunctionReference<"mutation", "public", ClearCartArgs, void>;
+      await convex.mutation(
+        (apiMutations.orders.clearCart as unknown as ClearCartMutation),
+        { userId: payload.user_id }
+      );
     } catch (error) {
       console.warn('Could not clear cart after order creation:', error);
       // Continue - order is created, cart clearing can be retried
     }
 
     // Get final order details
-    const finalOrders = await convex.query(api.queries.orders.listByCustomer, {
-      customer_id: payload.user_id,
-    });
-    const finalOrder = finalOrders.find((o: any) => o._id === orderId) || order;
+    const finalOrders = await convex.query(
+      (apiQueries.orders.listByCustomer as unknown as ListOrdersQuery),
+      { customer_id: payload.user_id }
+    ) as OrderData[];
+    const finalOrder = finalOrders.find((o: OrderData) => o._id === orderId) || order;
 
     return ResponseFactory.success({
       success: true,

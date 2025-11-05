@@ -662,6 +662,60 @@ export interface GetLiveStreamsResponse {
   };
 }
 
+// GET /api/live-streaming/sessions/{sessionId}
+export interface LiveSessionDetails {
+  session: {
+    id: string;
+    _id: string;
+    session_id: string;
+    chef_id: string;
+    title: string;
+    description?: string;
+    status: string;
+    viewer_count: number;
+    current_viewers: number;
+    is_live: boolean;
+    started_at: string;
+    ended_at?: string;
+    thumbnail_url?: string;
+    tags?: string[];
+  };
+  chef: {
+    _id: string;
+    name: string;
+    bio: string;
+    profile_image?: string;
+    kitchen_name: string;
+    specialties?: string[];
+    rating: number;
+  } | null;
+  meal: {
+    _id: string;
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    images: string[];
+    ingredients: string[];
+    cuisine: string[];
+    dietary?: string[];
+    average_rating: number;
+    review_count: number;
+    calories?: number;
+    fat?: string;
+    protein?: string;
+    carbs?: string;
+    prep_time?: string;
+    cooking_time?: string;
+  } | null;
+}
+
+export interface GetLiveSessionDetailsResponse {
+  success: boolean;
+  data: LiveSessionDetails;
+  message?: string;
+}
+
 // ============================================================================
 // ERROR TYPES
 // ============================================================================
@@ -1134,21 +1188,196 @@ export interface GetBalanceTransactionsResponse {
 }
 
 export interface SetupFamilyProfileRequest {
-  family_name: string;
-  members: {
+  family_members?: Array<{
     name: string;
-    email?: string;
+    email: string;
     phone?: string;
-    relationship?: string;
-  }[];
+    relationship: string;
+    budget_settings?: {
+      daily_limit?: number;
+      weekly_limit?: number;
+      monthly_limit?: number;
+      currency?: string;
+    };
+  }>;
+  settings?: {
+    shared_payment_methods: boolean;
+    shared_orders: boolean;
+    allow_child_ordering: boolean;
+    require_approval_for_orders: boolean;
+    spending_notifications: boolean;
+  };
+}
+
+export interface FamilyMember {
+  id: string;
+  user_id?: string | null;
+  name: string;
+  email: string;
+  phone?: string | null;
+  relationship: string;
+  status: 'pending_invitation' | 'accepted' | 'declined' | 'removed';
+  invited_at?: string | null;
+  accepted_at?: string | null;
+  budget_settings?: {
+    daily_limit?: number;
+    weekly_limit?: number;
+    monthly_limit?: number;
+    currency?: string;
+  } | null;
+}
+
+export interface FamilyProfileSettings {
+  shared_payment_methods: boolean;
+  shared_orders: boolean;
+  allow_child_ordering: boolean;
+  require_approval_for_orders: boolean;
+  spending_notifications: boolean;
 }
 
 export interface SetupFamilyProfileResponse {
   success: boolean;
   data: {
     family_profile_id: string;
-    family_name: string;
-    members_count: number;
+    parent_user_id: string;
+    member_user_ids: string[];
+    family_members: FamilyMember[];
+    settings: FamilyProfileSettings;
+    created_at: string;
+  };
+  message: string;
+}
+
+export interface GetFamilyProfileResponse {
+  success: boolean;
+  data: {
+    family_profile_id: string;
+    parent_user_id: string;
+    member_user_ids: string[];
+    family_members: FamilyMember[];
+    settings: FamilyProfileSettings;
+    created_at: string;
+    updated_at?: string | null;
+  } | null;
+  message: string;
+}
+
+export interface InviteFamilyMemberRequest {
+  member: {
+    name: string;
+    email: string;
+    phone?: string;
+    relationship: string;
+    budget_settings?: {
+      daily_limit?: number;
+      weekly_limit?: number;
+      monthly_limit?: number;
+      currency?: string;
+    };
+  };
+  family_profile_id?: string;
+}
+
+export interface InviteFamilyMemberResponse {
+  success: boolean;
+  data: {
+    member_id: string;
+    invitation_token: string;
+  };
+  message: string;
+}
+
+export interface ValidateFamilyMemberEmailRequest {
+  email: string;
+}
+
+export interface ValidateFamilyMemberEmailResponse {
+  success: boolean;
+  data: {
+    exists: boolean;
+    userId?: string;
+  };
+  message: string;
+}
+
+export interface AcceptFamilyInvitationRequest {
+  invitation_token: string;
+}
+
+export interface AcceptFamilyInvitationResponse {
+  success: boolean;
+  data: {
+    family_profile_id: string;
+    member_id: string;
+  };
+  message: string;
+}
+
+export interface UpdateMemberBudgetRequest {
+  member_id: string;
+  budget_settings: {
+    daily_limit?: number;
+    weekly_limit?: number;
+    monthly_limit?: number;
+    currency?: string;
+  };
+  family_profile_id?: string;
+}
+
+export interface UpdateMemberPreferencesRequest {
+  member_id: string;
+  preferences?: {
+    allergy_ids?: string[];
+    dietary_preference_id?: string;
+    parent_controlled?: boolean;
+  };
+  family_profile_id?: string;
+}
+
+export interface UpdateMemberRequest {
+  member_id: string;
+  budget_settings?: {
+    daily_limit?: number;
+    weekly_limit?: number;
+    monthly_limit?: number;
+    currency?: string;
+  };
+  preferences?: {
+    allergy_ids?: string[];
+    dietary_preference_id?: string;
+    parent_controlled?: boolean;
+  };
+  family_profile_id?: string;
+}
+
+export interface RemoveFamilyMemberRequest {
+  member_id: string;
+  family_profile_id?: string;
+}
+
+export interface GetFamilyOrdersResponse {
+  success: boolean;
+  data: any[];
+  message: string;
+}
+
+export interface GetFamilySpendingResponse {
+  success: boolean;
+  data: {
+    members: Array<{
+      member_id: string;
+      user_id: string;
+      name: string;
+      daily_spent: number;
+      daily_limit: number;
+      weekly_spent: number;
+      weekly_limit: number;
+      monthly_spent: number;
+      monthly_limit: number;
+      currency: string;
+    }>;
+    total_spending: number;
+    currency: string;
   };
   message: string;
 }
@@ -1282,6 +1511,91 @@ export interface CreateSupportCaseResponse {
   success: boolean;
   data: SupportCase;
   message: string;
+}
+
+// ============================================================================
+// SUPPORT CHAT API TYPES
+// ============================================================================
+
+export interface SupportAgent {
+  id: string;
+  name: string;
+  avatar?: string;
+  isOnline: boolean;
+  activeCases?: number;
+}
+
+export interface SupportMessage {
+  _id: string;
+  chatId: string;
+  senderId: string;
+  content: string;
+  createdAt: number;
+  isRead?: boolean;
+  fileUrl?: string;
+  fileType?: string;
+  fileName?: string;
+  fileSize?: number;
+  metadata?: Record<string, any>;
+}
+
+export interface SupportChat {
+  chatId: string;
+  supportCaseId: string;
+  agent: SupportAgent | null;
+  messages: SupportMessage[];
+}
+
+export interface GetSupportChatResponse {
+  success: boolean;
+  data: SupportChat;
+  message?: string;
+}
+
+export interface GetSupportChatMessagesResponse {
+  success: boolean;
+  data: {
+    messages: SupportMessage[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
+  message?: string;
+}
+
+export interface SendSupportMessageRequest {
+  content: string;
+}
+
+export interface SendSupportMessageResponse {
+  success: boolean;
+  data: {
+    messageId: string;
+    chatId: string;
+    content: string;
+  };
+  message?: string;
+}
+
+export interface GetSupportAgentResponse {
+  success: boolean;
+  data: {
+    agent: SupportAgent | null;
+    message?: string;
+  };
+}
+
+export interface QuickReply {
+  text: string;
+  category: 'order' | 'payment' | 'account' | 'technical' | 'general';
+}
+
+export interface GetQuickRepliesResponse {
+  success: boolean;
+  data: {
+    replies: QuickReply[];
+  };
+  message?: string;
 }
 
 // ============================================================================

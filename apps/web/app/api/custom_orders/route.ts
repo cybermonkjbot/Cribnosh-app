@@ -336,6 +336,51 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const convex = getConvexClient();
+    
+    // Check regional availability if delivery address is provided in details
+    // or get from user's profile if available
+    if (details.deliveryAddress) {
+      const isRegionSupported = await convex.query(api.queries.admin.checkRegionAvailability, {
+        address: {
+          city: details.deliveryAddress.city,
+          country: details.deliveryAddress.country,
+          coordinates: details.deliveryAddress.coordinates,
+        },
+      });
+      
+      if (!isRegionSupported) {
+        return ResponseFactory.validationError(
+          'Oops, We do not serve this region yet, Ordering is not available in your region'
+        );
+      }
+    } else {
+      // Try to get user's default address from profile
+      try {
+        const userProfile = await convex.query(api.queries.users.getUserProfile, {
+          userId: payload.user_id as Id<'users'>,
+        });
+        
+        if (userProfile?.address) {
+          const isRegionSupported = await convex.query(api.queries.admin.checkRegionAvailability, {
+            address: {
+              city: userProfile.address.city,
+              country: userProfile.address.country,
+              coordinates: userProfile.address.coordinates,
+            },
+          });
+          
+          if (!isRegionSupported) {
+            return ResponseFactory.validationError(
+              'Oops, We do not serve this region yet, Ordering is not available in your region'
+            );
+          }
+        }
+      } catch (error) {
+        // If we can't get user profile, continue without regional check
+        // Regional check will happen when address is provided later
+        console.warn('Could not check regional availability for custom order:', error);
+      }
+    }
     const customOrderId = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     const orderId = await convex.mutation(api.mutations.customOrders.create, {
       userId: payload.user_id as Id<'users'>,

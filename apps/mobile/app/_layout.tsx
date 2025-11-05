@@ -115,6 +115,12 @@ export default function RootLayout() {
                           animationTypeForReplace: 'push'
                         }} 
                       />
+                      <Stack.Screen 
+                        name="payment-settings" 
+                        options={{ 
+                          headerShown: false,
+                        }} 
+                      />
                       <Stack.Screen name="+not-found" />
                     </Stack>
                     <StatusBar translucent backgroundColor="transparent" barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />

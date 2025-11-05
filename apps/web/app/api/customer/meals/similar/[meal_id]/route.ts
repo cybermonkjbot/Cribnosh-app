@@ -56,7 +56,7 @@ async function handleGET(
     const convex = getConvexClient();
     
     // Get similar meals with user preferences
-    const similarMeals = await convex.query(api.queries.mealRecommendations.getSimilar, {
+    const similarMeals = await convex.query((api as any).queries.mealRecommendations.getSimilar, {
       mealId: meal_id as Id<'meals'>,
       userId: userId || undefined,
       limit,
@@ -64,7 +64,7 @@ async function handleGET(
 
     if (similarMeals.length === 0) {
       // Check if the meal exists
-      const meal = await convex.query(api.queries.meals.getById, { 
+      const meal = await convex.query((api as any).queries.meals.getById, { 
         mealId: meal_id as Id<'meals'> 
       });
       

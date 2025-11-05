@@ -1,10 +1,16 @@
-import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
+
+// Type definition for meal data structure
+interface MealData {
+  cuisine?: string[];
+  [key: string]: unknown;
+}
 
 /**
  * @swagger
@@ -51,7 +57,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   const userId = extractUserIdFromRequest(request);
   
   // Get cuisines from meals (with user preferences)
-  const meals = await convex.query(api.queries.meals.getAll, { userId });
+  const apiQueries = getApiQueries();
+  type MealsQuery = FunctionReference<"query", "public", { userId?: string }, MealData[]>;
+  const mealsQuery = (apiQueries.meals.getAll as unknown as MealsQuery);
+  const meals = await convex.query(mealsQuery, { userId }) as MealData[];
   const cuisines = new Set<string>();
   
   for (const meal of meals) {

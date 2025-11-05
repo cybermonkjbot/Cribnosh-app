@@ -1,6 +1,8 @@
 // store/customerApi.ts
 import { API_CONFIG } from '@/constants/api';
 import {
+  AcceptFamilyInvitationRequest,
+  AcceptFamilyInvitationResponse,
   AddPaymentMethodRequest,
   AddPaymentMethodResponse,
   // Request types
@@ -16,8 +18,11 @@ import {
   Chef,
   ChefSearchParams,
   ChefSearchResponse,
+  CloseGroupOrderResponse,
   CreateCustomOrderRequest,
   CreateCustomOrderResponse,
+  CreateGroupOrderRequest,
+  CreateGroupOrderResponse,
   CreateOrderFromCartRequest,
   CreateOrderFromCartResponse,
   CreateOrderRequest,
@@ -50,7 +55,12 @@ import {
   GetDataSharingPreferencesResponse,
   GetDietaryPreferencesResponse,
   GetDishDetailsResponse,
+  GetFamilyOrdersResponse,
+  GetFamilyProfileResponse,
+  GetFamilySpendingResponse,
   GetForkPrintScoreResponse,
+  GetGroupOrderResponse,
+  GetLiveSessionDetailsResponse,
   GetLiveStreamsResponse,
   GetMenuDetailsResponse,
   GetMonthlyOverviewResponse,
@@ -61,15 +71,24 @@ import {
   GetPaymentMethodsResponse,
   GetPopularChefDetailsResponse,
   GetPopularChefsResponse,
+  GetQuickRepliesResponse,
   GetSimilarDishesResponse,
+  GetSupportAgentResponse,
   GetSupportCasesResponse,
+  GetSupportChatMessagesResponse,
+  GetSupportChatResponse,
   GetTopCuisinesParams,
   GetTopCuisinesResponse,
   GetWeeklySummaryResponse,
+  InviteFamilyMemberRequest,
+  InviteFamilyMemberResponse,
+  JoinGroupOrderRequest,
+  JoinGroupOrderResponse,
   PaginationParams,
   RateOrderRequest,
   RateOrderResponse,
   RemoveCartItemResponse,
+  RemoveFamilyMemberRequest,
   SearchChefsByLocationRequest,
   SearchChefsByLocationResponse,
   SearchChefsRequest,
@@ -78,6 +97,8 @@ import {
   SearchResponse,
   SearchSuggestionsParams,
   SearchSuggestionsResponse,
+  SendSupportMessageRequest,
+  SendSupportMessageResponse,
   SetDefaultPaymentMethodResponse,
   SetupFamilyProfileRequest,
   SetupFamilyProfileResponse,
@@ -98,6 +119,11 @@ import {
   UpdateDataSharingPreferencesResponse,
   UpdateDietaryPreferencesRequest,
   UpdateDietaryPreferencesResponse,
+  UpdateMemberBudgetRequest,
+  UpdateMemberPreferencesRequest,
+  UpdateMemberRequest,
+  ValidateFamilyMemberEmailRequest,
+  ValidateFamilyMemberEmailResponse,
 } from "@/types/customer";
 import { isTokenExpired } from "@/utils/jwtUtils";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
@@ -229,6 +255,7 @@ export const customerApi = createApi({
     "Cart",
     "CartItem",
     "Orders",
+    "GroupOrders",
     "Offers",
     "SearchResults",
     "LiveStreams",
@@ -238,8 +265,10 @@ export const customerApi = createApi({
     "KitchenFavorites",
     "KitchenMeals",
     "KitchenCategories",
+    "KitchenTags",
     "Dishes",
-  ],
+    "SupportChat",
+  ] as const,
   endpoints: (builder) => ({
     // ========================================================================
     // CUSTOMER PROFILE ENDPOINTS
@@ -1201,9 +1230,20 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Get family profile
+     * GET /customer/family-profile
+     */
+    getFamilyProfile: builder.query<GetFamilyProfileResponse, void>({
+      query: () => ({
+        url: "/customer/family-profile",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
      * Setup family profile
      * POST /customer/family-profile
-     * Backend endpoint needed: POST /customer/family-profile
      */
     setupFamilyProfile: builder.mutation<
       SetupFamilyProfileResponse,
@@ -1215,6 +1255,160 @@ export const customerApi = createApi({
         body: data,
       }),
       invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Invite family member
+     * POST /customer/family-profile/invite
+     */
+    inviteFamilyMember: builder.mutation<
+      InviteFamilyMemberResponse,
+      InviteFamilyMemberRequest
+    >({
+      query: (data) => ({
+        url: "/customer/family-profile/invite",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Validate family member email
+     * POST /customer/family-profile/validate-member
+     */
+    validateFamilyMemberEmail: builder.mutation<
+      ValidateFamilyMemberEmailResponse,
+      ValidateFamilyMemberEmailRequest
+    >({
+      query: (data) => ({
+        url: "/customer/family-profile/validate-member",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    /**
+     * Accept family invitation
+     * POST /customer/family-profile/accept
+     */
+    acceptFamilyInvitation: builder.mutation<
+      AcceptFamilyInvitationResponse,
+      AcceptFamilyInvitationRequest
+    >({
+      query: (data) => ({
+        url: "/customer/family-profile/accept",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Update member budget
+     * PUT /customer/family-profile/members/:memberId
+     */
+    updateMemberBudget: builder.mutation<
+      { success: boolean; message: string },
+      UpdateMemberBudgetRequest
+    >({
+      query: (data) => ({
+        url: `/customer/family-profile/members/${data.member_id}`,
+        method: "PUT",
+        body: {
+          budget_settings: data.budget_settings,
+        },
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Update member preferences
+     * PUT /customer/family-profile/members/:memberId
+     */
+    updateMemberPreferences: builder.mutation<
+      { success: boolean; message: string },
+      UpdateMemberPreferencesRequest
+    >({
+      query: (data) => ({
+        url: `/customer/family-profile/members/${data.member_id}`,
+        method: "PUT",
+        body: {
+          preferences: data.preferences,
+        },
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Update member (budget and/or preferences)
+     * PUT /customer/family-profile/members/:memberId
+     */
+    updateMember: builder.mutation<
+      { success: boolean; message: string },
+      UpdateMemberRequest
+    >({
+      query: (data) => ({
+        url: `/customer/family-profile/members/${data.member_id}`,
+        method: "PUT",
+        body: {
+          budget_settings: data.budget_settings,
+          preferences: data.preferences,
+        },
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Remove family member
+     * DELETE /customer/family-profile/members/:memberId
+     */
+    removeFamilyMember: builder.mutation<
+      { success: boolean; message: string },
+      RemoveFamilyMemberRequest
+    >({
+      query: (data) => ({
+        url: `/customer/family-profile/members/${data.member_id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Get family orders
+     * GET /customer/family-profile/orders
+     */
+    getFamilyOrders: builder.query<
+      GetFamilyOrdersResponse,
+      { member_user_id?: string; limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.member_user_id) {
+          searchParams.append("member_user_id", params.member_user_id);
+        }
+        if (params.limit) {
+          searchParams.append("limit", params.limit.toString());
+        }
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/family-profile/orders${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Orders"],
+    }),
+
+    /**
+     * Get family spending
+     * GET /customer/family-profile/spending
+     */
+    getFamilySpending: builder.query<GetFamilySpendingResponse, void>({
+      query: () => ({
+        url: "/customer/family-profile/spending",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
     }),
 
     // ========================================================================
@@ -1345,13 +1539,22 @@ export const customerApi = createApi({
     /**
      * Get support cases
      * GET /customer/support-cases
-     * Backend endpoint needed: GET /customer/support-cases
      */
-    getSupportCases: builder.query<GetSupportCasesResponse, void>({
-      query: () => ({
-        url: "/customer/support-cases",
-        method: "GET",
-      }),
+    getSupportCases: builder.query<
+      GetSupportCasesResponse,
+      { page?: number; limit?: number; status?: "open" | "closed" | "resolved" }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.page) searchParams.append("page", params.page.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.status) searchParams.append("status", params.status);
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/support-cases${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
       providesTags: ["CustomerProfile"],
     }),
 
@@ -1370,6 +1573,90 @@ export const customerApi = createApi({
         body: data,
       }),
       invalidatesTags: ["CustomerProfile"],
+    }),
+
+    // ========================================================================
+    // SUPPORT CHAT ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get or create active support chat
+     * GET /customer/support-chat
+     */
+    getSupportChat: builder.query<GetSupportChatResponse, { caseId?: string } | void>({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        if (params && params.caseId) {
+          searchParams.append("caseId", params.caseId);
+        }
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/support-chat${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SupportChat"],
+    }),
+
+    /**
+     * Get support chat messages
+     * GET /customer/support-chat/messages
+     */
+    getSupportChatMessages: builder.query<
+      GetSupportChatMessagesResponse,
+      { limit?: number; offset?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.offset) searchParams.append("offset", params.offset.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/support-chat/messages${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SupportChat"],
+    }),
+
+    /**
+     * Send message in support chat
+     * POST /customer/support-chat/messages
+     */
+    sendSupportMessage: builder.mutation<
+      SendSupportMessageResponse,
+      SendSupportMessageRequest
+    >({
+      query: (data) => ({
+        url: "/customer/support-chat/messages",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["SupportChat"],
+    }),
+
+    /**
+     * Get assigned support agent info
+     * GET /customer/support-chat/agent
+     */
+    getSupportAgent: builder.query<GetSupportAgentResponse, void>({
+      query: () => ({
+        url: "/customer/support-chat/agent",
+        method: "GET",
+      }),
+      providesTags: ["SupportChat"],
+    }),
+
+    /**
+     * Get quick reply suggestions
+     * GET /customer/support-chat/quick-replies
+     */
+    getQuickReplies: builder.query<GetQuickRepliesResponse, void>({
+      query: () => ({
+        url: "/customer/support-chat/quick-replies",
+        method: "GET",
+      }),
+      providesTags: ["SupportChat"],
     }),
 
     // ========================================================================
@@ -1393,6 +1680,20 @@ export const customerApi = createApi({
         };
       },
       providesTags: ["LiveStreams"],
+    }),
+
+    /**
+     * Get live session details with meal
+     * GET /api/live-streaming/sessions/{sessionId}
+     */
+    getLiveSession: builder.query<GetLiveSessionDetailsResponse, string>({
+      query: (sessionId) => ({
+        url: `/api/live-streaming/sessions/${sessionId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, sessionId) => [
+        { type: "LiveStreams", id: sessionId },
+      ],
     }),
 
     // ========================================================================
@@ -2425,6 +2726,60 @@ export const customerApi = createApi({
       }),
       providesTags: ["Orders"],
     }),
+
+    /**
+     * Get regional availability configuration
+     * GET /customer/regional-availability/config
+     */
+    getRegionalAvailabilityConfig: builder.query<
+      {
+        success: boolean;
+        data: {
+          enabled: boolean;
+          supportedRegions: string[];
+          supportedCities: string[];
+          supportedCountries: string[];
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: "/customer/regional-availability/config",
+        method: "GET",
+      }),
+      providesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Check region availability
+     * POST /customer/regional-availability/check
+     */
+    checkRegionAvailability: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          isSupported: boolean;
+        };
+      },
+      {
+        city?: string;
+        country?: string;
+        address?: {
+          city?: string;
+          country?: string;
+          coordinates?: {
+            latitude: number;
+            longitude: number;
+          };
+        };
+      }
+    >({
+      query: (data) => ({
+        url: "/customer/regional-availability/check",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -2551,7 +2906,17 @@ export const {
   useSetDefaultPaymentMethodMutation,
   useGetCribnoshBalanceQuery,
   useGetBalanceTransactionsQuery,
+  useGetFamilyProfileQuery,
   useSetupFamilyProfileMutation,
+  useInviteFamilyMemberMutation,
+  useValidateFamilyMemberEmailMutation,
+  useAcceptFamilyInvitationMutation,
+  useUpdateMemberBudgetMutation,
+  useUpdateMemberPreferencesMutation,
+  useUpdateMemberMutation,
+  useRemoveFamilyMemberMutation,
+  useGetFamilyOrdersQuery,
+  useGetFamilySpendingQuery,
 } = customerApi;
 
 // Kitchen Favorites
@@ -2572,7 +2937,15 @@ export const {
 } = customerApi;
 
 // Live Streaming
-export const { useGetLiveStreamsQuery } = customerApi;
+export const { useGetLiveStreamsQuery, useGetLiveSessionQuery } = customerApi;
+
+export const {
+  useGetSupportChatQuery,
+  useGetSupportChatMessagesQuery,
+  useSendSupportMessageMutation,
+  useGetSupportAgentQuery,
+  useGetQuickRepliesQuery,
+} = customerApi;
 
 // Profile Screen Endpoints
 export const {

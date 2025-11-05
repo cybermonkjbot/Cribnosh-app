@@ -576,3 +576,102 @@ export const getLiveSessionById = query({
     return session;
   },
 });
+
+// Get live session with enriched data (chef and meal)
+export const getLiveSessionWithMeal = query({
+  args: {
+    sessionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get session
+    const session = await ctx.db
+      .query('liveSessions')
+      .withIndex('by_session_id', q => q.eq('session_id', args.sessionId))
+      .first();
+
+    if (!session) {
+      return null;
+    }
+
+    // Get chef data
+    const chef = await ctx.db.get(session.chef_id);
+    
+    // Get current viewer count
+    const allViewers = await ctx.db
+      .query("liveViewers")
+      .withIndex("by_session", (q) => q.eq("sessionId", session._id))
+      .collect();
+    
+    // Filter to only active viewers (those who haven't left)
+    const viewers = allViewers.filter(viewer => viewer.leftAt === undefined);
+
+    // Find meal by matching session title/tags with meal name
+    // Search chef's meals for a match
+    const chefMeals = await ctx.db
+      .query('meals')
+      .filter(q => q.eq(q.field('chefId'), session.chef_id))
+      .filter(q => q.eq(q.field('status'), 'available'))
+      .collect();
+
+    // Try to match by title/tags
+    let matchedMeal = null;
+    const sessionTitleLower = session.title.toLowerCase();
+    const sessionTags = session.tags || [];
+    
+    // First try exact or partial match with meal name
+    matchedMeal = chefMeals.find(meal => {
+      const mealNameLower = meal.name?.toLowerCase() || '';
+      return mealNameLower.includes(sessionTitleLower) || 
+             sessionTitleLower.includes(mealNameLower);
+    });
+
+    // If no match, try matching tags
+    if (!matchedMeal && sessionTags.length > 0) {
+      matchedMeal = chefMeals.find(meal => {
+        const mealCuisine = meal.cuisine || [];
+        return sessionTags.some(tag => 
+          mealCuisine.some((c: string) => c.toLowerCase().includes(tag.toLowerCase()))
+        );
+      });
+    }
+
+    // If still no match, get the first available meal from chef
+    if (!matchedMeal && chefMeals.length > 0) {
+      matchedMeal = chefMeals[0];
+    }
+
+    // Get meal reviews for rating
+    let mealData = null;
+    if (matchedMeal) {
+      const reviews = await ctx.db
+        .query('reviews')
+        .filter((q: any) => q.eq(q.field('mealId'), matchedMeal._id))
+        .collect();
+
+      mealData = {
+        ...matchedMeal,
+        reviewCount: reviews.length,
+        averageRating: reviews.length > 0
+          ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length
+          : matchedMeal.rating || 0,
+      };
+    }
+
+    return {
+      session: {
+        ...session,
+        currentViewers: viewers.length,
+        viewerCount: viewers.length,
+      },
+      chef: chef ? {
+        _id: chef._id,
+        name: chef.name || `Chef ${chef._id}`,
+        bio: chef.bio,
+        specialties: chef.specialties || [],
+        rating: chef.rating || 0,
+        profileImage: chef.profileImage,
+      } : null,
+      meal: mealData,
+    };
+  },
+});

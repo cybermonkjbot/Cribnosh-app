@@ -1,11 +1,14 @@
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
-import { SvgXml } from 'react-native-svg';
 import { useGetCustomerProfileQuery, useUpdateCustomerProfileMutation } from '@/store/customerApi';
+import { CustomerAddress } from '@/types/customer';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 import { ProfileAvatar } from './ProfileAvatar';
 import { VerificationBanner } from './VerificationBanner';
+import { AddressSelectionSheet } from './ui/AddressSelectionSheet';
+import { DownloadAccountDataSheet } from './ui/DownloadAccountDataSheet';
 
 interface UserAccountDetailsScreenProps {
   userName?: string;
@@ -99,6 +102,9 @@ export function UserAccountDetailsScreen({
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | undefined>();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
+  const [addressSheetMode, setAddressSheetMode] = useState<'home' | 'work' | null>(null);
+  const [isDownloadAccountDataSheetVisible, setIsDownloadAccountDataSheetVisible] = useState(false);
   const { logout, isAuthenticated } = useAuthContext();
 
   // Fetch profile data from backend
@@ -112,22 +118,34 @@ export function UserAccountDetailsScreen({
   });
 
   // Update profile mutation
-  const [updateProfile, { isLoading: isUpdatingProfile }] = useUpdateCustomerProfileMutation();
+  const [updateProfile] = useUpdateCustomerProfileMutation();
 
   // Get user data from API or fallback to prop
   const userName = profileData?.data?.name || propUserName || "User";
   const profilePicture = profileData?.data?.picture;
   const isVerified = profileData?.data?.is_verified ?? false;
+  const profileAddress = profileData?.data?.address;
   
   // Use profile picture from API or selected local image
   const displayPicture = selectedProfileImage || profilePicture;
+
+  // Check if addresses exist
+  const hasHomeAddress = useMemo(() => {
+    return !!profileAddress && !!profileAddress.street;
+  }, [profileAddress]);
+
+  const hasWorkAddress = useMemo(() => {
+    // TODO: In the future, extend to support multiple addresses
+    // For now, we'll use a simple check
+    return false; // Work address not yet supported in single address model
+  }, []);
 
   // Update local state when profile picture changes
   useEffect(() => {
     if (profilePicture && !selectedProfileImage) {
       setSelectedProfileImage(undefined);
     }
-  }, [profilePicture]);
+  }, [profilePicture, selectedProfileImage]);
 
   const handleBackPress = () => {
     router.back();
@@ -189,6 +207,43 @@ export function UserAccountDetailsScreen({
   const handleCancelLogout = () => {
     setShowLogoutModal(false);
   }
+
+  // Handle address sheet opening
+  const handleOpenAddressSheet = (mode: 'home' | 'work') => {
+    setAddressSheetMode(mode);
+    setIsAddressSheetVisible(true);
+  };
+
+  // Handle address selection/saving
+  const handleAddressSelect = async (address: CustomerAddress) => {
+    try {
+      await updateProfile({
+        address: address,
+      }).unwrap();
+
+      // Refetch profile to get updated address
+      await refetchProfile();
+      
+      setIsAddressSheetVisible(false);
+      setAddressSheetMode(null);
+    } catch (error) {
+      console.error('Error saving address:', error);
+      Alert.alert(
+        'Error',
+        'Failed to save address. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Get current address based on mode
+  const getCurrentAddress = useMemo((): CustomerAddress | undefined => {
+    if (addressSheetMode === 'home' && profileAddress) {
+      return profileAddress;
+    }
+    // Work address not yet supported
+    return undefined;
+  }, [addressSheetMode, profileAddress]);
 
   // Loading state
   if (isLoadingProfile) {
@@ -353,8 +408,16 @@ export function UserAccountDetailsScreen({
       {/* Saved Places Section */}
       <View style={styles.section}>
         <SectionHeader title="Saved places" />
-        <MenuItem icon={houseIconSVG} text="Add home address" />
-        <MenuItem icon={briefcaseIconSVG} text="Add work address" />
+        <MenuItem 
+          icon={houseIconSVG} 
+          text={hasHomeAddress ? "Change home address" : "Add home address"}
+          onPress={() => handleOpenAddressSheet('home')}
+        />
+        <MenuItem 
+          icon={briefcaseIconSVG} 
+          text={hasWorkAddress ? "Change work address" : "Add work address"}
+          onPress={() => handleOpenAddressSheet('work')}
+        />
       </View>
       
       {/* Your Data Section */}
@@ -363,7 +426,7 @@ export function UserAccountDetailsScreen({
         <MenuItem 
           icon={filePenIconSVG} 
           text="Download your account data" 
-          onPress={() => router.push('/download-account-data')}
+          onPress={() => setIsDownloadAccountDataSheetVisible(true)}
         />
         <MenuItem 
           icon={heartHandshakeIconSVG} 
@@ -429,6 +492,26 @@ export function UserAccountDetailsScreen({
           </View>
         </View>
       </Modal>
+
+      {/* Address Selection Sheet */}
+      {addressSheetMode && (
+        <AddressSelectionSheet
+          isVisible={isAddressSheetVisible}
+          onClose={() => {
+            setIsAddressSheetVisible(false);
+            setAddressSheetMode(null);
+          }}
+          onSelectAddress={handleAddressSelect}
+          selectedAddress={getCurrentAddress}
+          addressLabel={addressSheetMode}
+        />
+      )}
+
+      {/* Download Account Data Sheet */}
+      <DownloadAccountDataSheet
+        isVisible={isDownloadAccountDataSheetVisible}
+        onClose={() => setIsDownloadAccountDataSheetVisible(false)}
+      />
     </View>
   );
 }

@@ -72,7 +72,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   
   try {
     // Get all meals with user preferences and find the one with matching ID
-    const meals = await convex.query(api.queries.meals.getAll, { userId });
+    const meals = await convex.query((api as any).queries.meals.getAll, { userId });
     const menu = Array.isArray(meals) ? meals.find(m => m._id === menu_id) : null;
     if (!menu) {
       return ResponseFactory.notFound('Menu not found');

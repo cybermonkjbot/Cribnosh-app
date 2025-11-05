@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, View, Dimensions } from 'react-native';
-import { TiltCard } from './ui/TiltCard';
+import { Dimensions, Image, StyleSheet, Text, View } from 'react-native';
 import IncrementalOrderAmount from './IncrementalOrderAmount';
+import { TiltCard } from './ui/TiltCard';
 
 interface CompactMealSelectionProps {
   title?: string;
   price?: string;
   imageSource?: any; // local require() or URL string
   onChange?: (quantity: number) => void;
+  onOrder?: () => void;
+  isOrdered?: boolean;
   tiltEnabled?: boolean;
 }
 
@@ -16,6 +18,8 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
   price = '16 QR',
   imageSource = 'https://avatar.iran.liara.run/public/44',
   onChange,
+  onOrder,
+  isOrdered,
   tiltEnabled = true,
 }) => {
   const screenWidth = Dimensions.get('window').width;
@@ -68,6 +72,8 @@ const CompactMealSelection: React.FC<CompactMealSelectionProps> = ({
           setQuantity(newQuantity);
           onChange?.(newQuantity);
         }}
+        onOrder={onOrder}
+        isOrdered={isOrdered}
       />
     </View>
   );

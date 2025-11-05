@@ -425,7 +425,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                       style={{ objectFit: "cover" }}
                       className="transition-transform duration-700 hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-6">
+                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-6">
                       <motion.div 
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
@@ -514,7 +514,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                     )}
                     
                     <button 
-                      className="w-full py-3.5 bg-gradient-to-r from-[#ff3b30] to-[#ff5e54] text-white rounded-lg font-medium hover:from-[#ff2a1f] hover:to-[#ff4a40] transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                      className="w-full py-3.5 bg-linear-to-r from-[#ff3b30] to-[#ff5e54] text-white rounded-lg font-medium hover:from-[#ff2a1f] hover:to-[#ff4a40] transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                       aria-label="Order this meal now"
                     >
                       <span>Order Now</span>
@@ -623,7 +623,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                           style={{ objectFit: "cover" }}
                           className="transition-transform duration-700 hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-4">
                           <div className="flex items-center mb-2">
                             <ChefHat size={16} className="text-white mr-2" />
@@ -726,14 +726,14 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                     ))}
                   </div>
                 ) : userId ? (
-                  <div className="col-span-1 md:col-span-3 p-8 bg-gradient-to-r from-[#ff3b30]/10 to-[#ff7b72]/10 rounded-xl border border-[#ff3b30]/20 shadow-sm">
+                  <div className="col-span-1 md:col-span-3 p-8 bg-linear-to-r from-[#ff3b30]/10 to-[#ff7b72]/10 rounded-xl border border-[#ff3b30]/20 shadow-sm">
                     <h4 className="text-xl font-semibold mb-3">No recommendations yet</h4>
                     <p className="text-slate-600 mb-6">
                       Start liking meals and following chefs to get personalized recommendations!
                     </p>
                   </div>
                 ) : (
-                  <div className="col-span-1 md:col-span-3 p-8 bg-gradient-to-r from-[#ff3b30]/10 to-[#ff7b72]/10 rounded-xl border border-[#ff3b30]/20 shadow-sm">
+                  <div className="col-span-1 md:col-span-3 p-8 bg-linear-to-r from-[#ff3b30]/10 to-[#ff7b72]/10 rounded-xl border border-[#ff3b30]/20 shadow-sm">
                     <h4 className="text-xl font-semibold mb-3">Looking for something specific?</h4>
                     <p className="text-slate-600 mb-6">
                       Sign in to get personalized meal recommendations based on your preferences and dietary needs.

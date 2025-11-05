@@ -28,14 +28,37 @@
  *           example: "Success"
  */
 
-import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
+
+// Type definitions for data structures
+interface ChefData {
+  _id: Id<'chefs'>;
+  name?: string;
+  bio?: string;
+  specialties?: string[];
+  rating?: number;
+  profileImage?: string | null;
+  [key: string]: unknown;
+}
+
+interface ReviewData {
+  rating?: number;
+  chef_id?: Id<'chefs'>;
+  [key: string]: unknown;
+}
+
+interface MealData {
+  _id?: Id<'meals'>;
+  chefId?: Id<'chefs'>;
+  [key: string]: unknown;
+}
 
 type Review = {
   rating: number;
@@ -87,25 +110,29 @@ async function handleGET(
   const convex = getConvexClient();
   
   try {
-    // Get chef details
-    const chef = await convex.query(api.queries.chefs.getChefById, { 
-      chefId: chef_id as Id<'chefs'> 
-    });
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
+    
+    // Get chef details, reviews, and meals using type-safe accessors
+    const apiQueries = getApiQueries();
+    type ChefByIdQuery = FunctionReference<"query", "public", { chefId: Id<'chefs'> }, ChefData | null>;
+    type ReviewsByChefQuery = FunctionReference<"query", "public", { chef_id: string }, ReviewData[]>;
+    type MealsQuery = FunctionReference<"query", "public", { userId?: string }, MealData[]>;
+    
+    const [chef, reviews, allMeals] = await Promise.all([
+      convex.query((apiQueries.chefs.getChefById as unknown as ChefByIdQuery), { 
+        chefId: chef_id as Id<'chefs'> 
+      }) as Promise<ChefData | null>,
+      convex.query((apiQueries.reviews.getByChef as unknown as ReviewsByChefQuery), { chef_id }) as Promise<ReviewData[]>,
+      convex.query((apiQueries.meals.getAll as unknown as MealsQuery), { userId }) as Promise<MealData[]>
+    ]);
     
     if (!chef) {
       return ResponseFactory.notFound('Chef not found');
     }
 
-    // Extract userId from request (optional for public endpoints)
-    const userId = extractUserIdFromRequest(request);
-
-    // Get reviews and meals in parallel (with user preferences)
-    const [reviews, meals] = await Promise.all([
-      convex.query(api.queries.reviews.getByChef, { chef_id }),
-      convex.query(api.queries.meals.getAll, { userId }).then(meals => 
-        meals.filter((meal: any) => meal.chefId === chef_id)
-      )
-    ]);
+    // Filter meals for this chef
+    const meals = allMeals.filter((meal: MealData) => meal.chefId === chef_id);
 
     // Calculate average rating with proper type annotations
     const reviewCount = reviews.length;

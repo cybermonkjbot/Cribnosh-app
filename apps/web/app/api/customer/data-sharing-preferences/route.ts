@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { withErrorHandling } from '@/lib/errors';
-import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -245,23 +245,37 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     const userId = payload.user_id as Id<'users'>;
 
     // Update data sharing preferences in database
-    await convex.mutation(api.mutations.dataSharingPreferences.updateByUserId, {
-      userId,
-      analytics_enabled,
-      personalization_enabled,
-      marketing_enabled,
-    });
+    try {
+      await convex.mutation(api.mutations.dataSharingPreferences.updateByUserId, {
+        userId,
+        analytics_enabled,
+        personalization_enabled,
+        marketing_enabled,
+      });
+    } catch (mutationError: unknown) {
+      console.error('Error in updateByUserId mutation:', mutationError);
+      const mutationErrorMessage = mutationError instanceof Error ? mutationError.message : 'Unknown mutation error';
+      throw new Error(`Failed to update data sharing preferences: ${mutationErrorMessage}`);
+    }
 
     // Get updated preferences
-    const updatedPreferences = await convex.query(api.queries.dataSharingPreferences.getByUserId, {
-      userId,
-    });
+    let updatedPreferences;
+    try {
+      updatedPreferences = await convex.query(api.queries.dataSharingPreferences.getByUserId, {
+        userId,
+      });
+    } catch (queryError: unknown) {
+      console.error('Error in getByUserId query:', queryError);
+      const queryErrorMessage = queryError instanceof Error ? queryError.message : 'Unknown query error';
+      throw new Error(`Failed to retrieve updated preferences: ${queryErrorMessage}`);
+    }
 
     return ResponseFactory.success(
       updatedPreferences,
       'Data sharing preferences updated successfully'
     );
   } catch (error: unknown) {
+    console.error('Error updating data sharing preferences:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to update data sharing preferences';
     return createSpecErrorResponse(
       errorMessage,

@@ -1,10 +1,43 @@
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { api } from '@/convex/_generated/api';
-import { NextRequest } from 'next/server';
+import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import type { FunctionReference } from 'convex/server';
+import { NextRequest, NextResponse } from 'next/server';
+
+// Type definitions for data structures
+interface ChefLocationData {
+  chefId: Id<'chefs'>;
+  userId: Id<'users'>;
+  city: string;
+  coordinates: number[];
+  bio: string;
+  specialties: string[];
+  rating: number;
+  status: string;
+  location?: {
+    city: string;
+    coordinates: number[];
+  };
+  _id?: Id<'chefs'>;
+  [key: string]: unknown;
+}
+
+interface UserData {
+  _id: Id<'users'>;
+  name?: string;
+  avatar?: string | null;
+  createdAt?: number | string | Date;
+  lastModified?: number | string | Date;
+  [key: string]: unknown;
+}
+
+interface ReviewData {
+  rating?: number;
+  chef_id?: Id<'chefs'>;
+  [key: string]: unknown;
+}
 
 // Endpoint: /v1/customer/chefs/popular
 // Group: customer
@@ -143,26 +176,61 @@ import { NextResponse } from 'next/server';
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   const convex = getConvexClient();
-  const chefs = await convex.query((api as any).queries.chefs.getAllChefLocations, {});
-  const users = await convex.query((api as any).queries.users.getAllUsers, {});
-  const reviews = await convex.query((api as any).queries.reviews.getAll, {});
+  const apiQueries = getApiQueries();
+  
+  type ChefsLocationsQuery = FunctionReference<"query", "public", Record<string, never>, ChefLocationData[]>;
+  type UsersQuery = FunctionReference<"query", "public", Record<string, never>, UserData[]>;
+  type ReviewsQuery = FunctionReference<"query", "public", Record<string, never>, ReviewData[]>;
+  
+  const [chefs, users, reviews] = await Promise.all([
+    convex.query((apiQueries.chefs.getAllChefLocations as unknown as ChefsLocationsQuery), {}) as Promise<ChefLocationData[]>,
+    convex.query((apiQueries.users.getAllUsers as unknown as UsersQuery), {}) as Promise<UserData[]>,
+    convex.query((apiQueries.reviews.getAll as unknown as ReviewsQuery), {}) as Promise<ReviewData[]>
+  ]);
+  
   // Aggregate review counts and avg ratings per chef
-  const chefStats = chefs.map((chef: any) => {
-    const chefUser = users.find((u: any) => u._id === chef.userId);
-    const chefReviews = reviews.filter((r: any) => r.chef_id === chef._id);
+  const chefStats = chefs.map((chef: ChefLocationData) => {
+    const chefUser = users.find((u: UserData) => u._id === chef.userId);
+    const chefReviews = reviews.filter((r: ReviewData) => r.chef_id === chef.chefId);
     const total_reviews = chefReviews.length;
-    const avg_rating = total_reviews > 0 ? chefReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / total_reviews : 0;
-    const [first_name, ...rest] = (chefUser?.name || '').split(' ');
+    const avg_rating = total_reviews > 0 ? chefReviews.reduce((sum: number, r: ReviewData) => sum + (r.rating || 0), 0) / total_reviews : 0;
+    const userName = chefUser?.name || '';
+    const nameParts = typeof userName === 'string' ? userName.split(' ') : [];
+    const [first_name, ...rest] = nameParts;
     const last_name = rest.join(' ');
+    
+    // Use location object if available, otherwise use direct properties
+    const location = chef.location || { city: chef.city, coordinates: chef.coordinates };
+    const coordinates = location.coordinates || chef.coordinates || [];
+    
+    // Handle date conversion safely
+    const createdAtValue = chefUser?.createdAt;
+    const created_at = createdAtValue 
+      ? (typeof createdAtValue === 'number' || typeof createdAtValue === 'string' 
+          ? new Date(createdAtValue).toISOString() 
+          : createdAtValue instanceof Date 
+            ? createdAtValue.toISOString()
+            : new Date().toISOString())
+      : new Date().toISOString();
+    
+    const lastModifiedValue = chefUser?.lastModified;
+    const updated_at = lastModifiedValue
+      ? (typeof lastModifiedValue === 'number' || typeof lastModifiedValue === 'string'
+          ? new Date(lastModifiedValue).toISOString()
+          : lastModifiedValue instanceof Date
+            ? lastModifiedValue.toISOString()
+            : new Date().toISOString())
+      : new Date().toISOString();
+    
     return {
       first_name: first_name || '',
       last_name: last_name || '',
       profile_image: chefUser?.avatar || null,
-      latitude: chef.location?.coordinates?.[0] ?? null,
-      longitude: chef.location?.coordinates?.[1] ?? null,
-      address: chef.location?.city ?? null,
+      latitude: coordinates[0] ?? null,
+      longitude: coordinates[1] ?? null,
+      address: location.city ?? chef.city ?? null,
       experience: chef.specialties?.join(', ') ?? null,
-      profile_id: chef._id,
+      profile_id: chef._id || chef.chefId,
       user_id: chef.userId,
       is_approved: chef.status === 'active',
       approval_date: null,
@@ -171,8 +239,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       total_reviews,
       total_orders: 0,
       is_available: chef.status === 'active',
-      created_at: new Date(chefUser?.createdAt || Date.now()).toISOString(),
-      updated_at: new Date(chefUser?.lastModified || Date.now()).toISOString(),
+      created_at,
+      updated_at,
       distance: null,
       relevance_score: null,
       matched_cuisines: null,

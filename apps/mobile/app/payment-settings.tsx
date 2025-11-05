@@ -1,8 +1,17 @@
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
+import { useToast } from '../lib/ToastContext';
+import {
+  useGetPaymentMethodsQuery,
+  useGetCribnoshBalanceQuery,
+  useGetBalanceTransactionsQuery,
+  useAddPaymentMethodMutation,
+  useSetDefaultPaymentMethodMutation,
+  useSetupFamilyProfileMutation,
+} from '@/store/customerApi';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -122,8 +131,8 @@ export default function PaymentSettingsScreen() {
   };
 
   const handleFamilyProfile = () => {
-    // Navigate to family account setup screen
-    router.push('/shared-ordering/setup');
+    // Navigate to family profile management screen
+    router.push('/family-profile/manage');
   };
 
   const handleBalanceInfo = () => {
@@ -152,14 +161,7 @@ export default function PaymentSettingsScreen() {
   };
 
   return (
-    <>
-      <Stack.Screen 
-        options={{ 
-          headerShown: false,
-          title: 'Payment'
-        }} 
-      />
-      <SafeAreaView style={styles.mainContainer}>
+    <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
         
         {/* Header with back button */}
@@ -333,7 +335,6 @@ export default function PaymentSettingsScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </>
   );
 }
 

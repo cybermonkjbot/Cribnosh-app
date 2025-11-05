@@ -1,13 +1,13 @@
 import { useAppContext } from '@/utils/AppContext';
+import { BlurEffect } from '@/utils/blurEffects';
 import { getCompleteDynamicHeader } from '@/utils/dynamicHeaderMessages';
+import { shadowPresets } from '@/utils/platformStyles';
+import { useTopPosition } from '@/utils/positioning';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { BlurEffect } from '@/utils/blurEffects';
-import { shadowPresets } from '@/utils/platformStyles';
-import { useTopPosition } from '@/utils/positioning';
 import Animated, {
   Easing,
   useAnimatedReaction,
@@ -32,7 +32,7 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
   // Animation values
   const logoScale = useSharedValue(isSticky ? 0.95 : 1);
   const greetingOpacity = useSharedValue(isSticky ? 0 : 1);
-  const buttonsScale = useSharedValue(isSticky ? 0.85 : 1);
+  const buttonsScale = useSharedValue(isSticky ? 0.95 : 1);
   const avatarScale = useSharedValue(isSticky ? 0.73 : 1);
 
   // Update dynamic message periodically
@@ -62,7 +62,7 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
         // Animate to sticky state - concurrent updates
         logoScale.value = withTiming(0.95, { duration, easing });
         greetingOpacity.value = withTiming(0, { duration, easing });
-        buttonsScale.value = withTiming(0.85, { duration, easing });
+        buttonsScale.value = withTiming(0.95, { duration, easing });
         avatarScale.value = withTiming(0.73, { duration, easing });
       } else {
         // Animate to normal state - concurrent updates
@@ -117,8 +117,9 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
           borderBottomColor: 'rgba(255, 255, 255, 0.2)',
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
           paddingTop: topPosition + 8,
-          paddingBottom: 12,
+          paddingBottom: 25,
           paddingHorizontal: 16,
+          minHeight: 70,
           ...shadowPresets.lg(),
         }}
       >
@@ -150,6 +151,7 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
                 { 
                   flexDirection: 'row', 
                   gap: 8,
+                  alignItems: 'center',
                 },
                 buttonsAnimatedStyle
               ]}
@@ -157,20 +159,21 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
               <TouchableOpacity
                 onPress={() => handleHeaderTabChange('for-you')}
                 style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 6,
-                  borderRadius: 16,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 18,
                   backgroundColor: activeHeaderTab === 'for-you' ? '#111827' : 'rgba(255, 255, 255, 0.8)',
                   borderWidth: activeHeaderTab === 'for-you' ? 0 : 1,
                   borderColor: 'rgba(229, 231, 235, 0.5)',
-                  minWidth: 60,
+                  minWidth: 70,
+                  minHeight: 32,
                   justifyContent: 'center',
                   alignItems: 'center',
                 }}
               >
                 <Text style={{
-                  fontSize: 13,
-                  fontWeight: '500',
+                  fontSize: 14,
+                  fontWeight: '600',
                   color: activeHeaderTab === 'for-you' ? '#fff' : '#374151',
                   textAlign: 'center',
                 }}>
@@ -181,20 +184,21 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
               <TouchableOpacity
                 onPress={() => handleHeaderTabChange('live')}
                 style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 6,
-                  borderRadius: 16,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 18,
                   backgroundColor: activeHeaderTab === 'live' ? '#111827' : 'rgba(255, 255, 255, 0.8)',
                   borderWidth: activeHeaderTab === 'live' ? 0 : 1,
                   borderColor: 'rgba(229, 231, 235, 0.5)',
-                  minWidth: 50,
+                  minWidth: 60,
+                  minHeight: 32,
                   justifyContent: 'center',
                   alignItems: 'center',
                 }}
               >
                 <Text style={{
-                  fontSize: 13,
-                  fontWeight: '500',
+                  fontSize: 14,
+                  fontWeight: '600',
                   color: activeHeaderTab === 'live' ? '#fff' : '#374151',
                   textAlign: 'center',
                 }}>

@@ -2,6 +2,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { useGetCustomOrdersQuery } from "@/store/customerApi";
+import { CustomOrder } from "@/types/customer";
 import { useRouter } from "expo-router";
 import {
   AlertCircle,
@@ -20,8 +22,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { useGetCustomOrdersQuery } from "@/store/customerApi";
-import { CustomOrder } from "@/types/customer";
 
 export default function CustomOrderManagementScreen() {
   const router = useRouter();
@@ -96,6 +96,7 @@ export default function CustomOrderManagementScreen() {
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
+      "worklet";
       scrollY.value = event.contentOffset.y;
     },
   });

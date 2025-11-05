@@ -23,7 +23,7 @@ async function logEmotionsEngineInteraction({ userId, context, provider, query, 
   try {
     const { getConvexClient } = await import('@/lib/conxed-client');
     const convex = getConvexClient();
-    await convex.mutation(api.mutations.emotionsEngine.logEmotionsEngineInteraction, {
+    await convex.mutation((api as any).mutations.emotionsEngine.logEmotionsEngineInteraction, {
       userId,
       context,
       provider,
@@ -57,7 +57,7 @@ async function lookupDishes(
     
     // Get all available meals to search through, with user preference filtering if userId provided
     const allMeals = await convex.query(
-      api.queries.meals.getAll,
+      (api as any).queries.meals.getAll,
       userId ? { userId: userId as any } : {}
     );
     

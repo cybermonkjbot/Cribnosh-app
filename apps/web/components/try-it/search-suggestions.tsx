@@ -24,7 +24,7 @@ export function SearchSuggestions({ query, onSelectSuggestion }: SearchSuggestio
   // Real data fetching for search suggestions with user preferences
   const { data: suggestions = [], isLoading } = useQuery({
     queryKey: ['search-suggestions', query, userId],
-    queryFn: () => convex.query(api.queries.meals.getSearchSuggestions, { query, userId }),
+    queryFn: () => convex.query((api as any).queries.meals.getSearchSuggestions, { query, userId }),
     enabled: !!query && query.length >= 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

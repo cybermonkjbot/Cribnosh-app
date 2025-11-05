@@ -1,6 +1,6 @@
 import { Id } from '../_generated/dataModel';
 import { MutationCtx, QueryCtx } from '../_generated/server';
-import { filterAndRankMealsByPreferences, getUserPreferences } from './userPreferencesFilter';
+import { filterAndRankMealsByPreferences, getUserPreferences, type UserPreferences } from './userPreferencesFilter';
 
 // Common database context type
 type DatabaseCtx = QueryCtx | MutationCtx;
@@ -8,37 +8,59 @@ type DatabaseCtx = QueryCtx | MutationCtx;
 /**
  * Get personalized meals for a user
  */
+interface MealDoc {
+  _id: Id<'meals'>;
+  chefId: Id<'chefs'>;
+  rating?: number;
+  [key: string]: unknown;
+}
+
+interface ChefDoc {
+  _id: Id<'chefs'>;
+  name?: string;
+  bio?: string;
+  specialties?: string[];
+  rating?: number;
+  profileImage?: string | null;
+  [key: string]: unknown;
+}
+
+interface ReviewDoc {
+  rating?: number;
+  [key: string]: unknown;
+}
+
 export async function getPersonalizedMeals(
   ctx: DatabaseCtx,
   userId: Id<'users'>,
   limit: number = 20
-): Promise<any[]> {
+): Promise<unknown[]> {
   const preferences = await getUserPreferences(ctx, userId);
   
   // Get all available meals
   const allMeals = await ctx.db
     .query('meals')
-    .filter(q => q.eq(q.field('status'), 'available'))
+    .filter((q) => q.eq(q.field('status'), 'available'))
     .collect();
 
   // Get chef information and reviews for each meal
   const mealsWithChefData = await Promise.all(
-    allMeals.map(async (meal) => {
+    allMeals.map(async (meal: MealDoc) => {
       const chef = await ctx.db.get(meal.chefId);
       const reviews = await ctx.db
         .query('reviews')
-        .filter((q: any) => q.eq(q.field('mealId'), meal._id))
+        .filter((q) => q.eq(q.field('mealId'), meal._id))
         .collect();
 
       return {
         ...meal,
         chef: chef ? {
-          _id: chef._id,
-          name: chef.name || `Chef ${chef._id}`,
-          bio: chef.bio,
-          specialties: chef.specialties || [],
-          rating: chef.rating || 0,
-          profileImage: chef.profileImage
+          _id: (chef as ChefDoc)._id,
+          name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
+          bio: (chef as ChefDoc).bio,
+          specialties: (chef as ChefDoc).specialties || [],
+          rating: (chef as ChefDoc).rating || 0,
+          profileImage: (chef as ChefDoc).profileImage
         } : {
           _id: meal.chefId,
           name: `Chef ${meal.chefId}`,
@@ -49,7 +71,7 @@ export async function getPersonalizedMeals(
         },
         reviewCount: reviews.length,
         averageRating: reviews.length > 0 
-          ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length
+          ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
           : meal.rating || 0
       };
     })
@@ -59,10 +81,10 @@ export async function getPersonalizedMeals(
   const scoredMeals = filterAndRankMealsByPreferences(
     mealsWithChefData,
     preferences,
-    (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+    (meal: MealDoc & { averageRating?: number; reviewCount?: number }) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
   );
 
-  return scoredMeals.slice(0, limit).map(s => s.meal);
+  return scoredMeals.slice(0, limit).map((s: { meal: unknown }) => s.meal);
 }
 
 /**
@@ -72,16 +94,16 @@ export async function getRecommendedMeals(
   ctx: DatabaseCtx,
   userId: Id<'users'>,
   limit: number = 10
-): Promise<any[]> {
+): Promise<unknown[]> {
   const preferences = await getUserPreferences(ctx, userId);
   
   // Get meals from followed chefs first
   const followedChefMeals = await Promise.all(
-    Array.from(preferences.followedChefIds).map(async (chefId) => {
+    Array.from(preferences.followedChefIds).map(async (chefId: string) => {
       const meals = await ctx.db
         .query('meals')
-        .filter(q => q.eq(q.field('chefId'), chefId as any))
-        .filter(q => q.eq(q.field('status'), 'available'))
+        .filter((q) => q.eq(q.field('chefId'), chefId as Id<'chefs'>))
+        .filter((q) => q.eq(q.field('status'), 'available'))
         .collect();
       return meals;
     })
@@ -89,44 +111,44 @@ export async function getRecommendedMeals(
 
   // Get liked meals
   const likedMeals = await Promise.all(
-    Array.from(preferences.likedMealIds).map(async (mealId) => {
-      return await ctx.db.get(mealId as any);
+    Array.from(preferences.likedMealIds).map(async (mealId: string) => {
+      return await ctx.db.get(mealId as Id<'meals'>);
     })
   );
 
   // Combine and filter
   const allMeals = [
     ...followedChefMeals.flat(),
-    ...likedMeals.filter(m => m && m.status === 'available')
+    ...likedMeals.filter((m: MealDoc | null) => m && (m as { status?: string }).status === 'available')
   ];
 
   // Remove duplicates
   const uniqueMeals = Array.from(
-    new Map(allMeals.map(meal => [meal._id, meal])).values()
+    new Map(allMeals.map((meal: MealDoc) => [meal._id, meal])).values()
   );
 
   // Get chef and review data
   const mealsWithChefData = await Promise.all(
-    uniqueMeals.map(async (meal) => {
+    uniqueMeals.map(async (meal: MealDoc) => {
       const chef = await ctx.db.get(meal.chefId);
       const reviews = await ctx.db
         .query('reviews')
-        .filter((q: any) => q.eq(q.field('mealId'), meal._id))
+        .filter((q) => q.eq(q.field('mealId'), meal._id))
         .collect();
 
       return {
         ...meal,
         chef: chef ? {
-          _id: chef._id,
-          name: chef.name || `Chef ${chef._id}`,
-          bio: chef.bio,
-          specialties: chef.specialties || [],
-          rating: chef.rating || 0,
-          profileImage: chef.profileImage
+          _id: (chef as ChefDoc)._id,
+          name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
+          bio: (chef as ChefDoc).bio,
+          specialties: (chef as ChefDoc).specialties || [],
+          rating: (chef as ChefDoc).rating || 0,
+          profileImage: (chef as ChefDoc).profileImage
         } : null,
         reviewCount: reviews.length,
         averageRating: reviews.length > 0 
-          ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length
+          ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
           : meal.rating || 0
       };
     })
@@ -136,12 +158,12 @@ export async function getRecommendedMeals(
   const scoredMeals = filterAndRankMealsByPreferences(
     mealsWithChefData,
     preferences,
-    (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0) + 
-      (preferences.followedChefIds.has(meal.chefId as string) ? 50 : 0) +
-      (preferences.likedMealIds.has(meal._id as string) ? 60 : 0)
+    (meal: MealDoc & { averageRating?: number; reviewCount?: number; chefId?: string | Id<'chefs'>; _id?: string | Id<'meals'> }) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0) + 
+      (preferences.followedChefIds.has((meal.chefId || (meal as { chefId?: string | Id<'chefs'> }).chefId) as string) ? 50 : 0) +
+      (preferences.likedMealIds.has((meal._id || (meal as { _id?: string | Id<'meals'> })._id) as string) ? 60 : 0)
   );
 
-  return scoredMeals.slice(0, limit).map(s => s.meal);
+  return scoredMeals.slice(0, limit).map((s: { meal: unknown }) => s.meal);
 }
 
 /**
@@ -152,14 +174,14 @@ export async function getSimilarMeals(
   mealId: Id<'meals'>,
   userId: Id<'users'> | null,
   limit: number = 5
-): Promise<any[]> {
+): Promise<unknown[]> {
   const baseMeal = await ctx.db.get(mealId);
   if (!baseMeal) {
     return [];
   }
 
   // Get user preferences if userId provided
-  let preferences = null;
+  let preferences: UserPreferences | null = null;
   if (userId) {
     preferences = await getUserPreferences(ctx, userId);
   }
@@ -167,63 +189,65 @@ export async function getSimilarMeals(
   // Find similar meals (same cuisine, similar dietary tags)
   const allMeals = await ctx.db
     .query('meals')
-    .filter(q => q.eq(q.field('status'), 'available'))
+    .filter((q) => q.eq(q.field('status'), 'available'))
     .collect();
 
   const similarMeals = allMeals
-    .filter(meal => meal._id !== mealId)
-    .map(meal => {
+    .filter((meal: MealDoc) => meal._id !== mealId)
+    .map((meal: MealDoc) => {
       let similarityScore = 0;
+      const baseMealAny = baseMeal as { cuisine?: string[]; dietary?: string[]; [key: string]: unknown };
+      const mealAny = meal as { cuisine?: string[]; dietary?: string[]; [key: string]: unknown };
 
       // Cuisine similarity
-      if (baseMeal.cuisine && meal.cuisine) {
-        const baseCuisines = baseMeal.cuisine.map((c: string) => c.toLowerCase());
-        const mealCuisines = meal.cuisine.map((c: string) => c.toLowerCase());
-        const commonCuisines = baseCuisines.filter(c => mealCuisines.includes(c));
+      if (baseMealAny.cuisine && mealAny.cuisine && Array.isArray(baseMealAny.cuisine) && Array.isArray(mealAny.cuisine)) {
+        const baseCuisines = baseMealAny.cuisine.map((c: string) => c.toLowerCase());
+        const mealCuisines = mealAny.cuisine.map((c: string) => c.toLowerCase());
+        const commonCuisines = baseCuisines.filter((c: string) => mealCuisines.includes(c));
         similarityScore += commonCuisines.length * 10;
       }
 
       // Dietary tags similarity
-      if (baseMeal.dietary && meal.dietary) {
-        const baseDietary = baseMeal.dietary.map((d: string) => d.toLowerCase());
-        const mealDietary = meal.dietary.map((d: string) => d.toLowerCase());
-        const commonDietary = baseDietary.filter(d => mealDietary.includes(d));
+      if (baseMealAny.dietary && mealAny.dietary && Array.isArray(baseMealAny.dietary) && Array.isArray(mealAny.dietary)) {
+        const baseDietary = baseMealAny.dietary.map((d: string) => d.toLowerCase());
+        const mealDietary = mealAny.dietary.map((d: string) => d.toLowerCase());
+        const commonDietary = baseDietary.filter((d: string) => mealDietary.includes(d));
         similarityScore += commonDietary.length * 5;
       }
 
       return { meal, similarityScore };
     })
-    .filter(item => item.similarityScore > 0)
-    .sort((a, b) => b.similarityScore - a.similarityScore);
+    .filter((item: { meal: MealDoc; similarityScore: number }) => item.similarityScore > 0)
+    .sort((a: { meal: MealDoc; similarityScore: number }, b: { meal: MealDoc; similarityScore: number }) => b.similarityScore - a.similarityScore);
 
   // Apply user preference filtering if userId provided
   if (preferences) {
     const scoredMeals = filterAndRankMealsByPreferences(
-      similarMeals.map(item => item.meal),
+      similarMeals.map((item: { meal: MealDoc; similarityScore: number }) => item.meal),
       preferences,
-      (meal) => {
-        const item = similarMeals.find(sm => sm.meal._id === meal._id);
+      (meal: MealDoc) => {
+        const item = similarMeals.find((sm: { meal: MealDoc; similarityScore: number }) => sm.meal._id === meal._id);
         return (item?.similarityScore || 0) * 10;
       }
     );
-    return scoredMeals.slice(0, limit).map(s => s.meal);
+    return scoredMeals.slice(0, limit).map((s: { meal: unknown }) => s.meal);
   }
 
-  return similarMeals.slice(0, limit).map(item => item.meal);
+  return similarMeals.slice(0, limit).map((item: { meal: MealDoc; similarityScore: number }) => item.meal);
 }
 
 /**
  * Rank meals by relevance using preference scores
  */
-export function rankMealsByRelevance(
-  meals: any[],
-  preferences: any
-): Array<{ meal: any; score: number; reasons: string[] }> {
+export function rankMealsByRelevance<T extends { rating?: number; reviewCount?: number; [key: string]: unknown }>(
+  meals: T[],
+  preferences: UserPreferences
+): Array<{ meal: T; score: number; reasons: string[] }> {
   const { filterAndRankMealsByPreferences } = require('./userPreferencesFilter');
   return filterAndRankMealsByPreferences(
     meals,
     preferences,
-    (meal) => (meal.rating || 0) * 10 + (meal.reviewCount || 0)
+    (meal: T) => ((meal as { rating?: number }).rating || 0) * 10 + ((meal as { reviewCount?: number }).reviewCount || 0)
   );
 }
 

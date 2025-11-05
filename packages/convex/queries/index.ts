@@ -70,6 +70,9 @@ export * from './groupOrders';
 // Export special offers queries
 export * from './specialOffers';
 
+// Export admin queries
+export * from './admin';
+
 // Export users queries (explicit exports to avoid conflicts)
 export {
   countUnreadNotifications, getAll, getAllDocuments, getAllStaff, getAllUsers, getById, getCurrentUser, getDietaryPreferences,

@@ -47,7 +47,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
   // Real data fetching for previous meals with user preferences
   const { data: previousMeals = [], isLoading, error } = useQuery({
     queryKey: ['previous-meals', userId],
-    queryFn: () => convex.query(api.queries.meals.getAll, { userId }),
+    queryFn: () => convex.query((api as any).queries.meals.getAll, { userId }),
     enabled: isAuthenticated,
   });
 
@@ -192,7 +192,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
                       whileHover={isDesktop ? { y: -5, transition: { duration: 0.2 } } : {}}
                     >
                       <div className="flex">
-                        <div className="relative h-20 md:h-24 w-20 md:w-24 flex-shrink-0">
+                        <div className="relative h-20 md:h-24 w-20 md:w-24 shrink-0">
                           <Image
                             src={meal.image}
                             alt={meal.title}
@@ -202,7 +202,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
                             loading="lazy"
                           />
                         </div>
-                        <div className="p-2 md:p-3 flex-grow">
+                        <div className="p-2 md:p-3 grow">
                           <div className="flex justify-between items-start">
                             <div>
                               <h4 className="font-medium text-sm md:text-base mb-0.5 md:mb-1">{meal.title}</h4>

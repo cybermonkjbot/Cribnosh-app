@@ -28,6 +28,10 @@ interface OnTheStoveBottomSheetProps {
   onTreatSomeone?: () => void;
   onExpandedChange?: (isExpanded: boolean) => void;
   onSnapPointChange?: (snapPoint: number) => void;
+  onAddToCart?: () => void;
+  onQuantityChange?: (quantity: number) => void;
+  mealId?: string;
+  isOrdered?: boolean;
   mealData?: {
     title: string;
     price: string;
@@ -48,6 +52,10 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
   onTreatSomeone,
   onExpandedChange,
   onSnapPointChange,
+  onAddToCart,
+  onQuantityChange,
+  mealId,
+  isOrdered = false,
   mealData = {
     title: 'Nigerian Jollof',
     price: '£ 16',
@@ -99,8 +107,13 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
   }, [onToggleVisibility]);
 
   const handleQuantityChange = useCallback((value: number) => {
-    // Handle quantity change if needed
-  }, []);
+    onQuantityChange?.(value);
+  }, [onQuantityChange]);
+  
+  const handleOrder = useCallback(() => {
+    // Trigger add to cart when Order button is clicked
+    onAddToCart?.();
+  }, [onAddToCart]);
 
   const handleToggleExpanded = useCallback(() => {
     setIsExpanded(prev => !prev);
@@ -193,11 +206,24 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
               price={mealData.price}
               imageSource={mealData.imageSource}
               onChange={handleQuantityChange}
+              onOrder={onAddToCart ? handleOrder : undefined}
+              isOrdered={isOrdered}
             />
           </View>
 
           {/* Action Buttons */}
           <View style={styles.buttonsContainer}>
+            {/* Add to Cart Button */}
+            {onAddToCart && (
+              <CustomLiveButton
+                text="Add to Cart"
+                backgroundColor="#FF3B30"
+                textColor="#FFFFFF"
+                style={{ flex: 1, marginBottom: 12 }}
+                onPress={onAddToCart}
+              />
+            )}
+
             {/* Share Live Button */}
             <CustomLiveButton
               text="Share live"

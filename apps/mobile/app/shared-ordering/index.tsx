@@ -1,5 +1,9 @@
+import { RegionAvailabilityModal } from "@/components/ui/RegionAvailabilityModal";
+import { useRegionAvailability } from "@/hooks/useRegionAvailability";
+import { useUserLocation } from "@/hooks/useUserLocation";
 import {
   useCreateCustomOrderMutation,
+  useGetCustomerProfileQuery,
   useUpdateCustomOrderMutation,
 } from "@/store/customerApi";
 import { setRouteContext } from "@/utils/authErrorHandler";
@@ -36,6 +40,12 @@ export default function SharedOrderingIndex() {
   const [selectedAmount, setSelectedAmount] = useState<string | null>("20"); // Default to £20
   const [selectedDiet, setSelectedDiet] = useState<string>("none"); // Default to "No restrictions"
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [showRegionModal, setShowRegionModal] = useState(false);
+
+  // Regional availability check
+  const { checkAddress } = useRegionAvailability();
+  const { location: userLocation } = useUserLocation();
+  const { data: profileData } = useGetCustomerProfileQuery();
 
   // Restore form state from params if returning from sign-in
   useEffect(() => {
@@ -109,6 +119,29 @@ export default function SharedOrderingIndex() {
     try {
       setIsCreatingOrder(true);
 
+      // Check regional availability before creating order
+      // Use saved address from profile, or check current location city
+      let isRegionSupported = false;
+      
+      if (profileData?.data?.address) {
+        // Check saved address
+        isRegionSupported = checkAddress(profileData.data.address);
+      } else if (userLocation) {
+        // If we have coordinates but no saved address, we can't check region
+        // For now, we'll allow it and let the server-side check handle it
+        // In the future, we could use reverse geocoding to get the city
+        isRegionSupported = true; // Allow and let server-side check handle it
+      } else {
+        // No location info available - allow and let server-side check handle it
+        isRegionSupported = true;
+      }
+
+      if (!isRegionSupported) {
+        setShowRegionModal(true);
+        setIsCreatingOrder(false);
+        return;
+      }
+
       // Set route context for 401 error handling - preserves form state
       setRouteContext("/shared-ordering", {
         amount,
@@ -168,133 +201,141 @@ export default function SharedOrderingIndex() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Background image */}
-      <View style={styles.imageContainer}>
-        <Image
-          source={require("../../assets/images/on-your-account-image-01.png")}
-          style={styles.takeoutImage}
-          resizeMode="contain"
-        />
-      </View>
+    <View style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Background image */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={require("../../assets/images/on-your-account-image-01.png")}
+            style={styles.takeoutImage}
+            resizeMode="contain"
+          />
+        </View>
 
-      {/* Header with back and continue */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleContinue}
-          style={[
-            styles.continueButton,
-            (!isValidAmount() || isCreatingOrder) &&
-              styles.continueButtonDisabled,
-          ]}
-          disabled={!isValidAmount() || isCreatingOrder}
-        >
-          <Text
+        {/* Header with back and continue */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <ChevronLeft size={24} color="#fff" />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleContinue}
             style={[
-              styles.continueText,
+              styles.continueButton,
               (!isValidAmount() || isCreatingOrder) &&
-                styles.continueTextDisabled,
+                styles.continueButtonDisabled,
             ]}
+            disabled={!isValidAmount() || isCreatingOrder}
           >
-            {isCreatingOrder ? "Creating..." : "Continue"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Floating Content */}
-        <View style={styles.floatingContent}>
-          {/* Title */}
-          <Text style={styles.title}>
-            Let friends{"\n"}and family order on{"\n"}your account
-          </Text>
-
-          {/* Budget Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Choose Budget</Text>
-
-            {/* Amount Input */}
-            <View style={[styles.inputContainer, styles.inputContainerLeft]}>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="Enter amount"
-                placeholderTextColor="#999"
-                value={amount}
-                onChangeText={(text) => {
-                  setAmount(text);
-                  setSelectedAmount(null); // Clear preset selection when typing
-                }}
-                keyboardType="numeric"
-                editable={selectedAmount !== "Unlimited"}
-                onBlur={() => Keyboard.dismiss()}
-              />
-              <Text style={styles.currencySymbol}>£</Text>
-            </View>
-
-            {/* Preset Amount Buttons */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.presetContainer}
-              style={styles.presetScrollView}
+            <Text
+              style={[
+                styles.continueText,
+                (!isValidAmount() || isCreatingOrder) &&
+                  styles.continueTextDisabled,
+              ]}
             >
-              {presetAmounts.map((preset) => (
-                <TouchableOpacity
-                  key={preset}
-                  style={[
-                    styles.presetButton,
-                    selectedAmount === preset && styles.presetButtonSelected,
-                  ]}
-                  onPress={() => handleAmountSelect(preset)}
-                >
-                  <Text
-                    style={[
-                      styles.presetButtonText,
-                      selectedAmount === preset &&
-                        styles.presetButtonTextSelected,
-                    ]}
-                  >
-                    {preset}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+              {isCreatingOrder ? "Creating..." : "Continue"}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-          {/* Meal Options Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Meal Options</Text>
-            <Text style={styles.sectionDescription}>
-              You can limit this to a diet or let them choose, remember
-              it&apos;s one time only
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Floating Content */}
+          <View style={styles.floatingContent}>
+            {/* Title */}
+            <Text style={styles.title}>
+              Let friends{"\n"}and family order on{"\n"}your account
             </Text>
 
-            {/* Select Diet Dropdown */}
-            <View style={styles.dropdownContainer}>
-              <Dropdown
-                options={dietOptions}
-                selectedValue={selectedDiet}
-                onSelect={handleDietSelect}
-                placeholder="Select Diet"
-                buttonStyle={styles.selectDietButton}
-                dropdownStyle={styles.dropdownStyle}
-                optionStyle={styles.optionStyle}
-                textStyle={styles.selectDietText}
-                maxHeight={300}
-      />
+            {/* Budget Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Choose Budget</Text>
+
+              {/* Amount Input */}
+              <View style={[styles.inputContainer, styles.inputContainerLeft]}>
+                <TextInput
+                  style={styles.amountInput}
+                  placeholder="Enter amount"
+                  placeholderTextColor="#999"
+                  value={amount}
+                  onChangeText={(text) => {
+                    setAmount(text);
+                    setSelectedAmount(null); // Clear preset selection when typing
+                  }}
+                  keyboardType="numeric"
+                  editable={selectedAmount !== "Unlimited"}
+                  onBlur={() => Keyboard.dismiss()}
+                />
+                <Text style={styles.currencySymbol}>£</Text>
+              </View>
+
+              {/* Preset Amount Buttons */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.presetContainer}
+                style={styles.presetScrollView}
+              >
+                {presetAmounts.map((preset) => (
+                  <TouchableOpacity
+                    key={preset}
+                    style={[
+                      styles.presetButton,
+                      selectedAmount === preset && styles.presetButtonSelected,
+                    ]}
+                    onPress={() => handleAmountSelect(preset)}
+                  >
+                    <Text
+                      style={[
+                        styles.presetButtonText,
+                        selectedAmount === preset &&
+                          styles.presetButtonTextSelected,
+                      ]}
+                    >
+                      {preset}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Meal Options Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Meal Options</Text>
+              <Text style={styles.sectionDescription}>
+                You can limit this to a diet or let them choose, remember
+                it&apos;s one time only
+              </Text>
+
+              {/* Select Diet Dropdown */}
+              <View style={styles.dropdownContainer}>
+                <Dropdown
+                  options={dietOptions}
+                  selectedValue={selectedDiet}
+                  onSelect={handleDietSelect}
+                  placeholder="Select Diet"
+                  buttonStyle={styles.selectDietButton}
+                  dropdownStyle={styles.dropdownStyle}
+                  optionStyle={styles.optionStyle}
+                  textStyle={styles.selectDietText}
+                  maxHeight={300}
+                />
+              </View>
             </View>
           </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+
+      {/* Region Availability Modal */}
+      <RegionAvailabilityModal
+        isVisible={showRegionModal}
+        onClose={() => setShowRegionModal(false)}
+      />
+    </View>
   );
 }
 

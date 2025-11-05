@@ -43,7 +43,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
     
     // Get personalized recommendations
-    const recommendations = await convex.query(api.queries.mealRecommendations.getRecommended, {
+    const recommendations = await convex.query((api as any).queries.mealRecommendations.getRecommended, {
       userId,
       limit,
     });

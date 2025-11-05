@@ -12,6 +12,8 @@ import {
     View
 } from "react-native";
 import { Mascot } from "@/components/Mascot";
+import { useRegionAvailability } from "@/hooks/useRegionAvailability";
+import { RegionAvailabilityModal } from "./RegionAvailabilityModal";
 
 interface PaymentScreenProps {
   orderTotal?: number;
@@ -35,6 +37,7 @@ export default function PaymentScreen({
 }: PaymentScreenProps) {
   const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showRegionModal, setShowRegionModal] = useState(false);
 
   // Get cart data for real totals
   const { data: cartData, isLoading: cartLoading } = useGetCartQuery(undefined, {
@@ -43,6 +46,9 @@ export default function PaymentScreen({
 
   const [createCheckout, { isLoading: checkoutLoading }] = useCreateCheckoutMutation();
   const [createOrderFromCart, { isLoading: orderCreating }] = useCreateOrderFromCartMutation();
+
+  // Regional availability check
+  const { checkAddress } = useRegionAvailability();
 
   // Calculate totals from cart or use provided values
   const calculatedSubtotal = cartData?.data?.cart?.items?.reduce(
@@ -60,6 +66,24 @@ export default function PaymentScreen({
       try {
         setPaymentStatus('processing');
         setErrorMessage(null);
+
+        // Check regional availability before processing payment
+        if (deliveryAddress) {
+          const isSupported = checkAddress({
+            street: deliveryAddress.street,
+            city: deliveryAddress.city,
+            state: '', // Not required for check
+            postal_code: deliveryAddress.postcode,
+            country: deliveryAddress.country,
+          });
+
+          if (!isSupported) {
+            setShowRegionModal(true);
+            setPaymentStatus('error');
+            setErrorMessage('Region not supported');
+            return;
+          }
+        }
 
         // Step 1: Create payment intent from cart
         const checkoutResult = await createCheckout({}).unwrap();
@@ -188,6 +212,12 @@ export default function PaymentScreen({
           )}
         </View>
       </View>
+
+      {/* Region Availability Modal */}
+      <RegionAvailabilityModal
+        isVisible={showRegionModal}
+        onClose={() => setShowRegionModal(false)}
+      />
     </SafeAreaView>
   );
 }

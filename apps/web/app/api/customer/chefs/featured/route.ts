@@ -1,10 +1,31 @@
-import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
+
+// Type definitions for data structures
+interface ChefData {
+  _id: Id<'chefs'>;
+  specialties?: string[];
+  rating?: number;
+  [key: string]: unknown;
+}
+
+interface ReviewData {
+  rating?: number;
+  chefId?: Id<'chefs'>;
+  [key: string]: unknown;
+}
+
+interface MealData {
+  chefId?: Id<'chefs'>;
+  cuisine?: string[];
+  [key: string]: unknown;
+}
 
 /**
  * @swagger
@@ -118,17 +139,20 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const isLiveFilter = searchParams.get('is_live');
     const limit = parseInt(searchParams.get('limit') || '') || 20;
     
-    // Get all chefs
-    const chefs = await convex.query(api.queries.chefs.getAll);
-    
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
-
-    // Get all reviews for rating calculation
-    const reviews = await convex.query(api.queries.reviews.getAll);
     
-    // Get all meals to calculate cuisine and sentiment (with user preferences)
-    const meals = await convex.query(api.queries.meals.getAll, { userId });
+    // Get all chefs, reviews, and meals using type-safe accessors
+    const apiQueries = getApiQueries();
+    type ChefsQuery = FunctionReference<"query", "public", Record<string, never>, ChefData[]>;
+    type ReviewsQuery = FunctionReference<"query", "public", Record<string, never>, ReviewData[]>;
+    type MealsQuery = FunctionReference<"query", "public", { userId?: string }, MealData[]>;
+    
+    const [chefs, reviews, meals] = await Promise.all([
+      convex.query((apiQueries.chefs.getAll as unknown as ChefsQuery), {}) as Promise<ChefData[]>,
+      convex.query((apiQueries.reviews.getAll as unknown as ReviewsQuery), {}) as Promise<ReviewData[]>,
+      convex.query((apiQueries.meals.getAll as unknown as MealsQuery), { userId }) as Promise<MealData[]>
+    ]);
     
     // Get live sessions (if available) to check live status
     // For now, we'll use a simple heuristic based on recent activity
@@ -137,15 +161,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     // Process chefs to create featured kitchens
     const featuredKitchens = await Promise.all(
-      chefs.map(async (chef: any) => {
+      chefs.map(async (chef: ChefData) => {
         // Get chef reviews
-        const chefReviews = reviews.filter((r: any) => r.chef_id === chef._id);
+        const chefReviews = reviews.filter((r: ReviewData) => (r as { chef_id?: Id<'chefs'> }).chef_id === chef._id);
         const avgRating = chefReviews.length > 0
-          ? chefReviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / chefReviews.length
+          ? chefReviews.reduce((sum: number, r: ReviewData) => sum + (r.rating || 0), 0) / chefReviews.length
           : chef.rating || 0;
         
         // Get chef meals
-        const chefMeals = meals.filter((m: any) => m.chefId === chef._id);
+        const chefMeals = meals.filter((m: MealData) => m.chefId === chef._id);
         
         // Determine primary cuisine from meals or specialties
         const primaryCuisine = chefMeals.length > 0 && chefMeals[0].cuisine?.[0]
@@ -191,16 +215,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     let filteredKitchens = featuredKitchens;
     
     if (sentimentFilter !== 'all') {
-      filteredKitchens = filteredKitchens.filter(k => k.sentiment === sentimentFilter);
+      filteredKitchens = filteredKitchens.filter((k: { sentiment: string }) => k.sentiment === sentimentFilter);
     }
     
     if (isLiveFilter !== null) {
       const isLiveBool = isLiveFilter === 'true';
-      filteredKitchens = filteredKitchens.filter(k => k.is_live === isLiveBool);
+      filteredKitchens = filteredKitchens.filter((k: { is_live: boolean }) => k.is_live === isLiveBool);
     }
     
     // Sort by rating (descending), then by review count (descending)
-    filteredKitchens.sort((a, b) => {
+    filteredKitchens.sort((a: { avg_rating: number; total_reviews: number }, b: { avg_rating: number; total_reviews: number }) => {
       if (b.avg_rating !== a.avg_rating) {
         return b.avg_rating - a.avg_rating;
       }

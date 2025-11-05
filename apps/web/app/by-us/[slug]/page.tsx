@@ -44,7 +44,7 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
   const post = sanitizeByUsPost(rawPost);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <main className="min-h-screen bg-linear-to-b from-white to-gray-50">
       {/* Global Org & Website JSON-LD */}
       <JsonLd />
       {/* Article JSON-LD */}

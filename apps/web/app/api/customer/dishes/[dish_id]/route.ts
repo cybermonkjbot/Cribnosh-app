@@ -142,7 +142,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const userId = extractUserIdFromRequest(request);
     
     // Get all meals with user preferences and filter by ID
-    const meals = await convex.query(api.queries.meals.getAll, { userId });
+    const meals = await convex.query((api as any).queries.meals.getAll, { userId });
     const dish = meals.find((m: any) => m._id === dish_id);
     
     if (!dish) {

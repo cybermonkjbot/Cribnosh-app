@@ -1,10 +1,25 @@
-import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
+
+// Type definitions for meal and chef data structures
+interface MealData {
+  _id: Id<'meals'>;
+  chefId: Id<'chefs'>;
+  cuisine?: string[];
+  [key: string]: unknown;
+}
+
+interface ChefData {
+  _id: Id<'chefs'>;
+  specialties?: string[];
+  [key: string]: unknown;
+}
 
 /**
  * @swagger
@@ -66,10 +81,17 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const userId = extractUserIdFromRequest(request);
     
     // Get all meals to extract cuisines (with user preferences)
-    const meals = await convex.query(api.queries.meals.getAll, { userId });
+    // Type-safe access using helper function
+    const apiQueries = getApiQueries();
+    type MealsQuery = FunctionReference<"query", "public", { userId?: string }, MealData[]>;
+    type ChefsQuery = FunctionReference<"query", "public", Record<string, never>, ChefData[]>;
+    
+    const mealsQuery = (apiQueries.meals.getAll as unknown as MealsQuery);
+    const meals = await convex.query(mealsQuery, { userId }) as MealData[];
     
     // Get all chefs to count kitchens per cuisine
-    const chefs = await convex.query(api.queries.chefs.getAll);
+    const chefsQuery = (apiQueries.chefs.getAll as unknown as ChefsQuery);
+    const chefs = await convex.query(chefsQuery, {}) as ChefData[];
     
     // Map to track cuisine -> kitchen count
     // A kitchen counts if it has at least one meal in that cuisine

@@ -132,6 +132,7 @@ export default function OrdersScreen() {
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
+      "worklet";
       scrollY.value = event.contentOffset.y;
     },
   });

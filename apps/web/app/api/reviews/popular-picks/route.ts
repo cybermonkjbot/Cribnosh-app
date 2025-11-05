@@ -76,9 +76,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   
   // Get all reviews, meals, and chefs using the correct query references
   // Apply user preferences to meals
-  const reviews = await convex.query(api.queries.reviews.getAll, {});
-  const meals = await convex.query(api.queries.meals.getAll, { userId });
-  const chefs = await convex.query(api.queries.chefs.getAll, {});
+  const reviews = await convex.query((api as any).queries.reviews.getAll, {});
+  const meals = await convex.query((api as any).queries.meals.getAll, { userId });
+  const chefs = await convex.query((api as any).queries.chefs.getAll, {});
 
   // Aggregate reviews by meal_id
   const mealReviewMap: Record<string, { total: number; count: number; meal: any }> = {};
