@@ -83,9 +83,9 @@ export function CuisinesSection({
     return <CuisinesSectionSkeleton itemCount={3} />;
   }
 
-  // Show empty state if no cuisines
+  // Hide section if no cuisines (don't show empty state)
   if (cuisines.length === 0) {
-    return <CuisinesSectionEmpty />;
+    return null;
   }
   return (
     <View style={{ paddingVertical: 20 }}>

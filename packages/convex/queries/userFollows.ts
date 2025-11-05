@@ -1,6 +1,6 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
+import { query } from "../_generated/server";
 
 // Get user's followers
 export const getUserFollowers = query({
@@ -441,10 +441,92 @@ export const getSuggestedUsers = query({
       }
     }
 
+    // Get user preferences for filtering
+    let userPreferences;
+    try {
+      userPreferences = await getUserPreferences(ctx, currentUserId as Id<'users'>);
+    } catch {
+      userPreferences = null;
+    }
+
     // Get popular users not already followed
     const allUsers = await ctx.db.query('users').collect();
     for (const user of allUsers) {
       if (!followingIds.has(user._id) && user._id !== currentUserId) {
+        // Check if user is a chef
+        const chef = await ctx.db
+          .query('chefs')
+          .withIndex('by_user', q => q.eq('userId', user._id))
+          .first();
+
+        if (!chef) {
+          // Not a chef, skip preference filtering
+          const followers = await ctx.db
+            .query('userFollows')
+            .withIndex('by_following', q => q.eq('followingId', user._id))
+            .collect();
+
+          const videos = await ctx.db
+            .query('videoPosts')
+            .withIndex('by_creator', q => q.eq('creatorId', user._id))
+            .filter(q => q.eq(q.field('status'), 'published'))
+            .collect();
+
+          const score = followers.length + videos.length;
+          if (score > 0) {
+            const existing = suggestedUsers.get(user._id);
+            if (!existing || existing.score < score) {
+              suggestedUsers.set(user._id, {
+                user,
+                reason: "Popular on Nosh Heaven",
+                score,
+              });
+            }
+          }
+          continue;
+        }
+
+        // For chefs, check if they have meals matching user preferences
+        let cuisineMatch = false;
+        if (userPreferences) {
+          const chefMeals = await ctx.db
+            .query('meals')
+            .filter(q => q.eq(q.field('chefId'), chef._id))
+            .filter(q => q.eq(q.field('status'), 'available'))
+            .collect();
+
+          // Check if any meals match user preferences (don't have allergens)
+          const hasCompatibleMeals = chefMeals.some(meal => {
+            // Check allergens
+            if (meal.allergens && Array.isArray(meal.allergens)) {
+              const mealAllergens = meal.allergens.map((a: string) => a.toLowerCase());
+              for (const allergy of userPreferences.allergies) {
+                const allergyName = allergy.name.toLowerCase();
+                if (mealAllergens.some((a: string) => 
+                  a.includes(allergyName) || allergyName.includes(a)
+                )) {
+                  return false; // Meal has allergen
+                }
+              }
+            }
+            return true; // Meal is compatible
+          });
+
+          // If no compatible meals, skip this chef
+          if (!hasCompatibleMeals) {
+            continue;
+          }
+
+          // Check if chef's cuisine matches user preferences
+          if (userPreferences.dietaryPreferences.length > 0 && chef.specialties?.length > 0) {
+            const chefCuisines = (chef.specialties || []).map((c: string) => c.toLowerCase());
+            cuisineMatch = userPreferences.dietaryPreferences.some(pref => {
+              const prefLower = pref.toLowerCase();
+              return chefCuisines.some((c: string) => c.includes(prefLower) || prefLower.includes(c));
+            });
+          }
+        }
+
         const followers = await ctx.db
           .query('userFollows')
           .withIndex('by_following', q => q.eq('followingId', user._id))
@@ -456,13 +538,21 @@ export const getSuggestedUsers = query({
           .filter(q => q.eq(q.field('status'), 'published'))
           .collect();
 
-        const score = followers.length + videos.length;
+        let score = followers.length + videos.length;
+        
+        // Boost score if cuisine matches user preferences
+        if (cuisineMatch) {
+          score += 10;
+        }
+
         if (score > 0) {
           const existing = suggestedUsers.get(user._id);
           if (!existing || existing.score < score) {
             suggestedUsers.set(user._id, {
               user,
-              reason: "Popular on Nosh Heaven",
+              reason: cuisineMatch 
+                ? "Matches your preferences"
+                : "Popular on Nosh Heaven",
               score,
             });
           }

@@ -85,13 +85,9 @@ export function TooFreshToWaste({
     return <TooFreshToWasteSkeleton itemCount={3} />;
   }
 
-  // Show empty state if no items
+  // Hide section if no items (don't show empty state)
   if (freshItems.length === 0) {
-    return (
-      <TooFreshToWasteEmpty
-        onOpenSustainability={onOpenSustainability}
-      />
-    );
+    return null;
   }
   return (
     <View style={{ paddingVertical: 20 }}>

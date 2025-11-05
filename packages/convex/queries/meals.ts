@@ -1,10 +1,13 @@
-import { query } from '../_generated/server';
 import { v } from 'convex/values';
+import { query } from '../_generated/server';
+import { filterAndRankMealsByPreferences, getUserPreferences } from '../utils/userPreferencesFilter';
 
 export const getAll = query({
-  args: {},
+  args: {
+    userId: v.optional(v.id('users')),
+  },
   returns: v.array(v.any()),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const meals = await ctx.db.query('meals').collect();
     
     // Get chef information for each meal
@@ -41,6 +44,23 @@ export const getAll = query({
       })
     );
 
+    // Apply user preference filtering if userId provided
+    if (args.userId) {
+      try {
+        const preferences = await getUserPreferences(ctx, args.userId);
+        const scoredMeals = filterAndRankMealsByPreferences(
+          mealsWithChefData,
+          preferences,
+          (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+        );
+        return scoredMeals.map(s => s.meal);
+      } catch (error) {
+        // If preference fetching fails, return unfiltered meals
+        console.error('Error fetching user preferences:', error);
+        return mealsWithChefData;
+      }
+    }
+
     return mealsWithChefData;
   },
 });
@@ -72,6 +92,7 @@ export const getById = query({
 export const getByChefId = query({
   args: { 
     chefId: v.id('chefs'),
+    userId: v.optional(v.id('users')),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
     category: v.optional(v.string()),
@@ -127,7 +148,19 @@ export const getByChefId = query({
       })
     );
     
-    return mealsWithReviews.slice(offset, offset + limit);
+    // Apply user preference filtering if userId provided
+    let results = mealsWithReviews;
+    if (args.userId) {
+      const preferences = await getUserPreferences(ctx, args.userId);
+      const scoredMeals = filterAndRankMealsByPreferences(
+        mealsWithReviews,
+        preferences,
+        (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+      );
+      results = scoredMeals.map(s => s.meal);
+    }
+    
+    return results.slice(offset, offset + limit);
   },
 });
 
@@ -135,6 +168,7 @@ export const getByChefId = query({
 export const getPopularByChefId = query({
   args: { 
     chefId: v.id('chefs'),
+    userId: v.optional(v.id('users')),
     limit: v.optional(v.number()),
   },
   returns: v.array(v.any()),
@@ -174,10 +208,28 @@ export const getPopularByChefId = query({
       })
     );
     
-    // Sort by popularity score
-    mealsWithPopularity.sort((a, b) => b.popularityScore - a.popularityScore);
+    // Apply user preference filtering if userId provided
+    let results = mealsWithPopularity;
+    if (args.userId) {
+      try {
+        const preferences = await getUserPreferences(ctx, args.userId);
+        const scoredMeals = filterAndRankMealsByPreferences(
+          mealsWithPopularity,
+          preferences,
+          (meal) => meal.popularityScore
+        );
+        results = scoredMeals.map(s => s.meal);
+      } catch (error) {
+        // If preference fetching fails, return unfiltered meals
+        console.error('Error fetching user preferences:', error);
+        results = mealsWithPopularity;
+      }
+    } else {
+      // Sort by popularity score if no user preferences
+      results.sort((a, b) => b.popularityScore - a.popularityScore);
+    }
     
-    return mealsWithPopularity.slice(0, limit);
+    return results.slice(0, limit);
   },
 });
 
@@ -220,6 +272,7 @@ export const searchMealsByChefId = query({
   args: {
     chefId: v.id('chefs'),
     query: v.string(),
+    userId: v.optional(v.id('users')),
     category: v.optional(v.string()),
     dietary: v.optional(v.array(v.string())),
     limit: v.optional(v.number()),
@@ -285,10 +338,22 @@ export const searchMealsByChefId = query({
       })
     );
     
-    // Sort by rating
-    mealsWithReviews.sort((a, b) => b.averageRating - a.averageRating);
+    // Apply user preference filtering if userId provided
+    let results = mealsWithReviews;
+    if (args.userId) {
+      const preferences = await getUserPreferences(ctx, args.userId);
+      const scoredMeals = filterAndRankMealsByPreferences(
+        mealsWithReviews,
+        preferences,
+        (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+      );
+      results = scoredMeals.map(s => s.meal);
+    } else {
+      // Sort by rating if no user preferences
+      results.sort((a, b) => b.averageRating - a.averageRating);
+    }
     
-    return mealsWithReviews.slice(0, limit);
+    return results.slice(0, limit);
   },
 });
 
@@ -296,6 +361,7 @@ export const searchMealsByChefId = query({
 export const searchMeals = query({
   args: {
     query: v.string(),
+    userId: v.optional(v.id('users')),
     filters: v.optional(v.object({
       cuisine: v.optional(v.string()),
       priceRange: v.optional(v.object({
@@ -386,7 +452,26 @@ export const searchMeals = query({
         })
       );
 
-      return mealsWithChefData;
+      let results = mealsWithChefData;
+
+      // Apply user preference filtering if userId provided
+      if (args.userId) {
+        try {
+          const preferences = await getUserPreferences(ctx, args.userId);
+          const scoredMeals = filterAndRankMealsByPreferences(
+            mealsWithChefData,
+            preferences,
+            (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+          );
+          results = scoredMeals.map(s => s.meal);
+        } catch (error) {
+          // If preference fetching fails, return unfiltered meals
+          console.error('Error fetching user preferences:', error);
+          results = mealsWithChefData;
+        }
+      }
+
+      return results;
     } catch (error) {
       console.error('Error searching meals:', error);
       return [];
@@ -396,27 +481,52 @@ export const searchMeals = query({
 
 // Get search suggestions
 export const getSearchSuggestions = query({
-  args: { query: v.string() },
+  args: { 
+    query: v.string(),
+    userId: v.optional(v.id('users'))
+  },
   returns: v.array(v.string()),
   handler: async (ctx, args) => {
     try {
       if (args.query.length < 2) return [];
       
-      const meals = await ctx.db.query('meals').collect();
+      // Get meals - will be filtered by preferences if userId provided
+      const allMeals = await ctx.db.query('meals').collect();
+      
+      // Apply user preference filtering if userId provided
+      let meals = allMeals;
+      if (args.userId) {
+        try {
+          const preferences = await getUserPreferences(ctx, args.userId);
+          const scoredMeals = filterAndRankMealsByPreferences(
+            allMeals.map((meal: any) => ({ ...meal })),
+            preferences,
+            () => 0 // Base score doesn't matter for suggestions
+          );
+          meals = scoredMeals.map(s => s.meal);
+        } catch (error) {
+          // If preference fetching fails, use all meals
+          console.error('Error fetching user preferences:', error);
+          meals = allMeals;
+        }
+      }
+      
       const searchTerm = args.query.toLowerCase();
       
       // Get meal names and cuisines that match
       const suggestions = new Set<string>();
       
-      meals.forEach(meal => {
-        if (meal.name.toLowerCase().includes(searchTerm)) {
+      meals.forEach((meal: any) => {
+        if (meal.name && meal.name.toLowerCase().includes(searchTerm)) {
           suggestions.add(meal.name);
         }
-        meal.cuisine.forEach(cuisine => {
-          if (cuisine.toLowerCase().includes(searchTerm)) {
-            suggestions.add(cuisine);
-          }
-        });
+        if (meal.cuisine && Array.isArray(meal.cuisine)) {
+          meal.cuisine.forEach((cuisine: string) => {
+            if (cuisine.toLowerCase().includes(searchTerm)) {
+              suggestions.add(cuisine);
+            }
+          });
+        }
       });
       
       return Array.from(suggestions).slice(0, 10);
@@ -429,7 +539,10 @@ export const getSearchSuggestions = query({
 
 // Get user's previous meals
 export const getPreviousMeals = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    applyPreferences: v.optional(v.boolean()),
+  },
   returns: v.array(v.any()),
   handler: async (ctx, args) => {
     try {
@@ -454,9 +567,22 @@ export const getPreviousMeals = query({
         })
       );
       
-      return previousMeals
+      let results = previousMeals
         .filter(meal => meal !== null)
         .sort((a, b) => ((b as any)?.rating || 0) - ((a as any)?.rating || 0));
+
+      // Apply user preference filtering if requested
+      if (args.applyPreferences !== false) {
+        const preferences = await getUserPreferences(ctx, args.userId);
+        const scoredMeals = filterAndRankMealsByPreferences(
+          results,
+          preferences,
+          (meal) => ((meal as any)?.rating || 0) * 10
+        );
+        results = scoredMeals.map(s => s.meal);
+      }
+
+      return results;
     } catch (error) {
       console.error('Error fetching previous meals:', error);
       return [];

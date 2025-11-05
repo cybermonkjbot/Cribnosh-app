@@ -18,6 +18,7 @@ interface CustomOrder {
   order_id: string;
   status?: 'pending' | 'processing' | 'completed' | 'cancelled';
   dietary_restrictions?: string | null;
+  estimatedPrice?: number;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -346,7 +347,17 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       orderId: `order_${Date.now()}`
     });
     
-    return ResponseFactory.success({ success: true, orderId });
+    // Fetch the created order to get the estimated price
+    // orderId is the document ID returned from the mutation
+    const createdOrder = await convex.query(api.queries.custom_orders.getCustomOrderById, { 
+      customOrderId: orderId as Id<'custom_orders'>
+    });
+    
+    return ResponseFactory.success({ 
+      success: true, 
+      orderId,
+      estimatedPrice: createdOrder?.estimatedPrice || null
+    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to create custom order.';
     return ResponseFactory.internalError(errorMessage);

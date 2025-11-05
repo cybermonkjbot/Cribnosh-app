@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { motion } from "motion/react";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "@/convex/_generated/api";
-import { useConvex } from "convex/react";
+import { Id } from "@/convex/_generated/dataModel";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useSession } from "@/lib/auth/use-session";
+import { useQuery } from "@tanstack/react-query";
+import { useConvex } from "convex/react";
+import { motion } from "motion/react";
+import { useRef } from "react";
 
 interface SearchSuggestionsProps {
   query: string;
@@ -16,11 +18,13 @@ export function SearchSuggestions({ query, onSelectSuggestion }: SearchSuggestio
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const convex = useConvex();
+  const { user } = useSession();
+  const userId = user?._id as Id<'users'> | undefined;
   
-  // Real data fetching for search suggestions with debounce
+  // Real data fetching for search suggestions with user preferences
   const { data: suggestions = [], isLoading } = useQuery({
-    queryKey: ['search-suggestions', query],
-    queryFn: () => convex.query(api.queries.meals.getSearchSuggestions, { query }),
+    queryKey: ['search-suggestions', query, userId],
+    queryFn: () => convex.query(api.queries.meals.getSearchSuggestions, { query, userId }),
     enabled: !!query && query.length >= 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

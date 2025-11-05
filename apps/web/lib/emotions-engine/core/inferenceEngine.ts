@@ -1,10 +1,10 @@
 import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/conxed-client';
+import { ErrorCode, ErrorFactory } from '@/lib/errors';
 import { MonitoringService } from '@/lib/monitoring/monitoring.service';
 import { dispatchToProvider } from '../providers/dispatch';
-import { EmotionsEngineRequest, EmotionsEngineResponse, Provider, DishRecommendation } from '../types';
+import { DishRecommendation, EmotionsEngineRequest, EmotionsEngineResponse, Provider } from '../types';
 import { chooseProvider } from './providerSelection';
-import { ErrorFactory, ErrorCode } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 
 const monitoring = MonitoringService.getInstance();
 
@@ -45,7 +45,8 @@ async function logEmotionsEngineInteraction({ userId, context, provider, query, 
  */
 async function lookupDishes(
   recommendations: Array<{ item_name: string; reason?: string; tags?: string[]; badge?: string }>,
-  filters?: { category?: string; tag?: string }
+  filters?: { category?: string; tag?: string },
+  userId?: string
 ): Promise<DishRecommendation[]> {
   if (!recommendations || recommendations.length === 0) {
     return [];
@@ -54,8 +55,11 @@ async function lookupDishes(
   try {
     const convex = getConvexClient();
     
-    // Get all available meals to search through
-    const allMeals = await convex.query(api.queries.meals.getAll);
+    // Get all available meals to search through, with user preference filtering if userId provided
+    const allMeals = await convex.query(
+      api.queries.meals.getAll,
+      userId ? { userId: userId as any } : {}
+    );
     
     const dishRecommendations: DishRecommendation[] = [];
     
@@ -188,7 +192,9 @@ export async function runInference(
         category: (request as any).category,
         tag: (request as any).tag,
       };
-      dishes = await lookupDishes(parsed.recommendations, filters);
+      // Pass userId to filter by user preferences
+      const userId = (request as any).userId;
+      dishes = await lookupDishes(parsed.recommendations, filters, userId);
     }
     
     // Log to Convex

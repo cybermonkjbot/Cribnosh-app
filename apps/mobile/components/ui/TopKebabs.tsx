@@ -86,9 +86,9 @@ export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress }: Top
     return <TopKebabsSkeleton itemCount={3} />;
   }
 
-  // Show empty state if no kebabs
+  // Hide section if no kebabs (don't show empty state)
   if (kebabs.length === 0) {
-    return <TopKebabsEmpty />;
+    return null;
   }
   return (
     <View style={{ paddingVertical: 20 }}>

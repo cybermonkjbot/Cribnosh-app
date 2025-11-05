@@ -198,9 +198,9 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
     return <CuisineCategoriesSectionSkeleton itemCount={4} />;
   }
 
-  // Show empty state if no cuisines
+  // Hide section if no cuisines (don't show empty state)
   if (cuisines.length === 0) {
-    return <CuisineCategoriesSectionEmpty />;
+    return null;
   }
 
   return (

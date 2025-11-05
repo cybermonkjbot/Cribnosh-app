@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { motion } from "motion/react";
-import { ArrowLeft, Clock, Star, ChefHat, Search, Filter } from "lucide-react";
-import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "@/convex/_generated/api";
-import { useConvexAuth } from "convex/react";
-import { useConvex } from "convex/react";
+import { Id } from "@/convex/_generated/dataModel";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useSession } from "@/lib/auth/use-session";
+import { useQuery } from "@tanstack/react-query";
+import { useConvex, useConvexAuth } from "convex/react";
+import { ArrowLeft, ChefHat, Clock, Filter, Search, Star } from "lucide-react";
+import { motion } from "motion/react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 interface AllPreviousMealsProps {
   onClose: () => void;
@@ -32,6 +33,8 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const convex = useConvex();
   const { isAuthenticated } = useConvexAuth();
+  const { user } = useSession();
+  const userId = user?._id as Id<'users'> | undefined;
 
   // Prevent body scrolling when component is mounted
   useEffect(() => {
@@ -41,10 +44,10 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
     };
   }, []);
 
-  // Real data fetching for previous meals
+  // Real data fetching for previous meals with user preferences
   const { data: previousMeals = [], isLoading, error } = useQuery({
-    queryKey: ['previous-meals'],
-    queryFn: () => convex.query(api.queries.meals.getAll, {}),
+    queryKey: ['previous-meals', userId],
+    queryFn: () => convex.query(api.queries.meals.getAll, { userId }),
     enabled: isAuthenticated,
   });
 

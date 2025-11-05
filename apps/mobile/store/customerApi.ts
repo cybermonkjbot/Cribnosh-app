@@ -840,13 +840,15 @@ export const customerApi = createApi({
           }[];
         };
       },
-      { limit?: number }
+      { limit?: number; userId?: string }
     >({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
-        // Note: limit is handled by the endpoint itself, but we can add it if needed
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.userId) searchParams.append("userId", params.userId);
+        const queryString = searchParams.toString();
         return {
-          url: `/reviews/popular-picks${searchParams.toString() ? `?${searchParams.toString()}` : ""}`,
+          url: `/reviews/popular-picks${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -1413,7 +1415,8 @@ export const customerApi = createApi({
 
     /**
      * Get similar dishes
-     * GET /customer/dishes/{dish_id}/similar
+     * GET /customer/meals/similar/{meal_id}
+     * Note: Uses new meals API endpoint that respects user preferences
      */
     getSimilarDishes: builder.query<
       GetSimilarDishesResponse,
@@ -1424,13 +1427,40 @@ export const customerApi = createApi({
         if (limit) params.append("limit", limit.toString());
         const queryString = params.toString();
         return {
-          url: `/customer/dishes/${dishId}/similar${queryString ? `?${queryString}` : ""}`,
+          url: `/customer/meals/similar/${dishId}${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
       providesTags: (result, error, { dishId }) => [
         { type: "Dishes", id: `${dishId}/similar` },
       ],
+    }),
+
+    /**
+     * Get personalized meal recommendations
+     * GET /customer/meals/recommended
+     */
+    getRecommendedMeals: builder.query<
+      {
+        success: boolean;
+        data: {
+          recommendations: any[];
+          count: number;
+          limit: number;
+        };
+      },
+      { limit?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/meals/recommended${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
     }),
 
     // ========================================================================
@@ -2567,6 +2597,7 @@ export const {
 export const {
   useGetDishDetailsQuery,
   useGetSimilarDishesQuery,
+  useGetRecommendedMealsQuery,
 } = customerApi;
 
 // Menus

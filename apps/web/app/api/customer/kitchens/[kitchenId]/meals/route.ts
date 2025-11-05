@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { extractUserIdFromRequest } from '@/lib/api/userContext';
+import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -71,17 +72,8 @@ async function handleGET(
     const category = searchParams.get('category') || undefined;
     const dietary = searchParams.getAll('dietary');
 
-    // Get user from token (optional for public endpoints)
-    let userId = undefined;
-    const authHeader = request.headers.get('authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      const convex = getConvexClient();
-      const user = await convex.query((api as any).queries.users.getUserByToken, { token });
-      if (user) {
-        userId = user._id;
-      }
-    }
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
 
     const convex = getConvexClient();
     
@@ -95,11 +87,12 @@ async function handleGET(
       return ResponseFactory.notFound('Chef not found for this kitchen');
     }
 
-    // Get meals by chef with filters
+    // Get meals by chef with filters and user preferences
     const meals = await convex.query(
       (api as any).queries.meals.getByChefId,
       {
         chefId,
+        userId,
         limit,
         offset,
         category,

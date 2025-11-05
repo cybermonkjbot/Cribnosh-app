@@ -29,13 +29,13 @@
  */
 
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { extractUserIdFromRequest } from '@/lib/api/userContext';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 type Review = {
   rating: number;
@@ -96,10 +96,13 @@ async function handleGET(
       return ResponseFactory.notFound('Chef not found');
     }
 
-    // Get reviews and meals in parallel
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
+
+    // Get reviews and meals in parallel (with user preferences)
     const [reviews, meals] = await Promise.all([
       convex.query(api.queries.reviews.getByChef, { chef_id }),
-      convex.query(api.queries.meals.getAll, {}).then(meals => 
+      convex.query(api.queries.meals.getAll, { userId }).then(meals => 
         meals.filter((meal: any) => meal.chefId === chef_id)
       )
     ]);

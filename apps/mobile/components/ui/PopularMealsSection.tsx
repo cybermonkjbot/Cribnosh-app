@@ -40,7 +40,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
   isLoading: propIsLoading,
   useBackend = true,
 }) => {
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, user } = useAuthContext();
 
   // Backend API integration
   const {
@@ -48,7 +48,10 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
     isLoading: backendLoading,
     error: backendError,
   } = useGetPopularMealsQuery(
-    { limit: 20 },
+    { 
+      limit: 20,
+      userId: user?.id || user?._id || undefined,
+    },
     {
       skip: !useBackend || !isAuthenticated,
     }
@@ -111,9 +114,9 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
     return <PopularMealsSectionSkeleton itemCount={8} />;
   }
 
-  // Show empty state if no meals
+  // Hide section if no meals (don't show empty state)
   if (meals.length === 0) {
-    return <PopularMealsSectionEmpty />;
+    return null;
   }
   const renderMealCard = (meal: Meal, index: number) => (
     <TouchableOpacity

@@ -1,6 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -120,11 +121,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get all chefs
     const chefs = await convex.query(api.queries.chefs.getAll);
     
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
+
     // Get all reviews for rating calculation
     const reviews = await convex.query(api.queries.reviews.getAll);
     
-    // Get all meals to calculate cuisine and sentiment
-    const meals = await convex.query(api.queries.meals.getAll);
+    // Get all meals to calculate cuisine and sentiment (with user preferences)
+    const meals = await convex.query(api.queries.meals.getAll, { userId });
     
     // Get live sessions (if available) to check live status
     // For now, we'll use a simple heuristic based on recent activity

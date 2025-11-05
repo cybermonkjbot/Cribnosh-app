@@ -1,8 +1,9 @@
+import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { withErrorHandling } from '@/lib/errors';
+import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getConvexClient } from '@/lib/conxed-client';
-import { api } from '@/convex/_generated/api';
+import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -61,8 +62,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const convex = getConvexClient();
     
-    // Get all meals to extract cuisines
-    const meals = await convex.query(api.queries.meals.getAll);
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
+    
+    // Get all meals to extract cuisines (with user preferences)
+    const meals = await convex.query(api.queries.meals.getAll, { userId });
     
     // Get all chefs to count kitchens per cuisine
     const chefs = await convex.query(api.queries.chefs.getAll);

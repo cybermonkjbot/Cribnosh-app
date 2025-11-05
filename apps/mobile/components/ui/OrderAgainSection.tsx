@@ -114,20 +114,9 @@ export function OrderAgainSection({
     return <OrderAgainSectionSkeleton itemCount={3} />;
   }
 
-  // Show empty state if no orders
+  // Hide section if no orders (don't show empty state)
   if (orderItems.length === 0 && isAuthenticated) {
-    return (
-      <Animated.View
-        style={{
-          marginBottom: 24,
-          paddingTop: 28,
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        }}
-      >
-        <OrderAgainSectionEmpty />
-      </Animated.View>
-    );
+    return null;
   }
 
   // Handle entrance and exit animations based on header state

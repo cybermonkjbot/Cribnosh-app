@@ -81,9 +81,9 @@ export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
     return <TakeAwaysSkeleton itemCount={3} />;
   }
 
-  // Show empty state if no items
+  // Hide section if no items (don't show empty state)
   if (takeAwayItems.length === 0) {
-    return <TakeAwaysEmpty />;
+    return null;
   }
 
   const handleAddToCart = async (item: TakeAwayItem) => {

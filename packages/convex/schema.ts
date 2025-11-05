@@ -1059,6 +1059,7 @@ export default defineSchema({
       v.literal("delivered"),
       v.literal("cancelled")
     ),
+    estimatedPrice: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

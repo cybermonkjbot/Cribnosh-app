@@ -152,9 +152,9 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
     return <SpecialOffersSectionSkeleton itemCount={3} />;
   }
 
-  // Show empty state if no offers
+  // Hide section if no offers (don't show empty state)
   if (offers.length === 0) {
-    return <SpecialOffersSectionEmpty />;
+    return null;
   }
   const renderOfferCard = (offer: SpecialOffer, index: number) => (
     <TouchableOpacity

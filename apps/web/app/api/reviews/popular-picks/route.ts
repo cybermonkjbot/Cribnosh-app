@@ -39,13 +39,13 @@
  *           example: "Success"
  */
 
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
-import { NextResponse } from 'next/server';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { extractUserIdFromRequest } from '@/lib/api/userContext';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Endpoint: /v1/reviews/popular-picks
 // Group: reviews
@@ -70,9 +70,14 @@ import { NextResponse } from 'next/server';
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   const convex = getConvexClient();
+  
+  // Extract userId from request (optional for public endpoints)
+  const userId = extractUserIdFromRequest(request);
+  
   // Get all reviews, meals, and chefs using the correct query references
+  // Apply user preferences to meals
   const reviews = await convex.query(api.queries.reviews.getAll, {});
-  const meals = await convex.query(api.queries.meals.getAll, {});
+  const meals = await convex.query(api.queries.meals.getAll, { userId });
   const chefs = await convex.query(api.queries.chefs.getAll, {});
 
   // Aggregate reviews by meal_id

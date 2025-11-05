@@ -628,7 +628,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+    paddingTop: 8,
     paddingBottom: 100, // Account for tab bar
   },
 });

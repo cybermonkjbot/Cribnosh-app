@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { extractUserIdFromRequest } from '@/lib/api/userContext';
+import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -77,6 +78,9 @@ async function handleGET(
     const category = searchParams.get('category') || undefined;
     const dietary = searchParams.getAll('dietary');
 
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
+
     const convex = getConvexClient();
     
     // Get chef ID from kitchen
@@ -89,12 +93,13 @@ async function handleGET(
       return ResponseFactory.notFound('Chef not found for this kitchen');
     }
 
-    // Search meals by chef
+    // Search meals by chef with user preferences
     const meals = await convex.query(
       (api as any).queries.meals.searchMealsByChefId,
       {
         chefId,
         query,
+        userId,
         category,
         dietary: dietary.length > 0 ? dietary : undefined,
         limit,

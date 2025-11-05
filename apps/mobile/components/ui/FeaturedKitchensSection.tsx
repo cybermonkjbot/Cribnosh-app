@@ -232,9 +232,9 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
     return <FeaturedKitchensSectionSkeleton itemCount={4} />;
   }
 
-  // Show empty state if no kitchens
+  // Hide section if no kitchens (don't show empty state)
   if (kitchens.length === 0) {
-    return <FeaturedKitchensSectionEmpty />;
+    return null;
   }
 
   // Don't show "See All" button inside drawers - only on main screen

@@ -16,14 +16,13 @@
  *           example: "Success"
  */
 
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getConvexClient } from '@/lib/conxed-client';
-import { Id } from '@/convex/_generated/dataModel';
-import { NextResponse } from 'next/server';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Endpoint: /v1/customer/menus/menus/{menu_id}
 // Group: customer
@@ -67,9 +66,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   }
   
   const convex = getConvexClient();
+  
+  // Extract userId from request (optional for public endpoints)
+  const userId = extractUserIdFromRequest(request);
+  
   try {
-    // Get all meals and find the one with matching ID
-    const meals = await convex.query(api.queries.meals.getAll, {});
+    // Get all meals with user preferences and find the one with matching ID
+    const meals = await convex.query(api.queries.meals.getAll, { userId });
     const menu = Array.isArray(meals) ? meals.find(m => m._id === menu_id) : null;
     if (!menu) {
       return ResponseFactory.notFound('Menu not found');

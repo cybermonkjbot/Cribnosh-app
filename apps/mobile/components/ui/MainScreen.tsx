@@ -52,6 +52,7 @@ import { OrderAgainSection } from "./OrderAgainSection";
 import { usePerformanceOptimizations } from "./PerformanceMonitor";
 import { PopularMealsDrawer } from "./PopularMealsDrawer";
 import { PopularMealsSection } from "./PopularMealsSection";
+import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { PullToNoshHeavenTrigger } from "./PullToNoshHeavenTrigger";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 // import { ShakeDebugger } from './ShakeDebugger';
@@ -1313,9 +1314,12 @@ export function MainScreen() {
   );
 
   const handleMealComment = useCallback((mealId: string) => {
-    // TODO: Navigate to comments screen or open comment modal
-    showInfo("Comments coming soon", "This feature is in development");
-  }, []);
+    // Navigate to comments screen or open comment modal
+    router.push({
+      pathname: '/meal-comments',
+      params: { mealId },
+    });
+  }, [router]);
 
   const handleMealShare = useCallback(
     async (mealId: string) => {
@@ -1494,13 +1498,30 @@ export function MainScreen() {
   }, [isAuthenticated, locationState.location]);
 
   const handleMealPress = useCallback((meal: any) => {
+    // Ensure we have a valid meal ID - use _id if id is missing
+    const mealId = meal.id || meal._id || meal.mealId || `meal-${Date.now()}`;
+    
+    // Parse price safely - handle different formats
+    let priceInCents = 0;
+    if (meal.price) {
+      if (typeof meal.price === 'string') {
+        // Remove currency symbols and parse
+        const priceStr = meal.price.replace(/[£$€,]/g, '').trim();
+        const priceNum = parseFloat(priceStr);
+        priceInCents = isNaN(priceNum) ? 0 : Math.round(priceNum * 100);
+      } else if (typeof meal.price === 'number') {
+        // If already a number, assume it's in cents or pounds
+        priceInCents = meal.price < 1000 ? Math.round(meal.price * 100) : meal.price;
+      }
+    }
+    
     // Convert meal data to MealItemDetails format
     const mealData = {
-      title: meal.name,
-      description: `Delicious ${meal.name} from ${meal.kitchen}. Experience authentic flavors crafted with the finest ingredients and traditional cooking methods.`,
-      price: parseInt(meal.price.replace("£", "")) * 100, // Convert to cents
-      imageUrl: meal.image?.uri,
-      kitchenName: meal.kitchen,
+      title: meal.name || 'Unknown Meal',
+      description: `Delicious ${meal.name || 'meal'} from ${meal.kitchen || 'Unknown Kitchen'}. Experience authentic flavors crafted with the finest ingredients and traditional cooking methods.`,
+      price: priceInCents,
+      imageUrl: meal.image?.uri || meal.image_url || meal.image,
+      kitchenName: meal.kitchen || meal.kitchenName || 'Unknown Kitchen',
       kitchenAvatar: undefined,
       calories: Math.floor(Math.random() * 500) + 300, // Random calories between 300-800
       fat: `${Math.floor(Math.random() * 20) + 5}g`,
@@ -1564,7 +1585,8 @@ export function MainScreen() {
       ],
     };
 
-    setSelectedMeal({ id: meal.id, data: mealData });
+    // Always open meal details modal - never fall back to kitchen
+    setSelectedMeal({ id: mealId, data: mealData });
     setIsMealDetailsVisible(true);
   }, []);
 
@@ -1928,8 +1950,14 @@ export function MainScreen() {
                     isHeaderSticky={isHeaderSticky}
                     isAuthenticated={isAuthenticated}
                     onItemPress={(item) => {
-                      // Navigate to kitchen/meal from order item
-                      handleKitchenPress(item.name);
+                      // Navigate to meal details from order item
+                      handleMealPress({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        kitchen: '', // Order items don't have kitchen info
+                        image: { uri: item.image },
+                      });
                     }}
                   />
                   <CuisinesSection 
@@ -1949,6 +1977,12 @@ export function MainScreen() {
                   <PopularMealsSection
                     onMealPress={handleMealPress}
                     onSeeAllPress={handleOpenPopularMealsDrawer}
+                  />
+                  
+                  {/* Recommended For You Section */}
+                  <RecommendedMealsSection
+                    onMealPress={handleMealPress}
+                    limit={8}
                   />
 
                   {/* Hidden Sections - dynamically shown based on conditions */}

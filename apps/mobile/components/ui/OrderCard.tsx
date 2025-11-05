@@ -184,14 +184,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       <View style={styles.orderDetails}>
         <View style={styles.orderHeader}>
           <View style={styles.timeAndOrderNumber}>
-            <Text style={styles.orderTime} numberOfLines={1}>
-              {time.replace(',', ' •')}
-            </Text>
-            {orderNumber && (
-              <Text style={styles.orderNumber} numberOfLines={1}>
-                {orderNumber}
+            <View style={styles.timeAndIdRow}>
+              <Text style={styles.orderTime} numberOfLines={1}>
+                {time.replace(',', ' •')}
               </Text>
-            )}
+              {orderNumber && (
+                <Text style={styles.orderNumber} numberOfLines={1}>
+                  {orderNumber}
+                </Text>
+              )}
+            </View>
           </View>
           <View style={styles.headerRight}>
             {isGroupOrder && (
@@ -201,7 +203,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
                 <Ionicons 
                   name={statusStyle.icon} 
-                  size={14} 
+                  size={13} 
                   color={statusStyle.textColor} 
                   style={styles.statusIcon}
                 />
@@ -217,12 +219,17 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         {/* Show items for ongoing orders */}
         {isOngoingOrder && items && items.length > 0 && (
           <View style={styles.itemsContainer}>
-            <Text style={styles.itemsLabel}>Items:</Text>
-            {items.slice(0, 2).map((item, itemIndex) => (
-              <Text key={itemIndex} style={styles.itemText}>
-                • {item}
+            <View style={styles.itemsRow}>
+              <Text style={styles.itemsLabel}>Items: </Text>
+              <Text style={styles.itemText}>
+                • {items[0]}
               </Text>
-            ))}
+            </View>
+            {items.length > 1 && (
+              <Text style={styles.itemText}>
+                • {items[1]}
+              </Text>
+            )}
             {items.length > 2 && (
               <Text style={styles.moreItemsText}>
                 +{items.length - 2} more items
@@ -237,7 +244,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <View style={styles.estimatedTimeContainer}>
               <Ionicons 
                 name="time-outline" 
-                size={12} 
+                size={11} 
                 color="#687076" 
                 style={styles.timeIcon}
               />
@@ -283,7 +290,7 @@ const styles = StyleSheet.create({
   orderItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 12,
@@ -298,7 +305,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   iconContainer: {
-    marginRight: 16,
+    marginRight: 12,
     marginLeft: 4,
     marginTop: 2,
   },
@@ -309,11 +316,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   timeAndOrderNumber: {
     flex: 1,
     marginRight: 8,
+  },
+  timeAndIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
   },
   headerRight: {
     flexDirection: 'row',
@@ -330,7 +343,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     fontWeight: '400',
-    marginTop: 2,
   },
   groupAvatarsContainer: {
     flexDirection: 'row',
@@ -361,9 +373,9 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#000',
@@ -376,27 +388,31 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   statusIcon: {
-    marginRight: 4,
+    marginRight: 3,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   orderDescription: {
     fontSize: 16,
     color: '#11181C',
-    marginBottom: 8,
+    marginBottom: 6,
     fontWeight: '600',
     lineHeight: 20,
   },
   itemsContainer: {
-    marginBottom: 8,
+    marginBottom: 6,
+  },
+  itemsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
   },
   itemsLabel: {
     fontSize: 13,
     color: '#6B7280',
     fontWeight: '500',
-    marginBottom: 4,
   },
   itemText: {
     fontSize: 13,
@@ -426,10 +442,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeIcon: {
-    marginRight: 4,
+    marginRight: 3,
   },
   estimatedTime: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#687076',
     fontWeight: '500',
   },

@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Clock, Star, MapPin, ChefHat, Shuffle, Check, Plus, Brain, Sparkles } from "lucide-react";
-import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { useSession } from "@/lib/auth/use-session";
+import { useQuery } from "@tanstack/react-query";
 import { useConvex } from "convex/react";
-import { TextGenerateEffect } from "../generate-text-animation";
+import { ArrowLeft, Check, ChefHat, Clock, MapPin, Plus, Shuffle, Star } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 import { AiDecisionProcess } from "./ai-decision-process";
 import { FloatingAssistantInput } from "./floating-assistant-input";
-import { Footer } from "../footer";
 
 // Utility functions for distance and time calculations
 function calculateDistance(userLocation: any, mealLocation: any): string {
@@ -85,6 +85,8 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
   const [showAssistant, setShowAssistant] = useState(false);
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const convex = useConvex();
+  const { user } = useSession();
+  const userId = user?._id as Id<'users'> | undefined;
   
   // Set data-section-theme on mount and clean up on unmount
   useEffect(() => {
@@ -160,11 +162,12 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     }
   }, []);
 
-  // Real data fetching for search results
+  // Real data fetching for search results with user preferences
   const { data: searchResults = [], isLoading, error } = useQuery({
-    queryKey: ['search-meals', query],
-    queryFn: () => convex.query(api.queries.meals.searchMeals, { 
+    queryKey: ['search-meals', query, userId],
+    queryFn: () => convex.query((api as any).queries.meals.searchMeals, { 
       query: query,
+      userId,
       filters: {
         cuisine: undefined,
         priceRange: undefined,
@@ -173,6 +176,32 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     }),
     enabled: !!query && query.length > 0,
   });
+
+  // Fetch personalized recommendations when user is authenticated
+  const { data: recommendationsData, isLoading: isLoadingRecommendations } = useQuery({
+    queryKey: ['recommended-meals', userId],
+    queryFn: async () => {
+      if (!userId) return { recommendations: [] };
+      
+      try {
+        const response = await fetch('/api/customer/meals/recommended?limit=6', {
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          return { recommendations: [] };
+        }
+        const data = await response.json();
+        return data.success ? data.data : { recommendations: [] };
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        return { recommendations: [] };
+      }
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const recommendations = recommendationsData?.recommendations || [];
 
   // Transform results to match component expectations
   const results = searchResults.map((meal: any, index: number) => ({
@@ -640,17 +669,77 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
               
               <div>
                 <h3 className="text-2xl font-display font-bold mb-8">Recommended For You</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {isLoadingRecommendations && userId ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-64 bg-slate-200 rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : recommendations.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {recommendations.map((meal: any, index: number) => (
+                      <motion.div
+                        key={meal._id || meal.id || index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="relative group cursor-pointer"
+                        onClick={() => {
+                          // Navigate to meal details or handle click
+                          console.log('Meal clicked:', meal);
+                        }}
+                      >
+                        <div className="relative h-48 rounded-xl overflow-hidden mb-4">
+                          <Image
+                            src={meal.images?.[0] || meal.image_url || "/kitchenillus.png"}
+                            alt={meal.name}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute top-3 right-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full">
+                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                            <span className="text-white text-sm font-medium">
+                              {(meal.averageRating || meal.rating || 0).toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold mb-2 line-clamp-1">{meal.name}</h4>
+                          <p className="text-slate-600 text-sm mb-3 line-clamp-2">
+                            {meal.description || meal.chef?.name || `Chef ${meal.chefId}`}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xl font-bold text-[#ff3b30]">
+                              ${(meal.price || 0).toFixed(2)}
+                            </span>
+                            <div className="flex items-center gap-4 text-sm text-slate-500">
+                              {meal.chef?.name && (
+                                <div className="flex items-center gap-1">
+                                  <ChefHat className="w-4 h-4" />
+                                  <span>{meal.chef.name}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : userId ? (
+                  <div className="col-span-1 md:col-span-3 p-8 bg-gradient-to-r from-[#ff3b30]/10 to-[#ff7b72]/10 rounded-xl border border-[#ff3b30]/20 shadow-sm">
+                    <h4 className="text-xl font-semibold mb-3">No recommendations yet</h4>
+                    <p className="text-slate-600 mb-6">
+                      Start liking meals and following chefs to get personalized recommendations!
+                    </p>
+                  </div>
+                ) : (
                   <div className="col-span-1 md:col-span-3 p-8 bg-gradient-to-r from-[#ff3b30]/10 to-[#ff7b72]/10 rounded-xl border border-[#ff3b30]/20 shadow-sm">
                     <h4 className="text-xl font-semibold mb-3">Looking for something specific?</h4>
-                    <p className="text-slate-600  mb-6">
-                      Our chefs can prepare custom meals based on your preferences and dietary needs.
+                    <p className="text-slate-600 mb-6">
+                      Sign in to get personalized meal recommendations based on your preferences and dietary needs.
                     </p>
-                    <button className="px-6 py-3 bg-[#ff3b30] text-white rounded-lg font-medium hover:bg-[#ff5e54] transition-colors">
-                      Request Custom Meal
-                    </button>
                   </div>
-                </div>
+                )}
               </div>
             </>
           )}

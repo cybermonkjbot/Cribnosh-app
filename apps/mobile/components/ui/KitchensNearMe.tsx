@@ -98,14 +98,9 @@ export function KitchensNearMe({
     return <KitchensNearMeSkeleton itemCount={2} />;
   }
 
-  // Show empty state if no kitchens or no location
+  // Hide section if no kitchens (don't show empty state)
   if (kitchens.length === 0) {
-    return (
-      <KitchensNearMeEmpty
-        onBrowseAll={onMapPress}
-        onEnableLocation={locationState.requestPermission}
-      />
-    );
+    return null;
   }
   return (
     <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>

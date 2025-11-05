@@ -75,17 +75,28 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
   const handleItemPress = useCallback((item: UsualDinnerItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log('Selected usual dinner item:', item);
-    // TODO: Navigate to meal/kitchen details
-  }, []);
+    // Navigate to meal details
+    if (item.dish_id) {
+      router.push({
+        pathname: '/meal-details',
+        params: { mealId: item.dish_id },
+      });
+    } else if (item.kitchen_id) {
+      router.push({
+        pathname: '/kitchen',
+        params: { kitchenId: item.kitchen_id },
+      });
+    }
+  }, [router]);
 
   // Show skeleton while loading
   if (dinnerItemsLoading && isAuthenticated) {
     return <UsualDinnerSectionSkeleton itemCount={4} />;
   }
 
-  // Show empty state if no items
+  // Hide section if no items (don't show empty state)
   if (dinnerItems.length === 0) {
-    return <UsualDinnerSectionEmpty />;
+    return null;
   }
 
   return (
@@ -257,24 +268,26 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
   const handleStartGame = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     console.log('Starting play to win game');
-    // TODO: Navigate to game creation screen
-  }, []);
+    // Navigate to game creation screen
+    router.push('/play-to-win/create');
+  }, [router]);
 
   const handleInviteColleagues = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log('Inviting colleagues');
-    // TODO: Navigate to colleague invitation screen
-  }, []);
+    // Navigate to colleague invitation screen
+    router.push('/play-to-win/invite');
+  }, [router]);
 
   // Show skeleton while loading
   if ((colleaguesLoading || playToWinHistoryLoading) && isAuthenticated) {
     return <PlayToWinSectionSkeleton />;
   }
 
-  // Show empty state if no colleagues available
+  // Hide section if no colleagues available (don't show empty state)
   if ((colleaguesData?.success && colleaguesData.data?.colleagueCount === 0) ||
       (data.colleagueConnections === 0 && isAuthenticated)) {
-    return <PlayToWinSectionEmpty />;
+    return null;
   }
 
   return (
