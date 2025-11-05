@@ -140,7 +140,23 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       });
     }
     
-    // Create JWT with roles array
+    // Check if user has 2FA enabled
+    if (user.twoFactorEnabled && user.twoFactorSecret) {
+      // Create verification session for 2FA
+      const verificationToken = await convex.mutation(api.mutations.verificationSessions.createVerificationSession, {
+        userId: user._id,
+      });
+      
+      // Return verification token instead of JWT
+      return ResponseFactory.success({
+        success: true,
+        requires2FA: true,
+        verificationToken,
+        message: '2FA verification required',
+      });
+    }
+    
+    // No 2FA required - create JWT token
     const token = jwt.sign({ user_id: user._id, roles: userRoles }, JWT_SECRET, { expiresIn: '2h' });
     return ResponseFactory.success({ success: true, token, user: { user_id: user._id, email: user.email, name: user.name, roles: userRoles } });
   } catch (error: any) {

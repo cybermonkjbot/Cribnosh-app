@@ -186,7 +186,22 @@ async function handlePOST(request: NextRequest) {
           });
         }
 
-        // Create JWT token
+        // Check if user has 2FA enabled (new users won't have it, but check anyway)
+        if (newUser.twoFactorEnabled && newUser.twoFactorSecret) {
+          // Create verification session for 2FA
+          const verificationToken = await convex.mutation(api.mutations.verificationSessions.createVerificationSession, {
+            userId: newUser._id,
+          });
+          
+          return ResponseFactory.success({
+            success: true,
+            requires2FA: true,
+            verificationToken,
+            message: '2FA verification required',
+          });
+        }
+
+        // No 2FA required - create JWT token
         const token = jwt.sign(
           { user_id: newUser._id, roles: userRoles }, 
           JWT_SECRET, 
@@ -218,7 +233,28 @@ async function handlePOST(request: NextRequest) {
         });
       }
 
-      // User exists, create JWT token
+      // Check if user has 2FA enabled
+      if (user.twoFactorEnabled && user.twoFactorSecret) {
+        // Create verification session for 2FA
+        const verificationToken = await convex.mutation(api.mutations.verificationSessions.createVerificationSession, {
+          userId: user._id,
+        });
+        
+        // Update last login (before 2FA verification)
+        await convex.mutation(api.mutations.users.updateLastLogin, {
+          userId: user._id,
+        });
+        
+        // Return verification token instead of JWT
+        return ResponseFactory.success({
+          success: true,
+          requires2FA: true,
+          verificationToken,
+          message: '2FA verification required',
+        });
+      }
+
+      // No 2FA required - create JWT token
       const token = jwt.sign(
         { user_id: user._id, roles: userRoles }, 
         JWT_SECRET, 

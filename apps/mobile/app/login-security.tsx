@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,12 +13,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import {
   useChangePasswordMutation,
   useGetSessionsQuery,
   useRevokeSessionMutation,
+  useSetupTwoFactorMutation,
+  useDisableTwoFactorMutation,
 } from '@/store/customerApi';
 import { useToast } from '../lib/ToastContext';
 
@@ -62,10 +66,15 @@ export default function LoginSecurityScreen() {
     skip: false,
   });
   const [revokeSession] = useRevokeSessionMutation();
-
-  // TODO: Once backend endpoints are ready, add:
-  // const [setupTwoFactor] = useSetupTwoFactorMutation();
-  // const [disableTwoFactor] = useDisableTwoFactorMutation();
+  const [setupTwoFactor] = useSetupTwoFactorMutation();
+  const [disableTwoFactor] = useDisableTwoFactorMutation();
+  
+  // 2FA state
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string>('');
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [isSettingUp2FA, setIsSettingUp2FA] = useState(false);
 
   const handleBack = () => {
     router.back();
@@ -141,40 +150,78 @@ export default function LoginSecurityScreen() {
 
   const handleToggleTwoFactor = async (value: boolean) => {
     try {
-      // TODO: Replace with actual API call once backend endpoint is ready:
-      // if (value) {
-      //   await setupTwoFactor().unwrap();
-      // } else {
-      //   await disableTwoFactor().unwrap();
-      // }
-
-      // Placeholder for now
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setTwoFactorEnabled(value);
-
-      showToast({
-        type: 'success',
-        title: 'Security Updated',
-        message: value
-          ? 'Two-factor authentication has been enabled.'
-          : 'Two-factor authentication has been disabled.',
-        duration: 3000,
-      });
-    } catch (error: any) {
-      console.error('Error updating two-factor authentication:', error);
+      if (value) {
+        // Enable 2FA - setup flow
+        setIsSettingUp2FA(true);
+        try {
+          const result = await setupTwoFactor().unwrap();
+          if (result.data) {
+            setQrCodeData(result.data.qrCode);
+            setBackupCodes(result.data.backupCodes);
+            setTwoFactorEnabled(true);
+            setShowQRCodeModal(true);
+          }
+        } catch (error: any) {
+          console.error('Error setting up 2FA:', error);
+          const errorMessage =
+            error?.data?.error?.message ||
+            error?.data?.message ||
+            error?.message ||
+            'Failed to setup 2FA. Please try again.';
+          showToast({
+            type: 'error',
+            title: 'Setup Failed',
+            message: errorMessage,
+            duration: 4000,
+          });
+          setTwoFactorEnabled(false);
+        } finally {
+          setIsSettingUp2FA(false);
+        }
+      } else {
+        // Disable 2FA
+        try {
+          await disableTwoFactor({}).unwrap();
+          setTwoFactorEnabled(false);
+          showToast({
+            type: 'success',
+            title: '2FA Disabled',
+            message: 'Two-factor authentication has been disabled.',
+            duration: 3000,
+          });
+        } catch (error: any) {
+          console.error('Error disabling 2FA:', error);
+          const errorMessage =
+            error?.data?.error?.message ||
+            error?.data?.message ||
+            error?.message ||
+            'Failed to disable 2FA. Please try again.';
+          showToast({
+            type: 'error',
+            title: 'Disable Failed',
+            message: errorMessage,
+            duration: 4000,
+          });
+          setTwoFactorEnabled(true); // Revert on error
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling 2FA:', error);
       setTwoFactorEnabled(!value); // Revert on error
-      const errorMessage =
-        error?.data?.error?.message ||
-        error?.data?.message ||
-        error?.message ||
-        'Failed to update two-factor authentication. Please try again.';
-      showToast({
-        type: 'error',
-        title: 'Update Failed',
-        message: errorMessage,
-        duration: 4000,
-      });
     }
+  };
+  
+  const handleQRCodeModalClose = () => {
+    setShowQRCodeModal(false);
+    // Show backup codes modal after QR code is dismissed
+    if (backupCodes.length > 0) {
+      setShowBackupCodesModal(true);
+    }
+  };
+  
+  const handleBackupCodesModalClose = () => {
+    setShowBackupCodesModal(false);
+    setBackupCodes([]); // Clear backup codes after showing (one-time only)
   };
 
   const handleRevokeSession = async (sessionId: string) => {
@@ -431,6 +478,78 @@ export default function LoginSecurityScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+      
+      {/* QR Code Modal */}
+      <Modal
+        visible={showQRCodeModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleQRCodeModalClose}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Scan QR Code</Text>
+              <TouchableOpacity onPress={handleQRCodeModalClose}>
+                <Text style={styles.modalCloseText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalDescription}>
+              Scan this QR code with your authenticator app to enable two-factor authentication.
+            </Text>
+            {qrCodeData ? (
+              <View style={styles.qrCodeContainer}>
+                <Image source={{ uri: qrCodeData }} style={styles.qrCodeImage} />
+              </View>
+            ) : (
+              <View style={styles.qrCodeContainer}>
+                <ActivityIndicator size="large" color="#094327" />
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleQRCodeModalClose}
+            >
+              <Text style={styles.modalButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Backup Codes Modal */}
+      <Modal
+        visible={showBackupCodesModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleBackupCodesModalClose}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Backup Codes</Text>
+              <TouchableOpacity onPress={handleBackupCodesModalClose}>
+                <Text style={styles.modalCloseText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalDescription}>
+              Save these backup codes in a safe place. You can use them to access your account if you lose access to your authenticator app.
+            </Text>
+            <ScrollView style={styles.backupCodesContainer}>
+              {backupCodes.map((code, index) => (
+                <View key={index} style={styles.backupCodeItem}>
+                  <Text style={styles.backupCodeText}>{code}</Text>
+                </View>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleBackupCodesModalClose}
+            >
+              <Text style={styles.modalButtonText}>I've Saved These Codes</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -681,6 +800,93 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#6B7280',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontFamily: 'Inter',
+    fontWeight: '600',
+    fontSize: 20,
+    lineHeight: 28,
+    color: '#094327',
+  },
+  modalCloseText: {
+    fontFamily: 'Inter',
+    fontWeight: '500',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#FF3B30',
+  },
+  modalDescription: {
+    fontFamily: 'Inter',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B7280',
+    marginBottom: 24,
+  },
+  qrCodeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    marginBottom: 24,
+    minHeight: 250,
+  },
+  qrCodeImage: {
+    width: 250,
+    height: 250,
+  },
+  backupCodesContainer: {
+    maxHeight: 300,
+    marginBottom: 24,
+  },
+  backupCodeItem: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  backupCodeText: {
+    fontFamily: 'Inter',
+    fontWeight: '500',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#094327',
+    textAlign: 'center',
+    letterSpacing: 2,
+  },
+  modalButton: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontFamily: 'Inter',
+    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#FFFFFF',
   },
 });
 

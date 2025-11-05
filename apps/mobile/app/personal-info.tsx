@@ -3,6 +3,7 @@ import { AddressSelectionSheet } from '@/components/ui/AddressSelectionSheet';
 import {
   useGetCustomerProfileQuery,
   useUpdateCustomerProfileMutation,
+  useUploadProfileImageMutation,
 } from '@/store/customerApi';
 import { CustomerAddress } from '@/types/customer';
 import { Stack, useRouter } from 'expo-router';
@@ -49,6 +50,7 @@ export default function PersonalInfoScreen() {
   });
 
   const [updateProfile] = useUpdateCustomerProfileMutation();
+  const [uploadProfileImage] = useUploadProfileImageMutation();
 
   // Form state
   const [name, setName] = useState('');
@@ -84,6 +86,64 @@ export default function PersonalInfoScreen() {
 
     setIsSaving(true);
     try {
+      let imageUrl = selectedProfileImage;
+
+      // Check if selectedProfileImage is a local URI that needs to be uploaded
+      const isLocalUri = selectedProfileImage && 
+        selectedProfileImage !== profileData?.data?.picture &&
+        (selectedProfileImage.startsWith('file://') || 
+         selectedProfileImage.startsWith('content://') ||
+         selectedProfileImage.startsWith('ph://') ||
+         selectedProfileImage.startsWith('assets-library://'));
+
+      // If it's a local URI, upload it first
+      if (isLocalUri) {
+        try {
+          // Detect image type from URI
+          let imageType = 'image/jpeg';
+          let fileName = 'profile.jpg';
+          if (selectedProfileImage.includes('.png')) {
+            imageType = 'image/png';
+            fileName = 'profile.png';
+          } else if (selectedProfileImage.includes('.webp')) {
+            imageType = 'image/webp';
+            fileName = 'profile.webp';
+          }
+
+          // Create FormData for image upload
+          const formData = new FormData();
+          formData.append('file', {
+            uri: selectedProfileImage,
+            type: imageType,
+            name: fileName,
+          } as any);
+
+          // Upload image
+          const uploadResult = await uploadProfileImage(formData).unwrap();
+          imageUrl = uploadResult.data?.profile_image_url || uploadResult.data?.profile_image;
+          
+          if (!imageUrl) {
+            throw new Error('Failed to get image URL from upload response');
+          }
+        } catch (uploadError: any) {
+          console.error('Error uploading profile image:', uploadError);
+          const uploadErrorMessage =
+            uploadError?.data?.error?.message ||
+            uploadError?.data?.message ||
+            uploadError?.message ||
+            'Failed to upload profile image. Please try again.';
+          showToast({
+            type: 'error',
+            title: 'Upload Failed',
+            message: uploadErrorMessage,
+            duration: 4000,
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      // Build update data
       const updateData: any = {
         name: name.trim(),
       };
@@ -96,8 +156,8 @@ export default function PersonalInfoScreen() {
         updateData.phone = phone.trim();
       }
 
-      if (selectedProfileImage && selectedProfileImage !== profileData?.data?.picture) {
-        updateData.picture = selectedProfileImage;
+      if (imageUrl && imageUrl !== profileData?.data?.picture) {
+        updateData.picture = imageUrl;
       }
 
       if (address) {

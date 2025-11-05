@@ -13,9 +13,6 @@ import {
   ChangePasswordRequest,
   ChangePasswordResponse,
   ChatMessageRequest,
-  CustomerSession,
-  GetSessionsResponse,
-  RevokeSessionResponse,
   ChatMessageResponse,
   CheckoutRequest,
   CheckoutResponse,
@@ -37,6 +34,8 @@ import {
   DeleteAccountFeedbackRequest,
   DeleteAccountResponse,
   DeleteCustomOrderResponse,
+  DisableTwoFactorRequest,
+  DisableTwoFactorResponse,
   DownloadAccountDataResponse,
   EmotionsSearchRequest,
   EmotionsSearchResponse,
@@ -77,6 +76,7 @@ import {
   GetPopularChefDetailsResponse,
   GetPopularChefsResponse,
   GetQuickRepliesResponse,
+  GetSessionsResponse,
   GetSimilarDishesResponse,
   GetSupportAgentResponse,
   GetSupportCasesResponse,
@@ -94,6 +94,7 @@ import {
   RateOrderResponse,
   RemoveCartItemResponse,
   RemoveFamilyMemberRequest,
+  RevokeSessionResponse,
   SearchChefsByLocationRequest,
   SearchChefsByLocationResponse,
   SearchChefsRequest,
@@ -107,6 +108,7 @@ import {
   SetDefaultPaymentMethodResponse,
   SetupFamilyProfileRequest,
   SetupFamilyProfileResponse,
+  SetupTwoFactorResponse,
   SortParams,
   TopUpBalanceRequest,
   TopUpBalanceResponse,
@@ -129,8 +131,9 @@ import {
   UpdateMemberBudgetRequest,
   UpdateMemberPreferencesRequest,
   UpdateMemberRequest,
+  UploadProfileImageResponse,
   ValidateFamilyMemberEmailRequest,
-  ValidateFamilyMemberEmailResponse,
+  ValidateFamilyMemberEmailResponse
 } from "@/types/customer";
 import { isTokenExpired } from "@/utils/jwtUtils";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
@@ -164,6 +167,76 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Custom baseQuery wrapper to handle non-JSON responses (e.g., HTML 404 pages)
 const baseQuery = async (args: any, api: any, extraOptions: any) => {
+  // For FormData requests, don't set content-type (let browser set it with boundary)
+  if (args.body instanceof FormData) {
+    // Create a custom fetchBaseQuery that doesn't set content-type
+    const customBaseQuery = fetchBaseQuery({
+      baseUrl: API_CONFIG.baseUrlNoTrailing,
+      prepareHeaders: async (headers) => {
+        const token = await SecureStore.getItemAsync("cribnosh_token");
+        if (token) {
+          if (isTokenExpired(token)) {
+            await SecureStore.deleteItemAsync("cribnosh_token");
+            await SecureStore.deleteItemAsync("cribnosh_user");
+          } else {
+            headers.set("authorization", `Bearer ${token}`);
+          }
+        }
+        headers.set("accept", "application/json");
+        // Don't set content-type for FormData - let browser set it with boundary
+        return headers;
+      },
+    });
+    const result = await customBaseQuery(args, api, extraOptions);
+    
+    // Process result through error handling
+    if (result.error) {
+      const errorStatus = typeof result.error.status === "number" 
+        ? result.error.status 
+        : (result.error as any).originalStatus || 500;
+      
+      const errorData = result.error.data;
+
+      if (errorStatus === 401 || errorStatus === "401") {
+        await SecureStore.deleteItemAsync("cribnosh_token");
+        await SecureStore.deleteItemAsync("cribnosh_user");
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { handle401Error } = require("@/utils/authErrorHandler");
+        handle401Error(result.error);
+      }
+
+      if (errorData && typeof errorData === "object" && "error" in errorData) {
+        return result;
+      }
+
+      const normalizedErrorData = errorData && typeof errorData === "object" 
+        ? (errorData as any)
+        : {};
+      
+      return {
+        error: {
+          status: errorStatus,
+          data: {
+            success: false,
+            error: {
+              code: `${errorStatus}`,
+              message: 
+                normalizedErrorData?.error?.message ||
+                normalizedErrorData?.message ||
+                (errorStatus === 401 ? "Unauthorized. Please sign in again." :
+                 errorStatus === 403 ? "Forbidden. You don't have permission." :
+                 errorStatus === 404 ? "Resource not found." :
+                 errorStatus === 500 ? "Internal server error. Please try again later." :
+                 `Request failed with status ${errorStatus}`),
+            },
+          },
+        },
+      };
+    }
+    
+    return result;
+  }
+  
   const result = await rawBaseQuery(args, api, extraOptions);
 
   // Handle parsing errors (when server returns HTML instead of JSON)
@@ -310,6 +383,20 @@ export const customerApi = createApi({
       invalidatesTags: ["CustomerProfile"],
     }),
 
+    /**
+     * Upload customer profile image
+     * POST /images/customer/profile
+     * Backend endpoint: POST /images/customer/profile
+     */
+    uploadProfileImage: builder.mutation<UploadProfileImageResponse, FormData>({
+      query: (formData) => ({
+        url: "/images/customer/profile",
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
     // ========================================================================
     // ACCOUNT MANAGEMENT ENDPOINTS
     // ========================================================================
@@ -389,6 +476,33 @@ export const customerApi = createApi({
       query: (sessionId) => ({
         url: `/customer/account/sessions/${sessionId}`,
         method: "DELETE",
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Setup Two-Factor Authentication
+     * POST /customer/account/two-factor/setup
+     * Backend endpoint: POST /customer/account/two-factor/setup
+     */
+    setupTwoFactor: builder.mutation<SetupTwoFactorResponse, void>({
+      query: () => ({
+        url: "/customer/account/two-factor/setup",
+        method: "POST",
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Disable Two-Factor Authentication
+     * DELETE /customer/account/two-factor
+     * Backend endpoint: DELETE /customer/account/two-factor
+     */
+    disableTwoFactor: builder.mutation<DisableTwoFactorResponse, DisableTwoFactorRequest>({
+      query: (data) => ({
+        url: "/customer/account/two-factor",
+        method: "DELETE",
+        body: data,
       }),
       invalidatesTags: ["CustomerProfile"],
     }),
@@ -2852,6 +2966,9 @@ export const customerApi = createApi({
 export const {
   useGetCustomerProfileQuery,
   useUpdateCustomerProfileMutation,
+  useUploadProfileImageMutation,
+  useSetupTwoFactorMutation,
+  useDisableTwoFactorMutation,
 } = customerApi;
 
 // Account Management

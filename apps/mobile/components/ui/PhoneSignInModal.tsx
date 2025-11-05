@@ -1,6 +1,7 @@
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Modal,
@@ -31,6 +32,7 @@ export function PhoneSignInModal({
   onPhoneSubmit,
   onSignInSuccess,
 }: PhoneSignInModalProps) {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -116,6 +118,19 @@ export function PhoneSignInModal({
         : countryCode;
       const fullPhoneNumber = `+${countryCodeClean}${cleanPhoneNumber}`;
       const res = await handlePhoneLogin(fullPhoneNumber, verificationCode);
+      
+      // Check if 2FA is required
+      if (res.data?.requires2FA && res.data?.verificationToken) {
+        // Navigate to 2FA verification screen
+        onClose();
+        setStep("phone");
+        router.push({
+          pathname: '/verify-2fa',
+          params: { verificationToken: res.data.verificationToken },
+        });
+        return;
+      }
+      
       if (res.data?.token && res.data?.user) {
         // Ensure user data has all required fields
         const userData = res.data.user;

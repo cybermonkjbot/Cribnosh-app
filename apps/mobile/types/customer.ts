@@ -389,6 +389,37 @@ export interface RevokeSessionResponse {
   message: string;
 }
 
+// POST /images/customer/profile
+export interface UploadProfileImageResponse {
+  success: boolean;
+  data: {
+    profile_image_url: string;
+    profile_image: string;
+  };
+  message: string;
+}
+
+// POST /customer/account/two-factor/setup
+export interface SetupTwoFactorResponse {
+  success: boolean;
+  data: {
+    secret: string;
+    backupCodes: string[];
+    qrCode: string;
+  };
+  message: string;
+}
+
+// DELETE /customer/account/two-factor
+export interface DisableTwoFactorRequest {
+  password?: string; // Optional password verification
+}
+
+export interface DisableTwoFactorResponse {
+  success: boolean;
+  message: string;
+}
+
 // POST /customer/account/delete-feedback
 export interface DeleteAccountFeedbackRequest {
   feedback_options: number[]; // Array of selected option indices

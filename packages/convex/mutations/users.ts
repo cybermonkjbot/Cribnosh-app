@@ -84,6 +84,13 @@ export const updateUser = mutation({
       dietary: v.optional(v.array(v.string())),
     })),
     avatar: v.optional(v.string()),
+    address: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      state: v.string(),
+      zipCode: v.string(),
+      country: v.string(),
+    })),
     oauthProviders: v.optional(v.array(v.object({
       provider: v.union(v.literal('google'), v.literal('apple')),
       providerId: v.string(),
@@ -110,6 +117,101 @@ export const updateUser = mutation({
       ...updates,
       lastModified: Date.now(),
     });
+  },
+});
+
+export const setupTwoFactor = mutation({
+  args: {
+    userId: v.id("users"),
+    secret: v.string(), // Encrypted secret
+    backupCodes: v.array(v.string()), // Hashed backup codes
+  },
+  returns: v.boolean(),
+  handler: async (ctx: MutationCtx, args) => {
+    const { userId, secret, backupCodes } = args;
+    await ctx.db.patch(userId, {
+      twoFactorEnabled: true,
+      twoFactorSecret: secret,
+      twoFactorBackupCodes: backupCodes,
+      lastModified: Date.now(),
+    });
+    return true;
+  },
+});
+
+export const disableTwoFactor = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  returns: v.boolean(),
+  handler: async (ctx: MutationCtx, args) => {
+    const { userId } = args;
+    await ctx.db.patch(userId, {
+      twoFactorEnabled: false,
+      twoFactorSecret: undefined,
+      twoFactorBackupCodes: undefined,
+      lastModified: Date.now(),
+    });
+    return true;
+  },
+});
+
+export const verifyTwoFactorCode = mutation({
+  args: {
+    userId: v.id("users"),
+    code: v.string(),
+    isValid: v.boolean(), // Passed from API route which has otplib access
+  },
+  returns: v.boolean(),
+  handler: async (ctx: MutationCtx, args) => {
+    const { userId, code, isValid } = args;
+    const user = await ctx.db.get(userId);
+    if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+      return false;
+    }
+    
+    if (!isValid) {
+      return false;
+    }
+    
+    // If code is valid and it's a backup code, remove it from the list
+    if (user.twoFactorBackupCodes && user.twoFactorBackupCodes.length > 0) {
+      // Check if code matches any backup code (this check was done in API route)
+      // Remove the used backup code
+      const updatedCodes = user.twoFactorBackupCodes.filter((hashedCode: string) => {
+        // We'll identify which backup code was used in the API route
+        // For now, just remove one code if it was a backup code
+        // This is a simplified approach - the API route will handle the actual verification
+        return true; // Keep all codes for now, API route handles removal
+      });
+      
+      // Note: Backup code removal is handled in the API route after verification
+    }
+    
+    return true;
+  },
+});
+
+export const removeBackupCode = mutation({
+  args: {
+    userId: v.id("users"),
+    hashedCode: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx: MutationCtx, args) => {
+    const { userId, hashedCode } = args;
+    const user = await ctx.db.get(userId);
+    if (!user || !user.twoFactorBackupCodes) {
+      return false;
+    }
+    
+    const updatedCodes = user.twoFactorBackupCodes.filter((code: string) => code !== hashedCode);
+    await ctx.db.patch(userId, {
+      twoFactorBackupCodes: updatedCodes,
+      lastModified: Date.now(),
+    });
+    
+    return true;
   },
 });
 

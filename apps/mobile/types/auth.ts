@@ -29,10 +29,27 @@ type Provider = "google" | "apple" | "email" | "phone";
     data:{
         success: boolean;
         message: string;
-        token: string;
-        user: CribNoshUser;
+        token?: string;
+        user?: CribNoshUser;
+        requires2FA?: boolean;
+        verificationToken?: string;
     },
   
+ }
+
+ export interface Verify2FARequest {
+    verificationToken: string;
+    code: string;
+ }
+
+ export interface Verify2FAResponse {
+    success: boolean;
+    data: {
+        success: boolean;
+        token: string;
+        user: CribNoshUser;
+        message: string;
+    };
  }
 
  

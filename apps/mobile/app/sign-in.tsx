@@ -100,6 +100,17 @@ export default function SignInModal() {
   const handleAppleSignIn = async (identityToken: string) => {
     try {
       const result = await appleSignInApi(identityToken);
+      
+      // Check if 2FA is required
+      if (result.requires2FA && result.verificationToken) {
+        // Navigate to 2FA verification screen
+        router.push({
+          pathname: '/verify-2fa',
+          params: { verificationToken: result.verificationToken },
+        });
+        return;
+      }
+      
       if (result.token && result.user) {
         await login(result.token, result.user);
       }

@@ -484,6 +484,10 @@ export default defineSchema({
     lastEmailForwardingChange: v.optional(v.number()),
     consentWithdrawnAt: v.optional(v.number()),
     accountDeletedAt: v.optional(v.number()),
+    // Two-Factor Authentication fields
+    twoFactorEnabled: v.optional(v.boolean()),
+    twoFactorSecret: v.optional(v.string()), // Encrypted
+    twoFactorBackupCodes: v.optional(v.array(v.string())), // Hashed
   })
   .index('by_email', ['email'])
   .index('by_phone', ['phone_number'])
@@ -3294,4 +3298,15 @@ export default defineSchema({
   })
     .index("by_user", ["userId"]),
 
+  // Verification Sessions table for 2FA
+  verificationSessions: defineTable({
+    userId: v.id("users"),
+    sessionToken: v.string(), // Temporary token for verification
+    expiresAt: v.number(), // Expiry timestamp
+    createdAt: v.number(),
+    used: v.boolean(), // Prevents reuse
+    failedAttempts: v.optional(v.number()), // Track failed attempts for rate limiting
+  })
+    .index("by_token", ["sessionToken"])
+    .index("by_user", ["userId"]),
 });

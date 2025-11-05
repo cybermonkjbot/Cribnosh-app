@@ -24,8 +24,10 @@ export interface CribNoshUser {
 export interface AuthResponse {
   success: boolean;
   message: string;
-  token: string;
-  user: CribNoshUser;
+  token?: string;
+  user?: CribNoshUser;
+  requires2FA?: boolean;
+  verificationToken?: string;
 }
 
 export interface RegisterData {
@@ -166,7 +168,8 @@ class CribNoshAuthAPI {
       body: JSON.stringify(data),
     });
 
-    if (response.success && response.token) {
+    // Only save token if 2FA is not required
+    if (response.success && response.token && !response.requires2FA) {
       this.saveToken(response.token);
     }
 
@@ -189,7 +192,8 @@ class CribNoshAuthAPI {
       body: JSON.stringify(data),
     });
 
-    if (response.success && response.token) {
+    // Only save token if 2FA is not required
+    if (response.success && response.token && !response.requires2FA) {
       this.saveToken(response.token);
     }
 
@@ -402,6 +406,21 @@ export const useCribNoshAuth = () => {
         setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
 
         const response = await authAPI.oauth(data);
+
+        // Check if 2FA is required
+        if (response.requires2FA && response.verificationToken) {
+          setAuthState((prev) => ({ ...prev, isLoading: false }));
+          // Navigate to 2FA verification screen
+          router.push({
+            pathname: '/verify-2fa',
+            params: { verificationToken: response.verificationToken },
+          });
+          return null;
+        }
+
+        if (!response.user || !response.token) {
+          throw new Error('Invalid response from server');
+        }
 
         setAuthState({
           user: response.user,

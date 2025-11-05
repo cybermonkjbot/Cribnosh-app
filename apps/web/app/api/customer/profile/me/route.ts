@@ -120,6 +120,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.notFound('User not found.');
     }
     const { password, sessionToken, sessionExpiry, ...safeUser } = user;
+    
+    // Transform address from backend format (zipCode) to frontend format (postal_code)
+    if (safeUser.address && safeUser.address.zipCode) {
+      safeUser.address = {
+        ...safeUser.address,
+        postal_code: safeUser.address.zipCode,
+      };
+      delete (safeUser.address as any).zipCode;
+    }
+    
     return ResponseFactory.success({ user: safeUser });
   } catch (error: any) {
     return ResponseFactory.internalError(error.message || 'Failed to fetch user.' );
@@ -253,6 +263,16 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         dietary: preferences.dietary_restrictions || preferences.dietary || [],
       };
     }
+    if (address !== undefined) {
+      // Convert address from frontend format (postal_code) to backend format (zipCode)
+      updates.address = {
+        street: address.street || '',
+        city: address.city || '',
+        state: address.state || '',
+        zipCode: address.postal_code || address.zipCode || '',
+        country: address.country || '',
+      };
+    }
     
     // Update user via Convex mutation
     await convex.mutation(api.mutations.users.updateUser, {
@@ -267,6 +287,15 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
     
     const { password, sessionToken, sessionExpiry, ...safeUser } = user;
+    
+    // Transform address from backend format (zipCode) to frontend format (postal_code)
+    if (safeUser.address && safeUser.address.zipCode) {
+      safeUser.address = {
+        ...safeUser.address,
+        postal_code: safeUser.address.zipCode,
+      };
+      delete (safeUser.address as any).zipCode;
+    }
     
     return ResponseFactory.success({ 
       user: safeUser,
