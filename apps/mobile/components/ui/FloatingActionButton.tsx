@@ -1,6 +1,6 @@
 import { useGetCartQuery } from '@/store/customerApi';
 import { useRouter } from 'expo-router';
-import { Camera, ChefHat, Plus, ShoppingCart } from 'lucide-react-native';
+import { Camera, ChefHat, Plus, Radio, ShoppingCart } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -17,6 +17,7 @@ interface FloatingActionButtonProps {
   onCameraPress?: () => void;
   onRecipePress?: () => void;
   onCartPress?: () => void;
+  onLiveStreamPress?: () => void;
   showCartCounter?: boolean;
 }
 
@@ -26,6 +27,7 @@ export function FloatingActionButton({
   onCameraPress,
   onRecipePress,
   onCartPress,
+  onLiveStreamPress,
   showCartCounter = true,
 }: FloatingActionButtonProps) {
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
@@ -65,6 +67,11 @@ export function FloatingActionButton({
   const cartOpacity = useSharedValue(0);
   const cartTranslateX = useSharedValue(0);
   const cartTranslateY = useSharedValue(0);
+
+  const liveStreamScale = useSharedValue(0);
+  const liveStreamOpacity = useSharedValue(0);
+  const liveStreamTranslateX = useSharedValue(0);
+  const liveStreamTranslateY = useSharedValue(0);
   
   // Animate badge when cart count changes
   useEffect(() => {
@@ -148,6 +155,16 @@ export function FloatingActionButton({
     setIsActionMenuOpen(false);
   };
 
+  const handleLiveStreamPress = () => {
+    setLastUsedFunction('recipe');
+    if (onLiveStreamPress) {
+      onLiveStreamPress();
+    } else {
+      console.log('Live Stream pressed');
+    }
+    setIsActionMenuOpen(false);
+  };
+
   const handleCartPress = () => {
     setLastUsedFunction('cart');
     if (onCartPress) {
@@ -209,10 +226,11 @@ export function FloatingActionButton({
 
     if (isActionMenuOpen) {
       // Opening animation - stagger each item slightly
-      // Angles: All positioned towards top and top-left (240°, 270°, 210°)
+      // Angles: All positioned towards top and top-left (300°, 270°, 240°, 210°)
       const cameraPos = calculatePosition(270, menuRadius); // Top
       const recipePos = calculatePosition(240, menuRadius); // Top-left
       const cartPos = calculatePosition(210, menuRadius); // More towards left
+      const liveStreamPos = calculatePosition(300, menuRadius); // Top-right
 
       cameraTranslateX.value = withDelay(0, withSpring(cameraPos.x, springConfig));
       cameraTranslateY.value = withDelay(0, withSpring(cameraPos.y, springConfig));
@@ -228,6 +246,11 @@ export function FloatingActionButton({
       cartTranslateY.value = withDelay(100, withSpring(cartPos.y, springConfig));
       cartScale.value = withDelay(100, withSpring(1, springConfig));
       cartOpacity.value = withDelay(100, withTiming(1, timingConfig));
+
+      liveStreamTranslateX.value = withDelay(150, withSpring(liveStreamPos.x, springConfig));
+      liveStreamTranslateY.value = withDelay(150, withSpring(liveStreamPos.y, springConfig));
+      liveStreamScale.value = withDelay(150, withSpring(1, springConfig));
+      liveStreamOpacity.value = withDelay(150, withTiming(1, timingConfig));
     } else {
       // Closing animation - animate back to center
       cameraTranslateX.value = withTiming(0, timingConfig);
@@ -244,6 +267,11 @@ export function FloatingActionButton({
       cartTranslateY.value = withTiming(0, timingConfig);
       cartScale.value = withTiming(0, timingConfig);
       cartOpacity.value = withTiming(0, timingConfig);
+
+      liveStreamTranslateX.value = withTiming(0, timingConfig);
+      liveStreamTranslateY.value = withTiming(0, timingConfig);
+      liveStreamScale.value = withTiming(0, timingConfig);
+      liveStreamOpacity.value = withTiming(0, timingConfig);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActionMenuOpen]);
@@ -274,6 +302,15 @@ export function FloatingActionButton({
       { scale: cartScale.value },
     ],
     opacity: cartOpacity.value,
+  }));
+
+  const liveStreamAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: liveStreamTranslateX.value },
+      { translateY: liveStreamTranslateY.value },
+      { scale: liveStreamScale.value },
+    ],
+    opacity: liveStreamOpacity.value,
   }));
 
   return (
@@ -363,6 +400,26 @@ export function FloatingActionButton({
               <Text style={styles.cartBadgeTextSmall}>{displayCartCount}</Text>
             </Animated.View>
           )}
+          </TouchableOpacity>
+      </Animated.View>
+
+      {/* Live Stream Button - Top Right */}
+      <Animated.View
+        style={[
+          styles.circularMenuItem,
+          liveStreamAnimatedStyle,
+          { position: 'absolute', top: 0, right: 0 },
+        ]}
+        pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
+      >
+          <TouchableOpacity
+          style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#FF3B30' }]}
+            onPress={handleLiveStreamPress}
+            activeOpacity={0.8}
+          accessibilityLabel="Start Live Stream"
+          accessibilityRole="button"
+          >
+          <Radio size={24} color="#FF3B30" />
           </TouchableOpacity>
       </Animated.View>
 

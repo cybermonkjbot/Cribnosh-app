@@ -1,6 +1,6 @@
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
 import { SvgXml } from 'react-native-svg';
 
 interface ProfileAvatarProps {
@@ -38,6 +38,11 @@ export function ProfileAvatar({
   const cameraIconSize = size * 0.3; // 24px for 80px container
 
   const handleImageSelection = async () => {
+    // Prevent image selection when not authenticated
+    if (!isAuthenticated) {
+      return;
+    }
+
     try {
       // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -73,6 +78,7 @@ export function ProfileAvatar({
         style={[styles.container, { width: containerSize, height: containerSize }]} 
         onPress={handleImageSelection}
         activeOpacity={0.8}
+        disabled={!isAuthenticated}
       >
         {selectedImageUri ? (
           // Display selected image
@@ -91,7 +97,8 @@ export function ProfileAvatar({
           </View>
         )}
         
-        {/* Camera icon overlay */}
+        {/* Camera icon overlay - only show when authenticated */}
+        {isAuthenticated && (
         <View style={[styles.cameraIconOverlay, { width: cameraIconSize, height: cameraIconSize }]}>
           <SvgXml 
             xml={cameraIconSVG} 
@@ -99,6 +106,7 @@ export function ProfileAvatar({
             height={cameraIconSize}
           />
         </View>
+        )}
       </TouchableOpacity>
       
       {/* Not signed in badge */}

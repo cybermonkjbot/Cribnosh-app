@@ -13,7 +13,7 @@ import { mockAppleSignIn, mockGoogleSignIn } from '../utils/mockAuthUtils';
 import { isMockModeEnabled } from '../utils/mockConfig';
 import { SignInSocialSelectionCard } from './SignInSocialSelectionCard';
 import { CribNoshLogo } from './ui/CribNoshLogo';
-import { PhoneSignInModal } from './ui/PhoneSignInModal';
+import { EmailSignInModal } from './ui/EmailSignInModal';
 
 interface SignInScreenProps {
   onGoogleSignIn?: (idToken: string) => void;
@@ -36,7 +36,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
   const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState<boolean | null>(null);
   const [isAppleSignInLoading, setIsAppleSignInLoading] = useState(false);
   const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
-  const [isPhoneSignInModalVisible, setIsPhoneSignInModalVisible] = useState(false);
+  const [isEmailSignInModalVisible, setIsEmailSignInModalVisible] = useState(false);
   
   // Refs to avoid circular dependencies
   const handleGoogleSignInRef = useRef<(() => void) | null>(null);
@@ -247,7 +247,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
                 onGoogleSignIn={handleGoogleSignIn}
                 onAppleSignIn={handleAppleSignIn}
                 onEmailSignIn={() => {
-                  setIsPhoneSignInModalVisible(true);
+                  setIsEmailSignInModalVisible(true);
                 }}
                 isAuthenticated={isAuthenticated && !isSessionExpired}
                 isAppleSignInAvailable={isAppleSignInAvailable}
@@ -262,17 +262,16 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         <View style={[styles.homeIndicator, { bottom: insets.bottom + 8 }]} />
       </ImageBackground>
       
-      {/* Phone Sign In Modal */}
-      <PhoneSignInModal
-        isVisible={isPhoneSignInModalVisible}
-        onClose={() => setIsPhoneSignInModalVisible(false)}
-        onPhoneSubmit={(phoneNumber) => {
-          console.log('Phone number submitted:', phoneNumber);
-          // TODO: Implement phone verification logic
+      {/* Email Sign In Modal */}
+      <EmailSignInModal
+        isVisible={isEmailSignInModalVisible}
+        onClose={() => setIsEmailSignInModalVisible(false)}
+        onEmailSubmit={(email) => {
+          console.log('Email submitted:', email);
         }}
         onSignInSuccess={() => {
-          // Close the phone modal and the entire sign-in screen
-          setIsPhoneSignInModalVisible(false);
+          // Close the email modal and the entire sign-in screen
+          setIsEmailSignInModalVisible(false);
           onClose?.();
         }}
       />

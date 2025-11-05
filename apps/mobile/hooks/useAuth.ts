@@ -2,6 +2,7 @@ import {
   usePhoneLoginMutation,
   useSendLoginOTPMutation,
   useAppleSignInMutation,
+  useEmailLoginMutation,
 } from "@/store/authApi";
 import { useToast } from "@/lib/ToastContext";
 import { useCallback } from "react";
@@ -15,6 +16,7 @@ export const useAuth = () => {
   const [sendLoginOTP] = useSendLoginOTPMutation();
   const [phoneLogin] = usePhoneLoginMutation();
   const [appleSignIn] = useAppleSignInMutation();
+  const [emailLogin] = useEmailLoginMutation();
 
   // Send OTP function
   const handleSendOTP = useCallback(
@@ -111,9 +113,22 @@ export const useAuth = () => {
     [appleSignIn, showToast]
   );
 
+  const handleEmailLogin = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const result = await emailLogin({ email, password }).unwrap();
+        return result;
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [emailLogin]
+  );
+
   return {
     handleSendOTP,
     handlePhoneLogin,
     handleAppleSignIn,
+    handleEmailLogin,
   };
 };

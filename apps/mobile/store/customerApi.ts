@@ -14,6 +14,8 @@ import {
   ChangePasswordResponse,
   ChatMessageRequest,
   ChatMessageResponse,
+  CheckRegionAvailabilityRequest,
+  CheckRegionAvailabilityResponse,
   CheckoutRequest,
   CheckoutResponse,
   // New search types
@@ -140,8 +142,6 @@ import {
   UploadProfileImageResponse,
   ValidateFamilyMemberEmailRequest,
   ValidateFamilyMemberEmailResponse,
-  CheckRegionAvailabilityRequest,
-  CheckRegionAvailabilityResponse,
 } from "@/types/customer";
 import { isTokenExpired } from "@/utils/jwtUtils";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
@@ -3011,6 +3011,20 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Get Convex video upload URL
+     * POST /api/nosh-heaven/videos/convex-upload-url
+     */
+    getConvexVideoUploadUrl: builder.mutation<
+      { uploadUrl: string },
+      Record<string, never>
+    >({
+      query: () => ({
+        url: "/api/nosh-heaven/videos/convex-upload-url",
+        method: "POST",
+      }),
+    }),
+
+    /**
      * Get thumbnail upload URL
      * POST /api/nosh-heaven/videos/thumbnail-upload-url
      */
@@ -3662,6 +3676,7 @@ export const {
   useUpdateVideoPostMutation,
   useDeleteVideoPostMutation,
   useGetVideoUploadUrlMutation,
+  useGetConvexVideoUploadUrlMutation,
   useGetThumbnailUploadUrlMutation,
   useFollowUserMutation,
   useUnfollowUserMutation,

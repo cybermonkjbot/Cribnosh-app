@@ -128,9 +128,9 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false, 
     }
   };
 
-  // Handle pill selector press
+  // Handle pill selector press (settings icon)
   const handlePillSelectorPress = () => {
-    // TODO: Implement pill selector functionality
+    router.push('/account-details');
   };
 
   if (isSticky) {
