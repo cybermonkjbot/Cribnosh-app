@@ -1,6 +1,11 @@
+// react-native-reanimated must be imported FIRST, before any other imports
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { StripeProvider } from '@stripe/stripe-react-native';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from '@react-navigation/native';
+import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import * as Linking from 'expo-linking';
 import { Stack } from 'expo-router';
@@ -8,9 +13,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Provider } from 'react-redux';
-// Removed react-native-reanimated imports as they're not available in current version
+import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider } from 'react-redux';
 
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 import { STRIPE_CONFIG } from '@/constants/api';
@@ -19,20 +24,30 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { store } from '@/store/index';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
-import { ToastProvider } from '../lib/ToastContext';
+import { GlobalToastContainer } from '../components/ui/GlobalToastContainer';
 import { handleDeepLink } from '../lib/deepLinkHandler';
+import { ToastProvider } from '../lib/ToastContext';
 import { logMockStatus } from '../utils/mockConfig';
 
-// Reanimated configuration removed - not needed for current version
+// Check if we're running in Expo Go (which doesn't support native modules like Stripe)
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+// Conditionally import StripeProvider - only available in development builds
+let StripeProvider: any = null;
+if (!isExpoGo) {
+  try {
+    StripeProvider = require('@stripe/stripe-react-native').StripeProvider;
+  } catch (error) {
+    console.warn('StripeProvider not available:', error);
+  }
+}
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-// MainNavigator component removed as it was unused
-
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    'Space Mono': require('../assets/fonts/SpaceMono-Regular.ttf'),
+    "Space Mono": require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
   const [showSplash, setShowSplash] = useState(true);
   const colorScheme = useColorScheme();
@@ -46,7 +61,11 @@ export default function RootLayout() {
 
         // Handle deep links when app is opened from a closed state
         const initialUrl = await Linking.getInitialURL();
-        if (initialUrl && (initialUrl.includes('cribnoshapp://') || initialUrl.includes('cribnosh.com'))) {
+        if (
+          initialUrl &&
+          (initialUrl.includes("cribnoshapp://") ||
+            initialUrl.includes("cribnosh.com"))
+        ) {
           handleDeepLink({ url: initialUrl });
         }
 
@@ -60,7 +79,7 @@ export default function RootLayout() {
     };
 
     initializeDeepLinks();
-    
+
     // Log mock authentication status
     logMockStatus();
   }, []);
@@ -83,8 +102,65 @@ export default function RootLayout() {
 
   // Show animated splash for a bit even after fonts load for better UX
   if (showSplash) {
-    return <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} duration={2000} />;
+    return (
+      <AnimatedSplashScreen
+        onAnimationComplete={handleSplashComplete}
+        duration={2000}
+      />
+    );
   }
+
+  // Main app content JSX
+  const appContent = (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <BottomSheetModalProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="shared-ordering" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                  gestureEnabled: true,
+                }} 
+              />
+              <Stack.Screen name="shared-link" options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="sign-in" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'modal',
+                  animationTypeForReplace: 'push'
+                }} 
+              />
+              <Stack.Screen 
+                name="payment-settings" 
+                options={{ 
+                  headerShown: false,
+                }} 
+              />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar translucent backgroundColor="transparent" barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+          </ThemeProvider>
+        </BottomSheetModalProvider>
+        <GlobalToastContainer />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+
+  // Wrap in StripeProvider only if available (not in Expo Go)
+  const wrappedContent = StripeProvider && STRIPE_CONFIG.publishableKey ? (
+    <StripeProvider publishableKey={STRIPE_CONFIG.publishableKey}>
+      {appContent}
+    </StripeProvider>
+  ) : (
+    appContent
+  );
 
   return (
     <Provider store={store}>
@@ -92,6 +168,7 @@ export default function RootLayout() {
         <EmotionsUIProvider>
           <AppProvider>
             <ToastProvider>
+              {wrappedContent}
               <StripeProvider publishableKey={STRIPE_CONFIG.publishableKey}>
                 <GestureHandlerRootView style={{ flex: 1 }}>
                   <SafeAreaProvider>

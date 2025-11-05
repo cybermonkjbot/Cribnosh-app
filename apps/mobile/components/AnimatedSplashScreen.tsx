@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import React, { useEffect } from "react";
+import { Dimensions, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,10 +9,10 @@ import Animated, {
   withTiming,
   withSpring,
   runOnJS,
-} from 'react-native-reanimated';
-import { CribNoshLogo } from './ui/CribNoshLogo';
+} from "react-native-reanimated";
+import { CribNoshLogo } from "./ui/CribNoshLogo";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 interface AnimatedSplashScreenProps {
   onAnimationComplete?: () => void;
@@ -21,12 +21,14 @@ interface AnimatedSplashScreenProps {
 
 export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
   onAnimationComplete,
-  duration = 3000
+  duration = 3000,
 }) => {
   const backgroundColorAnim = useSharedValue(0);
   const logoScaleAnim = useSharedValue(0.8);
   const logoOpacityAnim = useSharedValue(0.3); // Start visible to avoid white flash
-  const [logoVariant, setLogoVariant] = React.useState<'default' | 'white'>('default');
+  const [logoVariant, setLogoVariant] = React.useState<"default" | "white">(
+    "default"
+  );
 
   useEffect(() => {
     // Start logo entrance animation immediately (no delay)
@@ -38,27 +40,23 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
     });
 
     // Start background color cycling animation
-    backgroundColorAnim.value = withTiming(
-      1,
-      { duration },
-      (finished) => {
-        'worklet';
-        if (finished && onAnimationComplete) {
-          runOnJS(onAnimationComplete)();
-        }
+    backgroundColorAnim.value = withTiming(1, { duration }, (finished) => {
+      "worklet";
+      if (finished && onAnimationComplete) {
+        runOnJS(onAnimationComplete)();
       }
-    );
+    });
   }, [duration, onAnimationComplete]);
 
   // Listen to background animation changes to update logo variant
   useAnimatedReaction(
     () => backgroundColorAnim.value,
     (currentValue) => {
-      'worklet';
+      "worklet";
       if (currentValue > 0.7) {
-        runOnJS(setLogoVariant)('white');
+        runOnJS(setLogoVariant)("white");
       } else {
-        runOnJS(setLogoVariant)('default');
+        runOnJS(setLogoVariant)("default");
       }
     }
   );
@@ -66,22 +64,10 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
   // Create interpolated background color using RGB values for better compatibility
   // Start with dark background instead of white to avoid white flash
   const backgroundColor = useDerivedValue(() => {
-    'worklet';
-    const r = interpolate(
-      backgroundColorAnim.value,
-      [0, 0.5, 1],
-      [2, 44, 220]
-    );
-    const g = interpolate(
-      backgroundColorAnim.value,
-      [0, 0.5, 1],
-      [18, 44, 38]
-    );
-    const b = interpolate(
-      backgroundColorAnim.value,
-      [0, 0.5, 1],
-      [10, 44, 38]
-    );
+    "worklet";
+    const r = interpolate(backgroundColorAnim.value, [0, 0.5, 1], [2, 44, 220]);
+    const g = interpolate(backgroundColorAnim.value, [0, 0.5, 1], [18, 44, 38]);
+    const b = interpolate(backgroundColorAnim.value, [0, 0.5, 1], [10, 44, 38]);
     return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
   });
 
@@ -99,22 +85,9 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
   });
 
   return (
-    <Animated.View 
-      style={[
-        styles.container,
-        containerAnimatedStyle,
-      ]}
-    >
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          logoAnimatedStyle,
-        ]}
-      >
-        <CribNoshLogo 
-          size={250} 
-          variant={logoVariant}
-        />
+    <Animated.View style={[styles.container, containerAnimatedStyle]}>
+      <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
+        <CribNoshLogo size={250} variant={logoVariant} />
       </Animated.View>
     </Animated.View>
   );
@@ -125,12 +98,12 @@ const styles = StyleSheet.create({
     flex: 1,
     width,
     height,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
