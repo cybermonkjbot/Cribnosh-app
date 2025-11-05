@@ -3,11 +3,11 @@ import { BlurEffect } from '@/utils/blurEffects';
 import { getCompleteDynamicHeader } from '@/utils/dynamicHeaderMessages';
 import { shadowPresets } from '@/utils/platformStyles';
 import { useTopPosition } from '@/utils/positioning';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Bell, Settings } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedReaction,
@@ -16,24 +16,37 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { CribNoshLogo } from './CribNoshLogo';
+import { useGetNotificationStatsQuery } from '@/store/customerApi';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   userName?: string;
   isSticky?: boolean;
   showSubtitle?: boolean;
+  onNotificationsPress?: () => void;
 }
 
-export function Header({ userName = "", isSticky = false, showSubtitle = false }: HeaderProps) {
+export function Header({ userName = "", isSticky = false, showSubtitle = false, onNotificationsPress }: HeaderProps) {
   const { activeHeaderTab, handleHeaderTabChange } = useAppContext();
   const router = useRouter();
+  const { isAuthenticated } = useAuthContext();
   const topPosition = useTopPosition(0);
   const [dynamicMessage, setDynamicMessage] = useState(() => getCompleteDynamicHeader(userName, showSubtitle));
+  
+  // Get notification stats for badge count
+  const { data: statsData } = useGetNotificationStatsQuery(undefined, {
+    skip: !isAuthenticated || isSticky, // Only fetch in normal header state
+  });
+  
+  const unreadCount = statsData?.data?.unread || 0;
+  const showBadge = unreadCount > 0;
   
   // Animation values
   const logoScale = useSharedValue(isSticky ? 0.95 : 1);
   const greetingOpacity = useSharedValue(isSticky ? 0 : 1);
   const buttonsScale = useSharedValue(isSticky ? 0.95 : 1);
-  const avatarScale = useSharedValue(isSticky ? 0.73 : 1);
+  const notificationScale = useSharedValue(isSticky ? 0.73 : 1);
+  const pillSelectorScale = useSharedValue(isSticky ? 0.73 : 1);
 
   // Update dynamic message periodically
   useEffect(() => {
@@ -63,13 +76,15 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
         logoScale.value = withTiming(0.95, { duration, easing });
         greetingOpacity.value = withTiming(0, { duration, easing });
         buttonsScale.value = withTiming(0.95, { duration, easing });
-        avatarScale.value = withTiming(0.73, { duration, easing });
+        notificationScale.value = withTiming(0.73, { duration, easing });
+        pillSelectorScale.value = withTiming(0.73, { duration, easing });
       } else {
         // Animate to normal state - concurrent updates
         logoScale.value = withTiming(1, { duration, easing });
         greetingOpacity.value = withTiming(1, { duration, easing });
         buttonsScale.value = withTiming(1, { duration, easing });
-        avatarScale.value = withTiming(1, { duration, easing });
+        notificationScale.value = withTiming(1, { duration, easing });
+        pillSelectorScale.value = withTiming(1, { duration, easing });
       }
     },
     [isSticky]
@@ -94,15 +109,28 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
     };
   });
 
-  const avatarAnimatedStyle = useAnimatedStyle(() => {
+  const notificationAnimatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: avatarScale.value }],
+      transform: [{ scale: notificationScale.value }],
     };
   });
 
-  // Handle avatar press
-  const handleAvatarPress = () => {
-    router.push('/account-details');
+  const pillSelectorAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: pillSelectorScale.value }],
+    };
+  });
+
+  // Handle notifications press
+  const handleNotificationsPress = () => {
+    if (onNotificationsPress) {
+      onNotificationsPress();
+    }
+  };
+
+  // Handle pill selector press
+  const handlePillSelectorPress = () => {
+    // TODO: Implement pill selector functionality
   };
 
   if (isSticky) {
@@ -206,30 +234,6 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
                 </Text>
               </TouchableOpacity>
             </Animated.View>
-
-            {/* Compact Avatar with Animation */}
-            {userName && (
-              <TouchableOpacity onPress={handleAvatarPress}>
-                <Animated.View 
-                  style={[
-                    { 
-                      width: 32, 
-                      height: 32, 
-                      borderRadius: 16, 
-                      backgroundColor: '#000', 
-                      overflow: 'hidden',
-                    },
-                    avatarAnimatedStyle
-                  ]}
-                >
-                  <Image
-                    source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=32&h=32&fit=crop&crop=face' }}
-                    style={{ width: 32, height: 32 }}
-                    contentFit="cover"
-                  />
-                </Animated.View>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
       </BlurEffect>
@@ -244,7 +248,7 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
       end={{ x: 1, y: 1 }}
       style={{ paddingTop: 60, paddingBottom: 20, paddingHorizontal: 16 }}
     >
-      {/* Logo and Avatar Row with Animation */}
+      {/* Logo and Notifications Row with Animation */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Animated.View 
           style={[
@@ -255,28 +259,56 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
           <CribNoshLogo size={120} variant="default" />
         </Animated.View>
         
-        {userName && (
-          <TouchableOpacity onPress={handleAvatarPress}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={handleNotificationsPress}>
             <Animated.View 
               style={[
                 { 
                   width: 44, 
                   height: 44, 
-                  borderRadius: 22, 
-                  backgroundColor: '#000', 
-                  overflow: 'hidden',
+                  justifyContent: 'center',
+                  alignItems: 'center',
                 },
-                avatarAnimatedStyle
+                notificationAnimatedStyle
               ]}
             >
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=44&h=44&fit=crop&crop=face' }}
-                style={{ width: 44, height: 44 }}
-                contentFit="cover"
-              />
+              <View style={{ position: 'relative' }}>
+                <Bell size={24} color="#374151" />
+                {showBadge && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </Animated.View>
           </TouchableOpacity>
-        )}
+
+          {/* Pill Selector with Animation */}
+          <TouchableOpacity onPress={handlePillSelectorPress}>
+            <Animated.View 
+              style={[
+                {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 24,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: '#fff',
+                  borderWidth: 1,
+                  borderColor: '#e5e7eb',
+                  minHeight: 44,
+                  justifyContent: 'center',
+                  gap: 8,
+                },
+                pillSelectorAnimatedStyle
+              ]}
+            >
+              <Settings size={20} color="#374151" />
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Greeting with Animation */}
@@ -349,4 +381,27 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false }
       </Animated.View>
     </LinearGradient>
   );
-} 
+}
+
+const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#F23E2E',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'Inter',
+  },
+});

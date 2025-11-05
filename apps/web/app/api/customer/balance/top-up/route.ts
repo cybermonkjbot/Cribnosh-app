@@ -132,6 +132,28 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Get or create Stripe customer
     const customer = await getOrCreateCustomer({ userId: payload.user_id, email });
 
+    // If payment method is provided, verify it's attached to the customer
+    if (payment_method_id) {
+      try {
+        // Retrieve the payment method to check if it's attached to the customer
+        const paymentMethod = await stripe.paymentMethods.retrieve(payment_method_id);
+        
+        // If payment method is not attached to the customer, attach it
+        if (paymentMethod.customer !== customer.id) {
+          await stripe.paymentMethods.attach(payment_method_id, {
+            customer: customer.id,
+          });
+        }
+      } catch (error: any) {
+        // If payment method doesn't exist or can't be attached, return error
+        return createSpecErrorResponse(
+          `Invalid payment method: ${error.message || 'Payment method not found or cannot be attached'}`,
+          'VALIDATION_ERROR',
+          400
+        );
+      }
+    }
+
     // Create payment intent with balance top-up metadata
     const params: any = {
       amount,
@@ -145,11 +167,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       setup_future_usage: 'off_session',
     };
 
-    // If payment method is provided, attach it
+    // If payment method is provided, attach it but don't confirm server-side
+    // Client-side confirmation handles 3D Secure if needed
     if (payment_method_id) {
       params.payment_method = payment_method_id;
-      params.confirm = true;
-      params.off_session = true;
+      // Don't confirm server-side - let client handle confirmation with 3D Secure if needed
     }
 
     const paymentIntent = await stripe.paymentIntents.create(params);

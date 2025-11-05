@@ -156,3 +156,6 @@ export * from './treats';
 
 // Export user connections mutations
 export * from './userConnections';
+
+// Export event chef requests mutations
+export * from './eventChefRequests';

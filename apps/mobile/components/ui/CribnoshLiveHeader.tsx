@@ -1,22 +1,18 @@
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Avatar } from './Avatar';
 import { CribnoshLiveIndicator } from './CribnoshLiveIndicator';
 
 interface CribnoshLiveHeaderProps {
-  avatarSource: any;
   kitchenTitle: string;
   viewers: number;
 }
 
 export function CribnoshLiveHeader({
-  avatarSource, 
   kitchenTitle,
   viewers,
 }: CribnoshLiveHeaderProps) {
   const { width } = useWindowDimensions();
   return (
     <View style={styles.container}>
-      {/* Left side: Text column first, then avatar */}
       <View style={styles.content}>
         <View style={styles.textContainer}>
           <Text style={styles.title}>
@@ -31,11 +27,6 @@ export function CribnoshLiveHeader({
             <CribnoshLiveIndicator />
           </View>
         </View>
-        <Avatar
-          source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' }}
-          size="md"
-          style={styles.avatar}
-        />
       </View>
     </View>
   );
@@ -101,14 +92,6 @@ const styles = StyleSheet.create({
   },
   indicatorContainer: {
     marginTop: 2, // mt-0.5
-  },
-  avatar: {
-    width: 64, // w-[64px]
-    height: 64, // h-[64px]
-    borderRadius: 9999, // rounded-full
-    backgroundColor: '#CEC9FF', // bg-[#CEC9FF]
-    marginTop: 16, // mt-4
-    marginLeft: 12, // ml-3
   },
 });
 

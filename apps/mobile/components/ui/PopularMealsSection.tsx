@@ -82,8 +82,9 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
 
   // Process meals data
   const meals: Meal[] = useMemo(() => {
-    // If propMeals provided, use them (for filtered view)
-    if (propMeals && propMeals.length > 0) {
+    // If propMeals provided (even if empty), use them (for filtered view)
+    // This allows empty arrays to be respected when filtering
+    if (propMeals !== undefined) {
       return propMeals;
     }
 
