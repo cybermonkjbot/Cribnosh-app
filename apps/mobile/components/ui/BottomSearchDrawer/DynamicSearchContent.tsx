@@ -123,7 +123,7 @@ function NoticesCarousel({ notices, renderNoticeItem }: NoticesCarouselProps) {
       <FlatList
         ref={flatListRef}
         data={notices}
-        renderItem={({ item }) => renderNoticeItem(item)}
+        renderItem={({ item }) => renderNoticeItem(item) as React.ReactElement}
         keyExtractor={keyExtractor}
         horizontal
         pagingEnabled
@@ -218,7 +218,7 @@ export function DynamicSearchContent({
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }, []);
 
-  const getGradientColors = useCallback((bgColor?: string) => {
+  const getGradientColors = useCallback((bgColor?: string): [string, string] => {
     if (!bgColor) return ["rgba(239, 68, 68, 0.85)", "rgba(239, 68, 68, 0.95)"];
     return [
       hexToRgba(bgColor, 0.85),
@@ -240,7 +240,7 @@ export function DynamicSearchContent({
   }, [content?.type]);
 
   // Render a single notice item
-  const renderNoticeItem = useCallback((item: DynamicContent) => {
+  const renderNoticeItem = useCallback((item: DynamicContent): React.ReactElement => {
     const gradientColors = getGradientColors(item.backgroundColor);
     
     return (
@@ -400,7 +400,7 @@ export function DynamicSearchContent({
 
             {/* Gradient overlay for better text readability */}
             <LinearGradient
-              colors={getGradientColors(content.backgroundColor)}
+              colors={gradientColors}
               style={{
                 position: "absolute",
                 top: 0,

@@ -138,6 +138,23 @@ export default function RootLayout() {
                 }} 
               />
               <Stack.Screen 
+                name="event-chef-request" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }} 
+              />
+              <Stack.Screen 
+                name="nosh-heaven" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'fullScreenModal',
+                  animation: 'slide_from_bottom',
+                  gestureEnabled: true,
+                }} 
+              />
+              <Stack.Screen 
                 name="payment-settings" 
                 options={{ 
                   headerShown: false,
@@ -169,63 +186,6 @@ export default function RootLayout() {
           <AppProvider>
             <ToastProvider>
               {wrappedContent}
-              <StripeProvider publishableKey={STRIPE_CONFIG.publishableKey}>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                  <SafeAreaProvider>
-                    <BottomSheetModalProvider>
-                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                        <Stack>
-                          <Stack.Screen name="index" options={{ headerShown: false }} />
-                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                          <Stack.Screen 
-                            name="shared-ordering" 
-                            options={{ 
-                              headerShown: false,
-                              presentation: 'modal',
-                              animation: 'slide_from_bottom',
-                              gestureEnabled: true,
-                            }} 
-                          />
-                          <Stack.Screen name="shared-link" options={{ headerShown: false }} />
-                          <Stack.Screen 
-                            name="sign-in" 
-                            options={{ 
-                              headerShown: false,
-                              presentation: 'modal',
-                              animationTypeForReplace: 'push'
-                            }} 
-                          />
-                          <Stack.Screen 
-                            name="event-chef-request" 
-                            options={{ 
-                              headerShown: false,
-                              presentation: 'modal',
-                              animation: 'slide_from_bottom',
-                            }} 
-                          />
-                          <Stack.Screen 
-                            name="nosh-heaven" 
-                            options={{ 
-                              headerShown: false,
-                              presentation: 'fullScreenModal',
-                              animation: 'slide_from_bottom',
-                              gestureEnabled: true,
-                            }} 
-                          />
-                          <Stack.Screen 
-                            name="payment-settings" 
-                            options={{ 
-                              headerShown: false,
-                            }} 
-                          />
-                          <Stack.Screen name="+not-found" />
-                        </Stack>
-                        <StatusBar translucent backgroundColor="transparent" barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-                      </ThemeProvider>
-                    </BottomSheetModalProvider>
-                  </SafeAreaProvider>
-                </GestureHandlerRootView>
-              </StripeProvider>
             </ToastProvider>
           </AppProvider>
         </EmotionsUIProvider>
