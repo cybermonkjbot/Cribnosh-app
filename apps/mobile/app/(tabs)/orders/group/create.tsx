@@ -164,19 +164,35 @@ export default function CreateGroupOrderScreen() {
       }).unwrap();
       
       // Success - navigate to group order screen
-      // Navigate back to remove create screen from stack, then push to group order
-      // This ensures the create screen is removed and won't appear when going back
+      // Navigate back multiple times to clear modal context (e.g., from BottomSearchDrawer),
+      // then navigate to group order to ensure clean navigation stack
+      // This prevents the create screen from appearing when going back from group order
+      const navigateToGroupOrder = () => {
+        router.push({
+          pathname: '/orders/group',
+          params: { group_order_id: result.data.group_order_id },
+        });
+      };
+      
       if (router.canGoBack()) {
+        // Go back once to remove create screen
         router.back();
-        // Use setTimeout to allow the back navigation to complete before navigating forward
+        // If we can still go back, we might be in a modal context (e.g., from BottomSearchDrawer)
+        // Go back again to clear the modal context
         setTimeout(() => {
-          router.push({
-            pathname: '/orders/group',
-            params: { group_order_id: result.data.group_order_id },
-          });
+          if (router.canGoBack()) {
+            router.back();
+            // Navigate to group order after clearing modal
+            setTimeout(() => {
+              navigateToGroupOrder();
+            }, 150);
+          } else {
+            // No more back navigation, navigate directly
+            navigateToGroupOrder();
+          }
         }, 150);
       } else {
-        // Fallback: use replace if we can't go back
+        // Can't go back, use replace
         router.replace({
           pathname: '/orders/group',
           params: { group_order_id: result.data.group_order_id },
