@@ -2336,3 +2336,28 @@ export interface GetVideoCollectionsResponse {
   };
   message?: string;
 }
+
+// ========================================================================
+// REGIONAL AVAILABILITY TYPES
+// ========================================================================
+
+export interface CheckRegionAvailabilityRequest {
+  city?: string;
+  country?: string;
+  address?: {
+    city?: string;
+    country?: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+}
+
+export interface CheckRegionAvailabilityResponse {
+  success: boolean;
+  data: {
+    isSupported: boolean;
+  };
+  message?: string;
+}

@@ -1,3 +1,12 @@
+import { useToast } from "@/lib/ToastContext";
+import {
+  useGetFamilyProfileQuery,
+  useGetFamilySpendingQuery,
+  useRemoveFamilyMemberMutation,
+} from "@/store/customerApi";
+import type { FamilyMember } from "@/types/customer";
+import { Stack, useRouter } from "expo-router";
+import { Plus, Settings, Users } from "lucide-react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -7,14 +16,9 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
-import { Plus, Settings, Users } from 'lucide-react-native';
-import { SvgXml } from 'react-native-svg';
-import { useGetFamilyProfileQuery, useGetFamilySpendingQuery } from '@/store/customerApi';
-import { useToast } from '@/lib/ToastContext';
-import type { FamilyMember } from '@/types/customer';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { SvgXml } from "react-native-svg";
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -29,17 +33,17 @@ export default function FamilyProfileManageScreen() {
     isLoading: profileLoading,
     error: profileError,
   } = useGetFamilyProfileQuery();
-  const {
-    data: spendingData,
-    isLoading: spendingLoading,
-  } = useGetFamilySpendingQuery();
+  const { data: spendingData, isLoading: spendingLoading } =
+    useGetFamilySpendingQuery();
+  const [removeFamilyMember, { isLoading: isRemovingMember }] =
+    useRemoveFamilyMemberMutation();
 
   const handleBack = () => {
     router.back();
   };
 
   const handleAddMember = () => {
-    router.push('/family-profile/add-member');
+    router.push("/family-profile/add-member");
   };
 
   const handleMemberPress = (member: FamilyMember) => {
@@ -48,21 +52,59 @@ export default function FamilyProfileManageScreen() {
 
   const handleSettings = () => {
     // Navigate to settings screen
-    router.push('/family-profile/settings');
+    router.push("/family-profile/settings");
   };
 
   const handleOrders = () => {
-    router.push('/family-profile/orders');
+    router.push("/family-profile/orders");
+  };
+
+  const handleRemoveMember = (member: FamilyMember) => {
+    Alert.alert(
+      "Remove Family Member",
+      `Are you sure you want to remove ${member.name} from your family profile? This action cannot be undone.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeFamilyMember({ member_id: member.id }).unwrap();
+              showToast({
+                type: "success",
+                title: "Member Removed",
+                message: `${member.name} has been removed from your family profile.`,
+                duration: 3000,
+              });
+            } catch (error: any) {
+              console.error("Error removing family member:", error);
+              showToast({
+                type: "error",
+                title: "Remove Failed",
+                message:
+                  error?.data?.error?.message ||
+                  "Failed to remove family member. Please try again.",
+                duration: 4000,
+              });
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (profileLoading) {
     return (
       <>
-        <Stack.Screen 
-          options={{ 
+        <Stack.Screen
+          options={{
             headerShown: false,
-            title: 'Family Profile'
-          }} 
+            title: "Family Profile",
+          }}
         />
         <SafeAreaView style={styles.mainContainer}>
           <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
@@ -84,11 +126,11 @@ export default function FamilyProfileManageScreen() {
   if (profileError || !familyProfileData?.data) {
     return (
       <>
-        <Stack.Screen 
-          options={{ 
+        <Stack.Screen
+          options={{
             headerShown: false,
-            title: 'Family Profile'
-          }} 
+            title: "Family Profile",
+          }}
         />
         <SafeAreaView style={styles.mainContainer}>
           <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
@@ -98,8 +140,8 @@ export default function FamilyProfileManageScreen() {
             </TouchableOpacity>
             <View style={styles.headerSpacer} />
           </View>
-          <ScrollView 
-            style={styles.content} 
+          <ScrollView
+            style={styles.content}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.emptyScrollContent}
           >
@@ -110,14 +152,18 @@ export default function FamilyProfileManageScreen() {
               </View>
               <Text style={styles.emptyTitle}>No Family Profile</Text>
               <Text style={styles.emptySubtitle}>
-                Create a family profile to share your account with family members, manage shared payment methods, and track spending together.
+                Create a family profile to share your account with family
+                members, manage shared payment methods, and track spending
+                together.
               </Text>
               <TouchableOpacity
-                onPress={() => router.push('/family-profile/setup')}
+                onPress={() => router.push("/family-profile/setup")}
                 style={styles.createButton}
                 activeOpacity={0.8}
               >
-                <Text style={styles.createButtonText}>Create Family Profile</Text>
+                <Text style={styles.createButtonText}>
+                  Create Family Profile
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -128,26 +174,31 @@ export default function FamilyProfileManageScreen() {
 
   const profile = familyProfileData.data;
   const totalSpending = spendingData?.data?.total_spending || 0;
-  const activeMembers = profile.family_members.filter((m) => m.status === 'accepted').length;
+  const activeMembers = profile.family_members.filter(
+    (m) => m.status === "accepted"
+  ).length;
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
-          title: 'Family Profile'
-        }} 
+          title: "Family Profile",
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Header with back button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <SvgXml xml={backArrowSVG} width={24} height={24} />
           </TouchableOpacity>
           <View style={styles.headerSpacer} />
-          <TouchableOpacity onPress={handleSettings} style={styles.settingsButton}>
+          <TouchableOpacity
+            onPress={handleSettings}
+            style={styles.settingsButton}
+          >
             <Settings size={24} color="#094327" />
           </TouchableOpacity>
         </View>
@@ -165,7 +216,9 @@ export default function FamilyProfileManageScreen() {
                 <Text style={styles.overviewLabel}>Active Members</Text>
               </View>
               <View style={styles.overviewItem}>
-                <Text style={styles.overviewValue}>£{totalSpending.toFixed(2)}</Text>
+                <Text style={styles.overviewValue}>
+                  £{totalSpending.toFixed(2)}
+                </Text>
                 <Text style={styles.overviewLabel}>This Month</Text>
               </View>
             </View>
@@ -175,7 +228,10 @@ export default function FamilyProfileManageScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Family Members</Text>
-              <TouchableOpacity onPress={handleAddMember} style={styles.addButton}>
+              <TouchableOpacity
+                onPress={handleAddMember}
+                style={styles.addButton}
+              >
                 <Plus size={20} color="#094327" />
                 <Text style={styles.addButtonText}>Add</Text>
               </TouchableOpacity>
@@ -185,14 +241,16 @@ export default function FamilyProfileManageScreen() {
               <TouchableOpacity
                 key={member.id}
                 onPress={() => handleMemberPress(member)}
+                onLongPress={() => handleRemoveMember(member)}
                 style={styles.memberCard}
+                disabled={isRemovingMember}
               >
                 <View style={styles.memberAvatar}>
                   <Text style={styles.memberInitials}>
                     {member.name
-                      .split(' ')
+                      .split(" ")
                       .map((n) => n[0])
-                      .join('')
+                      .join("")
                       .toUpperCase()
                       .slice(0, 2)}
                   </Text>
@@ -200,14 +258,20 @@ export default function FamilyProfileManageScreen() {
                 <View style={styles.memberInfo}>
                   <Text style={styles.memberName}>{member.name}</Text>
                   <Text style={styles.memberDetails}>
-                    {member.relationship} • {member.status === 'accepted' ? 'Active' : member.status}
+                    {member.relationship} •{" "}
+                    {member.status === "accepted" ? "Active" : member.status}
                   </Text>
                 </View>
                 <View style={styles.memberSpending}>
-                  {spendingData?.data?.members.find((m) => m.member_id === member.id) && (
+                  {spendingData?.data?.members.find(
+                    (m) => m.member_id === member.id
+                  ) && (
                     <>
                       <Text style={styles.spendingAmount}>
-                        £{spendingData.data.members.find((m) => m.member_id === member.id)?.monthly_spent.toFixed(2) || '0.00'}
+                        £
+                        {spendingData.data.members
+                          .find((m) => m.member_id === member.id)
+                          ?.monthly_spent.toFixed(2) || "0.00"}
                       </Text>
                       <Text style={styles.spendingLabel}>This Month</Text>
                     </>
@@ -222,7 +286,9 @@ export default function FamilyProfileManageScreen() {
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <TouchableOpacity onPress={handleOrders} style={styles.actionCard}>
               <Text style={styles.actionTitle}>View All Orders</Text>
-              <Text style={styles.actionDescription}>See orders placed by family members</Text>
+              <Text style={styles.actionDescription}>
+                See orders placed by family members
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -234,16 +300,16 @@ export default function FamilyProfileManageScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#FAFFFA',
+    backgroundColor: "#FAFFFA",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    borderBottomColor: "#E5E5E5",
   },
   backButton: {
     padding: 8,
@@ -261,35 +327,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   mainTitle: {
-    fontFamily: 'Archivo',
-    fontStyle: 'normal',
-    fontWeight: '700',
+    fontFamily: "Archivo",
+    fontStyle: "normal",
+    fontWeight: "700",
     fontSize: 24,
     lineHeight: 32,
-    color: '#094327',
-    textAlign: 'left',
+    color: "#094327",
+    textAlign: "left",
     marginTop: 16,
     marginBottom: 24,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
-    color: '#094327',
+    color: "#094327",
     marginTop: 10,
     fontSize: 16,
-    fontFamily: 'Inter',
-    fontWeight: '500',
+    fontFamily: "Inter",
+    fontWeight: "500",
   },
   emptyScrollContent: {
     flexGrow: 1,
   },
   emptyStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
     paddingHorizontal: 24,
     minHeight: 400,
@@ -298,194 +364,193 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
   },
   emptyTitle: {
-    color: '#094327',
+    color: "#094327",
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 12,
-    textAlign: 'center',
-    fontFamily: 'Archivo',
+    textAlign: "center",
+    fontFamily: "Archivo",
   },
   emptySubtitle: {
-    color: '#6B7280',
+    color: "#6B7280",
     fontSize: 16,
     lineHeight: 24,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 32,
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
     paddingHorizontal: 16,
   },
   createButton: {
-    backgroundColor: '#094327',
+    backgroundColor: "#094327",
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
     minWidth: 200,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   createButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
-    fontFamily: 'Inter',
+    fontWeight: "600",
+    fontFamily: "Inter",
   },
   overviewCard: {
-    backgroundColor: 'rgba(244, 255, 245, 0.79)',
+    backgroundColor: "rgba(244, 255, 245, 0.79)",
     borderRadius: 12,
     padding: 20,
     marginBottom: 24,
   },
   overviewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   overviewItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   overviewValue: {
-    color: '#094327',
+    color: "#094327",
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: 8,
     marginBottom: 4,
-    fontFamily: 'Inter',
+    fontFamily: "Inter",
   },
   overviewLabel: {
-    color: '#6B7280',
+    color: "#6B7280",
     fontSize: 14,
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
   },
   section: {
     marginBottom: 24,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   sectionTitle: {
-    color: '#094327',
+    color: "#094327",
     fontSize: 18,
-    fontWeight: '600',
-    fontFamily: 'Archivo',
+    fontWeight: "600",
+    fontFamily: "Archivo",
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
   },
   addButtonText: {
-    color: '#094327',
+    color: "#094327",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 4,
-    fontFamily: 'Inter',
+    fontFamily: "Inter",
   },
   memberCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   memberAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#094327',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#094327",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   memberInitials: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: 'Inter',
+    fontWeight: "bold",
+    fontFamily: "Inter",
   },
   memberInfo: {
     flex: 1,
   },
   memberName: {
-    color: '#094327',
+    color: "#094327",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
-    fontFamily: 'Inter',
+    fontFamily: "Inter",
   },
   memberDetails: {
-    color: '#6B7280',
+    color: "#6B7280",
     fontSize: 14,
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
   },
   memberSpending: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   spendingAmount: {
-    color: '#094327',
+    color: "#094327",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 2,
-    fontFamily: 'Inter',
+    fontFamily: "Inter",
   },
   spendingLabel: {
-    color: '#6B7280',
+    color: "#6B7280",
     fontSize: 12,
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
   },
   actionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   actionTitle: {
-    color: '#094327',
+    color: "#094327",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
-    fontFamily: 'Inter',
+    fontFamily: "Inter",
   },
   actionDescription: {
-    color: '#6B7280',
+    color: "#6B7280",
     fontSize: 14,
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
   },
 });
-

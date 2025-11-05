@@ -139,7 +139,9 @@ import {
   UpdateMemberRequest,
   UploadProfileImageResponse,
   ValidateFamilyMemberEmailRequest,
-  ValidateFamilyMemberEmailResponse
+  ValidateFamilyMemberEmailResponse,
+  CheckRegionAvailabilityRequest,
+  CheckRegionAvailabilityResponse,
 } from "@/types/customer";
 import { isTokenExpired } from "@/utils/jwtUtils";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
@@ -3389,24 +3391,8 @@ export const customerApi = createApi({
      * POST /customer/regional-availability/check
      */
     checkRegionAvailability: builder.mutation<
-      {
-        success: boolean;
-        data: {
-          isSupported: boolean;
-        };
-      },
-      {
-        city?: string;
-        country?: string;
-        address?: {
-          city?: string;
-          country?: string;
-          coordinates?: {
-            latitude: number;
-            longitude: number;
-          };
-        };
-      }
+      CheckRegionAvailabilityResponse,
+      CheckRegionAvailabilityRequest
     >({
       query: (data) => ({
         url: "/customer/regional-availability/check",
