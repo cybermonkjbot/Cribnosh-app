@@ -45,7 +45,6 @@ import { HiddenSections } from "./HiddenSections";
 import { KitchenMainScreen } from "./KitchenMainScreen";
 import { KitchensNearMe } from "./KitchensNearMe";
 import LiveContent from "./LiveContent";
-import { LiveStreamModal } from "./LiveStreamModal";
 import { MapBottomSheet } from "./MapBottomSheet";
 import { MealItemDetails } from "./MealItemDetails";
 import { MultiStepLoader } from "./MultiStepLoader";
@@ -784,7 +783,6 @@ export function MainScreen() {
   // Camera modal state management
   const [isCameraVisible, setIsCameraVisible] = useState(false);
   const [isNoshHeavenPostModalVisible, setIsNoshHeavenPostModalVisible] = useState(false);
-  const [isLiveStreamModalVisible, setIsLiveStreamModalVisible] = useState(false);
   
   // Map state management
   const [isMapVisible, setIsMapVisible] = useState(false);
@@ -1989,7 +1987,6 @@ export function MainScreen() {
       <FloatingActionButton 
         onCameraPress={() => setIsCameraVisible(true)}
         onRecipePress={() => setIsNoshHeavenPostModalVisible(true)}
-        onLiveStreamPress={() => setIsLiveStreamModalVisible(true)}
       />
 
       {/* Bottom Search Drawer */}
@@ -2180,12 +2177,6 @@ export function MainScreen() {
       <NoshHeavenPostModal
         isVisible={isNoshHeavenPostModalVisible}
         onClose={() => setIsNoshHeavenPostModalVisible(false)}
-      />
-
-      {/* Live Stream Modal */}
-      <LiveStreamModal
-        isVisible={isLiveStreamModalVisible}
-        onClose={() => setIsLiveStreamModalVisible(false)}
       />
     </View>
   );

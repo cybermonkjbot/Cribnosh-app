@@ -3414,6 +3414,62 @@ export const customerApi = createApi({
         body: data,
       }),
     }),
+
+    /**
+     * Get chef meals
+     * GET /api/chef/meals
+     */
+    getChefMeals: builder.query<
+      { meals: {
+        _id: string;
+        name: string;
+        description?: string;
+        price?: number;
+        image?: string;
+        cuisine?: string;
+        ingredients?: string[];
+        dietaryInfo?: {
+          vegetarian?: boolean;
+          vegan?: boolean;
+          glutenFree?: boolean;
+        };
+        allergens?: string[];
+        prepTime?: number;
+        servings?: number;
+        status?: string;
+        rating?: number;
+        reviewCount?: number;
+        createdAt?: string;
+        updatedAt?: string;
+      }[] },
+      { limit?: number; offset?: number }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append('limit', params.limit.toString());
+        if (params.offset) searchParams.append('offset', params.offset.toString());
+        const queryString = searchParams.toString();
+        return {
+          url: `/api/chef/meals${queryString ? `?${queryString}` : ''}`,
+          method: "GET",
+        };
+      },
+    }),
+
+    /**
+     * Start live session
+     * POST /api/functions/startLiveSession
+     */
+    startLiveSession: builder.mutation<
+      { sessionId: string; channelName: string; status: string },
+      { title: string; description: string; mealId: string; tags?: string[] }
+    >({
+      query: (data) => ({
+        url: "/api/functions/startLiveSession",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -3613,6 +3669,8 @@ export const {
 
 // Live Streaming
 export const { useGetLiveStreamsQuery, useGetLiveSessionQuery } = customerApi;
+
+export const { useGetChefMealsQuery, useStartLiveSessionMutation } = customerApi;
 
 export const {
   useGetSupportChatQuery,

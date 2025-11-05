@@ -1,9 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView } from 'expo-camera';
+import { Radio, X } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
-import { Dimensions, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SvgXml } from 'react-native-svg';
+import { useGetChefMealsQuery, useStartLiveSessionMutation } from '@/store/customerApi';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { CribNoshLogo } from './CribNoshLogo';
 
 const { width, height } = Dimensions.get('window');
@@ -35,6 +40,7 @@ type CameraType = 'front' | 'back';
 type FlashMode = 'off' | 'on' | 'auto';
 
 export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
+  const router = useRouter();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraType, setCameraType] = useState<CameraType>('back');
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
@@ -43,6 +49,7 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [lastRecordedVideo, setLastRecordedVideo] = useState<string | null>(null);
   const [showVideoPreview, setShowVideoPreview] = useState<boolean>(false);
+  const [showLiveStreamSetup, setShowLiveStreamSetup] = useState<boolean>(false);
   const cameraRef = useRef<any>(null);
 
   React.useEffect(() => {
@@ -203,9 +210,39 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
               <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+          
+          {/* Go Live Button */}
+          <TouchableOpacity 
+            style={styles.goLiveButton} 
+            onPress={() => setShowLiveStreamSetup(true)}
+          >
+            <Radio size={20} color="#FFFFFF" />
+            <Text style={styles.goLiveButtonText}>Go Live</Text>
+          </TouchableOpacity>
         </View>
 
+        {/* Hero Effect - Gradient overlay to hide camera controls when live stream setup is visible */}
+        {showLiveStreamSetup && (
+          <LinearGradient
+            colors={['rgba(0, 0, 0, 0.95)', 'rgba(0, 0, 0, 0.85)', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0)']}
+            locations={[0, 0.3, 0.6, 1]}
+            style={styles.heroGradientOverlay}
+            pointerEvents="none"
+          />
+        )}
 
+        {/* Live Stream Setup Overlay */}
+        {showLiveStreamSetup && (
+          <LiveStreamSetupOverlay
+            onClose={() => setShowLiveStreamSetup(false)}
+            onStartLiveStream={(sessionId) => {
+              setShowLiveStreamSetup(false);
+              onClose();
+              // Navigate to live stream broadcast screen
+              router.push(`/live/${sessionId}`);
+            }}
+          />
+        )}
 
         {/* Video Preview Overlay */}
         {showVideoPreview && lastRecordedVideo && (
@@ -578,6 +615,236 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
   },
+  goLiveButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    zIndex: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  goLiveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  heroGradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    zIndex: 50,
+  },
+  liveStreamOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+    justifyContent: 'flex-end',
+  },
+  liveStreamOverlayBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  liveStreamOverlayContent: {
+    flex: 1,
+    zIndex: 101,
+  },
+  liveStreamOverlayContentContainer: {
+    padding: 20,
+    paddingTop: 60,
+  },
+  liveStreamHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  liveStreamHeaderTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  startLiveButton: {
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  startLiveButtonDisabled: {
+    backgroundColor: '#666',
+    opacity: 0.5,
+  },
+  startLiveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  liveStreamInputContainer: {
+    marginBottom: 20,
+  },
+  liveStreamInputLabel: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  liveStreamTitleInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    color: '#FFFFFF',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  liveStreamDescriptionInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    color: '#FFFFFF',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  liveStreamTagInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    color: '#FFFFFF',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  mealSelectButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  mealSelectButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    flex: 1,
+  },
+  mealSelectHint: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    marginTop: 6,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    gap: 8,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  tagText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  mealPickerContainer: {
+    marginTop: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    maxHeight: 200,
+    overflow: 'hidden',
+  },
+  mealPickerScrollView: {
+    maxHeight: 200,
+  },
+  mealPickerLoading: {
+    padding: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  mealPickerLoadingText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+  },
+  mealPickerEmpty: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  mealPickerEmptyText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  mealPickerEmptySubtext: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+  },
+  mealPickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 12,
+  },
+  mealPickerItemSelected: {
+    backgroundColor: 'rgba(255, 59, 48, 0.2)',
+  },
+  mealPickerItemImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+  },
+  mealPickerItemContent: {
+    flex: 1,
+    gap: 4,
+  },
+  mealPickerItemName: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  mealPickerItemDescription: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+  },
+  mealPickerItemPrice: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   permissionText: {
     color: '#FFFFFF',
     fontSize: 18,
@@ -627,3 +894,275 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
 });
+
+// Live Stream Setup Overlay Component
+interface LiveStreamSetupOverlayProps {
+  onClose: () => void;
+  onStartLiveStream: (sessionId: string) => void;
+}
+
+function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupOverlayProps) {
+  const { isAuthenticated, user } = useAuthContext();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  const [selectedMealName, setSelectedMealName] = useState<string>('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [isStarting, setIsStarting] = useState(false);
+  const [showMealPicker, setShowMealPicker] = useState(false);
+  const isMountedRef = React.useRef(true);
+
+  // Fetch chef meals
+  const { data: mealsData, isLoading: isLoadingMeals } = useGetChefMealsQuery(
+    { limit: 100 },
+    { skip: !isAuthenticated }
+  );
+
+  const [startLiveSession] = useStartLiveSessionMutation();
+
+  const meals = mealsData?.meals || [];
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Safe close handler
+  const handleClose = React.useCallback(() => {
+    if (isMountedRef.current) {
+      // Reset state before closing
+      setShowMealPicker(false);
+      onClose();
+    }
+  }, [onClose]);
+
+  const handleTagInput = (text: string) => {
+    if (text.includes(',')) {
+      const newTags = text.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      setTags(prev => [...prev, ...newTags]);
+    }
+  };
+
+  const handleStartLiveStream = async () => {
+    if (!isMountedRef.current) return;
+
+    if (!isAuthenticated) {
+      Alert.alert('Sign In Required', 'Please sign in to start a live stream.');
+      return;
+    }
+
+    if (!title.trim()) {
+      Alert.alert('Title Required', 'Please add a title for your live stream.');
+      return;
+    }
+
+    if (!selectedMealId) {
+      Alert.alert('Meal Required', 'Please select a meal for your live stream.');
+      return;
+    }
+
+    try {
+      if (!isMountedRef.current) return;
+      setIsStarting(true);
+      const result = await startLiveSession({
+        title: title.trim(),
+        description: description.trim() || '',
+        mealId: selectedMealId,
+        tags: tags,
+      }).unwrap();
+      
+      if (isMountedRef.current) {
+        onStartLiveStream(result.sessionId);
+      }
+    } catch (error: any) {
+      if (!isMountedRef.current) return;
+      console.error('Error starting live stream:', error);
+      let errorMessage = 'Please try again.';
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      Alert.alert('Failed to Start Live Stream', errorMessage);
+    } finally {
+      if (isMountedRef.current) {
+        setIsStarting(false);
+      }
+    }
+  };
+
+  return (
+    <View style={styles.liveStreamOverlay}>
+      {/* Backdrop - allows closing by tapping outside */}
+      <TouchableOpacity 
+        style={styles.liveStreamOverlayBackdrop} 
+        activeOpacity={1}
+        onPress={handleClose}
+        disabled={isStarting}
+      />
+      <ScrollView 
+        style={styles.liveStreamOverlayContent} 
+        contentContainerStyle={styles.liveStreamOverlayContentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <View style={styles.liveStreamHeader}>
+          <TouchableOpacity onPress={handleClose} disabled={isStarting}>
+            <X size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.liveStreamHeaderTitle}>Start Live Stream</Text>
+          <TouchableOpacity
+            onPress={handleStartLiveStream}
+            disabled={isStarting || !title.trim() || !selectedMealId}
+            style={[
+              styles.startLiveButton,
+              (isStarting || !title.trim() || !selectedMealId) && styles.startLiveButtonDisabled,
+            ]}
+          >
+            {isStarting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.startLiveButtonText}>Start Live</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Title Input */}
+        <View style={styles.liveStreamInputContainer}>
+          <Text style={styles.liveStreamInputLabel}>Live Stream Title *</Text>
+          <TextInput
+            style={styles.liveStreamTitleInput}
+            placeholder="What are you cooking today?"
+            placeholderTextColor="#999"
+            value={title}
+            onChangeText={setTitle}
+            maxLength={100}
+            editable={!isStarting}
+            multiline={false}
+          />
+        </View>
+
+        {/* Meal Selection */}
+        <View style={styles.liveStreamInputContainer}>
+          <Text style={styles.liveStreamInputLabel}>Meal Being Cooked *</Text>
+          <TouchableOpacity 
+            style={styles.mealSelectButton} 
+            disabled={isStarting || isLoadingMeals}
+            onPress={() => setShowMealPicker(!showMealPicker)}
+          >
+            <Text style={styles.mealSelectButtonText}>
+              {selectedMealName || 'Select a Meal'}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color="#666" />
+          </TouchableOpacity>
+          {showMealPicker && (
+            <View style={styles.mealPickerContainer}>
+              <ScrollView style={styles.mealPickerScrollView} nestedScrollEnabled>
+                {isLoadingMeals ? (
+                  <View style={styles.mealPickerLoading}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.mealPickerLoadingText}>Loading meals...</Text>
+                  </View>
+                ) : meals.length === 0 ? (
+                  <View style={styles.mealPickerEmpty}>
+                    <Text style={styles.mealPickerEmptyText}>No meals available</Text>
+                    <Text style={styles.mealPickerEmptySubtext}>
+                      Create a meal in your chef profile first
+                    </Text>
+                  </View>
+                ) : (
+                  meals.map((meal) => (
+                    <TouchableOpacity
+                      key={meal._id}
+                      style={[
+                        styles.mealPickerItem,
+                        selectedMealId === meal._id && styles.mealPickerItemSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedMealId(meal._id);
+                        setSelectedMealName(meal.name);
+                        setShowMealPicker(false);
+                      }}
+                    >
+                      {meal.image && (
+                        <Image
+                          source={{ uri: meal.image }}
+                          style={styles.mealPickerItemImage}
+                          contentFit="cover"
+                        />
+                      )}
+                      <View style={styles.mealPickerItemContent}>
+                        <Text style={styles.mealPickerItemName}>{meal.name}</Text>
+                        {meal.description && (
+                          <Text style={styles.mealPickerItemDescription} numberOfLines={1}>
+                            {meal.description}
+                          </Text>
+                        )}
+                        {meal.price && (
+                          <Text style={styles.mealPickerItemPrice}>£{meal.price.toFixed(2)}</Text>
+                        )}
+                      </View>
+                      {selectedMealId === meal._id && (
+                        <Ionicons name="checkmark-circle" size={24} color="#FF3B30" />
+                      )}
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          )}
+          <Text style={styles.mealSelectHint}>
+            Link your live stream to a specific meal from your menu.
+          </Text>
+        </View>
+
+        {/* Description Input */}
+        <View style={styles.liveStreamInputContainer}>
+          <Text style={styles.liveStreamInputLabel}>Description (Optional)</Text>
+          <TextInput
+            style={styles.liveStreamDescriptionInput}
+            placeholder="Tell us more about your live session..."
+            placeholderTextColor="#999"
+            value={description}
+            onChangeText={setDescription}
+            maxLength={500}
+            editable={!isStarting}
+            multiline
+            numberOfLines={4}
+          />
+        </View>
+
+        {/* Tags Input */}
+        <View style={styles.liveStreamInputContainer}>
+          <Text style={styles.liveStreamInputLabel}>Tags (comma-separated)</Text>
+          <TextInput
+            style={styles.liveStreamTagInput}
+            placeholder="e.g. italian, pasta, cooking"
+            placeholderTextColor="#999"
+            onChangeText={handleTagInput}
+            editable={!isStarting}
+          />
+          {tags.length > 0 && (
+            <View style={styles.tagsContainer}>
+              {tags.map((tag, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                  <TouchableOpacity
+                    onPress={() => setTags(prev => prev.filter((_, i) => i !== index))}
+                    disabled={isStarting}
+                  >
+                    <X size={14} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
