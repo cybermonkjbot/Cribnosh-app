@@ -98,37 +98,13 @@ export default function OrdersScreen() {
     }
   );
 
-  // Fetch active special offers
+  // Fetch active special offers - only use API data
   const {
     data: offersData,
   } = useGetActiveOffersQuery(
     { target: "group_orders" },
     { skip: false }
   );
-
-  // Mock custom orders data for fallback
-  const mockCustomOrders: CustomOrder[] = [
-    {
-      _id: "mock_custom_order_1",
-      userId: "mock_user_1",
-      requirements: "Gluten-free pasta with vegan cheese",
-      serving_size: 2,
-      custom_order_id: "CUST-MOCK-001",
-      status: "pending",
-      dietary_restrictions: "gluten-free, vegan",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      _id: "mock_custom_order_2",
-      userId: "mock_user_1",
-      requirements: "Custom sushi platter for office lunch",
-      serving_size: 8,
-      custom_order_id: "CUST-MOCK-002",
-      status: "processing",
-      dietary_restrictions: "halal",
-      createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    },
-  ];
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -286,21 +262,17 @@ export default function OrdersScreen() {
     };
   };
 
-  // Get regular orders from API response
+  // Get regular orders from API response - only use API data
   const apiOrders =
     ordersData?.data?.orders && ordersData.data.orders.length > 0 
       ? ordersData.data.orders 
       : [];
 
-  // Only use mock data if API explicitly fails, not if data is just empty
+  // Get custom orders from API response - only use API data, no mock fallback
   const customOrders =
     customOrdersData?.data?.orders && customOrdersData.data.orders.length > 0
       ? customOrdersData.data.orders
-      : customOrdersLoading === false && !customOrdersData && !customOrdersError
-        ? []
-        : customOrdersError
-          ? mockCustomOrders // Only use mock on error
-          : [];
+      : [];
 
   // Convert API orders to Order format
   const apiOrdersAsOrders = apiOrders.map(convertApiOrderToOrder);

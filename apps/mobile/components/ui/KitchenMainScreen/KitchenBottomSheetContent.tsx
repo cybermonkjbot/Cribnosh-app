@@ -322,28 +322,28 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
               </View>
               <Text style={styles.emptyText}>Failed to search meals. Please try again.</Text>
             </View>
-          ) : searchMeals.length > 0 ? (
+          ) : displayMeals.length > 0 ? (
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.mealsContainer}
             >
-              {searchMeals.map((meal: any) => (
+              {displayMeals.map((meal: any) => (
                 <TouchableOpacity
-                  key={meal._id || meal.id}
+                  key={meal.id}
                   style={styles.mealCard}
                   onPress={() => {
                     // Navigate to meal details or add to cart
-                    console.log('Meal pressed:', meal);
+                    // TODO: Implement navigation to meal details page
                   }}
                   activeOpacity={0.8}
                 >
                   <View style={styles.mealImageContainer}>
                     <Image 
-                      source={meal.image ? { uri: meal.image } : require('../../../assets/images/cribnoshpackaging.png')} 
+                      source={meal.image} 
                       style={styles.mealImage} 
                     />
-                    {meal.averageRating >= 4.5 && (
+                    {meal.isPopular && (
                       <View style={styles.popularBadge}>
                         <Text style={styles.badgeText}>Popular</Text>
                       </View>
@@ -352,12 +352,12 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
                   <View style={styles.mealInfo}>
                     <Text style={styles.mealName} numberOfLines={1}>{meal.name}</Text>
                     <View style={styles.mealPriceRow}>
-                      <Text style={styles.mealPrice}>£{meal.price?.toFixed(2) || '0.00'}</Text>
+                      <Text style={styles.mealPrice}>{meal.price}</Text>
                       {meal.originalPrice && (
-                        <Text style={styles.originalPrice}>£{meal.originalPrice.toFixed(2)}</Text>
+                        <Text style={styles.originalPrice}>{meal.originalPrice}</Text>
                       )}
                     </View>
-                    <Text style={styles.deliveryTime}>{meal.prepTime || 30} min</Text>
+                    <Text style={styles.deliveryTime}>{meal.deliveryTime}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -409,11 +409,11 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
             >
               {displayMeals.map((meal: any) => (
                 <TouchableOpacity
-                  key={meal._id || meal.id}
+                  key={meal.id}
                   style={styles.mealCard}
                   onPress={() => {
                     // Navigate to meal details or add to cart
-                    console.log('Meal pressed:', meal);
+                    // TODO: Implement navigation to meal details page
                   }}
                   activeOpacity={0.8}
                 >
@@ -422,11 +422,6 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
                     {meal.isPopular && (
                       <View style={styles.popularBadge}>
                         <Text style={styles.badgeText}>Popular</Text>
-                      </View>
-                    )}
-                    {meal.isNew && (
-                      <View style={styles.newBadge}>
-                        <Text style={styles.badgeText}>New</Text>
                       </View>
                     )}
                   </View>
