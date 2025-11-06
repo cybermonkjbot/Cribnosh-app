@@ -72,11 +72,7 @@ export default function OrdersScreen() {
   const scrollY = useSharedValue(0);
 
   // Fetch custom orders from API
-  const {
-    data: customOrdersData,
-    error: customOrdersError,
-    isLoading: customOrdersLoading,
-  } = useGetCustomOrdersQuery(
+  const { data: customOrdersData } = useGetCustomOrdersQuery(
     { page: 1, limit: 20 },
     {
       skip: false, // Always fetch to check if we have data
@@ -84,11 +80,9 @@ export default function OrdersScreen() {
   );
 
   // Fetch regular orders from API with status filtering
-  const {
-    data: ordersData,
-  } = useGetOrdersQuery(
-    { 
-      page: 1, 
+  const { data: ordersData } = useGetOrdersQuery(
+    {
+      page: 1,
       limit: 20,
       status: activeTab === "ongoing" ? "ongoing" : "past",
       order_type: "all",
@@ -98,10 +92,8 @@ export default function OrdersScreen() {
     }
   );
 
-  // Fetch active special offers
-  const {
-    data: offersData,
-  } = useGetActiveOffersQuery(
+  // Fetch active special offers - only use API data
+  const { data: offersData } = useGetActiveOffersQuery(
     { target: "group_orders" },
     { skip: false }
   );
@@ -115,12 +107,16 @@ export default function OrdersScreen() {
 
   // Helper function to get ordinal suffix
   const getOrdinalSuffix = (day: number): string => {
-    if (day > 3 && day < 21) return 'th';
+    if (day > 3 && day < 21) return "th";
     switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
+      case 1:
+        return "st";
+      case 2:
+        return "nd";
+      case 3:
+        return "rd";
+      default:
+        return "th";
     }
   };
 
@@ -138,16 +134,17 @@ export default function OrdersScreen() {
     };
 
     // Format timestamp
-    const timestamp = apiOrder.createdAt || apiOrder.created_at
-      ? (typeof apiOrder.createdAt === 'number' 
-          ? apiOrder.createdAt 
-          : new Date(apiOrder.created_at).getTime())
-      : Date.now();
+    const timestamp =
+      apiOrder.createdAt || apiOrder.created_at
+        ? typeof apiOrder.createdAt === "number"
+          ? apiOrder.createdAt
+          : new Date(apiOrder.created_at).getTime()
+        : Date.now();
     const date = new Date(timestamp);
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
     const day = date.getDate();
-    const monthName = date.toLocaleString('en-GB', { month: 'long' });
+    const monthName = date.toLocaleString("en-GB", { month: "long" });
     const formattedTime = `${hours}:${minutes} • ${day}${getOrdinalSuffix(day)} ${monthName}`;
 
     // Format estimated time
@@ -160,37 +157,44 @@ export default function OrdersScreen() {
     }
 
     // Get items
-    const items = apiOrder.order_items 
+    const items = apiOrder.order_items
       ? apiOrder.order_items.map((item: any) => item.name || item.dish_name)
       : apiOrder.items.map((item) => item.dish_name);
 
     // Get description
-    const kitchenName = apiOrder.kitchen_name || apiOrder.restaurant_name || "Kitchen";
-    const description = items.length > 0
-      ? `${items.slice(0, 2).join(", ")}${items.length > 2 ? `, +${items.length - 2} more` : ''} from ${kitchenName}`
-      : `Order from ${kitchenName}`;
+    const kitchenName =
+      apiOrder.kitchen_name || apiOrder.restaurant_name || "Kitchen";
+    const description =
+      items.length > 0
+        ? `${items.slice(0, 2).join(", ")}${items.length > 2 ? `, +${items.length - 2} more` : ""} from ${kitchenName}`
+        : `Order from ${kitchenName}`;
 
     // Get price
     const totalAmount = apiOrder.total_amount || apiOrder.total || 0;
     const price = `£${(totalAmount / 100).toFixed(2)}`;
 
     // Get order number
-    const orderNumber = apiOrder.order_id 
+    const orderNumber = apiOrder.order_id
       ? `#${apiOrder.order_id}`
-      : apiOrder.id 
-        ? `#${apiOrder.id}` 
-        : `#${apiOrder._id || 'ORD-001'}`;
+      : apiOrder.id
+        ? `#${apiOrder.id}`
+        : `#${apiOrder._id || "ORD-001"}`;
 
     // Generate a unique ID for the order
-    const uniqueId = apiOrder._id || apiOrder.id || `api-${Math.random().toString(36).slice(2, 11)}`;
-    const numericId = parseInt(uniqueId.toString().replace(/\D/g, "")) || Math.random() * 1000;
+    const uniqueId =
+      apiOrder._id ||
+      apiOrder.id ||
+      `api-${Math.random().toString(36).slice(2, 11)}`;
+    const numericId =
+      parseInt(uniqueId.toString().replace(/\D/g, "")) || Math.random() * 1000;
 
     const baseOrder: Order = {
       id: numericId,
       time: formattedTime,
       description,
       price,
-      status: statusMap[apiOrder.order_status || apiOrder.status] || "preparing",
+      status:
+        statusMap[apiOrder.order_status || apiOrder.status] || "preparing",
       estimatedTime,
       kitchenName,
       orderNumber,
@@ -200,24 +204,31 @@ export default function OrdersScreen() {
       _uniqueKey: `api-${uniqueId}`,
     };
 
-      // Add group order info if applicable
-      if (apiOrder.is_group_order && (apiOrder.group_order || apiOrder.group_order_details)) {
-        const groupData = apiOrder.group_order || apiOrder.group_order_details;
-        if (groupData && groupData.participants) {
-          baseOrder.groupOrder = {
-            id: (apiOrder as any).group_order_id || apiOrder._id || apiOrder.id,
-            users: groupData.participants.map((p: any) => ({
-              id: p.user_id,
-              name: p.user_name,
-              initials: p.user_initials || p.user_name?.charAt(0).toUpperCase() || 'U',
-              color: p.user_color,
-              avatar: p.avatar_url,
-            })),
-            totalUsers: groupData.total_participants || groupData.participants.length,
-            isActive: (apiOrder.order_status || apiOrder.status) !== "delivered" && (apiOrder.order_status || apiOrder.status) !== "cancelled",
-          };
-        }
+    // Add group order info if applicable
+    if (
+      apiOrder.is_group_order &&
+      (apiOrder.group_order || apiOrder.group_order_details)
+    ) {
+      const groupData = apiOrder.group_order || apiOrder.group_order_details;
+      if (groupData && groupData.participants) {
+        baseOrder.groupOrder = {
+          id: (apiOrder as any).group_order_id || apiOrder._id || apiOrder.id,
+          users: groupData.participants.map((p: any) => ({
+            id: p.user_id,
+            name: p.user_name,
+            initials:
+              p.user_initials || p.user_name?.charAt(0).toUpperCase() || "U",
+            color: p.user_color,
+            avatar: p.avatar_url,
+          })),
+          totalUsers:
+            groupData.total_participants || groupData.participants.length,
+          isActive:
+            (apiOrder.order_status || apiOrder.status) !== "delivered" &&
+            (apiOrder.order_status || apiOrder.status) !== "cancelled",
+        };
       }
+    }
 
     return baseOrder;
   };
@@ -235,8 +246,10 @@ export default function OrdersScreen() {
     };
 
     // Generate a unique ID for the custom order
-    const uniqueId = customOrder._id || `custom-${Math.random().toString(36).slice(2, 11)}`;
-    const numericId = parseInt(uniqueId.toString().replace(/\D/g, "")) || Math.random() * 1000;
+    const uniqueId =
+      customOrder._id || `custom-${Math.random().toString(36).slice(2, 11)}`;
+    const numericId =
+      parseInt(uniqueId.toString().replace(/\D/g, "")) || Math.random() * 1000;
 
     return {
       id: numericId,
@@ -262,13 +275,13 @@ export default function OrdersScreen() {
     };
   };
 
-  // Get regular orders from API response
+  // Get regular orders from API response - only use API data
   const apiOrders =
-    ordersData?.data?.orders && ordersData.data.orders.length > 0 
-      ? ordersData.data.orders 
+    ordersData?.data?.orders && ordersData.data.orders.length > 0
+      ? ordersData.data.orders
       : [];
 
-  // Get custom orders from API response
+  // Get custom orders from API response - only use API data, no mock fallback
   const customOrders =
     customOrdersData?.data?.orders && customOrdersData.data.orders.length > 0
       ? customOrdersData.data.orders
@@ -380,7 +393,7 @@ export default function OrdersScreen() {
           }}
           actionButton={{
             label: "Browse Kitchens",
-            onPress: () => router.push("/(tabs)/"),
+            onPress: () => router.push("/(tabs)" as any),
           }}
         />
       );
@@ -391,13 +404,13 @@ export default function OrdersScreen() {
       // Parse time strings to compare - format: "20:00 • 2nd November" or "19:18, 6th June"
       const timeA = a.time.match(/(\d{1,2}):(\d{2})/);
       const timeB = b.time.match(/(\d{1,2}):(\d{2})/);
-      
+
       if (timeA && timeB) {
         const hourA = parseInt(timeA[1]);
         const hourB = parseInt(timeB[1]);
         const minA = parseInt(timeA[2]);
         const minB = parseInt(timeB[2]);
-        
+
         // Simple time comparison (for same day, this works)
         if (hourA !== hourB) return hourB - hourA;
         return minB - minA;
@@ -454,7 +467,7 @@ export default function OrdersScreen() {
       {/* Campaign Banner */}
       {offersData?.data?.offers?.[0] && (
         <Animated.View style={bannerStyle}>
-          <OrdersCampaignBanner 
+          <OrdersCampaignBanner
             offer={offersData.data.offers[0]}
             onPress={() => {
               const offer = offersData.data.offers[0];
@@ -464,7 +477,7 @@ export default function OrdersScreen() {
               } else if (offer.action_type === "navigate") {
                 router.push(offer.action_target as any);
               }
-            }} 
+            }}
           />
         </Animated.View>
       )}

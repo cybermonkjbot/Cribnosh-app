@@ -3,18 +3,16 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useGetUsualDinnerItemsQuery, useGetColleagueConnectionsQuery, useGetPlayToWinHistoryQuery } from '@/store/customerApi';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { showError } from '../../lib/GlobalToastManager';
 import {
   getPlayToWinData,
-  getUsualDinnerData,
   UserBehavior
 } from '../../utils/hiddenSections';
 import { UsualDinnerSectionSkeleton } from './UsualDinnerSectionSkeleton';
-import { UsualDinnerSectionEmpty } from './UsualDinnerSectionEmpty';
 import { PlayToWinSectionSkeleton } from './PlayToWinSectionSkeleton';
-import { PlayToWinSectionEmpty } from './PlayToWinSectionEmpty';
 
 interface UsualDinnerItem {
   dish_id: string;
@@ -31,8 +29,9 @@ interface UsualDinnerItem {
 // Usual Dinner Section Component
 export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavior }) {
   const { isAuthenticated } = useAuthContext();
+  const router = useRouter();
   
-  // Fetch usual dinner items from API
+  // Fetch usual dinner items from API - only use API data, no fallback
   const {
     data: dinnerItemsData,
     isLoading: dinnerItemsLoading,
@@ -44,26 +43,14 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
     }
   );
 
-  // Transform API data to component format
+  // Transform API data to component format - only use API data
   const dinnerItems: UsualDinnerItem[] = useMemo(() => {
     if (dinnerItemsData?.success && dinnerItemsData.data?.items && dinnerItemsData.data.items.length > 0) {
       return dinnerItemsData.data.items;
     }
-    // Fallback to userBehavior data if API fails or no data
-    if (userBehavior.usualDinnerItems && userBehavior.usualDinnerItems.length > 0) {
-      const fallbackData = getUsualDinnerData(userBehavior);
-      return fallbackData.items.map((itemName: string, index: number) => ({
-        dish_id: `fallback-${index}`,
-        name: itemName,
-        price: 0,
-        kitchen_name: 'Unknown Kitchen',
-        kitchen_id: '',
-        order_count: 1,
-        last_ordered_at: Date.now(),
-      }));
-    }
+    // No fallback - return empty array if API has no data
     return [];
-  }, [dinnerItemsData, userBehavior]);
+  }, [dinnerItemsData]);
 
   // Handle errors
   React.useEffect(() => {
@@ -209,6 +196,7 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
 // Play to Win Section Component
 export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior }) {
   const { isAuthenticated } = useAuthContext();
+  const router = useRouter();
   
   // Fetch colleague connections and game history from API
   const {

@@ -1,5 +1,5 @@
 // store/customerApi.ts
-import { API_CONFIG } from '@/constants/api';
+import { API_CONFIG } from "@/constants/api";
 import {
   AcceptFamilyInvitationRequest,
   AcceptFamilyInvitationResponse,
@@ -69,8 +69,13 @@ import {
   GetFamilySpendingResponse,
   GetForkPrintScoreResponse,
   GetGroupOrderResponse,
+  GetLiveChatResponse,
+  GetLiveCommentsResponse,
+  GetLiveReactionsResponse,
   GetLiveSessionDetailsResponse,
+  GetLiveStreamOrdersResponse,
   GetLiveStreamsResponse,
+  GetLiveViewersResponse,
   GetMenuDetailsResponse,
   GetMonthlyOverviewResponse,
   GetNoshPointsResponse,
@@ -111,6 +116,10 @@ import {
   SearchResponse,
   SearchSuggestionsParams,
   SearchSuggestionsResponse,
+  SendLiveCommentRequest,
+  SendLiveCommentResponse,
+  SendLiveReactionRequest,
+  SendLiveReactionResponse,
   SendSupportMessageRequest,
   SendSupportMessageResponse,
   SetDefaultPaymentMethodResponse,
@@ -196,13 +205,14 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
       },
     });
     const result = await customBaseQuery(args, api, extraOptions);
-    
+
     // Process result through error handling
     if (result.error) {
-      const errorStatus = typeof result.error.status === "number" 
-        ? result.error.status 
-        : (result.error as any).originalStatus || 500;
-      
+      const errorStatus =
+        typeof result.error.status === "number"
+          ? result.error.status
+          : (result.error as any).originalStatus || 500;
+
       const errorData = result.error.data;
 
       if (errorStatus === 401 || errorStatus === "401") {
@@ -217,10 +227,9 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
         return result;
       }
 
-      const normalizedErrorData = errorData && typeof errorData === "object" 
-        ? (errorData as any)
-        : {};
-      
+      const normalizedErrorData =
+        errorData && typeof errorData === "object" ? (errorData as any) : {};
+
       return {
         error: {
           status: errorStatus,
@@ -228,23 +237,27 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
             success: false,
             error: {
               code: `${errorStatus}`,
-              message: 
+              message:
                 normalizedErrorData?.error?.message ||
                 normalizedErrorData?.message ||
-                (errorStatus === 401 ? "Unauthorized. Please sign in again." :
-                 errorStatus === 403 ? "Forbidden. You don't have permission." :
-                 errorStatus === 404 ? "Resource not found." :
-                 errorStatus === 500 ? "Internal server error. Please try again later." :
-                 `Request failed with status ${errorStatus}`),
+                (errorStatus === 401
+                  ? "Unauthorized. Please sign in again."
+                  : errorStatus === 403
+                    ? "Forbidden. You don't have permission."
+                    : errorStatus === 404
+                      ? "Resource not found."
+                      : errorStatus === 500
+                        ? "Internal server error. Please try again later."
+                        : `Request failed with status ${errorStatus}`),
             },
           },
         },
       };
     }
-    
+
     return result;
   }
-  
+
   const result = await rawBaseQuery(args, api, extraOptions);
 
   // Handle parsing errors (when server returns HTML instead of JSON)
@@ -253,7 +266,10 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
     const data = (result.error as any).data;
 
     // Check if the response is HTML
-    if (typeof data === "string" && (data.trim().startsWith("<!DOCTYPE") || data.trim().startsWith("<html"))) {
+    if (
+      typeof data === "string" &&
+      (data.trim().startsWith("<!DOCTYPE") || data.trim().startsWith("<html"))
+    ) {
       return {
         error: {
           status: originalStatus,
@@ -261,9 +277,10 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
             success: false,
             error: {
               code: `${originalStatus}`,
-              message: originalStatus === 404
-                ? "Endpoint not found. This feature may not be available yet."
-                : `Server error: ${originalStatus}`,
+              message:
+                originalStatus === 404
+                  ? "Endpoint not found. This feature may not be available yet."
+                  : `Server error: ${originalStatus}`,
             },
           },
         },
@@ -273,19 +290,25 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
 
   // Handle other errors and normalize the error format
   if (result.error) {
-    const errorStatus = typeof result.error.status === "number" 
-      ? result.error.status 
-      : (result.error as any).originalStatus || 500;
-    
+    const errorStatus =
+      typeof result.error.status === "number"
+        ? result.error.status
+        : (result.error as any).originalStatus || 500;
+
     const errorData = result.error.data;
 
     // Handle 401 errors globally - redirect to sign-in
     const errorCode = (errorData as any)?.error?.code;
-    if (errorStatus === 401 || errorStatus === "401" || errorCode === 401 || errorCode === "401") {
+    if (
+      errorStatus === 401 ||
+      errorStatus === "401" ||
+      errorCode === 401 ||
+      errorCode === "401"
+    ) {
       // Clear expired/invalid tokens
       await SecureStore.deleteItemAsync("cribnosh_token");
       await SecureStore.deleteItemAsync("cribnosh_user");
-      
+
       // Use the global 401 handler (dynamic import to avoid circular deps)
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { handle401Error } = require("@/utils/authErrorHandler");
@@ -298,10 +321,9 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
     }
 
     // Normalize error format
-    const normalizedErrorData = errorData && typeof errorData === "object" 
-      ? (errorData as any)
-      : {};
-    
+    const normalizedErrorData =
+      errorData && typeof errorData === "object" ? (errorData as any) : {};
+
     return {
       error: {
         status: errorStatus,
@@ -309,14 +331,18 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
           success: false,
           error: {
             code: `${errorStatus}`,
-            message: 
+            message:
               normalizedErrorData?.error?.message ||
               normalizedErrorData?.message ||
-              (errorStatus === 401 ? "Unauthorized. Please sign in again." :
-               errorStatus === 403 ? "Forbidden. You don't have permission." :
-               errorStatus === 404 ? "Resource not found." :
-               errorStatus === 500 ? "Internal server error. Please try again later." :
-               `Request failed with status ${errorStatus}`),
+              (errorStatus === 401
+                ? "Unauthorized. Please sign in again."
+                : errorStatus === 403
+                  ? "Forbidden. You don't have permission."
+                  : errorStatus === 404
+                    ? "Resource not found."
+                    : errorStatus === 500
+                      ? "Internal server error. Please try again later."
+                      : `Request failed with status ${errorStatus}`),
           },
         },
       },
@@ -457,7 +483,10 @@ export const customerApi = createApi({
      * PUT /customer/account/password
      * Backend endpoint: PUT /customer/account/password
      */
-    changePassword: builder.mutation<ChangePasswordResponse, ChangePasswordRequest>({
+    changePassword: builder.mutation<
+      ChangePasswordResponse,
+      ChangePasswordRequest
+    >({
       query: (data) => ({
         url: "/customer/account/password",
         method: "PUT",
@@ -508,7 +537,10 @@ export const customerApi = createApi({
      * DELETE /customer/account/two-factor
      * Backend endpoint: DELETE /customer/account/two-factor
      */
-    disableTwoFactor: builder.mutation<DisableTwoFactorResponse, DisableTwoFactorRequest>({
+    disableTwoFactor: builder.mutation<
+      DisableTwoFactorResponse,
+      DisableTwoFactorRequest
+    >({
       query: (data) => ({
         url: "/customer/account/two-factor",
         method: "DELETE",
@@ -551,7 +583,19 @@ export const customerApi = createApi({
      * GET /customer/cuisines/categories
      */
     getCuisineCategories: builder.query<
-      { success: boolean; data: { categories: { id: string; name: string; kitchen_count: number; image_url: string | null; is_active: boolean }[]; total: number } },
+      {
+        success: boolean;
+        data: {
+          categories: {
+            id: string;
+            name: string;
+            kitchen_count: number;
+            image_url: string | null;
+            is_active: boolean;
+          }[];
+          total: number;
+        };
+      },
       void
     >({
       query: () => ({
@@ -620,13 +664,18 @@ export const customerApi = createApi({
      * GET /customer/chefs/featured
      */
     getFeaturedKitchens: builder.query<
-      { success: boolean; data: { kitchens: any[]; total: number; limit: number } },
+      {
+        success: boolean;
+        data: { kitchens: any[]; total: number; limit: number };
+      },
       { sentiment?: string; is_live?: boolean; limit?: number }
     >({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
-        if (params.sentiment) searchParams.append("sentiment", params.sentiment);
-        if (params.is_live !== undefined) searchParams.append("is_live", params.is_live.toString());
+        if (params.sentiment)
+          searchParams.append("sentiment", params.sentiment);
+        if (params.is_live !== undefined)
+          searchParams.append("is_live", params.is_live.toString());
         if (params.limit) searchParams.append("limit", params.limit.toString());
         const queryString = searchParams.toString();
         return {
@@ -641,27 +690,26 @@ export const customerApi = createApi({
      * Get chef details by ID
      * GET /customer/chefs/{chef_id}
      */
-    getChefDetails: builder.query<
-      GetChefDetailsResponse,
-      GetChefDetailsParams
-    >({
-      query: (params) => {
-        const searchParams = new URLSearchParams();
-        if (params.latitude)
-          searchParams.append("latitude", params.latitude.toString());
-        if (params.longitude)
-          searchParams.append("longitude", params.longitude.toString());
+    getChefDetails: builder.query<GetChefDetailsResponse, GetChefDetailsParams>(
+      {
+        query: (params) => {
+          const searchParams = new URLSearchParams();
+          if (params.latitude)
+            searchParams.append("latitude", params.latitude.toString());
+          if (params.longitude)
+            searchParams.append("longitude", params.longitude.toString());
 
-        const queryString = searchParams.toString();
-        return {
-          url: `/customer/chefs/${params.chefId}${queryString ? `?${queryString}` : ""}`,
-          method: "GET",
-        };
-      },
-      providesTags: (result, error, params) => [
-        { type: "Chefs", id: params.chefId },
-      ],
-    }),
+          const queryString = searchParams.toString();
+          return {
+            url: `/customer/chefs/${params.chefId}${queryString ? `?${queryString}` : ""}`,
+            method: "GET",
+          };
+        },
+        providesTags: (result, error, params) => [
+          { type: "Chefs", id: params.chefId },
+        ],
+      }
+    ),
 
     /**
      * Search chefs by location
@@ -699,18 +747,17 @@ export const customerApi = createApi({
      * Get popular chef details with reviews
      * GET /customer/chefs/popular/{chef_id}
      */
-    getPopularChefDetails: builder.query<
-      GetPopularChefDetailsResponse,
-      string
-    >({
-      query: (chefId) => ({
-        url: `/customer/chefs/popular/${chefId}`,
-        method: "GET",
-      }),
-      providesTags: (result, error, chefId) => [
-        { type: "Chefs", id: `popular/${chefId}` },
-      ],
-    }),
+    getPopularChefDetails: builder.query<GetPopularChefDetailsResponse, string>(
+      {
+        query: (chefId) => ({
+          url: `/customer/chefs/popular/${chefId}`,
+          method: "GET",
+        }),
+        providesTags: (result, error, chefId) => [
+          { type: "Chefs", id: `popular/${chefId}` },
+        ],
+      }
+    ),
 
     /**
      * Get nearby chefs by location
@@ -741,7 +788,8 @@ export const customerApi = createApi({
         const searchParams = new URLSearchParams();
         searchParams.append("latitude", params.latitude.toString());
         searchParams.append("longitude", params.longitude.toString());
-        if (params.radius) searchParams.append("radius", params.radius.toString());
+        if (params.radius)
+          searchParams.append("radius", params.radius.toString());
         if (params.limit) searchParams.append("limit", params.limit.toString());
         if (params.page) searchParams.append("page", params.page.toString());
 
@@ -818,7 +866,14 @@ export const customerApi = createApi({
      * Get customer orders
      * GET /customer/orders
      */
-    getOrders: builder.query<GetOrdersResponse, PaginationParams & SortParams & { status?: "ongoing" | "past" | "all"; order_type?: "individual" | "group" | "all" }>({
+    getOrders: builder.query<
+      GetOrdersResponse,
+      PaginationParams &
+        SortParams & {
+          status?: "ongoing" | "past" | "all";
+          order_type?: "individual" | "group" | "all";
+        }
+    >({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
         if (params.page) searchParams.append("page", params.page.toString());
@@ -827,7 +882,8 @@ export const customerApi = createApi({
         if (params.sort_order)
           searchParams.append("sort_order", params.sort_order);
         if (params.status) searchParams.append("status", params.status);
-        if (params.order_type) searchParams.append("order_type", params.order_type);
+        if (params.order_type)
+          searchParams.append("order_type", params.order_type);
 
         const queryString = searchParams.toString();
         return {
@@ -843,7 +899,10 @@ export const customerApi = createApi({
      * GET /customer/orders/recent-dishes
      */
     getRecentDishes: builder.query<
-      { success: boolean; data: { dishes: any[]; total: number; limit: number } },
+      {
+        success: boolean;
+        data: { dishes: any[]; total: number; limit: number };
+      },
       { limit?: number }
     >({
       query: (params = {}) => {
@@ -951,7 +1010,10 @@ export const customerApi = createApi({
      * Create group order
      * POST /customer/group-orders
      */
-    createGroupOrder: builder.mutation<CreateGroupOrderResponse, CreateGroupOrderRequest>({
+    createGroupOrder: builder.mutation<
+      CreateGroupOrderResponse,
+      CreateGroupOrderRequest
+    >({
       query: (data) => ({
         url: "/customer/group-orders",
         method: "POST",
@@ -976,7 +1038,10 @@ export const customerApi = createApi({
      * Join group order
      * POST /customer/group-orders/{group_order_id}/join
      */
-    joinGroupOrder: builder.mutation<JoinGroupOrderResponse, JoinGroupOrderRequest>({
+    joinGroupOrder: builder.mutation<
+      JoinGroupOrderResponse,
+      JoinGroupOrderRequest
+    >({
       query: ({ group_order_id, ...data }) => ({
         url: `/customer/group-orders/${group_order_id}/join`,
         method: "POST",
@@ -1350,7 +1415,10 @@ export const customerApi = createApi({
      * Get active special offers
      * GET /customer/offers/active
      */
-    getActiveOffers: builder.query<GetActiveOffersResponse, GetActiveOffersParams>({
+    getActiveOffers: builder.query<
+      GetActiveOffersResponse,
+      GetActiveOffersParams
+    >({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
         if (params.target) searchParams.append("target", params.target);
@@ -1559,10 +1627,7 @@ export const customerApi = createApi({
      * Send AI chat message
      * POST /chat/ai/messages
      */
-    sendChatMessage: builder.mutation<
-      ChatMessageResponse,
-      ChatMessageRequest
-    >({
+    sendChatMessage: builder.mutation<ChatMessageResponse, ChatMessageRequest>({
       query: (data) => ({
         url: "/chat/ai/messages",
         method: "POST",
@@ -1679,10 +1744,7 @@ export const customerApi = createApi({
      * POST /api/payments/add-card
      * Backend endpoint: POST /api/payments/add-card
      */
-    createSetupIntent: builder.mutation<
-      CreateSetupIntentResponse,
-      void
-    >({
+    createSetupIntent: builder.mutation<CreateSetupIntentResponse, void>({
       query: () => ({
         url: "/payments/add-card",
         method: "POST",
@@ -1762,10 +1824,7 @@ export const customerApi = createApi({
      * Top up Cribnosh balance
      * POST /customer/balance/top-up
      */
-    topUpBalance: builder.mutation<
-      TopUpBalanceResponse,
-      TopUpBalanceRequest
-    >({
+    topUpBalance: builder.mutation<TopUpBalanceResponse, TopUpBalanceRequest>({
       query: (data) => ({
         url: "/customer/balance/top-up",
         method: "POST",
@@ -1995,10 +2054,7 @@ export const customerApi = createApi({
      * GET /customer/dietary-preferences
      * Backend endpoint needed: GET /customer/dietary-preferences
      */
-    getDietaryPreferences: builder.query<
-      GetDietaryPreferencesResponse,
-      void
-    >({
+    getDietaryPreferences: builder.query<GetDietaryPreferencesResponse, void>({
       query: () => ({
         url: "/customer/dietary-preferences",
         method: "GET",
@@ -2152,14 +2208,14 @@ export const customerApi = createApi({
       query: (params) => {
         const searchParams = new URLSearchParams();
         if (params?.limit) {
-          searchParams.append('limit', params.limit.toString());
+          searchParams.append("limit", params.limit.toString());
         }
         if (params?.unreadOnly) {
-          searchParams.append('unreadOnly', 'true');
+          searchParams.append("unreadOnly", "true");
         }
         const queryString = searchParams.toString();
         return {
-          url: `/customer/notifications${queryString ? `?${queryString}` : ''}`,
+          url: `/customer/notifications${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -2219,7 +2275,10 @@ export const customerApi = createApi({
      * Get or create active support chat
      * GET /customer/support-chat
      */
-    getSupportChat: builder.query<GetSupportChatResponse, { caseId?: string } | void>({
+    getSupportChat: builder.query<
+      GetSupportChatResponse,
+      { caseId?: string } | void
+    >({
       query: (params) => {
         const searchParams = new URLSearchParams();
         if (params && params.caseId) {
@@ -2245,7 +2304,8 @@ export const customerApi = createApi({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
         if (params.limit) searchParams.append("limit", params.limit.toString());
-        if (params.offset) searchParams.append("offset", params.offset.toString());
+        if (params.offset)
+          searchParams.append("offset", params.offset.toString());
         const queryString = searchParams.toString();
         return {
           url: `/customer/support-chat/messages${queryString ? `?${queryString}` : ""}`,
@@ -2332,6 +2392,193 @@ export const customerApi = createApi({
       ],
     }),
 
+    /**
+     * Get live stream comments
+     * GET /live-streaming/comments
+     */
+    getLiveComments: builder.query<
+      GetLiveCommentsResponse,
+      {
+        sessionId: string;
+        limit?: number;
+        offset?: number;
+        commentType?: string;
+      }
+    >({
+      query: ({ sessionId, limit, offset, commentType }) => {
+        const params = new URLSearchParams();
+        params.append("sessionId", sessionId);
+        if (limit) params.append("limit", limit.toString());
+        if (offset) params.append("offset", offset.toString());
+        if (commentType) params.append("commentType", commentType);
+        return {
+          url: `/live-streaming/comments?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { sessionId }) => [
+        { type: "LiveStreams", id: `${sessionId}/comments` },
+      ],
+    }),
+
+    /**
+     * Send live stream comment
+     * POST /live-streaming/comments
+     */
+    sendLiveComment: builder.mutation<
+      SendLiveCommentResponse,
+      SendLiveCommentRequest
+    >({
+      query: (data) => ({
+        url: "/live-streaming/comments",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: (result, error, { sessionId }) => [
+        { type: "LiveStreams", id: `${sessionId}/comments` },
+        { type: "LiveStreams", id: sessionId },
+      ],
+    }),
+
+    /**
+     * Get live stream reactions
+     * GET /live-streaming/reactions
+     */
+    getLiveReactions: builder.query<
+      GetLiveReactionsResponse,
+      {
+        sessionId: string;
+        limit?: number;
+        offset?: number;
+        reactionType?: string;
+      }
+    >({
+      query: ({ sessionId, limit, offset, reactionType }) => {
+        const params = new URLSearchParams();
+        params.append("sessionId", sessionId);
+        if (limit) params.append("limit", limit.toString());
+        if (offset) params.append("offset", offset.toString());
+        if (reactionType) params.append("reactionType", reactionType);
+        return {
+          url: `/live-streaming/reactions?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { sessionId }) => [
+        { type: "LiveStreams", id: `${sessionId}/reactions` },
+      ],
+    }),
+
+    /**
+     * Send live stream reaction
+     * POST /live-streaming/reactions
+     */
+    sendLiveReaction: builder.mutation<
+      SendLiveReactionResponse,
+      SendLiveReactionRequest
+    >({
+      query: (data) => ({
+        url: "/live-streaming/reactions",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: (result, error, { sessionId }) => [
+        { type: "LiveStreams", id: `${sessionId}/reactions` },
+        { type: "LiveStreams", id: sessionId },
+      ],
+    }),
+
+    /**
+     * Get live stream viewers
+     * GET /live-streaming/viewers
+     */
+    getLiveViewers: builder.query<
+      GetLiveViewersResponse,
+      {
+        sessionId?: string;
+        limit?: number;
+        offset?: number;
+        includeAnonymous?: boolean;
+      }
+    >({
+      query: ({ sessionId, limit, offset, includeAnonymous }) => {
+        const params = new URLSearchParams();
+        if (sessionId) params.append("sessionId", sessionId);
+        if (limit) params.append("limit", limit.toString());
+        if (offset) params.append("offset", offset.toString());
+        if (includeAnonymous !== undefined)
+          params.append("includeAnonymous", includeAnonymous.toString());
+        return {
+          url: `/live-streaming/viewers${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { sessionId }) => [
+        {
+          type: "LiveStreams",
+          id: sessionId ? `${sessionId}/viewers` : "viewers",
+        },
+      ],
+    }),
+
+    /**
+     * Get live stream chat messages
+     * GET /live-streaming/chat
+     */
+    getLiveChat: builder.query<
+      GetLiveChatResponse,
+      { sessionId: string; limit?: number; offset?: number }
+    >({
+      query: ({ sessionId, limit, offset }) => {
+        const params = new URLSearchParams();
+        params.append("sessionId", sessionId);
+        if (limit) params.append("limit", limit.toString());
+        if (offset) params.append("offset", offset.toString());
+        return {
+          url: `/live-streaming/chat?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { sessionId }) => [
+        { type: "LiveStreams", id: `${sessionId}/chat` },
+      ],
+    }),
+
+    /**
+     * Get live stream orders
+     * GET /live-streaming/orders
+     */
+    getLiveStreamOrders: builder.query<
+      GetLiveStreamOrdersResponse,
+      {
+        sessionId?: string;
+        chefId?: string;
+        status?: string;
+        limit?: number;
+        offset?: number;
+      }
+    >({
+      query: ({ sessionId, chefId, status, limit, offset }) => {
+        const params = new URLSearchParams();
+        if (sessionId) params.append("sessionId", sessionId);
+        if (chefId) params.append("chefId", chefId);
+        if (status) params.append("status", status);
+        if (limit) params.append("limit", limit.toString());
+        if (offset) params.append("offset", offset.toString());
+        return {
+          url: `/live-streaming/orders${params.toString() ? `?${params.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { sessionId }) => [
+        {
+          type: "LiveStreams",
+          id: sessionId ? `${sessionId}/orders` : "orders",
+        },
+        "Orders",
+      ],
+    }),
+
     // ========================================================================
     // DISH ENDPOINTS
     // ========================================================================
@@ -2345,9 +2592,7 @@ export const customerApi = createApi({
         url: `/customer/dishes/${dishId}`,
         method: "GET",
       }),
-      providesTags: (result, error, dishId) => [
-        { type: "Dishes", id: dishId },
-      ],
+      providesTags: (result, error, dishId) => [{ type: "Dishes", id: dishId }],
     }),
 
     /**
@@ -2603,7 +2848,8 @@ export const customerApi = createApi({
     >({
       query: (params) => {
         const searchParams = new URLSearchParams();
-        if (params?.start_date) searchParams.append("start_date", params.start_date);
+        if (params?.start_date)
+          searchParams.append("start_date", params.start_date);
         if (params?.end_date) searchParams.append("end_date", params.end_date);
         const queryString = searchParams.toString();
         return {
@@ -2745,7 +2991,8 @@ export const customerApi = createApi({
         const params = new URLSearchParams();
         if (limit) params.append("limit", limit.toString());
         if (cursor) params.append("cursor", cursor);
-        if (publicOnly !== undefined) params.append("publicOnly", publicOnly.toString());
+        if (publicOnly !== undefined)
+          params.append("publicOnly", publicOnly.toString());
         return {
           url: `/api/nosh-heaven/collections${params.toString() ? `?${params.toString()}` : ""}`,
           method: "GET",
@@ -2790,7 +3037,16 @@ export const customerApi = createApi({
      */
     shareVideo: builder.mutation<
       void,
-      { videoId: string; platform?: "internal" | "facebook" | "twitter" | "instagram" | "whatsapp" | "other" }
+      {
+        videoId: string;
+        platform?:
+          | "internal"
+          | "facebook"
+          | "twitter"
+          | "instagram"
+          | "whatsapp"
+          | "other";
+      }
     >({
       query: ({ videoId, platform }) => ({
         url: `/api/nosh-heaven/videos/${videoId}/share`,
@@ -2810,7 +3066,13 @@ export const customerApi = createApi({
       void,
       {
         videoId: string;
-        reason: "inappropriate_content" | "spam" | "harassment" | "violence" | "copyright" | "other";
+        reason:
+          | "inappropriate_content"
+          | "spam"
+          | "harassment"
+          | "violence"
+          | "copyright"
+          | "other";
         description?: string;
         timestamp?: number;
       }
@@ -3030,7 +3292,12 @@ export const customerApi = createApi({
      */
     getThumbnailUploadUrl: builder.mutation<
       { uploadUrl: string; key: string; publicUrl: string },
-      { videoId: string; fileName: string; fileSize: number; contentType: string }
+      {
+        videoId: string;
+        fileName: string;
+        fileSize: number;
+        contentType: string;
+      }
     >({
       query: (body) => ({
         url: "/api/nosh-heaven/videos/thumbnail-upload-url",
@@ -3218,7 +3485,14 @@ export const customerApi = createApi({
      * GET /api/customer/kitchens/{kitchenId}
      */
     getKitchenDetails: builder.query<
-      { kitchenId: string; chefId: string; chefName: string; kitchenName: string; address: string; certified: boolean },
+      {
+        kitchenId: string;
+        chefId: string;
+        chefName: string;
+        kitchenName: string;
+        address: string;
+        certified: boolean;
+      },
       { kitchenId: string }
     >({
       query: ({ kitchenId }) => ({
@@ -3304,12 +3578,13 @@ export const customerApi = createApi({
           total: number;
         };
       },
-      { limit?: number; time_range?: 'week' | 'month' | 'all' }
+      { limit?: number; time_range?: "week" | "month" | "all" }
     >({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
         if (params.limit) searchParams.append("limit", params.limit.toString());
-        if (params.time_range) searchParams.append("time_range", params.time_range);
+        if (params.time_range)
+          searchParams.append("time_range", params.time_range);
         const queryString = searchParams.toString();
         return {
           url: `/customer/orders/usual-dinner-items${queryString ? `?${queryString}` : ""}`,
@@ -3420,37 +3695,40 @@ export const customerApi = createApi({
      * GET /api/chef/meals
      */
     getChefMeals: builder.query<
-      { meals: {
-        _id: string;
-        name: string;
-        description?: string;
-        price?: number;
-        image?: string;
-        cuisine?: string;
-        ingredients?: string[];
-        dietaryInfo?: {
-          vegetarian?: boolean;
-          vegan?: boolean;
-          glutenFree?: boolean;
-        };
-        allergens?: string[];
-        prepTime?: number;
-        servings?: number;
-        status?: string;
-        rating?: number;
-        reviewCount?: number;
-        createdAt?: string;
-        updatedAt?: string;
-      }[] },
+      {
+        meals: {
+          _id: string;
+          name: string;
+          description?: string;
+          price?: number;
+          image?: string;
+          cuisine?: string;
+          ingredients?: string[];
+          dietaryInfo?: {
+            vegetarian?: boolean;
+            vegan?: boolean;
+            glutenFree?: boolean;
+          };
+          allergens?: string[];
+          prepTime?: number;
+          servings?: number;
+          status?: string;
+          rating?: number;
+          reviewCount?: number;
+          createdAt?: string;
+          updatedAt?: string;
+        }[];
+      },
       { limit?: number; offset?: number }
     >({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
-        if (params.limit) searchParams.append('limit', params.limit.toString());
-        if (params.offset) searchParams.append('offset', params.offset.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.offset)
+          searchParams.append("offset", params.offset.toString());
         const queryString = searchParams.toString();
         return {
-          url: `/api/chef/meals${queryString ? `?${queryString}` : ''}`,
+          url: `/api/chef/meals${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -3512,15 +3790,11 @@ export const {
 } = customerApi;
 
 // Support
-export const {
-  useGetSupportCasesQuery,
-  useCreateSupportCaseMutation,
-} = customerApi;
+export const { useGetSupportCasesQuery, useCreateSupportCaseMutation } =
+  customerApi;
 
 // Event Chef Requests
-export const {
-  useCreateEventChefRequestMutation,
-} = customerApi;
+export const { useCreateEventChefRequestMutation } = customerApi;
 
 // Notifications
 export const {
@@ -3531,7 +3805,11 @@ export const {
 } = customerApi;
 
 // Cuisines
-export const { useGetCuisinesQuery, useGetTopCuisinesQuery, useGetCuisineCategoriesQuery } = customerApi;
+export const {
+  useGetCuisinesQuery,
+  useGetTopCuisinesQuery,
+  useGetCuisineCategoriesQuery,
+} = customerApi;
 
 // Chefs
 export const {
@@ -3601,9 +3879,7 @@ export const {
 } = customerApi;
 
 // Special Offers
-export const {
-  useGetActiveOffersQuery,
-} = customerApi;
+export const { useGetActiveOffersQuery } = customerApi;
 
 // Meals
 export const {
@@ -3623,9 +3899,7 @@ export const {
 } = customerApi;
 
 // AI Chat
-export const {
-  useSendChatMessageMutation,
-} = customerApi;
+export const { useSendChatMessageMutation } = customerApi;
 
 // Payment
 export const {
@@ -3668,9 +3942,20 @@ export const {
 } = customerApi;
 
 // Live Streaming
-export const { useGetLiveStreamsQuery, useGetLiveSessionQuery } = customerApi;
+export const {
+  useGetLiveStreamsQuery,
+  useGetLiveSessionQuery,
+  useGetLiveCommentsQuery,
+  useSendLiveCommentMutation,
+  useGetLiveReactionsQuery,
+  useSendLiveReactionMutation,
+  useGetLiveViewersQuery,
+  useGetLiveChatQuery,
+  useGetLiveStreamOrdersQuery,
+} = customerApi;
 
-export const { useGetChefMealsQuery, useStartLiveSessionMutation } = customerApi;
+export const { useGetChefMealsQuery, useStartLiveSessionMutation } =
+  customerApi;
 
 export const {
   useGetSupportChatQuery,
@@ -3707,10 +3992,7 @@ export const {
 } = customerApi;
 
 // Menus
-export const {
-  useGetChefMenusQuery,
-  useGetMenuDetailsQuery,
-} = customerApi;
+export const { useGetChefMenusQuery, useGetMenuDetailsQuery } = customerApi;
 
 // Videos
 export const {

@@ -179,6 +179,21 @@ export const authApi = createApi({
         body: data,
       }),
     }),
+    logout: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          message: string;
+        };
+        message: string;
+      },
+      void
+    >({
+      query: () => ({
+        url: "/auth/logout",
+        method: "POST",
+      }),
+    }),
   }),
 });
 
@@ -187,4 +202,5 @@ export const {
   usePhoneLoginMutation,
   useAppleSignInMutation,
   useEmailLoginMutation,
+  useLogoutMutation,
 } = authApi;

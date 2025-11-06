@@ -8,6 +8,7 @@ import {
   StoredUser,
 } from "../utils/authUtils";
 import { isTokenExpired } from "../utils/jwtUtils";
+import { useLogoutMutation } from "../store/authApi";
 
 export interface UseAuthStateReturn {
   // State
@@ -38,6 +39,7 @@ export const useAuthState = (): UseAuthStateReturn => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [logoutMutation] = useLogoutMutation();
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -121,6 +123,14 @@ export const useAuthState = (): UseAuthStateReturn => {
     try {
       setError(null);
 
+      // Call logout API endpoint
+      try {
+        await logoutMutation().unwrap();
+      } catch (apiError) {
+        // Even if API call fails, continue with local logout
+        console.warn("Logout API call failed, continuing with local logout:", apiError);
+      }
+
       // Clear stored data
       await clearAuthData();
 
@@ -139,7 +149,7 @@ export const useAuthState = (): UseAuthStateReturn => {
       setError(errorMessage);
       console.error("Logout error:", err);
     }
-  }, []);
+  }, [logoutMutation]);
 
   const refreshAuthState = useCallback(async () => {
     try {

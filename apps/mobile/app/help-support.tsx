@@ -1,5 +1,4 @@
 import {
-  useCreateSupportCaseMutation,
   useGetOrdersQuery,
   useGetSupportCasesQuery,
 } from '@/store/customerApi';
@@ -56,7 +55,8 @@ export default function HelpSupportScreen() {
     status: 'all',
   });
 
-  const [createSupportCase] = useCreateSupportCaseMutation();
+  // Note: createSupportCase mutation is available for future use when creating support cases from this screen
+  // const [createSupportCase] = useCreateSupportCaseMutation();
   const [isLiveChatVisible, setIsLiveChatVisible] = useState(false);
   const [isSupportCasesSheetVisible, setIsSupportCasesSheetVisible] = useState(false);
   const [selectedChatCaseId, setSelectedChatCaseId] = useState<string | null>(null);

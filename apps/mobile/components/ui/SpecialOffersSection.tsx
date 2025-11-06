@@ -1,11 +1,10 @@
-import { useGetActiveOffersQuery } from '@/store/customerApi';
-import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useAuthContext } from '../../contexts/AuthContext';
-import { showError } from '../../lib/GlobalToastManager';
-import { SpecialOffersSectionEmpty } from './SpecialOffersSectionEmpty';
-import { SpecialOffersSectionSkeleton } from './SpecialOffersSectionSkeleton';
+import { useGetActiveOffersQuery } from "@/store/customerApi";
+import { Image } from "expo-image";
+import React, { useCallback, useMemo } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useAuthContext } from "../../contexts/AuthContext";
+import { showError } from "../../lib/GlobalToastManager";
+import { SpecialOffersSectionSkeleton } from "./SpecialOffersSectionSkeleton";
 
 interface SpecialOffer {
   id: string;
@@ -22,24 +21,26 @@ interface SpecialOffer {
 const formatDateWithoutYear = (dateString: string | number): string => {
   // Handle timestamp
   let date: Date;
-  if (typeof dateString === 'number') {
+  if (typeof dateString === "number") {
     date = new Date(dateString);
   } else {
     // If it's already formatted without year, return as is
-    if (!dateString.includes(',')) {
+    if (!dateString.includes(",")) {
       return dateString;
     }
     date = new Date(dateString);
   }
-  
+
   // Parse date and format without year
   try {
-    const month = date.toLocaleString('en-GB', { month: 'short' });
+    const month = date.toLocaleString("en-GB", { month: "short" });
     const day = date.getDate();
     return `${month} ${day}`;
   } catch {
     // If parsing fails, try to remove year from string
-    return typeof dateString === 'string' ? dateString.replace(/,?\s*\d{4}$/, '') : '';
+    return typeof dateString === "string"
+      ? dateString.replace(/,?\s*\d{4}$/, "")
+      : "";
   }
 };
 
@@ -47,18 +48,18 @@ const formatDateWithoutYear = (dateString: string | number): string => {
 const calculateRemainingTime = (endsAt: number): string | undefined => {
   const now = Date.now();
   const diff = endsAt - now;
-  
+
   if (diff <= 0) return undefined;
-  
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  
+
   if (days > 0) {
-    return `${days} ${days === 1 ? 'day' : 'days'} left`;
+    return `${days} ${days === 1 ? "day" : "days"} left`;
   } else if (hours > 0) {
-    return `${hours} ${hours === 1 ? 'hour' : 'hours'} left`;
+    return `${hours} ${hours === 1 ? "hour" : "hours"} left`;
   } else {
-    return 'Ending soon';
+    return "Ending soon";
   }
 };
 
@@ -83,52 +84,52 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
     isLoading: backendLoading,
     error: backendError,
   } = useGetActiveOffersQuery(
-    { target: 'all' },
+    { target: "all" },
     {
       skip: !useBackend || !isAuthenticated,
     }
   );
 
   // Transform API data to component format
-  const transformOfferData = useCallback((apiOffer: any): SpecialOffer | null => {
-    if (!apiOffer) return null;
+  const transformOfferData = useCallback(
+    (apiOffer: any): SpecialOffer | null => {
+      if (!apiOffer) return null;
 
-    // Format discount value
-    let discountText = '';
-    if (apiOffer.discount_type === 'percentage') {
-      discountText = `${apiOffer.discount_value}%`;
-    } else if (apiOffer.discount_type === 'fixed_amount') {
-      discountText = `£${(apiOffer.discount_value / 100).toFixed(2)}`;
-    } else if (apiOffer.discount_type === 'free_delivery') {
-      discountText = 'Free Delivery';
-    }
+      // Format discount value
+      let discountText = "";
+      if (apiOffer.discount_type === "percentage") {
+        discountText = `${apiOffer.discount_value}%`;
+      } else if (apiOffer.discount_type === "fixed_amount") {
+        discountText = `£${(apiOffer.discount_value / 100).toFixed(2)}`;
+      } else if (apiOffer.discount_type === "free_delivery") {
+        discountText = "Free Delivery";
+      }
 
-    // Format valid until date
-    const validUntil = formatDateWithoutYear(apiOffer.ends_at);
-    const remainingTime = calculateRemainingTime(apiOffer.ends_at);
+      // Format valid until date
+      const validUntil = formatDateWithoutYear(apiOffer.ends_at);
+      const remainingTime = calculateRemainingTime(apiOffer.ends_at);
 
-    return {
-      id: apiOffer.offer_id || apiOffer._id || '',
-      title: apiOffer.title || 'Special Offer',
-      description: apiOffer.description || '',
-      discount: discountText,
-      image: {
-        uri: apiOffer.background_image_url || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop',
-      },
-      validUntil,
-      isLimited: apiOffer.offer_type === 'limited_time',
-      remainingTime,
-    };
-  }, []);
+      return {
+        id: apiOffer.offer_id || apiOffer._id || "",
+        title: apiOffer.title || "Special Offer",
+        description: apiOffer.description || "",
+        discount: discountText,
+        image: {
+          uri:
+            apiOffer.background_image_url ||
+            "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
+        },
+        validUntil,
+        isLimited: apiOffer.offer_type === "limited_time",
+        remainingTime,
+      };
+    },
+    []
+  );
 
-  // Process offers data
+  // Process offers data - only use API data, no prop fallback
   const offers: SpecialOffer[] = useMemo(() => {
-    // If propOffers provided, use them
-    if (propOffers && propOffers.length > 0) {
-      return propOffers;
-    }
-
-    // Otherwise, use backend data if available
+    // Only use backend API data
     if (useBackend && offersData?.success && offersData.data?.offers) {
       const transformedOffers = offersData.data.offers
         .map(transformOfferData)
@@ -136,14 +137,14 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
       return transformedOffers;
     }
 
-    // Fallback to empty array
+    // Return empty array if no API data
     return [];
-  }, [propOffers, offersData, useBackend, transformOfferData]);
+  }, [offersData, useBackend, transformOfferData]);
 
   // Handle errors
   React.useEffect(() => {
     if (backendError && isAuthenticated) {
-      showError('Failed to load special offers', 'Please try again');
+      showError("Failed to load special offers", "Please try again");
     }
   }, [backendError, isAuthenticated]);
 
@@ -163,133 +164,157 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
         width: 280,
         marginRight: 16,
         borderRadius: 20,
-        overflow: 'hidden',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        overflow: "hidden",
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.15)',
+        borderColor: "rgba(255, 255, 255, 0.15)",
       }}
       onPress={() => onOfferPress?.(offer)}
       activeOpacity={0.8}
     >
       {/* Offer Image */}
-      <View style={{ position: 'relative' }}>
+      <View style={{ position: "relative" }}>
         <Image
           source={offer.image}
           style={{
-            width: '100%',
+            width: "100%",
             height: 140,
-            resizeMode: 'cover',
+            resizeMode: "cover",
           }}
         />
-        
+
         {/* Discount Badge */}
-        <View style={{
-          position: 'absolute',
-          top: 12,
-          left: 12,
-          backgroundColor: '#ef4444',
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          borderRadius: 16,
-        }}>
-          <Text style={{
-            color: '#ffffff',
-            fontSize: 14,
-            fontWeight: '700',
-          }}>
+        <View
+          style={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            backgroundColor: "#ef4444",
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 16,
+          }}
+        >
+          <Text
+            style={{
+              color: "#ffffff",
+              fontSize: 14,
+              fontWeight: "700",
+            }}
+          >
             {offer.discount} OFF
           </Text>
         </View>
-        
+
         {/* Limited Time Badge */}
         {offer.isLimited && (
-          <View style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            borderRadius: 12,
-          }}>
-            <Text style={{
-              color: '#ffffff',
-              fontSize: 10,
-              fontWeight: '600',
-            }}>
+          <View
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 12,
+            }}
+          >
+            <Text
+              style={{
+                color: "#ffffff",
+                fontSize: 10,
+                fontWeight: "600",
+              }}
+            >
               LIMITED
             </Text>
           </View>
         )}
-        
+
         {/* Remaining Time */}
         {offer.remainingTime && (
-          <View style={{
-            position: 'absolute',
-            bottom: 12,
-            right: 12,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            borderRadius: 8,
-          }}>
-            <Text style={{
-              color: '#ffffff',
-              fontSize: 10,
-              fontWeight: '500',
-            }}>
+          <View
+            style={{
+              position: "absolute",
+              bottom: 12,
+              right: 12,
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 8,
+            }}
+          >
+            <Text
+              style={{
+                color: "#ffffff",
+                fontSize: 10,
+                fontWeight: "500",
+              }}
+            >
               {offer.remainingTime}
             </Text>
           </View>
         )}
       </View>
-      
+
       {/* Offer Info */}
       <View style={{ padding: 16 }}>
-        <Text style={{
-          color: '#1a1a1a',
-          fontSize: 16,
-          fontWeight: '700',
-          marginBottom: 4,
-          lineHeight: 20,
-        }}>
+        <Text
+          style={{
+            color: "#1a1a1a",
+            fontSize: 16,
+            fontWeight: "700",
+            marginBottom: 4,
+            lineHeight: 20,
+          }}
+        >
           {offer.title}
         </Text>
-        
-        <Text style={{
-          color: '#666666',
-          fontSize: 13,
-          fontWeight: '400',
-          marginBottom: 8,
-          lineHeight: 16,
-        }}>
+
+        <Text
+          style={{
+            color: "#666666",
+            fontSize: 13,
+            fontWeight: "400",
+            marginBottom: 8,
+            lineHeight: 16,
+          }}
+        >
           {offer.description}
         </Text>
-        
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <Text style={{
-            color: '#ef4444',
-            fontSize: 12,
-            fontWeight: '600',
-          }}>
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text
+            style={{
+              color: "#ef4444",
+              fontSize: 12,
+              fontWeight: "600",
+            }}
+          >
             Valid until {formatDateWithoutYear(offer.validUntil)}
           </Text>
-          
-          <TouchableOpacity style={{
-            backgroundColor: '#ef4444',
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 20,
-          }}>
-            <Text style={{
-              color: '#ffffff',
-              fontSize: 12,
-              fontWeight: '600',
-            }}>
+
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#ef4444",
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20,
+            }}
+          >
+            <Text
+              style={{
+                color: "#ffffff",
+                fontSize: 12,
+                fontWeight: "600",
+              }}
+            >
               Claim Now
             </Text>
           </TouchableOpacity>
@@ -300,33 +325,39 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
 
   return (
     <View style={{ marginBottom: 24 }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-        paddingHorizontal: 12,
-      }}>
-        <Text style={{
-          color: '#1a1a1a',
-          fontSize: 20,
-          fontWeight: '700',
-          lineHeight: 24,
-        }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+          paddingHorizontal: 12,
+        }}
+      >
+        <Text
+          style={{
+            color: "#1a1a1a",
+            fontSize: 20,
+            fontWeight: "700",
+            lineHeight: 24,
+          }}
+        >
           Special Offers
         </Text>
-        
+
         <TouchableOpacity onPress={onSeeAllPress}>
-          <Text style={{
-            color: '#ef4444',
-            fontSize: 14,
-            fontWeight: '600',
-          }}>
+          <Text
+            style={{
+              color: "#ef4444",
+              fontSize: 14,
+              fontWeight: "600",
+            }}
+          >
             See All
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -338,4 +369,4 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
       </ScrollView>
     </View>
   );
-}; 
+};

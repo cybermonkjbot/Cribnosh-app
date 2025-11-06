@@ -92,11 +92,11 @@ export function MealItemDetails({
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Fetch dish details from API if mealData is not provided
+  // Always fetch dish details from API - prioritize API data over prop data
   const { data: dishDetailsData, isLoading: isLoadingDishDetails } = useGetDishDetailsQuery(
     mealId,
     {
-      skip: !mealId || mealData !== undefined,
+      skip: !mealId,
     }
   );
 
@@ -138,21 +138,18 @@ export function MealItemDetails({
     };
   }, [dishDetailsData]);
 
-  // Use API mealData if props not provided, otherwise use props
-  const finalMealData = mealData || apiMealData;
-  const isLoading = isLoadingDishDetails || (propIsLoading && !mealData);
+  // Prioritize API data over prop data - only use prop data if API is not available
+  const finalMealData = apiMealData || mealData;
+  const isLoading = isLoadingDishDetails || (propIsLoading && !apiMealData);
 
-  // Fetch similar meals if not provided via props
+  // Always fetch similar meals from API - prioritize API data over prop data
   const { data: similarDishesData, isLoading: isLoadingSimilarMealsFromApi } = useGetSimilarDishesQuery(
     { dishId: mealId, limit: 5 },
-    { skip: !mealId || (mealData?.similarMeals !== undefined) }
+    { skip: !mealId }
   );
 
-  // Use provided similar meals or fetch from API
+  // Use API similar meals data - prioritize API data over prop data
   const similarMeals = useMemo(() => {
-    if (mealData?.similarMeals) {
-      return mealData.similarMeals;
-    }
     if (similarDishesData?.success && similarDishesData.data?.dishes) {
       return similarDishesData.data.dishes.map((dish) => ({
         id: dish.id,
@@ -163,8 +160,12 @@ export function MealItemDetails({
         isVegetarian: dish.is_vegetarian,
       }));
     }
+    // Fallback to prop data only if API has no data
+    if (mealData?.similarMeals) {
+      return mealData.similarMeals;
+    }
     return undefined;
-  }, [mealData?.similarMeals, similarDishesData]);
+  }, [similarDishesData, mealData?.similarMeals]);
 
   const isLoadingSimilarMeals = isLoadingSimilarMealsProp || isLoadingSimilarMealsFromApi;
 
