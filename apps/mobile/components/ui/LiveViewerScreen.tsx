@@ -1,9 +1,20 @@
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useAddToCartMutation, useGetCartQuery, useGetLiveSessionQuery, useUpdateCartItemMutation } from '@/store/customerApi';
+import {
+  useAddToCartMutation,
+  useGetCartQuery,
+  useGetLiveSessionQuery,
+  useUpdateCartItemMutation,
+  useGetLiveCommentsQuery,
+  useSendLiveCommentMutation,
+  useGetLiveViewersQuery,
+  useSendLiveReactionMutation,
+  useGetLiveReactionsQuery,
+} from '@/store/customerApi';
+import { LiveComment } from '@/types/customer';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ImageBackground, Modal, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Modal, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showError, showSuccess, showWarning } from '../../lib/GlobalToastManager';
 import LiveComments from '../LiveComments';
@@ -28,6 +39,7 @@ interface LiveViewerScreenProps {
 
 const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitchenData, onClose }) => {
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+  const [commentText, setCommentText] = useState('');
   const { isAuthenticated } = useAuthContext();
   const router = useRouter();
   const [addToCart] = useAddToCartMutation();
@@ -72,17 +84,107 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   
   const isOrdered = !!cartItem;
 
-  // Sample live comments data (will be replaced with API integration later)
-  const [liveComments] = useState([
-    { name: 'Sarah', comment: 'This looks amazing!' },
-    { name: 'Mike', comment: 'Can\'t wait to try this recipe' },
-    { name: 'Emma', comment: 'The spices smell incredible!' },
-    { name: 'David', comment: 'How long until it\'s ready?' },
-    { name: 'Lisa', comment: 'Love watching live cooking' },
-    { name: 'John', comment: 'This is my favorite dish!' },
-    { name: 'Anna', comment: 'The rice looks perfect' },
-    { name: 'Tom', comment: 'Wish I could smell this through the screen' },
-  ]);
+  // Get viewer count from API - prioritize liveViewersData over session data
+  const viewerCount = useMemo(() => {
+    // Use API viewers data if available
+    if (liveViewersData?.success && liveViewersData.data?.summary?.totalViewers !== undefined) {
+      return liveViewersData.data.summary.totalViewers;
+    }
+    
+    // Fallback to session data
+    if (sessionData?.data?.session) {
+      return sessionData.data.session.viewer_count || sessionData.data.session.current_viewers || 0;
+    }
+    
+    // Fallback to mock data
+    if (isMockId && mockKitchenData) {
+      return mockKitchenData.viewers || 0;
+    }
+    
+    return 0;
+  }, [liveViewersData, sessionData, isMockId, mockKitchenData]);
+
+  // Fetch live comments from API - only use API data
+  const { data: liveCommentsData, isLoading: isLoadingComments } = useGetLiveCommentsQuery(
+    { sessionId, limit: 50, offset: 0 },
+    { skip: !sessionId || isMockId, pollingInterval: 5000 } // Poll every 5 seconds for new comments
+  );
+
+  // Fetch live viewers from API
+  const { data: liveViewersData } = useGetLiveViewersQuery(
+    { sessionId, limit: 100, includeAnonymous: true },
+    { skip: !sessionId || isMockId, pollingInterval: 10000 } // Poll every 10 seconds for viewer count
+  );
+
+  const [sendLiveComment] = useSendLiveCommentMutation();
+  const [sendLiveReaction] = useSendLiveReactionMutation();
+
+  // Fetch live reactions from API
+  const { data: liveReactionsData } = useGetLiveReactionsQuery(
+    { sessionId, limit: 100, offset: 0 },
+    { skip: !sessionId || isMockId, pollingInterval: 5000 } // Poll every 5 seconds for new reactions
+  );
+
+  // Transform API comments to component format
+  const liveComments = useMemo(() => {
+    if (liveCommentsData?.success && liveCommentsData.data?.comments) {
+      return liveCommentsData.data.comments.map((comment: LiveComment) => ({
+        name: comment.userDisplayName || 'Anonymous',
+        comment: comment.content,
+      }));
+    }
+    return []; // Return empty array if API has no data
+  }, [liveCommentsData]);
+
+  // Handle sending live reaction
+  const handleSendReaction = useCallback(async (reactionType: 'heart' | 'fire' | 'clap' | 'star') => {
+    if (!isAuthenticated) {
+      showWarning('Authentication Required', 'Please sign in to send reactions');
+      router.push('/auth/sign-in' as any);
+      return;
+    }
+
+    if (!sessionId || isMockId) {
+      return;
+    }
+
+    try {
+      await sendLiveReaction({
+        sessionId,
+        reactionType,
+        intensity: 'medium',
+      }).unwrap();
+      // Reaction sent successfully - no need to show toast for reactions
+    } catch (err: any) {
+      const errorMessage = err?.data?.error?.message || err?.message || 'Failed to send reaction';
+      showError('Failed to send reaction', errorMessage);
+    }
+  }, [isAuthenticated, sessionId, isMockId, sendLiveReaction, router]);
+
+  // Handle sending live comment
+  const handleSendComment = useCallback(async (content: string) => {
+    if (!isAuthenticated) {
+      showWarning('Authentication Required', 'Please sign in to send comments');
+      router.push('/auth/sign-in' as any);
+      return;
+    }
+
+    if (!sessionId || isMockId || !content.trim()) {
+      return;
+    }
+
+    try {
+      await sendLiveComment({
+        sessionId,
+        content: content.trim(),
+        commentType: 'general',
+      }).unwrap();
+      showSuccess('Comment sent!', '');
+    } catch (err: any) {
+      const errorMessage = err?.data?.error?.message || err?.message || 'Failed to send comment';
+      showError('Failed to send comment', errorMessage);
+    }
+  }, [isAuthenticated, sessionId, isMockId, sendLiveComment, router]);
 
   // Handle session errors
   useEffect(() => {
@@ -246,9 +348,9 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       ingredients,
       cookingTime,
       chefBio: chef?.bio || undefined,
-      liveViewers: session.viewer_count || session.current_viewers || 0,
+      liveViewers: viewerCount,
     };
-  }, [sessionData, isMockId, mockKitchenData]);
+  }, [sessionData, isMockId, mockKitchenData, viewerCount]);
 
   // Get chef info for header
   const chefInfo = useMemo(() => {
@@ -257,7 +359,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       return {
         name: mockKitchenData.chef || mockKitchenData.name || 'Chef',
         avatar: mockKitchenData.image || 'https://fhfhfhhf',
-        viewers: mockKitchenData.viewers || 0,
+        viewers: viewerCount,
       };
     }
 
@@ -266,17 +368,17 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       return {
         name: 'Loading...',
         avatar: 'https://fhfhfhhf',
-        viewers: 0,
+        viewers: viewerCount,
       };
     }
 
-    const { chef, session } = sessionData.data;
+    const { chef } = sessionData.data;
     return {
       name: chef.name || 'Chef',
       avatar: chef.profile_image || 'https://fhfhfhhf',
-      viewers: session.viewer_count || session.current_viewers || 0,
+      viewers: viewerCount,
     };
-  }, [sessionData, isMockId, mockKitchenData]);
+  }, [sessionData, isMockId, mockKitchenData, viewerCount]);
 
   // Show loading state only if not using mock data
   if (isLoadingSession && !isMockId) {
@@ -376,6 +478,37 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
             <LiveComments comments={liveComments} />
           </View>
 
+          {/* Comment Input - Positioned at bottom */}
+          {!isMockId && (
+            <View style={styles.commentInputContainer}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Add a comment..."
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline={false}
+                maxLength={200}
+                editable={isAuthenticated}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  (!commentText.trim() || !isAuthenticated) && styles.sendButtonDisabled,
+                ]}
+                onPress={() => {
+                  if (commentText.trim() && isAuthenticated) {
+                    handleSendComment(commentText);
+                    setCommentText('');
+                  }
+                }}
+                disabled={!commentText.trim() || !isAuthenticated}
+              >
+                <Text style={styles.sendButtonText}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Love Button is now rendered inside OnTheStoveBottomSheet */}
         </ImageBackground>
 
@@ -391,6 +524,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
           onAddToCart={isMockId ? undefined : handleAddToCart}
           onQuantityChange={isMockId ? undefined : handleQuantityChange}
           isOrdered={isOrdered}
+          onReaction={isMockId ? undefined : handleSendReaction}
         />
         
         {/* Floating Cart Button - shows when cart has items */}
@@ -469,10 +603,54 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     left: 0,
-    bottom: 200, // Positioned above the bottom sheet
+    bottom: 250, // Positioned above the comment input
     paddingHorizontal: 16,
     zIndex: 500,
     maxHeight: 300,
+  },
+  commentInputContainer: {
+    position: 'absolute',
+    bottom: 200, // Positioned above the bottom sheet
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    zIndex: 600,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(230, 255, 232, 0.1)',
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 255, 232, 0.2)',
+  },
+  sendButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: 'rgba(16, 185, 129, 0.3)',
+    opacity: 0.5,
+  },
+  sendButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

@@ -249,7 +249,19 @@ export interface Dish {
   chef_tips?: string[];
   rating?: number;
   review_count?: number;
-  sentiment?: "bussing" | "mid" | "notIt" | "fire" | "slaps" | "decent" | "meh" | "trash" | "elite" | "solid" | "average" | "skip";
+  sentiment?:
+    | "bussing"
+    | "mid"
+    | "notIt"
+    | "fire"
+    | "slaps"
+    | "decent"
+    | "meh"
+    | "trash"
+    | "elite"
+    | "solid"
+    | "average"
+    | "skip";
   created_at: string;
   updated_at: string;
 }
@@ -699,7 +711,7 @@ export interface AIRecommendationProduct {
   name: string;
   price: string; // formatted as "£19"
   image: any; // React Native image source
-  badge?: { text: string; type: 'hot' | 'bestfit' | 'highprotein' };
+  badge?: { text: string; type: "hot" | "bestfit" | "highprotein" };
   hasFireEmoji?: boolean;
 }
 
@@ -779,6 +791,234 @@ export interface GetLiveSessionDetailsResponse {
   success: boolean;
   data: LiveSessionDetails;
   message?: string;
+}
+
+// Live Streaming Comments
+export interface SendLiveCommentRequest {
+  sessionId: string;
+  content: string;
+  commentType: "general" | "question" | "reaction" | "tip" | "moderation";
+  metadata?: Record<string, string>;
+}
+
+export interface LiveComment {
+  id: string;
+  content: string;
+  commentType: "general" | "question" | "reaction" | "tip" | "moderation";
+  sentBy: string;
+  sentByRole: string;
+  userDisplayName: string;
+  sentAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface GetLiveCommentsResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+    sessionId: string;
+    comments: LiveComment[];
+    totalComments: number;
+    limit: number;
+    offset: number;
+  };
+}
+
+export interface SendLiveCommentResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+    sessionId: string;
+    comment: LiveComment | null;
+    message: string;
+  };
+}
+
+// Live Streaming Reactions
+export interface SendLiveReactionRequest {
+  sessionId: string;
+  reactionType:
+    | "like"
+    | "love"
+    | "laugh"
+    | "wow"
+    | "sad"
+    | "angry"
+    | "fire"
+    | "clap"
+    | "heart"
+    | "star";
+  intensity?: "light" | "medium" | "strong";
+  metadata?: Record<string, string>;
+}
+
+export interface LiveReaction {
+  id: string;
+  reactionType:
+    | "like"
+    | "love"
+    | "laugh"
+    | "wow"
+    | "sad"
+    | "angry"
+    | "fire"
+    | "clap"
+    | "heart"
+    | "star";
+  intensity: "light" | "medium" | "strong";
+  sentBy: string;
+  sentByRole: string;
+  userDisplayName?: string;
+  sentAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface GetLiveReactionsResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+    sessionId: string;
+    reactions: LiveReaction[];
+    totalReactions: number;
+    limit: number;
+    offset: number;
+    hasMore?: boolean;
+    reactionSummary?: Record<string, number>;
+  };
+}
+
+export interface SendLiveReactionResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+    sessionId: string;
+    reaction: LiveReaction | null;
+    message: string;
+  };
+}
+
+// Live Streaming Viewers
+export interface LiveViewer {
+  viewerId: string;
+  userId?: string;
+  displayName: string;
+  isAnonymous: boolean;
+  joinedAt: string;
+  lastActivity: string;
+  watchTime: number;
+  location?: {
+    country?: string;
+    city?: string;
+    timezone?: string;
+  };
+  deviceInfo?: {
+    platform?: string;
+    browser?: string;
+    os?: string;
+  };
+  interactions?: {
+    commentsSent: number;
+    reactionsSent: number;
+    ordersPlaced: number;
+    tipsGiven: number;
+  };
+}
+
+export interface GetLiveViewersResponse {
+  success: boolean;
+  data: {
+    message: string;
+    data: LiveViewer[];
+    summary: {
+      totalViewers: number;
+      authenticatedViewers: number;
+      anonymousViewers: number;
+      averageWatchTime: number;
+      peakViewers: number;
+      peakTime: string;
+    };
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+      hasMore: boolean;
+    };
+  };
+}
+
+// Live Streaming Chat
+export interface LiveChatMessage {
+  messageId: string;
+  userId: string;
+  userName: string;
+  content: string;
+  timestamp: string;
+  isModerator: boolean;
+  reactions?: {
+    emoji: string;
+    count: number;
+  }[];
+}
+
+export interface GetLiveChatResponse {
+  success: boolean;
+  data: {
+    message: string;
+    data: LiveChatMessage[];
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+      hasMore: boolean;
+    };
+  };
+}
+
+// Live Streaming Orders
+export interface LiveStreamOrder {
+  orderId: string;
+  sessionId: string;
+  chefId: string;
+  chefName: string;
+  customerId: string;
+  customerName: string;
+  items: {
+    name: string;
+    quantity: number;
+    price: number;
+  }[];
+  totalAmount: number;
+  status:
+    | "pending"
+    | "confirmed"
+    | "preparing"
+    | "ready"
+    | "delivered"
+    | "cancelled";
+  placedAt: string;
+  estimatedPrepTime?: number;
+  deliveryAddress?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
+  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  notes?: string;
+}
+
+export interface GetLiveStreamOrdersResponse {
+  success: boolean;
+  data: {
+    message: string;
+    data: LiveStreamOrder[];
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+      hasMore: boolean;
+    };
+  };
 }
 
 // ============================================================================
@@ -880,7 +1120,15 @@ export interface GroupOrder {
   chef_id: string;
   restaurant_name: string;
   title: string;
-  status: "active" | "closed" | "confirmed" | "preparing" | "ready" | "on_the_way" | "delivered" | "cancelled";
+  status:
+    | "active"
+    | "closed"
+    | "confirmed"
+    | "preparing"
+    | "ready"
+    | "on_the_way"
+    | "delivered"
+    | "cancelled";
   // Budget tracking
   initial_budget: number;
   total_budget: number;
@@ -1319,7 +1567,7 @@ export interface FamilyMember {
   email: string;
   phone?: string | null;
   relationship: string;
-  status: 'pending_invitation' | 'accepted' | 'declined' | 'removed';
+  status: "pending_invitation" | "accepted" | "declined" | "removed";
   invited_at?: string | null;
   accepted_at?: string | null;
   budget_settings?: {
@@ -1519,7 +1767,14 @@ export interface UpdateAllergiesResponse {
 }
 
 export interface DietaryPreference {
-  type: "vegetarian" | "vegan" | "halal" | "kosher" | "gluten_free" | "keto" | "paleo";
+  type:
+    | "vegetarian"
+    | "vegan"
+    | "halal"
+    | "kosher"
+    | "gluten_free"
+    | "keto"
+    | "paleo";
   strictness: "preferred" | "required";
   notes?: string;
 }
@@ -1775,7 +2030,7 @@ export interface GetSupportAgentResponse {
 
 export interface QuickReply {
   text: string;
-  category: 'order' | 'payment' | 'account' | 'technical' | 'general';
+  category: "order" | "payment" | "account" | "technical" | "general";
 }
 
 export interface GetQuickRepliesResponse {

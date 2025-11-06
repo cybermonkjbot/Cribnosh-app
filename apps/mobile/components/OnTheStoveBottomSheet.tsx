@@ -30,6 +30,7 @@ interface OnTheStoveBottomSheetProps {
   onSnapPointChange?: (snapPoint: number) => void;
   onAddToCart?: () => void;
   onQuantityChange?: (quantity: number) => void;
+  onReaction?: (reactionType: 'heart' | 'fire' | 'clap' | 'star') => void;
   mealId?: string;
   isOrdered?: boolean;
   mealData?: {
@@ -54,6 +55,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
   onSnapPointChange,
   onAddToCart,
   onQuantityChange,
+  onReaction,
   mealId,
   isOrdered = false,
   mealData = {
@@ -119,6 +121,13 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     setIsExpanded(prev => !prev);
   }, []);
 
+  const handleReaction = useCallback((liked: boolean) => {
+    // Send heart reaction when user likes/unlikes
+    if (liked && onReaction) {
+      onReaction('heart');
+    }
+  }, [onReaction]);
+
   // Memoize button position style to avoid recalculation on every render
   const buttonPositionStyle = useMemo(() => ({
     position: 'absolute' as const,
@@ -138,7 +147,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
       <>
         {/* Love This Button - positioned above the sheet and follows its movement */}
         <View style={buttonPositionStyle}>
-          <LoveThisButton />
+          <LoveThisButton onLikeChange={onReaction ? handleReaction : undefined} />
         </View>
         
         {/* Skeleton Loading State */}
@@ -154,7 +163,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     <>
       {/* Love This Button - positioned above the sheet and follows its movement */}
       <View style={buttonPositionStyle}>
-        <LoveThisButton />
+        <LoveThisButton onLikeChange={onReaction ? handleReaction : undefined} />
       </View>
       
       <BottomSheetBase
