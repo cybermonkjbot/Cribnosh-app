@@ -172,6 +172,13 @@ export const authApi = createApi({
         body: data,
       }),
     }),
+    emailLogin: builder.mutation<PhoneLoginResponse, { email: string; password: string }>({
+      query: (data) => ({
+        url: "/auth/login",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -179,4 +186,5 @@ export const {
   useSendLoginOTPMutation,
   usePhoneLoginMutation,
   useAppleSignInMutation,
+  useEmailLoginMutation,
 } = authApi;

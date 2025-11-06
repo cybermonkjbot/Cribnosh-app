@@ -32,6 +32,7 @@ import {
 import { useAuthContext } from '../../contexts/AuthContext';
 import {
   useGetCaloriesProgressQuery,
+  useGetCustomerProfileQuery,
   useGetForkPrintScoreQuery,
   useGetMonthlyOverviewQuery,
   useGetNoshPointsQuery,
@@ -84,6 +85,13 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   // API Queries
+  const {
+    data: profileData,
+    isLoading: profileLoading,
+  } = useGetCustomerProfileQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
   const {
     data: forkPrintData,
     isLoading: forkPrintLoading,
@@ -400,10 +408,21 @@ export default function ProfileScreen() {
                   contentFit="contain"
                 />
                 <TouchableOpacity onPress={() => router.push('/account-details')}>
-                  <Avatar 
-                    size="md"
-                    source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face' }}
-                  />
+                  {isAuthenticated && profileData?.data?.picture ? (
+                    <Avatar 
+                      size="md"
+                      source={{ uri: profileData.data.picture }}
+                    />
+                  ) : (
+                    <View style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 28,
+                      backgroundColor: '#E5E7EB',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }} />
+                  )}
                 </TouchableOpacity>
               </View>
             </Animated.View>

@@ -318,129 +318,9 @@ export default function OrdersScreen() {
     { key: "past", label: "Past" },
   ];
 
-  // Enhanced mock data for ongoing orders with group order support
-  const ongoingOrders: Order[] = [
-    {
-      id: 1,
-      time: "19:18, 6th June",
-      description: "Keto Diet, Burger from Mr.s Burger",
-      price: "£28",
-      status: "preparing",
-      estimatedTime: "25-30 min",
-      kitchenName: "Mr.s Burger",
-      orderNumber: "#ORD-2024-001",
-      items: ["Keto Burger", "Sweet Potato Fries", "Diet Coke"],
-      orderType: "individual",
-      _uniqueKey: "mock-ongoing-1",
-    },
-    {
-      id: 2,
-      time: "19:15, 6th June",
-      description: "Team Lunch from Pizza Palace",
-      price: "£45",
-      status: "on-the-way",
-      estimatedTime: "10-15 min",
-      kitchenName: "Pizza Palace",
-      orderNumber: "#ORD-2024-002",
-      items: [
-        "Margherita Pizza",
-        "Pepperoni Pizza",
-        "Garlic Bread",
-        "Fresh Juice",
-      ],
-      orderType: "group",
-      _uniqueKey: "mock-ongoing-2",
-      groupOrder: {
-        id: "group-1",
-        users: [
-          { id: "1", name: "Sarah", initials: "S", color: "#FF6B6B" },
-          { id: "2", name: "Mike", initials: "M", color: "#4ECDC4" },
-          { id: "3", name: "Emma", initials: "E", color: "#45B7D1" },
-          { id: "4", name: "Alex", initials: "A", color: "#96CEB4" },
-        ],
-        totalUsers: 4,
-        isActive: true,
-      },
-    },
-    {
-      id: 3,
-      time: "19:10, 6th June",
-      description: "Chicken Salad from Fresh Bites",
-      price: "£18",
-      status: "ready",
-      estimatedTime: "Ready for pickup",
-      kitchenName: "Fresh Bites",
-      orderNumber: "#ORD-2024-003",
-      items: ["Grilled Chicken Salad", "Balsamic Dressing", "Iced Tea"],
-      orderType: "individual",
-      _uniqueKey: "mock-ongoing-3",
-    },
-    {
-      id: 4,
-      time: "19:05, 6th June",
-      description: "Office Dinner from Tokyo Dreams",
-      price: "£78",
-      status: "preparing",
-      estimatedTime: "35-40 min",
-      kitchenName: "Tokyo Dreams",
-      orderNumber: "#ORD-2024-004",
-      items: ["Salmon Nigiri Set", "Tuna Rolls", "Miso Soup", "Green Tea"],
-      orderType: "group",
-      _uniqueKey: "mock-ongoing-4",
-      groupOrder: {
-        id: "group-2",
-        users: [
-          { id: "5", name: "David", initials: "D", color: "#FFA07A" },
-          { id: "6", name: "Lisa", initials: "L", color: "#98D8C8" },
-          { id: "7", name: "Tom", initials: "T", color: "#F7DC6F" },
-          { id: "8", name: "Anna", initials: "A", color: "#BB8FCE" },
-          { id: "9", name: "Chris", initials: "C", color: "#85C1E9" },
-          { id: "10", name: "Maria", initials: "M", color: "#F8C471" },
-        ],
-        totalUsers: 6,
-        isActive: true,
-      },
-    },
-    {
-      id: 5,
-      time: "18:55, 6th June",
-      description: "Indian Curry from Spice Garden",
-      price: "£24",
-      status: "on-the-way",
-      estimatedTime: "5-8 min",
-      kitchenName: "Spice Garden",
-      orderNumber: "#ORD-2024-005",
-      items: ["Butter Chicken", "Basmati Rice", "Naan Bread"],
-      orderType: "individual",
-      _uniqueKey: "mock-ongoing-5",
-    },
-  ];
-
-  const pastOrders: Order[] = [
-    {
-      id: 6,
-      time: "15:30, 5th June",
-      description: "Vegan Pizza from Pizza Palace",
-      price: "£22",
-      status: "delivered",
-      _uniqueKey: "mock-past-6",
-    },
-    {
-      id: 7,
-      time: "12:45, 4th June",
-      description: "Chicken Salad from Fresh Bites",
-      price: "£18",
-      status: "delivered",
-      _uniqueKey: "mock-past-7",
-    },
-  ];
-
-  // Combine API orders with custom orders, fallback to mock data if no API data
+  // Combine API orders with custom orders
   const allOngoingOrders = [
-    ...(apiOrdersAsOrders.length > 0
-      ? apiOrdersAsOrders
-      : ongoingOrders
-    ).filter(
+    ...apiOrdersAsOrders.filter(
       (order) =>
         order.status === "preparing" ||
         order.status === "ready" ||
@@ -455,7 +335,7 @@ export default function OrdersScreen() {
   ];
 
   const allPastOrders = [
-    ...(apiOrdersAsOrders.length > 0 ? apiOrdersAsOrders : pastOrders).filter(
+    ...apiOrdersAsOrders.filter(
       (order) => order.status === "delivered" || order.status === "cancelled"
     ),
     ...customOrdersAsOrders.filter(
@@ -488,15 +368,20 @@ export default function OrdersScreen() {
     if (currentOrders.length === 0) {
       return (
         <EmptyState
-          title={
-            activeTab === "ongoing" ? "No Ongoing Orders" : "No Past Orders"
-          }
-          subtitle={
-            activeTab === "ongoing"
-              ? "Your active orders will appear here"
-              : "Your order history will appear here"
-          }
-          icon={activeTab === "ongoing" ? "time-outline" : "receipt-outline"}
+          title="Place your first order to see orders here"
+          subtitle="Browse kitchens and meals to get started with your first order"
+          icon="receipt-outline"
+          titleColor="#094327"
+          subtitleColor="#6B7280"
+          iconColor="#10B981"
+          style={{
+            paddingVertical: 80,
+            paddingHorizontal: 32,
+          }}
+          actionButton={{
+            label: "Browse Kitchens",
+            onPress: () => router.push("/(tabs)/"),
+          }}
         />
       );
     }

@@ -43,7 +43,7 @@ export const SignInSocialSelectionCard: React.FC<SignInSocialSelectionCardProps>
           onPress={onEmailSignIn}
           activeOpacity={0.7}
         >
-          <Text style={styles.emailSignInText}>Sign in with Phone</Text>
+          <Text style={styles.emailSignInText}>Sign in with Email</Text>
           <Ionicons name="arrow-forward" size={16} color="#4ADE80" />
         </TouchableOpacity>
       </View>

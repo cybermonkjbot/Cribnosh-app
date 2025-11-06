@@ -350,8 +350,8 @@ export interface DeleteAccountResponse {
   success: boolean;
   message: string;
   data?: {
-    account_deleted_at: string;
-    deletion_scheduled?: boolean;
+    deletion_requested_at: string;
+    deletion_will_complete_at: string;
   };
 }
 
@@ -1218,14 +1218,9 @@ export interface GetPaymentMethodsResponse {
 }
 
 export interface AddPaymentMethodRequest {
-  type: "card" | "paypal";
-  token?: string; // Payment token from payment processor
-  card_details?: {
-    number: string;
-    expiry_month: number;
-    expiry_year: number;
-    cvc: string;
-  };
+  payment_method_id: string; // Payment method ID from payment processor (e.g., Stripe)
+  type: "card" | "apple_pay" | "google_pay";
+  set_as_default?: boolean; // Optional, defaults to false
 }
 
 export interface AddPaymentMethodResponse {
@@ -1237,6 +1232,14 @@ export interface AddPaymentMethodResponse {
 export interface SetDefaultPaymentMethodResponse {
   success: boolean;
   data: PaymentMethod;
+  message: string;
+}
+
+export interface CreateSetupIntentResponse {
+  success: boolean;
+  data: {
+    clientSecret: string;
+  };
   message: string;
 }
 
@@ -1624,6 +1627,77 @@ export interface CreateSupportCaseRequest {
 export interface CreateSupportCaseResponse {
   success: boolean;
   data: SupportCase;
+  message: string;
+}
+
+// ============================================================================
+// EVENT CHEF REQUEST API TYPES
+// ============================================================================
+
+export interface CreateEventChefRequestRequest {
+  event_date: string;
+  number_of_guests: number;
+  event_type: string;
+  event_location: string;
+  phone_number: string;
+  email: string;
+  dietary_requirements?: string;
+  additional_notes?: string;
+}
+
+export interface CreateEventChefRequestResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+    request_id: string;
+  };
+  message: string;
+}
+
+// ============================================================================
+// NOTIFICATIONS API TYPES
+// ============================================================================
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  priority: string;
+  category: string;
+  actionUrl?: string;
+  metadata?: any;
+}
+
+export interface GetNotificationsResponse {
+  success: boolean;
+  data: {
+    notifications: Notification[];
+    total: number;
+  };
+  message: string;
+}
+
+export interface GetNotificationStatsResponse {
+  success: boolean;
+  data: {
+    total: number;
+    unread: number;
+    byType: Record<string, number>;
+    byPriority: Record<string, number>;
+    byCategory: Record<string, number>;
+    recentCount: number;
+  };
+  message: string;
+}
+
+export interface MarkNotificationReadResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+  };
   message: string;
 }
 

@@ -25,8 +25,8 @@ import { store } from '@/store/index';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
 import { GlobalToastContainer } from '../components/ui/GlobalToastContainer';
-import { handleDeepLink } from '../lib/deepLinkHandler';
 import { ToastProvider } from '../lib/ToastContext';
+import { handleDeepLink } from '../lib/deepLinkHandler';
 import { logMockStatus } from '../utils/mockConfig';
 
 // Check if we're running in Expo Go (which doesn't support native modules like Stripe)
@@ -135,6 +135,23 @@ export default function RootLayout() {
                   headerShown: false,
                   presentation: 'modal',
                   animationTypeForReplace: 'push'
+                }} 
+              />
+              <Stack.Screen 
+                name="event-chef-request" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }} 
+              />
+              <Stack.Screen 
+                name="nosh-heaven" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'fullScreenModal',
+                  animation: 'slide_from_bottom',
+                  gestureEnabled: true,
                 }} 
               />
               <Stack.Screen 

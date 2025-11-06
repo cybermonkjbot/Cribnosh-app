@@ -1,4 +1,5 @@
 import { useAppContext } from "@/utils/AppContext";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Filter, X } from "lucide-react-native";
@@ -10,6 +11,7 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useAuthContext } from "../../contexts/AuthContext";
@@ -32,7 +34,6 @@ import { CategoryFilterChips } from "./CategoryFilterChips";
 import { CategoryFullDrawer } from "./CategoryFullDrawer";
 import { CuisineCategoriesSection } from "./CuisineCategoriesSection";
 import { CuisinesSection } from "./CuisinesSection";
-import { NoshHeavenErrorBoundary } from "./ErrorBoundary";
 import { EventBanner } from "./EventBanner";
 import { FeaturedKitchensDrawer } from "./FeaturedKitchensDrawer";
 import { FeaturedKitchensSection } from "./FeaturedKitchensSection";
@@ -47,13 +48,14 @@ import LiveContent from "./LiveContent";
 import { MapBottomSheet } from "./MapBottomSheet";
 import { MealItemDetails } from "./MealItemDetails";
 import { MultiStepLoader } from "./MultiStepLoader";
-import { MealData, NoshHeavenPlayer } from "./NoshHeavenPlayer";
+import { NoshHeavenPostModal } from "./NoshHeavenPostModal";
+import { NotificationsSheet } from "./NotificationsSheet";
 import { OrderAgainSection } from "./OrderAgainSection";
 import { usePerformanceOptimizations } from "./PerformanceMonitor";
 import { PopularMealsDrawer } from "./PopularMealsDrawer";
 import { PopularMealsSection } from "./PopularMealsSection";
-import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { PullToNoshHeavenTrigger } from "./PullToNoshHeavenTrigger";
+import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 // import { ShakeDebugger } from './ShakeDebugger';
 import { CuisineCategoriesDrawer } from "./CuisineCategoriesDrawer";
@@ -74,14 +76,10 @@ import {
   useGetCartQuery,
   useGetCuisinesQuery,
   useGetPopularChefsQuery,
+  useGetPopularMealsQuery,
   useGetUserBehaviorQuery,
-  useGetVideoFeedQuery,
-  useLikeVideoMutation,
-  useRecordVideoViewMutation,
-  useShareVideoMutation,
-  useUnlikeVideoMutation,
 } from "@/store/customerApi";
-import { Chef, Cuisine, VideoPost } from "@/types/customer";
+import { Chef, Cuisine } from "@/types/customer";
 
 // Global toast imports
 import {
@@ -91,75 +89,6 @@ import {
   showWarning,
 } from "../../lib/GlobalToastManager";
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
-
-// Mock data for Nosh Heaven meals
-const mockMealData: MealData[] = [
-  {
-    id: "1",
-    videoSource:
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    title: "Nigerian Jollof Rice",
-    description:
-      "Authentic Nigerian Jollof Rice with perfectly seasoned long grain rice, tender chicken, and a blend of West African spices. Made with love by Chef Amara.",
-    kitchenName: "Amara's Kitchen",
-    price: "£16",
-    chef: "Chef Amara Okonkwo",
-    likes: 342,
-    comments: 58,
-  },
-  {
-    id: "2",
-    videoSource:
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-    title: "Spicy Thai Green Curry",
-    description:
-      "Fresh and aromatic green curry with coconut milk, Thai basil, bamboo shoots, and your choice of protein. A true taste of Thailand.",
-    kitchenName: "Bangkok Bites",
-    price: "£14",
-    chef: "Chef Siriporn Thanakit",
-    likes: 567,
-    comments: 89,
-  },
-  {
-    id: "3",
-    videoSource:
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    title: "Mediterranean Lamb Tagine",
-    description:
-      "Slow-cooked lamb tagine with apricots, almonds, and warming Moroccan spices. Served with fluffy couscous and fresh herbs.",
-    kitchenName: "Marrakech Delights",
-    price: "£22",
-    chef: "Chef Hassan El Mansouri",
-    likes: 289,
-    comments: 34,
-  },
-  {
-    id: "4",
-    videoSource:
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    title: "Korean BBQ Bulgogi",
-    description:
-      "Marinated Korean beef bulgogi with jasmine rice, kimchi, and banchan sides. Grilled to perfection with a sweet and savory glaze.",
-    kitchenName: "Seoul Street",
-    price: "£18",
-    chef: "Chef Min-jun Park",
-    likes: 445,
-    comments: 72,
-  },
-  {
-    id: "5",
-    videoSource:
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    title: "Italian Truffle Risotto",
-    description:
-      "Creamy Arborio rice risotto with black truffle shavings, wild mushrooms, and aged Parmesan. A luxurious comfort food experience.",
-    kitchenName: "Nonna's Table",
-    price: "£25",
-    chef: "Chef Giuseppe Rossi",
-    likes: 378,
-    comments: 91,
-  },
-];
 
 // Mock data for new sections
 const mockCuisines = [
@@ -549,6 +478,21 @@ export function MainScreen() {
     }
   );
 
+  const {
+    data: popularMealsData,
+    isLoading: mealsLoading,
+    error: mealsError,
+    refetch: refetchMeals,
+  } = useGetPopularMealsQuery(
+    {
+      limit: 50,
+      userId: user?.id || user?._id || undefined,
+    },
+    {
+      skip: !isAuthenticated, // Only fetch when authenticated
+    }
+  );
+
   const { error: cartError, refetch: refetchCart } = useGetCartQuery(
     undefined,
     {
@@ -558,26 +502,6 @@ export function MainScreen() {
 
   const [addToCart] = useAddToCartMutation();
 
-  // Nosh Heaven state - must be declared before hooks that use it
-  const [isNoshHeavenVisible, setIsNoshHeavenVisible] = useState(false);
-  const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>([]);
-  const [videoCursor, setVideoCursor] = useState<string | undefined>(undefined);
-
-  // Nosh Heaven video hooks
-  const {
-    data: videoFeedData,
-    isLoading: isLoadingVideos,
-    error: videoFeedError,
-    refetch: refetchVideos,
-  } = useGetVideoFeedQuery(
-    { limit: 20, cursor: videoCursor },
-    { skip: !isNoshHeavenVisible } // Only fetch when Nosh Heaven is visible
-  );
-
-  const [likeVideo] = useLikeVideoMutation();
-  const [unlikeVideo] = useUnlikeVideoMutation();
-  const [shareVideo] = useShareVideoMutation();
-  const [recordVideoView] = useRecordVideoViewMutation();
 
   // Location hook for map functionality
   const locationState = useUserLocation();
@@ -621,20 +545,41 @@ export function MainScreen() {
     }));
   }, []);
 
-  // Transform VideoPost to MealData format
-  const transformVideoToMeal = useCallback((video: VideoPost): MealData => {
+
+  // Transform API meal data to component format
+  const transformMealData = useCallback((apiMeal: any) => {
+    if (!apiMeal?.meal) return null;
+
+    const meal = apiMeal.meal;
+    const chef = apiMeal.chef;
+
     return {
-      id: video._id,
-      videoSource: video.videoUrl || "",
-      title: video.title,
-      description: video.description || "",
-      kitchenName: video.creator.name,
-      price: "", // Videos don't have prices
-      chef: video.creator.name,
-      likes: video.likesCount,
-      comments: video.commentsCount,
+      id: meal._id || meal.id || '',
+      name: meal.name || 'Unknown Meal',
+      kitchen: chef?.kitchen_name || chef?.name || 'Unknown Kitchen',
+      cuisine: chef?.cuisine || '', // Store cuisine for filtering
+      price: meal.price ? `£${(meal.price / 100).toFixed(2)}` : '£0.00',
+      originalPrice: meal.original_price ? `£${(meal.original_price / 100).toFixed(2)}` : undefined,
+      image: {
+        uri: meal.image_url || meal.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop',
+      },
+      isPopular: true,
+      isNew: meal.is_new || false,
+      sentiment: meal.sentiment || 'solid',
+      deliveryTime: meal.delivery_time || '30 min',
     };
   }, []);
+
+  // Process meals from API
+  const meals = useMemo(() => {
+    if (popularMealsData?.success && popularMealsData.data?.popular) {
+      const transformedMeals = popularMealsData.data.popular
+        .map(transformMealData)
+        .filter((meal): meal is NonNullable<ReturnType<typeof transformMealData>> => meal !== null);
+      return transformedMeals;
+    }
+    return []; // Return empty array instead of mockMeals
+  }, [popularMealsData, transformMealData]);
 
   // Process API data
   const cuisines = useMemo(() => {
@@ -649,7 +594,7 @@ export function MainScreen() {
       }
       return transformedData;
     }
-    return mockCuisines; // Fallback to mock data
+    return []; // Return empty array instead of mock data
   }, [cuisinesData, transformCuisinesData]);
 
   const kitchens = useMemo(() => {
@@ -661,7 +606,7 @@ export function MainScreen() {
       }
       return transformedData;
     }
-    return mockKitchens; // Fallback to mock data
+    return []; // Return empty array instead of mock data
   }, [chefsData, transformChefsData]);
 
   // Helper function to normalize cuisine names for filtering
@@ -710,20 +655,27 @@ export function MainScreen() {
     });
   }, [kitchens, activeCategoryFilter, normalizeCuisineForFilter]);
 
-  // Filtered meals based on filtered kitchens
+  // Filtered meals based on activeCategoryFilter
   const filteredMeals = useMemo(() => {
     if (activeCategoryFilter === 'all') {
-      return mockMeals;
+      return meals;
     }
     
-    // Get set of kitchen names from filtered kitchens for fast lookup
-    const filteredKitchenNames = new Set(filteredKitchens.map(k => k.name.toLowerCase()));
-    
-    return mockMeals.filter((meal) => {
-      // Match meal's kitchen to filtered kitchens
+    // Filter meals by matching cuisine to the active category filter
+    return meals.filter((meal) => {
+      // First try to match by meal's cuisine if available
+      if (meal.cuisine) {
+        const cuisineNormalized = normalizeCuisineForFilter(meal.cuisine);
+        if (cuisineNormalized === activeCategoryFilter) {
+          return true;
+        }
+      }
+      
+      // Fallback: match by kitchen name to filtered kitchens
+      const filteredKitchenNames = new Set(filteredKitchens.map(k => k.name.toLowerCase()));
       return filteredKitchenNames.has(meal.kitchen.toLowerCase());
     });
-  }, [mockMeals, filteredKitchens, activeCategoryFilter]);
+  }, [meals, filteredKitchens, activeCategoryFilter, normalizeCuisineForFilter]);
 
   // Filtered cuisines based on activeCategoryFilter
   const filteredCuisines = useMemo(() => {
@@ -756,6 +708,7 @@ export function MainScreen() {
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
+  const [isNotificationsSheetVisible, setIsNotificationsSheetVisible] = useState(false);
 
   // Handle API errors with toast notifications
   useEffect(() => {
@@ -771,43 +724,17 @@ export function MainScreen() {
   }, [chefsError, isAuthenticated]);
 
   useEffect(() => {
+    if (mealsError && isAuthenticated) {
+      showError("Failed to load meals", "Please try again");
+    }
+  }, [mealsError, isAuthenticated]);
+
+  useEffect(() => {
     if (cartError && isAuthenticated) {
       showError("Failed to load cart", "Please try again");
     }
   }, [cartError, isAuthenticated]);
 
-  // Transform video feed data to meal format
-  useEffect(() => {
-    if (videoFeedData?.success && videoFeedData.data?.videos) {
-      const transformedMeals = videoFeedData.data.videos.map(transformVideoToMeal);
-      if (videoCursor) {
-        // Append for pagination
-        setNoshHeavenMeals((prev) => [...prev, ...transformedMeals]);
-      } else {
-        // Replace for initial load
-        setNoshHeavenMeals(transformedMeals);
-      }
-      // Update cursor for next page
-      if (videoFeedData.data.nextCursor) {
-        setVideoCursor(videoFeedData.data.nextCursor);
-      }
-    }
-  }, [videoFeedData, transformVideoToMeal]);
-
-  // Handle video feed errors
-  useEffect(() => {
-    if (videoFeedError && isNoshHeavenVisible) {
-      showError("Failed to load videos", "Please try again");
-    }
-  }, [videoFeedError, isNoshHeavenVisible]);
-
-  // Reset video state when Nosh Heaven closes
-  useEffect(() => {
-    if (!isNoshHeavenVisible) {
-      setNoshHeavenMeals([]);
-      setVideoCursor(undefined);
-    }
-  }, [isNoshHeavenVisible]);
 
   // Category drawer state management
   const [activeDrawer, setActiveDrawer] = useState<
@@ -855,6 +782,7 @@ export function MainScreen() {
 
   // Camera modal state management
   const [isCameraVisible, setIsCameraVisible] = useState(false);
+  const [isNoshHeavenPostModalVisible, setIsNoshHeavenPostModalVisible] = useState(false);
   
   // Map state management
   const [isMapVisible, setIsMapVisible] = useState(false);
@@ -932,8 +860,17 @@ export function MainScreen() {
   const isHeaderStickyShared = useSharedValue(false);
   const scrollViewRef = useRef<Animated.ScrollView>(null);
 
-  // Enhanced pull-to-refresh state management
+  // Pull-up easter egg gesture state
   const [showPullTrigger, setShowPullTrigger] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+  const isAtBottomShared = useSharedValue(false);
+  const pullProgress = useSharedValue(0);
+  const pullTranslation = useSharedValue(0);
+  
+  // Constants for pull gesture
+  const PULL_THRESHOLD = 150; // pixels to pull
+  const ACTIVATION_THRESHOLD = 0.9; // 90% of threshold
+  const BOTTOM_DETECTION_THRESHOLD = 50; // pixels from bottom
 
   const isScrolling = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -991,7 +928,6 @@ export function MainScreen() {
 
         // Reset states
         setShowPullTrigger(false);
-        setIsNoshHeavenVisible(false);
         setIsChatVisible(false);
         setShowLoader(false);
         setRefreshing(false);
@@ -1019,16 +955,6 @@ export function MainScreen() {
     isHeaderStickyShared,
   ]);
 
-  // Reset states when Nosh Heaven closes
-  useEffect(() => {
-    if (!isNoshHeavenVisible) {
-      // Use requestAnimationFrame to batch updates and prevent conflicts
-      requestAnimationFrame(() => {
-        setShowPullTrigger(false);
-        lastScrollPosition.current = 0;
-      });
-    }
-  }, [isNoshHeavenVisible]);
 
   // Enhanced cleanup for scroll timeout
   useEffect(() => {
@@ -1066,7 +992,7 @@ export function MainScreen() {
     try {
       // Refetch API data when authenticated
       if (isAuthenticated) {
-        await Promise.all([refetchCuisines(), refetchChefs(), refetchCart()]);
+        await Promise.all([refetchCuisines(), refetchChefs(), refetchMeals(), refetchCart()]);
       }
 
       // Simulate the loading process with artificial delay
@@ -1088,6 +1014,7 @@ export function MainScreen() {
     isAuthenticated,
     refetchCuisines,
     refetchChefs,
+    refetchMeals,
     refetchCart,
   ]);
 
@@ -1164,6 +1091,51 @@ export function MainScreen() {
             normalHeaderOpacity.value = withTiming(1, { duration: 200 });
             categoryChipsOpacity.value = withTiming(0, { duration: 200 });
           }
+
+          // Bottom detection for pull-up easter egg
+          const contentHeight = event.contentSize?.height || 0;
+          const layoutHeight = event.layoutMeasurement?.height || 0;
+          const scrollPositionWithOffset = scrollPosition + layoutHeight;
+          const isNearBottom = contentHeight > 0 && 
+            scrollPositionWithOffset >= contentHeight - BOTTOM_DETECTION_THRESHOLD;
+
+          // Detect overscroll at bottom (negative overscroll means pulling up beyond content)
+          const overscroll = contentHeight - scrollPositionWithOffset;
+          
+          // Update bottom state
+          if (isNearBottom !== isAtBottomShared.value) {
+            isAtBottomShared.value = isNearBottom;
+            runOnJS(setIsAtBottom)(isNearBottom);
+            runOnJS(setShowPullTrigger)(isNearBottom);
+            
+            // Reset pull progress when scrolling away from bottom
+            if (!isNearBottom) {
+              pullProgress.value = withSpring(0, { damping: 15 });
+              pullTranslation.value = 0;
+            }
+          }
+          
+          // Track pull progress when at bottom and overscrolling upward
+          if (isNearBottom && overscroll < 0) {
+            const pullDistance = Math.abs(overscroll);
+            const progress = Math.max(0, Math.min(1, pullDistance / PULL_THRESHOLD));
+            const previousProgress = pullProgress.value;
+            pullProgress.value = progress;
+            pullTranslation.value = pullDistance;
+            
+            // Trigger haptic feedback at milestones (only once per milestone)
+            if (progress >= ACTIVATION_THRESHOLD && previousProgress < ACTIVATION_THRESHOLD) {
+              runOnJS(triggerHapticFeedback)('heavy');
+            } else if (progress >= 0.75 && previousProgress < 0.75) {
+              runOnJS(triggerHapticFeedback)('medium');
+            } else if (progress >= 0.5 && previousProgress < 0.5) {
+              runOnJS(triggerHapticFeedback)('light');
+            }
+          } else if (isNearBottom && overscroll >= 0 && pullProgress.value > 0) {
+            // Reset progress when not overscrolling
+            pullProgress.value = withSpring(0, { damping: 15 });
+            pullTranslation.value = 0;
+          }
         } catch {
           // Silently handle any worklet errors to prevent crashes
         }
@@ -1175,6 +1147,9 @@ export function MainScreen() {
       stickyHeaderOpacity,
       normalHeaderOpacity,
       categoryChipsOpacity,
+      isAtBottomShared,
+      pullProgress,
+      pullTranslation,
     ]
   );
 
@@ -1228,174 +1203,34 @@ export function MainScreen() {
     };
   });
 
-  // Handle Nosh Heaven trigger - immediate execution
+  // Handle Nosh Heaven trigger - navigate to modal
   const handleNoshHeavenTrigger = useCallback(() => {
     try {
-      // Validate state before making changes
-      if (isNoshHeavenVisible) {
-        return; // Already visible, don't trigger again
-      }
-
-      // Immediate state updates for faster response
-      setIsNoshHeavenVisible(true);
+      console.log('[NoshHeaven] Navigating to Nosh Heaven modal');
       setShowPullTrigger(false);
-    } catch {
-      // Reset to safe state immediately
-      setIsNoshHeavenVisible(false);
-      setShowPullTrigger(false);
+      pullProgress.value = 0;
+      pullTranslation.value = 0;
+      router.push('/nosh-heaven');
+    } catch (error) {
+      console.error('[NoshHeaven] Error navigating:', error);
     }
-  }, [isNoshHeavenVisible]);
+  }, [router, pullProgress, pullTranslation]);
 
-  // Handle Nosh Heaven close
-  const handleNoshHeavenClose = useCallback(() => {
+  // Haptic feedback helper
+  const triggerHapticFeedback = useCallback((intensity: 'light' | 'medium' | 'heavy') => {
     try {
-      // Batch all state updates together
-      requestAnimationFrame(() => {
-        setIsNoshHeavenVisible(false);
-
-        // Safely scroll back to top
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: 0, animated: true });
-        }
-      });
+      if (intensity === 'light') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (intensity === 'medium') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
     } catch {
-      // Reset to safe state
-      requestAnimationFrame(() => {
-        setIsNoshHeavenVisible(false);
-      });
+      // Silently fail haptics
     }
   }, []);
 
-  // Load more meals for Nosh Heaven
-  const handleLoadMoreMeals = useCallback(() => {
-    // Trigger next page load if cursor is available
-    if (videoCursor && !isLoadingVideos) {
-      // Cursor is already set, refetch will use it automatically
-      refetchVideos();
-    }
-  }, [videoCursor, isLoadingVideos, refetchVideos]);
-
-  // Handle meal interactions
-  const handleMealLike = useCallback(
-    async (mealId: string) => {
-      if (!isAuthenticated) {
-        showWarning("Authentication Required", "Please sign in to like videos");
-        navigateToSignIn();
-        return;
-      }
-
-      try {
-        const video = noshHeavenMeals.find((m) => m.id === mealId);
-        if (!video) return;
-
-        // Optimistically update UI
-        setNoshHeavenMeals((prev) =>
-          prev.map((meal) =>
-            meal.id === mealId
-              ? { ...meal, likes: meal.likes + 1 }
-              : meal
-          )
-        );
-
-        await likeVideo({ videoId: mealId }).unwrap();
-      } catch (error) {
-        // Revert optimistic update on error
-        setNoshHeavenMeals((prev) =>
-          prev.map((meal) =>
-            meal.id === mealId
-              ? { ...meal, likes: Math.max(0, meal.likes - 1) }
-              : meal
-          )
-        );
-        showError("Failed to like video", "Please try again");
-      }
-    },
-    [isAuthenticated, noshHeavenMeals, likeVideo]
-  );
-
-  const handleMealComment = useCallback((mealId: string) => {
-    // Navigate to comments screen or open comment modal
-    router.push({
-      pathname: '/meal-comments',
-      params: { mealId },
-    });
-  }, [router]);
-
-  const handleMealShare = useCallback(
-    async (mealId: string) => {
-      try {
-        await shareVideo({ videoId: mealId }).unwrap();
-        showSuccess("Video shared!", "Thanks for sharing");
-      } catch (error) {
-        showError("Failed to share video", "Please try again");
-      }
-    },
-    [shareVideo]
-  );
-
-  // Handle video view tracking
-  const handleVideoView = useCallback(
-    async (mealId: string, watchDuration: number, completionRate: number) => {
-      try {
-        await recordVideoView({
-          videoId: mealId,
-          watchDuration,
-          completionRate,
-          deviceInfo: {
-            type: "mobile",
-            os: "iOS", // Could be dynamic
-          },
-        }).unwrap();
-      } catch (error) {
-        // Silently fail view tracking
-        console.warn("Failed to record video view:", error);
-      }
-    },
-    [recordVideoView]
-  );
-
-  const handleAddToCart = useCallback(
-    async (mealId: string) => {
-      if (!isAuthenticated) {
-        showWarning(
-          "Authentication Required",
-          "Please sign in to add items to cart"
-        );
-        navigateToSignIn();
-        return;
-      }
-
-      try {
-        const result = await addToCart({
-          dish_id: mealId,
-          quantity: 1,
-          special_instructions: undefined,
-        }).unwrap();
-
-        if (result.success) {
-          showSuccess("Added to Cart!", result.data.dish_name);
-        }
-      } catch {
-        showError("Failed to add item to cart", "Please try again");
-      }
-    },
-    [isAuthenticated, addToCart, router]
-  );
-
-  const handleKitchenPress = useCallback((kitchenName: string) => {
-    // Create a mock kitchen based on the kitchen name
-    const mockKitchen = {
-      id: `kitchen-${kitchenName.toLowerCase().replace(/\s+/g, "-")}`,
-      name: kitchenName,
-      cuisine: "Authentic Cuisine",
-      deliveryTime: "25-40 Mins",
-      distance: "1.5km away",
-      image: "https://avatar.iran.liara.run/public/44", // Default kitchen image
-      sentiment: "fire" as const,
-    };
-    setSelectedKitchen(mockKitchen);
-    setIsKitchenMainScreenVisible(true);
-  }, []);
 
   // Handlers for new sections
   const handleCuisinePress = useCallback((cuisine: any) => {
@@ -1722,18 +1557,19 @@ export function MainScreen() {
         showError("Failed to add item to cart", "Please try again");
       }
     },
-    [isAuthenticated, addToCart, router]
+    [isAuthenticated, addToCart]
   );
 
   const handleDrawerItemPress = useCallback((id: string) => {
     // In a real app, this would navigate to item details
   }, []);
 
-  // Simplified pull trigger component - render immediately
+  // Pull trigger component with progress tracking
   const pullTriggerComponent = showPullTrigger ? (
     <PullToNoshHeavenTrigger
       isVisible={true}
       onTrigger={handleNoshHeavenTrigger}
+      pullProgress={pullProgress}
     />
   ) : null;
 
@@ -1787,40 +1623,12 @@ export function MainScreen() {
     return () => clearInterval(interval);
   }, [getPerformanceConfig]);
 
-  // Performance-aware Nosh Heaven player with adaptive settings
-  const noshHeavenPlayerComponent = useMemo(() => {
-    if (!isNoshHeavenVisible || noshHeavenMeals.length === 0) return null;
-
-    return (
-      <NoshHeavenPlayer
-        isVisible={isNoshHeavenVisible}
-        meals={noshHeavenMeals}
-        onClose={handleNoshHeavenClose}
-        onLoadMore={handleLoadMoreMeals}
-        onMealLike={handleMealLike}
-        onMealComment={handleMealComment}
-        onMealShare={handleMealShare}
-        onAddToCart={handleAddToCart}
-        onKitchenPress={handleKitchenPress}
-      />
-    );
-  }, [
-    isNoshHeavenVisible,
-    noshHeavenMeals, // Use full array for proper memoization
-    handleNoshHeavenClose,
-    handleLoadMoreMeals,
-    handleMealLike,
-    handleMealComment,
-    handleMealShare,
-    handleAddToCart,
-    handleKitchenPress,
-  ]);
 
   return (
     <View style={{ flex: 1 }}>
       {/* Performance Monitor - tracks FPS and optimizes accordingly */}
       <PerformanceMonitor
-        isActive={isNoshHeavenVisible} // Only monitor during Nosh Heaven experience
+        isActive={false} // Monitor performance as needed
         sampleInterval={1000}
       />
 
@@ -1852,7 +1660,7 @@ export function MainScreen() {
             stickyHeaderStyle,
           ]}
         >
-          <Header isSticky={true} userName={user?.name} />
+          <Header isSticky={true} userName={user?.name} onNotificationsPress={() => setIsNotificationsSheetVisible(true)} />
         </Animated.View>
 
         {/* Normal Header - positioned below sticky header */}
@@ -1869,7 +1677,7 @@ export function MainScreen() {
             normalHeaderStyle,
           ]}
         >
-          <Header isSticky={false} userName={user?.name} />
+          <Header isSticky={false} userName={user?.name} onNotificationsPress={() => setIsNotificationsSheetVisible(true)} />
         </Animated.View>
 
         {/* Category Filter Chips - positioned right under sticky header */}
@@ -1915,6 +1723,33 @@ export function MainScreen() {
             }
             onScroll={scrollHandler}
             scrollEventThrottle={8}
+            onScrollEndDrag={(e) => {
+              // Detect overscroll at bottom when user releases
+              if (isAtBottom) {
+                const contentHeight = e.nativeEvent.contentSize.height;
+                const layoutHeight = e.nativeEvent.layoutMeasurement.height;
+                const scrollY = e.nativeEvent.contentOffset.y;
+                const overscroll = contentHeight - (scrollY + layoutHeight);
+                
+                // If overscrolled upward (negative overscroll) and threshold reached, trigger
+                if (overscroll < 0 && Math.abs(overscroll) >= PULL_THRESHOLD * ACTIVATION_THRESHOLD) {
+                  handleNoshHeavenTrigger();
+                } else if (pullProgress.value > 0) {
+                  // Reset progress if threshold not reached
+                  pullProgress.value = withSpring(0, { damping: 15 });
+                  pullTranslation.value = 0;
+                }
+              }
+            }}
+            onMomentumScrollEnd={(e) => {
+              // Also check on momentum scroll end
+              if (isAtBottom && pullProgress.value >= ACTIVATION_THRESHOLD) {
+                handleNoshHeavenTrigger();
+              } else if (pullProgress.value > 0) {
+                pullProgress.value = withSpring(0, { damping: 15 });
+                pullTranslation.value = 0;
+              }
+            }}
           >
             {/* Main Content with fade animation */}
             <Animated.View style={contentFadeStyle}>
@@ -1923,7 +1758,7 @@ export function MainScreen() {
               )}
 
               {/* Loading indicators for API data */}
-              {(cuisinesLoading || chefsLoading) && isAuthenticated && (
+              {(cuisinesLoading || chefsLoading || mealsLoading) && isAuthenticated && (
                 <View style={{ padding: 20, alignItems: "center" }}>
                   <Text style={{ color: "#666", fontSize: 16 }}>
                     Loading fresh content...
@@ -1932,7 +1767,7 @@ export function MainScreen() {
               )}
 
               {/* Error handling for API data */}
-              {(cuisinesError || chefsError) && isAuthenticated && (
+              {(cuisinesError || chefsError || mealsError) && isAuthenticated && (
                 <View style={{ padding: 20, alignItems: "center" }}>
                   <Text style={{ color: "#FF3B30", fontSize: 16 }}>
                     Failed to load content. Pull to refresh.
@@ -2014,7 +1849,7 @@ export function MainScreen() {
                       handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
                     }}
                   />
-                  <EventBanner />
+                  <EventBanner onPress={() => router.push('/event-chef-request')} />
                 </>
               ) : (
                 // Filtered View - Show only filtered sections when filter is active
@@ -2087,6 +1922,7 @@ export function MainScreen() {
                           onMealPress={handleMealPress}
                           showTitle={false}
                           useBackend={false}
+                          isLoading={mealsLoading}
                         />
                       )}
                     </View>
@@ -2110,21 +1946,19 @@ export function MainScreen() {
 
         {/* Pull to Nosh Heaven Trigger - positioned to avoid overlap */}
         {pullTriggerComponent && (
-          <NoshHeavenErrorBoundary>
-            <View
-              style={{
-                position: "absolute",
-                bottom: 140, // Increased spacing to avoid overlap with bottom tabs and search drawer
-                left: 0,
-                right: 0,
-                alignItems: "center",
-                zIndex: 1000,
-                paddingHorizontal: 16,
-              }}
-            >
-              {pullTriggerComponent}
-            </View>
-          </NoshHeavenErrorBoundary>
+          <View
+            style={{
+              position: "absolute",
+              bottom: 140, // Increased spacing to avoid overlap with bottom tabs and search drawer
+              left: 0,
+              right: 0,
+              alignItems: "center",
+              zIndex: 1000,
+              paddingHorizontal: 16,
+            }}
+          >
+            {pullTriggerComponent}
+          </View>
         )}
 
         {/* Generating Suggestions Loader */}
@@ -2149,15 +1983,11 @@ export function MainScreen() {
         )}
       </LinearGradient>
 
-      {/* Nosh Heaven Player - rendered at root level for true full-screen above everything except tabs */}
-      {noshHeavenPlayerComponent && (
-        <NoshHeavenErrorBoundary>
-          {noshHeavenPlayerComponent}
-        </NoshHeavenErrorBoundary>
-      )}
-
       {/* Floating Action Button */}
-      <FloatingActionButton onCameraPress={() => setIsCameraVisible(true)} />
+      <FloatingActionButton 
+        onCameraPress={() => setIsCameraVisible(true)}
+        onRecipePress={() => setIsNoshHeavenPostModalVisible(true)}
+      />
 
       {/* Bottom Search Drawer */}
       <BottomSearchDrawer
@@ -2335,6 +2165,18 @@ export function MainScreen() {
         chefs={mapChefs}
         onChefSelect={handleMapChefSelect}
         onGetDirections={handleMapDirections}
+      />
+
+      {/* Notifications Sheet */}
+      <NotificationsSheet
+        isVisible={isNotificationsSheetVisible}
+        onClose={() => setIsNotificationsSheetVisible(false)}
+      />
+
+      {/* Nosh Heaven Post Modal */}
+      <NoshHeavenPostModal
+        isVisible={isNoshHeavenPostModalVisible}
+        onClose={() => setIsNoshHeavenPostModalVisible(false)}
       />
     </View>
   );

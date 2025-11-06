@@ -148,6 +148,7 @@ export function FloatingActionButton({
     setIsActionMenuOpen(false);
   };
 
+
   const handleCartPress = () => {
     setLastUsedFunction('cart');
     if (onCartPress) {
@@ -209,7 +210,7 @@ export function FloatingActionButton({
 
     if (isActionMenuOpen) {
       // Opening animation - stagger each item slightly
-      // Angles: All positioned towards top and top-left (240°, 270°, 210°)
+      // Angles: All positioned towards top and top-left (270°, 240°, 210°)
       const cameraPos = calculatePosition(270, menuRadius); // Top
       const recipePos = calculatePosition(240, menuRadius); // Top-left
       const cartPos = calculatePosition(210, menuRadius); // More towards left

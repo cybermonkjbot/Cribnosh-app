@@ -1,6 +1,6 @@
-import * as ImagePicker from 'expo-image-picker';
-import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
 interface ProfileAvatarProps {
@@ -9,6 +9,7 @@ interface ProfileAvatarProps {
   containerStyle?: any;
   onImageSelected?: (uri: string) => void;
   selectedImageUri?: string;
+  isAuthenticated?: boolean;
 }
 
 // Generic user icon SVG
@@ -29,13 +30,19 @@ export function ProfileAvatar({
   style, 
   containerStyle, 
   onImageSelected,
-  selectedImageUri 
+  selectedImageUri,
+  isAuthenticated = true
 }: ProfileAvatarProps) {
   const containerSize = size;
   const userIconSize = size * 0.5; // 40px for 80px container
   const cameraIconSize = size * 0.3; // 24px for 80px container
 
   const handleImageSelection = async () => {
+    // Prevent image selection when not authenticated
+    if (!isAuthenticated) {
+      return;
+    }
+
     try {
       // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -66,37 +73,75 @@ export function ProfileAvatar({
   };
 
   return (
-    <TouchableOpacity 
-      style={[styles.container, { width: containerSize, height: containerSize }, containerStyle]} 
-      onPress={handleImageSelection}
-      activeOpacity={0.8}
-    >
-      {selectedImageUri ? (
-        // Display selected image
-        <Image 
-          source={{ uri: selectedImageUri }} 
-          style={[styles.selectedImage, { width: containerSize, height: containerSize }]}
-        />
-      ) : (
-        // Display default user icon
-        <View style={[styles.userIconContainer, { width: userIconSize, height: userIconSize }]}>
+    <View style={[{ width: containerSize, height: containerSize }, containerStyle, { position: 'relative' }]}>
+      <TouchableOpacity 
+        style={[styles.container, { width: containerSize, height: containerSize }]} 
+        onPress={handleImageSelection}
+        activeOpacity={0.8}
+        disabled={!isAuthenticated}
+      >
+        {selectedImageUri ? (
+          // Display selected image
+          <Image 
+            source={{ uri: selectedImageUri }} 
+            style={[styles.selectedImage, { width: containerSize, height: containerSize }]}
+          />
+        ) : (
+          // Display default user icon
+          <View style={[styles.userIconContainer, { width: userIconSize, height: userIconSize }]}>
+            <SvgXml 
+              xml={userIconSVG} 
+              width={userIconSize} 
+              height={userIconSize}
+            />
+          </View>
+        )}
+        
+        {/* Camera icon overlay - only show when authenticated */}
+        {isAuthenticated && (
+        <View style={[styles.cameraIconOverlay, { width: cameraIconSize, height: cameraIconSize }]}>
           <SvgXml 
-            xml={userIconSVG} 
-            width={userIconSize} 
-            height={userIconSize}
+            xml={cameraIconSVG} 
+            width={cameraIconSize} 
+            height={cameraIconSize}
           />
         </View>
-      )}
+        )}
+      </TouchableOpacity>
       
-      {/* Camera icon overlay */}
-      <View style={[styles.cameraIconOverlay, { width: cameraIconSize, height: cameraIconSize }]}>
-        <SvgXml 
-          xml={cameraIconSVG} 
-          width={cameraIconSize} 
-          height={cameraIconSize}
-        />
-      </View>
-    </TouchableOpacity>
+      {/* Not signed in badge */}
+      {!isAuthenticated && (
+        <View
+          style={{
+            position: 'absolute',
+            top: -12,
+            right: -8,
+            zIndex: 10,
+            transform: [{ rotate: '-5deg' }],
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#ef4444',
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 8,
+            }}
+          >
+            <Text
+              style={{
+                color: '#fff',
+                fontSize: 10,
+                fontWeight: '700',
+                textTransform: 'uppercase',
+              }}
+            >
+              NOT SIGNED IN
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
 
