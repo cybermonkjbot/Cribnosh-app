@@ -11,7 +11,7 @@ import {
   DietFilters,
   PreviousMeals,
   FavoriteChefs,
-  UserSettings,
+  AppDownloadCTA,
 } from "@/components/try-it";
 
 export default function SearchContent() {
@@ -156,8 +156,7 @@ export default function SearchContent() {
                   transition={{ duration: 0.5, delay: 0.6 }}
                 >
                   <div className="mt-8">
-                    <h3 className="text-lg font-semibold mb-4">Your Settings</h3>
-                    <UserSettings />
+                    <AppDownloadCTA />
                   </div>
                 </motion.div>
               </div>

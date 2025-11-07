@@ -1,20 +1,20 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useAddToCart } from "@/hooks/use-cart";
 import { useSession } from "@/lib/auth/use-session";
 import { useQuery } from "@tanstack/react-query";
 import { useConvex } from "convex/react";
-import { ArrowLeft, Check, ChefHat, Clock, MapPin, Plus, Shuffle, Star, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Check, ChefHat, Clock, MapPin, Plus, ShoppingCart, Shuffle, Star } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { AiDecisionProcess } from "./ai-decision-process";
 import { FloatingAssistantInput } from "./floating-assistant-input";
-import { useAddToCart } from "@/hooks/use-cart";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 // Utility functions for distance and time calculations
 function calculateDistance(userLocation: any, mealLocation: any): string {
@@ -699,7 +699,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                               handleAddToCart(meal._id, meal.name || result.title);
                             }
                           }}
-                          disabled={addingToCart !== null}
+                          disabled={addingToCart === searchResults[index]?._id}
                           className="w-full bg-[#ff3b30] hover:bg-[#ff3b30]/90 text-white"
                         >
                           {addingToCart === searchResults[index]?._id ? (

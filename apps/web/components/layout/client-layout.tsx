@@ -78,14 +78,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const isTryItPage = pathname === "/try-it";
   const isWaitlistPage = pathname === "/waitlist";
   
-  // Food ordering experience routes - show bottom menu only on these
-  const isFoodOrderingRoute = pathname === "/" || 
-    pathname === "/try-it" || 
-    pathname?.startsWith("/orders") || 
-    pathname?.startsWith("/profile") || 
-    pathname?.startsWith("/cart") ||
-    pathname?.startsWith("/chef") ||
-    pathname?.startsWith("/dish");
+  // Food ordering experience routes - show bottom menu only on the three pages the tabs link to
+  const isFoodOrderingRoute = pathname === "/try-it" || 
+    pathname === "/orders" || 
+    pathname === "/profile";
   const [mounted, setMounted] = useState(false);
   const [viewportHeight, setViewportHeight] = useState('100vh');
   const [safeAreaTop, setSafeAreaTop] = useState('0px');

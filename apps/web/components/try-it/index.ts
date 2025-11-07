@@ -6,6 +6,7 @@ export { DietFilters } from './diet-filters';
 export { PreviousMeals } from './previous-meals';
 export { FavoriteChefs } from './favorite-chefs';
 export { UserSettings } from './user-settings';
+export { AppDownloadCTA } from './app-download-cta';
 export { AllPreviousMeals } from './all-previous-meals';
 export { AllFavoriteChefs } from './all-favorite-chefs';
 export * from './allergen-settings-modal';

@@ -3,8 +3,8 @@
  * React Query hook for managing cart state and operations
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as cartAPI from '@/lib/api/cart';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Query keys
 export const cartKeys = {
