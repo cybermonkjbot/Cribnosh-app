@@ -1,4 +1,5 @@
 import { RelationshipSelectionSheet } from '@/components/ui/RelationshipSelectionSheet';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/lib/ToastContext';
 import { useSetupFamilyProfileMutation, useValidateFamilyMemberEmailMutation } from '@/store/customerApi';
@@ -16,12 +17,6 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SvgXml } from 'react-native-svg';
-
-// Back arrow SVG
-const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M19 12H5M12 19L5 12L12 5" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
 
 interface FamilyMemberForm {
   name: string;
@@ -583,13 +578,7 @@ export default function FamilyProfileSetupScreen() {
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
         
-        {/* Header with back button */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <SvgXml xml={backArrowSVG} width={24} height={24} />
-          </TouchableOpacity>
-          <View style={styles.headerSpacer} />
-        </View>
+        <ScreenHeader title="Family Profile Setup" onBack={handleBack} />
 
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
@@ -636,22 +625,6 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: '#FAFFFA',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  backButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  headerSpacer: {
-    width: 40,
   },
   progressContainer: {
     paddingHorizontal: 16,

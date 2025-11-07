@@ -5,11 +5,11 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { GradientBackground } from '@/components/ui/GradientBackground';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuperButton } from '@/components/ui/SuperButton';
 import { useGetFamilyProfileQuery, useUpdateMemberPreferencesMutation } from '@/store/customerApi';
 import { useToast } from '@/lib/ToastContext';
@@ -57,19 +57,21 @@ export default function MemberPreferencesScreen() {
   };
 
   return (
-    <GradientBackground>
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          title: 'Preferences',
+        }}
+      />
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ChevronLeft size={24} color="#E6FFE8" />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-        </View>
+        <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
+        
+        <ScreenHeader title="Preferences" onBack={() => router.back()} />
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.title}>Preferences</Text>
           <Text style={styles.description}>
-            Manage allergy and dietary preferences for {member?.name}
+            Manage allergy and dietary preferences for {member?.name || 'this member'}
           </Text>
 
           <View style={styles.settingCard}>
@@ -92,79 +94,67 @@ export default function MemberPreferencesScreen() {
           </View>
         </ScrollView>
 
-        <SuperButton
-          title={isLoading ? 'Updating...' : 'Save Preferences'}
-          onPress={handleSubmit}
-          backgroundColor="#094327"
-          textColor="white"
-        />
+        <View style={styles.buttonContainer}>
+          <SuperButton
+            title={isLoading ? 'Updating...' : 'Save Preferences'}
+            onPress={handleSubmit}
+            backgroundColor="#094327"
+            textColor="white"
+          />
+        </View>
       </SafeAreaView>
-    </GradientBackground>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  backText: {
-    color: '#E6FFE8',
-    fontSize: 16,
-    marginLeft: 8,
+    backgroundColor: '#FAFFFA',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingTop: 24,
     paddingBottom: 100,
   },
-  title: {
-    color: '#E6FFE8',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    marginTop: 20,
-  },
   description: {
-    color: '#C0DCC0',
+    color: '#6B7280',
     fontSize: 16,
     marginBottom: 24,
     lineHeight: 24,
+    fontFamily: 'Inter',
   },
   settingCard: {
-    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(230, 255, 232, 0.2)',
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   settingLabel: {
-    color: '#E6FFE8',
+    color: '#094327',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    fontFamily: 'Inter',
   },
   settingDescription: {
-    color: '#C0DCC0',
+    color: '#6B7280',
     fontSize: 14,
     marginBottom: 12,
+    fontFamily: 'Inter',
   },
   toggle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F3F4F6',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
@@ -173,21 +163,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#094327',
   },
   toggleText: {
-    color: '#E6FFE8',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Inter',
   },
   infoCard: {
-    backgroundColor: 'rgba(230, 255, 232, 0.05)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(230, 255, 232, 0.1)',
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   infoText: {
-    color: '#C0DCC0',
+    color: '#6B7280',
     fontSize: 14,
     lineHeight: 20,
+    fontFamily: 'Inter',
+  },
+  buttonContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: '#FAFFFA',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
 });
 

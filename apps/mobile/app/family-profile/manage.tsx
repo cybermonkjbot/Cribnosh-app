@@ -6,7 +6,7 @@ import {
 } from "@/store/customerApi";
 import type { FamilyMember } from "@/types/customer";
 import { Stack, useRouter } from "expo-router";
-import { Plus, Settings, Users } from "lucide-react-native";
+import { Plus, Users } from "lucide-react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
+import { AddFamilyMemberSheet } from "@/components/ui/AddFamilyMemberSheet";
+import { FamilyMemberDetailSheet } from "@/components/ui/FamilyMemberDetailSheet";
+import { FamilyOrdersSheet } from "@/components/ui/FamilyOrdersSheet";
+import { useState } from "react";
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -32,31 +36,43 @@ export default function FamilyProfileManageScreen() {
     data: familyProfileData,
     isLoading: profileLoading,
     error: profileError,
+    refetch: refetchFamilyProfile,
   } = useGetFamilyProfileQuery();
   const { data: spendingData, isLoading: spendingLoading } =
     useGetFamilySpendingQuery();
   const [removeFamilyMember, { isLoading: isRemovingMember }] =
     useRemoveFamilyMemberMutation();
+  
+  const [isAddMemberSheetVisible, setIsAddMemberSheetVisible] = useState(false);
+  const [isMemberDetailSheetVisible, setIsMemberDetailSheetVisible] = useState(false);
+  const [isOrdersSheetVisible, setIsOrdersSheetVisible] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
 
   const handleBack = () => {
     router.back();
   };
 
   const handleAddMember = () => {
-    router.push("/family-profile/add-member");
+    setIsAddMemberSheetVisible(true);
   };
 
   const handleMemberPress = (member: FamilyMember) => {
-    router.push(`/family-profile/member/${member.id}`);
+    setSelectedMember(member);
+    setIsMemberDetailSheetVisible(true);
+  };
+  
+  const handleAddMemberSuccess = () => {
+    // Refetch family profile data to show the new member
+    refetchFamilyProfile();
   };
 
-  const handleSettings = () => {
-    // Navigate to settings screen
-    router.push("/family-profile/settings");
-  };
 
   const handleOrders = () => {
-    router.push("/family-profile/orders");
+    setIsOrdersSheetVisible(true);
+  };
+  
+  const handleOrderSelect = (orderId: string) => {
+    router.push(`/order-details?id=${orderId}`);
   };
 
   const handleRemoveMember = (member: FamilyMember) => {
@@ -192,12 +208,6 @@ export default function FamilyProfileManageScreen() {
             <SvgXml xml={backArrowSVG} width={24} height={24} />
           </TouchableOpacity>
           <View style={styles.headerSpacer} />
-          <TouchableOpacity
-            onPress={handleSettings}
-            style={styles.settingsButton}
-          >
-            <Settings size={24} color="#094327" />
-          </TouchableOpacity>
         </View>
 
         {/* Content */}
@@ -276,7 +286,7 @@ export default function FamilyProfileManageScreen() {
           {/* Quick Actions */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <TouchableOpacity onPress={handleOrders} style={styles.actionCard}>
+            <TouchableOpacity onPress={handleOrders} style={[styles.actionCard, styles.quickActionCard]}>
               <Text style={styles.actionTitle}>View All Orders</Text>
               <Text style={styles.actionDescription}>
                 See orders placed by family members
@@ -284,6 +294,33 @@ export default function FamilyProfileManageScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+        
+        {/* Add Family Member Sheet */}
+        <AddFamilyMemberSheet
+          isVisible={isAddMemberSheetVisible}
+          onClose={() => setIsAddMemberSheetVisible(false)}
+          onSuccess={handleAddMemberSuccess}
+        />
+        
+        {/* Family Member Detail Sheet */}
+        <FamilyMemberDetailSheet
+          isVisible={isMemberDetailSheetVisible}
+          onClose={() => {
+            setIsMemberDetailSheetVisible(false);
+            setSelectedMember(null);
+          }}
+          member={selectedMember}
+          onNavigateToBudget={(memberId) => router.push(`/family-profile/member/${memberId}/budget`)}
+          onNavigateToPreferences={(memberId) => router.push(`/family-profile/member/${memberId}/preferences`)}
+          onNavigateToOrders={(memberId) => router.push(`/family-profile/member/${memberId}/orders`)}
+        />
+        
+        {/* Family Orders Sheet */}
+        <FamilyOrdersSheet
+          isVisible={isOrdersSheetVisible}
+          onClose={() => setIsOrdersSheetVisible(false)}
+          onSelectOrder={handleOrderSelect}
+        />
       </SafeAreaView>
     </>
   );
@@ -308,11 +345,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   headerSpacer: {
-    width: 40,
-  },
-  settingsButton: {
-    padding: 8,
-    borderRadius: 8,
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -407,10 +440,10 @@ const styles = StyleSheet.create({
   },
   overviewRow: {
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   overviewItem: {
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   overviewValue: {
     color: "#094327",
@@ -440,6 +473,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     fontFamily: "Archivo",
+    marginBottom: 16,
   },
   addButton: {
     flexDirection: "row",
@@ -531,6 +565,10 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 1,
     borderColor: "transparent",
+  },
+  quickActionCard: {
+    marginTop: 16,
+    marginBottom: 0,
   },
   actionTitle: {
     color: "#094327",

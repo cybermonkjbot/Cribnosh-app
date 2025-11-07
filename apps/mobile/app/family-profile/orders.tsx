@@ -5,11 +5,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ChevronLeft, Package } from 'lucide-react-native';
-import { GradientBackground } from '@/components/ui/GradientBackground';
+import { Stack, useRouter } from 'expo-router';
+import { Package } from 'lucide-react-native';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useGetFamilyOrdersQuery } from '@/store/customerApi';
 
 export default function FamilyOrdersScreen() {
@@ -17,37 +18,41 @@ export default function FamilyOrdersScreen() {
   const { data: ordersData, isLoading } = useGetFamilyOrdersQuery({ limit: 50 });
 
   return (
-    <GradientBackground>
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          title: 'Family Orders',
+        }}
+      />
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ChevronLeft size={24} color="#E6FFE8" />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-        </View>
+        <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
+        
+        <ScreenHeader title="Family Orders" onBack={() => router.back()} />
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#E6FFE8" />
+            <ActivityIndicator size="large" color="#094327" />
           </View>
         ) : (
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.title}>Family Orders</Text>
             <Text style={styles.description}>
               All orders placed by family members
             </Text>
 
             {ordersData?.data && ordersData.data.length > 0 ? (
               ordersData.data.map((order: any, index: number) => (
-                <View key={index} style={styles.orderCard}>
-                  <Package size={24} color="#E6FFE8" />
+                <TouchableOpacity key={index} style={styles.orderCard} activeOpacity={0.7}>
+                  <View style={styles.packageIconContainer}>
+                    <Package size={24} color="#094327" />
+                  </View>
                   <View style={styles.orderInfo}>
-                    <Text style={styles.orderTitle}>Order #{order.order_id || order._id}</Text>
+                    <Text style={styles.orderTitle}>Order #{order.order_id || order._id?.slice(-8) || 'N/A'}</Text>
                     <Text style={styles.orderDetails}>
                       {order.status || 'Unknown'} • £{order.total?.toFixed(2) || '0.00'}
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))
             ) : (
               <View style={styles.emptyContainer}>
@@ -57,30 +62,14 @@ export default function FamilyOrdersScreen() {
           </ScrollView>
         )}
       </SafeAreaView>
-    </GradientBackground>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  backText: {
-    color: '#E6FFE8',
-    fontSize: 16,
-    marginLeft: 8,
+    backgroundColor: '#FAFFFA',
   },
   loadingContainer: {
     flex: 1,
@@ -91,44 +80,54 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingTop: 24,
     paddingBottom: 20,
   },
-  title: {
-    color: '#E6FFE8',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    marginTop: 20,
-  },
   description: {
-    color: '#C0DCC0',
+    color: '#6B7280',
     fontSize: 16,
     marginBottom: 24,
+    fontFamily: 'Inter',
   },
   orderCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(230, 255, 232, 0.2)',
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  packageIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   orderInfo: {
     flex: 1,
-    marginLeft: 16,
   },
   orderTitle: {
-    color: '#E6FFE8',
+    color: '#111827',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    fontFamily: 'Inter',
   },
   orderDetails: {
-    color: '#C0DCC0',
+    color: '#6B7280',
     fontSize: 14,
+    fontFamily: 'Inter',
   },
   emptyContainer: {
     flex: 1,
@@ -137,8 +136,9 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    color: '#C0DCC0',
+    color: '#6B7280',
     fontSize: 16,
+    fontFamily: 'Inter',
   },
 });
 
