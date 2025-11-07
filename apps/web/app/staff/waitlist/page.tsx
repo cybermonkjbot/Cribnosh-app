@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
-import { staffFetch } from '@/lib/api/staff-api-helper';
-import { GlassCard } from '@/components/ui/glass-card';
+import { WaitlistEntryCard } from '@/components/staff/WaitlistEntryCard';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GlassButton } from '@/components/ui/glass-button';
+import { GlassCard } from '@/components/ui/glass-card';
 import { GlassInput } from '@/components/ui/glass-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { WaitlistEntryCard } from '@/components/staff/WaitlistEntryCard';
 import { WaitlistEntrySkeleton } from '@/components/ui/skeleton';
-import { Loader2, Plus, Search, Users, Mail, RefreshCw, Filter } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { staffFetch } from '@/lib/api/staff-api-helper';
+import { Filter, Mail, Plus, RefreshCw, Search, Users } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 interface WaitlistEntry {
@@ -220,13 +220,13 @@ export default function StaffWaitlistPage() {
 
   // --- Conditional UI states ---
   let content = null;
-  if (adminLoading && staffEmail === null) {
+  if (adminLoading || staffAuthLoading) {
     content = (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Loading waitlist management...</div>
       </div>
     );
-  } else if (staffEmail === null) {
+  } else if (!staffUser && !adminUser) {
     content = (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Please log in to access waitlist management.</div>

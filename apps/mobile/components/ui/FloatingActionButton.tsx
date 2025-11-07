@@ -10,6 +10,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { BlurEffect } from '@/utils/blurEffects';
 
 interface FloatingActionButtonProps {
   bottomPosition?: number;
@@ -287,18 +288,30 @@ export function FloatingActionButton({
         onPress={handleMainButtonPress}
         activeOpacity={0.8}
       >
-        <Animated.View style={[styles.mainButtonIcon, iconAnimatedStyle]}>
-          {getMainButtonIcon()}
-        </Animated.View>
+        {/* Glassy/Frosted Blur Effect */}
+        <BlurEffect
+          intensity={20}
+          tint="light"
+          useGradient={true}
+          backgroundColor="rgba(255, 59, 48, 0.75)"
+          style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
+        />
         
-        {/* Cart Counter Badge - Always render for smooth animations */}
-        {showCartCounter && (
-          <Animated.View style={[styles.cartBadge, badgeAnimatedStyle]}>
-            {cartItemCount > 0 && (
-              <Text style={styles.cartBadgeText}>{displayCartCount}</Text>
-            )}
+        {/* Content container - positioned above blur */}
+        <View style={styles.buttonContent}>
+          <Animated.View style={[styles.mainButtonIcon, iconAnimatedStyle]}>
+            {getMainButtonIcon()}
           </Animated.View>
-        )}
+          
+          {/* Cart Counter Badge - Always render for smooth animations */}
+          {showCartCounter && (
+            <Animated.View style={[styles.cartBadge, badgeAnimatedStyle]}>
+              {cartItemCount > 0 && (
+                <Text style={styles.cartBadgeText}>{displayCartCount}</Text>
+              )}
+            </Animated.View>
+          )}
+        </View>
       </TouchableOpacity>
 
       {/* Circular Icon Menu Items */}
@@ -389,23 +402,36 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FF3B30', // Cribnosh red
+    backgroundColor: 'rgba(255, 59, 48, 0.75)', // Semi-transparent Cribnosh red for glassy effect
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden', // Ensure blur effect is contained
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    position: 'relative', // Needed for absolute positioned blur
   },
   mainActionButtonOpen: {
     transform: [{ translateY: -20 }], // Move button up by 20px when open
+  },
+  buttonContent: {
+    position: 'relative',
+    zIndex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mainButtonIcon: {
     width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1,
+    position: 'relative',
+    elevation: 1,
   },
   cartBadge: {
     position: 'absolute',
@@ -425,6 +451,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+    zIndex: 2,
   },
   cartBadgeText: {
     color: '#FFFFFF',
