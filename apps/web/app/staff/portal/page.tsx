@@ -81,7 +81,7 @@ export default function StaffPortal() {
         const res = await staffFetch('/api/staff/notices');
         if (res.ok) {
           const data = await res.json();
-          setStaffNotices(data.notices || []);
+          setStaffNotices(data.data?.notices || []);
         } else {
           setStaffNotices([]);
         }

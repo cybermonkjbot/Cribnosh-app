@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -447,16 +447,20 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
       statusBarTranslucent={true}
       presentationStyle="fullScreen"
     >
-      <LinearGradient
-        colors={[COLORS.gradient.start, COLORS.gradient.end]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          flex: 1,
-          paddingTop: 50, // Account for status bar
-          zIndex: 99999,
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
+        <LinearGradient
+          colors={[COLORS.gradient.start, COLORS.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            flex: 1,
+            paddingTop: 50, // Account for status bar
+            zIndex: 99999,
+          }}
+        >
         <Animated.View style={[animatedContainerStyle, { flex: 1 }]}>
           {/* Header */}
           <View style={{
@@ -591,6 +595,7 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
           <ChatInput onSend={handleSendMessage} isSending={isSendingMessage} />
         </Animated.View>
       </LinearGradient>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
