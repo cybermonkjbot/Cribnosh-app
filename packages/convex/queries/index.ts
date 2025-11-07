@@ -79,6 +79,9 @@ export * from './specialOffers';
 // Export admin queries
 export * from './admin';
 
+// Export waitlist queries
+export * from './waitlist';
+
 // Export users queries (explicit exports to avoid conflicts)
 export {
   countUnreadNotifications, getAll, getAllDocuments, getAllStaff, getAllUsers, getById, getCurrentUser, getDietaryPreferences,

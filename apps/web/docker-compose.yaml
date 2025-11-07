@@ -9,7 +9,7 @@ services:
       args:
         # Build-time variables (these need to be set as "Build Variables" in Coolify UI)
         - RESEND_API_KEY=${RESEND_API_KEY:-re_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN}
-        - NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL:-https://colorful-aardvark-576.convex.cloud}
+        - NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL:-https://wandering-finch-293.convex.cloud}
         - BASEHUB_TOKEN=${BASEHUB_TOKEN:-"bshb_pk_puctvrqlvn8s55v47kqswt021acbzvcr0k3vwfrm0vg5u1z5w4y5g5eutbnsgcgc"}
         - SMTP_HOST=${SMTP_HOST:-smtp.example.com}
         - SMTP_PORT=${SMTP_PORT:-587}
@@ -22,7 +22,7 @@ services:
         - NOTION_TOKEN=${NOTION_TOKEN:-ntn_H36001900014bCHIwtL24KM5tmGAW2IzmnZolV3FZoNaKH}
         - NOTION_DATABASE_ID=${NOTION_DATABASE_ID:-2240d6968a31808388bddafaefdec9b3}
         - NEXT_PUBLIC_DISABLE_TRY_IT=${NEXT_PUBLIC_DISABLE_TRY_IT:-true}
-        - CONVEX_DEPLOYMENT=${CONVEX_DEPLOYMENT:-dev:colorful-aardvark-576}
+        - CONVEX_DEPLOYMENT=${CONVEX_DEPLOYMENT:-dev:wandering-finch-293}
         - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL:-cribnosh.com}
         - NEXT_PUBLIC_DISABLE_DARK_MODE=${NEXT_PUBLIC_DISABLE_DARK_MODE:-true}
         - DISABLE_TRY_IT=${DISABLE_TRY_IT:-true}
@@ -62,7 +62,7 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3000
       - RESEND_API_KEY=${RESEND_API_KEY:-re_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN}
-      - NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL:-https://colorful-aardvark-576.convex.cloud}
+      - NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL:-https://wandering-finch-293.convex.cloud}
       - BASEHUB_TOKEN=${BASEHUB_TOKEN}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}

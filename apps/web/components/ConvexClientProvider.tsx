@@ -1,17 +1,39 @@
 "use client";
 
-import { ConvexReactClient } from "convex/react";
+import { ConvexReactClient, ConvexProvider } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
-// Initialize Convex client with error handling
-let convex: ConvexReactClient;
-try {
-  convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-} catch (error) {
-  console.error("Failed to initialize Convex client:", error);
-  // Fallback initialization
-  convex = new ConvexReactClient("https://your-convex-url.convex.cloud");
+// Singleton pattern for Convex client
+let convexClientInstance: ConvexReactClient | null = null;
+
+function getConvexClient(): ConvexReactClient {
+  if (convexClientInstance) {
+    return convexClientInstance;
+  }
+
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  
+  if (!convexUrl) {
+    console.error("NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables.");
+    // Use dev URL as fallback
+    const fallbackUrl = "https://wandering-finch-293.convex.cloud";
+    console.warn(`Using fallback Convex URL: ${fallbackUrl}`);
+    convexClientInstance = new ConvexReactClient(fallbackUrl);
+    return convexClientInstance;
+  }
+
+  try {
+    convexClientInstance = new ConvexReactClient(convexUrl);
+    return convexClientInstance;
+  } catch (error) {
+    console.error("Failed to initialize Convex client:", error);
+    // Fallback initialization
+    const fallbackUrl = "https://wandering-finch-293.convex.cloud";
+    console.warn(`Using fallback Convex URL: ${fallbackUrl}`);
+    convexClientInstance = new ConvexReactClient(fallbackUrl);
+    return convexClientInstance;
+  }
 }
 
 export function ConvexClientProvider({
@@ -20,6 +42,11 @@ export function ConvexClientProvider({
   children: React.ReactNode;
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Initialize Convex client using useMemo to ensure it's only created once
+  const convex = useMemo(() => {
+    return getConvexClient();
+  }, []);
 
   useEffect(() => {
     // Function to get token from cookie
@@ -66,7 +93,15 @@ export function ConvexClientProvider({
       clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [convex]);
 
-  return <ConvexAuthProvider client={convex}>{children}</ConvexAuthProvider>;
+  // Use ConvexProvider for basic hooks (useQuery, useMutation, useAction)
+  // Wrap with ConvexAuthProvider for authentication features
+  return (
+    <ConvexProvider client={convex}>
+      <ConvexAuthProvider client={convex}>
+        {children}
+      </ConvexAuthProvider>
+    </ConvexProvider>
+  );
 } 

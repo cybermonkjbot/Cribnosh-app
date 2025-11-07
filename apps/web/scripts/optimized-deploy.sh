@@ -306,12 +306,22 @@ main() {
         exit 1
     fi
     
-    # Warm up instances with comprehensive strategy
-    echo "🔥 Starting comprehensive instance warming..."
-    ./scripts/warm-instances.sh
+    # Warm up instances with comprehensive strategy (non-blocking)
+    # Note: Warming runs in background and won't block GitHub Actions completion
+    # Cloudflare also performs warming, so this is supplementary
+    echo "🔥 Starting comprehensive instance warming in background..."
+    (
+        ./scripts/warm-instances.sh > /tmp/warm-instances.log 2>&1 || true
+    ) &
+    WARMING_PID=$!
+    echo "📝 Warming process started (PID: $WARMING_PID) - logs: /tmp/warm-instances.log"
     
-    # Monitor deployment
-    monitor_deployment "$SERVICE_NAME"
+    # Monitor deployment in background (non-blocking)
+    (
+        monitor_deployment "$SERVICE_NAME" > /tmp/monitor-deployment.log 2>&1 || true
+    ) &
+    MONITORING_PID=$!
+    echo "📝 Monitoring process started (PID: $MONITORING_PID) - logs: /tmp/monitor-deployment.log"
     
     echo "🎉 Optimized deployment completed successfully!"
     echo "📊 Service is now running with optimized configuration:"
@@ -319,6 +329,8 @@ main() {
     echo "   - Maximum instances: $MAX_INSTANCES"
     echo "   - Max concurrency: $MAX_CONCURRENCY"
     echo "   - Cold start prevention: Enabled"
+    echo ""
+    echo "ℹ️  Warming and monitoring are running in background and won't block deployment completion"
 }
 
 # Run main function

@@ -1,7 +1,7 @@
 # Convex Database Tables Report
 **Generated:** January 2, 2025  
-**Deployment:** colorful-aardvark-576.convex.cloud  
-**Dashboard:** https://dashboard.convex.dev/d/colorful-aardvark-576
+**Deployment:** wandering-finch-293.convex.cloud  
+**Dashboard:** https://dashboard.convex.dev/d/wandering-finch-293
 
 ---
 
@@ -433,5 +433,5 @@ The Convex dev server deleted many indexes during sync. Consider:
 ---
 
 **Report Generated:** January 2, 2025  
-**Convex Deployment:** colorful-aardvark-576  
+**Convex Deployment:** wandering-finch-293  
 **Status:** Development Environment
