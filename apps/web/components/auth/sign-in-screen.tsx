@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 import { SignInSocialSelectionCard } from "./sign-in-social-card";
 import { EmailSignInModal } from "./email-sign-in-modal";
 import { useSession } from "@/lib/auth/use-session";
@@ -42,6 +43,15 @@ export function SignInScreen({
   const handleGoogleSignIn = async () => {
     setIsGoogleSignInLoading(true);
     try {
+      const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+      if (!googleClientId) {
+        toast.error('Sign-In Failed', {
+          description: 'Google Sign-In is not configured. Please contact support.',
+        });
+        setIsGoogleSignInLoading(false);
+        return;
+      }
+
       // Load Google Identity Services script if not already loaded
       if (typeof window !== 'undefined' && !(window as any).google) {
         const script = document.createElement('script');
@@ -51,52 +61,66 @@ export function SignInScreen({
         document.head.appendChild(script);
         
         script.onload = () => {
-          initializeGoogleSignIn();
+          initializeGoogleSignIn(googleClientId);
         };
         
         script.onerror = () => {
           console.error('Failed to load Google Identity Services');
+          toast.error('Sign-In Failed', {
+            description: 'Failed to load Google Sign-In. Please try again.',
+          });
           setIsGoogleSignInLoading(false);
         };
       } else {
-        initializeGoogleSignIn();
+        initializeGoogleSignIn(googleClientId);
       }
     } catch (error) {
       console.error('Google sign-in error:', error);
+      toast.error('Sign-In Failed', {
+        description: 'An error occurred during Google Sign-In. Please try again.',
+      });
       setIsGoogleSignInLoading(false);
     }
   };
 
-  const initializeGoogleSignIn = () => {
+  const initializeGoogleSignIn = (googleClientId: string) => {
     if (typeof window === 'undefined') {
       setIsGoogleSignInLoading(false);
       return;
     }
 
-    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!googleClientId) {
-      console.error('Google Client ID not configured');
-      setIsGoogleSignInLoading(false);
-      return;
-    }
-
-    // Wait for Google to be available
+    // Wait for Google to be available (max 5 seconds)
+    let attempts = 0;
+    const maxAttempts = 50; // 5 seconds at 100ms intervals
+    
     const checkGoogle = setInterval(() => {
+      attempts++;
+      
       if ((window as any).google) {
         clearInterval(checkGoogle);
         const { google } = window as any;
         
         try {
-          // Initialize Google Sign-In
-          google.accounts.id.initialize({
+          // Use OAuth2 flow for button click
+          const client = google.accounts.oauth2.initTokenClient({
             client_id: googleClientId,
+            scope: 'openid profile email',
             callback: async (response: any) => {
               try {
-                // Use ID token for authentication
+                if (response.error) {
+                  console.error('Google OAuth error:', response.error);
+                  toast.error('Sign-In Failed', {
+                    description: response.error_description || 'Google sign-in was cancelled or failed.',
+                  });
+                  setIsGoogleSignInLoading(false);
+                  return;
+                }
+
+                // Use access token to get user info
                 const res = await fetch('/api/auth/google-signin', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ idToken: response.credential }),
+                  body: JSON.stringify({ accessToken: response.access_token }),
                 });
                 
                 const data = await res.json();
@@ -104,65 +128,47 @@ export function SignInScreen({
                 if (data.success && data.data?.token) {
                   // Store token in cookie
                   document.cookie = `convex-auth-token=${data.data.token}; path=/; max-age=7200; SameSite=Lax`;
+                  // Show success toast
+                  toast.success('Sign-In Successful', {
+                    description: 'Welcome to CribNosh!',
+                  });
                   // Reload to update auth state
                   window.location.reload();
                 } else {
-                  console.error('Google sign-in failed:', data);
+                  const errorMessage = data.error || data.message || 'Google sign-in failed. Please try again.';
+                  toast.error('Sign-In Failed', {
+                    description: errorMessage,
+                  });
                   setIsGoogleSignInLoading(false);
                 }
               } catch (error) {
                 console.error('Google sign-in error:', error);
+                toast.error('Sign-In Failed', {
+                  description: 'An error occurred during Google Sign-In. Please try again.',
+                });
                 setIsGoogleSignInLoading(false);
               }
             },
           });
 
-          // Prompt the user to sign in
-          google.accounts.id.prompt((notification: any) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              // If prompt is not displayed, use button click flow
-              google.accounts.oauth2.initTokenClient({
-                client_id: googleClientId,
-                scope: 'openid profile email',
-                callback: async (response: any) => {
-                  try {
-                    const res = await fetch('/api/auth/google-signin', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ accessToken: response.access_token }),
-                    });
-                    
-                    const data = await res.json();
-                    
-                    if (data.success && data.data?.token) {
-                      document.cookie = `convex-auth-token=${data.data.token}; path=/; max-age=7200; SameSite=Lax`;
-                      window.location.reload();
-                    } else {
-                      setIsGoogleSignInLoading(false);
-                    }
-                  } catch (error) {
-                    console.error('Google sign-in error:', error);
-                    setIsGoogleSignInLoading(false);
-                  }
-                },
-              }).requestAccessToken();
-            }
-          });
+          // Request access token (triggers OAuth popup/redirect)
+          client.requestAccessToken();
         } catch (error) {
           console.error('Google initialization error:', error);
+          toast.error('Sign-In Failed', {
+            description: 'Failed to initialize Google Sign-In. Please try again.',
+          });
           setIsGoogleSignInLoading(false);
         }
-      }
-    }, 100);
-
-    // Timeout after 5 seconds
-    setTimeout(() => {
-      clearInterval(checkGoogle);
-      if (!(window as any).google) {
+      } else if (attempts >= maxAttempts) {
+        clearInterval(checkGoogle);
         console.error('Google Identity Services failed to load');
+        toast.error('Sign-In Failed', {
+          description: 'Google Sign-In service is unavailable. Please try again later.',
+        });
         setIsGoogleSignInLoading(false);
       }
-    }, 5000);
+    }, 100);
   };
 
   const handleAppleSignIn = async () => {
@@ -199,6 +205,9 @@ export function SignInScreen({
       window.location.href = `https://appleid.apple.com/auth/authorize?${params.toString()}`;
     } catch (error) {
       console.error('Apple sign-in error:', error);
+      toast.error('Sign-In Failed', {
+        description: 'An error occurred during Apple Sign-In. Please try again.',
+      });
       setIsAppleSignInLoading(false);
     }
   };

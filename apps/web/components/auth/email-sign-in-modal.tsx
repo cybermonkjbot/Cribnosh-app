@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Mail } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmailOTPVerification } from "./email-otp-verification";
@@ -73,11 +74,19 @@ export function EmailSignInModal({
   const handleOTPSuccess = async (token: string, user: any) => {
     if (!token) {
       setError('Authentication failed. Please try again.');
+      toast.error('Sign-In Failed', {
+        description: 'Authentication failed. Please try again.',
+      });
       return;
     }
     
     // Store token in cookie
     document.cookie = `convex-auth-token=${token}; path=/; max-age=7200; SameSite=Lax`;
+    
+    // Show success toast
+    toast.success('Sign-In Successful', {
+      description: 'Welcome to CribNosh!',
+    });
     
     // Close modal and notify parent
     onClose();

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 import { useSession } from "@/lib/auth/use-session";
 import { SignInScreen } from "@/components/auth/sign-in-screen";
 import { 
@@ -23,6 +24,28 @@ export default function SearchContent() {
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(!!searchParams.get('q'));
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Check for authentication errors from OAuth callbacks
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      let errorMessage = 'Authentication failed. Please try again.';
+      if (error === 'apple_signin_failed') {
+        errorMessage = 'Apple Sign-In failed. Please try again.';
+      } else if (error === 'apple_signin_error') {
+        errorMessage = 'An error occurred during Apple Sign-In. Please try again.';
+      }
+      
+      toast.error('Sign-In Failed', {
+        description: errorMessage,
+      });
+      
+      // Remove error from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams]);
   
   // Handle URL search query on mount and when it changes
   useEffect(() => {
