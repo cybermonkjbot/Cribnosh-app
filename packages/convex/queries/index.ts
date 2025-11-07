@@ -82,6 +82,9 @@ export * from './admin';
 // Export waitlist queries
 export * from './waitlist';
 
+// Export blog queries
+export * from './blog';
+
 // Export users queries (explicit exports to avoid conflicts)
 export {
   countUnreadNotifications, getAll, getAllDocuments, getAllStaff, getAllUsers, getById, getCurrentUser, getDietaryPreferences,

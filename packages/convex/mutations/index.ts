@@ -159,3 +159,6 @@ export * from './userConnections';
 
 // Export event chef requests mutations
 export * from './eventChefRequests';
+
+// Export blog mutations
+export * from './blog';

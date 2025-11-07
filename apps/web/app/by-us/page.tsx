@@ -9,22 +9,11 @@ import { MasonryBackground } from "@/components/ui/masonry-background";
 import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
 import { PulseEffect } from "@/components/ui/pulse-effect";
 import { SparkleEffect } from "@/components/ui/sparkle-effect";
-import { POSTS } from "@/lib/byus/posts";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-
-// SEO-focused content for discoverability and utility
-const FEATURED_POST = {
-  title: "CribNosh vs Uber Eats: Why Home–Cooked Wins in 2025",
-  excerpt: "Compare delivery fees, food freshness, and cultural flavor. See how CribNosh's home–cooked meals stack up against traditional delivery apps and when to choose each.",
-  coverImage: "/backgrounds/masonry-1.jpg",
-  slug: "cribnosh-vs-uber-eats-2025",
-  author: {
-    name: "CribNosh Editorial",
-    avatar: "/card-images/IMG_2262.png"
-  },
-  date: "August 2025"
-};
+import { Search } from "lucide-react";
 
 type Post = {
   title: string;
@@ -35,17 +24,6 @@ type Post = {
   date: string;
   categories: string[];
 };
-
-// Convert posts from posts.ts to the format needed for display
-const LATEST_POSTS: Post[] = POSTS.map((post) => ({
-  title: post.title,
-  excerpt: post.description,
-  coverImage: post.coverImage,
-  slug: post.slug,
-  author: post.author,
-  date: post.date,
-  categories: post.categories,
-})).filter((post) => post.slug !== FEATURED_POST.slug); // Exclude featured post from list
 
 const CATEGORIES = [
   "Family Traditions",
@@ -63,52 +41,139 @@ export default function ByUsPage() {
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filterMode, setFilterMode] = useState<"any" | "all">("any");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Initialize from URL on mount
+  // Fetch blog posts from Convex
+  const blogPosts = useQuery(api.queries.blog.getBlogPosts, {
+    status: "published",
+  }) as any;
+  const featuredPost = useQuery(api.queries.blog.getFeaturedBlogPost) as any;
+
+  // Transform blog posts to display format
+  const transformedPosts: Post[] = useMemo(() => {
+    if (!blogPosts || !Array.isArray(blogPosts)) return [];
+    return blogPosts.map((post: any) => {
+      const excerpt = post.excerpt || (post.content ? String(post.content).substring(0, 160) + '...' : '') || '';
+      const date = post.date || (post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '');
+      return {
+        title: String(post.title || ''),
+        excerpt,
+        coverImage: String(post.coverImage || post.featuredImage || '/backgrounds/masonry-1.jpg'),
+        slug: String(post.slug || ''),
+        author: post.author || { name: 'CribNosh Editorial', avatar: '/card-images/IMG_2262.png' },
+        date,
+        categories: Array.isArray(post.categories) ? post.categories : [],
+      };
+    });
+  }, [blogPosts]);
+
+  // Get featured post
+  const featuredPostData: Post | null = useMemo(() => {
+    if (!featuredPost) return null;
+    const excerpt = featuredPost.excerpt || (featuredPost.content ? String(featuredPost.content).substring(0, 160) + '...' : '') || '';
+    const date = featuredPost.date || (featuredPost.createdAt ? new Date(featuredPost.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '');
+    return {
+      title: String(featuredPost.title || ''),
+      excerpt,
+      coverImage: String(featuredPost.coverImage || featuredPost.featuredImage || '/backgrounds/masonry-1.jpg'),
+      slug: String(featuredPost.slug || ''),
+      author: featuredPost.author || { name: 'CribNosh Editorial', avatar: '/card-images/IMG_2262.png' },
+      date,
+      categories: Array.isArray(featuredPost.categories) ? featuredPost.categories : [],
+    };
+  }, [featuredPost]);
+
+  // Get all unique categories from posts
+  const dynamicCategories = useMemo(() => {
+    const allCategories = new Set<string>();
+    transformedPosts.forEach((post) => {
+      post.categories.forEach((cat) => allCategories.add(cat));
+    });
+    // Merge with static categories
+    CATEGORIES.forEach((cat) => allCategories.add(cat));
+    return Array.from(allCategories).sort();
+  }, [transformedPosts]);
+
+  // Get latest posts (excluding featured)
+  const LATEST_POSTS = useMemo(() => {
+    if (!featuredPostData) return transformedPosts;
+    return transformedPosts.filter((post) => post.slug !== featuredPostData.slug);
+  }, [transformedPosts, featuredPostData]);
+
+  // Initialize from URL on mount (only once when categories are ready)
+  const [isInitialized, setIsInitialized] = useState(false);
   useEffect(() => {
+    if (isInitialized || dynamicCategories.length === 0) return;
     const initialCategories = (searchParams.get("categories") || "")
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean)
-      .filter((c) => CATEGORIES.includes(c));
+      .filter((c) => dynamicCategories.includes(c));
     const initialMode = searchParams.get("mode") === "all" ? "all" : "any";
+    const initialSearch = searchParams.get("search") || "";
     if (initialCategories.length) setSelectedCategories(initialCategories);
     setFilterMode(initialMode);
+    setSearchQuery(initialSearch);
+    setIsInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dynamicCategories.length]); // Only run when categories are ready
 
-  // Sync state to URL
+  // Sync state to URL (but don't create a loop)
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    const currentCategories = params.get("categories") || "";
-    const currentMode = params.get("mode") || "any";
+    const currentCategories = searchParams.get("categories") || "";
+    const currentMode = searchParams.get("mode") || "any";
+    const currentSearch = searchParams.get("search") || "";
     
     const newCategories = selectedCategories.length ? selectedCategories.join(",") : "";
     const newMode = filterMode;
+    const newSearch = searchQuery.trim();
     
     // Only update URL if it's different from current state
-    if (currentCategories !== newCategories || currentMode !== newMode) {
+    if (currentCategories !== newCategories || currentMode !== newMode || currentSearch !== newSearch) {
       const newParams = new URLSearchParams();
       if (newCategories) {
         newParams.set("categories", newCategories);
       }
       newParams.set("mode", newMode);
+      if (newSearch) {
+        newParams.set("search", newSearch);
+      }
       router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
     }
-  }, [selectedCategories, filterMode, router, pathname, searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategories, filterMode, searchQuery]); // Only depend on state, not searchParams
 
   const filteredPosts = useMemo(() => {
-    if (!selectedCategories.length) return LATEST_POSTS;
-    if (filterMode === "any") {
-      return LATEST_POSTS.filter((post) =>
-        post.categories.some((c) => selectedCategories.includes(c))
+    let posts = LATEST_POSTS;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      posts = posts.filter((post: Post) =>
+        post.title.toLowerCase().includes(query) ||
+        post.excerpt.toLowerCase().includes(query) ||
+        post.categories.some((cat) => cat.toLowerCase().includes(query)) ||
+        post.author.name.toLowerCase().includes(query)
       );
     }
-    // all
-    return LATEST_POSTS.filter((post) =>
-      selectedCategories.every((c) => post.categories.includes(c))
-    );
-  }, [selectedCategories, filterMode]);
+
+    // Apply category filters
+    if (selectedCategories.length) {
+      if (filterMode === "any") {
+        posts = posts.filter((post: Post) =>
+          post.categories.some((c: string) => selectedCategories.includes(c))
+        );
+      } else {
+        // all
+        posts = posts.filter((post: Post) =>
+          post.categories.every((c: string) => selectedCategories.includes(c))
+        );
+      }
+    }
+
+    return posts;
+  }, [selectedCategories, filterMode, LATEST_POSTS, searchQuery]);
+
   return (
     <>
       <AiMetadata />
@@ -148,6 +213,29 @@ export default function ByUsPage() {
                   Discover stories of passion, tradition, and innovation from our community of Food Creators and food enthusiasts.
                 </p>
                 
+                {/* Search Bar */}
+                <div className="relative max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      placeholder="Search stories..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 sm:py-4 rounded-full bg-white/10 backdrop-blur-lg border border-white/20 text-white font-satoshi placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 transition-all duration-300"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                        aria-label="Clear search"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
                 {/* Category Pills */}
                 <div className="relative max-w-5xl mx-auto px-2 sm:px-4">
                   <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-2 px-2 sm:px-4 mx-auto whitespace-nowrap">
@@ -157,10 +245,10 @@ export default function ByUsPage() {
                         className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/20 backdrop-blur-lg border border-white/40 text-white font-satoshi text-xs sm:text-sm transition-all duration-300 flex-none"
                         aria-label="Clear filters"
                       >
-                        âœ• Clear
+                        × Clear
                       </button>
                     )}
-                    {CATEGORIES.map((category) => {
+                    {dynamicCategories.map((category) => {
                       const isActive = selectedCategories.includes(category);
                       return (
                         <button
@@ -216,7 +304,11 @@ export default function ByUsPage() {
                     <PulseEffect className="w-2 h-2 sm:w-3 sm:h-3 bg-[#ff3b30] rounded-full" />
                   </div>
                   <div className="w-full max-w-4xl mx-auto">
-                    <BlogPostCard {...FEATURED_POST} isFeatured={true} />
+                    {featuredPostData ? (
+                      <BlogPostCard {...featuredPostData} isFeatured={true} />
+                    ) : (
+                      <div className="text-neutral-300 font-satoshi text-sm">Loading featured post...</div>
+                    )}
                   </div>
                 </div>
               </ContainerScrollAnimation>
@@ -235,12 +327,14 @@ export default function ByUsPage() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-                  {filteredPosts.map((post) => (
+                  {filteredPosts.map((post: Post) => (
                     <BlogPostCard key={post.slug} {...post} />
                   ))}
                 </div>
                 {filteredPosts.length === 0 && (
-                  <p className="text-neutral-300 font-satoshi text-sm mt-6">No stories yet in this category.</p>
+                  <p className="text-neutral-300 font-satoshi text-sm mt-6">
+                    {searchQuery ? `No stories found matching "${searchQuery}".` : "No stories yet in this category."}
+                  </p>
                 )}
               </div>
 
@@ -252,4 +346,4 @@ export default function ByUsPage() {
       </main>
     </>
   );
-} 
+}

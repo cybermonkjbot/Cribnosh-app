@@ -6,9 +6,10 @@ import { useMobileMenu } from '@/context';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useConvex, useQuery } from 'convex/react';
-import { AnimatePresence, motion } from 'motion/react';
 import { Bell, BookOpen, Clock, Home, LayoutGrid, LogOut, Menu, Search, Settings, User, Users, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -53,20 +54,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
   const convex = useConvex();
   const [staffPortalLoading, setStaffPortalLoading] = useState(false);
   const { user: adminUser, loading: adminLoading } = useAdminUser();
-  const [staffUser, setStaffUser] = useState<any>(null);
-  useEffect(() => {
-    if (isStaffPage) {
-      fetch('/api/staff/data', {
-        headers: {
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-      }).then(async (res) => {
-        if (res.ok) {
-          setStaffUser(await res.json());
-        }
-      });
-    }
-  }, [isStaffPage]);
+  const { staff: staffUser, loading: staffLoading } = useStaffAuth();
 
   // Auth is handled by middleware, no client-side user info needed
 
@@ -86,6 +74,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
 
   const staffNavItems = [
     { label: 'Portal', href: '/staff/portal' },
+    { label: 'Blog', href: '/staff/blog' },
     { label: 'Waitlist', href: '/staff/waitlist' },
     { label: 'Time Tracking', href: '/staff/time-tracking' },
     { label: 'Profile', href: '/staff/profile' },
@@ -308,41 +297,64 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="absolute right-0 top-12 w-48 bg-white/95 backdrop-blur-lg rounded-xl border border-gray-200/60 shadow-xl p-2"
+                className="absolute right-0 top-12 w-56 bg-white rounded-xl border border-gray-200 shadow-xl p-2 z-[100]"
               >
-                <div className="p-3 border-b border-gray-200">
-                  {isStaffPage && staffUser ? (
-                    <>
-                      <p className="text-sm font-medium text-gray-900 font-satoshi">{staffUser.name || 'User'}</p>
-                      <p className="text-xs text-gray-700 font-satoshi">{staffUser.email || ''}</p>
-                      {(staffUser.department || staffUser.position) && (
-                        <div className="text-xs text-gray-600 font-satoshi mt-1">
-                          {staffUser.department && <span>{staffUser.department}</span>}
-                          {staffUser.department && staffUser.position && <span> &middot; </span>}
-                          {staffUser.position && <span>{staffUser.position}</span>}
-                        </div>
-                      )}
-                    </>
+                <div className="p-3 border-b border-gray-200 bg-white">
+                  {isStaffPage ? (
+                    staffLoading ? (
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-32"></div>
+                      </div>
+                    ) : staffUser ? (
+                      <>
+                        <p className="text-sm font-medium text-gray-900 font-satoshi">{staffUser.name || 'User'}</p>
+                        <p className="text-xs text-gray-600 font-satoshi">{staffUser.email || 'No email'}</p>
+                        {staffUser.status && (
+                          <div className="text-xs text-gray-500 font-satoshi mt-1">
+                            {staffUser.status === 'active' ? 'Active' : staffUser.status}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-gray-900 font-satoshi">User</p>
+                        <p className="text-xs text-gray-500 font-satoshi">Not logged in</p>
+                      </>
+                    )
                   ) : (
-                    <>
-                      <p className="text-sm font-medium text-gray-900 font-satoshi">{adminUser?.name || 'User'}</p>
-                      <p className="text-xs text-gray-700 font-satoshi">{adminUser?.email || ''}</p>
-                      {currentAssignment && (currentAssignment.department || currentAssignment.position) && (
-                        <div className="text-xs text-gray-600 font-satoshi mt-1">
-                          {currentAssignment.department && <span>{currentAssignment.department}</span>}
-                          {currentAssignment.department && currentAssignment.position && <span> &middot; </span>}
-                          {currentAssignment.position && <span>{currentAssignment.position}</span>}
-                        </div>
-                      )}
-                    </>
+                    adminLoading ? (
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-32"></div>
+                      </div>
+                    ) : adminUser ? (
+                      <>
+                        <p className="text-sm font-medium text-gray-900 font-satoshi">{adminUser.name || 'Admin User'}</p>
+                        <p className="text-xs text-gray-600 font-satoshi">{adminUser.email || 'No email'}</p>
+                        {currentAssignment && (currentAssignment.department || currentAssignment.position) && (
+                          <div className="text-xs text-gray-500 font-satoshi mt-1">
+                            {currentAssignment.department && <span>{currentAssignment.department}</span>}
+                            {currentAssignment.department && currentAssignment.position && <span> &middot; </span>}
+                            {currentAssignment.position && <span>{currentAssignment.position}</span>}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-gray-900 font-satoshi">Admin User</p>
+                        <p className="text-xs text-gray-500 font-satoshi">Not logged in</p>
+                      </>
+                    )
                   )}
                 </div>
                 
-                <div className="p-1">
+                <div className="p-1 bg-white">
                   <Link
                     href={isStaffPage ? "/staff/profile" : "/admin/account"}
-                    className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-gray-800 hover:bg-[#F23E2E]/10 transition-colors font-satoshi mb-1"
+                    className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-gray-800 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 font-satoshi mb-1 bg-white"
                     aria-label="Account Settings"
+                    onClick={() => setShowUserMenu(false)}
                   >
                     <Settings className="w-4 h-4" />
                     <span>Account Settings</span>
@@ -350,7 +362,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-red-700 hover:bg-red-50 transition-colors font-satoshi ${
+                    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 font-satoshi bg-white ${
                       isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     aria-label={isLoggingOut ? 'Logging out...' : 'Logout'}
