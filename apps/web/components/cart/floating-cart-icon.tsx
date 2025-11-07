@@ -14,11 +14,12 @@ export function FloatingCartIcon() {
     <>
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 left-4 z-[999998] w-14 h-14 rounded-full bg-[#ff3b30] text-white shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+        className="fixed bottom-24 right-4 z-[999998] h-14 px-6 rounded-full bg-[#ff3b30] text-white shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center gap-2"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Open cart"
       >
+        <span className="font-medium">Cart</span>
         <div className="relative">
           <ShoppingCart className="w-6 h-6" />
           {itemCount > 0 && (

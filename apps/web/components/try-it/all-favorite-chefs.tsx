@@ -7,8 +7,8 @@ import Image from "next/image";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/convex/_generated/api";
-import { useConvexAuth } from "convex/react";
 import { useConvex } from "convex/react";
+import { useConvexAuth } from "@convex-dev/auth/react";
 
 interface AllFavoriteChefsProps {
   onClose: () => void;
