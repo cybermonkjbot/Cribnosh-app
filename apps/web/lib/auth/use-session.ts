@@ -15,6 +15,7 @@ type User = {
 
 export function useSession() {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [hasCheckedToken, setHasCheckedToken] = useState(false);
   
   // Get session token from cookies on client side
   useEffect(() => {
@@ -26,9 +27,8 @@ export function useSession() {
     };
     
     const token = getCookie('convex-auth-token');
-    if (token) {
-      setSessionToken(token);
-    }
+    setSessionToken(token);
+    setHasCheckedToken(true);
   }, []);
   
   // Fetch user data using the session token
@@ -42,9 +42,12 @@ export function useSession() {
     ? userData.sessionExpiry < Date.now()
     : false;
   
+  // Only show loading if we haven't checked for token yet, or if we have a token and are waiting for user data
+  const isLoading = !hasCheckedToken || (sessionToken && !userData && !isExpired);
+  
   return {
     user: isExpired ? null : userData,
-    isLoading: !sessionToken || (sessionToken && !userData && !isExpired),
+    isLoading,
     isAuthenticated: !!userData && !isExpired,
     sessionToken,
   };
