@@ -23,6 +23,16 @@ COPY --from=deps /app/bun.lock ./bun.lock
 # Copy the rest of the source
 COPY . .
 
+# Ensure Convex generated files exist
+# Note: Generated files should be committed to git. If missing, they need to be generated.
+# This step verifies they exist and warns if they don't.
+RUN if [ ! -f "packages/convex/convex/_generated/api.js" ]; then \
+      echo "ERROR: Convex generated files not found!"; \
+      echo "Please ensure packages/convex/convex/_generated/ files are committed to git."; \
+      echo "Or run 'cd packages/convex && npx convex dev' to generate them."; \
+      exit 1; \
+    fi
+
 # Set build-time environment variables to prevent API key errors during build
 ENV RESEND_API_KEY="re_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN"
 ENV OPENAI_API_KEY=""
