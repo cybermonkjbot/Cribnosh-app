@@ -25,9 +25,11 @@ export default function SearchContent() {
   const [showResults, setShowResults] = useState(!!searchParams.get('q'));
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Check for authentication errors from OAuth callbacks
+  // Check for authentication errors and success from OAuth callbacks
   useEffect(() => {
     const error = searchParams.get('error');
+    const signedIn = searchParams.get('signed_in');
+    
     if (error) {
       let errorMessage = 'Authentication failed. Please try again.';
       if (error === 'apple_signin_failed') {
@@ -43,6 +45,15 @@ export default function SearchContent() {
       // Remove error from URL
       const url = new URL(window.location.href);
       url.searchParams.delete('error');
+      window.history.replaceState({}, '', url.toString());
+    } else if (signedIn === 'true') {
+      toast.success('Sign-In Successful', {
+        description: 'Welcome to CribNosh!',
+      });
+      
+      // Remove success param from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('signed_in');
       window.history.replaceState({}, '', url.toString());
     }
   }, [searchParams]);

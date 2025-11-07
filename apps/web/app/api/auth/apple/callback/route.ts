@@ -61,8 +61,10 @@ export async function POST(request: NextRequest) {
         httpOnly: false, // Needs to be accessible from client
       });
 
-      // Redirect to the original page or try-it
-      return NextResponse.redirect(new URL(redirectUrl, request.url));
+      // Redirect to the original page or try-it with success indicator
+      const successUrl = new URL(redirectUrl, request.url);
+      successUrl.searchParams.set('signed_in', 'true');
+      return NextResponse.redirect(successUrl);
     } else {
       // Redirect to sign-in with error
       const errorUrl = new URL('/try-it', request.url);
