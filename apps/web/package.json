@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
-    "build": "bun run generate:swagger && next build",
+    "build": "npm run generate:swagger && next build",
     "start": "next start",
     "generate:swagger": "node scripts/generate-swagger-static.js",
     "lint": "next lint",

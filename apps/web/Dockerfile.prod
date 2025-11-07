@@ -11,7 +11,8 @@ COPY package.json ./
 RUN bun install --no-progress
 
 # --- Build Stage ---
-FROM oven/bun:1.2.20-alpine AS build
+# Use Node.js for build stage since Next.js requires worker_threads
+FROM node:20-alpine AS build
 WORKDIR /app
 
 # Environment variables needed for build (Coolify deployment)
@@ -168,8 +169,8 @@ COPY --from=deps /app/bun.lock ./bun.lock
 # Copy source code (excluding files in .dockerignore)
 COPY . .
 
-# Build the application
-RUN bun run build
+# Build the application using Node.js (Next.js requires Node.js worker threads)
+RUN npm run build
 
 # --- Production Stage ---
 FROM oven/bun:1.2.20-alpine AS production

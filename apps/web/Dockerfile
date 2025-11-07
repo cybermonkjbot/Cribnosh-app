@@ -12,10 +12,11 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --no-progress
 
 
-FROM oven/bun:1.2.17-alpine AS builder
+# Use Node.js for build stage since Next.js requires worker_threads
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy installed modules and lockfile
+# Copy installed modules and lockfile from Bun stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/bun.lock ./bun.lock
@@ -23,8 +24,8 @@ COPY --from=deps /app/bun.lock ./bun.lock
 # Copy the rest of the source
 COPY . .
 
-# Build the app
-RUN bun run build
+# Build the app using Node.js (Next.js requires Node.js worker threads)
+RUN npm run build
 
 
 FROM oven/bun:1.2.17-alpine AS production
