@@ -2,7 +2,7 @@
 
 import { ConvexReactClient, ConvexProvider } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 
 // Singleton pattern for Convex client
 let convexClientInstance: ConvexReactClient | null = null;
@@ -42,6 +42,7 @@ export function ConvexClientProvider({
   children: React.ReactNode;
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const lastTokenRef = useRef<string | null>(null);
   
   // Initialize Convex client using useMemo to ensure it's only created once
   const convex = useMemo(() => {
@@ -61,16 +62,21 @@ export function ConvexClientProvider({
       }
     };
 
-    // Function to set up authentication
+    // Function to set up authentication - only update if token changed
     const setupAuth = () => {
       try {
         const token = getTokenFromCookie();
-        if (token) {
-          convex.setAuth(async () => token);
-          setIsAuthenticated(true);
-        } else {
-          convex.clearAuth();
-          setIsAuthenticated(false);
+        
+        // Only update if token actually changed
+        if (token !== lastTokenRef.current) {
+          lastTokenRef.current = token;
+          if (token) {
+            convex.setAuth(async () => token);
+            setIsAuthenticated(true);
+          } else {
+            convex.clearAuth();
+            setIsAuthenticated(false);
+          }
         }
       } catch (error) {
         console.error("Error setting up auth:", error);
@@ -81,17 +87,27 @@ export function ConvexClientProvider({
     // Set up auth on mount with a small delay to ensure DOM is ready
     const timeoutId = setTimeout(setupAuth, 100);
 
-    // Listen for cookie changes by checking periodically
-    const interval = setInterval(setupAuth, 1000);
+    // Check for cookie changes less frequently (every 5 seconds instead of 1 second)
+    // This reduces unnecessary re-renders while still detecting auth changes
+    const interval = setInterval(setupAuth, 5000);
 
-    // Also listen for focus events
+    // Also listen for focus events (user might have logged in in another tab)
     const handleFocus = () => setupAuth();
     window.addEventListener("focus", handleFocus);
+
+    // Listen for storage events (cross-tab communication)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'convex-auth-token' || e.key === null) {
+        setupAuth();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
 
     return () => {
       clearTimeout(timeoutId);
       clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, [convex]);
 

@@ -1,14 +1,18 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useAddToCart } from "@/hooks/use-cart";
 import { useSession } from "@/lib/auth/use-session";
 import { useQuery } from "@tanstack/react-query";
 import { useConvex } from "convex/react";
-import { ArrowLeft, Check, ChefHat, Clock, MapPin, Plus, Shuffle, Star } from "lucide-react";
+import { ArrowLeft, Check, ChefHat, Clock, MapPin, Plus, ShoppingCart, Shuffle, Star } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { AiDecisionProcess } from "./ai-decision-process";
 import { FloatingAssistantInput } from "./floating-assistant-input";
 
@@ -84,9 +88,12 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
   const [selectedSubItems, setSelectedSubItems] = useState<string[]>([]);
   const [showAssistant, setShowAssistant] = useState(false);
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const convex = useConvex();
-  const { user } = useSession();
+  const { user, isAuthenticated } = useSession();
   const userId = user?._id as Id<'users'> | undefined;
+  const router = useRouter();
+  const addToCart = useAddToCart();
   
   // Set data-section-theme on mount and clean up on unmount
   useEffect(() => {
@@ -213,7 +220,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     reviews: meal.reviewCount || 0,
     distance: calculateDistance(userLocation, meal.location),
     time: calculatePrepTime(meal),
-    price: `$${meal.price.toFixed(2)}`,
+    price: `£${meal.price.toFixed(2)}`,
     tags: [...(meal.cuisine || []), ...(meal.dietary || [])].slice(0, 3)
   }));
 
@@ -282,6 +289,30 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     // Assistant message received
     // Don't hide the assistant after sending a message
     // Let the user explicitly close it using the close button
+  };
+
+  // Handle adding item to cart
+  const handleAddToCart = async (mealId: string, mealName: string) => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to add items to cart');
+      router.push('/try-it');
+      return;
+    }
+
+    setAddingToCart(mealId);
+    try {
+      await addToCart.mutateAsync({
+        dishId: mealId,
+        quantity: 1,
+      });
+      toast.success(`Added ${mealName} to cart`);
+    } catch (error: any) {
+      console.error('Error adding to cart:', error);
+      const errorMessage = error?.message || 'Failed to add item to cart. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setAddingToCart(null);
+    }
   };
 
   return (
@@ -502,10 +533,10 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200 ">
                           <span className="font-medium">Total additions:</span>
                           <span className="text-[#ff3b30] font-medium">
-                            ${selectedSubItems
+                            £{selectedSubItems
                               .reduce((total, item) => {
                                 const subItem = suggestedSubItems.find((si: any) => si.name === item);
-                                return total + (subItem ? parseFloat(subItem.price.substring(1)) : 0);
+                                return total + (subItem ? parseFloat(subItem.price.replace(/[£$]/g, '')) : 0);
                               }, 0)
                               .toFixed(2)}
                           </span>
@@ -651,7 +682,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                           <span className="text-xl font-display font-bold text-[#ff3b30]">{result.price}</span>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 mb-4">
                           {result.tags.map((tag: string, index: number) => (
                             <span
                               key={index}
@@ -661,6 +692,28 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                             </span>
                           ))}
                         </div>
+                        <Button
+                          onClick={() => {
+                            const meal = searchResults.find((m: any, idx: number) => idx === index);
+                            if (meal) {
+                              handleAddToCart(meal._id, meal.name || result.title);
+                            }
+                          }}
+                          disabled={addingToCart === searchResults[index]?._id}
+                          className="w-full bg-[#ff3b30] hover:bg-[#ff3b30]/90 text-white"
+                        >
+                          {addingToCart === searchResults[index]?._id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Adding...
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-4 h-4 mr-2" />
+                              Add to Cart
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </motion.div>
                   ))}
@@ -708,9 +761,9 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                           <p className="text-slate-600 text-sm mb-3 line-clamp-2">
                             {meal.description || meal.chef?.name || `Chef ${meal.chefId}`}
                           </p>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-4">
                             <span className="text-xl font-bold text-[#ff3b30]">
-                              ${(meal.price || 0).toFixed(2)}
+                              £{(meal.price || 0).toFixed(2)}
                             </span>
                             <div className="flex items-center gap-4 text-sm text-slate-500">
                               {meal.chef?.name && (
@@ -721,6 +774,23 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                               )}
                             </div>
                           </div>
+                          <Button
+                            onClick={() => handleAddToCart(meal._id, meal.name)}
+                            disabled={addingToCart === meal._id}
+                            className="w-full bg-[#ff3b30] hover:bg-[#ff3b30]/90 text-white"
+                          >
+                            {addingToCart === meal._id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Adding...
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart className="w-4 h-4 mr-2" />
+                                Add to Cart
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </motion.div>
                     ))}

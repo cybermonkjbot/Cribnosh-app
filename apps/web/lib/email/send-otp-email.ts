@@ -52,10 +52,32 @@ export async function sendOTPEmail({
       messageId: result,
     };
   } catch (error) {
-    console.error('Failed to send OTP email:', error);
+    console.error('Failed to send OTP email:', {
+      error,
+      email,
+      otpCode,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Extract more detailed error information
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      // Check for Resend-specific errors
+      if (error.message.includes('API key') || error.message.includes('authentication')) {
+        errorMessage = 'Email service configuration error. Please contact support.';
+      } else if (error.message.includes('domain') || error.message.includes('from')) {
+        errorMessage = 'Email domain not verified. Please contact support.';
+      } else if (error.message.includes('rate limit') || error.message.includes('quota')) {
+        errorMessage = 'Email sending rate limit exceeded. Please try again later.';
+      }
+    }
+    
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
     };
   }
 }

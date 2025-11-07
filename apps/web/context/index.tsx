@@ -4,6 +4,7 @@ import { createContext, useContext, useState } from 'react';
 import { ThemeProvider } from "next-themes";
 import { env } from "@/lib/config/env";
 import { QueryProvider } from "@/app/QueryProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 type MobileMenuContextType = {
   isMobileMenuOpen: boolean;
@@ -53,6 +54,7 @@ export function Providers({
           forcedTheme={actualForcedTheme}
         >
           {children}
+          <Toaster />
         </ThemeProvider>
       </MobileMenuContext.Provider>
     </QueryProvider>

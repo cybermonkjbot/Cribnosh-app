@@ -7,10 +7,13 @@ import Link from 'next/link';
 import { Footer } from "../footer/footer";
 import { Header } from "../header/header";
 import { CookieSettingsPopup } from "../ui/cookie-settings";
+import { FloatingBottomMenu } from "../navigation/floating-bottom-menu";
+import { FloatingCartIcon } from "../cart/floating-cart-icon";
 import { ThemeProvider } from 'next-themes';
 import { MultiStepLoader } from '../ui/loader';
 import { env } from '@/lib/config/env';
 import { useReducedMotion, useMobileDevice } from '../../hooks/use-device-info';
+import { useSession } from '@/lib/auth/use-session';
 import { 
   Utensils, 
   ChefHat, 
@@ -71,10 +74,32 @@ export const getCursorTitle = (path: string) => {
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { isAuthenticated } = useSession();
   const isAdminRoute = pathname?.startsWith('/admin') ?? false;
   const isStaffRoute = pathname?.startsWith('/staff') ?? false;
-  const isApplicationPage = pathname === "/cooking/apply" || pathname === "/driving/apply";  const isTryItPage = pathname === "/try-it";
+  const isApplicationPage = pathname === "/cooking/apply" || pathname === "/driving/apply";
+  const isTryItPage = pathname === "/try-it";
   const isWaitlistPage = pathname === "/waitlist";
+  
+  // Food ordering experience routes - show bottom menu only on the three pages the tabs link to
+  const isFoodOrderingRoute = pathname === "/try-it" || 
+    pathname === "/orders" || 
+    pathname === "/profile";
+  
+  // Hide footer on pages with floating bottom menu
+  const shouldShowFooter = !isFoodOrderingRoute;
+  
+  // Hide floating bottom menu when sign-in screen is showing (not authenticated on try-it page)
+  const shouldShowFloatingBottomMenu = isFoodOrderingRoute && isAuthenticated;
+  
+  // Food ordering routes - show floating cart icon on these pages (only when authenticated)
+  const showFloatingCart = isAuthenticated && (
+    pathname === "/try-it" || 
+    pathname === "/orders" || 
+    pathname === "/profile" ||
+    pathname === "/cart" ||
+    pathname === "/checkout"
+  );
   const [mounted, setMounted] = useState(false);
   const [viewportHeight, setViewportHeight] = useState('100vh');
   const [safeAreaTop, setSafeAreaTop] = useState('0px');
@@ -601,7 +626,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           <main 
             className="flex-1 relative w-full"
             style={{
-              isolation: 'isolate'
+              isolation: 'isolate',
+              paddingBottom: isFoodOrderingRoute && !(isAdminRoute || isStaffRoute) ? '95px' : '0'
             }}
           >
             {/* Content wrapper that allows full-screen sections */}
@@ -615,8 +641,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
               {children}
             </div>
           </main>
-          {/* Hide footer on mobile for waitlist page */}
-          {!(isAdminRoute || isStaffRoute || isTryItPage || isApplicationPage || (isWaitlistPage && isMobile)) && <Footer className="mt-auto h-[var(--footer-height)]" />}
+          {/* Hide footer on mobile for waitlist page, and on pages with floating bottom menu */}
+          {shouldShowFooter && !(isAdminRoute || isStaffRoute || isTryItPage || isApplicationPage || (isWaitlistPage && isMobile)) && <Footer className="mt-auto h-[var(--footer-height)]" />}
+          
+          {/* Floating bottom menu - only show on food ordering experience pages when authenticated */}
+          {shouldShowFloatingBottomMenu && !(isAdminRoute || isStaffRoute) && <FloatingBottomMenu />}
+          
+          {/* Floating cart icon - show on food ordering routes */}
+          {showFloatingCart && !(isAdminRoute || isStaffRoute) && <FloatingCartIcon />}
         </div>
       </div>
 

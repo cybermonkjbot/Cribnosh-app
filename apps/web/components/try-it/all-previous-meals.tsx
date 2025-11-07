@@ -5,7 +5,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useSession } from "@/lib/auth/use-session";
 import { useQuery } from "@tanstack/react-query";
-import { useConvex, useConvexAuth } from "convex/react";
+import { useConvex } from "convex/react";
 import { ArrowLeft, ChefHat, Clock, Filter, Search, Star } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
@@ -32,8 +32,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const convex = useConvex();
-  const { isAuthenticated } = useConvexAuth();
-  const { user } = useSession();
+  const { user, isAuthenticated } = useSession();
   const userId = user?._id as Id<'users'> | undefined;
 
   // Prevent body scrolling when component is mounted

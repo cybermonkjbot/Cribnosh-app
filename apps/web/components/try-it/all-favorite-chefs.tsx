@@ -7,8 +7,8 @@ import Image from "next/image";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/convex/_generated/api";
-import { useConvexAuth } from "convex/react";
 import { useConvex } from "convex/react";
+import { useSession } from "@/lib/auth/use-session";
 
 interface AllFavoriteChefsProps {
   onClose: () => void;
@@ -34,7 +34,7 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const convex = useConvex();
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useSession();
   
   // Prevent body scrolling when modal is open
   useEffect(() => {
