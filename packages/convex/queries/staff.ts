@@ -2,12 +2,36 @@ import { v } from 'convex/values';
 import {
   ErrorFactory
 } from '../../../apps/web/lib/errors/convex-exports';
+import { Doc } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
 
 // Staff Email Campaign Queries
 export const getStaffEmailCampaigns = query({
   args: {},
-  returns: v.any(),
+  returns: v.array(v.object({
+    _id: v.id("staffEmailCampaigns"),
+    _creationTime: v.number(),
+    name: v.string(),
+    subject: v.string(),
+    content: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("sending"),
+      v.literal("sent"),
+      v.literal("failed")
+    ),
+    recipientType: v.union(
+      v.literal("all_waitlist"),
+      v.literal("pending_waitlist"),
+      v.literal("approved_waitlist"),
+      v.literal("converted_users"),
+      v.literal("all_users")
+    ),
+    recipientCount: v.number(),
+    sentCount: v.number(),
+    createdAt: v.number(),
+    sentAt: v.optional(v.number()),
+  })),
   handler: async (ctx: QueryCtx) => {
     return await ctx.db
       .query("staffEmailCampaigns")
@@ -18,7 +42,15 @@ export const getStaffEmailCampaigns = query({
 
 export const getStaffStats = query({
   args: {},
-  returns: v.any(),
+  returns: v.object({
+    totalStaff: v.number(),
+    activeStaff: v.number(),
+    totalUsers: v.number(),
+    activeUsers: v.number(),
+    totalCampaigns: v.number(),
+    monthlyCampaigns: v.number(),
+    deliveryRate: v.number(),
+  }),
   handler: async (ctx: QueryCtx) => {
     const allStaff = await ctx.db
       .query("users")
@@ -27,25 +59,40 @@ export const getStaffStats = query({
     
     const activeStaff = allStaff.filter(staff => staff.status === "active");
     
+    // Get total users who can receive emails (waitlist + converted users)
+    const [waitlistEntries, convertedUsers] = await Promise.all([
+      ctx.db.query("waitlist").collect(),
+      ctx.db.query("users")
+        .filter((q) => q.eq(q.field("roles"), ["customer"]))
+        .collect(),
+    ]);
+    
+    const totalUsers = waitlistEntries.length + convertedUsers.length;
+    const activeUsers = waitlistEntries.filter((entry: Doc<"waitlist">) => 
+      entry.status === 'active' || entry.status === 'approved'
+    ).length + convertedUsers.filter((user: Doc<"users">) => user.status === 'active').length;
+    
     const campaigns = await ctx.db
       .query("staffEmailCampaigns")
       .collect();
     
     const totalCampaigns = campaigns.length;
-    const monthlyCampaigns = campaigns.filter(campaign => {
+    const monthlyCampaigns = campaigns.filter((campaign: Doc<"staffEmailCampaigns">) => {
       const monthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
       return campaign.createdAt > monthAgo;
     }).length;
     
-    const sentCampaigns = campaigns.filter(campaign => campaign.status === "sent");
-    const totalSent = sentCampaigns.reduce((sum, campaign) => sum + campaign.sentCount, 0);
-    const totalRecipients = sentCampaigns.reduce((sum, campaign) => sum + campaign.recipientCount, 0);
+    const sentCampaigns = campaigns.filter((campaign: Doc<"staffEmailCampaigns">) => campaign.status === "sent");
+    const totalSent = sentCampaigns.reduce((sum: number, campaign: Doc<"staffEmailCampaigns">) => sum + campaign.sentCount, 0);
+    const totalRecipients = sentCampaigns.reduce((sum: number, campaign: Doc<"staffEmailCampaigns">) => sum + campaign.recipientCount, 0);
     
     const deliveryRate = totalRecipients > 0 ? Math.round((totalSent / totalRecipients) * 100) : 0;
     
     return {
       totalStaff: allStaff.length,
       activeStaff: activeStaff.length,
+      totalUsers,
+      activeUsers,
       totalCampaigns,
       monthlyCampaigns,
       deliveryRate,

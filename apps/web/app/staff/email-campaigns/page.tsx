@@ -1,41 +1,28 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Mail, 
-  Search, 
-  Plus,
-  Send,
-  Eye,
-  Edit,
-  Trash2,
-  Users,
-  Clock,
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from '@/convex/_generated/api';
+import { Doc, Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  AlertCircle,
   CheckCircle,
-  AlertCircle
+  Eye,
+  Mail,
+  Plus,
+  Search,
+  Send,
+  Trash2,
+  Users
 } from 'lucide-react';
+import { useState } from 'react';
 
-interface StaffEmailCampaign {
-  _id: Id<"staffEmailCampaigns">;
-  name: string;
-  subject: string;
-  content: string;
-  status: 'draft' | 'sending' | 'sent' | 'failed';
-  recipientType: 'all_waitlist' | 'pending_waitlist' | 'approved_waitlist' | 'converted_users' | 'all_users';
-  recipientCount: number;
-  sentCount: number;
-  createdAt: number;
-  sentAt?: number;
-}
+type StaffEmailCampaign = Doc<"staffEmailCampaigns">;
 
 export default function StaffEmailCampaignsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,7 +116,7 @@ export default function StaffEmailCampaignsPage() {
     }
   };
 
-  const filteredCampaigns = campaigns?.filter(campaign => {
+  const filteredCampaigns = campaigns?.filter((campaign: Doc<"staffEmailCampaigns">) => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          campaign.subject.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
@@ -174,9 +161,9 @@ export default function StaffEmailCampaignsPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{staffStats.totalStaff}</div>
+              <div className="text-2xl font-bold">{staffStats.totalUsers || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Active: {staffStats.activeStaff}
+                Active: {staffStats.activeUsers || 0}
               </p>
             </CardContent>
           </Card>
@@ -329,7 +316,7 @@ export default function StaffEmailCampaignsPage() {
             <p className="mt-1 text-sm text-gray-500">Get started by creating a new campaign.</p>
           </div>
         ) : (
-          filteredCampaigns.map(campaign => (
+          filteredCampaigns.map((campaign: Doc<"staffEmailCampaigns">) => (
             <Card key={campaign._id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">

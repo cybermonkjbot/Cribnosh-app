@@ -121,7 +121,7 @@ export default function PayrollAdminPage() {
   }, [staffProfiles, payPeriods]);
 
   // Chart data for visualizations - get real historical data
-  const chartData = useMemo(() => {
+  const chartData = useMemo((): Array<{ month: string; payroll: number; staff: number }> => {
     if (!payPeriods || payPeriods.length === 0) {
       return [];
     }
@@ -145,7 +145,7 @@ export default function PayrollAdminPage() {
       return acc;
     }, {});
     
-    return Object.values(monthlyData).slice(-6); // Last 6 months
+    return Object.values(monthlyData).slice(-6) as Array<{ month: string; payroll: number; staff: number }>; // Last 6 months
   }, [payPeriods]);
 
   return (
@@ -461,7 +461,7 @@ export default function PayrollAdminPage() {
                   Monthly Payroll Trend
                 </h3>
                 <div className="space-y-3">
-                  {chartData.map((data: { month: string; payroll: number; staff: number }, index: number) => (
+                  {chartData.map((data, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <span className="text-sm font-satoshi text-gray-600">{data.month}</span>
                       <div className="flex items-center gap-3">
