@@ -1,9 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import { IncomingForm } from 'formidable';
-import type { Id } from '@/convex/_generated/dataModel';
-import fs from 'fs';
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest } from 'next/server';
+import { ResponseFactory } from '@/lib/api';
 import { ErrorFactory, ErrorCode } from '@/lib/errors';
 
 /**
@@ -80,59 +78,21 @@ import { ErrorFactory, ErrorCode } from '@/lib/errors';
  *       - bearerAuth: []
  */
 
-// Define types for the file upload
-type FormidableFile = {
-  filepath: string;
-  originalFilename: string | null;
-  mimetype: string | null;
-  size: number;
-  newFilename: string;
-  hashAlgorithm: false | 'sha1' | 'md5' | 'sha256';
-};
-
-// Define types for form data
-type FormData = {
-  fields: Record<string, string[]>;
-  files: Record<string, FormidableFile[]>;
-};
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const form = new IncomingForm();
-  
+export async function POST(request: NextRequest) {
   try {
-    const { fields, files } = await new Promise<FormData>((resolve, reject) => {
-      form.parse(req, (err: Error | null, fields: Record<string, string[]>, files: Record<string, FormidableFile[]>) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve({ fields, files });
-      });
-    });
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
     
-    const file = files.file?.[0];
     if (!file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      return ResponseFactory.error('No file uploaded', 'CUSTOM_ERROR', 400);
     }
     
-    const uploadedFile = file;
-    
-    if (!uploadedFile.mimetype?.startsWith('image/')) {
-      return res.status(400).json({ error: 'Only image files are allowed' });
+    if (!file.type.startsWith('image/')) {
+      return ResponseFactory.error('Only image files are allowed', 'CUSTOM_ERROR', 400);
     }
     
-    if (uploadedFile.size > 5 * 1024 * 1024) {
-      return res.status(400).json({ error: 'File size exceeds 5MB' });
+    if (file.size > 5 * 1024 * 1024) {
+      return ResponseFactory.error('File size exceeds 5MB', 'CUSTOM_ERROR', 400);
     }
     
     try {
@@ -141,32 +101,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
       
       // 2. Upload the file to Convex storage
-      const fileBuffer = fs.readFileSync(uploadedFile.filepath);
+      const buffer = Buffer.from(await file.arrayBuffer());
       const uploadRes = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': uploadedFile.mimetype || 'application/octet-stream',
+          'Content-Type': file.type || 'application/octet-stream',
         },
-        body: fileBuffer,
+        body: buffer,
       });
+      
       if (!uploadRes.ok) {
-        return res.status(500).json({ error: 'Failed to upload to Convex storage' });
+        return ResponseFactory.error('Failed to upload to Convex storage', 'CUSTOM_ERROR', 500);
       }
+      
       const result = await uploadRes.json();
       if (!result.storageId) {
         throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'No storageId in upload response');
       }
+      
       const { storageId } = result;
       // 3. Return the Convex file URL (or storageId)
       const fileUrl = `/api/files/${storageId}`;
-      return res.status(200).json({ url: fileUrl, storageId });
+      return ResponseFactory.success({ url: fileUrl, storageId });
     } catch (e) {
       console.error('Convex upload error:', e);
-      return res.status(500).json({ error: 'Failed to upload image', details: e instanceof Error ? e.message : e });
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
+      return ResponseFactory.error(`Failed to upload image: ${errorMessage}`, 'CUSTOM_ERROR', 500);
     }
   } catch (error) {
     console.error('Error processing upload:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return res.status(500).json({ error: 'Error processing file upload', details: errorMessage });
+    return ResponseFactory.error(`Error processing file upload: ${errorMessage}`, 'CUSTOM_ERROR', 500);
   }
 } 
