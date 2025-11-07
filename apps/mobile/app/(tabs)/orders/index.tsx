@@ -359,11 +359,6 @@ export default function OrdersScreen() {
   const currentOrders =
     activeTab === "ongoing" ? allOngoingOrders : allPastOrders;
 
-  const handleInfoPress = () => {
-    // Navigate to custom order management
-    router.push("/custom-order-management");
-  };
-
   const handleOrderPress = (
     orderId: number,
     isCustomOrder: boolean = false
@@ -455,7 +450,7 @@ export default function OrdersScreen() {
   return (
     <GradientBackground>
       <Animated.View style={headerStyle}>
-        <PremiumHeader title="Orders" onInfoPress={handleInfoPress} />
+        <PremiumHeader title="Orders" />
 
         <PremiumTabs
           tabs={tabs}
