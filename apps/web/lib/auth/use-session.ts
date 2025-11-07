@@ -8,6 +8,7 @@ type User = {
   _id: string;
   name?: string;
   email?: string;
+  phone?: string;
   role?: string;
   sessionExpiry?: number;
   // Add other user fields as needed
@@ -27,7 +28,7 @@ export function useSession() {
     };
     
     const token = getCookie('convex-auth-token');
-    setSessionToken(token);
+      setSessionToken(token);
     setHasCheckedToken(true);
   }, []);
   

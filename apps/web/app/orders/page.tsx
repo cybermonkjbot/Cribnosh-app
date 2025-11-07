@@ -1,11 +1,11 @@
 "use client";
 
-import { useSession } from "@/lib/auth/use-session";
-import { useOrdersList } from "@/hooks/use-orders";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ArrowRight, LogIn, Lock, Clock, CheckCircle, XCircle, ChefHat, Package, Truck } from "lucide-react";
+import { useOrdersList } from "@/hooks/use-orders";
+import { useSession } from "@/lib/auth/use-session";
+import { ArrowRight, CheckCircle, ChefHat, Clock, Package, Receipt, Truck, XCircle } from "lucide-react";
 import { motion } from "motion/react";
+import Link from "next/link";
 
 const statusConfig = {
   pending: { label: 'Pending', color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: Clock },
@@ -68,36 +68,21 @@ export default function OrdersPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-asgard text-gray-900 mb-2">Your Orders</h1>
-            <p className="text-gray-600 font-satoshi">View and manage your order history</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-4xl mx-auto px-4 py-8 w-full text-center">
+          <div className="w-20 h-20 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-6">
+            <Receipt className="w-12 h-12 text-[#10B981]" />
           </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-10 h-10 text-gray-400" />
-            </div>
-            <h2 className="text-2xl font-asgard text-gray-900 mb-2">Sign in to view your orders</h2>
-            <p className="text-gray-600 font-satoshi mb-6 max-w-md mx-auto">
-              Please sign in to your account to view your order history and track your deliveries.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/try-it">
-                <Button variant="outline" className="w-full sm:w-auto">
-                  <ArrowRight className="w-4 h-4 mr-2" />
-                  Browse Meals
-                </Button>
-              </Link>
-              <Link href="/waitlist">
-                <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white w-full sm:w-auto">
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Join Waitlist
-                </Button>
-              </Link>
-            </div>
-          </div>
+          <h2 className="text-xl font-asgard text-[#094327] mb-2">Place your first order to see orders here</h2>
+          <p className="text-[#6B7280] font-satoshi mb-8">
+            Browse kitchens and meals to get started with your first order
+          </p>
+          <Link href="/try-it">
+            <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white">
+              Browse Kitchens
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -120,18 +105,22 @@ export default function OrdersPage() {
             <p className="text-gray-600 font-satoshi">Loading your orders...</p>
           </div>
         ) : !hasOrders ? (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <ShoppingBag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-asgard text-gray-900 mb-2">No orders yet</h2>
-            <p className="text-gray-600 font-satoshi mb-6">
-              Start exploring our delicious meals and place your first order!
-            </p>
-            <Link href="/try-it">
-              <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white">
-                Browse Meals
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center w-full max-w-md">
+              <div className="w-20 h-20 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-6">
+                <Receipt className="w-12 h-12 text-[#10B981]" />
+              </div>
+              <h2 className="text-xl font-asgard text-[#094327] mb-2">Place your first order to see orders here</h2>
+              <p className="text-[#6B7280] font-satoshi mb-8">
+                Browse kitchens and meals to get started with your first order
+              </p>
+              <Link href="/try-it">
+                <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white">
+                  Browse Kitchens
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

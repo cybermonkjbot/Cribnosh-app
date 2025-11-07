@@ -1,9 +1,9 @@
 "use client";
 
-import { useSession } from "@/lib/auth/use-session";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Phone, MapPin, Edit, ArrowRight, LogIn, Lock } from "lucide-react";
+import { useSession } from "@/lib/auth/use-session";
+import { ArrowRight, Edit, Mail, MapPin, Phone, User } from "lucide-react";
+import Link from "next/link";
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading, user } = useSession();
@@ -21,35 +21,22 @@ export default function ProfilePage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-asgard text-gray-900 mb-2">Your Profile</h1>
-            <p className="text-gray-600 font-satoshi">Manage your account information</p>
-          </div>
-
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-4xl mx-auto px-4 py-8 w-full">
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-10 h-10 text-gray-400" />
+            <div className="w-20 h-20 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-6">
+              <User className="w-12 h-12 text-[#10B981]" />
             </div>
-            <h2 className="text-2xl font-asgard text-gray-900 mb-2">Sign in to view your profile</h2>
-            <p className="text-gray-600 font-satoshi mb-6 max-w-md mx-auto">
+            <h2 className="text-xl font-asgard text-[#094327] mb-2">Sign in to view your profile</h2>
+            <p className="text-[#6B7280] font-satoshi mb-8">
               Please sign in to your account to view and manage your profile information, delivery addresses, and preferences.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/try-it">
-                <Button variant="outline" className="w-full sm:w-auto">
-                  <ArrowRight className="w-4 h-4 mr-2" />
-                  Browse Meals
-                </Button>
-              </Link>
-              <Link href="/waitlist">
-                <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white w-full sm:w-auto">
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Join Waitlist
-                </Button>
-              </Link>
-            </div>
+            <Link href="/try-it">
+              <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white">
+                Browse Kitchens
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
