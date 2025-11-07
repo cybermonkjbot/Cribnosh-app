@@ -1,47 +1,42 @@
 "use client";
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Home, 
-  Users, 
-  Settings, 
-  BarChart2, 
-  FileText, 
-  Shield, 
-  ClipboardList,
+import { useAdminUser } from "@/app/admin/AdminUserProvider";
+import { api } from '@/convex/_generated/api';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useQuery } from 'convex/react';
+import {
+  AlertTriangle,
+  Badge,
+  BarChart2,
+  Briefcase,
+  Bug,
+  Calendar,
+  CheckCircle,
   ChefHat,
-  MapPin,
-  Bell,
-  X,
-  TrendingUp,
-  Activity,
+  ChevronRight,
+  ClipboardList,
+  Clock,
   Database,
+  DollarSign,
+  Eye,
+  FileSpreadsheet,
+  FileText,
+  Home,
   LogOut,
   Mail,
-  Badge,
-  Clock,
-  ChevronDown,
-  ChevronRight,
-  UserCheck,
-  DollarSign,
-  Calendar,
-  FileSpreadsheet,
-  AlertTriangle,
-  CheckCircle,
-  User,
-  Bug,
-  Edit,
-  Eye,
+  MapPin,
   Plus,
-  Briefcase
+  Settings,
+  Shield,
+  TrendingUp,
+  User,
+  UserCheck,
+  Users,
+  X
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useMediaQuery } from '@/hooks/use-media-query';
-import { useState, useEffect } from 'react';
-import { useAdminUser } from "@/app/admin/AdminUserProvider";
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
+import { AnimatePresence, motion } from 'motion/react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface GlassSidebarProps {
   isOpen?: boolean;
@@ -174,12 +169,6 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           description: 'Detailed waitlist view',
         },
         {
-          name: 'Affiliate',
-          href: '/admin/waitlist/affiliate',
-          icon: Badge,
-          description: 'Manage affiliate settings',
-        },
-        {
           name: 'Email Campaigns',
           href: '/admin/waitlist/emails',
           icon: Mail,
@@ -294,12 +283,6 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           description: 'Create email templates',
         },
         {
-          name: 'Template Editor',
-          href: '/admin/email-config/template',
-          icon: Edit,
-          description: 'Edit email templates',
-        },
-        {
           name: 'System',
           href: '/admin/system',
           icon: Database,
@@ -388,12 +371,6 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           href: '/admin/time-tracking',
           icon: Clock,
           description: 'Time tracking',
-        },
-        {
-          name: 'Timelogs',
-          href: '/admin/timelogs',
-          icon: Activity,
-          description: 'Detailed logs',
         },
         {
           name: 'Reports',
