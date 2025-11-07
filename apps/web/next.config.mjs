@@ -54,11 +54,17 @@ const nextConfig = {
   // Webpack configuration - minimal and clean
   webpack: (config, { dev, isServer }) => {
     // Ensure proper module resolution for path aliases
+    // This is needed for Docker builds where path resolution differs
     if (config.resolve) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        '@/convex': resolve(__dirname, '../../packages/convex/convex'),
-      };
+      const convexPath = resolve(__dirname, '../../packages/convex/convex');
+      
+      // Only add the alias if it doesn't already exist (preserves local behavior)
+      if (!config.resolve.alias?.['@/convex']) {
+        config.resolve.alias = {
+          ...config.resolve.alias,
+          '@/convex': convexPath,
+        };
+      }
     }
     
     // Only add essential webpack modifications
