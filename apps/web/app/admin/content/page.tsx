@@ -274,7 +274,7 @@ export default function AdminContentPage() {
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
           <input
             type="text"
             placeholder="Search content..."
@@ -301,7 +301,7 @@ export default function AdminContentPage() {
         </div>
       ) : filteredItems?.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30">
-          <p className="text-gray-500 font-satoshi">No content found matching your filters.</p>
+          <p className="text-gray-700 font-satoshi">No content found matching your filters.</p>
           <button
             onClick={() => {
               setSearchQuery('');
@@ -355,7 +355,7 @@ export default function AdminContentPage() {
                 {item.metadata?.description || 'No description available'}
               </p>
               
-              <div className="flex items-center justify-between text-xs text-gray-500 font-satoshi mb-4">
+              <div className="flex items-center justify-between text-xs text-gray-700 font-satoshi mb-4">
                 <span>By {item.author}</span>
                 <span>{new Date(item.lastModified).toLocaleDateString()}</span>
               </div>

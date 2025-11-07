@@ -1,11 +1,19 @@
 import { Resend } from 'resend';
 import { ErrorFactory, ErrorCode } from '../errors';
 
-const apiKey = process.env.RESEND_API_KEY;
-if (!apiKey) {
-  throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Missing RESEND_API_KEY environment variable. Please set it in your environment.');
+// Lazy initialization to avoid errors during code analysis
+let resendInstance: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendInstance) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Missing RESEND_API_KEY environment variable. Please set it in your environment.');
+    }
+    resendInstance = new Resend(apiKey);
+  }
+  return resendInstance;
 }
-const resend = new Resend(apiKey);
 
 export async function sendBroadcastEmail({
   user,
@@ -36,7 +44,7 @@ export async function sendBroadcastEmail({
       // Generate HTML from template configuration for template-based emails
       const htmlContent = generateEmailHTML(templateConfig, templateData);
       
-      return await resend.emails.send({
+      return await getResendClient().emails.send({
         from: templateConfig.from || 'CribNosh <noreply@cribnosh.com>',
         to: user.email,
         html: htmlContent,
@@ -50,7 +58,7 @@ export async function sendBroadcastEmail({
       // Generate HTML from template configuration
       const htmlContent = generateEmailHTML(templateConfig, templateData);
       
-      return await resend.emails.send({
+      return await getResendClient().emails.send({
         from: templateConfig.from || 'CribNosh <noreply@cribnosh.com>',
         to: user.email,
         subject: templateConfig.subject || 'Update from CribNosh',

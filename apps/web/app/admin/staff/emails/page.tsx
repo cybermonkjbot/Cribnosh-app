@@ -177,7 +177,7 @@ export default function StaffEmailsPage() {
         </div>
         <Button 
           onClick={() => setIsCreating(true)}
-          className="bg-[var(--color-bg-accent)] hover:bg-[var(--color-bg-accent)]/90 text-white"
+          className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Campaign
@@ -287,7 +287,7 @@ export default function StaffEmailsPage() {
             </div>
             
             <div className="flex space-x-2">
-              <Button onClick={handleCreateCampaign} className="bg-[var(--color-bg-accent)] hover:bg-[var(--color-bg-accent)]/90">
+              <Button onClick={handleCreateCampaign} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Create Campaign
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -317,7 +317,7 @@ export default function StaffEmailsPage() {
       <div className="flex space-x-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
             <Input
               placeholder="Search campaigns..."
               value={searchTerm}
@@ -371,7 +371,7 @@ export default function StaffEmailsPage() {
                         size="sm"
                         onClick={() => handleSendCampaign(campaign._id)}
                         disabled={isSending}
-                        className="bg-[var(--color-bg-accent)] hover:bg-[var(--color-bg-accent)]/90 text-white"
+                        className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                       >
                         <Send className="h-4 w-4" />
                       </Button>
@@ -390,21 +390,21 @@ export default function StaffEmailsPage() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Recipients:</span>
+                  <span className="text-gray-700">Recipients:</span>
                   <p className="font-medium">{campaign.recipientCount}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Sent:</span>
+                  <span className="text-gray-700">Sent:</span>
                   <p className="font-medium">{campaign.sentCount}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Created:</span>
+                  <span className="text-gray-700">Created:</span>
                   <p className="font-medium">
                     {new Date(campaign.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Type:</span>
+                  <span className="text-gray-700">Type:</span>
                   <p className="font-medium">
                     {getRecipientTypeLabel(campaign.recipientType)}
                   </p>
@@ -417,18 +417,18 @@ export default function StaffEmailsPage() {
         {filteredCampaigns?.length === 0 && (
           <Card>
             <CardContent className="text-center py-8">
-              <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <Mail className="h-12 w-12 text-gray-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 No campaigns found
               </h3>
-              <p className="text-gray-500 mb-4">
+              <p className="text-gray-700 mb-4">
                 {searchTerm || statusFilter !== 'all' 
                   ? 'Try adjusting your search or filter criteria'
                   : 'Create your first staff email campaign to get started'
                 }
               </p>
               {(!searchTerm && statusFilter === 'all') && (
-                <Button onClick={() => setIsCreating(true)} className="bg-[var(--color-bg-accent)] hover:bg-[var(--color-bg-accent)]/90">
+                <Button onClick={() => setIsCreating(true)} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Campaign
                 </Button>
@@ -452,11 +452,11 @@ export default function StaffEmailsPage() {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Subject</label>
+                <label className="text-sm font-medium text-gray-700">Subject</label>
                 <p className="text-lg font-semibold">{selectedCampaign.subject}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Content</label>
+                <label className="text-sm font-medium text-gray-700">Content</label>
                 <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
                   <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedCampaign.content).replace(/\n/g, '<br>') }} />
                 </div>

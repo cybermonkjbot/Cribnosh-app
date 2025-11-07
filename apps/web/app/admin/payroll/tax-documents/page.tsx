@@ -453,7 +453,7 @@ export default function TaxDocumentsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
           <Input
             placeholder="Search documents..."
             value={searchTerm}
@@ -531,7 +531,7 @@ export default function TaxDocumentsPage() {
                   <p className="text-sm text-gray-600 mb-2">
                     Tax Year: {document.taxYear} | Period: {new Date(document.period.start).toLocaleDateString()} - {new Date(document.period.end).toLocaleDateString()}
                   </p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-4 text-sm text-gray-700">
                     <div className="flex items-center gap-1">
                       <User className="w-4 h-4" />
                       {document.generatedBy}
@@ -637,7 +637,7 @@ export default function TaxDocumentsPage() {
       {filteredDocuments.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
-            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-500" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No tax documents found</h3>
             <p className="text-gray-600">Generate your first tax document to get started</p>
           </CardContent>

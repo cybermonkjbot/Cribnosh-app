@@ -285,11 +285,11 @@ export default function AdminWaitlistPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-500 uppercase tracking-wider">Entry</th>
-                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-500 uppercase tracking-wider">Company</th>
-                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-500 uppercase tracking-wider">Joined</th>
+                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-700 uppercase tracking-wider">Entry</th>
+                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-700 uppercase tracking-wider">Contact</th>
+                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-700 uppercase tracking-wider">Location</th>
+                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-700 uppercase tracking-wider">Company</th>
+                <th className="px-4 py-3 text-left text-xs font-medium font-satoshi text-gray-700 uppercase tracking-wider">Joined</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -306,7 +306,7 @@ export default function AdminWaitlistPage() {
                         <div className="text-sm font-medium font-satoshi text-gray-900">
                           {entry.name || 'No name provided'}
                         </div>
-                        <div className="text-sm text-gray-500 font-satoshi">{entry.email}</div>
+                        <div className="text-sm text-gray-700 font-satoshi">{entry.email}</div>
                       </div>
                     </div>
                   </td>
@@ -347,7 +347,7 @@ export default function AdminWaitlistPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-500 font-satoshi">
+                  <td className="px-4 py-4 text-sm text-gray-700 font-satoshi">
                     {formatDistanceToNow(entry.joinedAt, { addSuffix: true })}
                   </td>
                 </tr>

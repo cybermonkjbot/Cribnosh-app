@@ -347,7 +347,7 @@ export default function AdminCareers() {
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
           <input
             type="text"
             placeholder={`Search ${activeTab === 'jobs' ? 'jobs' : 'applications'}...`}
@@ -378,7 +378,7 @@ export default function AdminCareers() {
           </div>
         ) : filteredJobs?.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30">
-            <p className="text-gray-500 font-satoshi">No jobs found matching your filters.</p>
+            <p className="text-gray-700 font-satoshi">No jobs found matching your filters.</p>
             <button
               onClick={() => {
                 setSearchQuery('');
@@ -450,7 +450,7 @@ export default function AdminCareers() {
                   {job.description}
                 </p>
                 
-                <div className="flex items-center justify-between text-xs text-gray-500 font-satoshi">
+                <div className="flex items-center justify-between text-xs text-gray-700 font-satoshi">
                   <span>Posted {new Date(job.postedAt).toLocaleDateString()}</span>
                   <span>{job.requirements.length} requirements</span>
                 </div>
@@ -466,7 +466,7 @@ export default function AdminCareers() {
           </div>
         ) : filteredApplications?.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30">
-            <p className="text-gray-500 font-satoshi">No applications found matching your filters.</p>
+            <p className="text-gray-700 font-satoshi">No applications found matching your filters.</p>
             <button
               onClick={() => setSearchQuery('')}
               className="mt-2 text-primary-600 hover:text-primary-700 font-satoshi"
@@ -480,19 +480,19 @@ export default function AdminCareers() {
               <table className="w-full">
                 <thead className="bg-gray-50/80">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-satoshi">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider font-satoshi">
                       Applicant
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-satoshi">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider font-satoshi">
                       Position
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-satoshi">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider font-satoshi">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-satoshi">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider font-satoshi">
                       Submitted
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-satoshi">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider font-satoshi">
                       Actions
                     </th>
                   </tr>
@@ -510,7 +510,7 @@ export default function AdminCareers() {
                           <div className="text-sm font-medium text-gray-900 font-asgard">
                             {app.fullName}
                           </div>
-                          <div className="text-sm text-gray-500 font-satoshi">
+                          <div className="text-sm text-gray-700 font-satoshi">
                             {app.email}
                           </div>
                         </div>
@@ -532,7 +532,7 @@ export default function AdminCareers() {
                           <option value="hired">Hired</option>
                         </select>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-satoshi">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-satoshi">
                         {new Date(app.submittedAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

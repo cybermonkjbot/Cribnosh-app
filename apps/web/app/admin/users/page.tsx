@@ -341,7 +341,7 @@ export default function AdminUsers() {
           <div className="space-y-2">
             <label htmlFor="user-search" className="text-sm font-medium font-satoshi text-gray-700">Search</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" aria-hidden="true" />
               <Input
                 id="user-search"
                 type="text"
@@ -406,8 +406,8 @@ export default function AdminUsers() {
       >
         {filteredUsers?.length === 0 && users ? (
           <div className="flex flex-col items-center justify-center h-64">
-            <Users className="w-12 h-12 text-gray-400 mb-3" />
-            <p className="text-gray-500 font-satoshi mb-3">No users found matching your filters.</p>
+            <Users className="w-12 h-12 text-gray-500 mb-3" />
+            <p className="text-gray-700 font-satoshi mb-3">No users found matching your filters.</p>
             <Button
               variant="outline"
               onClick={() => {

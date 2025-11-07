@@ -259,7 +259,7 @@ export default function AdminCompliancePage() {
                 {item.description}
               </p>
               
-              <div className="flex items-center justify-between text-xs text-gray-500 font-satoshi">
+              <div className="flex items-center justify-between text-xs text-gray-700 font-satoshi">
                 <span>Updated {item.lastUpdated}</span>
                 <span className="capitalize">{item.category}</span>
               </div>

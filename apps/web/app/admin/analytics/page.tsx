@@ -165,7 +165,7 @@ export default function AdminAnalyticsPage() {
                     {realtimeMetrics.liveStreams} live streams
                   </span>
                 </div>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-700">
                   Last updated: {new Date().toLocaleTimeString()}
                 </span>
               </div>
@@ -233,7 +233,7 @@ export default function AdminAnalyticsPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
           <h3 className="text-lg font-semibold font-asgard text-gray-900 mb-4">Growth Trends</h3>
           <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-            <div className="text-center text-gray-500">
+            <div className="text-center text-gray-700">
               <BarChart3 className="w-12 h-12 mx-auto mb-2" />
               <p className="text-sm">Chart component will be implemented here</p>
             </div>
@@ -273,7 +273,7 @@ export default function AdminAnalyticsPage() {
               </div>
               <div className="text-right">
                 <span className="text-sm font-medium font-satoshi text-gray-900">{activity.count}</span>
-                <p className="text-xs text-gray-500 font-satoshi">
+                <p className="text-xs text-gray-700 font-satoshi">
                   {new Date(activity.timestamp).toLocaleDateString()}
                 </p>
               </div>
@@ -289,10 +289,10 @@ export default function AdminAnalyticsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-medium font-satoshi text-gray-500">Date</th>
-                <th className="text-left py-3 px-4 text-sm font-medium font-satoshi text-gray-500">Users</th>
-                <th className="text-left py-3 px-4 text-sm font-medium font-satoshi text-gray-500">Orders</th>
-                <th className="text-left py-3 px-4 text-sm font-medium font-satoshi text-gray-500">Revenue</th>
+                <th className="text-left py-3 px-4 text-sm font-medium font-satoshi text-gray-700">Date</th>
+                <th className="text-left py-3 px-4 text-sm font-medium font-satoshi text-gray-700">Users</th>
+                <th className="text-left py-3 px-4 text-sm font-medium font-satoshi text-gray-700">Orders</th>
+                <th className="text-left py-3 px-4 text-sm font-medium font-satoshi text-gray-700">Revenue</th>
               </tr>
             </thead>
             <tbody>

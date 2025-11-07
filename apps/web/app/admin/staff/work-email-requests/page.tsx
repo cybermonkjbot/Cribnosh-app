@@ -93,7 +93,7 @@ export default function AdminStaffWorkEmailRequestsPage() {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <GlassCard className="p-8">
           <h1 className="text-2xl font-asgard text-gray-900 mb-6 flex items-center gap-2">
-            <Mail className="w-6 h-6 text-[var(--color-bg-accent)]" /> Work Email Requests
+            <Mail className="w-6 h-6 text-[#F23E2E]" /> Work Email Requests
           </h1>
           {error && (
             <div className="text-destructive font-satoshi mb-4 bg-destructive/10 border border-destructive/20 rounded p-3">
@@ -125,7 +125,7 @@ export default function AdminStaffWorkEmailRequestsPage() {
                       <td className="px-4 py-2 font-satoshi text-sm text-gray-900">{req.name || req.staffName || '-'}</td>
                       <td className="px-4 py-2 font-satoshi text-sm text-gray-700">{req.department || '-'}</td>
                       <td className="px-4 py-2 font-satoshi text-sm text-gray-700">{req.position || '-'}</td>
-                      <td className="px-4 py-2 font-satoshi text-xs text-gray-500">{req.submittedAt ? new Date(req.submittedAt).toLocaleString() : '-'}</td>
+                      <td className="px-4 py-2 font-satoshi text-xs text-gray-700">{req.submittedAt ? new Date(req.submittedAt).toLocaleString() : '-'}</td>
                       <td className="px-4 py-2 font-satoshi text-xs">
                         <span className="inline-block px-2 py-1 rounded bg-primary-100 text-primary-800">{req.status}</span>
                       </td>
@@ -134,7 +134,7 @@ export default function AdminStaffWorkEmailRequestsPage() {
                           <button
                             onClick={() => isAdmin ? handleApprove(req._id) : null}
                             disabled={!isAdmin || actionLoading === req._id}
-                            className={`inline-flex items-center px-3 py-1 bg-[var(--color-bg-accent)] text-white rounded hover:bg-[var(--color-bg-accent)]/90 focus:outline-none focus:ring-2 focus:ring-[var(--color-bg-accent)] disabled:opacity-50 ${!isAdmin ? 'cursor-not-allowed opacity-60' : ''}`}
+                            className={`inline-flex items-center px-3 py-1 bg-[#F23E2E] text-white rounded hover:bg-[#F23E2E]/90 focus:outline-none focus:ring-2 focus:ring-[#F23E2E] disabled:opacity-50 ${!isAdmin ? 'cursor-not-allowed opacity-60' : ''}`}
                             aria-label="Approve"
                             title={!isAdmin ? 'Only admins can approve requests.' : ''}
                           >

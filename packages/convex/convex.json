@@ -5,6 +5,9 @@
   },
   "production": {
     "variables": {
+      "RESEND_API_KEY": {
+        "description": "Resend API key for sending emails"
+      },
       "AGORA_APP_ID": {
         "description": "Agora App ID for live streaming"
       },

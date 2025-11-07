@@ -397,7 +397,7 @@ export default function TimeTrackingReportsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
           <Input
             placeholder="Search reports..."
             value={searchTerm}
@@ -446,7 +446,7 @@ export default function TimeTrackingReportsPage() {
                   <p className="text-sm text-gray-600 mb-2">
                     Period: {new Date(report.period.start).toLocaleDateString()} - {new Date(report.period.end).toLocaleDateString()}
                   </p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-4 text-sm text-gray-700">
                     <div className="flex items-center gap-1">
                       <User className="w-4 h-4" />
                       {report.generatedBy}
@@ -523,7 +523,7 @@ export default function TimeTrackingReportsPage() {
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-gray-600">{formatDuration(user.totalHours)}</span>
-                        <span className="text-gray-500">{user.sessions} sessions</span>
+                        <span className="text-gray-700">{user.sessions} sessions</span>
                       </div>
                     </div>
                   ))}
@@ -537,7 +537,7 @@ export default function TimeTrackingReportsPage() {
       {filteredReports.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
-            <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-gray-500" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No reports found</h3>
             <p className="text-gray-600">Generate your first time tracking report to get started</p>
           </CardContent>
@@ -596,10 +596,10 @@ export default function TimeTrackingReportsPage() {
                     <p className="text-xs text-gray-600">{activity.action}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-700">
                       {new Date(activity.timestamp).toLocaleDateString()}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-700">
                       {new Date(activity.timestamp).toLocaleTimeString()}
                     </p>
                   </div>

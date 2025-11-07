@@ -486,7 +486,7 @@ export default function AnalyticsReportsPage() {
       {filteredReports.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
-            <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-gray-500" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No reports found</h3>
             <p className="text-gray-600">Generate your first report to get started</p>
           </CardContent>

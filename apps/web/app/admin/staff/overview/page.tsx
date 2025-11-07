@@ -38,7 +38,7 @@ export default function AdminStaffOverviewPage() {
           <GlassCard className="p-8 mb-8">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h1 className="text-2xl font-asgard text-gray-900 flex items-center gap-2">
-                <Users className="w-6 h-6 text-[var(--color-bg-accent)]" /> Staff Overview
+                <Users className="w-6 h-6 text-[#F23E2E]" /> Staff Overview
               </h1>
               {adminUser && (
                 <div className="text-right">
@@ -51,7 +51,7 @@ export default function AdminStaffOverviewPage() {
                       {currentAssignment.position && <span>{currentAssignment.position}</span>}
                     </div>
                   ) : (
-                    <div className="font-satoshi text-gray-500 text-sm">{adminUser.role === 'admin' ? 'Admin' : 'Staff'}</div>
+                    <div className="font-satoshi text-gray-700 text-sm">{adminUser.role === 'admin' ? 'Admin' : 'Staff'}</div>
                   )}
                 </div>
               )}
@@ -75,13 +75,13 @@ export default function AdminStaffOverviewPage() {
                         <td className="px-4 py-3 font-satoshi text-gray-700">
                           <a href={`mailto:${user.email}`} className="text-primary-600 hover:underline">{user.email}</a>
                         </td>
-                        <td className="px-4 py-3 font-satoshi text-gray-700">{user.department || <span className="text-gray-400">N/A</span>}</td>
+                        <td className="px-4 py-3 font-satoshi text-gray-700">{user.department || <span className="text-gray-500">N/A</span>}</td>
                         <td className="px-4 py-3 font-satoshi text-gray-700 capitalize">{user.role}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-gray-400 font-satoshi">No staff found.</td>
+                      <td colSpan={4} className="px-4 py-8 text-center text-gray-600 font-satoshi">No staff found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -93,27 +93,27 @@ export default function AdminStaffOverviewPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-primary-50 rounded-xl p-6 flex flex-col items-center">
-                  <Users className="w-8 h-8 text-[var(--color-bg-accent)] mb-2" />
+                  <Users className="w-8 h-8 text-[#F23E2E] mb-2" />
                   <div className="text-2xl font-asgard text-gray-900">{stats.totalStaff}</div>
                   <div className="text-sm font-satoshi text-gray-700">Total Staff</div>
                 </div>
                 <div className="bg-primary-50 rounded-xl p-6 flex flex-col items-center">
-                  <Mail className="w-8 h-8 text-[var(--color-bg-accent)] mb-2" />
+                  <Mail className="w-8 h-8 text-[#F23E2E] mb-2" />
                   <div className="text-2xl font-asgard text-gray-900">{stats.pendingWorkEmailRequests}</div>
                   <div className="text-sm font-satoshi text-gray-700">Pending Work Email Requests</div>
                 </div>
                 <div className="bg-primary-50 rounded-xl p-6 flex flex-col items-center">
-                  <Calendar className="w-8 h-8 text-[var(--color-bg-accent)] mb-2" />
+                  <Calendar className="w-8 h-8 text-[#F23E2E] mb-2" />
                   <div className="text-2xl font-asgard text-gray-900">{stats.pendingLeaveRequests}</div>
                   <div className="text-sm font-satoshi text-gray-700">Pending Leave Requests</div>
                 </div>
                 <div className="bg-primary-50 rounded-xl p-6 flex flex-col items-center">
-                  <Shield className="w-8 h-8 text-[var(--color-bg-accent)] mb-2" />
+                  <Shield className="w-8 h-8 text-[#F23E2E] mb-2" />
                   <div className="text-2xl font-asgard text-gray-900">{stats.activeWorkIds}</div>
                   <div className="text-sm font-satoshi text-gray-700">Active Work IDs</div>
                 </div>
                 <div className="bg-primary-50 rounded-xl p-6 flex flex-col items-center">
-                  <FileText className="w-8 h-8 text-[var(--color-bg-accent)] mb-2" />
+                  <FileText className="w-8 h-8 text-[#F23E2E] mb-2" />
                   <div className="text-2xl font-asgard text-gray-900">{stats.expiredWorkIds}</div>
                   <div className="text-sm font-satoshi text-gray-700">Expired Work IDs</div>
                 </div>

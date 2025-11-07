@@ -220,7 +220,7 @@ export default function WaitlistEmailsPage() {
         </div>
         <Button
           onClick={() => setIsCreating(true)}
-          className="bg-[var(--color-bg-accent)] hover:bg-[var(--color-bg-accent)]/90 text-white"
+          className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create Campaign
@@ -385,7 +385,7 @@ export default function WaitlistEmailsPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreateCampaign} className="bg-[var(--color-bg-accent)] hover:bg-[var(--color-bg-accent)]/90">
+              <Button onClick={handleCreateCampaign} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Create Campaign
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -399,7 +399,7 @@ export default function WaitlistEmailsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
           <Input
             placeholder="Search campaigns..."
             value={searchTerm}
@@ -450,7 +450,7 @@ export default function WaitlistEmailsPage() {
                     {getRecipientTypeBadge(campaign.recipientType)}
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{campaign.subject}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-4 text-sm text-gray-700">
                     <span>Created {new Date(campaign.createdAt).toLocaleDateString()}</span>
                     {campaign.scheduledAt && (
                       <span>Scheduled {new Date(campaign.scheduledAt).toLocaleDateString()}</span>
@@ -506,7 +506,7 @@ export default function WaitlistEmailsPage() {
                     size="sm"
                     onClick={() => handleSendCampaign(campaign._id)}
                     disabled={isSending}
-                    className="bg-[var(--color-bg-accent)] hover:bg-[var(--color-bg-accent)]/90"
+                    className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                   >
                     <Send className="w-4 h-4 mr-1" />
                     {isSending ? 'Sending...' : 'Send Now'}
@@ -532,7 +532,7 @@ export default function WaitlistEmailsPage() {
       {filteredCampaigns.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
-            <Mail className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <Mail className="w-12 h-12 mx-auto mb-4 text-gray-500" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns found</h3>
             <p className="text-gray-600">Create your first email campaign to get started</p>
           </CardContent>

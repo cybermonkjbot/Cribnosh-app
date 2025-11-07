@@ -163,7 +163,7 @@ export default function AdminStaffPage() {
             </Button>
             <Button 
               size="lg"
-              className="bg-[var(--color-bg-accent)] hover:bg-[var(--color-bg-accent)]/90 text-white shadow-lg"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white shadow-lg"
               disabled
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -188,7 +188,7 @@ export default function AdminStaffPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium font-satoshi text-gray-700">Search</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <Input
                   type="text"
                   placeholder="Search staff by name or email..."
@@ -273,7 +273,7 @@ export default function AdminStaffPage() {
                           </div>
                           <div>
                             <p className="font-semibold font-asgard text-gray-900">{user.name}</p>
-                            <p className="text-xs text-gray-500 font-satoshi">ID: {user._id.slice(-8)}</p>
+                            <p className="text-xs text-gray-600 font-satoshi">ID: {user._id.slice(-8)}</p>
                           </div>
                         </div>
                       </td>
@@ -322,8 +322,8 @@ export default function AdminStaffPage() {
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <Users className="w-12 h-12 text-gray-400" />
-                        <p className="text-gray-500 font-satoshi">No staff members found</p>
+                        <Users className="w-12 h-12 text-gray-500" />
+                        <p className="text-gray-700 font-satoshi">No staff members found</p>
                       </div>
                     </td>
                   </tr>

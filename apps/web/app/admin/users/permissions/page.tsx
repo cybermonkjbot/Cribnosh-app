@@ -124,7 +124,7 @@ export default function UserPermissionsPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
         <Input
           placeholder="Search users or permissions..."
           value={searchTerm}
@@ -236,7 +236,7 @@ export default function UserPermissionsPage() {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <Shield className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <Shield className="w-12 h-12 mx-auto mb-4 text-gray-500" />
                 <p>Select a user to manage their permissions</p>
               </div>
             )}

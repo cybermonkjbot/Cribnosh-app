@@ -225,7 +225,7 @@ export default function WaitlistDetailsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
           <Input
             placeholder="Search waitlist entries..."
             value={searchTerm}
@@ -418,7 +418,7 @@ export default function WaitlistDetailsPage() {
       {filteredEntries.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
-            <ClipboardList className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <ClipboardList className="w-12 h-12 mx-auto mb-4 text-gray-500" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No waitlist entries found</h3>
             <p className="text-gray-600">Try adjusting your search or filter criteria</p>
           </CardContent>

@@ -415,7 +415,7 @@ export default function PayrollAdminPage() {
                           </Button>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 font-satoshi">
+                      <div className="text-xs text-gray-700 font-satoshi">
                         Last updated: {new Date().toLocaleDateString()}
                       </div>
                     </div>

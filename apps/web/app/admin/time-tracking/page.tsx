@@ -356,14 +356,14 @@ export default function AdminTimeTrackingPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900 font-satoshi">{staffId}</p>
-                          <p className="text-sm text-gray-500 font-satoshi">
+                          <p className="text-sm text-gray-700 font-satoshi">
                             Last active: {new Date(stats.lastActive).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-gray-900">{stats.totalHours.toFixed(1)}h</p>
-                        <p className="text-sm text-gray-500 font-satoshi">{stats.sessionCount} sessions</p>
+                        <p className="text-sm text-gray-700 font-satoshi">{stats.sessionCount} sessions</p>
                       </div>
                     </div>
                   ))}
@@ -477,8 +477,8 @@ export default function AdminTimeTrackingPage() {
                     <tr>
                       <td colSpan={7} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center gap-3">
-                          <Clock className="w-12 h-12 text-gray-400" />
-                          <p className="text-gray-500 font-satoshi">No sessions found</p>
+                          <Clock className="w-12 h-12 text-gray-500" />
+                          <p className="text-gray-700 font-satoshi">No sessions found</p>
                         </div>
                       </td>
                     </tr>
@@ -497,7 +497,7 @@ export default function AdminTimeTrackingPage() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-gray-400" />
+                              <Calendar className="w-4 h-4 text-gray-500" />
                               <span className="text-sm font-satoshi text-gray-900">
                                 {new Date(s.clockInTime).toLocaleString()}
                               </span>
@@ -506,25 +506,25 @@ export default function AdminTimeTrackingPage() {
                           <td className="px-6 py-4">
                             {s.clockOutTime ? (
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-gray-400" />
+                                <Calendar className="w-4 h-4 text-gray-500" />
                                 <span className="text-sm font-satoshi text-gray-900">
                                   {new Date(s.clockOutTime).toLocaleString()}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-sm text-gray-400 font-satoshi">-</span>
+                              <span className="text-sm text-gray-500 font-satoshi">-</span>
                             )}
                           </td>
                           <td className="px-6 py-4">
                             {duration !== null ? (
                               <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-gray-400" />
+                                <Clock className="w-4 h-4 text-gray-500" />
                                 <span className="text-sm font-satoshi text-gray-900">
                                   {Math.floor(duration / 60)}h {duration % 60}m
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-sm text-gray-400 font-satoshi">-</span>
+                              <span className="text-sm text-gray-500 font-satoshi">-</span>
                             )}
                           </td>
                           <td className="px-6 py-4">
