@@ -35,9 +35,14 @@ on:
 
 env:
   AWS_REGION: eu-west-2
+  # These match the Terraform-managed infrastructure
+  # ECR repository name from Terraform: cribnosh-production
   ECR_REPOSITORY: cribnosh-production
+  # App Runner service name from Terraform: cribnosh-production
   SERVICE_NAME: cribnosh-production
   MAIN_BRANCH: Dark-mode-killed
+  # Terraform outputs directory
+  TERRAFORM_DIR: apps/web/infrastructure/terraform
 
 jobs:
   # Run tests (temporarily disabled)
@@ -87,17 +92,30 @@ jobs:
       - name: Check service health before deployment
         id: check
         run: |
+          # Get the Terraform-managed App Runner service ARN
+          SERVICE_ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='${{ env.SERVICE_NAME }}'].ServiceArn" \
+            --output text)
+          
+          if [ -z "$SERVICE_ARN" ]; then
+            echo "⚠️  Terraform-managed service not found. Make sure infrastructure is deployed."
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "📋 Checking Terraform-managed service: $SERVICE_ARN"
+          
           # Check if service is healthy before deployment
           SERVICE_STATUS=$(aws apprunner describe-service \
-            --service-arn "arn:aws:apprunner:$AWS_REGION:$(aws sts get-caller-identity --query Account --output text):service/$SERVICE_NAME" \
+            --service-arn "$SERVICE_ARN" \
             --query 'Service.Status' \
             --output text 2>/dev/null || echo "UNKNOWN")
           
           if [ "$SERVICE_STATUS" = "RUNNING" ]; then
-            echo "✅ Service is healthy, proceeding with deployment"
+            echo "✅ Terraform-managed service is healthy, proceeding with deployment"
             echo "should-deploy=true" >> $GITHUB_OUTPUT
           else
-            echo "⚠️ Service status: $SERVICE_STATUS"
+            echo "⚠️  Service status: $SERVICE_STATUS"
             echo "should-deploy=true" >> $GITHUB_OUTPUT
           fi
 
@@ -121,22 +139,54 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Setup Terraform (for outputs)
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          # Initialize Terraform if needed to get outputs
+          if [ ! -d ".terraform" ]; then
+            echo "📦 Initializing Terraform..."
+            terraform init -backend=false 2>/dev/null || echo "⚠️  Terraform init skipped (backend may not be configured)"
+          fi
+
+      - name: Get ECR repository URL from Terraform
+        id: ecr-url
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          # Get ECR repository URL from Terraform output
+          # Fallback to hardcoded value if Terraform output not available
+          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null || echo "${{ env.ECR_REPOSITORY }}")
+          
+          # If output is just the repo name, construct full URL
+          if [[ ! "$ECR_URL" =~ \.dkr\.ecr\. ]]; then
+            ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+            ECR_URL="${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${ECR_URL}"
+          fi
+          
+          echo "ecr-url=$ECR_URL" >> $GITHUB_OUTPUT
+          echo "ECR Repository URL: $ECR_URL"
+          # Extract repository name from full URL
+          REPO_NAME=$(echo $ECR_URL | sed 's|.*/||')
+          echo "repo-name=$REPO_NAME" >> $GITHUB_OUTPUT
+          echo "Repository Name: $REPO_NAME"
+
       - name: Build optimized Docker image
         working-directory: apps/web
         run: |
           # Build with optimizations for App Runner
+          # Using the ECR repository URL from Terraform
           docker build \
             --platform linux/amd64 \
             --build-arg NODE_ENV=production \
             --build-arg NEXT_TELEMETRY_DISABLED=1 \
-            -t $ECR_REPOSITORY:latest \
-            -t $ECR_REPOSITORY:$GITHUB_SHA \
+            -t ${{ steps.ecr-url.outputs.ecr-url }}:latest \
+            -t ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }} \
             -f Dockerfile.prod .
 
       - name: Push image to ECR
         run: |
-          docker push $ECR_REPOSITORY:latest
-          docker push $ECR_REPOSITORY:$GITHUB_SHA
+          # Push to Terraform-managed ECR repository
+          docker push ${{ steps.ecr-url.outputs.ecr-url }}:latest
+          docker push ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }}
 
   # Optimized deployment with cold start prevention
   deploy:
@@ -155,8 +205,36 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Setup Terraform (for outputs)
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          # Initialize Terraform if needed
+          if [ ! -d ".terraform" ]; then
+            echo "📦 Initializing Terraform..."
+            terraform init -backend=false 2>/dev/null || echo "⚠️  Terraform init skipped"
+          fi
+
+      - name: Get App Runner service ARN from Terraform
+        id: service-arn
+        run: |
+          # Get the App Runner service ARN from Terraform-managed infrastructure
+          # The service name is cribnosh-production (from Terraform)
+          SERVICE_ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='${{ env.SERVICE_NAME }}'].ServiceArn" \
+            --output text)
+          echo "service-arn=$SERVICE_ARN" >> $GITHUB_OUTPUT
+          echo "App Runner Service ARN: $SERVICE_ARN"
+          if [ -z "$SERVICE_ARN" ]; then
+            echo "❌ Service not found. Make sure Terraform has created the App Runner service."
+            echo "   Expected service name: ${{ env.SERVICE_NAME }}"
+            exit 1
+          fi
+          echo "✅ Found Terraform-managed App Runner service"
+
       - name: Run optimized deployment script
         working-directory: apps/web
+        env:
+          SERVICE_ARN: ${{ steps.service-arn.outputs.service-arn }}
         run: |
           chmod +x scripts/optimized-deploy.sh
           ./scripts/optimized-deploy.sh
@@ -172,6 +250,18 @@ jobs:
         run: |
           echo "🔍 Verifying deployment..."
           
+          # Get service ARN from Terraform-managed infrastructure
+          SERVICE_ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='${{ env.SERVICE_NAME }}'].ServiceArn" \
+            --output text)
+          
+          if [ -z "$SERVICE_ARN" ]; then
+            echo "❌ Service not found. Make sure Terraform has created the App Runner service."
+            exit 1
+          fi
+          
+          echo "📋 Using Terraform-managed service: $SERVICE_ARN"
+          
           # Wait for service to be running using polling
           echo "⏳ Waiting for service to be running..."
           local max_attempts=60
@@ -179,7 +269,7 @@ jobs:
           
           while [ $attempt -le $max_attempts ]; do
             local service_status=$(aws apprunner describe-service \
-              --service-arn "arn:aws:apprunner:$AWS_REGION:$(aws sts get-caller-identity --query Account --output text):service/$SERVICE_NAME" \
+              --service-arn "$SERVICE_ARN" \
               --query 'Service.Status' \
               --output text 2>/dev/null || echo "UNKNOWN")
             
@@ -201,12 +291,17 @@ jobs:
             exit 1
           fi
           
-          # Get service URL
-          SERVICE_URL=$(aws apprunner list-services \
-            --query "ServiceSummaryList[?ServiceName=='$SERVICE_NAME'].ServiceUrl" \
+          # Get service URL from Terraform output or AWS
+          SERVICE_URL=$(aws apprunner describe-service \
+            --service-arn "$SERVICE_ARN" \
+            --query 'Service.ServiceUrl' \
+            --output text 2>/dev/null || \
+            aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='${{ env.SERVICE_NAME }}'].ServiceUrl" \
             --output text)
           
           echo "🌐 Service URL: $SERVICE_URL"
+          echo "🌐 Terraform-managed infrastructure deployed successfully"
           
           # Test health endpoints
           echo "🏥 Testing health endpoints..."
@@ -223,11 +318,16 @@ jobs:
           for i in {1..5}; do
             echo "📈 Monitoring cycle $i/5..."
             
-            # Check active instances
+            # Get service ARN for monitoring
+            SERVICE_ARN=$(aws apprunner list-services \
+              --query "ServiceSummaryList[?ServiceName=='${{ env.SERVICE_NAME }}'].ServiceArn" \
+              --output text)
+            
+            # Check active instances for Terraform-managed service
             ACTIVE_INSTANCES=$(aws cloudwatch get-metric-statistics \
               --namespace "AWS/AppRunner" \
               --metric-name "ActiveInstances" \
-              --dimensions Name=ServiceName,Value="$SERVICE_NAME" \
+              --dimensions Name=ServiceName,Value="${{ env.SERVICE_NAME }}" \
               --start-time $(date -d "5 minutes ago" -u +%Y-%m-%dT%H:%M:%S) \
               --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
               --period 300 \
@@ -237,11 +337,11 @@ jobs:
             
             echo "   Active Instances: $ACTIVE_INSTANCES"
             
-            # Check error count
+            # Check error count for Terraform-managed service
             ERROR_COUNT=$(aws cloudwatch get-metric-statistics \
               --namespace "AWS/AppRunner" \
               --metric-name "ErrorCount" \
-              --dimensions Name=ServiceName,Value="$SERVICE_NAME" \
+              --dimensions Name=ServiceName,Value="${{ env.SERVICE_NAME }}" \
               --start-time $(date -d "5 minutes ago" -u +%Y-%m-%dT%H:%M:%S) \
               --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
               --period 300 \

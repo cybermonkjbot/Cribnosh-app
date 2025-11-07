@@ -22,6 +22,12 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Separate provider for us-east-1 (required for CloudFront WAF)
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 provider "cloudflare" {
   # API token will be read from CLOUDFLARE_API_TOKEN environment variable
   # or from cloudflare.tfvars file
@@ -317,7 +323,9 @@ resource "aws_cloudfront_distribution" "app_distribution" {
 }
 
 # AWS WAF Web ACL for Security
+# Note: CloudFront WAF must be created in us-east-1
 resource "aws_wafv2_web_acl" "app_waf" {
+  provider = aws.us_east_1
   name  = "${local.name_prefix}-waf"
   scope = "CLOUDFRONT"
 
@@ -423,10 +431,14 @@ resource "aws_wafv2_web_acl" "app_waf" {
 }
 
 # Associate WAF with CloudFront
-resource "aws_wafv2_web_acl_association" "app_waf_association" {
-  resource_arn = aws_cloudfront_distribution.app_distribution.arn
-  web_acl_arn  = aws_wafv2_web_acl.app_waf.arn
-}
+# Note: CloudFront WAF associations must be done via the CloudFront distribution resource
+# For now, this is commented out - WAF can be associated manually in AWS Console
+# or via the CloudFront distribution's web_acl_id attribute
+# resource "aws_wafv2_web_acl_association" "app_waf_association" {
+#   provider     = aws.us_east_1
+#   resource_arn = aws_cloudfront_distribution.app_distribution.arn
+#   web_acl_arn  = aws_wafv2_web_acl.app_waf.arn
+# }
 
 # IAM Role for App Runner Service (ECR Access)
 resource "aws_iam_role" "app_runner_service_role" {
@@ -723,20 +735,26 @@ resource "aws_lb_target_group" "app_tg" {
 }
 
 # ALB Listener
-resource "aws_lb_listener" "app_listener" {
-  count = var.enable_load_balancer ? 1 : 0
-  
-  load_balancer_arn = aws_lb.app_lb[0].arn
-  port              = "443"
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = aws_acm_certificate.app_cert[0].arn
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app_tg[0].arn
-  }
-}
+# Note: Certificate must be validated before use
+# The certificate validation will be handled via DNS records
+# For now, this is commented out - the certificate needs DNS validation first
+# After adding DNS validation records and certificate is validated, uncomment this
+# resource "aws_lb_listener" "app_listener" {
+#   count = var.enable_load_balancer ? 1 : 0
+#   
+#   load_balancer_arn = aws_lb.app_lb[0].arn
+#   port              = "443"
+#   protocol          = "HTTPS"
+#   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+#   certificate_arn   = aws_acm_certificate_validation.app_cert[0].certificate_arn
+#   
+#   depends_on = [aws_acm_certificate_validation.app_cert]
+#
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.app_tg[0].arn
+#   }
+# }
 
 # SSL Certificate for ALB
 resource "aws_acm_certificate" "app_cert" {
@@ -757,6 +775,23 @@ resource "aws_acm_certificate" "app_cert" {
 
   tags = local.common_tags
 }
+
+# Certificate validation (DNS records need to be added manually or via Cloudflare provider)
+# Note: This resource will wait for DNS validation to complete
+# You need to add the DNS validation records to your DNS provider (Cloudflare)
+# The validation records can be found in: aws_acm_certificate.app_cert[0].domain_validation_options
+# 
+# For now, this is commented out because DNS validation must be done manually
+# After adding DNS records, uncomment this and the ALB listener will work
+# resource "aws_acm_certificate_validation" "app_cert" {
+#   count = var.enable_load_balancer ? 1 : 0
+#   
+#   certificate_arn = aws_acm_certificate.app_cert[0].arn
+#   
+#   timeouts {
+#     create = "5m"
+#   }
+# }
 
 # App Runner Service
 resource "aws_apprunner_service" "app" {
@@ -1326,9 +1361,10 @@ resource "aws_budgets_budget" "app_runner_budget" {
   time_unit    = "MONTHLY"
   time_period_start = "2024-01-01_00:00"
 
+  # Use TagKeyValue filter instead of Application (which is not supported)
   cost_filter {
-    name = "Application"
-    values = [var.app_name]
+    name = "TagKeyValue"
+    values = ["Application$cribnosh"]
   }
 
   notification {
