@@ -68,14 +68,11 @@ export function useStaffAuth(): StaffAuthState {
             preferences: data.data.preferences,
           };
 
-          console.log('[useStaffAuth] Transformed staff user:', staffUser);
           setStaff(staffUser);
         } else {
-          console.log('[useStaffAuth] No valid staff data found:', data);
           setStaff(null);
         }
       } catch (error) {
-        console.error('Staff auth check failed:', error);
         setStaff(null);
       } finally {
         setLoading(false);

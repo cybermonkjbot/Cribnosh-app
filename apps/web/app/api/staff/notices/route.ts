@@ -1,9 +1,9 @@
 import { api } from '@/convex/_generated/api';
-import { getUserFromRequest } from '@/lib/auth/session';
 import { getConvexClient } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { withStaffAuth } from '@/lib/api/staff-middleware';
 
 /**
  * @swagger
@@ -123,12 +123,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     security:
  *       - cookieAuth: []
  */
-export async function GET(request: NextRequest) {
-  // Authenticate staff user
-  const user = await getUserFromRequest(request);
-  if (!user) {
-    return ResponseFactory.unauthorized('Unauthorized');
-  }
+async function handleGET(request: NextRequest, user: any) {
   const convex = getConvexClient();
   // Fetch user document by userId
   const staff = await convex.query(api.queries.users.getById, { userId: user._id });
@@ -143,4 +138,6 @@ export async function GET(request: NextRequest) {
   // Fetch active staff notices
   const notices = await convex.query(api.queries.staff.getActiveStaffNotices, { department, position });
   return ResponseFactory.success({ notices });
-} 
+}
+
+export const GET = withErrorHandling(withStaffAuth(handleGET)); 

@@ -11,6 +11,8 @@ import { AuthWrapper } from "@/components/layout/AuthWrapper";
 import { Link } from '@/components/link';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from "@/convex/_generated/api";
+import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { staffFetch } from '@/lib/api/staff-api-helper';
 import {
   AlertCircle,
   ArrowLeft,
@@ -36,8 +38,8 @@ interface Document {
 export default function StaffDocumentsPage() {
   // Auth is handled by middleware, no client-side checks needed
 
-  const staffEmail = typeof window !== "undefined" ? localStorage.getItem("staffEmail") : null;
-  const documents = useQuery(api.queries.users.getUserDocuments, staffEmail ? { email: staffEmail } : "skip");
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const documents = useQuery(api.queries.users.getUserDocuments, staffUser?.email ? { email: staffUser.email } : "skip");
   const addDocument = useMutation(api.mutations.documents.uploadDocument);
   
   // State for file upload
@@ -50,7 +52,31 @@ export default function StaffDocumentsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!staffEmail) {
+  if (staffAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
+        {/* Back Button */}
+        <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+          <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Link>
+        </div>
+
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 shadow-xl max-w-md w-full">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+            </div>
+            <h2 className="text-2xl font-bold font-asgard text-gray-900 mb-4">Loading Documents</h2>
+            <p className="text-gray-700 font-satoshi">Please wait while we retrieve your documents...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!staffUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
         {/* Back Button */}
@@ -249,7 +275,7 @@ export default function StaffDocumentsPage() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !staffEmail) {
+    if (!file || !staffUser?.email) {
       setUploadError('Please select a file to upload');
       return;
     }
@@ -260,10 +286,10 @@ export default function StaffDocumentsPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('userEmail', staffEmail);
+      formData.append('userEmail', staffUser.email);
       formData.append('type', type);
       
-      const res = await fetch('/api/staff/upload-document', {
+      const res = await staffFetch('/api/staff/upload-document', {
         method: 'POST',
         body: formData,
       });

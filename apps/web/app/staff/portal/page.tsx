@@ -1,11 +1,11 @@
 'use client';
 
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { GlassCard } from '@/components/ui/glass-card';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
 import { api } from "@/convex/_generated/api";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useConvex, useMutation, useQuery } from "convex/react";
 import {
   AlertCircle,
@@ -38,14 +38,10 @@ function useHasMounted() {
 
 export default function StaffPortal() {
   const hasMounted = useHasMounted();
-  const { user: adminUser, loading: adminLoading } = useAdminUser();
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  const [staffEmail, setStaffEmail] = useState<string | null>(null);
   const [staffMember, setStaffMember] = useState<any>(null);
-  const [localStaffLoading, setLocalStaffLoading] = useState(true);
   const convex = useConvex();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [localStaffMember, setLocalStaffMember] = useState<any>(null);
   const [staffNotices, setStaffNotices] = useState<any[]>([]);
   const [noticesLoading, setNoticesLoading] = useState(true);
   const sessions = useQuery(api.queries.sessions.getSessionsByUserId, staffMember && staffMember._id ? { userId: staffMember._id } : "skip");
@@ -54,52 +50,24 @@ export default function StaffPortal() {
   const unreadCount = notifications?.filter((n: any) => !n.read).length || 0;
   const { isMobile } = useMobileDevice();
 
-  // Debugging output
-  useEffect(() => {
-    console.log('[StaffPortal] adminUser:', adminUser);
-    console.log('[StaffPortal] adminLoading:', adminLoading);
-    console.log('[StaffPortal] staffUser:', staffUser);
-    console.log('[StaffPortal] staffAuthLoading:', staffAuthLoading);
-    console.log('[StaffPortal] staffEmail (state):', staffEmail);
-  }, [adminUser, adminLoading, staffUser, staffAuthLoading, staffEmail]);
-
-  // Set staffEmail from localStorage or admin context on client
-  useEffect(() => {
-    let email = null;
-    if (typeof window !== 'undefined') {
-      email = localStorage.getItem('staffEmail');
-    }
-    if (adminUser && adminUser.email) {
-      if (email && email !== adminUser.email && typeof window !== 'undefined') {
-        localStorage.removeItem('staffEmail');
-      }
-      email = adminUser.email;
-    }
-    setStaffEmail(email);
-  }, [adminUser]);
-
-  // Debugging output for staffMember
-  useEffect(() => {
-    console.log('[StaffPortal] staffMember:', staffMember);
-  }, [staffMember]);
-
   // Use staff user data from hook when available
   useEffect(() => {
     if (staffUser) {
       setStaffMember(staffUser);
-      setLocalStaffLoading(false);
     } else if (!staffAuthLoading) {
       // If staff loading is complete and no staff user, try to fetch from API as fallback
       async function fetchStaffData() {
-        setLocalStaffLoading(true);
-        const res = await fetch('/api/staff/data');
-        if (res.ok) {
-          const data = await res.json();
-          setStaffMember(data.data); // Extract the actual data from the API response
-        } else {
+        try {
+          const res = await staffFetch('/api/staff/data');
+          if (res.ok) {
+            const data = await res.json();
+            setStaffMember(data.data); // Extract the actual data from the API response
+          } else {
+            setStaffMember(null);
+          }
+        } catch (error) {
           setStaffMember(null);
         }
-        setLocalStaffLoading(false);
       }
       fetchStaffData();
     }
@@ -109,14 +77,19 @@ export default function StaffPortal() {
   useEffect(() => {
     async function fetchNotices() {
       setNoticesLoading(true);
-      const res = await fetch('/api/staff/notices');
-      if (res.ok) {
-        const data = await res.json();
-        setStaffNotices(data.notices || []);
-      } else {
+      try {
+        const res = await staffFetch('/api/staff/notices');
+        if (res.ok) {
+          const data = await res.json();
+          setStaffNotices(data.notices || []);
+        } else {
+          setStaffNotices([]);
+        }
+      } catch (error) {
         setStaffNotices([]);
+      } finally {
+        setNoticesLoading(false);
       }
-      setNoticesLoading(false);
     }
     fetchNotices();
   }, []);
@@ -124,53 +97,30 @@ export default function StaffPortal() {
   // Staff logout handler
   const handleLogout = async () => {
     try {
-      await fetch('/api/staff/auth/logout', {
+      await staffFetch('/api/staff/auth/logout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
-  if (typeof window !== 'undefined') {
-        localStorage.removeItem('staffToken');
-        localStorage.removeItem('staffEmail');
-      }
       window.location.href = '/staff/login';
     } catch (error) {
-      console.error('Logout error:', error);
+      // Silently handle logout errors
+      window.location.href = '/staff/login';
     }
   };
 
   // --- Conditional UI states ---
+  // Server-side middleware handles authentication and role checks
+  // Client-side only handles loading states
   let content = null;
-  if (adminLoading && staffEmail === null) {
+  if (staffAuthLoading) {
     content = (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Loading your staff portal...</div>
       </div>
     );
-  } else if (staffEmail === null) {
+  } else if (!staffMember) {
     content = (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Please log in to view your staff portal.</div>
-      </div>
-    );
-  } else if (localStaffLoading) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading your staff portal...</div>
-      </div>
-    );
-  } else if (staffMember === null) {
-    if (staffEmail && typeof window !== "undefined") {
-      localStorage.removeItem("staffEmail");
-    }
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Staff member not found.</div>
-      </div>
-    );
-  } else if (!staffMember.roles?.includes('staff') && !staffMember.roles?.includes('admin')) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Access denied: You do not have staff access.</div>
       </div>
     );
   } else if (staffMember.status && staffMember.status !== 'active') {

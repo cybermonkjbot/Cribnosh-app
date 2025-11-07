@@ -3,9 +3,11 @@
 import { GlassNavbar } from "@/components/admin/glass-navbar";
 import { api } from '@/convex/_generated/api';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useMutation, useQuery } from 'convex/react';
-import { motion } from "motion/react";
 import { Bell } from "lucide-react";
+import { motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -26,17 +28,12 @@ export default function StaffLayout({
   const router = useRouter();
   const pathname = usePathname();
   const isLoginPage = pathname === "/staff/login";
-  const [notifications, setNotifications] = useState(2);
   const [showNotifications, setShowNotifications] = useState(false);
-  // Get staff email from localStorage (client only)
-  const [staffEmail, setStaffEmail] = useState<string | null>(null);
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setStaffEmail(localStorage.getItem('staffEmail'));
-    }
-  }, []);
-  const staffProfile = useQuery(api.queries.users.getUserByEmail, staffEmail ? { email: staffEmail } : 'skip');
-  const staffNotifications = useQuery(api.queries.users.getUserNotifications, staffProfile && staffProfile._id ? { userId: staffProfile._id, roles: staffProfile.roles } : 'skip');
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const userId = staffUser?._id;
+  const userRoles = staffUser?.roles;
+  const queryArgs = userId && userRoles ? { userId, roles: userRoles } : 'skip';
+  const staffNotifications = useQuery(api.queries.users.getUserNotifications, queryArgs as any);
   const markNotificationRead = useMutation(api.mutations.users.markNotificationRead);
   const unreadCount = staffNotifications?.filter((n: any) => !n.read).length || 0;
   const { isMobile } = useMobileDevice();
@@ -46,19 +43,13 @@ export default function StaffLayout({
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/staff/logout', {
+      await staffFetch('/api/staff/auth/logout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
-      // Clear any localStorage tokens
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('staffToken');
-        localStorage.removeItem('staffEmail');
-        localStorage.removeItem('staffName');
-      }
       router.push('/staff/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      // Silently handle logout errors
+      router.push('/staff/login');
     }
   };
 
@@ -86,6 +77,8 @@ export default function StaffLayout({
           onMenuClick={() => {}} // No sidebar for staff
           notifications={unreadCount}
           onNotificationClick={() => setShowNotifications(true)}
+          staffUser={staffUser}
+          staffLoading={staffAuthLoading}
         />
       </motion.div>
 

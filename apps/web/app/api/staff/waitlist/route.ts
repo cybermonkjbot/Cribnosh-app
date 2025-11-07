@@ -3,8 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { getUserFromCookies } from '@/lib/auth/session';
-import { cookies } from 'next/headers';
+import { withStaffAuth } from '@/lib/api/staff-middleware';
 
 /**
  * @swagger
@@ -82,20 +81,8 @@ import { cookies } from 'next/headers';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-async function handlePOST(request: NextRequest): Promise<NextResponse> {
+async function handlePOST(request: NextRequest, user: any): Promise<NextResponse> {
   try {
-    // Verify staff authentication using Convex session
-    const cookieStore = await cookies();
-    const user = await getUserFromCookies(cookieStore);
-    
-    if (!user) {
-      return ResponseFactory.unauthorized('Please log in to access this endpoint.');
-    }
-
-    // Check if user has staff role
-    if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('staff')) {
-      return ResponseFactory.forbidden('Forbidden: Only staff can access this endpoint.');
-    }
 
     const data = await request.json();
     const { email } = data;
@@ -246,44 +233,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
  *       500:
  *         description: Internal server error
  */
-async function handleGET(request: NextRequest): Promise<NextResponse> {
+async function handleGET(request: NextRequest, user: any): Promise<NextResponse> {
   try {
-    // Verify staff authentication using Convex session
-    const cookieStore = await cookies();
-    const user = await getUserFromCookies(cookieStore);
-    
-    if (!user) {
-      console.error('[STAFF WAITLIST GET] No user found in cookies');
-      return ResponseFactory.unauthorized('Please log in to access this endpoint.');
-    }
-
-    console.log('[STAFF WAITLIST GET] User found:', { 
-      id: user._id, 
-      email: user.email, 
-      roles: user.roles 
-    });
-
-    // Check if user has staff or admin role (admins can also access staff features)
-    const hasStaffAccess = user.roles && Array.isArray(user.roles) && 
-      (user.roles.includes('staff') || user.roles.includes('admin'));
-    
-    if (!hasStaffAccess) {
-      console.error('[STAFF WAITLIST GET] User does not have staff access:', user.roles);
-      return ResponseFactory.forbidden('Forbidden: Only staff can access this endpoint.');
-    }
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || undefined;
     const limit = parseInt(searchParams.get('limit') || '50');
 
     const convex = getConvexClient();
-
-    console.log('[STAFF WAITLIST GET] Querying waitlist with params:', {
-      status: status === 'all' ? undefined : status,
-      search,
-      limit
-    });
 
     // Get waitlist entries
     const entries = await convex.query(api.queries.waitlist.getWaitlistEntries, {
@@ -292,20 +249,17 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       limit,
     });
 
-    console.log('[STAFF WAITLIST GET] Retrieved entries:', entries.length);
-
     return ResponseFactory.success({
       entries,
       total: entries.length,
     }, 'Waitlist entries retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('[STAFF WAITLIST GET] Error:', error);
     return ResponseFactory.internalError(
       error instanceof Error ? error.message : 'Failed to retrieve waitlist entries.'
     );
   }
 }
 
-export const POST = withErrorHandling(handlePOST);
-export const GET = withErrorHandling(handleGET);
+export const POST = withErrorHandling(withStaffAuth(handlePOST));
+export const GET = withErrorHandling(withStaffAuth(handleGET));

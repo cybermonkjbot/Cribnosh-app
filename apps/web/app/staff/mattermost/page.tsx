@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { AnimatePresence, motion } from 'motion/react';
 import { env } from '@/lib/config/env';
 
@@ -59,8 +60,8 @@ export default function MattermostPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const staffEmail = typeof window !== "undefined" ? localStorage.getItem("staffEmail") : null;
-  const user = useQuery(api.queries.users.getUserByEmail, staffEmail ? { email: staffEmail } : "skip");
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const user = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : "skip");
   const updateMattermost = useMutation(api.mutations.users.updateMattermostStatus);
 
   // Pre-fill profile data from staff onboarding
@@ -72,22 +73,22 @@ export default function MattermostPage() {
       
       setProfile(prev => ({
         ...prev,
-        email: user.email || staffEmail || '',
+        email: user.email || staffUser?.email || '',
         firstName: firstName,
         lastName: lastName,
-        username: (user.email || staffEmail || '').split('@')[0] || '',
+        username: (user.email || staffUser?.email || '').split('@')[0] || '',
         position: user.position || '',
         department: user.department || '',
         nickname: firstName || '',
       }));
     }
-  }, [user, staffEmail, profile.email]);
+  }, [user, staffUser, profile.email]);
 
   const handleActivate = async () => {
     setLoading(true);
     setError(null);
     try {
-      await updateMattermost({ email: staffEmail || '', mattermostActive: true, mattermostProfile: profile });
+      await updateMattermost({ email: staffUser?.email || user?.email || '', mattermostActive: true, mattermostProfile: profile });
       setSuccess(true);
     } catch (err) {
       setError('Failed to activate Mattermost');
