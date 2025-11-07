@@ -176,49 +176,42 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       attachments: [],
     });
 
-    // Get available agent
-    const availableAgents = await convex.query(api.queries.supportAgents.getAvailableAgents, {});
-    
-    if (availableAgents.length === 0) {
-      return ResponseFactory.success({
-        chatId: null,
-        supportCaseId: caseId,
-        agent: null,
-        messages: [],
-        message: 'No support agents are currently available. We will assign an agent soon.',
-      });
-    }
+    // Create support chat with AI agent (no human agent assigned initially)
+    // Create chat without a human agent - AI will handle responses initially
+    const chatResult = await convex.mutation(api.mutations.chats.createConversation, {
+      participants: [userId], // Only the customer initially
+      metadata: {
+        support_case_id: caseId,
+        is_support_chat: true,
+        is_ai_assigned: true, // Mark as AI-assigned
+        agent_id: null, // No human agent initially
+      },
+    });
 
-    // Assign first available agent
-    const selectedAgent = availableAgents[0];
-    
-    // Create support chat
-    const chatResult = await convex.mutation(api.mutations.supportCases.createSupportChat, {
+    const chatId = chatResult.chatId;
+
+    // Link chat to support case (without assigning a human agent)
+    await convex.mutation(api.mutations.supportCases.linkChat, {
       caseId,
-      agentId: selectedAgent._id as Id<'users'>,
+      chatId,
     });
 
-    // Get agent info
-    const agentInfo = await convex.query(api.queries.supportAgents.getAgentInfo, {
-      agentId: selectedAgent._id as Id<'users'>,
-    });
-
-    // Get messages (should be empty for new chat)
+    // Get messages (should include the welcome message)
     const messagesResult = await convex.query(api.queries.chats.listMessagesForChat, {
-      chatId: chatResult.chatId,
+      chatId,
       limit: 50,
       offset: 0,
     });
 
     return ResponseFactory.success({
-      chatId: chatResult.chatId,
+      chatId,
       supportCaseId: caseId,
-      agent: agentInfo ? {
-        id: agentInfo._id,
-        name: agentInfo.name,
-        avatar: agentInfo.avatar,
-        isOnline: agentInfo.isOnline,
-      } : null,
+      agent: {
+        id: 'ai',
+        name: 'CribNosh AI',
+        avatar: null,
+        isOnline: true,
+      },
       messages: messagesResult.messages.reverse(),
     });
   } catch (error: unknown) {

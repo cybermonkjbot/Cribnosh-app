@@ -558,7 +558,9 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
                 <Text style={{ color: COLORS.gray[500], fontSize: 16, textAlign: 'center' }}>
                   {agent 
-                    ? `Hi! ${agent.name} is here to help. Send a message to get started.`
+                    ? agent.name === 'CribNosh AI' || agent.id === 'ai'
+                      ? 'Hi! CribNosh AI is here to help. Send a message to get started.'
+                      : `Hi! A member of our support team is here to help. Send a message to get started.`
                     : 'Starting a new conversation...'
                   }
                 </Text>

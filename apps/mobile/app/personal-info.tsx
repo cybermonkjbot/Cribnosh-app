@@ -1,13 +1,16 @@
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { AddressSelectionSheet } from '@/components/ui/AddressSelectionSheet';
+import { ProfileUpdateOTPModal } from '@/components/ui/ProfileUpdateOTPModal';
 import {
   useGetCustomerProfileQuery,
   useUpdateCustomerProfileMutation,
   useUploadProfileImageMutation,
+  useUpdatePhoneEmailMutation,
 } from '@/store/customerApi';
 import { CustomerAddress } from '@/types/customer';
 import { Stack, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { API_CONFIG } from '@/constants/api';
 import {
   ActivityIndicator,
   ScrollView,
@@ -51,6 +54,7 @@ export default function PersonalInfoScreen() {
 
   const [updateProfile] = useUpdateCustomerProfileMutation();
   const [uploadProfileImage] = useUploadProfileImageMutation();
+  const [updatePhoneEmail] = useUpdatePhoneEmailMutation();
 
   // Form state
   const [name, setName] = useState('');
@@ -58,14 +62,58 @@ export default function PersonalInfoScreen() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState<CustomerAddress | undefined>();
 
+  // OTP Modal state
+  const [isOTPModalVisible, setIsOTPModalVisible] = useState(false);
+  const [otpModalType, setOtpModalType] = useState<'phone' | 'email'>('phone');
+  const [pendingPhone, setPendingPhone] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
+  
+  // Track original values to detect changes
+  const originalEmail = useRef<string>('');
+  const originalPhone = useRef<string>('');
+
+  // Helper function to convert relative URLs to absolute URLs
+  const getAbsoluteImageUrl = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    // If it's already an absolute URL (starts with http:// or https://), return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // If it's a relative URL (starts with /), convert to absolute
+    if (url.startsWith('/')) {
+      // Extract the base domain from API_CONFIG.baseUrl (e.g., "https://cribnosh.com" from "https://cribnosh.com/api")
+      const baseUrl = API_CONFIG.baseUrlNoTrailing;
+      // Remove /api from the end if it exists, to get the base domain
+      const baseDomain = baseUrl.replace(/\/api$/, '');
+      // Combine base domain with the relative URL
+      return `${baseDomain}${url}`;
+    }
+    // Otherwise, return as is (might be a local file URI)
+    return url;
+  };
+
   // Initialize form from API data
   useEffect(() => {
-    if (profileData?.data) {
-      setName(profileData.data.name || '');
-      setEmail(profileData.data.email || '');
-      setPhone(profileData.data.phone || '');
-      setAddress(profileData.data.address);
-      setSelectedProfileImage(profileData.data.picture);
+    if (profileData?.data?.user) {
+      const user = profileData.data.user;
+      setName(user.name || '');
+      const userEmail = user.email || '';
+      const userPhone = user.phone || user.phone_number || '';
+      setEmail(userEmail);
+      setPhone(userPhone);
+      originalEmail.current = userEmail;
+      originalPhone.current = userPhone;
+      setAddress(user.address);
+      // Convert relative image URLs to absolute URLs
+      const imageUrl = user.picture || user.avatar;
+      const absoluteImageUrl = getAbsoluteImageUrl(imageUrl);
+      console.log('Profile image URL:', {
+        original: imageUrl,
+        absolute: absoluteImageUrl,
+        userPicture: user.picture,
+        userAvatar: user.avatar,
+      });
+      setSelectedProfileImage(absoluteImageUrl);
     }
   }, [profileData]);
 
@@ -84,13 +132,37 @@ export default function PersonalInfoScreen() {
       return;
     }
 
+    // Check if phone or email has changed
+    const emailChanged = email.trim() !== originalEmail.current;
+    const phoneChanged = phone.trim() !== originalPhone.current;
+
+    // If phone or email changed, trigger OTP verification
+    if (emailChanged || phoneChanged) {
+      if (emailChanged) {
+        setOtpModalType('email');
+        setPendingEmail(email.trim());
+        setIsOTPModalVisible(true);
+      } else if (phoneChanged) {
+        setOtpModalType('phone');
+        setPendingPhone(phone.trim());
+        setIsOTPModalVisible(true);
+      }
+      return;
+    }
+
+    // No phone/email changes, proceed with normal save
+    await performSave();
+  };
+
+  const performSave = async () => {
     setIsSaving(true);
     try {
       let imageUrl = selectedProfileImage;
 
       // Check if selectedProfileImage is a local URI that needs to be uploaded
+      const currentPicture = profileData?.data?.user?.picture || profileData?.data?.user?.avatar;
       const isLocalUri = selectedProfileImage && 
-        selectedProfileImage !== profileData?.data?.picture &&
+        selectedProfileImage !== currentPicture &&
         (selectedProfileImage.startsWith('file://') || 
          selectedProfileImage.startsWith('content://') ||
          selectedProfileImage.startsWith('ph://') ||
@@ -148,15 +220,16 @@ export default function PersonalInfoScreen() {
         name: name.trim(),
       };
 
-      if (email.trim()) {
+      // Only include email/phone if they haven't changed (they're already updated via OTP)
+      if (email.trim() && email.trim() === originalEmail.current) {
         updateData.email = email.trim();
       }
 
-      if (phone.trim()) {
+      if (phone.trim() && phone.trim() === originalPhone.current) {
         updateData.phone = phone.trim();
       }
 
-      if (imageUrl && imageUrl !== profileData?.data?.picture) {
+      if (imageUrl && imageUrl !== currentPicture) {
         updateData.picture = imageUrl;
       }
 
@@ -190,6 +263,36 @@ export default function PersonalInfoScreen() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSendOTP = async (value: string) => {
+    const result = await updatePhoneEmail({
+      type: otpModalType,
+      action: 'send',
+      [otpModalType]: value,
+    }).unwrap();
+    return result.data;
+  };
+
+  const handleOTPVerified = async (otp: string) => {
+    const value = otpModalType === 'phone' ? pendingPhone : pendingEmail;
+    await updatePhoneEmail({
+      type: otpModalType,
+      action: 'verify',
+      [otpModalType]: value,
+      otp,
+    }).unwrap();
+
+    // Update original values
+    if (otpModalType === 'phone') {
+      originalPhone.current = pendingPhone;
+    } else {
+      originalEmail.current = pendingEmail;
+    }
+
+    // Close modal and continue with save
+    setIsOTPModalVisible(false);
+    await performSave();
   };
 
   const handleProfileImageSelected = (imageUri: string) => {
@@ -353,6 +456,17 @@ export default function PersonalInfoScreen() {
             addressLabel={addressSheetMode}
           />
         )}
+
+        {/* OTP Verification Modal */}
+        <ProfileUpdateOTPModal
+          isVisible={isOTPModalVisible}
+          onClose={() => setIsOTPModalVisible(false)}
+          type={otpModalType}
+          currentValue={otpModalType === 'phone' ? originalPhone.current : originalEmail.current}
+          newValue={otpModalType === 'phone' ? pendingPhone : pendingEmail}
+          onSendOTP={handleSendOTP}
+          onOTPVerified={handleOTPVerified}
+        />
       </SafeAreaView>
     </>
   );

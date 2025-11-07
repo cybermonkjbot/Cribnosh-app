@@ -174,9 +174,6 @@ export default function FamilyProfileManageScreen() {
 
   const profile = familyProfileData.data;
   const totalSpending = spendingData?.data?.total_spending || 0;
-  const activeMembers = profile.family_members.filter(
-    (m) => m.status === "accepted"
-  ).length;
 
   return (
     <>
@@ -210,11 +207,6 @@ export default function FamilyProfileManageScreen() {
           {/* Overview Section */}
           <View style={styles.overviewCard}>
             <View style={styles.overviewRow}>
-              <View style={styles.overviewItem}>
-                <Users size={24} color="#094327" />
-                <Text style={styles.overviewValue}>{activeMembers}</Text>
-                <Text style={styles.overviewLabel}>Active Members</Text>
-              </View>
               <View style={styles.overviewItem}>
                 <Text style={styles.overviewValue}>
                   £{totalSpending.toFixed(2)}
@@ -415,7 +407,7 @@ const styles = StyleSheet.create({
   },
   overviewRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "center",
   },
   overviewItem: {
     alignItems: "center",

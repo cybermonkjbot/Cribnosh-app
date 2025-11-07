@@ -11,6 +11,7 @@ import {
   useSetupFamilyProfileMutation,
 } from '@/store/customerApi';
 import { useRouter } from 'expo-router';
+import { CreditCard } from 'lucide-react-native';
 import { useState } from 'react';
 import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -246,50 +247,16 @@ export default function PaymentSettingsScreen() {
                   </View>
                 ))
               ) : (
-                // Fallback UI when no payment methods from API
-                <>
-                  <TouchableOpacity
-                    style={styles.paymentMethodItem}
-                    onPress={() => handlePaymentMethodSelect("apple-pay")}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.methodLeft}>
-                      <View style={styles.appleIconContainer}>
-                        <Text style={styles.appleIconText}>Apple</Text>
+                // Empty state when no payment methods are set up
+                <View style={styles.emptyStateContainer}>
+                  <View style={styles.emptyStateIconContainer}>
+                    <CreditCard size={32} color="#9CA3AF" />
                       </View>
-                      <Text style={styles.methodText}>Apple Pay</Text>
+                  <Text style={styles.emptyStateTitle}>No payment methods</Text>
+                  <Text style={styles.emptyStateSubtitle}>
+                    Add a payment method to get started
+                  </Text>
                     </View>
-                    <View
-                      style={[
-                        styles.radioButton,
-                        selectedPaymentMethod === "apple-pay" &&
-                          styles.radioButtonSelected,
-                      ]}
-                    />
-                  </TouchableOpacity>
-                  <View style={styles.paymentMethodSeparator} />
-                  <TouchableOpacity
-                    style={styles.paymentMethodItem}
-                    onPress={() => handlePaymentMethodSelect("card")}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.methodLeft}>
-                      <Image
-                        source={require("@/assets/images/mastercard-logo.png")}
-                        style={styles.methodIcon}
-                        resizeMode="contain"
-                      />
-                      <Text style={styles.methodText}>... 8601</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.radioButton,
-                        selectedPaymentMethod === "card" &&
-                          styles.radioButtonSelected,
-                      ]}
-                    />
-                  </TouchableOpacity>
-                </>
               )}
             </View>
             
@@ -604,5 +571,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#094327',
+  },
+  // Empty State Styles
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyStateIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '600',
+    fontSize: 18,
+    lineHeight: 24,
+    color: '#094327',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateSubtitle: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });

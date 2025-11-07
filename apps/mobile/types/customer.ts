@@ -357,6 +357,24 @@ export interface UpdateCustomerProfileResponse {
   message: string;
 }
 
+// POST /customer/profile/update-phone-email
+export interface UpdatePhoneEmailRequest {
+  type: 'phone' | 'email';
+  action: 'send' | 'verify';
+  phone?: string;
+  email?: string;
+  otp?: string;
+}
+
+export interface UpdatePhoneEmailResponse {
+  success: boolean;
+  data: {
+    success: boolean;
+    message: string;
+    testOtp?: string;
+  };
+}
+
 // DELETE /customer/account
 export interface DeleteAccountResponse {
   success: boolean;
@@ -727,7 +745,7 @@ export interface CheckoutResponse {
   message: string;
 }
 
-// GET /api/live-streaming/customer
+// GET /live-streaming/customer
 export interface GetLiveStreamsResponse {
   success: boolean;
   data: LiveStream[];
@@ -739,7 +757,7 @@ export interface GetLiveStreamsResponse {
   };
 }
 
-// GET /api/live-streaming/sessions/{sessionId}
+// GET /live-streaming/sessions/{sessionId}
 export interface LiveSessionDetails {
   session: {
     id: string;

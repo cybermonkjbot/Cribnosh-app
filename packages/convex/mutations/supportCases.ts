@@ -115,3 +115,18 @@ export const addMessageToCase = mutation({
   },
 });
 
+export const linkChat = mutation({
+  args: {
+    caseId: v.id('supportCases'),
+    chatId: v.id('chats'),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    await ctx.db.patch(args.caseId, {
+      chat_id: args.chatId,
+      updated_at: now,
+    });
+    return { success: true };
+  },
+});
+

@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+import { useState, useEffect } from 'react';
 
 interface ProfileAvatarProps {
   size?: number;
@@ -36,6 +37,12 @@ export function ProfileAvatar({
   const containerSize = size;
   const userIconSize = size * 0.5; // 40px for 80px container
   const cameraIconSize = size * 0.3; // 24px for 80px container
+  const [imageError, setImageError] = useState(false);
+
+  // Reset error state when image URI changes
+  useEffect(() => {
+    setImageError(false);
+  }, [selectedImageUri]);
 
   const handleImageSelection = async () => {
     // Prevent image selection when not authenticated
@@ -80,11 +87,22 @@ export function ProfileAvatar({
         activeOpacity={0.8}
         disabled={!isAuthenticated}
       >
-        {selectedImageUri ? (
+        {selectedImageUri && !imageError ? (
           // Display selected image
           <Image 
             source={{ uri: selectedImageUri }} 
             style={[styles.selectedImage, { width: containerSize, height: containerSize }]}
+            contentFit="cover"
+            transition={200}
+            onError={(error) => {
+              console.error('ProfileAvatar image load error:', error);
+              console.error('Image URI:', selectedImageUri);
+              setImageError(true);
+            }}
+            onLoad={() => {
+              console.log('ProfileAvatar image loaded successfully:', selectedImageUri);
+              setImageError(false);
+            }}
           />
         ) : (
           // Display default user icon
