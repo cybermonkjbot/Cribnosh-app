@@ -1,16 +1,30 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
 import Image from "next/image";
 import { SearchContent, SearchLoadingState } from "@/components/try-it";
+import { env } from "@/lib/config/env";
 
 /**
  * Renders the Try It page with a parallax background and interactive search content.
  *
  * The page features layered parallax backgrounds with images and color effects, and displays the main search content within a suspense boundary.
+ * 
+ * In production, if DISABLE_TRY_IT is true, redirects to waitlist.
+ * In development mode, always allows access regardless of DISABLE_TRY_IT setting.
  *
- * @returns The JSX for the Try It page.
+ * @returns The JSX for the Try It page or redirects to waitlist.
  */
 export default function TryItPage() {
+  // Check if try-it is disabled and we're not in development mode
+  const isDisabled = env.DISABLE_TRY_IT === 'true';
+  const isDevelopment = env.NODE_ENV === 'development';
+  
+  // Redirect to waitlist if disabled and not in development
+  if (isDisabled && !isDevelopment) {
+    redirect('/waitlist');
+  }
+
   return (
     <main className="relative">
       <ParallaxGroup>
