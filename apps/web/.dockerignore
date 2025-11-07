@@ -57,6 +57,9 @@ jest.config.js
 vitest.config.ts
 eslint.config.mjs
 
+# Local symlink (will be created in Dockerfile)
+convex
+
 # Scripts and configs not needed in production
 # scripts/ - Commented out to allow swagger generation script
 config-script.sh

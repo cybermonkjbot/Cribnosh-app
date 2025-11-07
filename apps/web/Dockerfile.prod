@@ -174,7 +174,9 @@ COPY . .
 # Create convex directory for path resolution
 # The workflow copies Convex files to packages/convex/convex/_generated/
 # We need to create a convex directory at the root for @/convex imports to work
-RUN if [ -d "packages/convex/convex" ]; then \
+# Remove any existing convex directory/symlink first
+RUN rm -rf convex || true && \
+    if [ -d "packages/convex/convex" ]; then \
       mkdir -p convex && \
       cp -r packages/convex/convex/* convex/ && \
       echo "Created convex directory from packages/convex/convex"; \
