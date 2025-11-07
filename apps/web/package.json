@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
+    "prebuild": "node scripts/setup-convex.js",
     "build": "npm run generate:swagger && next build",
     "start": "next start",
     "generate:swagger": "node scripts/generate-swagger-static.js",

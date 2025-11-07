@@ -86,3 +86,6 @@ cloudflare-worker/.wrangler/
 cloudflare-worker/dist/
 cloudflare-worker/.dev.vars
 cloudflare-worker/wrangler.toml.bak
+
+# Local symlink (created by setup-convex.js during build)
+/convex

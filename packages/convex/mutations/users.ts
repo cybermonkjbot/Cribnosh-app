@@ -579,24 +579,6 @@ export const getReferralLeaderboard = mutation({
   },
 });
 
-export const getUserReferralStats = mutation({
-  args: {
-    userId: v.id("users"),
-  },
-  returns: v.any(),
-  handler: async (ctx: MutationCtx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user) throw new Error("User not found");
-    return {
-      referralCount: user.referralCount || 0,
-      rewards: user.rewards || {},
-      affiliateStatus: user.affiliateStatus || "none",
-      referralLink: user.referralLink || null,
-      referralHistory: user.referralHistory || [],
-    };
-  },
-});
-
 export const createMinimalUser = mutation({
   args: {
     name: v.string(),

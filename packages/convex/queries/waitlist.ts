@@ -177,7 +177,6 @@ export const getByEmail = query({
   args: {
     email: v.string(),
   },
-  returns: v.union(waitlistDocValidator, v.null()),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("waitlist")

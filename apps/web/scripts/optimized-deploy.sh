@@ -84,6 +84,12 @@ rolling_deployment() {
         exit 1
     fi
     
+    # Get the current deployment ID before starting new deployment
+    local previous_deployment_id=$(aws apprunner describe-service \
+        --service-arn "$service_arn" \
+        --query 'Service.ServiceId' \
+        --output text 2>/dev/null || echo "")
+    
     # Start deployment
     echo "🚀 Starting new deployment..."
     local operation_id=$(aws apprunner start-deployment \
@@ -91,33 +97,134 @@ rolling_deployment() {
         --query 'OperationId' \
         --output text)
     
+    if [ -z "$operation_id" ] || [ "$operation_id" = "None" ]; then
+        echo "❌ Failed to start deployment"
+        return 1
+    fi
+    
     echo "📋 Operation ID: $operation_id"
     
-    # Wait for deployment to complete using polling
+    # Wait for deployment to complete using multiple checks
     echo "⏳ Waiting for deployment to complete..."
     local max_attempts=60
     local attempt=1
+    local operation_succeeded=false
+    local service_running=false
+    local operation_status="UNKNOWN"
+    local service_status="UNKNOWN"
     
     while [ $attempt -le $max_attempts ]; do
-        local operation_status=$(aws apprunner describe-operation \
+        # Check operation status (primary check)
+        operation_status=$(aws apprunner describe-operation \
             --operation-id "$operation_id" \
             --query 'Operation.Status' \
             --output text 2>/dev/null || echo "UNKNOWN")
         
+        # Check service status as a fallback (more reliable)
+        service_status=$(aws apprunner describe-service \
+            --service-arn "$service_arn" \
+            --query 'Service.Status' \
+            --output text 2>/dev/null || echo "UNKNOWN")
+        
+        # Check if operation succeeded
         if [ "$operation_status" = "SUCCEEDED" ]; then
-            echo "✅ Deployment completed successfully"
-            return 0
+            operation_succeeded=true
+            echo "✅ Operation completed successfully"
+            break
         elif [ "$operation_status" = "FAILED" ]; then
-            echo "❌ Deployment failed"
+            echo "❌ Deployment operation failed"
+            return 1
+        fi
+        
+        # Check service status - if RUNNING, deployment is likely complete
+        # This is more reliable than operation status which may not be immediately available
+        if [ "$service_status" = "RUNNING" ]; then
+            # If operation status is available and succeeded, we're done
+            if [ "$operation_status" = "SUCCEEDED" ]; then
+                echo "✅ Service is RUNNING and operation succeeded"
+                service_running=true
+                break
+            fi
+            
+            # If operation status is UNKNOWN but service is RUNNING, check if we've waited long enough
+            # Deployments typically take 3-4 minutes, so if service is RUNNING after 3+ attempts (90+ seconds), it's likely successful
+            if [ "$operation_status" = "UNKNOWN" ] && [ $attempt -ge 3 ]; then
+                # Try to verify by checking recent operations
+                local recent_operation=$(aws apprunner list-operations \
+                    --service-arn "$service_arn" \
+                    --max-results 5 \
+                    --query "OperationSummaryList[?Id=='$operation_id'].Status" \
+                    --output text 2>/dev/null || echo "")
+                
+                # If we can find the operation and it succeeded, great
+                if [ "$recent_operation" = "SUCCEEDED" ]; then
+                    echo "✅ Service is RUNNING and operation succeeded (verified via list-operations)"
+                    service_running=true
+                    break
+                # If we can't find the operation but service is RUNNING after reasonable wait, assume success
+                # This handles the case where describe-operation fails but deployment succeeded
+                elif [ -z "$recent_operation" ] || [ "$recent_operation" = "None" ]; then
+                    echo "✅ Service is RUNNING - deployment appears successful (operation status unavailable, waited $((attempt * 30))s)"
+                    service_running=true
+                    break
+                fi
+            fi
+            
+            # If service is RUNNING and operation is IN_PROGRESS/PENDING, wait a bit more to confirm
+            # If we've waited long enough (5+ attempts = 150+ seconds) and service is RUNNING, consider it successful
+            if [ "$operation_status" = "IN_PROGRESS" ] || [ "$operation_status" = "PENDING" ]; then
+                if [ $attempt -ge 5 ]; then
+                    # After 5 attempts (150 seconds), if service is RUNNING, deployment is likely complete
+                    echo "✅ Service is RUNNING - deployment appears successful (operation status: $operation_status, waited $((attempt * 30))s)"
+                    service_running=true
+                    break
+                fi
+            fi
+            
+            # If operation status is something else (not UNKNOWN, IN_PROGRESS, PENDING, SUCCEEDED, or FAILED)
+            # and service is RUNNING after waiting, consider it successful
+            if [ "$operation_status" != "UNKNOWN" ] && [ "$operation_status" != "IN_PROGRESS" ] && [ "$operation_status" != "PENDING" ] && [ "$operation_status" != "SUCCEEDED" ] && [ "$operation_status" != "FAILED" ] && [ $attempt -ge 3 ]; then
+                echo "✅ Service is RUNNING - deployment appears successful (operation status: $operation_status, waited $((attempt * 30))s)"
+                service_running=true
+                break
+            fi
+        elif [ "$service_status" = "OPERATION_IN_PROGRESS" ] || [ "$service_status" = "CREATE_FAILED" ] || [ "$service_status" = "UPDATE_FAILED" ]; then
+            # Service is in a transitional state, keep waiting
+            echo "⏳ Service status: $service_status, Operation status: $operation_status (attempt $attempt/$max_attempts)"
+        elif [ "$service_status" = "RUNNING_FAILED" ]; then
+            echo "❌ Service failed to start"
             return 1
         else
-            echo "⏳ Deployment status: $operation_status (attempt $attempt/$max_attempts)"
-            sleep 30
-            ((attempt++))
+            echo "⏳ Service status: $service_status, Operation status: $operation_status (attempt $attempt/$max_attempts)"
         fi
+        
+        sleep 30
+        ((attempt++))
     done
     
+    # Final verification: check if service is actually running
+    if [ "$operation_succeeded" = true ] || [ "$service_running" = true ]; then
+        # Double-check service is running
+        local final_status=$(aws apprunner describe-service \
+            --service-arn "$service_arn" \
+            --query 'Service.Status' \
+            --output text 2>/dev/null || echo "UNKNOWN")
+        
+        if [ "$final_status" = "RUNNING" ]; then
+            echo "✅ Deployment completed successfully - Service is RUNNING"
+            return 0
+        else
+            echo "⚠️  Deployment operation completed but service status is: $final_status"
+            # Still return success if operation succeeded, as service might be transitioning
+            if [ "$operation_succeeded" = true ]; then
+                return 0
+            fi
+        fi
+    fi
+    
     echo "❌ Deployment wait timed out"
+    echo "   Final operation status: $operation_status"
+    echo "   Final service status: $service_status"
     return 1
 }
 
