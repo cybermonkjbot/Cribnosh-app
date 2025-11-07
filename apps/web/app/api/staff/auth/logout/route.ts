@@ -42,15 +42,9 @@ async function handlePOST() {
     const cookieStore = await cookies();
     const user = await getUserFromCookies(cookieStore);
     const isProd = process.env.NODE_ENV === 'production';
-    if (!isProd) {
-      console.log('[STAFF LOGOUT] Clearing session for user:', user ? user._id : null);
-    }
     if (user) {
       const convex = getConvexClient();
       await convex.mutation(api.mutations.users.setSessionToken, { userId: user._id, sessionToken: '', sessionExpiry: 0 });
-    }
-    if (!isProd) {
-      console.log('[STAFF LOGOUT] Clearing convex-auth-token cookie');
     }
     const response = ResponseFactory.success({ success: true });
     response.cookies.set('convex-auth-token', '', {
@@ -62,7 +56,6 @@ async function handlePOST() {
     });
     return response;
   } catch (e) {
-    console.error('Logout failed:', e);
     return ResponseFactory.internalError('Logout failed' );
   }
 } 

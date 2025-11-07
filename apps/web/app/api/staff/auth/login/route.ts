@@ -3,6 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { cookies } from 'next/headers';
 import { api, getConvexClient } from '@/lib/conxed-client';
+import { withCustomSensitiveRateLimit } from '@/lib/api/sensitive-middleware';
 
 /**
  * @swagger
@@ -74,23 +75,42 @@ import { api, getConvexClient } from '@/lib/conxed-client';
  *               $ref: '#/components/schemas/Error'
  *     security: []
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
-    console.log('[STAFF LOGIN] Attempting login for:', email);
+    const body = await request.json();
+    const { email, password } = body;
+
+    // Input validation
+    if (!email || typeof email !== 'string') {
+      return ResponseFactory.badRequest('Email is required');
+    }
+
+    if (!password || typeof password !== 'string') {
+      return ResponseFactory.badRequest('Password is required');
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return ResponseFactory.badRequest('Invalid email format');
+    }
+
+    // Password strength validation (minimum 8 characters)
+    if (password.length < 8) {
+      return ResponseFactory.badRequest('Password must be at least 8 characters long');
+    }
+
+    // Sanitize email (trim whitespace and convert to lowercase)
+    const sanitizedEmail = email.trim().toLowerCase();
+
     const convex = getConvexClient();
     // Call Convex action to validate credentials and create session
-    const result = await convex.action(api.actions.users.loginAndCreateSession, { email, password });
-    console.log('[STAFF LOGIN] Convex result:', result);
+    const result = await convex.action(api.actions.users.loginAndCreateSession, { email: sanitizedEmail, password });
     if (!result || !result.sessionToken) {
-      console.log('[STAFF LOGIN] Login failed for:', email, 'Reason:', result?.error);
       return ResponseFactory.unauthorized(result?.error || 'Invalid credentials' );
     }
     // Set convex-auth-token cookie using NextResponse
     const isProd = process.env.NODE_ENV === 'production';
-    if (!isProd) {
-      console.log('[STAFF LOGIN] Setting cookie with sessionToken:', result.sessionToken);
-    }
     const response = ResponseFactory.success({ success: true, sessionToken: result.sessionToken });
     response.cookies.set('convex-auth-token', result.sessionToken, {
       httpOnly: true,
@@ -99,19 +119,30 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 2, // 2 hours
       path: '/',
     });
-    if (!isProd) {
-      console.log('[STAFF LOGIN] Cookie set with options:', {
-        httpOnly: true,
-        secure: isProd ? true : false,
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 2,
-        path: '/',
-      });
-    }
-    console.log('[STAFF LOGIN] Login success for:', email);
     return response;
   } catch (e) {
-    console.error('[STAFF LOGIN] Internal Server Error:', e);
     return ResponseFactory.internalError('Login failed');
   }
+}
+
+// Apply rate limiting by email/IP to prevent brute force attacks
+export async function POST(request: NextRequest) {
+  // Clone request to read body for rate limiting without consuming it
+  const clonedRequest = request.clone();
+  return withCustomSensitiveRateLimit(
+    request,
+    handlePOST,
+    async (req) => {
+      try {
+        const body = await clonedRequest.json();
+        const email = body?.email || '';
+        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || req.ip || 'unknown';
+        // Rate limit by both email and IP for extra security
+        return `staff-login:${email}:${ip}`;
+      } catch {
+        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || req.ip || 'unknown';
+        return `staff-login:${ip}`;
+      }
+    }
+  );
 } 

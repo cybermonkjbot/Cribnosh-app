@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
-import { GlassCard } from '@/components/ui/glass-card';
+import { WaitlistEntryCard } from '@/components/staff/WaitlistEntryCard';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GlassButton } from '@/components/ui/glass-button';
+import { GlassCard } from '@/components/ui/glass-card';
 import { GlassInput } from '@/components/ui/glass-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { WaitlistEntryCard } from '@/components/staff/WaitlistEntryCard';
 import { WaitlistEntrySkeleton } from '@/components/ui/skeleton';
-import { Loader2, Plus, Search, Users, Mail, RefreshCw, Filter } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { staffFetch } from '@/lib/api/staff-api-helper';
+import { Filter, Mail, Plus, RefreshCw, Search, Users } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 interface WaitlistEntry {
@@ -44,7 +45,6 @@ export default function StaffWaitlistPage() {
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [staffEmail, setStaffEmail] = useState<string | null>(null);
   const [staffMember, setStaffMember] = useState<{ roles?: string[]; status?: string; email?: string } | null>(null);
   const [localStaffLoading, setLocalStaffLoading] = useState(true);
   const [formData, setFormData] = useState<AddLeadFormData>({
@@ -53,42 +53,40 @@ export default function StaffWaitlistPage() {
   const [formErrors, setFormErrors] = useState<{ email?: string }>({});
   const [successMessage, setSuccessMessage] = useState<string>('');
 
-  // Set staffEmail from localStorage or admin context on client
-  useEffect(() => {
-    let email = null;
-    if (typeof window !== 'undefined') {
-      email = localStorage.getItem('staffEmail');
-    }
-    if (adminUser && adminUser.email) {
-      if (email && email !== adminUser.email && typeof window !== 'undefined') {
-        localStorage.removeItem('staffEmail');
-      }
-      email = adminUser.email;
-    }
-    setStaffEmail(email);
-  }, [adminUser]);
-
   // Use staff user data from hook when available
   useEffect(() => {
     if (staffUser) {
       setStaffMember(staffUser);
       setLocalStaffLoading(false);
-    } else if (!staffAuthLoading) {
-      // If staff loading is complete and no staff user, try to fetch from API as fallback
+    } else if (adminUser && adminUser.email) {
+      // Fallback to admin user if available
+      setStaffMember({
+        email: adminUser.email,
+        roles: adminUser.roles || [],
+        status: adminUser.status || 'active',
+      });
+      setLocalStaffLoading(false);
+    } else if (!staffAuthLoading && !adminLoading) {
+      // If both loading is complete and no user, try to fetch from API as fallback
       async function fetchStaffData() {
         setLocalStaffLoading(true);
-        const res = await fetch('/api/staff/data');
-        if (res.ok) {
-          const data = await res.json();
-          setStaffMember(data.data); // Extract the actual data from the API response
-        } else {
+        try {
+          const res = await staffFetch('/api/staff/data');
+          if (res.ok) {
+            const data = await res.json();
+            setStaffMember(data.data); // Extract the actual data from the API response
+          } else {
+            setStaffMember(null);
+          }
+        } catch (error) {
           setStaffMember(null);
+        } finally {
+          setLocalStaffLoading(false);
         }
-        setLocalStaffLoading(false);
       }
       fetchStaffData();
     }
-  }, [staffUser, staffAuthLoading]);
+  }, [staffUser, staffAuthLoading, adminUser, adminLoading]);
 
   // Load waitlist entries
   const loadEntries = useCallback(async () => {
@@ -97,11 +95,8 @@ export default function StaffWaitlistPage() {
     setIsLoadingEntries(true);
     setEntriesError(null);
     try {
-      const response = await fetch('/api/staff/waitlist', {
+      const response = await staffFetch('/api/staff/waitlist', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -164,11 +159,8 @@ export default function StaffWaitlistPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/staff/waitlist', {
+      const response = await staffFetch('/api/staff/waitlist', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(formData),
       });
 
@@ -228,13 +220,13 @@ export default function StaffWaitlistPage() {
 
   // --- Conditional UI states ---
   let content = null;
-  if (adminLoading && staffEmail === null) {
+  if (adminLoading || staffAuthLoading) {
     content = (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Loading waitlist management...</div>
       </div>
     );
-  } else if (staffEmail === null) {
+  } else if (!staffUser && !adminUser) {
     content = (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Please log in to access waitlist management.</div>
@@ -247,9 +239,6 @@ export default function StaffWaitlistPage() {
       </div>
     );
   } else if (staffMember === null) {
-    if (staffEmail && typeof window !== "undefined") {
-      localStorage.removeItem("staffEmail");
-    }
     content = (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Staff member not found.</div>

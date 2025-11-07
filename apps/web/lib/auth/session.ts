@@ -6,42 +6,48 @@ import type { NextRequest } from "next/server";
 /**
  * Looks up the user in Convex by session token from cookies.
  * Returns the user object if valid, otherwise null.
+ * Explicitly validates session expiry.
  */
 export async function getUserFromCookies(cookies: { get: (name: string) => { value: string } | undefined }) {
   const token = cookies.get("convex-auth-token")?.value;
-  const isProd = process.env.NODE_ENV === 'production';
   if (!token) {
-    if (!isProd) console.log('[SESSION] No convex-auth-token cookie found');
     return null;
   }
   const convex = getConvexClient();
   const user = await convex.query(api.queries.users.getUserBySessionToken, { sessionToken: token });
-  if (!isProd) {
-    console.log('[SESSION] getUserFromCookies', { token, user });
-    if (user && user.sessionExpiry) {
-      console.log('[SESSION] sessionExpiry:', user.sessionExpiry, 'now:', Date.now(), 'expired:', user.sessionExpiry < Date.now());
-    }
+  
+  if (!user) {
+    return null;
   }
-  return user || null;
+  
+  // Explicitly check session expiry
+  if (user.sessionExpiry && user.sessionExpiry < Date.now()) {
+    return null;
+  }
+  
+  return user;
 }
 
 /**
  * For Next.js API routes/middleware: extracts user from request cookies.
+ * Explicitly validates session expiry.
  */
 export async function getUserFromRequest(req: NextRequest) {
   const token = req.cookies.get("convex-auth-token")?.value;
-  const isProd = process.env.NODE_ENV === 'production';
   if (!token) {
-    if (!isProd) console.log('[SESSION] No convex-auth-token cookie found in request');
     return null;
   }
   const convex = getConvexClient();
   const user = await convex.query(api.queries.users.getUserBySessionToken, { sessionToken: token });
-  if (!isProd) {
-    console.log('[SESSION] getUserFromRequest', { token, user });
-    if (user && user.sessionExpiry) {
-      console.log('[SESSION] sessionExpiry:', user.sessionExpiry, 'now:', Date.now(), 'expired:', user.sessionExpiry < Date.now());
-    }
+  
+  if (!user) {
+    return null;
   }
-  return user || null;
+  
+  // Explicitly check session expiry
+  if (user.sessionExpiry && user.sessionExpiry < Date.now()) {
+    return null;
+  }
+  
+  return user;
 } 

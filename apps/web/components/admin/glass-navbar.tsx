@@ -6,7 +6,7 @@ import { useMobileMenu } from '@/context';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { useStaffAuth, StaffUser } from '@/hooks/useStaffAuth';
 import { useConvex, useQuery } from 'convex/react';
 import { Bell, BookOpen, Clock, Home, LayoutGrid, LogOut, Menu, Search, Settings, User, Users, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -28,9 +28,11 @@ interface GlassNavbarProps {
   onMenuClick?: () => void;
   notifications?: number;
   onNotificationClick?: () => void;
+  staffUser?: StaffUser | null;
+  staffLoading?: boolean;
 }
 
-export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClick }: GlassNavbarProps) {
+export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClick, staffUser: propStaffUser, staffLoading: propStaffLoading }: GlassNavbarProps) {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => { setIsClient(true); }, []);
   const pathname = usePathname();
@@ -54,7 +56,10 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
   const convex = useConvex();
   const [staffPortalLoading, setStaffPortalLoading] = useState(false);
   const { user: adminUser, loading: adminLoading } = useAdminUser();
-  const { staff: staffUser, loading: staffLoading } = useStaffAuth();
+  // Use passed props if available, otherwise fall back to hook
+  const hookStaffAuth = useStaffAuth();
+  const staffUser = propStaffUser !== undefined ? propStaffUser : hookStaffAuth.staff;
+  const staffLoading = propStaffLoading !== undefined ? propStaffLoading : hookStaffAuth.loading;
 
   // Auth is handled by middleware, no client-side user info needed
 

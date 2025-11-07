@@ -26,7 +26,6 @@ export async function proxy(request: NextRequest) {
 
   // Handle CORS preflight requests for API routes in development
   if (isDevelopment && pathname.startsWith('/api/') && request.method === 'OPTIONS') {
-    console.log('[MIDDLEWARE] Handling CORS preflight for:', pathname);
     return new NextResponse(null, {
       status: 200,
       headers: {
@@ -46,15 +45,6 @@ export async function proxy(request: NextRequest) {
     const isCoUk = hostname.endsWith('cribnosh.co.uk');
     const isCom = hostname.endsWith('cribnosh.com');
 
-    // Debug logging (remove in production)
-    console.log('Domain redirect check:', {
-      country,
-      isUK,
-      isCoUk,
-      isCom,
-      hostname,
-      pathname: request.nextUrl.pathname
-    });
 
     // Only redirect if:
     // 1. We have country detection AND
@@ -71,12 +61,6 @@ export async function proxy(request: NextRequest) {
       url.protocol = 'https:';
       url.port = '';
 
-      console.log('Redirecting:', {
-        from: hostname,
-        to: url.host,
-        reason: isUK ? 'UK user on .com' : 'Non-UK user on .co.uk',
-        pathname
-      });
 
       // Session continuity: pass short‑lived transfer token via query and point to handoff endpoint
       const sessionToken = request.cookies.get('convex-auth-token')?.value;
@@ -96,7 +80,6 @@ export async function proxy(request: NextRequest) {
 
   // Add CORS headers for API routes in development
   if (isDevelopment && pathname.startsWith('/api/')) {
-    console.log('[MIDDLEWARE] Adding CORS headers for:', pathname);
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
@@ -168,25 +151,37 @@ export async function proxy(request: NextRequest) {
   const isLoginPage = pathname === '/admin/login' || pathname === '/staff/login';
   
   if ((pathname.startsWith('/admin') || pathname.startsWith('/staff')) && !isLoginPage) {
-    console.log('[MIDDLEWARE] Checking auth for path:', pathname);
-    console.log('[MIDDLEWARE] Cookies:', request.cookies.getAll().map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' })));
     const user = await getUserFromRequest(request);
-    console.log('[MIDDLEWARE] User from request:', user ? { _id: user._id, email: user.email, roles: user.roles } : null);
     
     if (!user) {
       // Redirect to appropriate login page based on route
       const loginPath = pathname.startsWith('/admin') ? '/admin/login' : '/staff/login';
-      console.log('[MIDDLEWARE] No user found, redirecting to:', loginPath);
+      return NextResponse.redirect(new URL(loginPath, request.url));
+    }
+    
+    // Check session expiry explicitly
+    if (user.sessionExpiry && user.sessionExpiry < Date.now()) {
+      const loginPath = pathname.startsWith('/admin') ? '/admin/login' : '/staff/login';
       return NextResponse.redirect(new URL(loginPath, request.url));
     }
     
     // Enforce admin role on /admin
     if (pathname.startsWith('/admin') && (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin'))) {
-      console.log('[MIDDLEWARE] User is not an admin, redirecting to /admin/login');
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
     
-    console.log('[MIDDLEWARE] Auth check passed for:', pathname);
+    // Enforce staff role on /staff (must have staff or admin role)
+    if (pathname.startsWith('/staff')) {
+      const hasStaffRole = user.roles && Array.isArray(user.roles) && (user.roles.includes('staff') || user.roles.includes('admin'));
+      if (!hasStaffRole) {
+        return NextResponse.redirect(new URL('/staff/login', request.url));
+      }
+      
+      // Check if account is active
+      if (user.status && user.status !== 'active') {
+        return NextResponse.redirect(new URL('/staff/login', request.url));
+      }
+    }
   }
 
   return response;

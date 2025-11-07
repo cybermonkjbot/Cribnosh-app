@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { RequestHistory } from '@/components/ui/request-history';
 import { ArrowLeft, Calendar, Info, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -37,15 +38,10 @@ export default function LeaveRequestPage() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [staffEmail, setStaffEmail] = useState<string | null | undefined>(undefined);
   const [step, setStep] = useState(1);
   const endDateRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setStaffEmail(localStorage.getItem('staffEmail'));
-    }
-  }, []);
-  const profile = useQuery(api.queries.users.getUserByEmail, staffEmail ? { email: staffEmail } : 'skip');
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
   const userId = profile?._id as Id<'users'> | undefined;
   const createRequest = useMutation(api.mutations.staff.createLeaveRequest);
   const requests = useQuery(api.queries.staff.getLeaveRequestsByUser, userId ? { userId } : 'skip');
@@ -123,14 +119,15 @@ export default function LeaveRequestPage() {
     </div>
   );
 
-  if (staffEmail === undefined) {
+  if (staffAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Loading...</div>
       </div>
     );
   }
-  if (staffEmail === null) {
+
+  if (!staffUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
         {/* Back Button */}

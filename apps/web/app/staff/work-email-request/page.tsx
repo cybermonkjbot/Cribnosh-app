@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { RequestStatus } from '@/components/ui/request-status';
 import { RequestHistory } from '@/components/ui/request-history';
 import { ArrowLeft, Mail } from 'lucide-react';
@@ -10,9 +11,8 @@ import Link from 'next/link';
 import { Id } from '@/convex/_generated/dataModel';
 
 export default function WorkEmailRequestPage() {
-  // Get staff email from localStorage (client only)
-  const staffEmail = typeof window !== 'undefined' ? localStorage.getItem('staffEmail') : null;
-  const profile = useQuery(api.queries.users.getUserByEmail, staffEmail ? { email: staffEmail } : 'skip');
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
   const userId = profile?._id as Id<'users'> | undefined;
   const [form, setForm] = useState({
     requestedEmail: profile?.email || '',
@@ -53,7 +53,15 @@ export default function WorkEmailRequestPage() {
   };
 
   // Authentication states
-  if (staffEmail === null) {
+  if (staffAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-gray-500 font-satoshi">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!staffUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
         {/* Back Button */}

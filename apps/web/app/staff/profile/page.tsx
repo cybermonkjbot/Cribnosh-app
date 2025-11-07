@@ -7,6 +7,7 @@ import { Link } from '@/components/link';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from "@/convex/_generated/api";
 import { useAction, useMutation, useQuery } from "convex/react";
+import { useStaffAuth } from '@/hooks/useStaffAuth';
 import {
   ArrowLeft,
   Badge,
@@ -80,6 +81,7 @@ export default function StaffProfilePage() {
   // Auth is handled by middleware, no client-side checks needed
 
   // All hooks must be called at the top, before any conditional logic
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tempProfile, setTempProfile] = useState<StaffProfile | null>(null);
@@ -88,18 +90,9 @@ export default function StaffProfilePage() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
-
-  // Get staff email from localStorage (client only)
-  const [staffEmail, setStaffEmail] = useState<string | null | undefined>(undefined);
   
-  // Initialize staffEmail on client side
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setStaffEmail(localStorage.getItem("staffEmail"));
-    }
-  }, []);
-  
-  const profile = useQuery(api.queries.users.getUserByEmail, staffEmail ? { email: staffEmail } : 'skip');
+  // Fetch full profile data using user ID
+  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
   const updateUser = useMutation(api.mutations.users.updateUser);
   const hashPassword = useAction(api.actions.password.hashPasswordAction);
 
@@ -110,7 +103,7 @@ export default function StaffProfilePage() {
     }
   }, [profile, tempProfile]);
 
-  if (staffEmail === undefined) {
+  if (staffAuthLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
         {/* Back Button */}
@@ -134,7 +127,7 @@ export default function StaffProfilePage() {
     );
   }
   
-  if (staffEmail === null) {
+  if (!staffUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
         {/* Back Button */}

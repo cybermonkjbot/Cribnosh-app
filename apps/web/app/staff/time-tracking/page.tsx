@@ -5,6 +5,7 @@ import { ClockInCard } from '@/components/staff/ClockInCard';
 import { WeeklyHoursCard } from '@/components/staff/WeeklyHoursCard';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -14,13 +15,12 @@ import { useEffect, useState } from 'react';
 export default function TimeTrackingPage() {
   // All hooks at the top!
   const router = useRouter();
-  const [staffEmail, setStaffEmail] = useState<string | null | undefined>(undefined);
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
   const [isActivityWatchSetup, setIsActivityWatchSetup] = useState<boolean>(false);
   const [awError, setAwError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setStaffEmail(localStorage.getItem("staffEmail"));
       setIsActivityWatchSetup(localStorage.getItem('activityWatchSetupComplete') === 'true');
       // Only check ActivityWatch connection if setup is complete
       const isMobile = /Mobi|Android/i.test(navigator.userAgent);
@@ -51,11 +51,11 @@ export default function TimeTrackingPage() {
     }
   };
 
-  // Always call useQuery, even if staffEmail is null/undefined
-  const profile = useQuery(api.queries.users.getUserByEmail, staffEmail ? { email: staffEmail } : 'skip');
+  // Fetch full profile data using user ID
+  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
 
-  // Loading states for staffEmail
-  if (staffEmail === undefined) {
+  // Loading states
+  if (staffAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Loading...</div>
@@ -63,7 +63,7 @@ export default function TimeTrackingPage() {
     );
   }
   
-  if (staffEmail === null) {
+  if (!staffUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-500 font-satoshi">Please log in to access time tracking.</div>

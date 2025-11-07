@@ -22,6 +22,8 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { staffFetch } from '@/lib/api/staff-api-helper';
 
 interface OnboardingData {
   // Personal Information
@@ -147,8 +149,8 @@ export default function OnboardingPage() {
   const [codeValidated, setCodeValidated] = useState(false);
   const [onboardingEmail, setOnboardingEmail] = useState<string | null>(null);
 
-  const staffEmail = typeof window !== "undefined" ? localStorage.getItem("staffEmail") : null;
-  const user = useQuery(api.queries.users.getUserByEmail, staffEmail ? { email: staffEmail } : 'skip');
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const user = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
   const updateOnboarding = useMutation(api.mutations.users.updateUserOnboarding);
 
   useEffect(() => {
@@ -208,9 +210,8 @@ export default function OnboardingPage() {
   const validateCode = async () => {
     setCodeError(null);
     try {
-      const res = await fetch('/api/staff/onboarding/validate-code', {
+      const res = await staffFetch('/api/staff/onboarding/validate-code', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: onboardingCode }),
       });
       const data = await res.json();
@@ -235,7 +236,15 @@ export default function OnboardingPage() {
   };
 
   // If not signed in
-  if (!staffEmail) {
+  if (staffAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-gray-500 font-satoshi">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!staffUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
         <GlassCard className="p-8 text-center max-w-md">
