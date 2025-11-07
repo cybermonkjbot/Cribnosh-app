@@ -1,14 +1,13 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory } from '@/lib/errors';
-import { ErrorCode } from '@/lib/errors/types';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import { otpRateLimiter, verificationRateLimiter } from '@/lib/rate-limiting';
 import { generateOTPCode, sendOTPEmail } from '@/lib/email/send-otp-email';
+import { ErrorFactory, withErrorHandling } from '@/lib/errors';
+import { ErrorCode } from '@/lib/errors/types';
+import { otpRateLimiter, verificationRateLimiter } from '@/lib/rate-limiting';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Endpoint: /v1/auth/email-otp
 // Group: auth
@@ -157,8 +156,30 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       });
 
       if (!emailResult.success) {
-        console.error('Failed to send OTP email:', emailResult.error);
-        return ResponseFactory.error('Failed to send verification email. Please try again.', 'CUSTOM_ERROR', 500);
+        console.error('Failed to send OTP email:', {
+          email,
+          error: emailResult.error,
+          messageId: emailResult.messageId,
+          timestamp: new Date().toISOString(),
+        });
+        
+        // In development, still allow the OTP to be created even if email fails
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ Development mode: Email sending failed, but continuing with OTP creation');
+          console.log('🔐 Development OTP Code:', otpCode);
+        } else {
+          return ResponseFactory.error(
+            emailResult.error || 'Failed to send verification email. Please check your email address and try again.',
+            'EMAIL_SEND_FAILED',
+            500
+          );
+        }
+      } else {
+        console.log('✅ OTP email sent successfully:', {
+          email,
+          messageId: emailResult.messageId,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       // Only create OTP in database after email is successfully sent

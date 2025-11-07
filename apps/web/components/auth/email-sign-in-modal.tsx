@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { X, Mail } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Mail, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { EmailOTPVerification } from "./email-otp-verification";
 
 interface EmailSignInModalProps {
@@ -25,6 +25,7 @@ export function EmailSignInModal({
   const [isSendingOTP, setIsSendingOTP] = useState(false);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [error, setError] = useState("");
+  const [testOtp, setTestOtp] = useState<string | null>(null);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,9 +60,22 @@ export function EmailSignInModal({
       const data = await response.json();
 
       if (data.success) {
+        // In development, show the test OTP
+        if (data.data?.testOtp) {
+          setTestOtp(data.data.testOtp);
+          console.log('🔐 Development OTP Code:', data.data.testOtp);
+          toast.info('Development Mode', {
+            description: `OTP Code: ${data.data.testOtp}`,
+            duration: 10000,
+          });
+        }
         setShowOTPVerification(true);
       } else {
-        setError(data.error || 'Failed to send verification code. Please try again.');
+        const errorMessage = data.error || data.message || 'Failed to send verification code. Please try again.';
+        setError(errorMessage);
+        toast.error('Failed to Send Code', {
+          description: errorMessage,
+        });
       }
     } catch (err) {
       console.error('OTP send error:', err);
@@ -80,8 +94,48 @@ export function EmailSignInModal({
       return;
     }
     
-    // Store token in cookie
+    // Store token in cookie (same format as sign-in-screen.tsx)
     document.cookie = `convex-auth-token=${token}; path=/; max-age=7200; SameSite=Lax`;
+    
+    // Verify cookie was set using the same pattern as ConvexClientProvider
+    const getCookie = (name: string) => {
+      try {
+        const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+        return match ? match[2] : null;
+      } catch (error) {
+        console.error('Error reading cookie:', error);
+        return null;
+      }
+    };
+    
+    // Wait a moment to ensure cookie is set
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    const cookieToken = getCookie('convex-auth-token');
+    if (!cookieToken) {
+      console.error('Failed to set cookie - cookie not found after setting', {
+        allCookies: document.cookie,
+        tokenLength: token.length,
+      });
+      setError('Failed to set authentication cookie. Please try again.');
+      toast.error('Sign-In Failed', {
+        description: 'Failed to set authentication cookie. Please try again.',
+      });
+      return;
+    }
+    
+    if (cookieToken !== token) {
+      console.error('Cookie value mismatch', {
+        expectedLength: token.length,
+        actualLength: cookieToken.length,
+        expectedStart: token.substring(0, 20),
+        actualStart: cookieToken.substring(0, 20),
+      });
+      // Still proceed - sometimes cookies can have slight differences but still work
+      console.warn('Cookie value differs but proceeding anyway');
+    }
+    
+    console.log('[EmailSignIn] Cookie set successfully, token length:', token.length);
     
     // Show success toast
     toast.success('Sign-In Successful', {
@@ -94,8 +148,10 @@ export function EmailSignInModal({
     setShowOTPVerification(false);
     onSignInSuccess?.();
     
-    // Reload page to update auth state
-    window.location.reload();
+    // Small delay before reload to ensure cookie is persisted
+    setTimeout(() => {
+      window.location.reload();
+    }, 200);
   };
 
   const handleOTPError = (error: string) => {
@@ -196,6 +252,7 @@ export function EmailSignInModal({
                     onBack={handleBack}
                     onSuccess={handleOTPSuccess}
                     onError={handleOTPError}
+                    testOtp={testOtp}
                   />
                 )}
               </div>

@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { motion } from "motion/react";
-import { ArrowLeft, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ArrowLeft } from "lucide-react";
+import { motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface EmailOTPVerificationProps {
   email: string;
   onBack: () => void;
   onSuccess: (token: string, user: any) => void;
   onError: (error: string) => void;
+  testOtp?: string | null;
 }
 
 export function EmailOTPVerification({
@@ -18,12 +19,14 @@ export function EmailOTPVerification({
   onBack,
   onSuccess,
   onError,
+  testOtp: initialTestOtp,
 }: EmailOTPVerificationProps) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [error, setError] = useState("");
+  const [testOtp, setTestOtp] = useState<string | null>(initialTestOtp || null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Countdown timer
@@ -162,11 +165,28 @@ export function EmailOTPVerification({
       const data = await response.json();
 
       if (data.success) {
+        // In development, show the test OTP
+        if (data.data?.testOtp) {
+          setTestOtp(data.data.testOtp);
+          console.log('🔐 Development OTP Code:', data.data.testOtp);
+          toast.info('Development Mode', {
+            description: `OTP Code: ${data.data.testOtp}`,
+            duration: 10000,
+          });
+        }
         setTimeLeft(300); // Reset timer
         setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
+        setError(""); // Clear any previous errors
+        toast.success('Code Resent', {
+          description: 'A new verification code has been sent to your email.',
+        });
       } else {
-        setError(data.error || "Failed to resend code");
+        const errorMessage = data.error || data.message || "Failed to resend code";
+        setError(errorMessage);
+        toast.error('Failed to Resend Code', {
+          description: errorMessage,
+        });
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -193,9 +213,17 @@ export function EmailOTPVerification({
         <p className="text-[17px] leading-6 text-[#E5E7EB] mb-2 opacity-90 font-satoshi max-w-[320px]">
           We sent a 6-digit verification code to
         </p>
-        <p className="text-[17px] leading-6 text-white font-medium font-satoshi">
+        <p className="text-[17px] leading-6 text-white font-medium font-satoshi mb-4">
           {email}
         </p>
+        {/* Development OTP Display - Show if testOtp is available */}
+        {testOtp && (
+          <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+            <p className="text-sm text-yellow-200 font-satoshi">
+              <strong>Development Mode:</strong> Use code <code className="font-mono font-bold text-yellow-100">{testOtp}</code>
+            </p>
+          </div>
+        )}
       </div>
 
         {/* OTP Input */}
