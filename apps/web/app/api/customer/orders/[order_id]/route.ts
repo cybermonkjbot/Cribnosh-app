@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 
 // Endpoint: /v1/customer/orders/{order_id}
 // Group: customer
@@ -193,4 +194,4 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
   return ResponseFactory.success(orderData, 'Order retrieved successfully');
 }
 
-export const GET = withErrorHandling(handleGET);
+export const GET = withAPIMiddleware(withErrorHandling(handleGET));

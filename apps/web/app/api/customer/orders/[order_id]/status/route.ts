@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 
 // Endpoint: /v1/customer/orders/{order_id}/status
 // Group: customer
@@ -116,7 +117,7 @@ import { withErrorHandling } from '@/lib/errors';
  *               $ref: '#/components/schemas/Error'
  *     security: []
  */
-export async function GET(request: NextRequest, { params }: { params: { order_id: string } }): Promise<NextResponse> {
+async function handleGET(request: NextRequest, { params }: { params: { order_id: string } }): Promise<NextResponse> {
   const { order_id } = params;
   if (!order_id) {
     return ResponseFactory.validationError('Missing order_id');
@@ -128,6 +129,8 @@ export async function GET(request: NextRequest, { params }: { params: { order_id
   }
   return ResponseFactory.success({ order });
 }
+
+export const GET = withAPIMiddleware(withErrorHandling(handleGET));
 
 /**
  * @swagger
@@ -231,8 +234,12 @@ export async function GET(request: NextRequest, { params }: { params: { order_id
  *     security:
  *       - bearerAuth: []
  */
-export async function PATCH(request: NextRequest, { params }: { params: { order_id: string } }): Promise<NextResponse> {
+async function handlePATCH(
+  request: NextRequest, 
+  { params }: { params: { order_id: string } }
+): Promise<NextResponse> {
   try {
+    const { order_id } = params;
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
@@ -248,7 +255,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { order_
     if (!payload.roles?.includes('customer')) {
       return ResponseFactory.forbidden('Forbidden: Only customers can update order status.');
     }
-    const { order_id } = params;
     const { status } = await request.json();
     if (!status) {
       return ResponseFactory.validationError('Missing status');
@@ -265,3 +271,5 @@ export async function PATCH(request: NextRequest, { params }: { params: { order_
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update order status.'));
   }
 }
+
+export const PATCH = withAPIMiddleware(withErrorHandling(handlePATCH));

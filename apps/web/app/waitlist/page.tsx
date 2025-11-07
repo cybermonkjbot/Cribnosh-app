@@ -1,20 +1,20 @@
 "use client";
 
-import { motion, AnimatePresence } from 'motion/react';
-import { MasonryBackground } from '@/components/ui/masonry-background';
-import { ParallaxContent } from '@/components/ui/parallax-section';
-import { useState, useCallback, useEffect } from 'react';
-import Link from 'next/link';
-import { useAction, useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useLocation } from '../../context/location-context';
-import { MobileBackButton } from '@/components/ui/mobile-back-button';
-import { SocialFollowPromo } from '@/components/ui/social-follow-promo';
 import { GlassCard } from '@/components/ui/glass-card';
+import { MasonryBackground } from '@/components/ui/masonry-background';
+import { MobileBackButton } from '@/components/ui/mobile-back-button';
+import { ParallaxContent } from '@/components/ui/parallax-section';
+import { SocialFollowPromo } from '@/components/ui/social-follow-promo';
+import { EmailOTPVerification } from '@/components/waitlist/email-otp-verification';
+import { api } from "@/convex/_generated/api";
 import { Id } from '@/convex/_generated/dataModel';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { EmailOTPVerification } from '@/components/waitlist/email-otp-verification';
+import { useAction, useMutation, useQuery } from "convex/react";
 import { CheckCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from '../../context/location-context';
 
 type ContactType = 'email' | 'phone' | null;
 type WaitlistStep = 'form' | 'otp-verification' | 'success';
@@ -55,10 +55,38 @@ export default function WaitlistPage() {
   };
 
   const addToWaitlist = useAction(api.actions.waitlist.addToWaitlistWithSync);
+  
+  // Debounced email for query to prevent excessive queries
+  const [debouncedEmail, setDebouncedEmail] = useState<string>('');
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounce email input for query
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (contactType === 'email' && contact) {
+      debounceTimerRef.current = setTimeout(() => {
+        setDebouncedEmail(contact);
+      }, 500); // Wait 500ms after user stops typing
+    } else {
+      setDebouncedEmail('');
+    }
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [contact, contactType]);
+
+  // Only query when we have a debounced email
   const waitlistEntry = useQuery(
     api.queries.waitlist.getByEmail,
-    contactType === 'email' && contact ? { email: contact } : 'skip'
+    debouncedEmail ? { email: debouncedEmail } : 'skip'
   );
+  
   const attributeReferral = useMutation(api.mutations.users.attributeReferral);
   const generateReferralLink = useMutation(api.mutations.users.generateReferralLink);
   const setSessionToken = useMutation(api.mutations.users.setSessionToken);
@@ -67,10 +95,11 @@ export default function WaitlistPage() {
   useEffect(() => {
     if (waitlistEntry) {
       setAlreadySignedUp(true);
-    } else {
+    } else if (debouncedEmail && waitlistEntry === null) {
+      // Only set to false if we've actually queried (not skipped)
       setAlreadySignedUp(false);
     }
-  }, [waitlistEntry]);
+  }, [waitlistEntry, debouncedEmail]);
 
   // On mount, read ?ref param and store in localStorage
   useEffect(() => {

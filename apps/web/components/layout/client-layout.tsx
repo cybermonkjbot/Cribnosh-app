@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Footer } from "../footer/footer";
 import { Header } from "../header/header";
 import { CookieSettingsPopup } from "../ui/cookie-settings";
+import { FloatingBottomMenu } from "../navigation/floating-bottom-menu";
 import { ThemeProvider } from 'next-themes';
 import { MultiStepLoader } from '../ui/loader';
 import { env } from '@/lib/config/env';
@@ -73,8 +74,18 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith('/admin') ?? false;
   const isStaffRoute = pathname?.startsWith('/staff') ?? false;
-  const isApplicationPage = pathname === "/cooking/apply" || pathname === "/driving/apply";  const isTryItPage = pathname === "/try-it";
+  const isApplicationPage = pathname === "/cooking/apply" || pathname === "/driving/apply";
+  const isTryItPage = pathname === "/try-it";
   const isWaitlistPage = pathname === "/waitlist";
+  
+  // Food ordering experience routes - show bottom menu only on these
+  const isFoodOrderingRoute = pathname === "/" || 
+    pathname === "/try-it" || 
+    pathname?.startsWith("/orders") || 
+    pathname?.startsWith("/profile") || 
+    pathname?.startsWith("/cart") ||
+    pathname?.startsWith("/chef") ||
+    pathname?.startsWith("/dish");
   const [mounted, setMounted] = useState(false);
   const [viewportHeight, setViewportHeight] = useState('100vh');
   const [safeAreaTop, setSafeAreaTop] = useState('0px');
@@ -601,7 +612,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           <main 
             className="flex-1 relative w-full"
             style={{
-              isolation: 'isolate'
+              isolation: 'isolate',
+              paddingBottom: isFoodOrderingRoute && !(isAdminRoute || isStaffRoute) ? '95px' : '0'
             }}
           >
             {/* Content wrapper that allows full-screen sections */}
@@ -617,6 +629,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </main>
           {/* Hide footer on mobile for waitlist page */}
           {!(isAdminRoute || isStaffRoute || isTryItPage || isApplicationPage || (isWaitlistPage && isMobile)) && <Footer className="mt-auto h-[var(--footer-height)]" />}
+          
+          {/* Floating bottom menu - only show on food ordering experience pages */}
+          {isFoodOrderingRoute && !(isAdminRoute || isStaffRoute) && <FloatingBottomMenu />}
         </div>
       </div>
 

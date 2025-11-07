@@ -10,6 +10,7 @@ import { MobileMenu } from "./mobile-menu"
 import { useTheme } from "next-themes"
 import { useMobileDevice } from "@/hooks/use-mobile-device"
 import { env } from "@/lib/config/env"
+import { CartButton } from "@/components/cart/cart-button"
 
 interface HeaderProps {
   className?: string;
@@ -156,7 +157,8 @@ export function Header({ className = '' }: HeaderProps) {
             <MenuBar />
           </div>
           
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-4">
+            <CartButton />
             <HeaderCTA />
           </div>
         </div>
