@@ -436,8 +436,6 @@ export default function StaffEmailsPage() {
             }}
             variant={searchTerm || statusFilter !== 'all' ? "filtered" : "no-data"}
           />
-            </CardContent>
-          </Card>
         )}
       </div>
 
