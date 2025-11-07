@@ -1,4 +1,7 @@
 // components/ui/SimpleToast.tsx
+import { BlurEffect } from '@/utils/blurEffects';
+import { shadowPresets } from '@/utils/platformStyles';
+import { useToastPosition } from '@/utils/positioning';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -8,9 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { BlurEffect } from '@/utils/blurEffects';
-import { useToastPosition } from '@/utils/positioning';
-import { shadowPresets } from '@/utils/platformStyles';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -209,38 +209,36 @@ const SimpleToast: React.FC<SimpleToastProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: 16, // Left margin
+    right: 16, // Right margin - ensures equal margins on both sides
     zIndex: 99999,
-    paddingHorizontal: 16,
+    paddingTop: 0,
     paddingBottom: 0,
   },
   blurContainer: {
-    width: '100%', // Full width
-    height: 70, // Fixed compact height
-    borderTopLeftRadius: 0, // No top radius
-    borderTopRightRadius: 0, // No top radius
-    borderBottomLeftRadius: 20, // Rounded bottom left
-    borderBottomRightRadius: 20, // Rounded bottom right
+    width: '100%', // Take full width of container (which has left/right margins)
+    minHeight: 64, // Minimum height for natural look
+    borderRadius: 16, // Rounded corners on all sides
     paddingHorizontal: 16,
-    paddingVertical: 12, // Reduced padding to fit content
+    paddingVertical: 14, // Comfortable padding
     flexDirection: 'row',
-    alignItems: 'center', // Center align for compact design
+    alignItems: 'center', // Center align items vertically
+    justifyContent: 'flex-start', // Align content to start
     borderWidth: 0, // No border for cleaner look
     overflow: 'hidden', // Prevent content overflow
     ...shadowPresets.lg(),
   },
   iconContainer: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 12,
     ...shadowPresets.sm(),
   },
   icon: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   content: {
@@ -249,53 +247,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center', // Center content vertically
     flexDirection: 'column', // Ensure vertical layout
     alignItems: 'flex-start', // Align text to left
-    height: '100%', // Take full available height
-    maxHeight: 46, // Limit content height (70px - 24px padding)
   },
   title: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 0,
-    letterSpacing: 0.2,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    marginBottom: 2,
+    letterSpacing: 0.1,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-    flexShrink: 1, // Allow title to shrink if needed
-    maxHeight: 14, // Limit title height to single line
-    lineHeight: 14, // Single line height
+    textShadowRadius: 2,
+    lineHeight: 20,
   },
   message: {
     color: 'white',
-    fontSize: 11,
-    opacity: 0.95,
-    fontWeight: '500',
-    lineHeight: 13,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    fontSize: 13,
+    opacity: 0.9,
+    fontWeight: '400',
+    lineHeight: 18,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-    flexShrink: 1, // Allow message to shrink if needed
-    maxHeight: 26, // Limit message height (2 lines max)
-    marginTop: 1, // Minimal gap from title
+    textShadowRadius: 2,
+    marginTop: 2,
   },
   dismissButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderWidth: 0,
     ...shadowPresets.sm(),
   },
   dismissText: {
     color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-    lineHeight: 14,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    fontSize: 18,
+    fontWeight: '300',
+    lineHeight: 18,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
@@ -306,8 +297,8 @@ const styles = StyleSheet.create({
     right: 0,
     height: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
     overflow: 'hidden',
   },
   progressBar: {

@@ -70,17 +70,31 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
     const errorData = result.error.data;
 
     // Handle 401 errors globally - redirect to sign-in
-    // Note: authApi endpoints typically don't require auth, but handle it anyway for consistency
+    // BUT skip redirect for authentication endpoints (login, phone-signin, apple-signin)
+    // because 401 errors from these endpoints are expected (invalid credentials)
+    // and should be displayed in the login form, not trigger a redirect
     const errorCode = (errorData as any)?.error?.code;
-    if (errorStatus === 401 || errorStatus === "401" || errorCode === 401 || errorCode === "401") {
+    const is401 = errorStatus === 401 || errorStatus === "401" || errorCode === 401 || errorCode === "401";
+    
+    if (is401) {
       // Clear expired/invalid tokens
       await SecureStore.deleteItemAsync("cribnosh_token");
       await SecureStore.deleteItemAsync("cribnosh_user");
       
-      // Use the global 401 handler (dynamic import to avoid circular deps)
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { handle401Error } = require("@/utils/authErrorHandler");
-      handle401Error(result.error);
+      // Check if this is an authentication endpoint (login, phone-signin, apple-signin)
+      // These endpoints should NOT trigger redirect - let the error be handled by the login form
+      const url = typeof args === 'string' ? args : args?.url || '';
+      const isAuthEndpoint = url.includes('/auth/login') || 
+                            url.includes('/auth/phone-signin') || 
+                            url.includes('/auth/apple-signin');
+      
+      // Only redirect if NOT an authentication endpoint
+      if (!isAuthEndpoint) {
+        // Use the global 401 handler (dynamic import to avoid circular deps)
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { handle401Error } = require("@/utils/authErrorHandler");
+        handle401Error(result.error);
+      }
     }
 
     // If error data is already in the expected format, return as is

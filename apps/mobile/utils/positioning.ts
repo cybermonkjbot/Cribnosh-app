@@ -34,6 +34,7 @@ export function useBottomPosition(offset: number = 0): number {
 /**
  * Calculates the position for toast notifications
  * Accounts for status bar and safe area on both platforms
+ * Positions toast below status bar with natural spacing
  */
 export function useToastPosition(): number {
   const insets = useSafeAreaInsets();
@@ -41,13 +42,13 @@ export function useToastPosition(): number {
   if (Platform.OS === 'android') {
     const statusBarHeight = StatusBar.currentHeight || 0;
     const safeTop = insets?.top ?? 0;
-    // Account for status bar and add small padding
-    return Math.max(statusBarHeight, safeTop) + 8;
+    // Account for status bar and add comfortable padding
+    return Math.max(statusBarHeight, safeTop) + 12;
   }
   
-  // iOS: safe area top + small padding
+  // iOS: safe area top + comfortable padding for natural look
   const safeTop = insets?.top ?? 44; // Default to 44 if not available
-  return safeTop + 8;
+  return safeTop + 12;
 }
 
 /**

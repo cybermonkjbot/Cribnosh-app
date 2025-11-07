@@ -103,6 +103,13 @@ export function EmailSignInModal({
         } else {
           throw new Error("Invalid user data received");
         }
+      } else {
+        // If response doesn't have token/user, it's an error
+        const errorMessage = 
+          res.data?.error?.message ||
+          res.data?.message ||
+          "Login failed. Please check your credentials and try again.";
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       // Error completing sign in

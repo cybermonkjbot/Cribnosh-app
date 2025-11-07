@@ -44,25 +44,25 @@ export const navigateToSignIn = (params?: {
 }): boolean => {
   console.log('navigateToSignIn called', { isSignInVisible, isNavigatingToSignIn });
 
-  // Double-check: if we're already on the sign-in route, don't navigate
-  const onRoute = isOnSignInRoute();
-  if (onRoute) {
-    console.log('Already on sign-in route, marking as visible');
-    // Mark as visible since we're already on the route
-    isSignInVisible = true;
+  // PRIMARY CHECK: If sign-in is already visible, don't navigate
+  // Trust the visibility flag over the route check since route detection is unreliable
+  if (isSignInVisible) {
+    console.log('Sign-in already visible, skipping navigation');
     return false;
-  }
-
-  // If sign-in is already visible but we're not on the route, reset the flag
-  // This handles the case where the modal was closed but the flag wasn't reset
-  if (isSignInVisible && !onRoute) {
-    console.log('Sign-in flag is set but not on route, resetting flag...');
-    isSignInVisible = false;
   }
 
   // If already navigating, skip
   if (isNavigatingToSignIn) {
     console.log('Already navigating to sign-in, skipping...');
+    return false;
+  }
+
+  // Secondary check: if we're already on the sign-in route, don't navigate
+  const onRoute = isOnSignInRoute();
+  if (onRoute) {
+    console.log('Already on sign-in route, marking as visible');
+    // Mark as visible since we're already on the route
+    isSignInVisible = true;
     return false;
   }
 
