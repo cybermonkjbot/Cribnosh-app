@@ -170,7 +170,7 @@ COPY . .
 RUN bun run build
 
 # --- Production Stage ---
-FROM oven/bun:1.2.18-alpine AS production
+FROM oven/bun:1.2.20-alpine AS production
 WORKDIR /app
 
 # Set production environment
