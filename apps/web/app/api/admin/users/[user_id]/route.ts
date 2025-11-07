@@ -4,10 +4,11 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -331,13 +332,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
     }
     const user_id = extractUserIdFromUrl(request);
@@ -351,8 +352,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     const { password, sessionToken, sessionExpiry, ...safeUser } = user;
     return ResponseFactory.success({ user: safeUser });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch user.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch user.'));
   }
 }
 
@@ -363,13 +364,13 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can update users.');
     }
     const user_id = extractUserIdFromUrl(request);
@@ -389,8 +390,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       adminId: payload.user_id as Id<'users'>,
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update user.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update user.'));
   }
 }
 
@@ -401,13 +402,13 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can delete users.');
     }
     const user_id = extractUserIdFromUrl(request);
@@ -423,8 +424,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       adminId: payload.user_id as Id<'users'>,
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete user.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete user.'));
   }
 }
 
@@ -435,13 +436,13 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can update users.');
     }
     const user_id = extractUserIdFromUrl(request);
@@ -466,8 +467,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       adminId: payload.user_id as Id<'users'>,
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to replace user.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to replace user.'));
   }
 }
 

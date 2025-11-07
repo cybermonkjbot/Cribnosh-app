@@ -2,11 +2,12 @@ import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler } from '@/lib/
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -147,13 +148,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
     }
     const { model, start_date, end_date } = await request.json();
@@ -162,14 +163,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     const convex = getConvexClient();
     const allReviews = await convex.query(api.queries.reviews.getAll);
-    const reviews = allReviews.filter((r: any) => {
+    const reviews = allReviews.filter((r: { createdAt?: number }) => {
       const created = new Date(r.createdAt || 0);
       const start = new Date(start_date);
       const end = new Date(end_date);
       return created >= start && created <= end;
     });
     const reviewTexts = reviews
-      .map((r: any) => r.comment)
+      .map((r: { comment?: string }) => r.comment)
       .filter((comment): comment is string => typeof comment === 'string' && comment.trim().length > 0);
 
     if (reviewTexts.length === 0) {
@@ -191,7 +192,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         throw new Error(`Emotions engine responded with status: ${res.status}`);
       }
 
-      const data = await res.json() as { results?: any[]; error?: string };
+      const data = await res.json() as { results?: Array<Record<string, unknown>>; error?: string };
       
       if (data.error) {
         throw new Error(data.error);
@@ -204,7 +205,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // Update reviews with sentiment data if needed
       if (api.mutations.reviews.updateReview) {
         await Promise.all(
-          reviews.map(async (review: any, index: number) => {
+          reviews.map(async (review: Review, index: number) => {
             if (review.comment && data.results?.[index]) {
               try {
                 await convex.mutation(api.mutations.reviews.updateReview, { 
@@ -225,11 +226,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         results: data.results,
         processedCount: reviews.length
       });
-    } catch (error: any) {
-      return ResponseFactory.internalError(error.message || 'Batch sentiment failed.' );
+    } catch (error: unknown) {
+      return ResponseFactory.internalError(getErrorMessage(error, 'Batch sentiment failed.'));
     }
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to process batch sentiment analysis' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process batch sentiment analysis'));
   }
 }
 

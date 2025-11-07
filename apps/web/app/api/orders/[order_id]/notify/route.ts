@@ -1,11 +1,12 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -174,15 +175,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
 
     // Check if user has permission to send notifications
-    if (!['admin', 'staff', 'chef'].includes(payload.role)) {
+    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -211,26 +212,26 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to send notifications for this specific order
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only send notifications for your own orders.');
     }
 
     // Send notification
     const notificationResult = await convex.mutation(api.mutations.orders.sendOrderNotification, {
       orderId: order._id,
-      sentBy: payload.user_id,
+      sentBy: payload.user_id || '',
       notificationType,
       message: message || getDefaultMessage(notificationType, order),
       priority,
       channels,
       metadata: {
-        sentByRole: payload.role,
+        sentByRole: payload.roles?.[0] || 'unknown',
         orderStatus: order.order_status,
         ...metadata
       }
     });
 
-    console.log(`Notification sent for order ${order_id} by ${payload.user_id} (${payload.role})`);
+    console.log(`Notification sent for order ${order_id} by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -242,16 +243,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         priority,
         channels,
         sentBy: payload.user_id,
-        sentByRole: payload.role,
+        sentByRole: payload.roles?.[0] || 'unknown',
         sentAt: new Date().toISOString(),
         metadata: metadata || {}
       } : null,
       message: 'Notification sent successfully.'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Send notification error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to send notification.' 
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send notification.') 
     );
   }
 }

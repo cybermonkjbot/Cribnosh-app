@@ -3,6 +3,8 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { withErrorHandling } from '@/lib/errors';
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -82,9 +84,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -144,10 +146,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
             customer: customer.id,
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If payment method doesn't exist or can't be attached, return error
         return createSpecErrorResponse(
-          `Invalid payment method: ${error.message || 'Payment method not found or cannot be attached'}`,
+          `Invalid payment method: ${getErrorMessage(error, 'Payment method not found or cannot be attached')}`,
           'VALIDATION_ERROR',
           400
         );
@@ -180,9 +182,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to create top-up payment intent',
+      getErrorMessage(error, 'Failed to create top-up payment intent'),
       'INTERNAL_ERROR',
       500
     );

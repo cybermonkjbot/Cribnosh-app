@@ -3,6 +3,8 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -23,9 +25,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -43,8 +45,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
     
     return ResponseFactory.success({ offers }, 'Active offers retrieved successfully');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch offers.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch offers.'));
   }
 }
 

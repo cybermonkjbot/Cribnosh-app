@@ -1,10 +1,11 @@
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { NextResponse } from 'next/server';
 
 // Endpoint: /v1/customer/orders/{order_id}/status
 // Group: customer
@@ -237,9 +238,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { order_
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
+      const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -259,7 +261,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { order_
     }
     const updated = await convex.mutation(api.mutations.orders.updateStatus, { order_id, status });
     return ResponseFactory.success({ order: updated });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update order status.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update order status.'));
   }
 }

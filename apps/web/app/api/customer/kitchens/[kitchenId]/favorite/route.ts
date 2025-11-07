@@ -4,6 +4,7 @@ import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -85,10 +86,10 @@ async function handleGET(
 
     return ResponseFactory.success(favoriteStatus, 'Favorite status retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Favorite status retrieval error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to retrieve favorite status'
+      getErrorMessage(error, 'Failed to retrieve favorite status')
     );
   }
 }
@@ -160,10 +161,10 @@ async function handlePOST(
 
     return ResponseFactory.success(null, 'Kitchen added to favorites successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Add favorite error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to add kitchen to favorites'
+      getErrorMessage(error, 'Failed to add kitchen to favorites')
     );
   }
 }
@@ -235,10 +236,10 @@ async function handleDELETE(
 
     return ResponseFactory.success(null, 'Kitchen removed from favorites successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Remove favorite error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to remove kitchen from favorites'
+      getErrorMessage(error, 'Failed to remove kitchen from favorites')
     );
   }
 }

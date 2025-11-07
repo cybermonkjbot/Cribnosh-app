@@ -1,9 +1,11 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
@@ -122,15 +124,15 @@ async function handlePOST(request: NextRequest) {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
 
     // Check if user has permission to mark orders as completed
-    if (!['admin', 'staff', 'chef'].includes(payload.role)) {
+    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -157,20 +159,20 @@ async function handlePOST(request: NextRequest) {
     // Mark order as completed
     const completedOrder = await convex.mutation(api.mutations.orders.markOrderCompleted, {
       orderId: order._id,
-      completedBy: payload.user_id,
+      completedBy: payload.user_id || '',
       completionNotes: completionNotes || 'Order completed',
       metadata: {
-        completedByRole: payload.role,
+        completedByRole: payload.roles?.[0] || 'unknown',
         ...metadata
       }
     });
 
-    console.log(`Order ${orderId} marked as completed by ${payload.user_id} (${payload.role})`);
+    console.log(`Order ${orderId} marked as completed by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({});
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error completing order:', error);
-    return ResponseFactory.internalError('Failed to complete order');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to complete order'));
   }
 }
 

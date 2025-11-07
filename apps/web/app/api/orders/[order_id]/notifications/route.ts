@@ -1,11 +1,12 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -143,9 +144,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -162,31 +163,31 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id as any });
+    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to view this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
 
     // Get order notifications
-    const notifications = await convex.query(api.queries.orders.getOrderNotifications, { orderId: order_id as any });
+    const notifications = await convex.query(api.queries.orders.getOrderNotifications, { orderId: order_id });
 
     // Format notifications
-    const formattedNotifications = notifications.map((notification: any) => ({
+    const formattedNotifications = notifications.map((notification: { _id: string; notification_type?: string; message?: string; priority?: string; channels?: string[]; sent_by?: string; sent_at?: number; status?: string; metadata?: Record<string, unknown> }) => ({
       id: notification._id,
       type: notification.notification_type,
       message: notification.message,
       priority: notification.priority,
       channels: notification.channels,
       sentBy: notification.sent_by,
-      sentAt: new Date(notification.sent_at).toISOString(),
+      sentAt: new Date(notification.sent_at || 0).toISOString(),
       status: notification.status,
       metadata: notification.metadata || {}
     }));
@@ -198,9 +199,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       totalNotifications: formattedNotifications.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get order notifications error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to get order notifications.' 
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order notifications.') 
     );
   }
 }

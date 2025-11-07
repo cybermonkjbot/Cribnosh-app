@@ -2,11 +2,11 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import { getErrorMessage } from '@/types/errors';
 import { scryptSync, timingSafeEqual } from 'crypto';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 // Endpoint: /v1/auth/login
 // Group: auth
@@ -159,8 +159,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // No 2FA required - create JWT token
     const token = jwt.sign({ user_id: user._id, roles: userRoles }, JWT_SECRET, { expiresIn: '2h' });
     return ResponseFactory.success({ success: true, token, user: { user_id: user._id, email: user.email, name: user.name, roles: userRoles } });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Login failed.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Login failed.'));
   }
 }
 

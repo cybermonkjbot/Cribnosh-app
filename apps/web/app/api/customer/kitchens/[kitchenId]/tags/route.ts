@@ -3,6 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -70,10 +71,10 @@ async function handleGET(
 
     return ResponseFactory.success(tags, 'Kitchen tags retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get kitchen tags error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to retrieve kitchen tags'
+      getErrorMessage(error, 'Failed to retrieve kitchen tags')
     );
   }
 }

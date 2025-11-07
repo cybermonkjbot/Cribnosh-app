@@ -2,10 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { Id } from '@/convex/_generated/dataModel';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -27,9 +29,9 @@ async function handlePOST(
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -56,13 +58,13 @@ async function handlePOST(
     }
     
     const result = await convex.mutation(api.mutations.groupOrders.close, {
-      group_order_id: groupOrder._id as any,
-      closed_by: payload.user_id as any,
+      group_order_id: groupOrder._id as Id<'group_orders'>,
+      closed_by: payload.user_id as Id<'users'>,
     });
     
     return ResponseFactory.success(result, 'Group order closed successfully');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to close group order.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to close group order.'));
   }
 }
 

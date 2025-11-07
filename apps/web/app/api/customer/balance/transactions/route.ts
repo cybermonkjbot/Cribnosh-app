@@ -113,9 +113,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -164,9 +164,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         total_pages: totalPages,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to fetch transactions',
+      getErrorMessage(error, 'Failed to fetch transactions'),
       'INTERNAL_ERROR',
       500
     );

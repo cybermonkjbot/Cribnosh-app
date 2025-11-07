@@ -1,12 +1,14 @@
-import { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
-import { getConvexClient } from '@/lib/convex';
-import { api } from '@repo/convex';
+import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { withAPIMiddleware } from '@/lib/apiMiddleware';
-import { withErrorHandling } from '@/lib/errors';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClient } from '@/lib/conxed-client';
 import { EmailService } from '@/lib/email/email.service';
+import { withErrorHandling } from '@/lib/errors';
 import { mattermostService } from '@/lib/mattermost';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
@@ -104,7 +106,7 @@ const emailService = new EmailService({
  *       500:
  *         description: Internal server error
  */
-async function handlePOST(request: NextRequest): Promise<Response> {
+async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -112,9 +114,9 @@ async function handlePOST(request: NextRequest): Promise<Response> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -149,14 +151,16 @@ async function handlePOST(request: NextRequest): Promise<Response> {
     const convex = getConvexClient();
     
     // Get customer profile to get name
-    const customerProfile = await convex.query(api.queries.customers.getByUserId, {
+    // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
+    const customerProfile: any = await convex.query(api.queries.customers.getByUserId, {
       userId: payload.user_id as any,
     });
     
     const customerName = customerProfile?.name || email.split('@')[0];
     
     // Create event chef request in Convex
-    const requestId = await convex.mutation(api.mutations.eventChefRequests.create, {
+    // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
+    const requestId: any = await convex.mutation(api.mutations.eventChefRequests.create, {
       customer_id: payload.user_id as any,
       event_date,
       number_of_guests,
@@ -215,8 +219,8 @@ async function handlePOST(request: NextRequest): Promise<Response> {
       },
       'Request submitted successfully'
     );
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to submit event chef request.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to submit event chef request.'));
   }
 }
 

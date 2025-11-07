@@ -3,6 +3,8 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -80,9 +82,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -94,22 +96,22 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const userId = payload.user_id;
 
     // Get all group orders where user is participant (completed games)
-    let deliveredGroupOrders: any[] = [];
+    let deliveredGroupOrders: Array<Record<string, unknown>> = [];
     try {
-      deliveredGroupOrders = await convex.query((api as any).queries.groupOrders.getByStatus, {
+      deliveredGroupOrders = await convex.query((api as { queries: { groupOrders: { getByStatus: unknown } } }).queries.groupOrders.getByStatus as never, {
         status: 'delivered',
-        user_id: userId as any,
-      });
+        user_id: userId,
+      }) as Array<Record<string, unknown>>;
     } catch {
       // If query fails, use empty array
     }
 
     // Also get active group orders where user is participant
-    let activeGroupOrders: any[] = [];
+    let activeGroupOrders: Array<Record<string, unknown>> = [];
     try {
-      activeGroupOrders = await convex.query((api as any).queries.groupOrders.getActiveByUser, {
-        user_id: userId as any,
-      });
+      activeGroupOrders = await convex.query((api as { queries: { groupOrders: { getActiveByUser: unknown } } }).queries.groupOrders.getActiveByUser as never, {
+        user_id: userId,
+      }) as Array<Record<string, unknown>>;
     } catch {
       // If query fails, use empty array
     }
@@ -123,10 +125,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Determine games won and build recent games list
     let gamesWon = 0;
     let lastPlayed: number | undefined = undefined;
-    const recentGames: any[] = [];
+    const recentGames: Array<{ game_id: string; group_order_id: string; played_at: number; won: boolean; participants: number; total_amount: number }> = [];
 
     for (const groupOrder of allParticipatedOrders) {
-      const orderTime = groupOrder.createdAt || groupOrder._creationTime;
+      const orderTime = (groupOrder.createdAt as number) || (groupOrder._creationTime as number);
       
       // Track last played timestamp
       if (!lastPlayed || orderTime > lastPlayed) {
@@ -134,24 +136,25 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       }
 
       // Check if user is creator (simplified win condition - creator "wins")
-      const isCreator = groupOrder.created_by === userId;
+      const isCreator = (groupOrder.created_by as string) === userId;
       if (isCreator) {
         gamesWon++;
       }
 
       // Calculate total amount from participants
-      const totalAmount = groupOrder.participants?.reduce((sum: number, p: any) => {
+      const participants = (groupOrder.participants as Array<{ total_contribution?: number; contribution?: number }>) || [];
+      const totalAmount = participants.reduce((sum: number, p: { total_contribution?: number; contribution?: number }) => {
         return sum + (p.total_contribution || p.contribution || 0);
-      }, 0) || 0;
+      }, 0);
 
       // Add to recent games (limit to last 10)
       if (recentGames.length < 10) {
         recentGames.push({
-          game_id: groupOrder._id,
-          group_order_id: groupOrder.group_order_id || groupOrder._id,
-          played_at: orderTime,
+          game_id: groupOrder._id as string,
+          group_order_id: (groupOrder.group_order_id as string) || (groupOrder._id as string),
+          played_at: orderTime as number,
           won: isCreator,
-          participants: groupOrder.participants?.length || 0,
+          participants: participants.length,
           total_amount: totalAmount,
         });
       }
@@ -166,8 +169,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       lastPlayed: lastPlayed || undefined,
       recentGames,
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch Play to Win history.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch Play to Win history.'));
   }
 }
 

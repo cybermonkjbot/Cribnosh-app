@@ -4,6 +4,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -43,7 +44,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
     
     // Get personalized recommendations
-    const recommendations = await convex.query((api as any).queries.mealRecommendations.getRecommended, {
+    const recommendations = await convex.query((api as { queries: { mealRecommendations: { getRecommended: unknown } } }).queries.mealRecommendations.getRecommended as never, {
       userId,
       limit,
     });
@@ -54,10 +55,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       limit,
     }, 'Recommendations retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get recommendations error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to retrieve recommendations'
+      getErrorMessage(error, 'Failed to retrieve recommendations')
     );
   }
 }

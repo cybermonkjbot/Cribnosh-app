@@ -1,7 +1,14 @@
 import { v } from 'convex/values';
 import { mutation, MutationCtx } from '../_generated/server';
-import { ErrorFactory, ErrorCode } from '../../../apps/web/lib/errors/convex-exports';
-import { Id } from '../_generated/dataModel';
+
+/**
+ * Generate a secure random token using crypto.getRandomValues (available in V8 runtime)
+ */
+function generateSecureToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
 
 /**
  * Create a temporary verification session for 2FA
@@ -15,8 +22,7 @@ export const createVerificationSession = mutation({
     const { userId } = args;
     
     // Generate a secure session token
-    const crypto = require('crypto');
-    const sessionToken = crypto.randomBytes(32).toString('hex');
+    const sessionToken = generateSecureToken();
     
     // Session expires in 10 minutes
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes

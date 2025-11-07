@@ -76,9 +76,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -87,16 +87,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id as string;
+    const userId = payload.user_id;
 
     // Get users that current user is following
     // Access userFollows queries through api.queries (may need type assertion)
     let following: { following: Array<{ isFollowingBack: boolean; following: { _id: string; name: string; avatar?: string } }> };
     try {
-      following = await convex.query((api as any).queries.userFollows.getUserFollowing, {
-        userId: userId as any,
+      following = await convex.query((api as { queries: { userFollows: { getUserFollowing: unknown } } }).queries.userFollows.getUserFollowing as never, {
+        userId: userId as Id<'users'>,
         limit: 1000,
-      });
+      }) as { following: Array<{ isFollowingBack: boolean; following: { _id: string; name: string; avatar?: string } }> };
     } catch {
       // If query doesn't exist or fails, return empty array
       return ResponseFactory.success({
@@ -139,8 +139,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       colleagues,
       total: colleagues.length,
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch colleague connections.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch colleague connections.'));
   }
 }
 

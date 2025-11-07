@@ -4,6 +4,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -58,7 +59,7 @@ async function handleGET(
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
-      (api as any).queries.kitchens.getChefByKitchenId,
+      (api as { queries: { kitchens: { getChefByKitchenId: unknown } } }).queries.kitchens.getChefByKitchenId as never,
       { kitchenId }
     );
 
@@ -68,7 +69,7 @@ async function handleGET(
 
     // Get popular meals by chef with user preferences
     const meals = await convex.query(
-      (api as any).queries.meals.getPopularByChefId,
+      (api as { queries: { meals: { getPopularByChefId: unknown } } }).queries.meals.getPopularByChefId as never,
       {
         chefId,
         userId,
@@ -78,10 +79,10 @@ async function handleGET(
 
     return ResponseFactory.success({ meals }, 'Popular meals retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get popular meals error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to retrieve popular meals'
+      getErrorMessage(error, 'Failed to retrieve popular meals')
     );
   }
 }

@@ -60,9 +60,9 @@ async function handleDELETE(
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -103,9 +103,9 @@ async function handleDELETE(
     return ResponseFactory.success({
       message: 'Session revoked successfully',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[REVOKE_SESSION] Error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to revoke session.');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to revoke session.'));
   }
 }
 

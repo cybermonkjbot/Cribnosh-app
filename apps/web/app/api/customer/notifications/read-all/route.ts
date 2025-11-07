@@ -1,10 +1,12 @@
+import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { withAPIMiddleware } from '@/lib/apiMiddleware';
-import { getConvexClient } from '@/lib/convex';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import { api } from '@repo/convex';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
@@ -23,7 +25,7 @@ const JWT_SECRET = process.env.JWT_SECRET || '';
  *       500:
  *         description: Internal server error
  */
-async function handlePOST(request: NextRequest): Promise<Response> {
+async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -31,9 +33,9 @@ async function handlePOST(request: NextRequest): Promise<Response> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -50,8 +52,8 @@ async function handlePOST(request: NextRequest): Promise<Response> {
     });
     
     return ResponseFactory.success({ success: true }, 'All notifications marked as read');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to mark all notifications as read.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark all notifications as read.'));
   }
 }
 

@@ -4,6 +4,8 @@ import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendSupportCaseNotification } from '@/lib/services/email-service';
@@ -121,9 +123,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -164,7 +166,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const paginatedCases = allCases.slice(offset, offset + limit);
 
     // Format cases for response
-    const formattedCases = paginatedCases.map((c: any) => ({
+    const formattedCases = paginatedCases.map((c: { _id: string; subject: string; status: string; priority: string; created_at: number; updated_at: number; last_message?: string; message?: string }) => ({
       id: c._id,
       subject: c.subject,
       status: c.status,
@@ -183,9 +185,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         total_pages: totalPages,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to fetch support cases',
+      getErrorMessage(error, 'Failed to fetch support cases'),
       'INTERNAL_ERROR',
       500
     );
@@ -293,9 +295,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -313,9 +315,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Parse and validate request body
-    let body: any;
+    let body: Record<string, unknown>;
     try {
-      body = await request.json();
+      body = await request.json() as Record<string, unknown>;
     } catch {
       return createSpecErrorResponse(
         'Invalid JSON body',
@@ -385,7 +387,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const cases = await convex.query(api.queries.supportCases.getByUserId, {
       userId,
     });
-    const supportCase = cases.find((c: any) => c._id === caseId);
+    const supportCase = cases.find((c: { _id: string }) => c._id === caseId);
 
     if (!supportCase) {
       return createSpecErrorResponse(
@@ -423,9 +425,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       formattedCase,
       'Support case created successfully'
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to create support case',
+      getErrorMessage(error, 'Failed to create support case'),
       'INTERNAL_ERROR',
       500
     );

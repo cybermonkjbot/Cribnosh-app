@@ -3,10 +3,11 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -145,9 +146,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
+      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret') as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -181,8 +182,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       updated_at: new Date(chef.lastModified || Date.now()).toISOString(),
       profile_image_url: chef.avatar || null,
     });
-  } catch (e: any) {
-    return ResponseFactory.internalError(e.message || 'Failed to reject chef' );
+  } catch (e: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(e, 'Failed to reject chef'));
   }
 }
 

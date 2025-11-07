@@ -67,9 +67,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -95,9 +95,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
     return ResponseFactory.success(preferences);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to fetch dietary preferences',
+      getErrorMessage(error, 'Failed to fetch dietary preferences'),
       'INTERNAL_ERROR',
       500
     );
@@ -189,9 +189,9 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -209,9 +209,9 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
 
     // Parse and validate request body
-    let body: any;
+    let body: Record<string, unknown>;
     try {
-      body = await request.json();
+      body = await request.json() as Record<string, unknown>;
     } catch {
       return createSpecErrorResponse(
         'Invalid JSON body',
@@ -251,9 +251,9 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       updatedPreferences,
       'Dietary preferences updated successfully'
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to update dietary preferences',
+      getErrorMessage(error, 'Failed to update dietary preferences'),
       'INTERNAL_ERROR',
       500
     );

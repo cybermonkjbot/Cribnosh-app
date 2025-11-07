@@ -1,13 +1,14 @@
 // Implements POST, PUT for /admin/reviews/{review_id}/approval
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -181,13 +182,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can approve/reject reviews.');
     }
     const review_id = extractReviewIdFromUrl(request);
@@ -210,8 +211,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       adminId: payload.user_id
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to approve/reject review.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to approve/reject review.'));
   }
 }
 

@@ -2,11 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -187,13 +188,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'chef') {
+    if (!payload.roles?.includes('chef')) {
       return ResponseFactory.forbidden('Forbidden: Only chefs can access documents.');
     }
     // Extract document_id from URL
@@ -210,8 +211,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     // Ensure storageId is present in the response
     return ResponseFactory.success({ document });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch document.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch document.'));
   }
 }
 
@@ -245,8 +246,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     }
     await convex.mutation(api.mutations.documents.deleteDocument, { documentId: document_id });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete document.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete document.'));
   }
 }
 

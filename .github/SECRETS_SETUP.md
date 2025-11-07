@@ -24,9 +24,22 @@ These are required for deploying to AWS infrastructure managed by Terraform.
      - Copy the Secret access key (only shown once when created)
      - **Important**: Store this securely - you can't retrieve it later
 
+### Convex Backend (Required for Convex deployment)
+
+3. **`CONVEX_DEPLOY_KEY`** (Required for Convex deployment)
+   - Description: Convex deployment key for deploying the backend
+   - Used by: Optimized Deploy workflow (for `bunx convex deploy`)
+   - How to get:
+     - Go to [Convex Dashboard](https://dashboard.convex.dev)
+     - Select your project
+     - Go to Settings → Deploy Keys
+     - Create a new deploy key or copy an existing one
+     - Copy the deploy key (typically starts with `dpk_` for deploy keys, or may use `prod:`/`dev:` format depending on deployment type)
+   - Note: This is required for deploying Convex functions to production
+
 ### Optional Secrets
 
-3. **`CLOUDFLARE_API_TOKEN`** (Optional)
+4. **`CLOUDFLARE_API_TOKEN`** (Optional)
    - Description: Cloudflare API token for DNS management via Terraform
    - Used by: Terraform infrastructure workflow (if you want to manage DNS automatically)
    - How to get:
@@ -56,6 +69,7 @@ These are required for deploying to AWS infrastructure managed by Terraform.
 ### Optimized Deploy Workflow (`.github/workflows/optimized-deploy.yml`)
 - `AWS_ACCESS_KEY_ID` ✅ Required
 - `AWS_SECRET_ACCESS_KEY` ✅ Required
+- `CONVEX_DEPLOY_KEY` ✅ Required (for Convex backend deployment)
 
 ### Build Docker Workflow (`.github/workflows/build-docker.yml`)
 - `AWS_ACCESS_KEY_ID` ✅ Required
@@ -154,4 +168,32 @@ After adding secrets, you can verify they're working by:
 - The Terraform state backend (S3 bucket) must exist
 - The IAM user needs `s3:*` and `dynamodb:*` permissions for the state bucket
 - Verify the backend configuration in `apps/web/infrastructure/terraform/backend.tf`
+
+### Convex Deployment Errors
+- Ensure `CONVEX_DEPLOY_KEY` is set correctly in GitHub secrets
+- Verify the deploy key is valid in the Convex dashboard
+- Check that the Convex project is properly configured
+- Ensure Convex environment variables are set in the Convex dashboard (see below)
+
+## Convex Environment Variables
+
+These environment variables need to be set in the **Convex Dashboard** (not as GitHub secrets):
+
+1. **`RESEND_API_KEY`** - Required for email functionality
+   - Set in: Convex Dashboard → Settings → Environment Variables
+   - Used by: Email mutations and actions
+
+2. **`OPENAI_API_KEY`** - Required for AI chat functionality
+   - Set in: Convex Dashboard → Settings → Environment Variables
+   - Used by: AI chat mutations
+
+3. **`AGORA_APP_ID`** - Required for live streaming
+   - Set in: Convex Dashboard → Settings → Environment Variables
+   - Used by: Agora token generation actions
+
+4. **`AGORA_APP_CERTIFICATE`** - Required for live streaming
+   - Set in: Convex Dashboard → Settings → Environment Variables
+   - Used by: Agora token generation actions
+
+**Note**: These are set in the Convex dashboard, not as GitHub secrets. The `CONVEX_DEPLOY_KEY` is the only Convex-related secret needed in GitHub.
 

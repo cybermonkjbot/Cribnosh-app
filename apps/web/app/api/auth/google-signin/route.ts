@@ -2,8 +2,9 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 
 // Endpoint: /v1/auth/google-signin
@@ -198,14 +199,14 @@ async function handlePOST(request: NextRequest) {
         email: user.email,
         name: user.name,
         roles: userRoles,
-        picture: user.oauthProviders?.find((p: any) => p.provider === 'google')?.picture,
+        picture: user.oauthProviders?.find((p: { provider: string; picture?: string }) => p.provider === 'google')?.picture,
         isNewUser,
         provider: 'google',
       },
     });
 
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Google sign-in failed');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Google sign-in failed'));
   }
 }
 

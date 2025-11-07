@@ -34,6 +34,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -146,8 +147,8 @@ async function handleGET(
       averageRating: avgRating,
       reviewCount: reviewCount
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch chef details');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch chef details'));
   }
 }
 

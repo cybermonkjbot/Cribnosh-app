@@ -252,20 +252,20 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
     }
     const convex = getConvexClient();
     const meals = await convex.query(api.queries.meals.getAll, {});
     return ResponseFactory.success({ meals });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch meals.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch meals.'));
   }
 }
 
@@ -276,13 +276,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can create meals.');
     }
     const body = await request.json();
@@ -302,8 +302,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       status: 'available',
     });
     return ResponseFactory.success({ success: true, mealId });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to create meal.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create meal.'));
   }
 }
 

@@ -2,6 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -213,16 +214,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         email: userDetails.email,
         name: userDetails.name,
         roles: userRoles,
-        picture: userDetails.oauthProviders?.find((p: any) => p.provider === 'apple')?.picture,
+        picture: userDetails.oauthProviders?.find((p: { provider: string; picture?: string }) => p.provider === 'apple')?.picture,
         isNewUser,
         provider: 'apple',
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Apple sign-in error:', error);
-    const errorMessage = error?.message || error?.toString() || 'Apple sign-in failed';
-    return ResponseFactory.internalError(errorMessage);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Apple sign-in failed'));
   }
 }
 
@@ -261,7 +261,7 @@ async function verifyAppleIdentityToken(identityToken: string) {
 /**
  * Exchange Apple authorization code for user info
  */
-async function exchangeAppleAuthorizationCode(authorizationCode: string, userData?: any) {
+async function exchangeAppleAuthorizationCode(authorizationCode: string, userData?: { email?: string; sub?: string; name?: string }) {
   try {
     if (!APPLE_CLIENT_ID || !APPLE_TEAM_ID || !APPLE_KEY_ID) {
       console.error('Apple OAuth configuration missing');

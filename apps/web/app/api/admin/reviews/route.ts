@@ -1,11 +1,12 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -120,20 +121,20 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
     }
     const convex = getConvexClient();
     const reviews = await convex.query(api.queries.reviews.getAll, {});
     return ResponseFactory.success({ reviews });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch reviews.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch reviews.'));
   }
 }
 

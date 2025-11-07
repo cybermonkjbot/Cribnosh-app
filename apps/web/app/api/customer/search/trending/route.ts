@@ -1,8 +1,8 @@
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { NextRequest } from 'next/server';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 const EMOTIONS_ENGINE_URL = process.env.EMOTIONS_ENGINE_URL || 'http://localhost:3000/api/emotions-engine';
 
@@ -175,8 +175,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
     const data = await res.json();
     return ResponseFactory.success({});
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Trending failed.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Trending failed.'));
   }
 }
 

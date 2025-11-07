@@ -54,7 +54,8 @@ export class APIMiddleware {
 
   async process(
     request: NextRequest,
-    handler: (request: NextRequest) => Promise<NextResponse>
+    handler: (request: NextRequest, ...args: any[]) => Promise<NextResponse>,
+    ...args: any[]
   ): Promise<NextResponse> {
     const startTime = Date.now();
     const requestId = this.generateRequestId();
@@ -86,13 +87,13 @@ export class APIMiddleware {
       const response = await this.executeWithTimeout(
         this.config.enableRetry 
           ? () => retryCritical(async () => {
-              return await handler(request);
+              return await handler(request, ...args);
             }, {
               maxAttempts: this.config.retryConfig?.maxAttempts || 3,
               baseDelay: 1000,
               maxDelay: 5000
             })
-          : () => handler(request),
+          : () => handler(request, ...args),
         this.config.retryConfig?.timeout || 25000
       );
 
@@ -336,10 +337,10 @@ export class APIMiddleware {
 /**
  * Higher-order function to wrap API handlers with middleware
  */
-export function withAPIMiddleware(
-  handler: (request: NextRequest) => Promise<NextResponse>,
+export function withAPIMiddleware<T extends any[]>(
+  handler: (request: NextRequest, ...args: T) => Promise<NextResponse>,
   config?: Partial<APIMiddlewareConfig>
 ) {
   const middleware = new APIMiddleware(config);
-  return (request: NextRequest) => middleware.process(request, handler);
+  return (request: NextRequest, ...args: T) => middleware.process(request, handler, ...args);
 } 

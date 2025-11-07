@@ -3,6 +3,8 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
@@ -103,9 +105,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -140,9 +142,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Filter orders by time range if specified
     let filteredOrders = allOrders;
     if (timeRange !== 'all') {
-      filteredOrders = allOrders.filter((order: any) => {
+      filteredOrders = allOrders.filter((order: { order_date?: number; createdAt?: number; _creationTime?: number }) => {
         const orderDate = order.order_date || order.createdAt || order._creationTime;
-        return orderDate >= timeRangeStart;
+        return orderDate && orderDate >= timeRangeStart;
       });
     }
 
@@ -252,8 +254,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       items: limitedItems,
       total: items.length,
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch usual dinner items.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch usual dinner items.'));
   }
 }
 

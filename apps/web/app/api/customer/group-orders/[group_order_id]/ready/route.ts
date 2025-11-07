@@ -2,6 +2,8 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -27,9 +29,9 @@ async function handlePOST(
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -59,8 +61,8 @@ async function handlePOST(
     });
     
     return ResponseFactory.success(result, 'Selections marked as ready successfully');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to mark selections as ready.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark selections as ready.'));
   }
 }
 
@@ -82,9 +84,9 @@ async function handleGET(
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -107,8 +109,8 @@ async function handleGET(
     }
     
     return ResponseFactory.success(status, 'Ready status retrieved successfully');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch ready status.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch ready status.'));
   }
 }
 

@@ -4,6 +4,7 @@ import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -54,10 +55,10 @@ async function handleGET(
 
     return ResponseFactory.success(kitchenDetails, 'Kitchen details retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get kitchen details error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to retrieve kitchen details'
+      getErrorMessage(error, 'Failed to retrieve kitchen details')
     );
   }
 }

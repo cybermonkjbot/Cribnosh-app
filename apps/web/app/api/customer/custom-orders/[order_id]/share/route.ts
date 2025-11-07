@@ -6,6 +6,7 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
 import crypto from 'crypto';
 
 /**
@@ -122,10 +123,10 @@ async function handlePOST(
       },
       'Share link generated successfully'
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating share link:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to generate share link'
+      getErrorMessage(error, 'Failed to generate share link')
     );
   }
 }

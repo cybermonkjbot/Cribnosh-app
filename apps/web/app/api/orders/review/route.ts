@@ -1,11 +1,12 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -131,15 +132,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
 
     // Check if user has permission to mark orders as reviewed
-    if (!['admin', 'staff', 'chef', 'customer'].includes(payload.role)) {
+    if (!payload.roles?.some(role => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -159,7 +160,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to review this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only review your own orders.');
     }
 
@@ -171,15 +172,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Mark order as reviewed
     const reviewedOrder = await convex.mutation(api.mutations.orders.markOrderReviewed, {
       orderId: order._id,
-      reviewedBy: payload.user_id,
+      reviewedBy: payload.user_id || '',
       reviewNotes: reviewNotes || 'Order reviewed',
       metadata: {
-        reviewedByRole: payload.role,
+        reviewedByRole: payload.roles?.[0] || 'unknown',
         ...metadata
       }
     });
 
-    console.log(`Order ${orderId} marked as reviewed by ${payload.user_id} (${payload.role})`);
+    console.log(`Order ${orderId} marked as reviewed by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -190,10 +191,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       message: 'Order reviewed successfully.'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Order review error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to mark order as reviewed.' 
-    );
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark order as reviewed.'));
   }
 }
 

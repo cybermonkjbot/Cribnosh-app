@@ -1,12 +1,13 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
-import { NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -211,9 +212,9 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -258,8 +259,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     });
     
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update meal.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update meal.'));
   }
 }
 
@@ -280,9 +281,9 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -315,8 +316,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     });
     
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete meal.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete meal.'));
   }
 }
 

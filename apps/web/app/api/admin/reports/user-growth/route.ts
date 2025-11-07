@@ -1,11 +1,12 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -84,13 +85,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can access reports.');
     }
     const convex = getConvexClient();
@@ -105,7 +106,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       day.setDate(now.getDate() - i);
       const label = day.toISOString().slice(0, 10);
       labels.push(label);
-      signups.push(users.filter((u: any) => {
+      signups.push(users.filter((u: { _creationTime?: number }) => {
         if (!u._creationTime) return false;
         const created = new Date(u._creationTime);
         return created.toISOString().slice(0, 10) === label;
@@ -118,8 +119,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       generatedAt: new Date().toISOString(),
     };
     return ResponseFactory.success(report);
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch user growth report.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch user growth report.'));
   }
 }
 

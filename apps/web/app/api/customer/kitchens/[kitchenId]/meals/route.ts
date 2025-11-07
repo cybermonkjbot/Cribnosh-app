@@ -4,6 +4,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -102,10 +103,10 @@ async function handleGET(
 
     return ResponseFactory.success({ meals }, 'Meals retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get meals error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to retrieve meals'
+      getErrorMessage(error, 'Failed to retrieve meals')
     );
   }
 }

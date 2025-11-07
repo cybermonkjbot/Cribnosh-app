@@ -4,6 +4,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { scryptSync, timingSafeEqual } from 'crypto';
 import { authenticator } from 'otplib';
@@ -200,8 +201,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       },
       message: '2FA verification successful',
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || '2FA verification failed.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, '2FA verification failed.'));
   }
 }
 

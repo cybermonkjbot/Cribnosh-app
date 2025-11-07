@@ -41,9 +41,9 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -82,8 +82,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success({
       message: '2FA disabled successfully',
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to disable 2FA.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to disable 2FA.'));
   }
 }
 

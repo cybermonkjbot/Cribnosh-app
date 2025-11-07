@@ -4,6 +4,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -154,8 +155,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       categories,
       total: categories.length,
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch cuisine categories.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch cuisine categories.'));
   }
 }
 

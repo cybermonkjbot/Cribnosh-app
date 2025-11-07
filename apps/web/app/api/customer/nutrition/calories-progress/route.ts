@@ -4,6 +4,8 @@ import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 
@@ -94,9 +96,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -122,7 +124,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const dateStr = targetDate.toISOString().split('T')[0];
 
     const convex = getConvexClient();
-    const userId = payload.user_id as any;
+    const userId = payload.user_id;
 
     // Get calories progress from Convex
     const progressData = await convex.query(api.queries.nutrition.getCaloriesProgress, {
@@ -131,9 +133,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
     return ResponseFactory.success(progressData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to fetch calories progress',
+      getErrorMessage(error, 'Failed to fetch calories progress'),
       'INTERNAL_ERROR',
       500
     );

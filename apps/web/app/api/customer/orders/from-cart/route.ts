@@ -4,6 +4,8 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getApiMutations, getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
@@ -170,9 +172,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -197,7 +199,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     let paymentIntent;
     try {
       paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error retrieving payment intent:', error);
       return ResponseFactory.notFound('Payment intent not found or invalid.');
     }
@@ -394,9 +396,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         payment_id: payment_intent_id,
       },
     }, 'Order created successfully from cart');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating order from cart:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to create order from cart.');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create order from cart.'));
   }
 }
 

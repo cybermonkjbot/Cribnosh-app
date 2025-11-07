@@ -4,10 +4,11 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -461,13 +462,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
     }
     const dish_id = extractDishIdFromUrl(request);
@@ -476,13 +477,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     const convex = getConvexClient();
     const dishes = await convex.query(api.queries.meals.getAll);
-    const dish = dishes.find((d: any) => d._id === dish_id);
+    const dish = dishes.find((d: { _id: Id<'meals'> }) => d._id === dish_id);
     if (!dish) {
       return ResponseFactory.notFound('Dish not found');
     }
     return ResponseFactory.success({ dish });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch dish.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch dish.'));
   }
 }
 
@@ -493,13 +494,13 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can update dishes.');
     }
     const dish_id = extractDishIdFromUrl(request);
@@ -513,8 +514,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       ...updates,
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update dish.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update dish.'));
   }
 }
 
@@ -525,13 +526,13 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can update dishes.');
     }
     const dish_id = extractDishIdFromUrl(request);
@@ -545,8 +546,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       ...updates,
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update dish.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update dish.'));
   }
 }
 
@@ -557,13 +558,13 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can delete dishes.');
     }
     const dish_id = extractDishIdFromUrl(request);
@@ -573,8 +574,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
     await convex.mutation(api.mutations.meals.deleteMeal, { mealId: dish_id });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete dish.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete dish.'));
   }
 }
 

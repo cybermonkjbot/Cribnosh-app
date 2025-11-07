@@ -4,6 +4,8 @@ import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 
@@ -85,9 +87,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -135,9 +137,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       currency: 'coins',
       last_updated: pointsData.last_updated || new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to fetch Nosh Points',
+      getErrorMessage(error, 'Failed to fetch Nosh Points'),
       'INTERNAL_ERROR',
       500
     );

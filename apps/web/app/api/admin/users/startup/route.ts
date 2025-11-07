@@ -2,9 +2,11 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import { NextRequest } from 'next/server';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -88,15 +90,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
   }
   const token = authHeader.replace('Bearer ', '');
-  let payload: any;
+  let payload: JWTPayload;
   try {
-    const jwt = require('jsonwebtoken');
     const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-    payload = jwt.verify(token, JWT_SECRET);
+    payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
   } catch {
     return ResponseFactory.unauthorized('Invalid or expired token.');
   }
-  if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+  if (!payload.roles?.includes('admin')) {
     return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
   }
   const convex = getConvexClient();

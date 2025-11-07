@@ -4,6 +4,8 @@ import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
 
@@ -105,9 +107,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -131,8 +133,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     
     return ResponseFactory.success({ user: safeUser });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch user.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch user.'));
   }
 }
 
@@ -235,9 +237,9 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -301,8 +303,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       user: safeUser,
       message: "Profile updated successfully"
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update profile.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update profile.'));
   }
 }
 

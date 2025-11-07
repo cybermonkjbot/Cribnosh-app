@@ -4,6 +4,8 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { scryptSync, randomBytes } from 'crypto';
 import { authenticator } from 'otplib';
@@ -54,9 +56,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -115,8 +117,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       backupCodes: unhashedBackupCodes, // Return unhashed codes (one-time only)
       qrCode: qrCodeDataUrl, // Return base64 QR code image
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to setup 2FA.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to setup 2FA.'));
   }
 }
 

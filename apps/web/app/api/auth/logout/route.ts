@@ -2,6 +2,8 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import jwt from 'jsonwebtoken';
@@ -64,7 +66,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const token = authHeader.replace('Bearer ', '');
-        const payload = jwt.verify(token, JWT_SECRET) as any;
+        const payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
         userId = payload.user_id;
         // For JWT tokens, we just validate and allow logout
         // The mobile app will handle token deletion client-side
@@ -99,9 +101,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Even if there's an error, return success to allow client-side cleanup
     // Mobile apps rely on client-side token deletion
+    console.error('[LOGOUT] Error:', getErrorMessage(error, 'Logout error'));
     const response = ResponseFactory.success({ message: 'Logged out successfully.' });
     const cookieToken = request.cookies.get('convex-auth-token')?.value;
     if (cookieToken) {

@@ -4,6 +4,8 @@ import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendAccountDeletionEmail } from '@/lib/services/email-service';
@@ -64,9 +66,9 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return createSpecErrorResponse(
         'Invalid or expired token',
@@ -139,9 +141,9 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       },
       'Account deletion request has been submitted. You will receive an email confirmation shortly.'
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return createSpecErrorResponse(
-      error.message || 'Failed to process account deletion request',
+      getErrorMessage(error, 'Failed to process account deletion request'),
       'INTERNAL_ERROR',
       500
     );

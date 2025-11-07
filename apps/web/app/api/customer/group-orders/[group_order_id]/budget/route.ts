@@ -27,9 +27,9 @@ async function handleGET(
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -52,8 +52,8 @@ async function handleGET(
     }
     
     return ResponseFactory.success(budgetDetails, 'Budget details retrieved successfully');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch budget details.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch budget details.'));
   }
 }
 

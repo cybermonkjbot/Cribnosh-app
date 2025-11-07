@@ -1,12 +1,13 @@
-import { NextRequest } from 'next/server';
+import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
-import { getConvexClient } from '@/lib/conxed-client';
-import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { withAPIMiddleware } from '@/lib/api/middleware';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
+import { NextRequest } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -125,15 +126,15 @@ async function handlePOST(request: NextRequest) {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
 
     // Check if user has permission to cancel orders
-    if (!['admin', 'staff', 'customer'].includes(payload.role)) {
+    if (!payload.roles?.some(role => ['admin', 'staff', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -159,7 +160,7 @@ async function handlePOST(request: NextRequest) {
     }
 
     // Verify user has permission to cancel this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only cancel your own orders.');
     }
 
@@ -167,10 +168,10 @@ async function handlePOST(request: NextRequest) {
     const cancelledOrder = await convex.mutation(api.mutations.orders.cancelOrder, {
       orderId: order._id,
       reason,
-      cancelledBy: payload.user_id,
+      cancelledBy: payload.user_id || '',
       description: description || `Order cancelled: ${reason}`,
       metadata: {
-        cancelledByRole: payload.role,
+        cancelledByRole: payload.roles?.[0] || 'unknown',
         ...metadata
       }
     });
@@ -181,13 +182,19 @@ async function handlePOST(request: NextRequest) {
     if (autoRefund && order.payment_status === 'paid' && order.payment_id) {
       try {
         // Create refund in Stripe
-        const refundData: any = {
+        const refundData: {
+          payment_intent: string;
+          reason: 'duplicate' | 'fraudulent' | 'requested_by_customer';
+          amount?: number;
+          description?: string;
+          metadata?: Record<string, string>;
+        } = {
           payment_intent: order.payment_id,
-          reason: 'requested_by_customer',
+          reason: 'requested_by_customer' as const,
           metadata: {
             orderId,
-            cancelledBy: payload.user_id,
-            cancelledByRole: payload.role,
+            cancelledBy: payload.user_id || '',
+            cancelledByRole: payload.roles?.[0] || 'unknown',
             cancellationReason: reason,
             ...metadata
           }
@@ -218,12 +225,12 @@ const refund = await stripe.refunds.create(refundData);
           refundId: refund.id,
           amount: refundAmount ? refundAmount / 100 : order.total_amount,
           reason: 'requested_by_customer',
-          processedBy: payload.user_id,
+          processedBy: payload.user_id || '',
           description: `Automatic refund for cancelled order: ${description || reason}`,
           metadata: {
             stripeRefundId: refund.id,
-            cancelledBy: payload.user_id,
-            cancelledByRole: payload.role,
+            cancelledBy: payload.user_id || '',
+            cancelledByRole: payload.roles?.[0] || 'unknown',
             cancellationReason: reason,
             ...metadata
           }
@@ -240,22 +247,22 @@ const refund = await stripe.refunds.create(refundData);
 
         console.log(`Automatic refund processed: ${refund.id} for cancelled order ${orderId}`);
 
-      } catch (stripeError: any) {
+      } catch (stripeError: unknown) {
         console.error('Automatic refund failed:', stripeError);
         // Don't fail the cancellation if refund fails
         refundResult = {
           error: 'Refund processing failed',
-          details: stripeError.message
+          details: getErrorMessage(stripeError, 'Unknown refund error')
         };
       }
     }
 
-    console.log(`Order cancelled: ${orderId} by ${payload.user_id} (${payload.role}), reason: ${reason}`);
+    console.log(`Order cancelled: ${orderId} by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'}), reason: ${reason}`);
 
     return ResponseFactory.success({});
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error cancelling order:', error);
-    return ResponseFactory.internalError('Failed to cancel order');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to cancel order'));
   }
 }
 

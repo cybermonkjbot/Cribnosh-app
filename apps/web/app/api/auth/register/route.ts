@@ -2,10 +2,10 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import { getErrorMessage } from '@/types/errors';
 import { randomBytes, scryptSync } from 'crypto';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 // Endpoint: /v1/auth/register
 // Group: auth
@@ -135,8 +135,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       status: 'active',
     });
     return ResponseFactory.success({ success: true, userId, email, name, roles: [role || 'customer'] });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Registration failed.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Registration failed.'));
   }
 }
 

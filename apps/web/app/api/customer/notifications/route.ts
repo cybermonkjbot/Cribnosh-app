@@ -1,10 +1,12 @@
+import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { withAPIMiddleware } from '@/lib/apiMiddleware';
-import { getConvexClient } from '@/lib/convex';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import { api } from '@repo/convex';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
@@ -38,7 +40,7 @@ const JWT_SECRET = process.env.JWT_SECRET || '';
  *       500:
  *         description: Internal server error
  */
-async function handleGET(request: NextRequest): Promise<Response> {
+async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -46,9 +48,9 @@ async function handleGET(request: NextRequest): Promise<Response> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -64,12 +66,23 @@ async function handleGET(request: NextRequest): Promise<Response> {
     const convex = getConvexClient();
     
     // Get user notifications
-    const notifications = await convex.query(api.queries.notifications.getUserNotifications, {
-      userId: payload.user_id as any,
+    const userId = payload.user_id || payload.userId || payload.sub;
+    if (!userId || typeof userId !== 'string') {
+      return ResponseFactory.unauthorized('Invalid user ID in token.');
+    }
+    
+    // Type assertion to avoid deep instantiation issues
+    // Using a helper to bypass TypeScript's deep type inference
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const queryFn = api.queries.notifications.getUserNotifications as any;
+    const queryArgs: any = {
+      userId: userId as any,
       roles: payload.roles || [],
       limit: Math.min(limit, 100),
       unreadOnly,
-    });
+    };
+    // @ts-ignore - Convex type inference can cause deep instantiation issues
+    const notifications = await convex.query(queryFn, queryArgs);
     
     return ResponseFactory.success(
       {
@@ -78,8 +91,8 @@ async function handleGET(request: NextRequest): Promise<Response> {
       },
       'Notifications retrieved successfully'
     );
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch notifications.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch notifications.'));
   }
 }
 

@@ -1,6 +1,9 @@
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { NextRequest } from 'next/server';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 
@@ -152,12 +155,11 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
   }
 
   const token = authHeader.replace('Bearer ', '');
-  let payload: any;
+  let payload: JWTPayload;
   
   try {
-    const jwt = require('jsonwebtoken');
     const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-    payload = jwt.verify(token, JWT_SECRET);
+    payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
   } catch {
     return ResponseFactory.unauthorized('Invalid or expired token');
   }

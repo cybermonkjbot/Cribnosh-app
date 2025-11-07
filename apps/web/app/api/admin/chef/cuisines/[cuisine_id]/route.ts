@@ -1,12 +1,13 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -230,27 +231,31 @@ import { NextResponse } from 'next/server';
  */
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  // Extract cuisine_id from the URL
-  const url = new URL(request.url);
-  const match = url.pathname.match(/\/cuisines\/([^/]+)/);
-  const cuisine_id = match ? (match[1] as Id<'cuisines'>) : undefined;
-  if (!cuisine_id) {
-    return ResponseFactory.validationError('Missing cuisine_id');
+  try {
+    // Extract cuisine_id from the URL
+    const url = new URL(request.url);
+    const match = url.pathname.match(/\/cuisines\/([^/]+)/);
+    const cuisine_id = match ? (match[1] as Id<'cuisines'>) : undefined;
+    if (!cuisine_id) {
+      return ResponseFactory.validationError('Missing cuisine_id');
+    }
+    const convex = getConvexClient();
+    const cuisine = await convex.query(api.queries.chefs.getCuisineById, { cuisineId: cuisine_id });
+    if (!cuisine) {
+      return ResponseFactory.notFound('Cuisine not found');
+    }
+    return ResponseFactory.success({
+      name: cuisine.name,
+      description: cuisine.description || null,
+      cuisine_image: cuisine.image || null,
+      cuisine_id: cuisine._id,
+      created_at: new Date(cuisine.createdAt).toISOString(),
+      updated_at: new Date(cuisine.updatedAt).toISOString(),
+      cuisine_image_url: cuisine.image || null,
+    });
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch cuisine.'));
   }
-  const convex = getConvexClient();
-  const cuisine = await convex.query(api.queries.chefs.getCuisineById, { cuisineId: cuisine_id });
-  if (!cuisine) {
-    return ResponseFactory.notFound('Cuisine not found');
-  }
-  return ResponseFactory.success({
-    name: cuisine.name,
-    description: cuisine.description || null,
-    cuisine_image: cuisine.image || null,
-    cuisine_id: cuisine._id,
-    created_at: new Date(cuisine.createdAt).toISOString(),
-    updated_at: new Date(cuisine.updatedAt).toISOString(),
-    cuisine_image_url: cuisine.image || null,
-  });
 }
 
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
@@ -260,13 +265,13 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
+      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret') as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can update cuisines.');
     }
     const url = new URL(request.url);
@@ -282,8 +287,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       ...updates,
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update cuisine.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update cuisine.'));
   }
 }
 
@@ -294,13 +299,13 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
+      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret') as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can delete cuisines.');
     }
     const url = new URL(request.url);
@@ -312,8 +317,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
     await convex.mutation(api.mutations.chefs.deleteCuisine, { cuisineId: cuisine_id });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete cuisine.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete cuisine.'));
   }
 }
 

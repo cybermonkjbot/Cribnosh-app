@@ -1,9 +1,11 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
@@ -152,15 +154,15 @@ async function handlePATCH(request: NextRequest) {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
 
     // Check if user has permission to update orders
-    if (!['admin', 'staff', 'chef', 'customer'].includes(payload.role)) {
+    if (!payload.roles?.some(role => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -184,10 +186,10 @@ async function handlePATCH(request: NextRequest) {
     }
 
     // Verify user has permission to update this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own orders.');
     }
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own orders.');
     }
 
@@ -199,24 +201,24 @@ async function handlePATCH(request: NextRequest) {
     // Update order
     const updatedOrder = await convex.mutation(api.mutations.orders.updateOrder, {
       orderId: order._id,
-      updatedBy: payload.user_id,
+      updatedBy: payload.user_id || '',
       deliveryAddress: body.deliveryAddress,
       specialInstructions: body.specialInstructions,
       deliveryTime: body.deliveryTime,
       estimatedPrepTime: body.estimatedPrepTime,
       chefNotes: body.chefNotes,
       metadata: {
-        updatedByRole: payload.role,
+        updatedByRole: payload.roles?.[0] || 'unknown',
         ...body.metadata
       }
     });
 
-    console.log(`Order ${order_id} updated by ${payload.user_id} (${payload.role})`);
+    console.log(`Order ${order_id} updated by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({});
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating order:', error);
-    return ResponseFactory.internalError('Failed to update order');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update order'));
   }
 }
 
@@ -414,9 +416,9 @@ async function handleGET(request: NextRequest) {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -439,10 +441,10 @@ async function handleGET(request: NextRequest) {
     }
 
     // Verify user has permission to view this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
 
@@ -472,10 +474,9 @@ async function handleGET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Order get error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to get order.' 
-    );
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order.'));
   }
 }
 

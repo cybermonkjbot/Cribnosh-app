@@ -1,10 +1,12 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
+import { NextRequest } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -122,15 +124,15 @@ async function handlePOST(request: NextRequest) {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
 
     // Check if user has permission to confirm orders
-    if (!['admin', 'staff', 'chef'].includes(payload.role)) {
+    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -153,7 +155,7 @@ async function handlePOST(request: NextRequest) {
     const validOrder = order;
 
     // Verify user has permission to confirm this specific order
-    if (payload.role === 'chef' && validOrder.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && validOrder.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only confirm your own orders.');
     }
 
@@ -165,11 +167,11 @@ async function handlePOST(request: NextRequest) {
     // Confirm order
     const confirmedOrder = await convex.mutation(api.mutations.orders.confirmOrder, {
       orderId: validOrder._id,
-      confirmedBy: payload.user_id,
+      confirmedBy: payload.user_id || '',
       estimatedReadyTime: estimatedPrepTime || validOrder.estimated_prep_time_minutes,
       notes: chefNotes || validOrder.chef_notes,
       metadata: {
-        confirmedByRole: payload.role,
+        confirmedByRole: payload.roles?.[0] || 'unknown',
         ...metadata
       }
     });
@@ -178,16 +180,16 @@ async function handlePOST(request: NextRequest) {
       return ResponseFactory.internalError('Failed to confirm order');
     }
 
-    console.log(`Order ${orderId} confirmed by ${payload.user_id} (${payload.role})`);
+    console.log(`Order ${orderId} confirmed by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: confirmedOrder._id,
       status: confirmedOrder.order_status,
       estimatedReadyTime: confirmedOrder.estimated_prep_time_minutes
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error confirming order:', error);
-    return ResponseFactory.internalError('Failed to confirm order');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to confirm order'));
   }
 }
 

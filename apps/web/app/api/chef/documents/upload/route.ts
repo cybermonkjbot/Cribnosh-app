@@ -2,10 +2,11 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -97,13 +98,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'chef') {
+    if (!payload.roles?.includes('chef')) {
       return ResponseFactory.forbidden('Forbidden: Only chefs can upload documents.');
     }
     const { name, document_type, storageId } = await request.json();
@@ -112,7 +113,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     const convex = getConvexClient();
     const document_id = await convex.mutation(api.mutations.documents.uploadDocument, {
-      userEmail: payload.email,
+      userEmail: payload.email || '',
       name,
       type: document_type,
       description: `Document uploaded by chef: ${name}`,
@@ -120,8 +121,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       storageId,
     });
     return ResponseFactory.success({ success: true, document_id });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to upload document.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to upload document.'));
   }
 }
 

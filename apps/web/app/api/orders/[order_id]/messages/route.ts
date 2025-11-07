@@ -1,11 +1,12 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -141,9 +142,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -166,16 +167,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id as any });
+    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to send messages for this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only send messages for your own orders.');
     }
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only send messages for your own orders.');
     }
 
@@ -189,15 +190,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       orderId: order._id,
       message,
       messageType,
-      sentBy: payload.user_id as any,
+      sentBy: payload.user_id || '',
       metadata: {
-        sentByRole: payload.role,
+        sentByRole: payload.roles?.[0] || 'unknown',
         orderStatus: order.order_status,
         ...metadata
       }
     });
 
-    console.log(`Message sent for order ${order_id} by ${payload.user_id} (${payload.role})`);
+    console.log(`Message sent for order ${order_id} by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -207,16 +208,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         message,
         messageType,
         sentBy: payload.user_id,
-        sentByRole: payload.role,
+        sentByRole: payload.roles?.[0] || 'unknown',
         sentAt: new Date().toISOString(),
         metadata: metadata || {}
       } : null,
       messageText: 'Message sent successfully.'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Send message error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to send message.' 
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message.') 
     );
   }
 }
@@ -230,9 +231,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -249,29 +250,29 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id as any });
+    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to view this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
 
     // Get order messages
-    const messages = await convex.query(api.queries.orders.getOrderMessages, { orderId: order_id as any });
+    const messages = await convex.query(api.queries.orders.getOrderMessages, { orderId: order_id });
 
     // Format messages
-    const formattedMessages = messages.map((msg: any) => ({
+    const formattedMessages = messages.map((msg: { _id: string; message?: string; messageType?: string; sent_by?: string; sent_at?: number; metadata?: Record<string, unknown> }) => ({
       id: msg._id,
       message: msg.message,
       messageType: msg.messageType,
       sentBy: msg.sent_by,
-      sentAt: new Date(msg.sent_at).toISOString(),
+      sentAt: new Date(msg.sent_at || 0).toISOString(),
       metadata: msg.metadata || {}
     }));
 
@@ -282,9 +283,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       totalMessages: formattedMessages.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get order messages error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to get order messages.' 
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order messages.') 
     );
   }
 }

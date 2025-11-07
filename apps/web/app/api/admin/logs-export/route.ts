@@ -2,6 +2,8 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -130,13 +132,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
-    if (payload.role !== 'admin') {
+    if (!payload.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can export logs.');
     }
     const convex = getConvexClient();
@@ -148,10 +150,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const end = searchParams.get('end');
     let logs = await convex.query(api.queries.adminLogs.getAll, {});
     // Filtering
-    if (action) logs = logs.filter((l: any) => l.action === action);
-    if (user) logs = logs.filter((l: any) => l.adminId === user);
-    if (start) logs = logs.filter((l: any) => l.timestamp >= Number(start));
-    if (end) logs = logs.filter((l: any) => l.timestamp <= Number(end));
+    if (action) logs = logs.filter((l: { action?: string }) => l.action === action);
+    if (user) logs = logs.filter((l: { adminId?: string }) => l.adminId === user);
+    if (start) logs = logs.filter((l: { timestamp?: number }) => l.timestamp && l.timestamp >= Number(start));
+    if (end) logs = logs.filter((l: { timestamp?: number }) => l.timestamp && l.timestamp <= Number(end));
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_logs',
@@ -176,8 +178,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     // Default: JSON
     return ResponseFactory.jsonDownload(logs, 'logs-export.json');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to export logs.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to export logs.'));
   }
 }
 

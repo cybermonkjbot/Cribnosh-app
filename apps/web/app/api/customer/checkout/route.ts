@@ -4,8 +4,11 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
+import { Id } from '@/convex/_generated/dataModel';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -86,9 +89,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -103,7 +106,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Cart is empty.');
     }
     
-    const total = cart.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+    const total = cart.items.reduce((sum: number, item: { price: number; quantity: number }) => sum + (item.price * item.quantity), 0);
     
     // Validate total amount
     if (total <= 0) {
@@ -112,16 +115,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Check if user is a family member
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
-      userId: payload.user_id as any,
+      userId: payload.user_id as Id<'users'>,
     });
 
     let paymentUserId = payload.user_id;
     let isFamilyMember = false;
-    let familyProfileId = null;
-    let memberUserId = null;
-    let budgetCheck: any = null;
+    let familyProfileId: Id<'familyProfiles'> | null = null;
+    let memberUserId: string | null = null;
+    let budgetCheck: { allowed: boolean; reason?: string; remaining?: number } | null = null;
 
-    if (familyProfile && familyProfile.member_user_ids.includes(payload.user_id as any)) {
+    if (familyProfile && familyProfile.member_user_ids.includes(payload.user_id as Id<'users'>)) {
       // User is a family member - check if they can use family payment
       isFamilyMember = true;
       familyProfileId = familyProfile._id;
@@ -130,7 +133,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // Check budget limits
       budgetCheck = await convex.query(api.queries.familyProfiles.checkBudgetAllowance, {
         family_profile_id: familyProfile._id,
-        member_user_id: payload.user_id as any,
+        member_user_id: payload.user_id as Id<'users'>,
         order_amount: total,
         currency: 'gbp',
       });
@@ -160,7 +163,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           userId: paymentUserId,
           orderUserId: payload.user_id, // Original user who placed the order
           orderType: isFamilyMember ? 'family_member_checkout' : 'customer_checkout',
-          cartId: (cart as any)._id || 'unknown',
+          cartId: (cart as { _id?: string })._id || 'unknown',
           ...(isFamilyMember && familyProfileId
             ? {
                 family_profile_id: familyProfileId,
@@ -201,12 +204,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
             }
           : {}),
       });
-    } catch (stripeError: any) {
+    } catch (stripeError: unknown) {
       console.error('Stripe payment intent creation failed:', stripeError);
       return ResponseFactory.error('Payment processing failed. Please try again.', 'CUSTOM_ERROR', 500);
     }
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to create payment intent.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create payment intent.'));
   }
 }
 

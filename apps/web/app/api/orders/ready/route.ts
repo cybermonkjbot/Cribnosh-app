@@ -149,15 +149,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
 
     // Check if user has permission to mark orders as ready
-    if (!['admin', 'staff', 'chef'].includes(payload.role)) {
+    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -177,7 +177,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to mark this specific order as ready
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only mark your own orders as ready.');
     }
 
@@ -189,10 +189,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Mark order as ready
     const readyOrder = await convex.mutation(api.mutations.orders.markOrderReady, {
       orderId: order._id,
-      readyBy: payload.user_id,
+      readyBy: payload.user_id || '',
       readyNotes: readyNotes || order.chef_notes,
       metadata: {
-        markedReadyByRole: payload.role,
+        markedReadyByRole: payload.roles?.[0] || 'unknown',
         packagingNotes,
         ...metadata
       }
@@ -202,16 +202,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.internalError('Failed to mark order as ready');
     }
 
-    console.log(`Order ${orderId} marked as ready by ${payload.user_id} (${payload.role})`);
+    console.log(`Order ${orderId} marked as ready by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: readyOrder._id,
       status: readyOrder.order_status,
       readyNotes: readyOrder.chef_notes
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error marking order as ready:', error);
-    return ResponseFactory.internalError('Failed to mark order as ready');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark order as ready'));
   }
 }
 

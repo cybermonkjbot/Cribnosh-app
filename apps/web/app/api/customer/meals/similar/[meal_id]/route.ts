@@ -5,6 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -56,7 +57,7 @@ async function handleGET(
     const convex = getConvexClient();
     
     // Get similar meals with user preferences
-    const similarMeals = await convex.query((api as any).queries.mealRecommendations.getSimilar, {
+    const similarMeals = await convex.query((api as { queries: { mealRecommendations: { getSimilar: unknown } } }).queries.mealRecommendations.getSimilar as never, {
       mealId: meal_id as Id<'meals'>,
       userId: userId || undefined,
       limit,
@@ -64,7 +65,7 @@ async function handleGET(
 
     if (similarMeals.length === 0) {
       // Check if the meal exists
-      const meal = await convex.query((api as any).queries.meals.getById, { 
+      const meal = await convex.query((api as { queries: { meals: { getById: unknown } } }).queries.meals.getById as never, { 
         mealId: meal_id as Id<'meals'> 
       });
       
@@ -74,7 +75,7 @@ async function handleGET(
     }
 
     // Transform similar meals to match mobile app expected format
-    const dishes = similarMeals.map((meal: any) => ({
+    const dishes = similarMeals.map((meal: { _id?: string; id?: string; name: string; description?: string; price?: number; images?: string[]; image_url?: string; cuisine?: string[]; dietary?: string[]; averageRating?: number; rating?: number; reviewCount?: number; chefId?: string; chef?: { _id: string } | null }) => ({
       id: meal._id || meal.id,
       name: meal.name,
       description: meal.description || '',
@@ -93,10 +94,10 @@ async function handleGET(
       total: similarMeals.length,
     }, 'Similar meals retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get similar meals error:', error);
     return ResponseFactory.internalError(
-      error.message || 'Failed to retrieve similar meals'
+      getErrorMessage(error, 'Failed to retrieve similar meals')
     );
   }
 }

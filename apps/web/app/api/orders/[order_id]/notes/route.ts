@@ -1,11 +1,12 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -141,9 +142,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -165,23 +166,23 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Validate note type permissions
-    if (noteType === 'internal_note' && !['admin', 'staff'].includes(payload.role)) {
+    if (noteType === 'internal_note' && !payload.roles?.some(role => ['admin', 'staff'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Only admin and staff can add internal notes.');
     }
 
     const convex = getConvexClient();
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id as any });
+    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to add notes to this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only add notes to your own orders.');
     }
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only add notes to your own orders.');
     }
 
@@ -193,16 +194,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Add note to order
     const updatedOrder = await convex.mutation(api.mutations.orders.addOrderNote, {
       orderId: order._id,
-      addedBy: payload.user_id,
+      addedBy: payload.user_id || '',
       note,
       noteType,
       metadata: {
-        addedByRole: payload.role,
+        addedByRole: payload.roles?.[0] || 'unknown',
         ...metadata
       }
     });
 
-    console.log(`Note added to order ${order_id} by ${payload.user_id} (${payload.role})`);
+    console.log(`Note added to order ${order_id} by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -212,16 +213,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         note,
         noteType,
         addedBy: payload.user_id,
-        addedByRole: payload.role,
+        addedByRole: payload.roles?.[0] || 'unknown',
         addedAt: new Date().toISOString(),
         metadata: metadata || {}
       },
       message: 'Note added successfully.'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Add order note error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to add note to order.' 
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to add note to order.') 
     );
   }
 }
@@ -235,9 +236,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -254,40 +255,40 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id as any });
+    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to view this specific order
-    if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
-    if (payload.role === 'chef' && order.chef_id !== payload.user_id) {
+    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
 
     // Get order notes
-    const notes = await convex.query(api.queries.orders.getOrderNotes, { orderId: order_id as any });
+    const notes = await convex.query(api.queries.orders.getOrderNotes, { orderId: order_id });
 
     // Filter notes based on user role
     let filteredNotes = notes;
-    if (payload.role === 'customer') {
+    if (payload.roles?.includes('customer')) {
       // Customers can only see customer notes and chef notes
-      filteredNotes = notes.filter((note: any) => note.noteType !== 'internal_note');
-    } else if (payload.role === 'chef') {
+      filteredNotes = notes.filter((note: { noteType?: string }) => note.noteType !== 'internal_note');
+    } else if (payload.roles?.includes('chef')) {
       // Chefs can only see chef notes and customer notes
-      filteredNotes = notes.filter((note: any) => note.noteType !== 'internal_note');
+      filteredNotes = notes.filter((note: { noteType?: string }) => note.noteType !== 'internal_note');
     }
     // Admin and staff can see all notes
 
     // Format notes
-    const formattedNotes = filteredNotes.map((note: any) => ({
+    const formattedNotes = filteredNotes.map((note: { _id: string; note?: string; noteType?: string; added_by?: string; added_at?: number; metadata?: Record<string, unknown> }) => ({
       id: note._id,
       note: note.note,
       noteType: note.noteType,
       addedBy: note.added_by,
-      addedAt: new Date(note.added_at).toISOString(),
+      addedAt: new Date(note.added_at || 0).toISOString(),
       metadata: note.metadata || {}
     }));
 
@@ -298,9 +299,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       totalNotes: formattedNotes.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get order notes error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to get order notes.' 
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order notes.') 
     );
   }
 }

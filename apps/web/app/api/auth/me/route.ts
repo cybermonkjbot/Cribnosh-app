@@ -3,10 +3,11 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
 
 // Endpoint: /v1/auth/me
 // Group: auth
@@ -88,11 +89,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const authHeader = request.headers.get('authorization');
     const sessionToken = request.cookies.get('sessionToken')?.value;
     let userId: string | undefined;
-    let payload: any;
+    let payload: JWTPayload | undefined;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
       try {
-        payload = jwt.verify(token, JWT_SECRET);
+        payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
         userId = payload.user_id;
       } catch {
         return ResponseFactory.unauthorized('Invalid or expired token.');
@@ -118,8 +119,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     const { password, sessionToken: st, sessionExpiry, ...safeUser } = user;
     return ResponseFactory.success({ user: safeUser });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch user.' );
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch user.'));
   }
 }
 

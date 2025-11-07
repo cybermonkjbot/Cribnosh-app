@@ -1,23 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { withErrorHandling } from '@/lib/errors';
-import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import jwt from 'jsonwebtoken';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
-function getAuthPayload(request: NextRequest): any {
+function getAuthPayload(request: NextRequest): JWTPayload {
   const authHeader = request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new Error('Invalid or missing token');
   }
 
-  const token = authHeader.replace('Bearer ', ');
+  const token = authHeader.replace('Bearer ', '');
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
   } catch {
     throw new Error('Invalid or expired token');
   }
@@ -75,12 +77,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
     return ResponseFactory.success(orders, 'Family orders retrieved successfully');
-  } catch (error: any) {
-    if (error.message === 'Invalid or missing token' || error.message === 'Invalid or expired token') {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
+    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
+      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
     }
     return createSpecErrorResponse(
-      error.message || 'Failed to get family orders',
+      errorMessage || 'Failed to get family orders',
       'INTERNAL_ERROR',
       500
     );

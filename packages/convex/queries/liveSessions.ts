@@ -1,14 +1,11 @@
 import { v } from "convex/values";
+import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
-import type { 
-  LiveSession, 
-  LiveOrder, 
-  User,
-  TableNames
-} from "../../apps/web/types/livestream";
-import { calculateDistance } from "../../apps/web/types/livestream";
-import type { Id } from "../_generated/dataModel";
-import type { DataModel } from "../_generated/dataModel";
+import type {
+  LiveSession,
+  User
+} from "../types/livestream";
+import { calculateDistance } from "../types/livestream";
 
 // Type for the enriched session with distance
 interface NearbySession extends Omit<LiveSession, 'location'> {
@@ -614,25 +611,25 @@ export const getLiveSessionWithMeal = query({
       .collect();
 
     // Try to match by title/tags
-    let matchedMeal = null;
+    let matchedMeal: Doc<'meals'> | null = null;
     const sessionTitleLower = session.title.toLowerCase();
     const sessionTags = session.tags || [];
     
     // First try exact or partial match with meal name
-    matchedMeal = chefMeals.find(meal => {
+    matchedMeal = chefMeals.find((meal: Doc<'meals'>) => {
       const mealNameLower = meal.name?.toLowerCase() || '';
       return mealNameLower.includes(sessionTitleLower) || 
              sessionTitleLower.includes(mealNameLower);
-    });
+    }) || null;
 
     // If no match, try matching tags
     if (!matchedMeal && sessionTags.length > 0) {
-      matchedMeal = chefMeals.find(meal => {
+      matchedMeal = chefMeals.find((meal: Doc<'meals'>) => {
         const mealCuisine = meal.cuisine || [];
         return sessionTags.some(tag => 
           mealCuisine.some((c: string) => c.toLowerCase().includes(tag.toLowerCase()))
         );
-      });
+      }) || null;
     }
 
     // If still no match, get the first available meal from chef
@@ -645,7 +642,7 @@ export const getLiveSessionWithMeal = query({
     if (matchedMeal) {
       const reviews = await ctx.db
         .query('reviews')
-        .filter((q: any) => q.eq(q.field('mealId'), matchedMeal._id))
+        .filter((q: any) => q.eq(q.field('mealId'), matchedMeal!._id))
         .collect();
 
       mealData = {

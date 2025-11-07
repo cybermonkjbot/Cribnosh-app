@@ -4,6 +4,8 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
 
@@ -73,9 +75,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -143,9 +145,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success({
       sessions: formattedSessions,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[GET_SESSIONS] Error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to fetch sessions.');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch sessions.'));
   }
 }
 

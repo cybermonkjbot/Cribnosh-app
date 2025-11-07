@@ -101,9 +101,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -207,8 +207,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       total: dishMap.size,
       limit,
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch recent dishes.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch recent dishes.'));
   }
 }
 

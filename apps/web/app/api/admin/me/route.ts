@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
         status: user.status
       }
     }, 'Admin user data retrieved successfully');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ADMIN ME] Error:', error);
     return ResponseFactory.internalError('Failed to retrieve admin user data');
   }

@@ -1,6 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     const convex = getConvexClient();
     
-    const isSupported = await convex.query((api as any).queries.admin.checkRegionAvailability, {
+    const isSupported = await convex.query((api as { queries: { admin: { checkRegionAvailability: unknown } } }).queries.admin.checkRegionAvailability as never, {
       city,
       country,
       address,
@@ -70,8 +71,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success({
       isSupported,
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to check region availability');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to check region availability'));
   }
 }
 

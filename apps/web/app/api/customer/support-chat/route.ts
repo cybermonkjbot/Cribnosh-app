@@ -4,6 +4,8 @@ import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
 
@@ -69,9 +71,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    let payload: any;
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
@@ -219,8 +221,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       } : null,
       messages: messagesResult.messages.reverse(),
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to get or create support chat.');
+  } catch (error: unknown) {
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get or create support chat.'));
   }
 }
 
