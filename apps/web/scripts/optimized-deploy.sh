@@ -45,31 +45,6 @@ check_service_health() {
     return 1
 }
 
-# Function to warm up instances
-warm_up_instances() {
-    local service_url=$1
-    local warm_up_requests=5
-    
-    echo "🔥 Warming up instances..."
-    
-    for i in $(seq 1 $warm_up_requests); do
-        echo "📡 Sending warm-up request $i/$warm_up_requests..."
-        
-        # Send requests to different endpoints to warm up various parts of the app
-        curl -s -o /dev/null "$service_url/api/health/fast" &
-        curl -s -o /dev/null "$service_url/api/health" &
-        curl -s -o /dev/null "$service_url/" &
-        
-        # Wait a bit between requests
-        sleep 2
-    done
-    
-    # Wait for all background requests to complete
-    wait
-    
-    echo "✅ Instance warm-up completed"
-}
-
 # Function to perform rolling deployment
 rolling_deployment() {
     echo "🔄 Starting rolling deployment..."
@@ -106,52 +81,6 @@ rolling_deployment() {
     fi
 }
 
-# Function to monitor deployment metrics
-monitor_deployment() {
-    local service_name=$1
-    local duration_minutes=10
-    
-    echo "📊 Monitoring deployment metrics for $duration_minutes minutes..."
-    
-    local end_time=$(date -d "+$duration_minutes minutes" +%s)
-    
-    while [ $(date +%s) -lt $end_time ]; do
-        # Get service metrics
-        local active_instances=$(aws cloudwatch get-metric-statistics \
-            --namespace "AWS/AppRunner" \
-            --metric-name "ActiveInstances" \
-            --dimensions Name=ServiceName,Value="$service_name" \
-            --start-time $(date -d "5 minutes ago" -u +%Y-%m-%dT%H:%M:%S) \
-            --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
-            --period 300 \
-            --statistics Average \
-            --query 'Datapoints[0].Average' \
-            --output text 2>/dev/null || echo "0")
-        
-        local error_count=$(aws cloudwatch get-metric-statistics \
-            --namespace "AWS/AppRunner" \
-            --metric-name "ErrorCount" \
-            --dimensions Name=ServiceName,Value="$service_name" \
-            --start-time $(date -d "5 minutes ago" -u +%Y-%m-%dT%H:%M:%S) \
-            --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
-            --period 300 \
-            --statistics Sum \
-            --query 'Datapoints[0].Sum' \
-            --output text 2>/dev/null || echo "0")
-        
-        echo "📈 Active Instances: $active_instances, Errors (5min): $error_count"
-        
-        # Check for high error rate
-        if [ "$error_count" != "None" ] && [ "$error_count" -gt 10 ]; then
-            echo "⚠️  High error rate detected: $error_count errors in 5 minutes"
-        fi
-        
-        sleep 60
-    done
-    
-    echo "✅ Monitoring completed"
-}
-
 # Main deployment process
 main() {
     echo "🎯 AWS App Runner Optimized Deployment"
@@ -184,31 +113,11 @@ main() {
         exit 1
     fi
     
-    # Warm up instances with comprehensive strategy (non-blocking)
-    # Note: Warming runs in background and won't block GitHub Actions completion
-    # Cloudflare also performs warming, so this is supplementary
-    echo "🔥 Starting comprehensive instance warming in background..."
-    (
-        ./scripts/warm-instances.sh > /tmp/warm-instances.log 2>&1 || true
-    ) &
-    WARMING_PID=$!
-    echo "📝 Warming process started (PID: $WARMING_PID) - logs: /tmp/warm-instances.log"
-    
-    # Monitor deployment in background (non-blocking)
-    (
-        monitor_deployment "$SERVICE_NAME" > /tmp/monitor-deployment.log 2>&1 || true
-    ) &
-    MONITORING_PID=$!
-    echo "📝 Monitoring process started (PID: $MONITORING_PID) - logs: /tmp/monitor-deployment.log"
-    
     echo "🎉 Optimized deployment completed successfully!"
     echo "📊 Service is now running with optimized configuration:"
     echo "   - Minimum instances: $MIN_INSTANCES"
     echo "   - Maximum instances: $MAX_INSTANCES"
     echo "   - Max concurrency: $MAX_CONCURRENCY"
-    echo "   - Cold start prevention: Enabled"
-    echo ""
-    echo "ℹ️  Warming and monitoring are running in background and won't block deployment completion"
 }
 
 # Run main function
