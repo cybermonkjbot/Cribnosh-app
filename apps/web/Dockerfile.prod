@@ -1,5 +1,5 @@
 # --- Dependencies Stage ---
-FROM oven/bun:1.2.18-alpine AS deps
+FROM oven/bun:1.2.20-alpine AS deps
 WORKDIR /app
 
 # Copy package files first for better layer caching
@@ -9,7 +9,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --no-progress
 
 # --- Build Stage ---
-FROM oven/bun:1.2.18-alpine AS build
+FROM oven/bun:1.2.20-alpine AS build
 WORKDIR /app
 
 # Environment variables needed for build (Coolify deployment)
