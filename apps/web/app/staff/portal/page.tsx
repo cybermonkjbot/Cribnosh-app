@@ -1,25 +1,25 @@
 'use client';
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { GlassCard } from '@/components/ui/glass-card';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
 import { api } from "@/convex/_generated/api";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useConvex, useMutation, useQuery } from "convex/react";
 import {
   AlertCircle,
+  Badge,
   Bell,
+  Calendar,
   CheckCircle,
   Clock,
   FileText,
   LogOut,
+  Mail,
   MessageSquare,
   User,
-  UserPlus,
-  Badge,
-  Mail,
-  Calendar
+  UserPlus
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -380,6 +380,16 @@ export default function StaffPortal() {
                         <Mail className="w-8 h-8 text-red-600 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Email Campaigns</h3>
                         <p className="text-sm font-satoshi text-gray-700">Send emails to customers and waitlist</p>
+                      </div>
+                    </GlassCard>
+                  </Link>
+
+                  <Link href="/staff/blog" className="block focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-xl">
+                    <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
+                      <div className="text-center">
+                        <FileText className="w-8 h-8 text-orange-600 mx-auto mb-3" />
+                        <h3 className="font-medium font-satoshi text-gray-900 mb-1">Blog Posts</h3>
+                        <p className="text-sm font-satoshi text-gray-700">Create and manage blog posts</p>
                       </div>
                     </GlassCard>
                   </Link>

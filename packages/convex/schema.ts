@@ -2556,9 +2556,38 @@ export default defineSchema({
   blogPosts: defineTable({
     title: v.string(),
     slug: v.string(),
-    content: v.string(),
+    content: v.string(), // Rich HTML/JSON from editor
     excerpt: v.string(),
-    author: v.string(),
+    body: v.optional(v.array(v.string())), // Paragraphs array
+    sections: v.optional(v.array(v.object({
+      id: v.string(),
+      title: v.string(),
+      paragraphs: v.optional(v.array(v.string())),
+      bullets: v.optional(v.array(v.string())),
+      checklist: v.optional(v.array(v.string())),
+      proTips: v.optional(v.array(v.string())),
+      callout: v.optional(v.object({
+        variant: v.union(v.literal("note"), v.literal("warning"), v.literal("tip")),
+        text: v.string()
+      })),
+      image: v.optional(v.string()),
+      imageAlt: v.optional(v.string()),
+      video: v.optional(v.string()),
+      videoThumbnail: v.optional(v.string())
+    }))),
+    headings: v.optional(v.array(v.object({
+      id: v.string(),
+      text: v.string()
+    }))),
+    author: v.object({
+      name: v.string(),
+      avatar: v.string()
+    }),
+    authorName: v.string(), // For indexing purposes (duplicate of author.name)
+    categories: v.array(v.string()),
+    date: v.string(), // Format: "August 2025"
+    coverImage: v.optional(v.string()), // Convex storage URL
+    featuredImage: v.optional(v.string()), // Convex storage URL
     status: v.union(
       v.literal("draft"),
       v.literal("published"),
@@ -2566,7 +2595,6 @@ export default defineSchema({
     ),
     categoryId: v.optional(v.string()),
     tags: v.array(v.string()),
-    featuredImage: v.optional(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
     publishedAt: v.optional(v.number()),
@@ -2575,7 +2603,7 @@ export default defineSchema({
   })
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
-    .index("by_author", ["author"])
+    .index("by_author", ["authorName"])
     .index("by_published", ["publishedAt"]),
 
   // Recipes table (separate from content for specific recipe functionality)
