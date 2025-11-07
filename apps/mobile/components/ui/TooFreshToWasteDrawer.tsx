@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
 interface TooFreshItem {
@@ -86,7 +87,13 @@ export function TooFreshToWasteDrawer({
     },
   ];
 
-  const displayItems = items.length > 0 ? items : defaultItems;
+  const baseItems = items.length > 0 ? items : defaultItems;
+
+  // Search functionality with debouncing
+  const { setSearchQuery, filteredItems: displayItems } = useCategoryDrawerSearch({
+    items: baseItems,
+    searchFields: ['name', 'origin', 'category'],
+  });
 
   const handleAddToCart = (id: string) => {
     onAddToCart?.(id);
@@ -101,7 +108,9 @@ export function TooFreshToWasteDrawer({
       categoryName="Too Fresh to Waste"
       categoryDescription="High-quality meals and groceries that didn't make it to full menu — still fresh, still delicious, priced to move. Good for you, good for the kitchen, great for the planet."
       onBack={onBack}
+      onSearch={setSearchQuery}
       searchPlaceholder="Search eco-friendly items..."
+      backButtonInSearchBar={true}
     >
       <View style={styles.content}>
         {/* Eco Impact Summary */}

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
-import { Dimensions, StyleSheet, TextInput, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryFullContent } from './CategoryFullContent';
 import { CategoryFullFilterChips } from './CategoryFullFilterChips';
@@ -24,6 +24,7 @@ interface CategoryFullDrawerProps {
   children?: React.ReactNode;
   showTabs?: boolean;
   showSearch?: boolean;
+  backButtonInSearchBar?: boolean; // Show back button as icon in search bar instead of header
 }
 
 const { width, height } = Dimensions.get('window');
@@ -41,7 +42,8 @@ export function CategoryFullDrawer({
   activeFilters = [],
   children,
   showTabs = false,
-  showSearch = true
+  showSearch = true,
+  backButtonInSearchBar = false
 }: CategoryFullDrawerProps) {
   // Memoize filter chips rendering
   const filterChipsComponent = useMemo(() => {
@@ -61,14 +63,25 @@ export function CategoryFullDrawer({
         {/* Sticky Search Bar Only */}
         {showSearch && (
           <View style={styles.stickySearch}>
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={17} color="rgba(60, 60, 67, 0.6)" style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={searchPlaceholder}
-                placeholderTextColor="rgba(60, 60, 67, 0.6)"
-                onChangeText={onSearch}
-              />
+            <View style={styles.searchBarRow}>
+              {backButtonInSearchBar && (
+                <TouchableOpacity 
+                  onPress={onBack}
+                  style={styles.backIconButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="chevron-back" size={24} color="#094327" />
+                </TouchableOpacity>
+              )}
+              <View style={styles.searchContainer}>
+                <Ionicons name="search" size={17} color="rgba(60, 60, 67, 0.6)" style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder={searchPlaceholder}
+                  placeholderTextColor="rgba(60, 60, 67, 0.6)"
+                  onChangeText={onSearch}
+                />
+              </View>
             </View>
           </View>
         )}
@@ -77,14 +90,24 @@ export function CategoryFullDrawer({
         <View style={styles.scrollableContent}>
           <CategoryFullContent>
             <View style={styles.contentPadding}>
-              <CategoryFullHeader
-                categoryName={categoryName}
-                categoryDescription={categoryDescription}
-                onBack={onBack}
-                selectedSegment={selectedSegment}
-                onSegmentChange={onSegmentChange}
-                showTabs={showTabs}
-              />
+              {!backButtonInSearchBar && (
+                <CategoryFullHeader
+                  categoryName={categoryName}
+                  categoryDescription={categoryDescription}
+                  onBack={onBack}
+                  selectedSegment={selectedSegment}
+                  onSegmentChange={onSegmentChange}
+                  showTabs={showTabs}
+                />
+              )}
+              {backButtonInSearchBar && (
+                <View style={styles.headerOnly}>
+                  <Text style={styles.categoryNameOnly}>{categoryName}</Text>
+                  {categoryDescription && (
+                    <Text style={styles.categoryDescriptionOnly}>{categoryDescription}</Text>
+                  )}
+                </View>
+              )}
               
               {filterChipsComponent}
               
@@ -124,7 +147,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+  searchBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
@@ -143,6 +182,25 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#1F2937',
     lineHeight: 20,
+    letterSpacing: -0.01,
+  },
+  headerOnly: {
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  categoryNameOnly: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#094327',
+    lineHeight: 32,
+    letterSpacing: -0.02,
+    marginBottom: 4,
+  },
+  categoryDescriptionOnly: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#6B7280',
+    lineHeight: 22,
     letterSpacing: -0.01,
   },
   scrollableContent: {

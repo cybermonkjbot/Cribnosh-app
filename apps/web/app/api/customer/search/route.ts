@@ -273,6 +273,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const cuisine = searchParams.get('cuisine');
     if (cuisine) {
       preferences.cuisinePreferences = [cuisine];
+      // Also pass cuisine directly for direct search
+      body.cuisine = cuisine;
     }
 
     // Add preferences to body if any exist

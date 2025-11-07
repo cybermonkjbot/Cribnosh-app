@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFoodItemsGrid } from './CategoryFoodItemsGrid';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
@@ -168,12 +169,40 @@ export function TakeawayCategoryDrawer({
   }, [activeFilters]);
 
   const allAvailableBase = allAvailableItems.length > 0 ? allAvailableItems : defaultItems;
-  const displayAllAvailable = useMemo(() => applyFilters(allAvailableBase), [allAvailableBase, applyFilters]);
+  const filteredByFilters = useMemo(() => applyFilters(allAvailableBase), [allAvailableBase, applyFilters]);
+  
+  // Search functionality with debouncing
+  const { searchQuery, setSearchQuery, filteredItems: searchFilteredItems } = useCategoryDrawerSearch({
+    items: filteredByFilters,
+    searchFields: ['title', 'description'],
+  });
+
+  const displayAllAvailable = searchFilteredItems;
   const displayBestRated = useMemo(() => {
     const base = bestRatedItems.length > 0 ? bestRatedItems : defaultItems.slice(0, 3);
-    return applyFilters(base);
-  }, [bestRatedItems, defaultItems, applyFilters]);
-  const displayOrderAgain = useMemo(() => applyFilters(defaultItems.slice(2, 5)), [defaultItems, applyFilters]);
+    const filtered = applyFilters(base);
+    // Apply search to best rated if search is active
+    if (searchQuery.trim()) {
+      return filtered.filter((item) => {
+        const query = searchQuery.toLowerCase();
+        return item.title.toLowerCase().includes(query) || 
+               item.description.toLowerCase().includes(query);
+      });
+    }
+    return filtered;
+  }, [bestRatedItems, defaultItems, applyFilters, searchQuery]);
+  const displayOrderAgain = useMemo(() => {
+    const filtered = applyFilters(defaultItems.slice(2, 5));
+    // Apply search to order again if search is active
+    if (searchQuery.trim()) {
+      return filtered.filter((item) => {
+        const query = searchQuery.toLowerCase();
+        return item.title.toLowerCase().includes(query) || 
+               item.description.toLowerCase().includes(query);
+      });
+    }
+    return filtered;
+  }, [defaultItems, applyFilters, searchQuery]);
 
   // Enhanced filter chips with better categorization
   const filterChips = [
@@ -193,7 +222,9 @@ export function TakeawayCategoryDrawer({
       filterChips={filterChips}
       activeFilters={activeFilters}
       onFilterChange={handleFilterChange}
+      onSearch={setSearchQuery}
       searchPlaceholder="Search takeaway options..."
+      backButtonInSearchBar={true}
     >
       <View style={styles.content}>
         {/* Popular & Quick Section */}

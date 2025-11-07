@@ -245,15 +245,26 @@ export const findNearbyChefs = query({
     const toRad = (deg: number) => deg * Math.PI / 180;
     const earthRadiusKm = 6371;
     const chefs = await ctx.db.query('chefs').collect();
-    const withDistance = chefs.map(chef => {
-      const [chefLat, chefLng] = chef.location.coordinates;
-      const dLat = toRad(chefLat - latitude);
-      const dLng = toRad(chefLng - longitude);
-      const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(latitude)) * Math.cos(toRad(chefLat)) * Math.sin(dLng/2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = earthRadiusKm * c;
-      return { ...chef, distance };
-    });
+    const withDistance = chefs
+      .filter(chef => {
+        // Filter out chefs without location data
+        return chef.location && 
+               chef.location.coordinates && 
+               Array.isArray(chef.location.coordinates) && 
+               chef.location.coordinates.length === 2 &&
+               typeof chef.location.coordinates[0] === 'number' &&
+               typeof chef.location.coordinates[1] === 'number';
+      })
+      .map(chef => {
+        // Coordinates are stored as [latitude, longitude]
+        const [chefLat, chefLng] = chef.location.coordinates;
+        const dLat = toRad(chefLat - latitude);
+        const dLng = toRad(chefLng - longitude);
+        const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(latitude)) * Math.cos(toRad(chefLat)) * Math.sin(dLng/2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = earthRadiusKm * c;
+        return { ...chef, distance };
+      });
     return withDistance.filter(c => c.distance <= maxDistanceKm).sort((a, b) => a.distance - b.distance);
   }
 });

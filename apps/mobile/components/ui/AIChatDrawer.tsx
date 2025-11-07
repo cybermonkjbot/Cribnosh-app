@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { Avatar } from './Avatar';
@@ -636,16 +636,20 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       statusBarTranslucent={true}
       presentationStyle="fullScreen"
     >
-      <LinearGradient
-        colors={[COLORS.homePink, COLORS.homeCream]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          flex: 1,
-          paddingTop: topPosition,
-          zIndex: 99999, // High z-index but lower than bottom tabs (999999)
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
+        <LinearGradient
+          colors={[COLORS.homePink, COLORS.homeCream]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            flex: 1,
+            paddingTop: topPosition,
+            zIndex: 99999, // High z-index but lower than bottom tabs (999999)
+          }}
+        >
         <Animated.View style={[animatedContainerStyle, { flex: 1 }]}>
           {/* Header */}
           <View style={{
@@ -704,6 +708,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingVertical: 20 }}
             showsVerticalScrollIndicator={false}
+            automaticallyAdjustKeyboardInsets={true}
           >
             {messages.length === 0 ? (
               // Empty state
@@ -790,6 +795,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
           <ChatInput onSend={handleSendMessage} isLoading={isLoadingMessage || isSendingMessage} />
         </Animated.View>
       </LinearGradient>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }; 

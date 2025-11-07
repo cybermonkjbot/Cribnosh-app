@@ -13,7 +13,7 @@ import {
 import { useGetRecentDishesQuery } from "@/store/customerApi";
 
 // Global toast imports
-import { showError, showInfo } from "../../lib/GlobalToastManager";
+import { showError } from "../../lib/GlobalToastManager";
 import { OrderAgainSectionEmpty } from "./OrderAgainSectionEmpty";
 import { OrderAgainSectionSkeleton } from "./OrderAgainSectionSkeleton";
 
@@ -28,6 +28,7 @@ interface OrderItem {
 interface OrderAgainSectionProps {
   isHeaderSticky?: boolean;
   isAuthenticated?: boolean;
+  shouldShow?: boolean; // Controls visibility while maintaining hook consistency
   onItemPress?: (item: OrderItem) => void;
 }
 
@@ -60,6 +61,7 @@ const mockOrderItems: OrderItem[] = [
 export function OrderAgainSection({
   isHeaderSticky = false,
   isAuthenticated = false,
+  shouldShow = true, // Default to showing
   onItemPress,
 }: OrderAgainSectionProps) {
   const horizontalScrollRef = useRef<ScrollView>(null);
@@ -71,7 +73,6 @@ export function OrderAgainSection({
     data: recentDishesData,
     isLoading: dishesLoading,
     error: dishesError,
-    refetch: refetchDishes,
   } = useGetRecentDishesQuery(
     { limit: 10 },
     {
@@ -109,17 +110,8 @@ export function OrderAgainSection({
     }
   }, [dishesError, isAuthenticated]);
 
-  // Show skeleton while loading
-  if (dishesLoading && isAuthenticated) {
-    return <OrderAgainSectionSkeleton itemCount={3} />;
-  }
-
-  // Hide section if no orders (don't show empty state)
-  if (orderItems.length === 0 && isAuthenticated) {
-    return null;
-  }
-
   // Handle entrance and exit animations based on header state
+  // IMPORTANT: This hook must be called before any early returns to maintain hook consistency
   useEffect(() => {
     if (!isHeaderSticky) {
       // Header is normal - animate in
@@ -157,6 +149,52 @@ export function OrderAgainSection({
       ]).start();
     }
   }, [isHeaderSticky, fadeAnim, slideAnim]);
+
+  // Hide section if shouldShow is false (after all hooks are called)
+  if (!shouldShow) {
+    return null;
+  }
+
+  // Show skeleton while loading (after all hooks are called)
+  if (dishesLoading && isAuthenticated) {
+    return <OrderAgainSectionSkeleton itemCount={3} />;
+  }
+
+  // Show empty state if no orders
+  if (orderItems.length === 0 && isAuthenticated) {
+    return (
+      <Animated.View
+        style={{
+          marginBottom: 24,
+          paddingTop: 28,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+            paddingHorizontal: 10,
+          }}
+        >
+          <Text
+            style={{
+              color: "#1a1a1a",
+              fontSize: 20,
+              fontWeight: "700",
+              lineHeight: 24,
+            }}
+          >
+            Order again
+          </Text>
+        </View>
+        <OrderAgainSectionEmpty />
+      </Animated.View>
+    );
+  }
 
   return (
     <Animated.View

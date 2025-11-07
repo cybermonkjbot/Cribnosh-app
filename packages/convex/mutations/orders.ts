@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { mutation } from '../_generated/server';
+import { mutation, internalMutation } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
 import { api } from '../_generated/api';
 
@@ -96,6 +96,40 @@ export const createOrder = mutation({
         ...item,
         dish_id: item.dish_id as Id<'meals'>,
       })),
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return orderId;
+  },
+});
+
+// Internal mutation for seeding - skips region check
+export const createOrderForSeed = internalMutation({
+  args: {
+    customer_id: v.id('users'),
+    chef_id: v.id('chefs'),
+    order_items: v.array(v.object({
+      dish_id: v.id('meals'),
+      quantity: v.number(),
+      price: v.number(),
+      name: v.string(),
+    })),
+    total_amount: v.number(),
+    order_date: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const now = args.createdAt || Date.now();
+    const orderId = await ctx.db.insert('orders', {
+      order_id: `order_${now}_${Math.random().toString(36).substring(2, 10)}`,
+      customer_id: args.customer_id,
+      chef_id: args.chef_id,
+      order_date: args.order_date || new Date(now).toISOString(),
+      total_amount: args.total_amount,
+      order_status: 'pending',
+      payment_status: 'pending',
+      order_items: args.order_items,
       createdAt: now,
       updatedAt: now,
     });

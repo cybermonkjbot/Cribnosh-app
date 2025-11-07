@@ -59,6 +59,7 @@ import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 // import { ShakeDebugger } from './ShakeDebugger';
 import { CuisineCategoriesDrawer } from "./CuisineCategoriesDrawer";
+import { CuisineCategoryDrawer } from "./CuisineCategoryDrawer";
 import { CuisinesDrawer } from "./CuisinesDrawer";
 import { ShakeToEatFlow } from "./ShakeToEatFlow";
 import { SpecialOffersDrawer } from "./SpecialOffersDrawer";
@@ -747,11 +748,15 @@ export function MainScreen() {
     | "specialOffers"
     | "cuisineCategories"
     | "cuisines"
+    | "cuisineCategory"
     | null
   >(null);
 
   // Filter state for Top Kebabs drawer
   const [topKebabsFilters, setTopKebabsFilters] = useState<string[]>([]);
+  
+  // Selected cuisine category for category drawer
+  const [selectedCuisineCategory, setSelectedCuisineCategory] = useState<any>(null);
   
   // Handle filter changes for Top Kebabs
   const handleTopKebabsFilterChange = useCallback((filterId: string) => {
@@ -1234,18 +1239,9 @@ export function MainScreen() {
 
   // Handlers for new sections
   const handleCuisinePress = useCallback((cuisine: any) => {
-    // Create a mock kitchen based on the cuisine
-    const mockKitchen = {
-      id: `cuisine-${cuisine.id}`,
-      name: `${cuisine.name} Kitchen`,
-      cuisine: `${cuisine.name} cuisine`,
-      deliveryTime: "25-40 Mins",
-      distance: "1.5km away",
-      image: cuisine.image,
-      sentiment: "fire" as const,
-    };
-    setSelectedKitchen(mockKitchen);
-    setIsKitchenMainScreenVisible(true);
+    // Open category drawer for this cuisine instead of kitchen sheet
+    setSelectedCuisineCategory(cuisine);
+    setActiveDrawer("cuisineCategory");
   }, []);
 
   const handleFeaturedKitchenPress = useCallback((kitchen: any) => {
@@ -1468,6 +1464,7 @@ export function MainScreen() {
 
   const handleCloseDrawer = useCallback(() => {
     setActiveDrawer(null);
+    setSelectedCuisineCategory(null);
   }, []);
 
   // Sign-in handlers
@@ -1564,14 +1561,7 @@ export function MainScreen() {
     // In a real app, this would navigate to item details
   }, []);
 
-  // Pull trigger component with progress tracking
-  const pullTriggerComponent = showPullTrigger ? (
-    <PullToNoshHeavenTrigger
-      isVisible={true}
-      onTrigger={handleNoshHeavenTrigger}
-      pullProgress={pullProgress}
-    />
-  ) : null;
+  // Pull trigger visibility is now handled inline in the ScrollView content
 
   // Performance monitoring integration
   const { PerformanceMonitor, getPerformanceConfig } =
@@ -1777,24 +1767,28 @@ export function MainScreen() {
 
               {/* <SharedOrderingButton /> */}
               
+              {/* OrderAgainSection - Always render to maintain hook consistency */}
+              {/* The component itself handles visibility based on activeCategoryFilter */}
+              <OrderAgainSection
+                isHeaderSticky={isHeaderSticky}
+                isAuthenticated={isAuthenticated}
+                shouldShow={activeCategoryFilter === 'all'}
+                onItemPress={(item) => {
+                  // Navigate to meal details from order item
+                  handleMealPress({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    kitchen: '', // Order items don't have kitchen info
+                    image: { uri: item.image },
+                  });
+                }}
+              />
+              
               {/* Conditional Rendering: Normal View vs Filtered View */}
               {activeCategoryFilter === 'all' ? (
                 // Normal View - Show all sections when filter is 'all'
                 <>
-                  <OrderAgainSection
-                    isHeaderSticky={isHeaderSticky}
-                    isAuthenticated={isAuthenticated}
-                    onItemPress={(item) => {
-                      // Navigate to meal details from order item
-                      handleMealPress({
-                        id: item.id,
-                        name: item.name,
-                        price: item.price,
-                        kitchen: '', // Order items don't have kitchen info
-                        image: { uri: item.image },
-                      });
-                    }}
-                  />
                   <CuisinesSection 
                     onCuisinePress={handleCuisinePress} 
                     onSeeAllPress={handleOpenCuisinesDrawer}
@@ -1929,6 +1923,22 @@ export function MainScreen() {
                   )}
                 </>
               )}
+
+              {/* Pull to Nosh Heaven Trigger - Only show at the very end when content is loaded */}
+              {showPullTrigger && 
+               !cuisinesLoading && 
+               !chefsLoading && 
+               !mealsLoading && 
+               !refreshing && 
+               isAtBottom && (
+                <View style={{ paddingVertical: 40, paddingHorizontal: 16 }}>
+                  <PullToNoshHeavenTrigger
+                    isVisible={true}
+                    onTrigger={handleNoshHeavenTrigger}
+                    pullProgress={pullProgress}
+                  />
+                </View>
+              )}
             </Animated.View>
           </Animated.ScrollView>
         ) : (
@@ -1942,23 +1952,6 @@ export function MainScreen() {
             onScroll={scrollHandler}
             isAuthenticated={isAuthenticated}
           />
-        )}
-
-        {/* Pull to Nosh Heaven Trigger - positioned to avoid overlap */}
-        {pullTriggerComponent && (
-          <View
-            style={{
-              position: "absolute",
-              bottom: 140, // Increased spacing to avoid overlap with bottom tabs and search drawer
-              left: 0,
-              right: 0,
-              alignItems: "center",
-              zIndex: 1000,
-              paddingHorizontal: 16,
-            }}
-          >
-            {pullTriggerComponent}
-          </View>
         )}
 
         {/* Generating Suggestions Loader */}
@@ -2085,6 +2078,14 @@ export function MainScreen() {
           <CuisinesDrawer
             onBack={handleCloseDrawer}
             onCuisinePress={handleCuisinePress}
+          />
+        )}
+        {activeDrawer === "cuisineCategory" && selectedCuisineCategory && (
+          <CuisineCategoryDrawer
+            cuisine={selectedCuisineCategory}
+            onBack={handleCloseDrawer}
+            onAddToCart={handleDrawerAddToCart}
+            onItemPress={handleDrawerItemPress}
           />
         )}
       </Modal>

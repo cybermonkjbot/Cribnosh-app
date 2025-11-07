@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 import { PopularMealsSection } from './PopularMealsSection';
 
@@ -148,7 +149,13 @@ export function PopularMealsDrawer({
     },
   ];
 
-  const displayMeals = meals.length > 0 ? meals : defaultMeals;
+  const baseMeals = meals.length > 0 ? meals : defaultMeals;
+
+  // Search functionality with debouncing
+  const { setSearchQuery, filteredItems: displayMeals } = useCategoryDrawerSearch({
+    items: baseMeals,
+    searchFields: ['name', 'kitchen'],
+  });
 
   // Enhanced filter chips for meal categories
   const filterChips = [
@@ -160,21 +167,6 @@ export function PopularMealsDrawer({
     { id: 'budget', label: 'Budget', icon: 'wallet' },
   ];
 
-  const trendingMeals = displayMeals.filter(meal => meal.isPopular);
-  const newMeals = displayMeals.filter(meal => meal.isNew);
-  const eliteMeals = displayMeals.filter(meal => 
-    ['elite', 'bussing', 'fire', 'slaps'].includes(meal.sentiment || '')
-  );
-  const quickMeals = displayMeals.filter(meal => {
-    if (!meal.deliveryTime) return false;
-    const deliveryTime = parseInt(meal.deliveryTime.split(' ')[0]);
-    return deliveryTime <= 30;
-  });
-  const budgetMeals = displayMeals.filter(meal => {
-    const price = parseInt(meal.price.replace('£', ''));
-    return price <= 15;
-  });
-
   return (
     <CategoryFullDrawer
       categoryName="Popular Meals"
@@ -182,7 +174,9 @@ export function PopularMealsDrawer({
       onBack={onBack}
       filterChips={filterChips}
       activeFilters={[]}
+      onSearch={setSearchQuery}
       searchPlaceholder="Search meals by name or kitchen..."
+      backButtonInSearchBar={true}
     >
       <View style={styles.content}>
         <ScrollView 

@@ -145,19 +145,20 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   const paginatedChefs = nearbyChefs.slice(startIndex, endIndex);
 
   // Transform to match expected mobile app format
+  // Note: coordinates are stored as [latitude, longitude]
   const chefs = paginatedChefs.map((chef: any) => ({
     id: chef._id,
     name: chef.kitchenName || chef.name || 'Unknown Kitchen',
     location: {
-      latitude: chef.location?.coordinates?.[1] || latitude,
-      longitude: chef.location?.coordinates?.[0] || longitude,
+      latitude: chef.location?.coordinates?.[0] || latitude,
+      longitude: chef.location?.coordinates?.[1] || longitude,
       address: chef.location?.address || '',
       city: chef.location?.city || '',
     },
     distance: chef.distance || 0,
     rating: chef.rating || null,
     cuisine: chef.specialties?.[0] || 'Other',
-    image_url: chef.imageUrl || chef.image_url || null,
+    image_url: chef.imageUrl || chef.image_url || chef.profileImage || null,
     is_live: chef.isLive || false,
   }));
 

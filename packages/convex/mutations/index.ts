@@ -78,6 +78,7 @@ export {
   deleteSession as deleteUserSession
 } from './sessions';
 
+export * from './specialOffers';
 export * from './staff';
 export * from './timelogs';
 export * from './users';

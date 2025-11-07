@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
 interface Cuisine {
@@ -62,7 +63,13 @@ export function CuisinesDrawer({
     },
   ];
 
-  const displayCuisines = cuisines.length > 0 ? cuisines : defaultCuisines;
+  const baseCuisines = cuisines.length > 0 ? cuisines : defaultCuisines;
+
+  // Search functionality with debouncing
+  const { setSearchQuery, filteredItems: displayCuisines } = useCategoryDrawerSearch({
+    items: baseCuisines,
+    searchFields: ['name'],
+  });
 
   const renderCuisineCard = (cuisine: Cuisine, index: number) => (
     <TouchableOpacity
@@ -88,7 +95,9 @@ export function CuisinesDrawer({
       categoryDescription="Browse all available cuisines and discover new flavors"
       onBack={onBack}
       showTabs={false}
+      onSearch={setSearchQuery}
       searchPlaceholder="Search cuisines..."
+      backButtonInSearchBar={true}
     >
       <ScrollView 
         style={styles.container}

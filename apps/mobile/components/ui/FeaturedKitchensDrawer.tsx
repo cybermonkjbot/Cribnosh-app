@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 import { FeaturedKitchensSection } from './FeaturedKitchensSection';
 
@@ -114,7 +115,13 @@ export function FeaturedKitchensDrawer({
     },
   ];
 
-  const displayKitchens = kitchens.length > 0 ? kitchens : defaultKitchens;
+  const baseKitchens = kitchens.length > 0 ? kitchens : defaultKitchens;
+
+  // Search functionality with debouncing
+  const { setSearchQuery, filteredItems: displayKitchens } = useCategoryDrawerSearch({
+    items: baseKitchens,
+    searchFields: ['name', 'cuisine'],
+  });
 
   // Enhanced filter chips for kitchen categories
   const filterChips = [
@@ -126,19 +133,6 @@ export function FeaturedKitchensDrawer({
     { id: 'trending', label: 'Trending', icon: 'flame' },
   ];
 
-  const liveKitchens = displayKitchens.filter(kitchen => kitchen.isLive);
-  const eliteKitchens = displayKitchens.filter(kitchen => 
-    ['elite', 'bussing', 'fire', 'slaps'].includes(kitchen.sentiment)
-  );
-  const quickKitchens = displayKitchens.filter(kitchen => {
-    const deliveryTime = parseInt(kitchen.deliveryTime.split(' ')[0]);
-    return deliveryTime <= 30;
-  });
-  const nearbyKitchens = displayKitchens.filter(kitchen => {
-    const distance = parseFloat(kitchen.distance.split(' ')[0]);
-    return distance <= 1.5;
-  });
-
   return (
     <CategoryFullDrawer
       categoryName="Featured Kitchens"
@@ -146,7 +140,9 @@ export function FeaturedKitchensDrawer({
       onBack={onBack}
       filterChips={filterChips}
       activeFilters={[]}
+      onSearch={setSearchQuery}
       searchPlaceholder="Search kitchens by name or cuisine..."
+      backButtonInSearchBar={true}
     >
       <View style={styles.content}>
         <ScrollView 

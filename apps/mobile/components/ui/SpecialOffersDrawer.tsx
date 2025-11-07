@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
 interface SpecialOffer {
@@ -70,7 +71,13 @@ export function SpecialOffersDrawer({
     },
   ];
 
-  const displayOffers = offers.length > 0 ? offers : defaultOffers;
+  const baseOffers = offers.length > 0 ? offers : defaultOffers;
+
+  // Search functionality with debouncing
+  const { setSearchQuery, filteredItems: displayOffers } = useCategoryDrawerSearch({
+    items: baseOffers,
+    searchFields: ['title', 'description'],
+  });
 
   const renderOfferCard = (offer: SpecialOffer) => (
     <TouchableOpacity
@@ -120,7 +127,9 @@ export function SpecialOffersDrawer({
       categoryDescription="Discover exclusive deals and promotions from top kitchens"
       onBack={onBack}
       showTabs={false}
+      onSearch={setSearchQuery}
       searchPlaceholder="Search offers..."
+      backButtonInSearchBar={true}
     >
       <ScrollView 
         style={styles.container}
