@@ -152,12 +152,22 @@ jobs:
         working-directory: packages/convex
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}
         run: |
           echo "🚀 Deploying Convex backend..."
           if [ -z "$CONVEX_DEPLOY_KEY" ]; then
             echo "⚠️  CONVEX_DEPLOY_KEY not set, skipping Convex deployment"
             exit 0
           fi
+          # The CONVEX_DEPLOY_KEY determines which deployment to deploy to
+          # If you need to change the deployment, update the CONVEX_DEPLOY_KEY secret in GitHub
+          if [ -n "$CONVEX_DEPLOYMENT" ]; then
+            echo "📋 Deployment specified: $CONVEX_DEPLOYMENT"
+            export CONVEX_DEPLOYMENT="$CONVEX_DEPLOYMENT"
+          fi
+          echo "📋 Deploying using CONVEX_DEPLOY_KEY (deployment is determined by the key)"
+          echo "⚠️  Note: The CONVEX_DEPLOY_KEY determines which deployment to deploy to."
+          echo "⚠️  If you need to change the deployment, update the CONVEX_DEPLOY_KEY secret in GitHub."
           bunx convex deploy
           echo "✅ Convex deployment completed"
 
