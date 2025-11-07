@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
+import { useSession } from "@/lib/auth/use-session";
+import { SignInScreen } from "@/components/auth/sign-in-screen";
 import { 
   TryItSearch, 
   SearchResults, 
@@ -15,6 +17,7 @@ import {
 } from "@/components/try-it";
 
 export default function SearchContent() {
+  const { isAuthenticated, isLoading } = useSession();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || "");
   const [isSearching, setIsSearching] = useState(false);
@@ -84,6 +87,23 @@ export default function SearchContent() {
     url.searchParams.delete('q');
     window.history.replaceState({}, '', url);
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#ff3b30] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show sign-in screen if not authenticated
+  if (!isAuthenticated) {
+    return <SignInScreen notDismissable={true} />;
+  }
 
   if (showResults) {
     return <SearchResults query={searchQuery} onClearSearch={handleClearSearch} />;

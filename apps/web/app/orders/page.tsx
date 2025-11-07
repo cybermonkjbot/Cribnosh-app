@@ -70,19 +70,19 @@ export default function OrdersPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-4xl mx-auto px-4 py-8 w-full text-center">
-          <div className="w-20 h-20 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-6">
+          <div className="flex items-center justify-center mx-auto mb-6">
             <Receipt className="w-12 h-12 text-[#10B981]" />
           </div>
           <h2 className="text-xl font-asgard text-[#094327] mb-2">Place your first order to see orders here</h2>
           <p className="text-[#6B7280] font-satoshi mb-8">
             Browse kitchens and meals to get started with your first order
-          </p>
-          <Link href="/try-it">
+            </p>
+              <Link href="/try-it">
             <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white">
               Browse Kitchens
               <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
+                </Button>
+              </Link>
         </div>
       </div>
     );
@@ -106,20 +106,20 @@ export default function OrdersPage() {
           </div>
         ) : !hasOrders ? (
           <div className="min-h-[60vh] flex items-center justify-center">
-            <div className="bg-white rounded-lg shadow-sm p-8 text-center w-full max-w-md">
-              <div className="w-20 h-20 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-6">
+            <div className="text-center w-full max-w-md">
+              <div className="flex items-center justify-center mx-auto mb-6">
                 <Receipt className="w-12 h-12 text-[#10B981]" />
               </div>
               <h2 className="text-xl font-asgard text-[#094327] mb-2">Place your first order to see orders here</h2>
               <p className="text-[#6B7280] font-satoshi mb-8">
                 Browse kitchens and meals to get started with your first order
-              </p>
-              <Link href="/try-it">
-                <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white">
+            </p>
+            <Link href="/try-it">
+              <Button className="bg-[#ff3b30] hover:bg-[#ff5e54] text-white">
                   Browse Kitchens
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
             </div>
           </div>
         ) : (

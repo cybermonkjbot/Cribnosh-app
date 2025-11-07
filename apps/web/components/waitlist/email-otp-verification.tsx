@@ -66,7 +66,10 @@ export function EmailOTPVerification({
       const data = await response.json();
 
       if (data.success) {
-        onSuccess(data.token, data.user);
+        // Handle both response structures: data.token or data.data.token
+        const token = data.data?.token || data.token;
+        const user = data.data?.user || data.user;
+        onSuccess(token, user);
       } else {
         // Handle specific error cases
         if (response.status === 429) {
