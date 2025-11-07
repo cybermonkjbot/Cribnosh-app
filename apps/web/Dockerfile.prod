@@ -6,7 +6,9 @@ WORKDIR /app
 COPY package.json bun.lock ./
 
 # Install all dependencies (including dev deps for building)
-RUN bun install --frozen-lockfile --no-progress
+# Note: Using --no-frozen-lockfile because this is a monorepo workspace
+# The lockfile is managed at the root level
+RUN bun install --no-progress
 
 # --- Build Stage ---
 FROM oven/bun:1.2.20-alpine AS build
@@ -181,7 +183,7 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/bun.lock ./bun.lock
 
 # Install only production dependencies
-RUN bun install --frozen-lockfile --production --no-progress
+RUN bun install --production --no-progress
 
 # Copy built application and necessary runtime files
 COPY --from=build /app/.next ./.next
