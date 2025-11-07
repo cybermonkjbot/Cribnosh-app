@@ -9,6 +9,7 @@ import { CheckCircle, XCircle, Calendar, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AdminPageSkeleton } from '@/components/admin/skeletons';
+import { EmptyState } from '@/components/admin/empty-state';
 import { Id } from '@/convex/_generated/dataModel';
 import { useQuery, useMutation } from 'convex/react';
 
@@ -93,7 +94,12 @@ export default function AdminStaffLeaveRequestsPage() {
               <span className="ml-2 font-satoshi text-gray-700">Loading requests...</span>
             </div>
           ) : requests.length === 0 ? (
-            <div className="text-center text-gray-600 font-satoshi py-8">No pending leave requests.</div>
+            <EmptyState
+              icon={Calendar}
+              title="No pending leave requests"
+              description="All leave requests have been processed"
+              variant="no-data"
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-primary-200">

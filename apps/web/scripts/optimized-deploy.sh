@@ -68,17 +68,32 @@ rolling_deployment() {
         return 1
     fi
     
-    # Wait for deployment to complete using AWS recommended wait command
+    # Wait for deployment to complete by polling service status
     echo "⏳ Waiting for deployment to complete (this may take a few minutes)..."
-    aws apprunner wait service-updated --service-arn "$service_arn"
+    local max_attempts=60
+    local attempt=1
     
-    if [ $? -eq 0 ]; then
-        echo "✅ Deployment completed successfully"
-        return 0
-    else
-        echo "❌ Deployment wait failed or timed out"
-        return 1
-    fi
+    while [ $attempt -le $max_attempts ]; do
+        local service_status=$(aws apprunner describe-service \
+            --service-arn "$service_arn" \
+            --query 'Service.Status' \
+            --output text 2>/dev/null || echo "UNKNOWN")
+        
+        if [ "$service_status" = "RUNNING" ]; then
+            echo "✅ Deployment completed successfully"
+            return 0
+        elif [ "$service_status" = "RUNNING_FAILED" ] || [ "$service_status" = "UPDATE_FAILED" ]; then
+            echo "❌ Deployment failed with status: $service_status"
+            return 1
+        else
+            echo "⏳ Deployment status: $service_status (attempt $attempt/$max_attempts)"
+            sleep 30
+            ((attempt++))
+        fi
+    done
+    
+    echo "❌ Deployment wait timed out after $max_attempts attempts"
+    return 1
 }
 
 # Main deployment process

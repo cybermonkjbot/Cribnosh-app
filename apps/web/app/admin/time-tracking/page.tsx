@@ -30,10 +30,10 @@ import {
   User,
   Timer,
   Target,
-  AlertCircle,
   Activity,
   PieChart
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 import { motion } from 'motion/react';
 import { TimeTrackingTableSkeleton } from '@/components/admin/skeletons';
 
@@ -476,10 +476,12 @@ export default function AdminTimeTrackingPage() {
                   ) : list.results.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <Clock className="w-12 h-12 text-gray-500" />
-                          <p className="text-gray-700 font-satoshi">No sessions found</p>
-                        </div>
+                        <EmptyState
+                          icon={Clock}
+                          title="No sessions found"
+                          description="No time tracking sessions have been recorded yet"
+                          variant="compact"
+                        />
                       </td>
                     </tr>
                   ) : (

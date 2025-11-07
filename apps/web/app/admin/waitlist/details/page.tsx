@@ -27,6 +27,7 @@ import {
   TrendingUp,
   BarChart2
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 type WaitlistEntry = Doc<"waitlist">;
 
@@ -416,13 +417,22 @@ export default function WaitlistDetailsPage() {
       </div>
 
       {filteredEntries.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <ClipboardList className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No waitlist entries found</h3>
-            <p className="text-gray-600">Try adjusting your search or filter criteria</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ClipboardList}
+          title="No waitlist entries found"
+          description="Try adjusting your search or filter criteria"
+          action={searchTerm || statusFilter !== 'all' || locationFilter !== 'all' || priorityFilter !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setLocationFilter('all');
+              setPriorityFilter('all');
+            },
+            variant: "secondary"
+          } : undefined}
+          variant="filtered"
+        />
       )}
 
       {/* Analytics Section */}

@@ -13,6 +13,7 @@ import { WaitlistCardSkeleton } from "@/components/admin/skeletons";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmptyState } from "@/components/admin/empty-state";
 
 
 interface WaitlistEntry {
@@ -136,11 +137,13 @@ export default function AdminWaitlistPage() {
     return (
       <AuthWrapper role="admin">
         <div className="p-4 sm:p-6 flex flex-col items-center justify-center min-h-[60vh]">
-          <div className="bg-white/70 backdrop-blur-lg border border-primary-100 rounded-2xl shadow-lg p-8 flex flex-col items-center">
-            <Users className="w-10 h-10 text-primary-600 mb-4" />
-            <h2 className="text-xl font-bold font-asgard text-gray-900 mb-2">No one on the waitlist yet!</h2>
-            <p className="text-gray-700 font-satoshi text-center max-w-xs">As soon as someone joins, you'll see them here. Share the link to get the word out!</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No one on the waitlist yet!"
+            description="As soon as someone joins, you'll see them here. Share the link to get the word out!"
+            variant="no-data"
+            className="max-w-md"
+          />
         </div>
       </AuthWrapper>
     );

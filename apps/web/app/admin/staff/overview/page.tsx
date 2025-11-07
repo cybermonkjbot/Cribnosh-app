@@ -8,6 +8,7 @@ import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { Calendar, Loader2, Mail, Users, Shield, FileText } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { EmptyState } from '@/components/admin/empty-state';
 
 const ClientDate = dynamic(() => import('@/components/ui/client-date'), { ssr: false });
 
@@ -81,7 +82,14 @@ export default function AdminStaffOverviewPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-gray-600 font-satoshi">No staff found.</td>
+                      <td colSpan={4} className="px-4 py-8 text-center">
+                        <EmptyState
+                          icon={Users}
+                          title="No staff found"
+                          description="No staff members have been added yet"
+                          variant="compact"
+                        />
+                      </td>
                     </tr>
                   )}
                 </tbody>

@@ -1,9 +1,37 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { EmptyState } from '@/components/admin/empty-state';
+import { columns } from '@/components/admin/payroll/columns';
+import { DataTable } from '@/components/admin/payroll/data-table';
+import PayPeriodDialog from '@/components/admin/payroll/pay-period-dialog';
+import { PayrollCardSkeleton } from '@/components/admin/skeletons';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Activity,
+  AlertCircle,
+  BarChart3,
+  Calendar,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Download,
+  Edit,
+  Eye,
+  FileText,
+  PieChart,
+  Plus,
+  Settings,
+  TrendingUp,
+  Users
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import { useMemo, useState } from 'react';
 
 // Using Convex generated types instead of custom interface
 
@@ -17,33 +45,6 @@ interface PayPeriod {
   startDate: number;
   endDate: number;
 }
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
-import { PayrollCardSkeleton } from '@/components/admin/skeletons';
-import { 
-  Users, 
-  FileText, 
-  Clock, 
-  DollarSign, 
-  TrendingUp, 
-  Calendar,
-  Settings,
-  Plus,
-  Download,
-  Eye,
-  Edit,
-  CheckCircle,
-  AlertCircle,
-  BarChart3,
-  PieChart,
-  Activity
-} from 'lucide-react';
-import { DataTable } from '@/components/admin/payroll/data-table';
-import { columns } from '@/components/admin/payroll/columns';
-import PayPeriodDialog from '@/components/admin/payroll/pay-period-dialog';
-import { useToast } from "@/hooks/use-toast";
-import { motion } from 'motion/react';
 
 export default function PayrollAdminPage() {
   const { toast } = useToast();
@@ -360,7 +361,25 @@ export default function PayrollAdminPage() {
                 </Button>
               </div>
               
-              {payPeriods ? (
+              {!payPeriods ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : payPeriods.length === 0 ? (
+                <EmptyState
+                  icon={Calendar}
+                  title="No pay periods yet"
+                  description="Create your first pay period to get started"
+                  action={{
+                    label: "Create Pay Period",
+                    onClick: () => setIsPayPeriodDialogOpen(true),
+                    variant: "primary"
+                  }}
+                  variant="no-data"
+                />
+              ) : (
                 <DataTable 
                   columns={columns} 
                   data={payPeriods.map((period: PayPeriod) => ({
@@ -375,12 +394,6 @@ export default function PayrollAdminPage() {
                     onProcess: period._id ? () => handleProcessPayroll(period._id) : undefined
                   }))} 
                 />
-              ) : (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
-                  ))}
-                </div>
               )}
             </div>
           </TabsContent>
@@ -393,7 +406,20 @@ export default function PayrollAdminPage() {
                 Manage payroll settings and view individual staff member details
               </p>
               
-              {staffProfiles ? (
+              {!staffProfiles ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {[...Array(6)].map((_, i) => (
+                    <PayrollCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : staffProfiles.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="No staff profiles yet"
+                  description="Staff payroll profiles will appear here once they are created"
+                  variant="no-data"
+                />
+              ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {staffProfiles.map((profile: StaffPayrollProfile) => (
                     <div key={profile._id} className="bg-gray-50/80 rounded-xl p-4 border border-gray-200/60 hover:shadow-md transition-shadow">
@@ -419,12 +445,6 @@ export default function PayrollAdminPage() {
                         Last updated: {new Date().toLocaleDateString()}
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {[...Array(6)].map((_, i) => (
-                    <PayrollCardSkeleton key={i} />
                   ))}
                 </div>
               )}

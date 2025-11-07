@@ -6,6 +6,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Plus, Search, Shield, Users, Upload, FileText, Eye, Edit, Trash, Filter, Download } from "lucide-react";
 import React, { useMemo, useState, useEffect } from 'react';
+import { EmptyState } from '@/components/admin/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -321,10 +322,12 @@ export default function AdminStaffPage() {
                 ) : (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <Users className="w-12 h-12 text-gray-500" />
-                        <p className="text-gray-700 font-satoshi">No staff members found</p>
-                      </div>
+                      <EmptyState
+                        icon={Users}
+                        title="No staff members found"
+                        description={search ? "Try adjusting your search criteria" : "No staff members have been added yet"}
+                        variant="compact"
+                      />
                     </td>
                   </tr>
                 )}

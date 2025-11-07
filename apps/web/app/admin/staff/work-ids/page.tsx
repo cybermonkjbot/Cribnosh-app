@@ -10,6 +10,7 @@ import { Badge, Loader2, RefreshCw, XCircle } from 'lucide-react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { WorkIdListSkeleton } from '@/components/admin/skeletons';
 import { useMutation, useQuery } from 'convex/react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 export default function AdminStaffWorkIdsPage() {
   
@@ -82,7 +83,12 @@ export default function AdminStaffWorkIdsPage() {
           {!workIds ? (
             <WorkIdListSkeleton rowCount={5} />
           ) : workIds.length === 0 ? (
-            <div className="text-center text-gray-600 font-satoshi py-8">No Work IDs found.</div>
+            <EmptyState
+              icon={Badge}
+              title="No Work IDs found"
+              description="No work IDs have been issued yet"
+              variant="no-data"
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-amber-200">

@@ -10,6 +10,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Edit, FileText, Globe, Image, Plus, Search, Trash, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { EmptyState } from '@/components/admin/empty-state';
 
 
 interface ContentItem {
@@ -300,19 +301,27 @@ export default function AdminContentPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
         </div>
       ) : filteredItems?.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30">
-          <p className="text-gray-700 font-satoshi">No content found matching your filters.</p>
-          <button
-            onClick={() => {
+        <EmptyState
+          icon={FileText}
+          title={searchQuery || selectedType !== 'all' || selectedStatus !== 'all' ? "No content found" : "No content yet"}
+          description={searchQuery || selectedType !== 'all' || selectedStatus !== 'all' 
+            ? "Try adjusting your search or filter criteria" 
+            : "Create your first content item to get started"}
+          action={searchQuery || selectedType !== 'all' || selectedStatus !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
               setSearchQuery('');
               setSelectedType('all');
               setSelectedStatus('all');
-            }}
-            className="mt-2 text-primary-600 hover:text-primary-700 font-satoshi"
-          >
-            Clear filters
-          </button>
-        </div>
+            },
+            variant: "secondary"
+          } : {
+            label: "Create Content",
+            onClick: handleCreateNew,
+            variant: "primary"
+          }}
+          variant={searchQuery || selectedType !== 'all' || selectedStatus !== 'all' ? "filtered" : "no-data"}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredItems?.map((item) => (

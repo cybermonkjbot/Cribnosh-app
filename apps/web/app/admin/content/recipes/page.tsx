@@ -26,6 +26,7 @@ import {
   Flame,
   ChefHat as ChefIcon
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 interface Recipe {
   _id: Id<"recipes">;
@@ -724,13 +725,27 @@ export default function RecipeManagementPage() {
       </div>
 
       {filteredRecipes.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <ChefHat className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No recipes found</h3>
-            <p className="text-gray-600">Create your first recipe to get started</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ChefHat}
+          title={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? "No recipes found" : "No recipes yet"}
+          description={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' 
+            ? "Try adjusting your search or filter criteria" 
+            : "Create your first recipe to get started"}
+          action={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
+              setSearchTerm('');
+              setCategoryFilter('all');
+              setStatusFilter('all');
+            },
+            variant: "secondary"
+          } : {
+            label: "Create Recipe",
+            onClick: () => setIsCreating(true),
+            variant: "primary"
+          }}
+          variant={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? "filtered" : "no-data"}
+        />
       )}
     </div>
   );

@@ -24,6 +24,7 @@ import {
   Plus,
   Calendar
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 interface JobPosting {
   _id: Id<"jobPosting">;
@@ -412,13 +413,23 @@ export default function ActiveJobsPage() {
       </div>
 
       {filteredJobs.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Briefcase className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No job postings found</h3>
-            <p className="text-gray-600">Try adjusting your search or filter criteria</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Briefcase}
+          title={searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? "No job postings found" : "No active jobs yet"}
+          description={searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' 
+            ? "Try adjusting your search or filter criteria" 
+            : "No active job postings have been published yet"}
+          action={searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setDepartmentFilter('all');
+            },
+            variant: "secondary"
+          } : undefined}
+          variant={searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? "filtered" : "no-data"}
+        />
       )}
     </div>
   );

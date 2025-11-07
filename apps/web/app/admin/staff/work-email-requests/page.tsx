@@ -10,6 +10,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { CheckCircle, Loader2, Mail, XCircle } from 'lucide-react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AdminPageSkeleton, RequestListSkeleton } from '@/components/admin/skeletons';
+import { EmptyState } from '@/components/admin/empty-state';
 
 export default function AdminStaffWorkEmailRequestsPage() {
   
@@ -103,7 +104,12 @@ export default function AdminStaffWorkEmailRequestsPage() {
           {!requests ? (
             <RequestListSkeleton rowCount={5} />
           ) : requests.length === 0 ? (
-            <div className="text-center text-gray-600 font-satoshi py-8">No pending work email requests.</div>
+            <EmptyState
+              icon={Mail}
+              title="No pending work email requests"
+              description="All work email requests have been processed"
+              variant="no-data"
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-primary-200">

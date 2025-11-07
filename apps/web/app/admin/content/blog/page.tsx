@@ -27,6 +27,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 interface BlogPost {
   _id: Id<"blogPosts">;
@@ -579,13 +580,26 @@ export default function BlogManagementPage() {
       </div>
 
       {filteredPosts.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No blog posts found</h3>
-            <p className="text-gray-600">Create your first blog post to get started</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title={searchTerm || statusFilter !== 'all' ? "No blog posts found" : "No blog posts yet"}
+          description={searchTerm || statusFilter !== 'all' 
+            ? "Try adjusting your search or filter criteria" 
+            : "Create your first blog post to get started"}
+          action={searchTerm || statusFilter !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
+              setSearchTerm('');
+              setStatusFilter('all');
+            },
+            variant: "secondary"
+          } : {
+            label: "Create Post",
+            onClick: () => setIsCreating(true),
+            variant: "primary"
+          }}
+          variant={searchTerm || statusFilter !== 'all' ? "filtered" : "no-data"}
+        />
       )}
     </div>
   );

@@ -25,6 +25,7 @@ import {
   Clock,
   Star
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 interface JobApplication {
   _id: Id<"jobApplication">;
@@ -459,13 +460,23 @@ export default function JobApplicationsPage() {
       </div>
 
       {filteredApplications.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
-            <p className="text-gray-600">Try adjusting your search or filter criteria</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title={searchTerm || statusFilter !== 'all' || jobFilter !== 'all' ? "No applications found" : "No applications yet"}
+          description={searchTerm || statusFilter !== 'all' || jobFilter !== 'all' 
+            ? "Try adjusting your search or filter criteria" 
+            : "Applications will appear here once candidates apply to job postings"}
+          action={searchTerm || statusFilter !== 'all' || jobFilter !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setJobFilter('all');
+            },
+            variant: "secondary"
+          } : undefined}
+          variant={searchTerm || statusFilter !== 'all' || jobFilter !== 'all' ? "filtered" : "no-data"}
+        />
       )}
     </div>
   );

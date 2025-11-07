@@ -27,6 +27,7 @@ import {
   FileSpreadsheet,
   Receipt
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 interface TaxDocument {
   _id: Id<"taxDocuments">;
@@ -635,13 +636,27 @@ export default function TaxDocumentsPage() {
       </div>
 
       {filteredDocuments.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No tax documents found</h3>
-            <p className="text-gray-600">Generate your first tax document to get started</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title={searchTerm || statusFilter !== 'all' || yearFilter !== 'all' ? "No tax documents found" : "No tax documents yet"}
+          description={searchTerm || statusFilter !== 'all' || yearFilter !== 'all' 
+            ? "Try adjusting your search or filter criteria" 
+            : "Generate your first tax document to get started"}
+          action={searchTerm || statusFilter !== 'all' || yearFilter !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setYearFilter('all');
+            },
+            variant: "secondary"
+          } : {
+            label: "Generate Document",
+            onClick: () => setIsCreating(true),
+            variant: "primary"
+          }}
+          variant={searchTerm || statusFilter !== 'all' || yearFilter !== 'all' ? "filtered" : "no-data"}
+        />
       )}
 
       {/* Document Templates */}

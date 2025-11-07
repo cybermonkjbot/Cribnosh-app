@@ -26,6 +26,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 interface EmailCampaign {
   _id: Id<"emailCampaigns">;
@@ -530,13 +531,27 @@ export default function WaitlistEmailsPage() {
       </div>
 
       {filteredCampaigns.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Mail className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns found</h3>
-            <p className="text-gray-600">Create your first email campaign to get started</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Mail}
+          title={searchTerm || statusFilter !== 'all' || typeFilter !== 'all' ? "No campaigns found" : "No campaigns yet"}
+          description={searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
+            ? "Try adjusting your search or filter criteria" 
+            : "Create your first email campaign to get started"}
+          action={searchTerm || statusFilter !== 'all' || typeFilter !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setTypeFilter('all');
+            },
+            variant: "secondary"
+          } : {
+            label: "Create Campaign",
+            onClick: () => setIsCreating(true),
+            variant: "primary"
+          }}
+          variant={searchTerm || statusFilter !== 'all' || typeFilter !== 'all' ? "filtered" : "no-data"}
+        />
       )}
     </div>
   );

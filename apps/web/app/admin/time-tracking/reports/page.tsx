@@ -31,6 +31,7 @@ import {
   Search,
   Trash2
 } from 'lucide-react';
+import { EmptyState } from '@/components/admin/empty-state';
 
 interface TimeTrackingReport {
   _id: string;
@@ -535,13 +536,26 @@ export default function TimeTrackingReportsPage() {
       </div>
 
       {filteredReports.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No reports found</h3>
-            <p className="text-gray-600">Generate your first time tracking report to get started</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileSpreadsheet}
+          title={searchTerm || typeFilter !== 'all' ? "No reports found" : "No reports yet"}
+          description={searchTerm || typeFilter !== 'all' 
+            ? "Try adjusting your search or filter criteria" 
+            : "Generate your first time tracking report to get started"}
+          action={searchTerm || typeFilter !== 'all' ? {
+            label: "Clear filters",
+            onClick: () => {
+              setSearchTerm('');
+              setTypeFilter('all');
+            },
+            variant: "secondary"
+          } : {
+            label: "Generate Report",
+            onClick: () => setIsCreating(true),
+            variant: "primary"
+          }}
+          variant={searchTerm || typeFilter !== 'all' ? "filtered" : "no-data"}
+        />
       )}
 
       {/* Top Performers */}

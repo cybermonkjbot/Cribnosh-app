@@ -21,6 +21,7 @@ import {
   Mail
 } from 'lucide-react';
 import { Id } from '@/convex/_generated/dataModel';
+import { EmptyState } from '@/components/admin/empty-state';
 
 
 
@@ -377,18 +378,26 @@ export default function AdminCareers() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
           </div>
         ) : filteredJobs?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30">
-            <p className="text-gray-700 font-satoshi">No jobs found matching your filters.</p>
-            <button
-              onClick={() => {
+          <EmptyState
+            icon={Briefcase}
+            title={searchQuery || statusFilter !== 'all' ? "No jobs found" : "No jobs yet"}
+            description={searchQuery || statusFilter !== 'all' 
+              ? "Try adjusting your search or filter criteria" 
+              : "Create your first job posting to get started"}
+            action={searchQuery || statusFilter !== 'all' ? {
+              label: "Clear filters",
+              onClick: () => {
                 setSearchQuery('');
                 setStatusFilter('all');
-              }}
-              className="mt-2 text-primary-600 hover:text-primary-700 font-satoshi"
-            >
-              Clear filters
-            </button>
-          </div>
+              },
+              variant: "secondary"
+            } : {
+              label: "Create Job",
+              onClick: () => setIsCreating(true),
+              variant: "primary"
+            }}
+            variant={searchQuery || statusFilter !== 'all' ? "filtered" : "no-data"}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredJobs?.map((job) => (
@@ -465,15 +474,19 @@ export default function AdminCareers() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
           </div>
         ) : filteredApplications?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30">
-            <p className="text-gray-700 font-satoshi">No applications found matching your filters.</p>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="mt-2 text-primary-600 hover:text-primary-700 font-satoshi"
-            >
-              Clear filters
-            </button>
-          </div>
+          <EmptyState
+            icon={Users}
+            title={searchQuery ? "No applications found" : "No applications yet"}
+            description={searchQuery 
+              ? "Try adjusting your search criteria" 
+              : "Applications will appear here once candidates apply"}
+            action={searchQuery ? {
+              label: "Clear filters",
+              onClick: () => setSearchQuery(''),
+              variant: "secondary"
+            } : undefined}
+            variant={searchQuery ? "filtered" : "no-data"}
+          />
         ) : (
           <div className="bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30 overflow-hidden">
             <div className="overflow-x-auto">

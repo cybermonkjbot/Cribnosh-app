@@ -9,7 +9,6 @@ import {
   Badge,
   BarChart2,
   Briefcase,
-  Bug,
   Calendar,
   CheckCircle,
   ChefHat,
@@ -245,12 +244,6 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       href: '/admin/cities', 
       icon: MapPin,
       description: 'City management'
-    },
-    { 
-      name: 'Development', 
-      href: '/admin/debug', 
-      icon: Bug,
-      description: 'Development tools and debugging'
     },
     { 
       name: 'Settings', 

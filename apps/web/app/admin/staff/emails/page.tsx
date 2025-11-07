@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AdminPageSkeleton } from '@/components/admin/skeletons';
+import { EmptyState } from '@/components/admin/empty-state';
 
 interface StaffEmailCampaign {
   _id: Id<"staffEmailCampaigns">;
@@ -415,24 +416,26 @@ export default function StaffEmailsPage() {
         ))}
         
         {filteredCampaigns?.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Mail className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No campaigns found
-              </h3>
-              <p className="text-gray-700 mb-4">
-                {searchTerm || statusFilter !== 'all' 
-                  ? 'Try adjusting your search or filter criteria'
-                  : 'Create your first staff email campaign to get started'
-                }
-              </p>
-              {(!searchTerm && statusFilter === 'all') && (
-                <Button onClick={() => setIsCreating(true)} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Campaign
-                </Button>
-              )}
+          <EmptyState
+            icon={Mail}
+            title={searchTerm || statusFilter !== 'all' ? "No campaigns found" : "No campaigns yet"}
+            description={searchTerm || statusFilter !== 'all' 
+              ? "Try adjusting your search or filter criteria" 
+              : "Create your first staff email campaign to get started"}
+            action={searchTerm || statusFilter !== 'all' ? {
+              label: "Clear filters",
+              onClick: () => {
+                setSearchTerm('');
+                setStatusFilter('all');
+              },
+              variant: "secondary"
+            } : {
+              label: "Create Campaign",
+              onClick: () => setIsCreating(true),
+              variant: "primary"
+            }}
+            variant={searchTerm || statusFilter !== 'all' ? "filtered" : "no-data"}
+          />
             </CardContent>
           </Card>
         )}
