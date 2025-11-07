@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16, // Left margin
     right: 16, // Right margin - ensures equal margins on both sides
-    zIndex: 99999,
+    zIndex: 999999, // Very high z-index to appear above modals
     paddingTop: 0,
     paddingBottom: 0,
   },

@@ -3,9 +3,9 @@
 'use client';
 
 // Import removed as it's not being used and causing module not found error
-import { useQuery, useMutation } from 'convex/react';
 import { Id } from '@/convex/_generated/dataModel';
-import { useState, useRef } from 'react';
+import { useMutation, useQuery } from 'convex/react';
+import { useRef, useState } from 'react';
 
 import { AuthWrapper } from "@/components/layout/AuthWrapper";
 import { Link } from '@/components/link';
@@ -168,7 +168,7 @@ export default function StaffDocumentsPage() {
     // Base filter for staff members (can only see their own pending/approved docs)
     const isVisibleToStaff = 
       doc.status === 'approved' || 
-      (doc.userEmail === staffEmail && doc.status !== 'rejected');
+      (doc.userEmail === staffUser?.email && doc.status !== 'rejected');
     
     // Apply type filter if selected
     const typeMatches = !type || doc.type === type;
@@ -303,7 +303,7 @@ export default function StaffDocumentsPage() {
       // Save metadata in Convex
       if (data.fileUrl) {
         await addDocument({
-          userEmail: staffEmail,
+          userEmail: staffUser?.email || '',
           name: file.name,
           type: type as Document['type'],
           size: `${(file.size / 1024).toFixed(2)} KB`,
