@@ -171,6 +171,18 @@ COPY --from=deps /app/bun.lock ./bun.lock
 # The Convex generated files should be copied into the build context by the workflow
 COPY . .
 
+# Create convex directory for path resolution
+# The workflow copies Convex files to packages/convex/convex/_generated/
+# We need to create a convex directory at the root for @/convex imports to work
+RUN if [ -d "packages/convex/convex" ]; then \
+      mkdir -p convex && \
+      cp -r packages/convex/convex/* convex/ && \
+      echo "Created convex directory from packages/convex/convex"; \
+    else \
+      echo "Warning: packages/convex/convex not found. Creating empty convex directory."; \
+      mkdir -p convex/_generated || true; \
+    fi
+
 # Build the application using Node.js (Next.js requires Node.js worker threads)
 RUN npm run build
 
