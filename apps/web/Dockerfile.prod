@@ -167,6 +167,8 @@ COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/bun.lock ./bun.lock
 
 # Copy source code (excluding files in .dockerignore)
+# Build context is apps/web, so we copy from there
+# The Convex generated files should be copied into the build context by the workflow
 COPY . .
 
 # Build the application using Node.js (Next.js requires Node.js worker threads)

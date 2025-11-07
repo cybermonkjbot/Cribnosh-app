@@ -191,6 +191,26 @@ jobs:
           echo "repo-name=$REPO_NAME" >> $GITHUB_OUTPUT
           echo "Repository Name: $REPO_NAME"
 
+      - name: Verify Convex generated files exist
+        run: |
+          echo "🔍 Verifying Convex generated files..."
+          if [ ! -f "packages/convex/convex/_generated/api.js" ]; then
+            echo "❌ ERROR: Convex generated files not found!"
+            echo "Expected: packages/convex/convex/_generated/api.js"
+            echo "Please ensure Convex deployment completed successfully."
+            exit 1
+          fi
+          echo "✅ Convex generated files found"
+
+      - name: Copy Convex generated files to build context
+        working-directory: apps/web
+        run: |
+          # Copy Convex generated files into the build context
+          # This ensures they're accessible during Docker build
+          mkdir -p packages/convex/convex/_generated
+          cp -r ../../packages/convex/convex/_generated/* packages/convex/convex/_generated/
+          echo "✅ Copied Convex generated files to build context"
+
       - name: Build optimized Docker image
         working-directory: apps/web
         run: |
