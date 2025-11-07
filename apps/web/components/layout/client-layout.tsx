@@ -8,6 +8,7 @@ import { Footer } from "../footer/footer";
 import { Header } from "../header/header";
 import { CookieSettingsPopup } from "../ui/cookie-settings";
 import { FloatingBottomMenu } from "../navigation/floating-bottom-menu";
+import { FloatingCartIcon } from "../cart/floating-cart-icon";
 import { ThemeProvider } from 'next-themes';
 import { MultiStepLoader } from '../ui/loader';
 import { env } from '@/lib/config/env';
@@ -82,6 +83,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const isFoodOrderingRoute = pathname === "/try-it" || 
     pathname === "/orders" || 
     pathname === "/profile";
+  
+  // Food ordering routes - show floating cart icon on these pages
+  const showFloatingCart = pathname === "/try-it" || 
+    pathname === "/orders" || 
+    pathname === "/profile" ||
+    pathname === "/cart" ||
+    pathname === "/checkout";
   const [mounted, setMounted] = useState(false);
   const [viewportHeight, setViewportHeight] = useState('100vh');
   const [safeAreaTop, setSafeAreaTop] = useState('0px');
@@ -628,6 +636,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           
           {/* Floating bottom menu - only show on food ordering experience pages */}
           {isFoodOrderingRoute && !(isAdminRoute || isStaffRoute) && <FloatingBottomMenu />}
+          
+          {/* Floating cart icon - show on food ordering routes */}
+          {showFloatingCart && !(isAdminRoute || isStaffRoute) && <FloatingCartIcon />}
         </div>
       </div>
 

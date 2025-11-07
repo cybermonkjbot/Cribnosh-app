@@ -36,6 +36,51 @@ interface GetOrderStatusResponse {
   message?: string;
 }
 
+interface OrderListItem {
+  _id: string;
+  id?: string;
+  customer_id?: string;
+  customerId?: string;
+  chef_id?: string;
+  chefId?: string;
+  order_date?: string | number;
+  orderDate?: string;
+  total_amount?: number;
+  totalAmount?: number;
+  order_status?: string;
+  orderStatus?: string;
+  status?: string;
+  payment_status?: string;
+  paymentStatus?: string;
+  order_items?: Array<{
+    dish_id: string;
+    quantity: number;
+    price: number;
+    name: string;
+  }>;
+  orderItems?: Array<{
+    dish_id: string;
+    quantity: number;
+    price: number;
+    name: string;
+  }>;
+  special_instructions?: string | null;
+  specialInstructions?: string | null;
+  createdAt?: number;
+  _creationTime?: number;
+}
+
+interface GetOrdersListResponse {
+  success: boolean;
+  data: {
+    orders: OrderListItem[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
+  message?: string;
+}
+
 /**
  * Get JWT token from session token
  */
@@ -127,6 +172,41 @@ export async function getOrderStatus(orderId: string): Promise<GetOrderStatusRes
     return await response.json();
   } catch (error) {
     console.error('Error fetching order status:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get orders list
+ */
+export async function getOrdersList(params?: {
+  limit?: number;
+  offset?: number;
+  status?: 'ongoing' | 'past' | 'all';
+  order_type?: 'individual' | 'group' | 'all';
+}): Promise<GetOrdersListResponse> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.order_type) queryParams.append('order_type', params.order_type);
+
+    const url = `/api/customer/orders${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await authenticatedFetch(url, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      throw new Error(errorData.error || errorData.message || 'Failed to fetch orders list');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching orders list:', error);
     throw error;
   }
 }

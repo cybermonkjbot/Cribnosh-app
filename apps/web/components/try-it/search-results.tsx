@@ -220,7 +220,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     reviews: meal.reviewCount || 0,
     distance: calculateDistance(userLocation, meal.location),
     time: calculatePrepTime(meal),
-    price: `$${meal.price.toFixed(2)}`,
+    price: `£${meal.price.toFixed(2)}`,
     tags: [...(meal.cuisine || []), ...(meal.dietary || [])].slice(0, 3)
   }));
 
@@ -533,10 +533,10 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200 ">
                           <span className="font-medium">Total additions:</span>
                           <span className="text-[#ff3b30] font-medium">
-                            ${selectedSubItems
+                            £{selectedSubItems
                               .reduce((total, item) => {
                                 const subItem = suggestedSubItems.find((si: any) => si.name === item);
-                                return total + (subItem ? parseFloat(subItem.price.substring(1)) : 0);
+                                return total + (subItem ? parseFloat(subItem.price.replace(/[£$]/g, '')) : 0);
                               }, 0)
                               .toFixed(2)}
                           </span>

@@ -61,9 +61,9 @@ export default function OrderDetailsPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/try-it" className="inline-flex items-center gap-2 text-gray-600 hover:text-[#ff3b30] mb-4">
+          <Link href="/orders" className="inline-flex items-center gap-2 text-gray-600 hover:text-[#ff3b30] mb-4">
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Search</span>
+            <span>Back to Orders</span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Order Details</h1>
           <p className="text-gray-600 mt-1">Order #{order.id.substring(0, 8).toUpperCase()}</p>
