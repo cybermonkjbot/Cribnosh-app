@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withStaffAuth } from '@/lib/api/staff-middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -127,7 +127,7 @@ import { getErrorMessage } from '@/types/errors';
  *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest, user: any) {
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   // Fetch user document by userId
   const staff = await convex.query(api.queries.users.getById, { userId: user._id });
   if (!staff) {

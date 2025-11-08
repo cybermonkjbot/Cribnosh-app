@@ -1,8 +1,9 @@
 import { getUserFromRequest } from '@/lib/auth/session';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -144,7 +145,7 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return ResponseFactory.unauthorized('Unauthorized');
   }
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   // Fetch today's timelogs for this user
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);

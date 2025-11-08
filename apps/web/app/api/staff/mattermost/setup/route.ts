@@ -3,12 +3,12 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler, ErrorSeverity } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { mattermostService } from '@/lib/mattermost';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -201,7 +201,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // --- END MATTERMOST USER SETUP ---
 
     // Save Mattermost setup to database
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.staff.updateMattermostSetup, {
       userId: data.userId,
       mattermostUsername: data.username,

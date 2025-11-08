@@ -2,12 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -138,7 +138,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   if (!chef_id) {
     return ResponseFactory.validationError('Missing chef_id');
   }
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   try {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
@@ -173,6 +173,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       profile_image_url: chef.avatar || null,
     });
   } catch (e: unknown) {
+    if (isAuthenticationError(e) || isAuthorizationError(e)) {
+      return handleConvexError(e, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(e, 'Failed to reject chef'));
   }
 }
