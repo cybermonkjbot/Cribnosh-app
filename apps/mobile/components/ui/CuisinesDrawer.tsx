@@ -1,6 +1,6 @@
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
 interface Cuisine {

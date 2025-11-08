@@ -1699,6 +1699,16 @@ export interface UpdateMemberPreferencesRequest {
     allergy_ids?: string[];
     dietary_preference_id?: string;
     parent_controlled?: boolean;
+    allergies?: Array<{
+      name: string;
+      type: 'allergy' | 'intolerance';
+      severity: 'mild' | 'moderate' | 'severe';
+    }>;
+    dietary_preferences?: {
+      preferences: string[];
+      religious_requirements: string[];
+      health_driven: string[];
+    };
   };
   family_profile_id?: string;
 }

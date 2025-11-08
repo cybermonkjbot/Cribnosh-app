@@ -1,3 +1,4 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useToast } from '@/lib/ToastContext';
 import { useAddToCartMutation, useSendChatMessageMutation } from '@/store/customerApi';
@@ -439,6 +440,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
   const topPosition = useTopPosition(0);
   const { showError, showSuccess, showInfo } = useToast();
   const locationState = useUserLocation();
+  const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
   const [sendChatMessage, { isLoading: isSendingMessage }] = useSendChatMessageMutation();
   const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
   
@@ -505,6 +507,21 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       return;
     }
 
+    // Check authentication and token validity
+    if (!isAuthenticated || !token) {
+      showError('Authentication Required', 'Please sign in to add items to cart');
+      return;
+    }
+
+    // Check if token is expired and refresh auth state if needed
+    const isExpired = checkTokenExpiration();
+    if (isExpired) {
+      // Refresh auth state to update isAuthenticated
+      await refreshAuthState();
+      showError('Session Expired', 'Please sign in again to add items to cart');
+      return;
+    }
+
     try {
       // Get special instructions from the conversation context
       const userMessages = messages
@@ -532,7 +549,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add items to cart';
       showError('Cart error', errorMessage);
     }
-  }, [messages, addToCart, showSuccess, showError]);
+  }, [isAuthenticated, token, checkTokenExpiration, refreshAuthState, messages, addToCart, showSuccess, showError]);
 
   const handleSendMessage = useCallback(async (messageText: string) => {
     if (!messageText.trim()) return;

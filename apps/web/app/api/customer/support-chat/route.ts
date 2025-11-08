@@ -189,7 +189,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
     const chatId = chatResult.chatId;
-
+    
     // Link chat to support case (without assigning a human agent)
     await convex.mutation(api.mutations.supportCases.linkChat, {
       caseId,

@@ -100,17 +100,35 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const authHeader = request.headers.get('authorization');
+    console.log('[Cart GET API] Authorization header present:', !!authHeader);
+    console.log('[Cart GET API] Authorization header starts with Bearer:', authHeader?.startsWith('Bearer '));
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[Cart GET API] Missing or invalid Authorization header');
       return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
     }
+    
     const token = authHeader.replace('Bearer ', '');
+    console.log('[Cart GET API] Token length:', token.length);
+    console.log('[Cart GET API] Token (first 20 chars):', token.substring(0, 20));
+    
     let payload: JWTPayload;
     try {
       payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
+      console.log('[Cart GET API] JWT verified successfully');
+      console.log('[Cart GET API] User ID:', payload.user_id);
+      console.log('[Cart GET API] User roles:', payload.roles);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown JWT error';
+      console.error('[Cart GET API] JWT verification failed:', errorMessage);
+      console.error('[Cart GET API] Error details:', error);
+      return ResponseFactory.unauthorized(`Invalid or expired token: ${errorMessage}`);
     }
+    
     if (!payload.roles?.includes('customer')) {
+      console.error('[Cart GET API] User does not have customer role');
+      console.error('[Cart GET API] User roles:', payload.roles);
+      console.error('[Cart GET API] User ID:', payload.user_id);
       return ResponseFactory.forbidden('Forbidden: Only customers can access their cart.');
     }
     const convex = getConvexClient();

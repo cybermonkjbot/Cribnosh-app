@@ -249,8 +249,8 @@ async function handlePOST(
       );
     }
 
-    // Create review with order_id and categories
-    const reviewId = await convex.mutation(api.mutations.reviews.create, {
+    // Create review with chef rating update - this consolidates review creation and chef rating update
+    const reviewResult = await convex.mutation(api.mutations.reviews.createReviewWithChefRatingUpdate, {
       user_id: userId,
       meal_id: undefined,
       chef_id: orderData.chef_id as Id<'chefs'> | undefined,
@@ -263,21 +263,12 @@ async function handlePOST(
     });
 
     const reviewData = {
-      review_id: reviewId,
+      review_id: reviewResult.reviewId,
       order_id,
       rating,
       review: review || null,
       created_at: new Date().toISOString(),
     };
-
-    // Update chef's average rating
-    if (orderData.chef_id) {
-      await convex.mutation(api.mutations.chefRatings.updateChefAverageRating, {
-        chefId: orderData.chef_id as Id<'chefs'>,
-      }).catch((error) => {
-        console.error('Failed to update chef rating:', error);
-      });
-    }
 
     // Send notification to chef about the review
     if (orderData.chef_id) {

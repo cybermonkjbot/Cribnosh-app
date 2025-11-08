@@ -891,6 +891,85 @@ export const createOnboardingRecord = mutation({
 });
 
 /**
+ * Create or update staff onboarding - consolidates user onboarding update and onboarding record creation
+ * This mutation handles both updating the user's onboarding field and setting staff-specific fields
+ */
+export const createOrUpdateStaffOnboarding = mutation({
+  args: {
+    userId: v.id("users"),
+    onboardingData: v.object({
+      department: v.string(),
+      position: v.string(),
+      startDate: v.string(),
+      employmentType: v.string(),
+      salary: v.optional(v.string()),
+      emergencyContact: v.optional(v.object({
+        name: v.string(),
+        relationship: v.string(),
+        phone: v.string(),
+        email: v.string(),
+      })),
+      taxInfo: v.optional(v.object({
+        ssn: v.string(),
+        filingStatus: v.string(),
+        allowances: v.number(),
+      })),
+      bankingInfo: v.optional(v.object({
+        bankName: v.string(),
+        accountNumber: v.string(),
+        routingNumber: v.string(),
+        accountType: v.string(),
+      })),
+      benefits: v.optional(v.object({
+        healthInsurance: v.boolean(),
+        dentalInsurance: v.boolean(),
+        visionInsurance: v.boolean(),
+        retirementPlan: v.boolean(),
+        lifeInsurance: v.boolean(),
+      })),
+    }),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    userId: v.id("users"),
+  }),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    // Check if user is admin
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email!))
+      .first();
+
+    if (!currentUser || !currentUser.roles?.includes('admin')) {
+      throw new Error("Not authorized");
+    }
+
+    // Update the user with onboarding data - this consolidates both updateUserOnboarding and createOnboardingRecord
+    await ctx.db.patch(args.userId, {
+      onboarding: args.onboardingData,
+      department: args.onboardingData.department,
+      position: args.onboardingData.position,
+      startDate: args.onboardingData.startDate,
+      employmentType: args.onboardingData.employmentType,
+      salary: args.onboardingData.salary,
+      emergencyContact: args.onboardingData.emergencyContact,
+      taxInfo: args.onboardingData.taxInfo,
+      bankingInfo: args.onboardingData.bankingInfo,
+      benefits: args.onboardingData.benefits,
+      roles: ["staff"],
+      lastModified: Date.now(),
+    });
+
+    return { success: true, userId: args.userId };
+  },
+});
+
+/**
  * Generate QR code as base64 string
  */
 async function generateQRCode(data: string): Promise<string> {

@@ -122,12 +122,12 @@ export default function MemberBudgetScreen() {
         </ScrollView>
 
         <View style={styles.buttonContainer}>
-          <SuperButton
-            title={isLoading ? 'Updating...' : 'Save Budget'}
-            onPress={handleSubmit}
-            backgroundColor="#094327"
-            textColor="white"
-          />
+        <SuperButton
+          title={isLoading ? 'Updating...' : 'Save Budget'}
+          onPress={handleSubmit}
+          backgroundColor="#094327"
+          textColor="white"
+        />
         </View>
       </SafeAreaView>
     </>

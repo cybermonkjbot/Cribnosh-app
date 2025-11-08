@@ -145,31 +145,19 @@ async function handlePOST(request: NextRequest): Promise<Response> {
       preferences,
     };
 
-    // Fetch nearby cuisines if location is available
-    let nearbyCuisines: string[] = [];
-    if (location && location.latitude && location.longitude) {
-      const convex = getConvexClient();
-      const nearbyChefsResult = await withRetry(async () => {
-        return await convex.query(api.queries.chefs.findNearbyChefs, {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          maxDistanceKm: 10,
-        });
-      });
-
-      const nearbyChefs = nearbyChefsResult.success ? nearbyChefsResult.data : [];
-      const cuisineSet = new Set<string>();
-      if (Array.isArray(nearbyChefs)) {
-        for (const chef of nearbyChefs) {
-          if (Array.isArray(chef.specialties)) {
-            chef.specialties.forEach((c: string) => cuisineSet.add(c));
-          }
-        }
-      }
-      nearbyCuisines = Array.from(cuisineSet);
-    }
-
+    // Get emotions engine context - this consolidates nearby chefs, user data, and preferences
+    const convex = getConvexClient();
+    const emotionsContextData = await convex.action(api.actions.emotionsEngine.getEmotionsEngineContext, {
+      userId: userId as Id<'users'> | undefined,
+      location: location ? {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        address: location.address,
+      } : undefined,
+    });
+    
     // Aggregate context
+    const nearbyCuisines = emotionsContextData.nearbyCuisines || [];
     const context = await aggregateContext(emotionsContext, userId, nearbyCuisines);
 
     // Run inference with full context

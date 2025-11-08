@@ -53,7 +53,12 @@ export class APIErrorHandler {
     if (error.message.includes('not found') || error.message.includes('Not found')) {
       statusCode = 404;
       errorCode = 'NOT_FOUND';
-    } else if (error.message.includes('unauthorized') || error.message.includes('Unauthorized')) {
+    } else if (
+      error.message.includes('unauthorized') || 
+      error.message.includes('Unauthorized') ||
+      error.message.includes('Invalid or missing token') ||
+      error.message.includes('Invalid or expired token')
+    ) {
       statusCode = 401;
       errorCode = 'UNAUTHORIZED';
     } else if (error.message.includes('forbidden') || error.message.includes('Forbidden')) {

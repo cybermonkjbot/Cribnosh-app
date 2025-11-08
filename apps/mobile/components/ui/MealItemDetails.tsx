@@ -1,8 +1,18 @@
-import { useGetDishDetailsQuery, useGetSimilarDishesQuery } from "@/store/customerApi";
+import { 
+  useGetDishDetailsQuery, 
+  useGetSimilarDishesQuery,
+  useGetDishFavoriteStatusQuery,
+  useAddDishFavoriteMutation,
+  useRemoveDishFavoriteMutation,
+  useAddToCartMutation,
+} from "@/store/customerApi";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { showError, showSuccess, showWarning } from "../../lib/GlobalToastManager";
+import { navigateToSignIn } from "../../utils/signInNavigationGuard";
 import { CartButton } from "./CartButton";
 import { ChefNotes } from "./MealItemDetails/ChefNotes";
 import { DietCompatibilityBar } from "./MealItemDetails/DietCompatibilityBar";
@@ -88,9 +98,23 @@ export function MealItemDetails({
   onKitchenNamePress,
 }: MealItemDetailsProps) {
   const [quantity] = useState(2);
-  const [isFavorite, setIsFavorite] = useState(false);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
+  const [addToCart] = useAddToCartMutation();
+
+  // Fetch favorite status
+  const { data: favoriteStatus, isLoading: isLoadingFavorite } = useGetDishFavoriteStatusQuery(
+    { dishId: mealId },
+    { skip: !mealId || !isAuthenticated }
+  );
+
+  // Mutations for adding/removing favorites
+  const [addFavorite, { isLoading: isAddingFavorite }] = useAddDishFavoriteMutation();
+  const [removeFavorite, { isLoading: isRemovingFavorite }] = useRemoveDishFavoriteMutation();
+
+  // Get favorite status from API
+  const isFavorite = favoriteStatus?.data?.isFavorited ?? false;
 
   // Always fetch dish details from API - prioritize API data over prop data
   const { data: dishDetailsData, isLoading: isLoadingDishDetails } = useGetDishDetailsQuery(
@@ -169,17 +193,79 @@ export function MealItemDetails({
 
   const isLoadingSimilarMeals = isLoadingSimilarMealsProp || isLoadingSimilarMealsFromApi;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!finalMealData?.title) return;
-    onAddToCart?.(mealId, quantity);
-    console.log(`Added ${quantity} of ${finalMealData.title} to cart`);
-    // Use absolute path with tabs prefix to ensure correct navigation
-    // This prevents navigation through group orders stack
-    router.push("/(tabs)/orders/cart" as any);
+
+    // Check authentication and token validity
+    if (!isAuthenticated || !token) {
+      showWarning(
+        'Authentication Required',
+        'Please sign in to add items to cart'
+      );
+      navigateToSignIn();
+      return;
+    }
+
+    // Check if token is expired and refresh auth state if needed
+    const isExpired = checkTokenExpiration();
+    if (isExpired) {
+      // Refresh auth state to update isAuthenticated
+      await refreshAuthState();
+      showWarning(
+        'Session Expired',
+        'Please sign in again to add items to cart'
+      );
+      navigateToSignIn();
+      return;
+    }
+
+    try {
+      const result = await addToCart({
+        dish_id: mealId,
+        quantity: quantity,
+        special_instructions: undefined,
+      }).unwrap();
+
+      if (result.success) {
+        showSuccess('Added to Cart!', result.data?.dish_name || finalMealData.title);
+        // Call the optional callback if provided (for backwards compatibility)
+        onAddToCart?.(mealId, quantity);
+        // Use absolute path with tabs prefix to ensure correct navigation
+        // This prevents navigation through group orders stack
+        router.push("/(tabs)/orders/cart" as any);
+      }
+    } catch (err: any) {
+      const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add item to cart';
+      showError('Failed to add item to cart', errorMessage);
+    }
   };
 
-  const handleFavorite = () => {
-    setIsFavorite(!isFavorite);
+  const handleFavorite = async () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Authentication Required',
+        'Please sign in to favorite meals',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    if (!mealId) return;
+
+    try {
+      if (isFavorite) {
+        await removeFavorite({ dishId: mealId }).unwrap();
+      } else {
+        await addFavorite({ dishId: mealId }).unwrap();
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      Alert.alert(
+        'Error',
+        'Failed to update favorite. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   // Determine which sections have data

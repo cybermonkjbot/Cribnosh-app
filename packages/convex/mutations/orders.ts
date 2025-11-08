@@ -104,6 +104,194 @@ export const createOrder = mutation({
   },
 });
 
+/**
+ * Create order with validation - accepts dish IDs, validates meals in batch, and returns full order
+ * This consolidates multiple roundtrips into a single mutation call
+ */
+export const createOrderWithValidation = mutation({
+  args: {
+    customer_id: v.string(),
+    chef_id: v.string(),
+    items: v.array(v.object({
+      dish_id: v.string(),
+      quantity: v.number(),
+    })),
+    payment_method: v.optional(v.string()),
+    special_instructions: v.optional(v.string()),
+    delivery_time: v.optional(v.string()),
+    delivery_address: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      postcode: v.string(),
+      country: v.string(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    // Check regional availability if delivery address is provided
+    if (args.delivery_address) {
+      const { checkRegionAvailability } = await import('../queries/admin');
+      const isRegionSupported = await checkRegionAvailability(ctx, {
+        address: {
+          city: args.delivery_address.city,
+          country: args.delivery_address.country,
+        },
+      });
+      
+      if (!isRegionSupported) {
+        throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+      }
+    }
+    
+    // Validate all dishes in a single query
+    const allMeals = await ctx.db.query('meals').collect();
+    const mealMap = new Map<string, any>();
+    for (const meal of allMeals) {
+      mealMap.set(meal._id, meal);
+    }
+    
+    // Validate each dish and build order items
+    const orderItems: OrderItem[] = [];
+    let total_amount = 0;
+    
+    for (const item of args.items) {
+      if (!item.dish_id || typeof item.quantity !== 'number' || item.quantity <= 0) {
+        throw new Error(`Invalid item: dish_id and quantity (must be > 0) are required`);
+      }
+      
+      const dish = mealMap.get(item.dish_id as string);
+      if (!dish) {
+        throw new Error(`Dish not found: ${item.dish_id}`);
+      }
+      
+      if (dish.status === 'unavailable') {
+        throw new Error(`Dish ${dish.name || item.dish_id} is currently unavailable`);
+      }
+      
+      const price = dish.price || 0;
+      const quantity = item.quantity;
+      
+      orderItems.push({
+        dish_id: item.dish_id as Id<'meals'>,
+        quantity,
+        price,
+        name: dish.name || 'Unknown Dish',
+      });
+      
+      total_amount += price * quantity;
+    }
+    
+    if (orderItems.length === 0) {
+      throw new Error('Order must contain at least one item');
+    }
+    
+    // Create the order
+    const now = Date.now();
+    const orderId = await ctx.db.insert('orders', {
+      order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+      customer_id: args.customer_id as Id<'users'>,
+      chef_id: args.chef_id as Id<'chefs'>,
+      order_date: new Date().toISOString(),
+      total_amount,
+      order_status: 'pending',
+      payment_status: 'pending',
+      payment_method: args.payment_method,
+      special_instructions: args.special_instructions,
+      delivery_time: args.delivery_time,
+      delivery_address: args.delivery_address,
+      order_items: orderItems,
+      createdAt: now,
+      updatedAt: now,
+    });
+    
+    // Return the full order
+    const order = await ctx.db.get(orderId);
+    if (!order) {
+      throw new Error('Failed to retrieve created order');
+    }
+    
+    return order;
+  },
+});
+
+/**
+ * Create order with payment - accepts payment_id upfront and returns full order
+ * This consolidates order creation, payment linking, and order retrieval into a single mutation
+ */
+export const createOrderWithPayment = mutation({
+  args: {
+    customer_id: v.string(),
+    chef_id: v.string(),
+    order_items: v.array(v.object({
+      dish_id: v.string(),
+      quantity: v.number(),
+      price: v.number(),
+      name: v.string(),
+    })),
+    total_amount: v.number(),
+    payment_id: v.string(),
+    payment_method: v.optional(v.string()),
+    special_instructions: v.optional(v.string()),
+    delivery_time: v.optional(v.string()),
+    delivery_address: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      postcode: v.string(),
+      country: v.string(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    // Check regional availability if delivery address is provided
+    if (args.delivery_address) {
+      const { checkRegionAvailability } = await import('../queries/admin');
+      const isRegionSupported = await checkRegionAvailability(ctx, {
+        address: {
+          city: args.delivery_address.city,
+          country: args.delivery_address.country,
+        },
+      });
+      
+      if (!isRegionSupported) {
+        throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+      }
+    }
+    
+    const now = Date.now();
+    // Convert order items to the correct type
+    const orderItems: OrderItem[] = args.order_items.map(item => ({
+      dish_id: item.dish_id as Id<'meals'>,
+      quantity: item.quantity,
+      price: item.price,
+      name: item.name
+    }));
+
+    const orderId = await ctx.db.insert('orders', {
+      order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+      customer_id: args.customer_id as Id<'users'>,
+      chef_id: args.chef_id as Id<'chefs'>,
+      order_date: new Date().toISOString(),
+      total_amount: args.total_amount,
+      order_status: 'pending',
+      payment_status: 'paid', // Mark as paid immediately since payment_id is provided
+      payment_id: args.payment_id,
+      payment_method: args.payment_method || 'card',
+      special_instructions: args.special_instructions,
+      delivery_time: args.delivery_time,
+      delivery_address: args.delivery_address,
+      order_items: orderItems,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Return the full order
+    const order = await ctx.db.get(orderId);
+    if (!order) {
+      throw new Error('Failed to retrieve created order');
+    }
+    
+    return order;
+  },
+});
+
 // Internal mutation for seeding - skips region check
 export const createOrderForSeed = internalMutation({
   args: {
@@ -405,14 +593,36 @@ export const clearCart = mutation({
 export const addToCart = mutation({
   args: {
     userId: v.id('users'),
-    item: v.object({
-      id: v.string(),
-      name: v.string(),
-      price: v.number(),
-      quantity: v.number(),
-    }),
+    dishId: v.id('meals'),
+    quantity: v.number(),
   },
   handler: async (ctx, args) => {
+    // Fetch meal details
+    const meal = await ctx.db.get(args.dishId);
+    
+    if (!meal) {
+      throw new Error('Dish not found');
+    }
+    
+    // Check if meal is available
+    if (meal.status === 'unavailable') {
+      throw new Error('This dish is currently unavailable');
+    }
+    
+    // Validate quantity
+    if (args.quantity <= 0) {
+      throw new Error('Quantity must be greater than 0');
+    }
+    
+    // Prepare cart item with meal details
+    const cartItem: CartItem = {
+      id: args.dishId,
+      name: meal.name || 'Unknown Dish',
+      price: meal.price || 0,
+      quantity: args.quantity,
+      updatedAt: Date.now(),
+    };
+    
     // Get or create the user's cart
     let cart = await ctx.db
       .query('carts')
@@ -423,20 +633,20 @@ export const addToCart = mutation({
       // Create new cart if it doesn't exist
       const cartId = await ctx.db.insert('carts', {
         userId: args.userId,
-        items: [args.item],
+        items: [cartItem],
         updatedAt: Date.now(),
       });
       cart = await ctx.db.get(cartId) as CartDocument;
     } else {
       // Check if item already exists in cart
-      const existingItemIndex = cart.items.findIndex(item => item.id === args.item.id);
+      const existingItemIndex = cart.items.findIndex(item => item.id === args.dishId);
       
       if (existingItemIndex >= 0) {
         // Update existing item quantity
         const updatedItems = [...cart.items];
         updatedItems[existingItemIndex] = {
           ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + args.item.quantity,
+          quantity: updatedItems[existingItemIndex].quantity + args.quantity,
           updatedAt: Date.now(),
         };
         
@@ -446,7 +656,7 @@ export const addToCart = mutation({
         });
       } else {
         // Add new item to cart
-        const updatedItems = [...cart.items, { ...args.item, updatedAt: Date.now() }];
+        const updatedItems = [...cart.items, cartItem];
         
         await ctx.db.patch(cart._id, {
           items: updatedItems,

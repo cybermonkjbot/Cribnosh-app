@@ -10,7 +10,7 @@ import {
 import { CustomerAddress } from '@/types/customer';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
-import { API_CONFIG } from '@/constants/api';
+import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import {
   ActivityIndicator,
   ScrollView,
@@ -72,25 +72,6 @@ export default function PersonalInfoScreen() {
   const originalEmail = useRef<string>('');
   const originalPhone = useRef<string>('');
 
-  // Helper function to convert relative URLs to absolute URLs
-  const getAbsoluteImageUrl = (url?: string): string | undefined => {
-    if (!url) return undefined;
-    // If it's already an absolute URL (starts with http:// or https://), return as is
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    // If it's a relative URL (starts with /), convert to absolute
-    if (url.startsWith('/')) {
-      // Extract the base domain from API_CONFIG.baseUrl (e.g., "https://cribnosh.com" from "https://cribnosh.com/api")
-      const baseUrl = API_CONFIG.baseUrlNoTrailing;
-      // Remove /api from the end if it exists, to get the base domain
-      const baseDomain = baseUrl.replace(/\/api$/, '');
-      // Combine base domain with the relative URL
-      return `${baseDomain}${url}`;
-    }
-    // Otherwise, return as is (might be a local file URI)
-    return url;
-  };
 
   // Initialize form from API data
   useEffect(() => {

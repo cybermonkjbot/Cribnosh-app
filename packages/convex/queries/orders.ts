@@ -256,10 +256,13 @@ export const listByCustomer = query({
     // Sort by date (newest first)
     filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     
-    // Pagination
+    // Pagination - only paginate if limit is explicitly provided
+    let paginated = filtered;
+    if (args.limit !== undefined) {
     const offset = args.offset || 0;
-    const limit = args.limit || 20;
-    const paginated = filtered.slice(offset, offset + limit);
+      const limit = args.limit;
+      paginated = filtered.slice(offset, offset + limit);
+    }
     
     // Enrich with group order data if applicable
     const enriched = await Promise.all(paginated.map(async (order) => {

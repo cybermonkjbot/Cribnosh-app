@@ -603,6 +603,69 @@ export const createMinimalUser = mutation({
   },
 });
 
+/**
+ * Create or update user with roles - ensures customer role and returns full user
+ * This consolidates user creation/update and role assignment into a single mutation
+ */
+export const createOrUpdateUserWithRoles = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    roles: v.optional(v.array(v.string())),
+    ensureCustomerRole: v.optional(v.boolean()), // Default true
+  },
+  returns: v.any(),
+  handler: async (ctx: MutationCtx, args) => {
+    // Check if user already exists (unique by email)
+    const existing = await ctx.db
+      .query('users')
+      .filter(q => q.eq(q.field('email'), args.email))
+      .first();
+    
+    let userId: Id<'users'>;
+    let userRoles: string[] = args.roles || [];
+    
+    if (existing) {
+      userId = existing._id;
+      // Merge with existing roles
+      const existingRoles = existing.roles || [];
+      userRoles = [...new Set([...existingRoles, ...userRoles])];
+    } else {
+      // Create new user
+      userId = await ctx.db.insert('users', {
+        name: args.name,
+        email: args.email,
+        password: '',
+        status: 'active',
+        roles: userRoles,
+        lastModified: Date.now(),
+      });
+    }
+    
+    // Ensure customer role if requested (default true)
+    const ensureCustomer = args.ensureCustomerRole !== false;
+    if (ensureCustomer && !userRoles.includes('customer')) {
+      userRoles = [...userRoles, 'customer'];
+    }
+    
+    // Update roles if needed
+    if (existing) {
+      await ctx.db.patch(userId, {
+        roles: userRoles,
+        lastModified: Date.now(),
+      });
+    }
+    
+    // Return the full user
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error('Failed to retrieve user after creation/update');
+    }
+    
+    return user;
+  },
+});
+
 export const setSessionToken = mutation({
   args: {
     userId: v.id("users"),

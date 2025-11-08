@@ -83,7 +83,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success(formattedProfile, 'Family profile retrieved successfully');
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
-    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
+    console.error('Family profile GET error:', errorMessage, error);
+    
+    // Check for authentication errors
+    if (
+      errorMessage === 'Invalid or missing token' || 
+      errorMessage === 'Invalid or expired token' ||
+      errorMessage.includes('token') ||
+      errorMessage.includes('authorization')
+    ) {
       return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
     }
     return createSpecErrorResponse(

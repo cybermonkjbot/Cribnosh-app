@@ -97,3 +97,98 @@ export const toggleFavorite = mutation({
   },
 });
 
+// Add meal/dish to favorites
+export const addMealFavorite = mutation({
+  args: {
+    userId: v.id("users"),
+    mealId: v.id("meals"),
+  },
+  returns: v.id("userFavorites"),
+  handler: async (ctx, args) => {
+    // Check if already favorited
+    const existing = await ctx.db
+      .query("userFavorites")
+      .withIndex("by_user_type", (q) => 
+        q.eq("userId", args.userId).eq("favoriteType", "meal")
+      )
+      .filter((q) => q.eq(q.field("favoriteId"), args.mealId))
+      .first();
+
+    if (existing) {
+      return existing._id;
+    }
+
+    // Add to favorites
+    const favoriteId = await ctx.db.insert("userFavorites", {
+      userId: args.userId,
+      favoriteType: "meal",
+      favoriteId: args.mealId,
+      createdAt: Date.now(),
+    });
+
+    return favoriteId;
+  },
+});
+
+// Remove meal/dish from favorites
+export const removeMealFavorite = mutation({
+  args: {
+    userId: v.id("users"),
+    mealId: v.id("meals"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Find favorite
+    const favorite = await ctx.db
+      .query("userFavorites")
+      .withIndex("by_user_type", (q) => 
+        q.eq("userId", args.userId).eq("favoriteType", "meal")
+      )
+      .filter((q) => q.eq(q.field("favoriteId"), args.mealId))
+      .first();
+
+    if (favorite) {
+      await ctx.db.delete(favorite._id);
+    }
+
+    return null;
+  },
+});
+
+// Toggle meal favorite (add if not exists, remove if exists)
+export const toggleMealFavorite = mutation({
+  args: {
+    userId: v.id("users"),
+    mealId: v.id("meals"),
+  },
+  returns: v.object({
+    isFavorited: v.boolean(),
+    favoriteId: v.optional(v.id("userFavorites")),
+  }),
+  handler: async (ctx, args) => {
+    // Check if already favorited
+    const existing = await ctx.db
+      .query("userFavorites")
+      .withIndex("by_user_type", (q) => 
+        q.eq("userId", args.userId).eq("favoriteType", "meal")
+      )
+      .filter((q) => q.eq(q.field("favoriteId"), args.mealId))
+      .first();
+
+    if (existing) {
+      // Remove from favorites
+      await ctx.db.delete(existing._id);
+      return { isFavorited: false };
+    } else {
+      // Add to favorites
+      const favoriteId = await ctx.db.insert("userFavorites", {
+        userId: args.userId,
+        favoriteType: "meal",
+        favoriteId: args.mealId,
+        createdAt: Date.now(),
+      });
+      return { isFavorited: true, favoriteId };
+    }
+  },
+});
+

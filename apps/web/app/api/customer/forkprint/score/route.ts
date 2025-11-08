@@ -6,6 +6,8 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import type { JWTPayload } from '@/types/convex-contexts';
+import { getErrorMessage } from '@/types/errors';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -107,16 +109,42 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const userId = payload.user_id as any;
 
     // Get ForkPrint score from Convex
-    const forkPrintData = await convex.query(api.queries.forkPrint.getScoreByUserId, {
+    let forkPrintData = await convex.query(api.queries.forkPrint.getScoreByUserId, {
       userId,
     });
 
+    // If no score exists, create a default one
     if (!forkPrintData) {
-      return createSpecErrorResponse(
-        'ForkPrint score not found for this user',
-        'NOT_FOUND',
-        404
-      );
+      try {
+        // Initialize with 0 score (Starter level)
+        await convex.mutation(api.mutations.forkPrint.updateScore, {
+          userId,
+          pointsDelta: 0, // This will create the record with score 0
+        });
+
+        // Fetch the newly created score
+        forkPrintData = await convex.query(api.queries.forkPrint.getScoreByUserId, {
+          userId,
+        });
+      } catch (mutationError) {
+        console.error('Failed to create default ForkPrint score:', mutationError);
+        // If mutation fails, return default values
+        forkPrintData = null;
+      }
+
+      // If still null after creation attempt, return default values
+      if (!forkPrintData) {
+        const now = new Date().toISOString();
+        return ResponseFactory.success({
+          score: 0,
+          status: 'Starter',
+          points_to_next: 100,
+          next_level: 'Tastemaker',
+          current_level_icon: null,
+          level_history: [],
+          updated_at: now,
+        });
+      }
     }
 
     return ResponseFactory.success({

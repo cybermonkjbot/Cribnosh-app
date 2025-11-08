@@ -60,7 +60,7 @@ export default function FamilyProfileManageScreen() {
     setSelectedMember(member);
     setIsMemberDetailSheetVisible(true);
   };
-  
+
   const handleAddMemberSuccess = () => {
     // Refetch family profile data to show the new member
     refetchFamilyProfile();

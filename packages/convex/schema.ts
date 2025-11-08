@@ -2871,7 +2871,7 @@ export default defineSchema({
       v.literal("meal"),
       v.literal("video")
     ),
-    favoriteId: v.id("chefs"), // Can be chef, meal, or video ID
+    favoriteId: v.any(), // Can be chef, meal, or video ID (using any since Convex doesn't support union ID types)
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])

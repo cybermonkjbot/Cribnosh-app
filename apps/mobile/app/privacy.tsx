@@ -40,11 +40,6 @@ const marketingIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="
   <path d="M2 12L10 17L18 12" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const eyeIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 3C5.5 3 1.73 5.61 0 9C1.73 12.39 5.5 15 10 15C14.5 15 18.27 12.39 20 9C18.27 5.61 14.5 3 10 3Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M10 11.25C11.0355 11.25 11.875 10.4105 11.875 9.375C11.875 8.33947 11.0355 7.5 10 7.5C8.96447 7.5 8.125 8.33947 8.125 9.375C8.125 10.4105 8.96447 11.25 10 11.25Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
 const linkIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path d="M10 13C10.5304 13 11.0391 12.7893 11.4142 12.4142C11.7893 12.0391 12 11.5304 12 11C12 10.4696 11.7893 9.96086 11.4142 9.58579C11.0391 9.21071 10.5304 9 10 9H7C6.46957 9 5.96086 9.21071 5.58579 9.58579C5.21071 9.96086 5 10.4696 5 11C5 11.5304 5.21071 12.0391 5.58579 12.4142C5.96086 12.7893 6.46957 13 7 13H10Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M13 7C13.5304 7 14.0391 7.21071 14.4142 7.58579C14.7893 7.96086 15 8.46957 15 9C15 9.53043 14.7893 10.0391 14.4142 10.4142C14.0391 10.7893 13.5304 11 13 11H10" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -127,27 +122,24 @@ export default function PrivacyScreen() {
   };
 
   const handleOpenPrivacyPolicy = async () => {
-    const url = 'https://cribnosh.com/privacy'; // TODO: Update with actual privacy policy URL
+    const url = 'https://cribnosh.com/privacy';
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
+      // Try to open the URL directly - canOpenURL can be unreliable in simulators
+      await Linking.openURL(url);
+    } catch (error: any) {
+      // Only show error if it's a real failure, not just a simulator limitation
+      const errorMessage = error?.message || String(error);
+      if (!errorMessage.includes('Unable to open URL')) {
+        console.error('Error opening privacy policy:', error);
         showToast({
           type: 'error',
           title: 'Unable to Open',
-          message: 'Could not open privacy policy link.',
+          message: 'Could not open privacy policy link. Please try again later.',
           duration: 3000,
         });
       }
-    } catch (error) {
-      console.error('Error opening privacy policy:', error);
-      showToast({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to open privacy policy.',
-        duration: 3000,
-      });
+      // In simulator, the error is expected - just log it
+      console.warn('Privacy policy URL opening failed (may be expected in simulator):', errorMessage);
     }
   };
 
@@ -277,25 +269,6 @@ export default function PrivacyScreen() {
             </View>
           </View>
 
-          {/* Profile Visibility Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Profile Visibility</Text>
-            <Text style={styles.sectionDescription}>
-              Control who can see your profile information
-            </Text>
-
-            {/* TODO: Add profile visibility settings once backend endpoint is ready */}
-            <View style={styles.placeholderContainer}>
-              <View style={styles.placeholderIcon}>
-                <SvgXml xml={eyeIconSVG} width={20} height={20} />
-              </View>
-              <Text style={styles.placeholderText}>
-                Profile visibility settings coming soon. Backend endpoint needed: PUT
-                /customer/profile/me with privacy fields
-              </Text>
-            </View>
-          </View>
-
           {/* Privacy Policy Section */}
           <View style={styles.section}>
             <TouchableOpacity
@@ -417,32 +390,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   categorySubtitle: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#6B7280',
-  },
-  placeholderContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  placeholderIcon: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-  },
-  placeholderText: {
-    flex: 1,
     fontFamily: 'Inter',
     fontWeight: '400',
     fontSize: 14,

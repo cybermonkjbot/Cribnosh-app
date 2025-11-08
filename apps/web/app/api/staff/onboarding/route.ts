@@ -180,15 +180,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Use shared onboarding logic
     const onboardResult = await onboardStaff(onboardingData);
 
-    // Save onboarding data to Convex
+    // Save onboarding data to Convex - this consolidates user update and onboarding record creation
     const convex = getConvexClient();
-    await convex.mutation(api.mutations.users.updateUserOnboarding, {
-      userId: user._id,
-      onboarding: onboardingData,
-    });
-
-    // Save onboarding record to database
-    await convex.mutation(api.mutations.staff.createOnboardingRecord, {
+    await convex.mutation(api.mutations.staff.createOrUpdateStaffOnboarding, {
       userId: user._id,
       onboardingData: onboardingData,
     });

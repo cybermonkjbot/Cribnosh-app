@@ -228,28 +228,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       const user = await convex.query(api.queries.users.getUserByEmail, { email });
       
       if (!user) {
-        // If user doesn't exist, create a new one for waitlist
-        const userId = await convex.mutation(api.mutations.users.createMinimalUser, {
+        // If user doesn't exist, create a new one with customer role in one call
+        const newUser = await convex.mutation(api.mutations.users.createOrUpdateUserWithRoles, {
           name: email.split('@')[0],
           email: email,
+          ensureCustomerRole: true,
         });
-
-        // Get the created user
-        const newUser = await convex.query(api.queries.users.getById, { userId });
         
         if (!newUser) {
           throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Failed to create user');
         }
 
-        // Ensure user has 'customer' role
-        let userRoles = newUser.roles || [];
-        if (!userRoles.includes('customer')) {
-          userRoles = userRoles.length > 0 ? [...userRoles, 'customer'] : ['customer'];
-          await convex.mutation(api.mutations.users.updateUserRoles, {
-            userId: newUser._id,
-            roles: userRoles,
-          });
-        }
+        const userRoles = newUser.roles || ['customer'];
 
         // Create JWT token
         const token = jwt.sign(
@@ -277,12 +267,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // Ensure user has 'customer' role for API access
       let userRoles = user.roles || ['user'];
       if (!userRoles.includes('customer')) {
-        userRoles = [...userRoles, 'customer'];
-        // Update user roles in database
-        await convex.mutation(api.mutations.users.updateUserRoles, {
-          userId: user._id,
+        // Update user with customer role
+        const updatedUser = await convex.mutation(api.mutations.users.createOrUpdateUserWithRoles, {
+          name: user.name || user.email.split('@')[0],
+          email: user.email,
           roles: userRoles,
+          ensureCustomerRole: true,
         });
+        userRoles = updatedUser.roles || userRoles;
       }
 
       // User exists, create JWT token

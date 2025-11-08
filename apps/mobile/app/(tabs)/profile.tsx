@@ -6,8 +6,6 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
-  useAnimatedReaction,
-  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -23,6 +21,7 @@ import { CaloriesNoshPointsCards } from '../../components/ui/CaloriesNoshPointsC
 import { EmptyState } from '../../components/ui/EmptyState';
 import { KPICards } from '../../components/ui/KPICards';
 import { ProfileScreenBackground } from '../../components/ui/ProfileScreenBackground';
+import { QueryStateWrapper } from '../../components/ui/QueryStateWrapper';
 import {
   BraggingCardsSkeleton,
   CaloriesNoshPointsSkeleton,
@@ -39,11 +38,11 @@ import {
   useGetWeeklySummaryQuery,
 } from '../../store/customerApi';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
+import { getAbsoluteImageUrl } from '../../utils/imageUrl';
 
 // Constants moved outside component to prevent recreation
 const SHEET_SNAP_POINT = 200; // Distance to pull up to open sheet
 const SHEET_OPEN_HEIGHT = 400; // Height when sheet is fully open
-const SCROLL_EXPANSION_THRESHOLD = 100;
 
 // ForkPrint PNG component - memoized to prevent recreation
 const ForkPrintImage = React.memo(() => {
@@ -66,22 +65,27 @@ const safeHapticFeedback = async (style: Haptics.ImpactFeedbackStyle) => {
   }
 };
 
+// Helper function to extract ForkPrint score data
+const extractForkPrintScoreData = (forkPrintData: unknown) => {
+  try {
+    const data = (forkPrintData as any)?.data?.data || (forkPrintData as any)?.data;
+    if (data && typeof data === 'object' && 'score' in data) {
+      return {
+        score: data.score ?? 0,
+        status: data.status ?? 'Starter',
+        pointsToNext: data.points_to_next ?? 100,
+        nextLevel: data.next_level ?? 'Tastemaker',
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export default function ProfileScreen() {
   const { isAuthenticated, isLoading: authLoading } = useAuthContext();
   const insets = useSafeAreaInsets();
-  const [braggingData, setBraggingData] = useState<{
-    weekMeals: number[];
-    avgMeals: number;
-    kcalToday: number;
-    kcalYesterday: number;
-    cuisines: string[];
-  }>({
-    weekMeals: [],
-    avgMeals: 0,
-    kcalToday: 0,
-    kcalYesterday: 0,
-    cuisines: [],
-  });
   const router = useRouter();
 
   // API Queries
@@ -91,6 +95,43 @@ export default function ProfileScreen() {
   } = useGetCustomerProfileQuery(undefined, {
     skip: !isAuthenticated,
   });
+
+  // Get profile picture URL, converting relative URLs to absolute
+  // Check multiple possible locations for the picture field
+  const profilePictureUrl = useMemo(() => {
+    if (!profileData?.data) {
+      return undefined;
+    }
+    
+    // Check multiple possible locations for the picture
+    const picture = 
+      profileData.data.picture || 
+      (profileData.data as any)?.user?.picture || 
+      (profileData.data as any)?.user?.avatar ||
+      (profileData.data as any)?.avatar;
+    
+    // Debug: Log the profile data structure
+    console.log('Profile Screen - Profile Data:', {
+      hasData: !!profileData.data,
+      picture: picture,
+      dataPicture: profileData.data.picture,
+      userPicture: (profileData.data as any)?.user?.picture,
+      userAvatar: (profileData.data as any)?.user?.avatar,
+      dataAvatar: (profileData.data as any)?.avatar,
+      dataKeys: Object.keys(profileData.data),
+    });
+    
+    if (picture) {
+      const absoluteUrl = getAbsoluteImageUrl(picture);
+      console.log('Profile Screen - Picture URL:', {
+        original: picture,
+        absolute: absoluteUrl,
+      });
+      return absoluteUrl;
+    }
+    
+    return undefined;
+  }, [profileData?.data]);
 
   const {
     data: forkPrintData,
@@ -138,12 +179,7 @@ export default function ProfileScreen() {
   });
   
   // Simplified state management
-  const [isExpanded, setIsExpanded] = useState(false);
   const isAnimating = useRef(false);
-  
-  // Simple shared values
-  const scrollY = useSharedValue(0);
-  
   
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -156,7 +192,6 @@ export default function ProfileScreen() {
   // Sheet animation values
   const sheetTranslateY = useSharedValue(0);
   const sheetHeight = useSharedValue(0);
-  const isSheetOpen = useSharedValue(0);
 
   // Refs
   const scrollViewRef = useRef<Animated.ScrollView>(null);
@@ -179,38 +214,28 @@ export default function ProfileScreen() {
     opacity: braggingCardsOpacity.value,
     transform: [{ translateY: braggingCardsTranslateY.value }],
   }));
-
-  const statsSectionAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: 0 },
-      { scale: 1 }
-    ],
-    opacity: 1,
-  }));
-
-  const resistanceAnimatedStyle = useAnimatedStyle(() => {
-    const resistance = Math.min(scrollY.value * 0.3, 50);
+  
+  // Sheet animated styles - simplified
+  const sheetAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    // Safeguard against invalid values
+    const safeTranslateY = isFinite(sheetTranslateY.value) ? sheetTranslateY.value : 0;
+    const safeHeight = isFinite(sheetHeight.value) && sheetHeight.value >= 0 ? sheetHeight.value : 0;
     return {
-      transform: [{ translateY: resistance }],
+      transform: [{ translateY: safeTranslateY }],
+      height: safeHeight,
     };
   });
   
-  // Sheet animated styles
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: sheetTranslateY.value }],
-    height: sheetHeight.value,
-  }));
-  
   const sheetBackgroundAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
-    const progress = Math.min(Math.abs(sheetTranslateY.value) / SHEET_SNAP_POINT, 1);
-    const opacity = 0.1 + (progress * 0.8); // From 0.1 to 0.9 opacity
-    const r = Math.round(255);
-    const g = Math.round(255);
-    const b = Math.round(255);
-    
+    const translateY = sheetTranslateY.value;
+    // Safeguard against invalid values
+    const safeTranslateY = isFinite(translateY) ? translateY : 0;
+    const progress = Math.min(Math.max(Math.abs(safeTranslateY) / SHEET_SNAP_POINT, 0), 1);
+    const opacity = Math.min(Math.max(0.1 + (progress * 0.8), 0.1), 0.9);
     return {
-      backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})`,
+      backgroundColor: `rgba(255, 255, 255, ${opacity})`,
     };
   });
 
@@ -218,95 +243,37 @@ export default function ProfileScreen() {
 
   // Safe scroll to function - removed unused function
 
-  // Sheet gesture handler
+  // Sheet gesture handler - simplified
+  const springConfig = { damping: 20, stiffness: 200 };
+  
   const sheetGesture = Gesture.Pan()
-    .onStart(() => {
-      'worklet';
-    })
     .onUpdate((event) => {
       'worklet';
-      const newTranslateY = Math.max(-SHEET_OPEN_HEIGHT, Math.min(0, event.translationY));
+      // Safeguard against invalid translation values
+      const safeTranslationY = isFinite(event.translationY) ? event.translationY : 0;
+      const newTranslateY = Math.max(-SHEET_OPEN_HEIGHT, Math.min(0, safeTranslationY));
       sheetTranslateY.value = newTranslateY;
-      
-      // Calculate sheet height based on pull distance
       const pullDistance = Math.abs(newTranslateY);
-      const progress = Math.min(pullDistance / SHEET_SNAP_POINT, 1);
+      const progress = Math.min(Math.max(pullDistance / SHEET_SNAP_POINT, 0), 1);
       sheetHeight.value = progress * SHEET_OPEN_HEIGHT;
     })
     .onEnd((event) => {
       'worklet';
-      const velocity = event.velocityY;
-      const currentTranslateY = sheetTranslateY.value;
+      // Safeguard against invalid velocity values
+      const safeVelocityY = isFinite(event.velocityY) ? event.velocityY : 0;
+      const currentTranslateY = isFinite(sheetTranslateY.value) ? sheetTranslateY.value : 0;
+      const shouldOpen = currentTranslateY < -SHEET_SNAP_POINT || safeVelocityY < -500;
       
-      if (currentTranslateY < -SHEET_SNAP_POINT || velocity < -500) {
-        // Snap to open
-        sheetTranslateY.value = withSpring(-SHEET_OPEN_HEIGHT, {
-          damping: 20,
-          stiffness: 200,
-        });
-        sheetHeight.value = withSpring(SHEET_OPEN_HEIGHT, {
-          damping: 20,
-          stiffness: 200,
-        });
-        isSheetOpen.value = withTiming(1, { duration: 300 });
+      if (shouldOpen) {
+        sheetTranslateY.value = withSpring(-SHEET_OPEN_HEIGHT, springConfig);
+        sheetHeight.value = withSpring(SHEET_OPEN_HEIGHT, springConfig);
         runOnJS(safeHapticFeedback)(Haptics.ImpactFeedbackStyle.Medium);
       } else {
-        // Snap back to closed
-        sheetTranslateY.value = withSpring(0, {
-          damping: 20,
-          stiffness: 200,
-        });
-        sheetHeight.value = withSpring(0, {
-          damping: 20,
-          stiffness: 200,
-        });
-        isSheetOpen.value = withTiming(0, { duration: 300 });
+        sheetTranslateY.value = withSpring(0, springConfig);
+        sheetHeight.value = withSpring(0, springConfig);
       }
   });
 
-  // Simple expansion function
-  const expandStats = useCallback(() => {
-    if (isAnimating.current || isExpanded) return;
-    
-    if (__DEV__) {
-      console.log('Starting expansion animation');
-    }
-    isAnimating.current = true;
-    setIsExpanded(true);
-    
-    // Add haptic feedback
-    safeHapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
-    
-    // Simple state change without complex animations
-    setTimeout(() => {
-      isAnimating.current = false;
-      if (__DEV__) {
-        console.log('Expansion completed');
-      }
-    }, 300);
-  }, [isExpanded]);
-
-  // Removed unused collapseStats function
-
-  // Minimal scroll handler - just track scroll position
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      'worklet';
-      scrollY.value = event.contentOffset.y;
-    },
-  });
-
-  // Optimized expansion trigger using useAnimatedReaction instead of setInterval
-  // This is more performant as it only triggers when scrollY actually changes
-  useAnimatedReaction(
-    () => scrollY.value,
-    (currentScrollY) => {
-      'worklet';
-      if (currentScrollY > SCROLL_EXPANSION_THRESHOLD && !isExpanded && !isAnimating.current) {
-        runOnJS(expandStats)();
-      }
-    }
-  );
 
   // Simple mount effect - removed unnecessary dependencies (shared values don't change)
   useEffect(() => {
@@ -332,18 +299,25 @@ export default function ProfileScreen() {
     Alert.alert('Cuisine Score', 'Show all cuisines explored');
   }, []);
 
-  // Update bragging data when API data changes
-  useEffect(() => {
-    if (weeklySummaryData?.success && weeklySummaryData.data) {
+  // Optimized data transformation - use useMemo instead of useEffect
+  const braggingData = useMemo(() => {
+    if (!weeklySummaryData?.success || !weeklySummaryData.data) {
+      return {
+        weekMeals: [],
+        avgMeals: 0,
+        kcalToday: 0,
+        kcalYesterday: 0,
+        cuisines: [],
+      };
+    }
       const weeklyData = weeklySummaryData.data;
-      setBraggingData({
+    return {
         weekMeals: weeklyData.week_meals || [],
         avgMeals: weeklyData.avg_meals || 0,
         kcalToday: weeklyData.kcal_today || 0,
         kcalYesterday: weeklyData.kcal_yesterday || 0,
         cuisines: weeklyData.cuisines || [],
-      });
-    }
+    };
   }, [weeklySummaryData]);
 
   const refreshBraggingData = useCallback(() => {
@@ -372,14 +346,12 @@ export default function ProfileScreen() {
     style: { flex: 1, width: '100%' as const },
     showsVerticalScrollIndicator: false,
     contentContainerStyle: { paddingBottom: 100, width: '100%' as const },
-    onScroll: scrollHandler,
-    scrollEventThrottle: 16, // Optimized from 33 to 16 for smoother scrolling
     bounces: true,
     alwaysBounceVertical: true,
     removeClippedSubviews: true, // Enable view recycling
     maxToRenderPerBatch: 10, // Limit batch rendering
     windowSize: 5, // Reduce window size for better performance
-  }), [scrollHandler]);
+  }), []);
 
   // Automatically trigger sign-in when not authenticated (similar to app-wide behavior)
   // Make it non-dismissable so users can't dismiss and see forever loading
@@ -394,7 +366,7 @@ export default function ProfileScreen() {
 
   return (
     <ProfileScreenBackground>
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <Animated.ScrollView 
           {...scrollViewProps}
           scrollEnabled={isAuthenticated || authLoading}
@@ -408,152 +380,117 @@ export default function ProfileScreen() {
                   contentFit="contain"
                 />
                 <TouchableOpacity onPress={() => router.push('/account-details')}>
-                  {isAuthenticated && profileData?.data?.picture ? (
-                    <Avatar 
-                      size="md"
-                      source={{ uri: profileData.data.picture }}
-                    />
-                  ) : (
-                    <View style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 28,
-                      backgroundColor: '#E5E7EB',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }} />
-                  )}
+                  {(() => {
+                    console.log('Profile Screen - Rendering Avatar with:', {
+                      profilePictureUrl,
+                      hasUrl: !!profilePictureUrl,
+                      source: profilePictureUrl ? { uri: profilePictureUrl } : undefined,
+                    });
+                    return (
+                      <Avatar 
+                        size="md"
+                        source={profilePictureUrl ? { uri: profilePictureUrl } : undefined}
+                      />
+                    );
+                  })()}
                 </TouchableOpacity>
               </View>
             </Animated.View>
 
             {/* ForkPrint Score and Tastemaker Section */}
-            <Animated.View style={[scoreAnimatedStyle, resistanceAnimatedStyle]}>
+            <Animated.View style={scoreAnimatedStyle}>
               <View style={styles.scoreSectionContainer}>
-                {!isAuthenticated || forkPrintLoading ? (
-                  <ForkPrintScoreSkeleton />
-                ) : forkPrintError ? (
-                      <EmptyState
-                        title="Unable to Load ForkPrint Score"
-                        subtitle="Failed to load your ForkPrint score. Please try again."
-                        icon="alert-circle-outline"
-                        titleColor="#FFFFFF"
-                        subtitleColor="rgba(255, 255, 255, 0.8)"
-                        iconColor="#FFFFFF"
-                        actionButton={{
-                          label: "Retry",
-                          onPress: () => refetchForkPrint(),
-                        }}
-                      />
-                    ) : forkPrintData?.data ? (
-                      <>
-                        <View style={styles.scoreRow}>
-                          <View style={styles.scoreContent}>
-                            <Text style={styles.scoreLabel}>
-                              Score
-                            </Text>
-                            
-                            <ForkPrintImage />
-                            
-                            <Text style={styles.scoreValue}>
-                              {forkPrintData.data.score}
-                            </Text>
-                          </View>
-                        </View>
-                        
-                        <View style={styles.mascotContainer}>
-                          <Mascot 
-                            emotion="happy" 
-                            size={280}
-                            style={styles.mascotImage}
-                          />
-                          
-                          <ThemedText style={styles.mascotStatus}>
-                            {forkPrintData.data.status}
-                          </ThemedText>
-                          <ThemedText style={styles.mascotSubtext}>
-                            {forkPrintData.data.points_to_next} Points to {forkPrintData.data.next_level}
-                          </ThemedText>
-                        </View>
-                      </>
-                    ) : null}
+                <QueryStateWrapper
+                  isLoading={!isAuthenticated || forkPrintLoading}
+                  error={forkPrintError}
+                  isEmpty={!extractForkPrintScoreData(forkPrintData)}
+                  skeleton={<ForkPrintScoreSkeleton />}
+                  errorTitle="Unable to Load ForkPrint Score"
+                  errorSubtitle="Failed to load your ForkPrint score. Please try again."
+                  onRetry={() => refetchForkPrint()}
+                >
+                  {(() => {
+                    const scoreData = extractForkPrintScoreData(forkPrintData);
+                    if (!scoreData) return null;
+                    
+                          return (
+                            <>
+                              <View style={styles.scoreRow}>
+                                <View style={styles.scoreContent}>
+                            <Text style={styles.scoreLabel}>Score</Text>
+                                  <ForkPrintImage />
+                            <Text style={styles.scoreValue}>{scoreData.score}</Text>
+                                </View>
+                              </View>
+                              
+                              <View style={styles.mascotContainer}>
+                                <Mascot 
+                                  emotion="happy" 
+                                  size={280}
+                                  style={styles.mascotImage}
+                                />
+                                <ThemedText style={styles.mascotStatus}>
+                            {scoreData.status}
+                                </ThemedText>
+                                <ThemedText style={styles.mascotSubtext}>
+                            {scoreData.pointsToNext} Points to {scoreData.nextLevel}
+                                </ThemedText>
+                              </View>
+                            </>
+                          );
+                    })()}
+                </QueryStateWrapper>
                   </View>
                 </Animated.View>
 
             {/* Data Cards */}
             <Animated.View style={cardsAnimatedStyle}>
               <View style={styles.dataCardsContainer}>
-                {!isAuthenticated || caloriesProgressLoading || noshPointsLoading ? (
-                  <CaloriesNoshPointsSkeleton />
-                ) : caloriesProgressError || noshPointsError ? (
-                      <EmptyState
-                        title="Unable to Load Progress Data"
-                        subtitle="Failed to load calories and Nosh Points progress. Please try again."
-                        icon="alert-circle-outline"
-                        titleColor="#FFFFFF"
-                        subtitleColor="rgba(255, 255, 255, 0.8)"
-                        iconColor="#FFFFFF"
-                        actionButton={{
-                          label: "Retry",
-                          onPress: () => {
+                <QueryStateWrapper
+                  isLoading={!isAuthenticated || caloriesProgressLoading || noshPointsLoading}
+                  error={caloriesProgressError || noshPointsError}
+                  isEmpty={!caloriesProgressData?.data || !noshPointsData?.data}
+                  skeleton={<CaloriesNoshPointsSkeleton />}
+                  errorTitle="Unable to Load Progress Data"
+                  errorSubtitle="Failed to load calories and Nosh Points progress. Please try again."
+                  onRetry={() => {
                             refetchCaloriesProgress();
                             refetchNoshPoints();
-                          },
                         }}
-                      />
-                    ) : caloriesProgressData?.data && noshPointsData?.data ? (
+                >
                       <CaloriesNoshPointsCards 
-                        caloriesProgress={caloriesProgressData.data.progress_percentage ?? 0}
-                        noshPointsProgress={noshPointsData.data.progress_percentage ?? 0}
-                        availableCoins={noshPointsData.data.available_points}
+                        caloriesProgress={caloriesProgressData?.data?.progress_percentage ?? 0}
+                        noshPointsProgress={noshPointsData?.data?.progress_percentage ?? 0}
+                        availableCoins={noshPointsData?.data?.available_points}
                       />
-                    ) : null}
+                </QueryStateWrapper>
                   </View>
                 </Animated.View>
 
             {/* KPI Cards */}
             <Animated.View style={cardsAnimatedStyle}>
               <View style={styles.kpiCardsContainer}>
-                {!isAuthenticated || monthlyOverviewLoading ? (
-                  <KPICardsSkeleton />
-                ) : monthlyOverviewError ? (
-                      <EmptyState
-                        title="Unable to Load Monthly Overview"
-                        subtitle="Failed to load your monthly statistics. Please try again."
-                        icon="alert-circle-outline"
-                        titleColor="#FFFFFF"
-                        subtitleColor="rgba(255, 255, 255, 0.8)"
-                        iconColor="#FFFFFF"
-                        actionButton={{
-                          label: "Retry",
-                          onPress: () => refetchMonthlyOverview(),
-                        }}
-                      />
-                    ) : monthlyOverviewData?.data ? (
+                <QueryStateWrapper
+                  isLoading={!isAuthenticated || monthlyOverviewLoading}
+                  error={monthlyOverviewError}
+                  isEmpty={!monthlyOverviewData?.data}
+                  skeleton={<KPICardsSkeleton />}
+                  errorTitle="Unable to Load Monthly Overview"
+                  errorSubtitle="Failed to load your monthly statistics. Please try again."
+                  onRetry={() => refetchMonthlyOverview()}
+                >
                       <KPICards
-                        mealsLogged={monthlyOverviewData.data.meals?.count?.toString()}
-                        caloriesTracked={monthlyOverviewData.data.calories?.tracked?.toString()}
-                        streakDays={monthlyOverviewData.data.streak?.current?.toString()}
+                        mealsLogged={monthlyOverviewData?.data?.meals?.count?.toString()}
+                        caloriesTracked={monthlyOverviewData?.data?.calories?.tracked?.toString()}
+                        streakDays={monthlyOverviewData?.data?.streak?.current?.toString()}
                       />
-                    ) : null}
+                </QueryStateWrapper>
                   </View>
                 </Animated.View>
 
-            {/* Breakpoint Trigger Area */}
-            {isAuthenticated && (
-              <View style={styles.triggerArea}>
-                <View style={styles.triggerContent}>
-                  <Text style={styles.triggerText}>
-                    Pull up to view your food stats
-                  </Text>
-                  <View style={styles.triggerIndicator} />
-                </View>
-              </View>
-            )}
-
             {/* Bragging Cards Section - Sheet */}
             <GestureDetector gesture={sheetGesture}>
-              <Animated.View style={[braggingCardsAnimatedStyle, statsSectionAnimatedStyle, sheetAnimatedStyle]}>
+              <Animated.View style={[braggingCardsAnimatedStyle, sheetAnimatedStyle]}>
                 <Animated.View style={[styles.sheetContent, sheetBackgroundAnimatedStyle]}>
                   {!isAuthenticated ? (
                     <BraggingCardsSkeleton />
@@ -570,23 +507,15 @@ export default function ProfileScreen() {
                         </TouchableOpacity>
                       </View>
                       
-                      {weeklySummaryLoading ? (
-                        <BraggingCardsSkeleton />
-                      ) : weeklySummaryError ? (
-                        <EmptyState
-                          title="Unable to Load Weekly Summary"
-                          subtitle="Failed to load your weekly food statistics. Please try again."
-                          icon="alert-circle-outline"
-                          titleColor="#FFFFFF"
-                          subtitleColor="rgba(255, 255, 255, 0.8)"
-                          iconColor="#FFFFFF"
-                          actionButton={{
-                            label: "Retry",
-                            onPress: () => refetchWeeklySummary(),
-                          }}
-                        />
-                      ) : braggingData.weekMeals.length > 0 || braggingData.cuisines.length > 0 ? (
-                        <>
+                      <QueryStateWrapper
+                        isLoading={weeklySummaryLoading}
+                        error={weeklySummaryError}
+                        isEmpty={(braggingData.weekMeals?.length ?? 0) === 0 && (braggingData.cuisines?.length ?? 0) === 0}
+                        skeleton={<BraggingCardsSkeleton />}
+                        errorTitle="Unable to Load Weekly Summary"
+                        errorSubtitle="Failed to load your weekly food statistics. Please try again."
+                        onRetry={() => refetchWeeklySummary()}
+                      >
                           {/* Individual Bragging Cards */}
                           <MealsLoggedCard
                             weekMeals={braggingData.weekMeals}
@@ -604,8 +533,7 @@ export default function ProfileScreen() {
                             cuisines={braggingData.cuisines}
                             onPress={handleCuisinePress}
                           />
-                        </>
-                      ) : null}
+                      </QueryStateWrapper>
                     </>
                   )}
                 </Animated.View>
@@ -721,30 +649,6 @@ const styles = StyleSheet.create({
   kpiCardsContainer: {
     paddingHorizontal: 16,
     marginBottom: 20,
-  },
-  triggerArea: {
-    height: 100,
-    justifyContent: 'flex-end',
-  },
-  triggerContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-    alignItems: 'center',
-  },
-  triggerText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.7,
-    fontFamily: 'Mukta',
-    textAlign: 'center',
-  },
-  triggerIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.3,
-    borderRadius: 2,
-    marginTop: 8,
   },
   sheetContent: {
     marginHorizontal: 0,

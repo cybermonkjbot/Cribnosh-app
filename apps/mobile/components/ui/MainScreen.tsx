@@ -452,6 +452,8 @@ export function MainScreen() {
     isSessionExpired,
     clearSessionExpired,
     checkTokenExpiration,
+    token,
+    refreshAuthState,
   } = useAuthContext();
 
   // Customer API hooks
@@ -710,6 +712,7 @@ export function MainScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
   const [isNotificationsSheetVisible, setIsNotificationsSheetVisible] = useState(false);
+  const isFirstMapLoad = useRef(true);
 
   // Handle API errors with toast notifications
   useEffect(() => {
@@ -1314,12 +1317,21 @@ export function MainScreen() {
         );
         
         setMapChefs(result.chefs);
-        showSuccess(`Loaded ${result.chefs.length} nearby chefs`, "Map Updated");
+        
+        // Only show notification for updates when map is visible, not initial load
+        if (!isFirstMapLoad.current && isMapVisible) {
+          showSuccess(`Loaded ${result.chefs.length} nearby chefs`, "Map Updated");
+        }
+        
+        // Mark that initial load is complete
+        isFirstMapLoad.current = false;
       } catch (error) {
         console.error('Failed to load nearby chefs:', error);
         showError('Failed to load chefs', 'Unable to load nearby chefs. Please try again.');
         // Fallback to empty array on error
         setMapChefs([]);
+        // Mark initial load as complete even on error
+        isFirstMapLoad.current = false;
       }
     };
 
@@ -1531,10 +1543,24 @@ export function MainScreen() {
 
   const handleDrawerAddToCart = useCallback(
     async (id: string) => {
-      if (!isAuthenticated) {
+      // Check authentication and token validity
+      if (!isAuthenticated || !token) {
         showWarning(
           "Authentication Required",
           "Please sign in to add items to cart"
+        );
+        navigateToSignIn();
+        return;
+      }
+
+      // Check if token is expired and refresh auth state if needed
+      const isExpired = checkTokenExpiration();
+      if (isExpired) {
+        // Refresh auth state to update isAuthenticated
+        await refreshAuthState();
+        showWarning(
+          "Session Expired",
+          "Please sign in again to add items to cart"
         );
         navigateToSignIn();
         return;
@@ -1554,7 +1580,7 @@ export function MainScreen() {
         showError("Failed to add item to cart", "Please try again");
       }
     },
-    [isAuthenticated, addToCart]
+    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart]
   );
 
   const handleDrawerItemPress = useCallback((id: string) => {

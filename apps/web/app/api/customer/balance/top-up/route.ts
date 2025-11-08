@@ -1,6 +1,8 @@
+import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
 import type { JWTPayload } from '@/types/convex-contexts';
@@ -114,7 +116,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { email } = payload;
+    // Fetch user from database to get email
+    const convex = getConvexClient();
+    const user = await convex.query(api.queries.users.getById, { userId: payload.user_id });
+    if (!user) {
+      return createSpecErrorResponse(
+        'User not found',
+        'NOT_FOUND',
+        404
+      );
+    }
+
+    const email = user.email;
     if (!email) {
       return createSpecErrorResponse(
         'User email required',

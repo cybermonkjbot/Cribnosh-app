@@ -381,6 +381,7 @@ export const customerApi = createApi({
     "CustomOrders",
     "Videos",
     "KitchenFavorites",
+    "DishFavorites",
     "KitchenMeals",
     "KitchenCategories",
     "KitchenTags",
@@ -2801,6 +2802,11 @@ export const customerApi = createApi({
         url: "/customer/forkprint/score",
         method: "GET",
       }),
+      transformResponse: (response: any) => {
+        // Ensure we return the response as-is (RTK Query will handle it)
+        // The response should be { success: true, data: {...} }
+        return response;
+      },
       providesTags: ["CustomerProfile"],
     }),
 
@@ -3398,6 +3404,51 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Check if dish/meal is favorited
+     * GET /api/customer/dishes/{dishId}/favorite
+     */
+    getDishFavoriteStatus: builder.query<
+      { isFavorited: boolean; favoriteId?: string },
+      { dishId: string }
+    >({
+      query: ({ dishId }) => ({
+        url: `/customer/dishes/${dishId}/favorite`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { dishId }) => [
+        { type: "DishFavorites", id: dishId },
+      ],
+    }),
+
+    /**
+     * Add dish/meal to favorites
+     * POST /api/customer/dishes/{dishId}/favorite
+     */
+    addDishFavorite: builder.mutation<void, { dishId: string }>({
+      query: ({ dishId }) => ({
+        url: `/customer/dishes/${dishId}/favorite`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { dishId }) => [
+        { type: "DishFavorites", id: dishId },
+      ],
+    }),
+
+    /**
+     * Remove dish/meal from favorites
+     * DELETE /api/customer/dishes/{dishId}/favorite
+     */
+    removeDishFavorite: builder.mutation<void, { dishId: string }>({
+      query: ({ dishId }) => ({
+        url: `/customer/dishes/${dishId}/favorite`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { dishId }) => [
+        { type: "DishFavorites", id: dishId },
+      ],
+    }),
+
+    /**
      * Get meals for a kitchen
      * GET /api/customer/kitchens/{kitchenId}/meals
      */
@@ -3948,6 +3999,13 @@ export const {
   useGetKitchenFavoriteStatusQuery,
   useAddKitchenFavoriteMutation,
   useRemoveKitchenFavoriteMutation,
+} = customerApi;
+
+// Dish/Meal Favorites
+export const {
+  useGetDishFavoriteStatusQuery,
+  useAddDishFavoriteMutation,
+  useRemoveDishFavoriteMutation,
 } = customerApi;
 
 // Kitchen Meals

@@ -40,7 +40,7 @@ interface LiveViewerScreenProps {
 const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitchenData, onClose }) => {
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
   const router = useRouter();
   const [addToCart] = useAddToCartMutation();
   const [updateCartItem] = useUpdateCartItemMutation();
@@ -208,10 +208,24 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   };
 
   const handleAddToCart = useCallback(async () => {
-    if (!isAuthenticated) {
+    // Check authentication and token validity
+    if (!isAuthenticated || !token) {
       showWarning(
         'Authentication Required',
         'Please sign in to add items to cart'
+      );
+      router.push('/auth/sign-in' as any);
+      return;
+    }
+
+    // Check if token is expired and refresh auth state if needed
+    const isExpired = checkTokenExpiration();
+    if (isExpired) {
+      // Refresh auth state to update isAuthenticated
+      await refreshAuthState();
+      showWarning(
+        'Session Expired',
+        'Please sign in again to add items to cart'
       );
       router.push('/auth/sign-in' as any);
       return;
@@ -238,7 +252,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add item to cart';
       showError('Failed to add item to cart', errorMessage);
     }
-  }, [isAuthenticated, sessionData, addToCart, router, refetchCart]);
+  }, [isAuthenticated, token, checkTokenExpiration, refreshAuthState, sessionData, addToCart, router, refetchCart]);
 
   const handleQuantityChange = useCallback(async (quantity: number) => {
     if (!isAuthenticated || !sessionData?.data?.meal?._id) {

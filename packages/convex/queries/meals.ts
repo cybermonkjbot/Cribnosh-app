@@ -88,6 +88,94 @@ export const getAll = query({
   },
 });
 
+/**
+ * Get dishes with details - accepts array of dish IDs and returns all details (meals, chefs, reviews) in one call
+ * This consolidates multiple queries into a single batch query
+ */
+export const getDishesWithDetails = query({
+  args: {
+    dishIds: v.array(v.id('meals')),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx: QueryCtx, args: { dishIds: Id<'meals'>[] }) => {
+    if (args.dishIds.length === 0) {
+      return [];
+    }
+    
+    // Get all meals in one query
+    const meals = await Promise.all(
+      args.dishIds.map(id => ctx.db.get(id))
+    );
+    
+    // Filter out null meals
+    const validMeals = meals.filter((meal): meal is MealDoc => meal !== null);
+    
+    // Get unique chef IDs
+    const chefIds = new Set(validMeals.map(meal => meal.chefId));
+    
+    // Get all chefs in one batch
+    const chefs = await Promise.all(
+      Array.from(chefIds).map(id => ctx.db.get(id))
+    );
+    
+    // Create chef map for quick lookup
+    const chefMap = new Map<Id<'chefs'>, ChefDoc>();
+    for (const chef of chefs) {
+      if (chef) {
+        chefMap.set(chef._id, chef as ChefDoc);
+      }
+    }
+    
+    // Get all reviews for these meals in one query
+    const allReviews = await ctx.db.query('reviews').collect();
+    
+    // Create review map by meal ID
+    const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
+    for (const review of allReviews) {
+      const mealId = (review as any).mealId || (review as any).meal_id;
+      if (mealId && args.dishIds.includes(mealId)) {
+        if (!reviewMap.has(mealId)) {
+          reviewMap.set(mealId, []);
+        }
+        reviewMap.get(mealId)!.push(review as ReviewDoc);
+      }
+    }
+    
+    // Build result with all details
+    const dishesWithDetails = validMeals.map((meal: MealDoc) => {
+      const chef = chefMap.get(meal.chefId);
+      const reviews = reviewMap.get(meal._id) || [];
+      const avgRating = reviews.length > 0
+        ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
+        : meal.rating || 0;
+      
+      return {
+        ...meal,
+        chef: chef ? {
+          _id: chef._id,
+          name: chef.name || `Chef ${chef._id}`,
+          bio: chef.bio,
+          specialties: chef.specialties || [],
+          rating: chef.rating || 0,
+          profileImage: chef.profileImage
+        } : {
+          _id: meal.chefId,
+          name: `Chef ${meal.chefId}`,
+          bio: '',
+          specialties: [],
+          rating: 0,
+          profileImage: null
+        },
+        reviewCount: reviews.length,
+        averageRating: avgRating,
+        reviews: reviews,
+      };
+    });
+    
+    return dishesWithDetails;
+  },
+});
+
 export const getPending = query({
   args: {},
   returns: v.array(v.any()),

@@ -1,7 +1,7 @@
 import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiMutations, getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { api, getApiMutations, getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
 import type { JWTPayload } from '@/types/convex-contexts';
@@ -212,7 +212,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify payment intent belongs to this user
-    if (paymentIntent.metadata?.userId !== payload.user_id) {
+    // For family members, check orderUserId instead of userId (since payment uses parent's userId)
+    const isFamilyMember = paymentIntent.metadata?.orderType === 'family_member_checkout';
+    const expectedUserId = isFamilyMember 
+      ? paymentIntent.metadata?.orderUserId 
+      : paymentIntent.metadata?.userId;
+    
+    if (expectedUserId !== payload.user_id) {
       return ResponseFactory.forbidden('Payment intent does not belong to this user.');
     }
 
@@ -317,84 +323,33 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // Continue anyway but log the warning
     }
 
-    // Create the order using existing mutation
-    type CreateOrderMutation = FunctionReference<"mutation", "public", CreateOrderArgs, Id<'orders'>>;
-    const orderId = await convex.mutation(
-      (apiMutations.orders.createOrder as unknown as CreateOrderMutation),
+    // Create order from cart complete - this consolidates order creation, family spending recording, cart clearing, and order retrieval
+    const order = await convex.action(
+      api.actions.orders.createOrderFromCartComplete,
       {
         customer_id: payload.user_id,
         chef_id,
         order_items: orderItems,
         total_amount: totalAmount,
+        payment_id: payment_intent_id,
         payment_method: 'card',
         special_instructions,
         delivery_time,
         delivery_address,
+        // Family order metadata (if applicable)
+        family_profile_id: isFamilyMember && paymentIntent.metadata?.family_profile_id 
+          ? paymentIntent.metadata.family_profile_id as string 
+          : undefined,
+        member_user_id: isFamilyMember && paymentIntent.metadata?.member_user_id 
+          ? paymentIntent.metadata.member_user_id as string 
+          : undefined,
       }
-    ) as Id<'orders'>;
-
-    // Link payment intent to order by updating order with payment_id
-    // Get the order we just created to get its order_id
-    type ListOrdersQuery = FunctionReference<"query", "public", { customer_id: string }, OrderData[]>;
-    const allOrders = await convex.query(
-      (apiQueries.orders.listByCustomer as unknown as ListOrdersQuery),
-      { customer_id: payload.user_id }
-    ) as OrderData[];
-    const order = allOrders.find((o: OrderData) => o._id === orderId);
-
-    if (order && order.order_id) {
-      // Update order with payment_id and mark as paid
-      try {
-        type MarkPaidMutation = FunctionReference<"mutation", "public", MarkPaidArgs, void>;
-        await convex.mutation(
-          (apiMutations.orders.markPaid as unknown as MarkPaidMutation),
-          {
-            order_id: order.order_id,
-            paymentIntentId: payment_intent_id,
-          }
-        );
-      } catch (error) {
-        console.warn('Could not link payment intent to order:', error);
-        // Continue - order is created, just payment link failed
-      }
-    }
-
-    // Clear cart after order creation
-    try {
-      type ClearCartMutation = FunctionReference<"mutation", "public", ClearCartArgs, void>;
-      await convex.mutation(
-        (apiMutations.orders.clearCart as unknown as ClearCartMutation),
-        { userId: payload.user_id }
-      );
-    } catch (error) {
-      console.warn('Could not clear cart after order creation:', error);
-      // Continue - order is created, cart clearing can be retried
-    }
-
-    // Get final order details
-    const finalOrders = await convex.query(
-      (apiQueries.orders.listByCustomer as unknown as ListOrdersQuery),
-      { customer_id: payload.user_id }
-    ) as OrderData[];
-    const finalOrder = finalOrders.find((o: OrderData) => o._id === orderId) || order;
+    ) as OrderData;
 
     return ResponseFactory.success({
       success: true,
-      order_id: finalOrder?.order_id || orderId,
-      order: finalOrder || {
-        _id: orderId,
-        customer_id: payload.user_id,
-        chef_id,
-        order_items: orderItems,
-        total_amount: totalAmount,
-        payment_method: 'card',
-        special_instructions,
-        delivery_time,
-        delivery_address,
-        order_status: 'pending',
-        payment_status: 'paid',
-        payment_id: payment_intent_id,
-      },
+      order_id: order?.order_id || order?._id,
+      order: order,
     }, 'Order created successfully from cart');
   } catch (error: unknown) {
     console.error('Error creating order from cart:', error);

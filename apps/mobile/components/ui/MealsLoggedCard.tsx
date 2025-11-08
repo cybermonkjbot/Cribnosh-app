@@ -11,7 +11,6 @@ import Animated, {
     withSpring,
     withTiming
 } from 'react-native-reanimated';
-import Svg, { Rect } from 'react-native-svg';
 
 interface MealsLoggedCardProps {
   weekMeals: number[]; // Array of 7 numbers representing meals per day
@@ -145,34 +144,39 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
             <Text style={styles.averageUnit}>meals</Text>
           </View>
 
-          {/* Bar Chart */}
+          {/* Bar Chart - Replaced SVG with View-based bars */}
           <View style={styles.chartContainer}>
-            <Svg width={200} height={80} style={styles.chart}>
-              {/* Average Line */}
-              <Rect
-                x={0}
-                y={40 - barHeight(avgMeals)}
-                width={200 * averageLineProgressState}
-                height={2}
-                fill="#FF6B00"
-              />
-              
+            <View style={styles.chart}>
               {/* Daily Bars */}
-              {weekMeals.map((meals, index) => {
-                const animatedHeight = barHeight(meals) * barsProgressState;
-                return (
-                  <Rect
-                    key={index}
-                    x={index * 28 + 4}
-                    y={40 - animatedHeight}
-                    width={20}
-                    height={animatedHeight}
-                    fill="#E5E5E5"
-                    rx={2}
-                  />
-                );
-              })}
-            </Svg>
+              <View style={styles.barsContainer}>
+                {weekMeals.map((meals, index) => {
+                  const animatedHeight = barHeight(meals) * barsProgressState;
+                  return (
+                    <Animated.View
+                      key={index}
+                      style={[
+                        styles.bar,
+                        {
+                          height: animatedHeight,
+                          width: 20,
+                        }
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+              
+              {/* Average Line */}
+              <Animated.View
+                style={[
+                  styles.averageLine,
+                  {
+                    width: `${averageLineProgressState * 100}%`,
+                    bottom: `${(barHeight(avgMeals) / 60) * 100}%`,
+                  }
+                ]}
+              />
+            </View>
             
             {/* Day Labels */}
             <View style={styles.dayLabels}>
@@ -268,7 +272,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chart: {
+    height: 80,
+    width: 200,
+    position: 'relative',
     marginBottom: 8,
+  },
+  barsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 60,
+    paddingHorizontal: 4,
+    position: 'relative',
+    marginBottom: 2,
+  },
+  bar: {
+    backgroundColor: '#E5E5E5',
+    borderRadius: 2,
+    marginHorizontal: 2,
+    minHeight: 2,
+  },
+  averageLine: {
+    position: 'absolute',
+    left: 4,
+    right: 4,
+    height: 2,
+    backgroundColor: '#FF6B00',
+    zIndex: 1,
   },
   dayLabels: {
     flexDirection: 'row',

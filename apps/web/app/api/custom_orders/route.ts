@@ -170,10 +170,19 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Invalid or expired token.');
     }
     const convex = getConvexClient();
-    // Pagination
+    // Pagination - support both 'page' and 'offset' parameters
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
-    const offset = parseInt(searchParams.get('offset') || '') || 0;
+    let offset = 0;
+    const pageParam = searchParams.get('page');
+    const offsetParam = searchParams.get('offset');
+    if (pageParam) {
+      // Convert page to offset: offset = (page - 1) * limit
+      const page = parseInt(pageParam) || 1;
+      offset = (page - 1) * limit;
+    } else if (offsetParam) {
+      offset = parseInt(offsetParam) || 0;
+    }
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Get orders for the current user with pagination
     const userOrders = await convex.query(api.queries.custom_orders.getByUserId, {
@@ -305,7 +314,23 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const body = await request.json();
-    const { details } = body;
+    
+    // Support both formats: nested { details: {...} } and top-level fields
+    let details: any;
+    if (body.details && typeof body.details === 'object') {
+      // New format: nested details object
+      details = body.details;
+    } else if (body.requirements || body.serving_size || body.servingSize) {
+      // Legacy format: top-level fields (snake_case or camelCase)
+      details = {
+        requirements: body.requirements,
+        servingSize: body.serving_size || body.servingSize,
+        desiredDeliveryTime: body.desired_delivery_time || body.desiredDeliveryTime || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Default to tomorrow if not provided
+        dietaryRestrictions: body.dietary_restrictions || body.dietaryRestrictions,
+      };
+    } else {
+      return ResponseFactory.validationError('Order details are required.');
+    }
     
     // Enhanced validation
     if (!details || typeof details !== 'object') {

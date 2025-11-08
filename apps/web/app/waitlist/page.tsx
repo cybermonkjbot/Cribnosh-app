@@ -54,7 +54,7 @@ export default function WaitlistPage() {
     return parts.length > 0 ? parts.join(', ') : undefined;
   };
 
-  const addToWaitlist = useAction(api.actions.waitlist.addToWaitlistWithSync);
+  const addToWaitlist = useAction(api.actions.waitlist.addToWaitlistComplete);
   
   // Debounced email for query to prevent excessive queries
   const [debouncedEmail, setDebouncedEmail] = useState<string>('');
@@ -87,9 +87,10 @@ export default function WaitlistPage() {
     debouncedEmail ? { email: debouncedEmail } : 'skip'
   );
   
-  const attributeReferral = useMutation(api.mutations.users.attributeReferral);
-  const generateReferralLink = useMutation(api.mutations.users.generateReferralLink);
-  const setSessionToken = useMutation(api.mutations.users.setSessionToken);
+  // These are now handled by addToWaitlistComplete action
+  // const attributeReferral = useMutation(api.mutations.users.attributeReferral);
+  // const generateReferralLink = useMutation(api.mutations.users.generateReferralLink);
+  // const setSessionToken = useMutation(api.mutations.users.setSessionToken);
 
   // Check if already signed up
   useEffect(() => {
@@ -184,28 +185,26 @@ export default function WaitlistPage() {
         email: contact,
         source: hasSocialMediaFollowing ? 'social' : 'organic',
         location: formatLocationAsString(location) || undefined,
+        referrerId: referrerId ? (referrerId as Id<'users'>) : undefined,
+        deviceId: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
+        ip: undefined,
       });
 
       if (result.userId) {
         setUserId(result.userId);
         
-        // Generate referral link for this user
-        const link = await generateReferralLink({ userId: result.userId });
-        setReferralLink(link);
+        // Session token and referral link are now returned from the action
+        if (result.sessionToken) {
+          localStorage.setItem('cribnosh_waitlist_session', result.sessionToken);
+        }
+        localStorage.setItem('cribnosh_user_id', result.userId);
         
-        // If referrerId is present, attribute referral
-        if (referrerId) {
-          try {
-            await attributeReferral({
-              newUserId: result.userId,
-              referrerId: referrerId as Id<'users'>,
-              deviceId: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
-              ip: undefined,
-            });
-            setReferralRewarded(true);
-          } catch (err) {
-            // Ignore if already attributed or error
-          }
+        if (result.referralLink) {
+          setReferralLink(result.referralLink);
+        }
+        
+        if (result.referralAttributed) {
+          setReferralRewarded(true);
         }
       }
 
@@ -320,6 +319,9 @@ export default function WaitlistPage() {
         email: tempEmail,
         source: hasSocialMediaFollowing ? 'social' : 'organic',
         location: formatLocationAsString(location) || undefined, // Attach location context
+        referrerId: referrerId ? (referrerId as Id<'users'>) : undefined,
+        deviceId: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
+        ip: undefined,
       });
       setSyncStatus(result.success ? 'success' : 'error');
       setIsSuccess(true);
@@ -328,31 +330,18 @@ export default function WaitlistPage() {
       setHasSocialMediaFollowing(false);
       if (result.userId) {
         setUserId(result.userId);
-        // Generate a session token
-        const sessionToken = crypto.randomUUID();
-        const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 1 week
-        // Set session token in backend (use setSessionToken mutation)
-        await setSessionToken({ userId: result.userId, sessionToken, sessionExpiry: expiresAt });
-        // Store session token in localStorage (or use cookies for production)
-        localStorage.setItem('cribnosh_waitlist_session', sessionToken);
-        // Store userId for referral program
+        // Session token and referral link are now returned from the action
+        if (result.sessionToken) {
+          localStorage.setItem('cribnosh_waitlist_session', result.sessionToken);
+        }
         localStorage.setItem('cribnosh_user_id', result.userId);
-        // Generate referral link for this user
-        const link = await generateReferralLink({ userId: result.userId });
-        setReferralLink(link);
-        // If referrerId is present, attribute referral
-        if (referrerId) {
-          try {
-            await attributeReferral({
-              newUserId: result.userId,
-              referrerId: referrerId as Id<'users'>,
-              deviceId: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
-              ip: undefined, // Optionally fetch IP if needed
-            });
-            setReferralRewarded(true);
-          } catch (err) {
-            // Ignore if already attributed or error
-          }
+        
+        if (result.referralLink) {
+          setReferralLink(result.referralLink);
+        }
+        
+        if (result.referralAttributed) {
+          setReferralRewarded(true);
         }
       }
     } catch (err) {

@@ -9,6 +9,7 @@ import {
   useMarkAllNotificationsReadMutation,
 } from '@/store/customerApi';
 import { Notification } from '@/types/customer';
+import { SkeletonBox } from './MealItemDetails/Skeletons/ShimmerBox';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -142,6 +143,27 @@ export function NotificationsSheet({
     </View>
   );
 
+  const renderNotificationSkeleton = () => (
+    <View style={styles.skeletonContainer}>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <View key={index} style={styles.skeletonItem}>
+          <View style={styles.skeletonContent}>
+            <View style={styles.skeletonHeader}>
+              <SkeletonBox width={180} height={18} borderRadius={4} />
+              <SkeletonBox width={8} height={8} borderRadius={4} />
+            </View>
+            <SkeletonBox width="100%" height={16} borderRadius={4} style={styles.skeletonMessage} />
+            <SkeletonBox width={120} height={16} borderRadius={4} style={styles.skeletonMessage} />
+            <View style={styles.skeletonFooter}>
+              <SkeletonBox width={60} height={14} borderRadius={4} />
+              <SkeletonBox width={70} height={20} borderRadius={6} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
   const notifications = notificationsData?.data?.notifications || [];
   const unreadCount = notifications.filter((n: Notification) => !n.read).length;
   const hasUnreadNotifications = unreadCount > 0;
@@ -190,9 +212,7 @@ export function NotificationsSheet({
         </View>
 
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#094327" />
-          </View>
+          renderNotificationSkeleton()
         ) : (
           <FlatList
             data={sortedNotifications}
@@ -256,6 +276,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
+  },
+  skeletonContainer: {
+    paddingBottom: 24,
+  },
+  skeletonItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  skeletonContent: {
+    flex: 1,
+  },
+  skeletonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  skeletonMessage: {
+    marginBottom: 4,
+  },
+  skeletonFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
   },
   listContent: {
     paddingBottom: 24,

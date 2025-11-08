@@ -18,20 +18,28 @@ export const addToWaitlist = mutation({
     success: v.boolean(),
     waitlistId: v.id("waitlist"),
     isExisting: v.boolean(),
+    userId: v.optional(v.id("users")),
   }),
   handler: async (ctx, args) => {
-    // Check if email already exists
+    // Check if email already exists in waitlist
     const existing = await ctx.db
       .query("waitlist")
       .filter((q) => q.eq(q.field("email"), args.email))
       .first();
     
+    // Check if user exists with this email (optimization - return user info if exists)
+    const existingUser = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), args.email))
+      .first();
+    
     if (existing) {
-      // Return existing entry instead of throwing error
+      // Return existing entry with user info if available
       return { 
         success: true, 
         waitlistId: existing._id,
-        isExisting: true 
+        isExisting: true,
+        userId: existingUser?._id,
       };
     }
     
@@ -54,7 +62,12 @@ export const addToWaitlist = mutation({
       addedByName: args.addedByName,
     });
     
-    return { success: true, waitlistId, isExisting: false };
+    return { 
+      success: true, 
+      waitlistId, 
+      isExisting: false,
+      userId: existingUser?._id, // Return user ID if user already exists
+    };
   },
 });
 

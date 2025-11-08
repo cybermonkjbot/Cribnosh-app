@@ -166,10 +166,19 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
     }
     const convex = getConvexClient();
-    // Pagination and filtering
+    // Pagination and filtering - support both 'page' and 'offset' parameters
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
-    const offset = parseInt(searchParams.get('offset') || '') || 0;
+    let offset = 0;
+    const pageParam = searchParams.get('page');
+    const offsetParam = searchParams.get('offset');
+    if (pageParam) {
+      // Convert page to offset: offset = (page - 1) * limit
+      const page = parseInt(pageParam) || 1;
+      offset = (page - 1) * limit;
+    } else if (offsetParam) {
+      offset = parseInt(offsetParam) || 0;
+    }
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     
     // Get filter parameters
@@ -365,69 +374,30 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
         );
       }
     }
-    // Calculate total_amount from order_items
-    let total_amount = 0;
+    // Validate order items format
     for (const item of order_items) {
-      if (!item.dish_id || typeof item.quantity !== 'number') {
-        return ResponseFactory.validationError('Each order item must have dish_id and quantity.');
+      if (!item.dish_id || typeof item.quantity !== 'number' || item.quantity <= 0) {
+        return ResponseFactory.validationError('Each order item must have dish_id and quantity (must be > 0).');
       }
-      const meals = await convex.query(api.queries.meals.getAll, {});
-      const dish = Array.isArray(meals) ? meals.find((m: any) => m._id === item.dish_id) : null;
-      if (!dish) {
-        return ResponseFactory.notFound('Dish not found: ${item.dish_id}');
-      }
-      total_amount += (dish.price || 0) * item.quantity;
-    }
-    // Prepare order items with dish details
-    const orderItems = [];
-    for (const item of order_items) {
-      const meals = await convex.query(api.queries.meals.getAll, {});
-      const dish = Array.isArray(meals) ? meals.find((m: any) => m._id === item.dish_id) : null;
-      if (!dish) {
-        return ResponseFactory.notFound('Dish not found: ${item.dish_id}');
-      }
-      orderItems.push({
-        dish_id: item.dish_id,
-        quantity: item.quantity,
-        price: dish.price,
-        name: dish.name,
-      });
     }
 
-    // Create the order
-    const orderId = await convex.mutation(api.mutations.orders.createOrder, {
+    // Create the order with validation - this consolidates meal lookups and order creation
+    const order = await convex.mutation(api.mutations.orders.createOrderWithValidation, {
       customer_id: payload.user_id,
       chef_id,
-      order_items: orderItems,
-      total_amount,
+      items: order_items.map(item => ({
+        dish_id: item.dish_id,
+        quantity: item.quantity,
+      })),
       payment_method: payment_method,
       special_instructions: special_instructions,
       delivery_time: delivery_time,
       delivery_address: delivery_address,
     });
-
-    // Get the order by document ID using a query that fetches all customer orders
-    // and finds the one we just created (since orderId is the document _id)
-    const allOrders = await convex.query(api.queries.orders.listByCustomer, {
-      customer_id: payload.user_id,
-    });
-    const order = allOrders.find((o: any) => o._id === orderId);
     
     return ResponseFactory.success({ 
       success: true,
-      data: order || {
-        _id: orderId,
-        customer_id: payload.user_id,
-        chef_id,
-        order_items: orderItems,
-        total_amount,
-        payment_method,
-        special_instructions,
-        delivery_time,
-        delivery_address,
-        order_status: 'pending',
-        payment_status: 'pending',
-      },
+      data: order,
       message: "Order created successfully"
     });
   } catch (error: unknown) {

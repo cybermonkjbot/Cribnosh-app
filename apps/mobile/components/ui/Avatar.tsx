@@ -16,7 +16,7 @@ const sizeStyles = {
 };
 
 // Memoize the component to prevent unnecessary re-renders
-const MemoizedAvatar: React.FC<AvatarProps> = React.memo(({ size = 'md', glass, elevated, style, ...props }) => {
+const MemoizedAvatar: React.FC<AvatarProps> = React.memo(({ size = 'md', glass, elevated, style, source, ...props }) => {
   const hasGlass = !!glass;
   const hasElevation = !!elevated;
   const innerStyle = [glass ? { position: 'relative' as const } : undefined, style];
@@ -31,17 +31,30 @@ const MemoizedAvatar: React.FC<AvatarProps> = React.memo(({ size = 'md', glass, 
           <View style={[StyleSheet.absoluteFill, { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255,255,255,0.6)' }]} />
         )
       ) : null}
-      <Image
-        accessibilityRole="image"
-        style={[
-          styles.base,
-          sizeStyles[size],
-          hasGlass && styles.glass,
-          hasElevation && !hasGlass && styles.shadow,
-          innerStyle,
-        ]}
-        {...props}
-      />
+      {source ? (
+        <Image
+          accessibilityRole="image"
+          style={[
+            styles.base,
+            sizeStyles[size],
+            hasGlass && styles.glass,
+            hasElevation && !hasGlass && styles.shadow,
+            innerStyle,
+          ]}
+          source={source}
+          {...props}
+        />
+      ) : (
+        <View
+          style={[
+            styles.base,
+            sizeStyles[size],
+            hasGlass && styles.glass,
+            hasElevation && !hasGlass && styles.shadow,
+            innerStyle,
+          ]}
+        />
+      )}
     </View>
   );
 });

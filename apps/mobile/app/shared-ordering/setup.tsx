@@ -74,11 +74,13 @@ export default function SharedOrderingSetup() {
     try {
       setIsCreatingOrder(true);
 
-      // Create custom order via API
+      // Create custom order via API - dietary restrictions will be added in meal-options screen
+      // This is a two-step flow: setup → meal-options, so we create order first, then update with dietary restrictions
       const customOrderData = await createCustomOrder({
         requirements: `Shared ordering for £${amount || "unlimited"}`,
         serving_size: parseInt(amount) || 0,
         budget: amount === "Unlimited" ? undefined : parseFloat(amount) * 100, // Convert to pence
+        desired_delivery_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Default to tomorrow
       }).unwrap();
 
       showToast({

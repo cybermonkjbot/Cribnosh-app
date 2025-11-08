@@ -11,8 +11,10 @@
 import type * as actions_agora from "../actions/agora.js";
 import type * as actions_data_compilation from "../actions/data_compilation.js";
 import type * as actions_dripScheduler from "../actions/dripScheduler.js";
+import type * as actions_emotionsEngine from "../actions/emotionsEngine.js";
 import type * as actions_index from "../actions/index.js";
 import type * as actions_liveSessions from "../actions/liveSessions.js";
+import type * as actions_orders from "../actions/orders.js";
 import type * as actions_password from "../actions/password.js";
 import type * as actions_prelaunchEmails from "../actions/prelaunchEmails.js";
 import type * as actions_resend from "../actions/resend.js";
@@ -217,8 +219,10 @@ declare const fullApi: ApiFromModules<{
   "actions/agora": typeof actions_agora;
   "actions/data_compilation": typeof actions_data_compilation;
   "actions/dripScheduler": typeof actions_dripScheduler;
+  "actions/emotionsEngine": typeof actions_emotionsEngine;
   "actions/index": typeof actions_index;
   "actions/liveSessions": typeof actions_liveSessions;
+  "actions/orders": typeof actions_orders;
   "actions/password": typeof actions_password;
   "actions/prelaunchEmails": typeof actions_prelaunchEmails;
   "actions/resend": typeof actions_resend;

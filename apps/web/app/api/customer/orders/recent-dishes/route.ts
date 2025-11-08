@@ -139,51 +139,61 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       rating?: number;
     }>();
 
-    // Process each order to extract dishes
+    // Collect all unique dish IDs first
+    const dishIdSet = new Set<string>();
+    const dishOrderMap = new Map<string, Array<{ order: any; item: any }>>();
+    
     for (const order of orders) {
       if (!order.order_items || !Array.isArray(order.order_items)) continue;
 
       for (const item of order.order_items) {
         const dishId = item.dish_id || item.dishId;
         if (!dishId) continue;
-
-        // Get dish details if not already in map
-        if (!dishMap.has(dishId)) {
-          // Fetch meal details
-          const meal = await convex.query(api.queries.meals.getById, { mealId: dishId as any });
-          if (!meal) continue;
-
-          // Get chef/kitchen details
-          const chef = await convex.query(api.queries.chefs.getById, { chefId: meal.chefId as any });
-          
-          // Get reviews for rating
-          const allReviews = await convex.query(api.queries.reviews.getAll);
-          const reviews = allReviews.filter((r: any) => r.mealId === dishId || r.meal_id === dishId);
-          const avgRating = reviews.length > 0
-            ? reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length
-            : meal.rating || 0;
-
-          dishMap.set(dishId, {
-            dish_id: dishId,
-            name: item.name || meal.name || 'Unknown Dish',
-            price: item.price || meal.price || 0,
-            image_url: meal.images?.[0] ? `/api/files/${meal.images[0]}` : undefined,
-            kitchen_name: chef?.name || 'Unknown Kitchen',
-            kitchen_id: meal.chefId,
-            last_ordered_at: order._creationTime || order.createdAt || Date.now(),
-            order_count: 1,
-            rating: avgRating,
-          });
-        } else {
-          // Update existing dish entry
-          const existing = dishMap.get(dishId)!;
-          existing.order_count += 1;
-          const orderTime = order._creationTime || order.createdAt || Date.now();
-          if (orderTime > existing.last_ordered_at) {
-            existing.last_ordered_at = orderTime;
-          }
+        
+        dishIdSet.add(dishId);
+        
+        if (!dishOrderMap.has(dishId)) {
+          dishOrderMap.set(dishId, []);
         }
+        dishOrderMap.get(dishId)!.push({ order, item });
       }
+    }
+    
+    // Get all dish details in one batch query
+    const dishIds = Array.from(dishIdSet) as Id<'meals'>[];
+    const dishesWithDetails = dishIds.length > 0
+      ? await convex.query(api.queries.meals.getDishesWithDetails, { dishIds })
+      : [];
+    
+    // Create a map of dish details for quick lookup
+    const dishDetailsMap = new Map<string, any>();
+    for (const dish of dishesWithDetails) {
+      dishDetailsMap.set(dish._id, dish);
+    }
+    
+    // Process orders and build dish map with order counts
+    for (const [dishId, orderItems] of dishOrderMap.entries()) {
+      const dishDetails = dishDetailsMap.get(dishId);
+      if (!dishDetails) continue;
+      
+      const firstItem = orderItems[0];
+      const lastOrder = orderItems.reduce((latest, current) => {
+        const currentTime = current.order._creationTime || current.order.createdAt || Date.now();
+        const latestTime = latest.order._creationTime || latest.order.createdAt || Date.now();
+        return currentTime > latestTime ? current : latest;
+      }, firstItem);
+      
+      dishMap.set(dishId, {
+        dish_id: dishId,
+        name: firstItem.item.name || dishDetails.name || 'Unknown Dish',
+        price: firstItem.item.price || dishDetails.price || 0,
+        image_url: dishDetails.images?.[0] ? `/api/files/${dishDetails.images[0]}` : undefined,
+        kitchen_name: dishDetails.chef?.name || 'Unknown Kitchen',
+        kitchen_id: dishDetails.chefId,
+        last_ordered_at: lastOrder.order._creationTime || lastOrder.order.createdAt || Date.now(),
+        order_count: orderItems.length,
+        rating: dishDetails.averageRating || 0,
+      });
     }
 
     // Convert to array and sort by last_ordered_at (most recent first)

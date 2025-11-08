@@ -157,33 +157,19 @@ export async function POST(req: NextRequest) {
     // Extract user/session info from cookies
     const user = await getUserFromRequest(req);
     const userId = user?._id || body.userId || undefined;
-    // Fetch nearby cuisines if location is available
-    let nearbyCuisines: string[] = [];
-    if (body.location && body.location.latitude && body.location.longitude) {
-      const convex = getConvexClient();
-      const nearbyChefsResult = await withRetry(async () => {
-        return await convex.query(api.queries.chefs.findNearbyChefs, {
-          latitude: body.location.latitude,
-          longitude: body.location.longitude,
-          maxDistanceKm: 10,
-        });
-      });
-      
-      // Extract data from retry result
-      const nearbyChefs = nearbyChefsResult.success ? nearbyChefsResult.data : [];
-      
-      // Collect unique cuisines from nearby chefs' specialties
-      const cuisineSet = new Set<string>();
-      if (Array.isArray(nearbyChefs)) {
-        for (const chef of nearbyChefs) {
-          if (Array.isArray(chef.specialties)) {
-            chef.specialties.forEach((c: string) => cuisineSet.add(c));
-          }
-        }
-      }
-      nearbyCuisines = Array.from(cuisineSet);
-    }
+    // Get emotions engine context - this consolidates nearby chefs, user data, and preferences
+    const convex = getConvexClient();
+    const emotionsContext = await convex.action(api.actions.emotionsEngine.getEmotionsEngineContext, {
+      userId: userId as Id<'users'> | undefined,
+      location: body.location ? {
+        latitude: body.location.latitude,
+        longitude: body.location.longitude,
+        address: body.location.address,
+      } : undefined,
+    });
+    
     // Aggregate context (merge frontend and backend data)
+    const nearbyCuisines = emotionsContext.nearbyCuisines || [];
     const context = await aggregateContext(body, userId, nearbyCuisines);
     // Run inference
     const result = await runInference({ ...context, ...body });
