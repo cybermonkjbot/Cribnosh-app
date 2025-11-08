@@ -32,8 +32,14 @@ export default function StaffLayout({
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
   const userId = staffUser?._id;
   const userRoles = staffUser?.roles;
-  const queryArgs = userId && userRoles ? { userId, roles: userRoles } : 'skip';
-  const staffNotifications = useQuery(api.queries.users.getUserNotifications, queryArgs as any);
+  const queryArgs = staffUser && staffUser._id 
+    ? { userId: staffUser._id, roles: staffUser.roles }
+    : "skip";
+  // Type assertion to avoid deep instantiation issues with Convex type inference
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const queryFn = api.queries.users.getUserNotifications as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const staffNotifications = useQuery(queryFn, queryArgs as any);
   const markNotificationRead = useMutation(api.mutations.users.markNotificationRead);
   const unreadCount = staffNotifications?.filter((n: any) => !n.read).length || 0;
   const { isMobile } = useMobileDevice();

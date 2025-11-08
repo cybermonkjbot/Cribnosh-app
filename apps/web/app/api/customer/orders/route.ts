@@ -3,12 +3,9 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -147,38 +144,16 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     const convex = getConvexClient();
-    // Pagination and filtering - support both 'page' and 'offset' parameters
+    // Pagination and filtering
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
-    let offset = 0;
-    const pageParam = searchParams.get('page');
-    const offsetParam = searchParams.get('offset');
-    if (pageParam) {
-      // Convert page to offset: offset = (page - 1) * limit
-      const page = parseInt(pageParam) || 1;
-      offset = (page - 1) * limit;
-    } else if (offsetParam) {
-      offset = parseInt(offsetParam) || 0;
-    }
+    const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     
     // Get filter parameters
@@ -187,7 +162,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     // Fetch orders with filters
     const orders = await convex.query(api.queries.orders.listByCustomer, { 
-      customer_id: payload.user_id,
+      customer_id: userId,
       status: statusParam || 'all',
       order_type: orderTypeParam || 'all',
       limit,
@@ -196,7 +171,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     // Get total count for pagination (without pagination limit)
     const allOrders = await convex.query(api.queries.orders.listByCustomer, {
-      customer_id: payload.user_id,
+      customer_id: userId,
       status: statusParam || 'all',
       order_type: orderTypeParam || 'all',
     });
@@ -213,6 +188,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       offset,
     });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch orders.'));
   }
 }
@@ -328,24 +306,11 @@ export const GET = withAPIMiddleware(withErrorHandling(handleGET));
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export const POST = withAPIMiddleware(withErrorHandling(async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can create orders.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     const body = await request.json();
     // Support both kitchen_id (mobile API) and chef_id (web API) for compatibility
     const chef_id = body.kitchen_id || body.chef_id;
@@ -374,33 +339,75 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
         );
       }
     }
-    // Validate order items format
+    // Calculate total_amount from order_items
+    let total_amount = 0;
     for (const item of order_items) {
-      if (!item.dish_id || typeof item.quantity !== 'number' || item.quantity <= 0) {
-        return ResponseFactory.validationError('Each order item must have dish_id and quantity (must be > 0).');
+      if (!item.dish_id || typeof item.quantity !== 'number') {
+        return ResponseFactory.validationError('Each order item must have dish_id and quantity.');
       }
+      const meals = await convex.query(api.queries.meals.getAll, {});
+      const dish = Array.isArray(meals) ? meals.find((m: any) => m._id === item.dish_id) : null;
+      if (!dish) {
+        return ResponseFactory.notFound('Dish not found: ${item.dish_id}');
+      }
+      total_amount += (dish.price || 0) * item.quantity;
     }
-
-    // Create the order with validation - this consolidates meal lookups and order creation
-    const order = await convex.mutation(api.mutations.orders.createOrderWithValidation, {
-      customer_id: payload.user_id,
-      chef_id,
-      items: order_items.map(item => ({
+    // Prepare order items with dish details
+    const orderItems = [];
+    for (const item of order_items) {
+      const meals = await convex.query(api.queries.meals.getAll, {});
+      const dish = Array.isArray(meals) ? meals.find((m: any) => m._id === item.dish_id) : null;
+      if (!dish) {
+        return ResponseFactory.notFound('Dish not found: ${item.dish_id}');
+      }
+      orderItems.push({
         dish_id: item.dish_id,
         quantity: item.quantity,
-      })),
+        price: dish.price,
+        name: dish.name,
+      });
+    }
+
+    // Create the order
+    const orderId = await convex.mutation(api.mutations.orders.createOrder, {
+      customer_id: userId,
+      chef_id,
+      order_items: orderItems,
+      total_amount,
       payment_method: payment_method,
       special_instructions: special_instructions,
       delivery_time: delivery_time,
       delivery_address: delivery_address,
     });
+
+    // Get the order by document ID using a query that fetches all customer orders
+    // and finds the one we just created (since orderId is the document _id)
+    const allOrders = await convex.query(api.queries.orders.listByCustomer, {
+      customer_id: userId,
+    });
+    const order = allOrders.find((o: any) => o._id === orderId);
     
     return ResponseFactory.success({ 
       success: true,
-      data: order,
+      data: order || {
+        _id: orderId,
+        customer_id: userId,
+        chef_id,
+        order_items: orderItems,
+        total_amount,
+        payment_method,
+        special_instructions,
+        delivery_time,
+        delivery_address,
+        order_status: 'pending',
+        payment_status: 'pending',
+      },
       message: "Order created successfully"
     });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create order.'));
   }
 })); 

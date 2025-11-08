@@ -1,14 +1,11 @@
 import { api } from '@/convex/_generated/api';
-import { ResponseFactory } from '@/lib/api';
+import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -95,75 +92,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    const cookieHeader = request.headers.get('cookie');
-    const sessionToken = request.cookies.get('convex-auth-token')?.value;
-    
-    console.log('[Cart GET] Auth header present:', !!authHeader);
-    console.log('[Cart GET] Cookie header present:', !!cookieHeader);
-    console.log('[Cart GET] Session token from cookies:', !!sessionToken);
-    
-    let userId: string;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      let payload: JWTPayload;
-      try {
-        payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-      } catch {
-        return ResponseFactory.unauthorized('Invalid or expired token.');
-      }
-      
-      if (!payload.roles?.includes('customer')) {
-        return ResponseFactory.forbidden('Forbidden: Only customers can access their cart.');
-      }
-      
-      if (!payload.user_id) {
-        return ResponseFactory.unauthorized('Invalid token: missing user_id.');
-      }
-      
-      userId = payload.user_id;
-    } else {
-      // Fallback: try to get session token from cookies
-      const sessionToken = request.cookies.get('convex-auth-token')?.value;
-      if (!sessionToken) {
-        return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-      }
-      
-      const convex = getConvexClient();
-      // @ts-ignore - Type instantiation is excessively deep due to Convex type inference
-      const user = await convex.query(api.queries.users.getUserBySessionToken, { 
-        sessionToken 
-      });
-      
-      if (!user) {
-        return ResponseFactory.unauthorized('Invalid or expired session token.');
-      }
-      
-      if (user.sessionExpiry && user.sessionExpiry < Date.now()) {
-        return ResponseFactory.unauthorized('Session token has expired.');
-      }
-      
-      let userRoles = user.roles || ['user'];
-      if (!userRoles.includes('customer')) {
-        userRoles = [...userRoles, 'customer'];
-        await convex.mutation(api.mutations.users.updateUserRoles, {
-          userId: user._id,
-          roles: userRoles,
-        });
-      }
-      
-      userId = user._id;
-    }
-    
+    const { userId } = await getAuthenticatedCustomer(request);
     const convex = getConvexClient();
+    // Using orders query to get user's cart
     const cart = await convex.query(api.queries.orders.getUserCart, { userId });
     return ResponseFactory.success({ cart });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch cart.'));
   }
 }
