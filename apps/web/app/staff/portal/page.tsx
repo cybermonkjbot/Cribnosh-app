@@ -4,6 +4,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
 import { api } from "@/convex/_generated/api";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useConvex, useMutation, useQuery } from "convex/react";
@@ -44,9 +45,27 @@ export default function StaffPortal() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [staffNotices, setStaffNotices] = useState<any[]>([]);
   const [noticesLoading, setNoticesLoading] = useState(true);
+  
+  // Get session token using hook
+  const sessionToken = useSessionToken();
+  
   const sessions = useQuery(api.queries.sessions.getSessionsByUserId, staffMember && staffMember._id ? { userId: staffMember._id } : "skip");
-  const notifications = useQuery(api.queries.users.getUserNotifications, staffMember && staffMember._id ? { userId: staffMember._id, roles: staffMember.roles } : "skip");
+  const notifications = useQuery(
+    api.queries.users.getUserNotifications, 
+    staffMember && staffMember._id && sessionToken 
+      ? { userId: staffMember._id, roles: staffMember.roles, sessionToken } as any
+      : "skip"
+  );
   const markNotificationRead = useMutation(api.mutations.users.markNotificationRead);
+  
+  // Helper to mark notification as read with session token
+  const handleMarkNotificationRead = async (notificationId: any) => {
+    if (!sessionToken) return;
+    await markNotificationRead({ 
+      notificationId, 
+      sessionToken 
+    });
+  };
   const unreadCount = notifications?.filter((n: any) => !n.read).length || 0;
   const { isMobile } = useMobileDevice();
 
@@ -511,7 +530,7 @@ export default function StaffPortal() {
                           </div>
                           {!notification.read && (
                             <button
-                              onClick={async () => await markNotificationRead({ notificationId: notification._id })}
+                              onClick={async () => await handleMarkNotificationRead(notification._id)}
                               className="ml-4 text-xs text-amber-700 hover:text-amber-900 underline"
                               aria-label="Mark as read"
                             >

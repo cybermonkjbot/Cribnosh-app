@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
@@ -10,9 +10,29 @@ import { ArrowLeft, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { Id } from '@/convex/_generated/dataModel';
 
+// Utility to get a cookie value by name (client-side only)
+function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : undefined;
+}
+
 export default function WorkEmailRequestPage() {
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
+  
+  // Get session token from cookies
+  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const token = getCookie('convex-auth-token');
+    setSessionToken(token);
+  }, []);
+  
+  const profile = useQuery(
+    api.queries.users.getById,
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, sessionToken }
+      : 'skip'
+  );
   const userId = profile?._id as Id<'users'> | undefined;
   const [form, setForm] = useState({
     requestedEmail: profile?.email || '',

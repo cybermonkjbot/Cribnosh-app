@@ -5,6 +5,7 @@
 
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from "@/convex/_generated/api";
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useMutation, useQuery } from "convex/react";
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+
 
 interface OnboardingData {
   // Personal Information
@@ -147,7 +149,16 @@ export default function OnboardingPage() {
   const [onboardingEmail, setOnboardingEmail] = useState<string | null>(null);
 
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  const user = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
+  
+  // Get session token using hook
+  const sessionToken = useSessionToken();
+  
+  const user = useQuery(
+    api.queries.users.getById,
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, sessionToken }
+      : 'skip'
+  );
   const updateOnboarding = useMutation(api.mutations.users.updateUserOnboarding);
 
   useEffect(() => {
@@ -195,7 +206,11 @@ export default function OnboardingPage() {
     
     setSubmitting(true);
     try {
-      await updateOnboarding({ userId: user._id, onboarding: formData });
+      await updateOnboarding({ 
+        userId: user._id, 
+        onboarding: formData,
+        sessionToken: sessionToken || undefined
+      });
       setSubmitted(true);
     } catch (e) {
       console.error('Error updating onboarding:', e);

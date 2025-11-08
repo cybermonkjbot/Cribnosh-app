@@ -1,6 +1,6 @@
-import { QueryCtx, MutationCtx, ActionCtx } from "../_generated/server";
 import { ConvexError } from "convex/values";
-import { Doc, Id } from "../_generated/dataModel";
+import { Id } from "../_generated/dataModel";
+import { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
 
 /**
  * Authentication and Authorization Utilities
@@ -21,10 +21,21 @@ export interface AuthenticatedUser {
 }
 
 /**
- * Get the current authenticated user from Convex auth
+ * Get the current authenticated user from Convex auth or session token
  * Returns null if not authenticated
+ * If sessionToken is provided, uses session token authentication
+ * Otherwise, falls back to JWT from setAuth() (for backward compatibility)
  */
-export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx | ActionCtx): Promise<AuthenticatedUser | null> {
+export async function getAuthenticatedUser(
+  ctx: QueryCtx | MutationCtx | ActionCtx,
+  sessionToken?: string
+): Promise<AuthenticatedUser | null> {
+  // If session token is provided, use it
+  if (sessionToken) {
+    return getAuthenticatedUserBySessionToken(ctx, sessionToken);
+  }
+
+  // Otherwise, fall back to JWT from setAuth()
   try {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || !identity.tokenIdentifier) {
@@ -106,9 +117,14 @@ export async function getAuthenticatedUserBySessionToken(
 
 /**
  * Require authentication - throws if user is not authenticated
+ * If sessionToken is provided, uses session token authentication
+ * Otherwise, falls back to JWT from setAuth() (for backward compatibility)
  */
-export async function requireAuth(ctx: QueryCtx | MutationCtx | ActionCtx): Promise<AuthenticatedUser> {
-  const user = await getAuthenticatedUser(ctx);
+export async function requireAuth(
+  ctx: QueryCtx | MutationCtx | ActionCtx,
+  sessionToken?: string
+): Promise<AuthenticatedUser> {
+  const user = await getAuthenticatedUser(ctx, sessionToken);
   if (!user) {
     throw new ConvexError("Authentication required");
   }
@@ -179,9 +195,14 @@ export function isHROrAdmin(user: AuthenticatedUser | null): boolean {
 
 /**
  * Require a specific role - throws if user doesn't have the role
+ * If sessionToken is provided, uses session token authentication
  */
-export async function requireRole(ctx: QueryCtx | MutationCtx | ActionCtx, role: UserRole): Promise<AuthenticatedUser> {
-  const user = await requireAuth(ctx);
+export async function requireRole(
+  ctx: QueryCtx | MutationCtx | ActionCtx,
+  role: UserRole,
+  sessionToken?: string
+): Promise<AuthenticatedUser> {
+  const user = await requireAuth(ctx, sessionToken);
   if (!hasRole(user, role)) {
     throw new ConvexError(`Role '${role}' required`);
   }
@@ -190,12 +211,14 @@ export async function requireRole(ctx: QueryCtx | MutationCtx | ActionCtx, role:
 
 /**
  * Require any of the specified roles - throws if user doesn't have any
+ * If sessionToken is provided, uses session token authentication
  */
 export async function requireAnyRole(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  roles: UserRole[]
+  roles: UserRole[],
+  sessionToken?: string
 ): Promise<AuthenticatedUser> {
-  const user = await requireAuth(ctx);
+  const user = await requireAuth(ctx, sessionToken);
   if (!hasAnyRole(user, roles)) {
     throw new ConvexError(`One of the following roles required: ${roles.join(", ")}`);
   }
@@ -204,9 +227,13 @@ export async function requireAnyRole(
 
 /**
  * Require admin role - throws if user is not admin
+ * If sessionToken is provided, uses session token authentication
  */
-export async function requireAdmin(ctx: QueryCtx | MutationCtx | ActionCtx): Promise<AuthenticatedUser> {
-  const user = await requireAuth(ctx);
+export async function requireAdmin(
+  ctx: QueryCtx | MutationCtx | ActionCtx,
+  sessionToken?: string
+): Promise<AuthenticatedUser> {
+  const user = await requireAuth(ctx, sessionToken);
   if (!isAdmin(user)) {
     throw new ConvexError("Admin access required");
   }
@@ -215,9 +242,13 @@ export async function requireAdmin(ctx: QueryCtx | MutationCtx | ActionCtx): Pro
 
 /**
  * Require staff role - throws if user is not staff
+ * If sessionToken is provided, uses session token authentication
  */
-export async function requireStaff(ctx: QueryCtx | MutationCtx | ActionCtx): Promise<AuthenticatedUser> {
-  const user = await requireAuth(ctx);
+export async function requireStaff(
+  ctx: QueryCtx | MutationCtx | ActionCtx,
+  sessionToken?: string
+): Promise<AuthenticatedUser> {
+  const user = await requireAuth(ctx, sessionToken);
   if (!isStaff(user)) {
     throw new ConvexError("Staff access required");
   }
@@ -226,13 +257,15 @@ export async function requireStaff(ctx: QueryCtx | MutationCtx | ActionCtx): Pro
 
 /**
  * Check if user can access a specific resource (by ownership or role)
+ * If sessionToken is provided, uses session token authentication
  */
 export async function canAccessResource(
   ctx: QueryCtx | MutationCtx | ActionCtx,
   resourceUserId: Id<"users"> | string,
-  requireAdmin: boolean = false
+  requireAdmin: boolean = false,
+  sessionToken?: string
 ): Promise<boolean> {
-  const user = await getAuthenticatedUser(ctx);
+  const user = await getAuthenticatedUser(ctx, sessionToken);
   if (!user) return false;
 
   // Admins can access everything if requireAdmin is false
@@ -248,14 +281,16 @@ export async function canAccessResource(
 
 /**
  * Require access to a resource - throws if user cannot access it
+ * If sessionToken is provided, uses session token authentication
  */
 export async function requireResourceAccess(
   ctx: QueryCtx | MutationCtx | ActionCtx,
   resourceUserId: Id<"users"> | string,
-  requireAdmin: boolean = false
+  requireAdmin: boolean = false,
+  sessionToken?: string
 ): Promise<AuthenticatedUser> {
-  const user = await requireAuth(ctx);
-  const hasAccess = await canAccessResource(ctx, resourceUserId, requireAdmin);
+  const user = await requireAuth(ctx, sessionToken);
+  const hasAccess = await canAccessResource(ctx, resourceUserId, requireAdmin, sessionToken);
   if (!hasAccess) {
     throw new ConvexError("Access denied to this resource");
   }
@@ -264,12 +299,14 @@ export async function requireResourceAccess(
 
 /**
  * Check if user can modify a resource (must be owner or admin)
+ * If sessionToken is provided, uses session token authentication
  */
 export async function canModifyResource(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  resourceUserId: Id<"users"> | string
+  resourceUserId: Id<"users"> | string,
+  sessionToken?: string
 ): Promise<boolean> {
-  const user = await getAuthenticatedUser(ctx);
+  const user = await getAuthenticatedUser(ctx, sessionToken);
   if (!user) return false;
 
   // Admins can modify everything
@@ -285,13 +322,15 @@ export async function canModifyResource(
 
 /**
  * Require modification access to a resource - throws if user cannot modify it
+ * If sessionToken is provided, uses session token authentication
  */
 export async function requireModifyAccess(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  resourceUserId: Id<"users"> | string
+  resourceUserId: Id<"users"> | string,
+  sessionToken?: string
 ): Promise<AuthenticatedUser> {
-  const user = await requireAuth(ctx);
-  const canModify = await canModifyResource(ctx, resourceUserId);
+  const user = await requireAuth(ctx, sessionToken);
+  const canModify = await canModifyResource(ctx, resourceUserId, sessionToken);
   if (!canModify) {
     throw new ConvexError("You do not have permission to modify this resource");
   }

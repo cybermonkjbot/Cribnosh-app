@@ -129,7 +129,7 @@ export const createOrderWithValidation = mutation({
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Ensure user can only create orders for themselves unless they're staff/admin
     if (!isAdmin(user) && !isStaff(user)) {

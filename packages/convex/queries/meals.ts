@@ -198,11 +198,11 @@ export const getDishesWithDetails = query({
 });
 
 export const getPending = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.array(v.any()),
-  handler: async (ctx: QueryCtx) => {
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
     // Require staff/admin authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     return await ctx.db.query('meals').filter((q) => q.eq(q.field('status'), 'pending')).collect();
   },
@@ -772,12 +772,13 @@ export const getPreviousMeals = query({
   args: { 
     userId: v.id('users'),
     applyPreferences: v.optional(v.boolean()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.any()),
-  handler: async (ctx: QueryCtx, args: { userId: Id<'users'>; applyPreferences?: boolean }) => {
+  handler: async (ctx: QueryCtx, args: { userId: Id<'users'>; applyPreferences?: boolean; sessionToken?: string }) => {
     // Require authentication - users can only access their own previous meals
     const { requireAuth, isAdmin, isStaff } = await import('../utils/auth');
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can access their own previous meals, staff/admin can access any
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {

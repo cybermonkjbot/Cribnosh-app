@@ -8,7 +8,14 @@ import { useMutation, useQuery } from 'convex/react';
 import { ArrowLeft, Calendar, CheckCircle, Info } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+// Utility to get a cookie value by name (client-side only)
+function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : undefined;
+}
 
 const leaveTypes = [
   { value: 'annual', label: 'Annual Leave' },
@@ -41,7 +48,20 @@ export default function LeaveRequestPage() {
   const [step, setStep] = useState(1);
   const endDateRef = useRef<HTMLInputElement>(null);
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
+  
+  // Get session token from cookies
+  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const token = getCookie('convex-auth-token');
+    setSessionToken(token);
+  }, []);
+  
+  const profile = useQuery(
+    api.queries.users.getById,
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, sessionToken }
+      : 'skip'
+  );
   const userId = profile?._id as Id<'users'> | undefined;
   const createRequest = useMutation(api.mutations.staff.createLeaveRequest);
   const requests = useQuery(api.queries.staff.getLeaveRequestsByUser, userId ? { userId } : 'skip');

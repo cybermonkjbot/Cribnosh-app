@@ -13,7 +13,7 @@ interface WaitlistStats {
 }
 
 export const getWaitlistStats = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.object({
     total: v.number(),
     active: v.number(),
@@ -21,9 +21,9 @@ export const getWaitlistStats = query({
     inactive: v.number(),
     conversionRate: v.number(),
   }),
-  handler: async (ctx): Promise<WaitlistStats> => {
+  handler: async (ctx, args: { sessionToken?: string }): Promise<WaitlistStats> => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     const waitlist = await ctx.db.query("waitlist").collect();
     const total = waitlist.length;
     const active = waitlist.filter((entry: Doc<"waitlist">) => entry.status === 'active').length;
@@ -44,6 +44,7 @@ export const getWaitlistDetails = query({
   args: {
     status: v.optional(v.string()),
     search: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     _id: v.id("waitlist"),
@@ -63,7 +64,7 @@ export const getWaitlistDetails = query({
   })),
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     let waitlist = await ctx.db.query("waitlist").collect();
     
@@ -100,7 +101,7 @@ export const getWaitlistDetails = query({
 });
 
 export const getWaitlistEmailCampaigns = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.array(v.object({
     _id: v.id("emailCampaigns"),
     name: v.string(),
@@ -114,9 +115,9 @@ export const getWaitlistEmailCampaigns = query({
     template: v.string(),
     targetSegment: v.string(),
   })),
-  handler: async (ctx) => {
+  handler: async (ctx, args: { sessionToken?: string }) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     // Query actual email campaigns from database
     const campaigns = await ctx.db.query("emailCampaigns").collect();
@@ -165,11 +166,11 @@ const waitlistDocValidator = v.object({
 
 // Additional functions needed by frontend
 export const getAll = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.array(waitlistDocValidator),
-  handler: async (ctx) => {
+  handler: async (ctx, args: { sessionToken?: string }) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     return await ctx.db.query("waitlist").collect();
   },
@@ -178,11 +179,12 @@ export const getAll = query({
 export const getById = query({
   args: {
     id: v.id("waitlist"),
+    sessionToken: v.optional(v.string())
   },
   returns: v.union(waitlistDocValidator, v.null()),
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     return await ctx.db.get(args.id);
   },
@@ -203,11 +205,11 @@ export const getByEmail = query({
 });
 
 export const getWaitlistCount = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.number(),
-  handler: async (ctx) => {
+  handler: async (ctx, args: { sessionToken?: string }) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     const entries = await ctx.db.query("waitlist").collect();
     return entries.length;
@@ -221,6 +223,7 @@ export const getWaitlistEntries = query({
     limit: v.optional(v.number()),
     offset: v.optional(v.number()), // Pagination offset
     addedBy: v.optional(v.id("users")), // Filter by staff member who added the entry
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     entries: v.array(v.object({
@@ -250,7 +253,7 @@ export const getWaitlistEntries = query({
   }),
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     let entries = await ctx.db.query("waitlist").collect();
     

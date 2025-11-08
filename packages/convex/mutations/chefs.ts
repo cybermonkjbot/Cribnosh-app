@@ -16,10 +16,11 @@ export const createChef = mutation(
       bio?: string;
       specialties?: string[];
       status?: 'active' | 'inactive' | 'suspended';
+      sessionToken?: string;
     }
   ) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only create chef profiles for themselves
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
@@ -105,11 +106,12 @@ export const updateChef = mutation({
       v.literal('active'),
       v.literal('inactive'),
       v.literal('suspended')
-    )
+    ),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require staff/admin authentication for status updates
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     await ctx.db.patch(args.chefId, {
       status: args.status
@@ -133,10 +135,11 @@ export const update = mutation({
         coordinates: v.optional(v.array(v.number())),
       })),
     }),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Get the chef to verify ownership or admin access
     const chef = await ctx.db.get(args.chefId);
@@ -196,10 +199,11 @@ export const updateAvailability = mutation({
       advanceBookingDays: v.optional(v.number()),
       specialInstructions: v.optional(v.string()),
     }),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Get the chef to verify ownership
     const chef = await ctx.db.get(args.chefId);

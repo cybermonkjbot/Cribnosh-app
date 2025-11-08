@@ -20,23 +20,20 @@ export function getConvexClient() {
 
 /**
  * Get Convex client with session token from request
- * Extracts session token from cookies or headers and sets it on the client
+ * Extracts session token from cookies or headers but does NOT use setAuth()
+ * Session tokens should be passed as parameters to queries/mutations instead
  */
 export function getConvexClientFromRequest(request: NextRequest): ConvexHttpClient {
-  const client = getConvexClient();
-  
-  // Extract session token from request
-  const sessionToken = extractSessionToken(request);
-  
-  if (sessionToken) {
-    // Set auth token on client
-    client.setAuth(sessionToken);
-  } else {
-    // Clear auth if no token found
-    client.clearAuth();
-  }
-  
-  return client;
+  // Return client without setting auth - session tokens should be passed as parameters
+  return getConvexClient();
+}
+
+/**
+ * Get session token from request (cookie or header)
+ * Use this to extract session token for passing to queries/mutations
+ */
+export function getSessionTokenFromRequest(request: NextRequest): string | null {
+  return extractSessionToken(request);
 }
 
 /**

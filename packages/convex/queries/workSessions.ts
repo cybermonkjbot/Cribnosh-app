@@ -7,6 +7,7 @@ import { requireAuth, requireStaff, isAdmin, isStaff } from '../utils/auth';
 export const getActiveSession = query({
   args: {
     staffId: v.id('users'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.union(v.object({
     _id: v.id('workSessions'),
@@ -51,6 +52,7 @@ export const getWorkSessions = query({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     _id: v.id('workSessions'),
@@ -69,7 +71,7 @@ export const getWorkSessions = query({
   })),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId, startDate, endDate, limit = 50 } = args;
     
@@ -105,6 +107,7 @@ export const getWeeklyHours = query({
     staffId: v.id('users'),
     weekStart: v.number(), // Start of week timestamp
     weekEnd: v.number(),   // End of week timestamp
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     totalHours: v.number(),
@@ -128,7 +131,7 @@ export const getWeeklyHours = query({
   }),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId, weekStart, weekEnd } = args;
     
@@ -164,6 +167,7 @@ export const getWeeklyHours = query({
 export const getTodaySessions = query({
   args: {
     staffId: v.id('users'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     _id: v.id('workSessions'),
@@ -182,7 +186,7 @@ export const getTodaySessions = query({
   })),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId } = args;
     
@@ -213,6 +217,7 @@ export const getTodaySessions = query({
 export const getThisWeekSessions = query({
   args: {
     staffId: v.id('users'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     _id: v.id('workSessions'),
@@ -231,7 +236,7 @@ export const getThisWeekSessions = query({
   })),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId } = args;
     
@@ -267,6 +272,7 @@ export const getThisWeekSessions = query({
 export const getWorkSessionById = query({
   args: {
     sessionId: v.string(),
+    sessionToken: v.optional(v.string())
   },
   returns: v.union(v.object({
     _id: v.id('workSessions'),
@@ -285,7 +291,7 @@ export const getWorkSessionById = query({
   }), v.null()),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { sessionId } = args;
     
@@ -319,6 +325,7 @@ export const listSessionsAdmin = query({
     endDate: v.optional(v.number()),
     skip: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     total: v.number(),
@@ -340,7 +347,7 @@ export const listSessionsAdmin = query({
   }),
   handler: async (ctx, args) => {
     // Require staff/admin authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     const { staffId, status, startDate, endDate, skip = 0, limit = 50 } = args;
 
@@ -403,6 +410,7 @@ export const getYearToDateHours = query({
   args: {
     staffId: v.id('users'),
     year: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     totalHours: v.number(),
@@ -412,7 +420,7 @@ export const getYearToDateHours = query({
   }),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId, year } = args;
     
@@ -454,6 +462,7 @@ export const getYearToDateHours = query({
 export const getAdminYearToDateHoursSummary = query({
   args: {
     year: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     year: v.number(),
@@ -467,7 +476,7 @@ export const getAdminYearToDateHoursSummary = query({
   }),
   handler: async (ctx, args) => {
     // Require staff/admin authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     const currentYear = new Date().getFullYear();
     const targetYear = args.year || currentYear;

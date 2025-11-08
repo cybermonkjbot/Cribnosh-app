@@ -4,10 +4,13 @@ import { query } from '../_generated/server';
 import { isAdmin, requireAuth } from '../utils/auth';
 
 export const listByChef = query({
-  args: { chef_id: v.string() },
+  args: { 
+    chef_id: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Only allow if user is admin, or if they own the chef account
     // For now, we'll require admin or staff for chef queries
@@ -26,10 +29,13 @@ export const listByChef = query({
 });
 
 export const getById = query({
-  args: { order_id: v.string() },
+  args: { 
+    order_id: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const order = await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.order_id)).first();
     if (!order) return null;
@@ -51,10 +57,13 @@ export const getById = query({
 
 // Get order by ID
 export const getOrderById = query({
-  args: { orderId: v.string() },
+  args: { 
+    orderId: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const order = await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.orderId)).first();
     if (!order) return null;
@@ -85,10 +94,11 @@ export const getOrdersWithRefundEligibility = query({
     )),
     limit: v.number(),
     offset: v.number(),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // If customerId is specified, ensure user can access it
     if (args.customerId) {
@@ -169,10 +179,11 @@ export const getOrdersWithRefundEligibility = query({
 export const getRefundEligibilitySummary = query({
   args: {
     customerId: v.optional(v.id('users')),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // If customerId is specified, ensure user can access it
     if (args.customerId) {
@@ -315,10 +326,11 @@ export const listByCustomer = query({
     )),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Ensure user can only access their own orders unless they're staff/admin
     if (!isAdmin(user)) {
@@ -396,11 +408,12 @@ export const listByCustomer = query({
 export const getRecentOrders = query({
   args: { 
     userId: v.id("users"),
-    limit: v.optional(v.number()) 
+    limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Ensure user can only access their own orders unless they're staff/admin
     if (!isAdmin(user)) {
@@ -433,10 +446,13 @@ export const getRecentOrders = query({
 
 // Get user's cart
 export const getUserCart = query({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Ensure user can only access their own cart unless they're staff/admin
     if (!isAdmin(user)) {

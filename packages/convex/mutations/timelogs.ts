@@ -29,11 +29,12 @@ export const createTimelog = mutation({
     bucket: v.string(),
     logs: v.array(v.any()),
     timestamp: v.number(),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId, bucket, logs, timestamp } = args;
     
@@ -74,11 +75,12 @@ export const updateTimelog = mutation({
     bucket: v.string(),
     logs: v.array(v.any()),
     timestamp: v.number(),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { timelogId, staffId, bucket, logs, timestamp } = args;
     const timelog = await ctx.db.get(timelogId);
@@ -119,11 +121,12 @@ export const patchTimelog = mutation({
   args: {
     timelogId: v.id('timelogs'),
     updates: v.any(), // Flexible updates object
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { timelogId, updates } = args;
     const timelog = await ctx.db.get(timelogId);
@@ -158,11 +161,12 @@ export const patchTimelog = mutation({
 export const deleteTimelog = mutation({
   args: {
     timelogId: v.id('timelogs'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { timelogId } = args;
     const timelog = await ctx.db.get(timelogId);

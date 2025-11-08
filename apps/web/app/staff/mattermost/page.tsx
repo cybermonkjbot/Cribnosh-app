@@ -61,7 +61,25 @@ export default function MattermostPage() {
   const [success, setSuccess] = useState(false);
 
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  const user = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : "skip");
+  
+  // Get session token from cookies
+  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const getCookie = (name: string): string | undefined => {
+      if (typeof document === 'undefined') return undefined;
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : undefined;
+    };
+    const token = getCookie('convex-auth-token');
+    setSessionToken(token);
+  }, []);
+  
+  const user = useQuery(
+    api.queries.users.getById,
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, sessionToken }
+      : "skip"
+  );
   const updateMattermost = useMutation(api.mutations.users.updateMattermostStatus);
 
   // Pre-fill profile data from staff onboarding

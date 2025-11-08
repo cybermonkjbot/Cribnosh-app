@@ -188,8 +188,18 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
 
   const isMobile = deviceInfo.isMobile;
 
+  // Get session token from cookies
+  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const token = getCookie('convex-auth-token');
+    setSessionToken(token);
+  }, []);
+
   // Find current user's staff assignment (if any)
-  const dashboard = useQuery(api.queries.staff.getAdminStaffDashboard, {});
+  const dashboard = useQuery(
+    api.queries.staff.getAdminStaffDashboard,
+    sessionToken ? { sessionToken } : 'skip'
+  );
   let currentAssignment: any = null;
   if (adminUser && dashboard && dashboard.staff) {
     currentAssignment = dashboard.staff.find((s: any) => s._id === adminUser._id || s.email === adminUser.email);

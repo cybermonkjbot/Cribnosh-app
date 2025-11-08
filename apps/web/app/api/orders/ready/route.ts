@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
@@ -158,10 +158,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
     // @ts-ignore - Type instantiation is excessively deep (TypeScript limitation with complex Convex types)
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+    const order = await convex.query(api.queries.orders.getOrderById, { 
+      orderId,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -185,7 +189,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         markedReadyByRole: user.roles?.[0] || 'unknown',
         packagingNotes,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     if (!readyOrder) {

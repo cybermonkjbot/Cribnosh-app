@@ -46,10 +46,11 @@ export const getMyPaySlips = query({
       v.literal('paid'),
       v.literal('cancelled')
     )),
+    sessionToken: v.optional(v.string())
   },
-  handler: async (ctx: QueryCtx, args: { limit?: number; status?: 'draft' | 'processing' | 'paid' | 'cancelled' }) => {
+  handler: async (ctx: QueryCtx, args: { limit?: number; status?: 'draft' | 'processing' | 'paid' | 'cancelled'; sessionToken?: string }) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Get pay slips with status filter if provided
     let paySlipsQuery = ctx.db
@@ -92,10 +93,11 @@ export const getMyPaySlips = query({
 export const getPaySlip = query({
   args: {
     paySlipId: v.id("paySlips"),
+    sessionToken: v.optional(v.string())
   },
-  handler: async (ctx: QueryCtx, args: { paySlipId: Id<"paySlips"> }) => {
+  handler: async (ctx: QueryCtx, args: { paySlipId: Id<"paySlips">; sessionToken?: string }) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const paySlip = await ctx.db.get(args.paySlipId) as PaySlip | null;
     if (!paySlip) {
@@ -147,10 +149,11 @@ export const getMyWorkHistory = query({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
-  handler: async (ctx: QueryCtx, args: { startDate?: number; endDate?: number; limit?: number }) => {
+  handler: async (ctx: QueryCtx, args: { startDate?: number; endDate?: number; limit?: number; sessionToken?: string }) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Get user data for department/position
     const userDoc = await ctx.db.get(user._id) as UserDoc | null;
@@ -212,10 +215,11 @@ export const getMyWorkHistory = query({
 
 // Get current pay period information
 export const getCurrentPayPeriod = query({
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
     // Require staff authentication
     const { requireStaff } = await import("../utils/auth");
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
 
     // Get payroll settings to determine pay period
     const settings = await ctx.db
@@ -311,10 +315,11 @@ type PayrollProfileResponse = {
 export const getPayrollProfile = query({
   args: {
     staffId: v.id("users"),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args): Promise<PayrollProfileResponse> => {
     // Require authentication
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     
     // Users can access their own payroll profile, staff/admin can access any
     if (!isAdmin(authUser) && !isStaff(authUser) && args.staffId !== authUser._id) {

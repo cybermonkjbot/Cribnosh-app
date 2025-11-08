@@ -18,10 +18,11 @@ export const create = mutation({
     })),
     status: v.string(),
     createdAt: v.number(),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only create reviews for themselves
     if (!isAdmin(user) && !isStaff(user) && args.user_id !== user._id) {
@@ -50,10 +51,11 @@ export const updateReview = mutation({
     approvalNotes: v.optional(v.string()),
     sentiment: v.optional(v.any()),
     analyzedAt: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Get review to check ownership
     const review = await ctx.db.get(args.reviewId);
@@ -87,10 +89,11 @@ export const updateReview = mutation({
 export const deleteReview = mutation({
   args: {
     reviewId: v.id('reviews'),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Get review to check ownership
     const review = await ctx.db.get(args.reviewId);
@@ -127,6 +130,7 @@ export const createReviewWithChefRatingUpdate = mutation({
     })),
     status: v.string(),
     createdAt: v.number(),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     reviewId: v.id('reviews'),
@@ -135,7 +139,7 @@ export const createReviewWithChefRatingUpdate = mutation({
   }),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only create reviews for themselves
     if (!isAdmin(user) && !isStaff(user) && args.user_id !== user._id) {

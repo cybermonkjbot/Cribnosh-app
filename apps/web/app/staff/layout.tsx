@@ -3,6 +3,7 @@
 import { GlassNavbar } from "@/components/admin/glass-navbar";
 import { api } from '@/convex/_generated/api';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useMutation, useQuery } from 'convex/react';
@@ -32,12 +33,25 @@ export default function StaffLayout({
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
   const userId = staffUser?._id;
   const userRoles = staffUser?.roles;
-  const queryArgs = staffUser && staffUser._id 
-    ? { userId: staffUser._id, roles: staffUser.roles }
+  
+  // Get session token using hook
+  const sessionToken = useSessionToken();
+  
+  const queryArgs = staffUser && staffUser._id && sessionToken
+    ? { userId: staffUser._id, roles: staffUser.roles, sessionToken }
     : "skip";
   const queryFn = api.queries.users.getUserNotifications as any;
   const staffNotifications = useQuery(queryFn, queryArgs as any);
   const markNotificationRead = useMutation(api.mutations.users.markNotificationRead);
+  
+  // Helper to mark notification as read with session token
+  const handleMarkNotificationRead = async (notificationId: any) => {
+    if (!sessionToken) return;
+    await markNotificationRead({ 
+      notificationId, 
+      sessionToken 
+    });
+  };
   const unreadCount = staffNotifications?.filter((n: any) => !n.read).length || 0;
   const { isMobile } = useMobileDevice();
   const hasMounted = useHasMounted();
@@ -178,7 +192,7 @@ export default function StaffLayout({
                     </div>
                     {!notification.read && (
                       <button
-                        onClick={async () => await markNotificationRead({ notificationId: notification._id })}
+                        onClick={async () => await handleMarkNotificationRead(notification._id)}
                         className="ml-4 text-xs text-amber-700 hover:text-amber-900 underline"
                         aria-label="Mark as read"
                       >

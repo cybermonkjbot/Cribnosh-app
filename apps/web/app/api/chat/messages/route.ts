@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -291,8 +291,12 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       return ResponseFactory.validationError('recipient_id and content or file required');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Find or create chat between sender and recipient
-    const chats = await convex.query(api.queries.chats.listConversationsForUser, { userId });
+    const chats = await convex.query(api.queries.chats.listConversationsForUser, { 
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     // Access the chats array from the chats object and find an existing chat
     let chatId: string;
     const existingChat = chats.chats.find((c: any) => 
@@ -307,6 +311,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       const newChat = await convex.mutation(api.mutations.chats.createConversation, {
         participants: [userId, recipient_id],
         metadata: {},
+        sessionToken: sessionToken || undefined
       });
       // Handle both cases where createConversation might return the full chat or just the ID
       chatId = (newChat as any)._id || (newChat as any).chatId;
@@ -321,6 +326,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       fileName,
       fileSize,
       metadata,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(message);
   } catch (error: unknown) {

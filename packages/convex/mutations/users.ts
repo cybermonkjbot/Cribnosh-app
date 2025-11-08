@@ -97,11 +97,12 @@ export const updateUser = mutation({
       verified: v.boolean(),
     }))),
     primaryOAuthProvider: v.optional(v.union(v.literal('google'), v.literal('apple'))),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can update their own data, but only admins can update roles/status
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
@@ -135,11 +136,12 @@ export const setupTwoFactor = mutation({
     userId: v.id("users"),
     secret: v.string(), // Encrypted secret
     backupCodes: v.array(v.string()), // Hashed backup codes
+    sessionToken: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only set up 2FA for themselves
     if (!isAdmin(user) && args.userId !== user._id) {
@@ -159,11 +161,12 @@ export const setupTwoFactor = mutation({
 export const disableTwoFactor = mutation({
   args: {
     userId: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only disable 2FA for themselves, admins can disable for anyone
     if (!isAdmin(user) && args.userId !== user._id) {
@@ -185,11 +188,12 @@ export const verifyTwoFactorCode = mutation({
     userId: v.id("users"),
     code: v.string(),
     isValid: v.boolean(), // Passed from API route which has otplib access
+    sessionToken: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     
     // Users can only verify 2FA for themselves
     if (!isAdmin(authUser) && args.userId !== authUser._id) {
@@ -227,11 +231,12 @@ export const removeBackupCode = mutation({
   args: {
     userId: v.id("users"),
     hashedCode: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     
     // Users can only remove backup codes for themselves
     if (!isAdmin(authUser) && args.userId !== authUser._id) {
@@ -256,11 +261,12 @@ export const removeBackupCode = mutation({
 export const deleteUser = mutation({
   args: {
     userId: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     await ctx.db.delete(args.userId);
   },
@@ -270,11 +276,12 @@ export const updateUserStatus = mutation({
   args: {
     userId: v.id("users"),
     status: v.union(v.literal("active"), v.literal("inactive"), v.literal("suspended")),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     await ctx.db.patch(args.userId, {
       status: args.status,
@@ -286,11 +293,12 @@ export const updateUserRoles = mutation({
   args: {
     userId: v.id("users"),
     roles: v.array(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     await ctx.db.patch(args.userId, {
       roles: args.roles,
@@ -360,11 +368,12 @@ export const bulkUpdateUserStatus = mutation({
   args: {
     userIds: v.array(v.id("users")),
     status: v.union(v.literal("active"), v.literal("inactive"), v.literal("suspended")),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     for (const userId of args.userIds) {
       await ctx.db.patch(userId, {
         status: args.status,
@@ -378,11 +387,12 @@ export const bulkUpdateUserRoles = mutation({
   args: {
     userIds: v.array(v.id("users")),
     roles: v.array(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     for (const userId of args.userIds) {
       await ctx.db.patch(userId, {
         roles: args.roles,
@@ -395,11 +405,12 @@ export const bulkUpdateUserRoles = mutation({
 export const deleteMultipleUsers = mutation({
   args: {
     userIds: v.array(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     for (const userId of args.userIds) {
       await ctx.db.delete(userId);
     }
@@ -407,10 +418,12 @@ export const deleteMultipleUsers = mutation({
 });
 
 export const getUserStats = mutation({
-  args: {},
-  handler: async (ctx: MutationCtx) => {
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx: MutationCtx, args) => {
     // Require staff/admin authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     const users = await ctx.db.query("users").collect();
     const activeUsers = users.filter(user => user.status === 'active');
     const inactiveUsers = users.filter(user => user.status === 'inactive');
@@ -430,11 +443,12 @@ export const searchUsers = mutation({
   args: {
     query: v.string(),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.array(v.any()),
   handler: async (ctx: MutationCtx, args) => {
     // Require staff/admin authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     const users = await ctx.db.query("users").collect();
     const filtered = users.filter(user => 
       user.name.toLowerCase().includes(args.query.toLowerCase()) ||
@@ -454,11 +468,12 @@ export const updateUserOnboarding = mutation({
   args: {
     userId: v.id("users"),
     onboarding: v.any(),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can update their own onboarding, staff/admin can update any
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
@@ -482,10 +497,13 @@ export const updateMattermostStatus = mutation({
 });
 
 export const markNotificationRead = mutation({
-  args: { notificationId: v.id("notifications") },
+  args: { 
+    notificationId: v.id("notifications"),
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Get notification to check ownership
     const notification = await ctx.db.get(args.notificationId);
@@ -509,10 +527,11 @@ export const createNotification = mutation({
     message: v.string(),
     global: v.optional(v.boolean()),
     roles: v.optional(v.array(v.string())),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // If creating global notification or notification for other users, require staff/admin
     if (args.global || (args.userId && args.userId !== user._id)) {
@@ -535,11 +554,12 @@ export const createNotification = mutation({
 export const generateReferralLink = mutation({
   args: {
     userId: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.string(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can generate referral links for themselves
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {

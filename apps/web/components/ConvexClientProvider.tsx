@@ -1,8 +1,8 @@
 "use client";
 
-import { ConvexReactClient, ConvexProvider } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Singleton pattern for Convex client
 let convexClientInstance: ConvexReactClient | null = null;
@@ -62,7 +62,8 @@ export function ConvexClientProvider({
       }
     };
 
-    // Function to set up authentication - only update if token changed
+    // Function to check authentication status - session tokens are passed as parameters to queries
+    // We no longer use setAuth() since it expects JWT, not session tokens
     const setupAuth = () => {
       try {
         const token = getTokenFromCookie();
@@ -70,13 +71,9 @@ export function ConvexClientProvider({
         // Only update if token actually changed
         if (token !== lastTokenRef.current) {
           lastTokenRef.current = token;
-          if (token) {
-            convex.setAuth(async () => token);
-            setIsAuthenticated(true);
-          } else {
-            convex.clearAuth();
-            setIsAuthenticated(false);
-          }
+          // Session tokens should be passed as parameters to queries/mutations, not via setAuth()
+          // setAuth() expects JWT tokens, but we're using session tokens
+          setIsAuthenticated(!!token);
         }
       } catch (error) {
         console.error("Error setting up auth:", error);

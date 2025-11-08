@@ -19,11 +19,12 @@ export const createStaffEmailCampaign = mutation({
       v.literal("converted_users"),
       v.literal("all_users")
     ),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.id("staffEmailCampaigns"),
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     // Get recipient count based on type
     let recipientCount = 0;
@@ -76,11 +77,12 @@ export const createStaffEmailCampaign = mutation({
 export const sendStaffEmailCampaign = mutation({
   args: {
     campaignId: v.id("staffEmailCampaigns"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     const campaign = await ctx.db.get(args.campaignId);
     if (!campaign) {
@@ -164,11 +166,12 @@ export const sendStaffEmailCampaign = mutation({
 export const deleteStaffEmailCampaign = mutation({
   args: {
     campaignId: v.id("staffEmailCampaigns"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     await ctx.db.delete(args.campaignId);
     return { success: true };
@@ -183,11 +186,12 @@ export const createWorkEmailRequest = mutation({
     reason: v.string(),
     department: v.string(),
     position: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.id("workEmailRequests"),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only create requests for themselves
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
@@ -307,11 +311,12 @@ export const updateWorkEmailRequestStatus = mutation({
     reviewedBy: v.id("users"),
     reviewNotes: v.optional(v.string()),
     approvedEmail: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const { requestId, ...updates } = args;
     // Permission check
     const admin = await ctx.db.get(updates.reviewedBy);
@@ -372,11 +377,12 @@ export const createLeaveRequest = mutation({
     reason: v.string(),
     emergencyContact: v.optional(v.string()),
     isHalfDay: v.optional(v.boolean()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.id("leaveRequests"),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only create leave requests for themselves
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
@@ -411,11 +417,12 @@ export const updateLeaveRequestStatus = mutation({
     status: v.union(v.literal("approved"), v.literal("rejected")),
     reviewedBy: v.id("users"),
     reviewNotes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const { requestId, ...updates } = args;
     // Permission check
     const admin = await ctx.db.get(updates.reviewedBy);
@@ -476,11 +483,12 @@ export const generateWorkId = mutation({
     photoUrl: v.optional(v.string()),
     issuedBy: v.id("users"),
     expiresInDays: v.optional(v.number()), // Default to 365 days if not provided
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const { expiresInDays = 365, ...workIdData } = args;
     
     // Generate unique work ID number
@@ -534,11 +542,12 @@ export const updateWorkId = mutation({
     photoUrl: v.optional(v.string()),
     digitalVersion: v.optional(v.string()),
     printableVersion: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const { workId, ...updates } = args;
     
     await ctx.db.patch(workId, updates);
@@ -552,11 +561,12 @@ export const revokeWorkId = mutation({
     workId: v.id("workIds"),
     revokedBy: v.id("users"),
     revocationReason: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const { workId, ...revocationData } = args;
     // Permission check
     const admin = await ctx.db.get(revocationData.revokedBy as any);
@@ -605,11 +615,12 @@ export const renewWorkId = mutation({
     workId: v.id("workIds"),
     renewedBy: v.id("users"),
     expiresInDays: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const { workId, renewedBy, expiresInDays = 365 } = args;
     // Permission check
     const admin = await ctx.db.get(renewedBy as any);
@@ -662,11 +673,12 @@ export const bulkUpdateWorkEmailRequestStatus = mutation({
     status: v.union(v.literal("approved"), v.literal("rejected")),
     reviewedBy: v.id("users"),
     reviewNotes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const { requestIds, ...updates } = args;
     
     for (const requestId of requestIds) {
@@ -698,11 +710,12 @@ export const bulkUpdateLeaveRequestStatus = mutation({
     status: v.union(v.literal("approved"), v.literal("rejected")),
     reviewedBy: v.id("users"),
     reviewNotes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const { requestIds, ...updates } = args;
     
     for (const requestId of requestIds) {
@@ -729,10 +742,14 @@ export const bulkUpdateLeaveRequestStatus = mutation({
 });
 
 export const generateOnboardingCode = mutation({
-  args: { email: v.string(), onboarding: v.optional(v.any()) },
+  args: { 
+    email: v.string(), 
+    onboarding: v.optional(v.any()),
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     // Generate a 6-digit code using Math.random (V8-compatible)
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const now = Date.now();
@@ -767,10 +784,13 @@ export const validateOnboardingCode = mutation({
 });
 
 export const markOnboardingCodeUsed = mutation({
-  args: { code: v.string() },
+  args: { 
+    code: v.string(),
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     const codeDoc = await ctx.db.query('onboardingCodes').filter(q => q.eq(q.field('code'), args.code)).first();
     if (!codeDoc) return false;
     await ctx.db.patch(codeDoc._id, { status: 'used' });
@@ -784,10 +804,11 @@ export const createStaffAssignment = mutation({
     department: v.string(),
     position: v.string(),
     assignedAt: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     return await ctx.db.insert("staffAssignments", args);
   },
@@ -798,10 +819,11 @@ export const updateStaffAssignment = mutation({
     assignmentId: v.id("staffAssignments"),
     department: v.optional(v.string()),
     position: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     const { assignmentId, ...updates } = args;
     await ctx.db.patch(assignmentId, updates);
@@ -816,10 +838,11 @@ export const updateMattermostSetup = mutation({
     mattermostEmail: v.string(),
     setupCompleted: v.boolean(),
     setupCompletedAt: v.number(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can update their own Mattermost setup, admins can update any
     if (!isAdmin(user) && args.userId !== user._id) {
@@ -870,10 +893,11 @@ export const createOnboardingRecord = mutation({
         lifeInsurance: v.boolean(),
       })),
     }),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
 
     // Update the user with onboarding data
     await ctx.db.patch(args.userId, {
@@ -933,6 +957,7 @@ export const createOrUpdateStaffOnboarding = mutation({
         lifeInsurance: v.boolean(),
       })),
     }),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
@@ -940,7 +965,7 @@ export const createOrUpdateStaffOnboarding = mutation({
   }),
   handler: async (ctx, args) => {
     // Require HR/admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
 
     // Update the user with onboarding data - this consolidates both updateUserOnboarding and createOnboardingRecord
     await ctx.db.patch(args.userId, {

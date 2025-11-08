@@ -15,10 +15,11 @@ export const createMeal = mutation(
       status: 'available' | 'unavailable';
       images?: string[];
       rating?: number;
+      sessionToken?: string;
     }
   ) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Get chef to verify ownership
     const chef = await ctx.db.get(args.chefId as any);
@@ -49,10 +50,11 @@ export const updateMealImages = mutation({
   args: {
     mealId: v.id('meals'),
     imageUrl: v.string(),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const meal = await ctx.db.get(args.mealId);
     if (!meal) throw new Error('Meal not found');
@@ -78,10 +80,11 @@ export const setPrimaryMealImage = mutation({
   args: {
     mealId: v.id('meals'),
     imageId: v.string(),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const meal = await ctx.db.get(args.mealId);
     if (!meal) throw new Error('Meal not found');
@@ -118,10 +121,11 @@ export const updateMeal = mutation({
       images: v.optional(v.array(v.string())),
       rating: v.optional(v.number()),
     }),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const meal = await ctx.db.get(args.mealId);
     if (!meal) {
@@ -145,10 +149,13 @@ export const updateMeal = mutation({
 });
 
 export const deleteMeal = mutation({
-  args: { mealId: v.id('meals') },
+  args: { 
+    mealId: v.id('meals'),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const meal = await ctx.db.get(args.mealId);
     if (!meal) {

@@ -29,10 +29,11 @@ export const updateGDPRCompliance = mutation({
       analyticsData: v.string(),
     })),
     modifiedBy: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require admin authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     if (!isAdmin(user)) {
       throw new Error('Access denied: Admin access required');
     }
@@ -102,10 +103,11 @@ export const updateSecurityCompliance = mutation({
       keyManagement: v.string(),
     })),
     modifiedBy: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require admin authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     if (!isAdmin(user)) {
       throw new Error('Access denied: Admin access required');
     }
@@ -171,10 +173,11 @@ export const reportSecurityIncident = mutation({
     ),
     affectedUsers: v.optional(v.number()),
     details: v.optional(v.any()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require authentication (any authenticated user can report incidents)
-    await requireAuth(ctx);
+    await requireAuth(ctx, args.sessionToken);
     
     await ctx.db.insert("adminActivity", {
       type: "security_incident",
@@ -206,10 +209,11 @@ export const processDataRequest = mutation({
       v.literal("completed"),
       v.literal("rejected")
     ),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only process their own data requests unless they're admin
     if (args.userId !== user._id && !isAdmin(user)) {
@@ -236,10 +240,11 @@ export const resolveComplianceIssue = mutation({
     issueId: v.string(),
     resolution: v.string(),
     resolvedBy: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     // In a real app, this would update the compliance issue in the database
     console.log("Resolving compliance issue:", {
@@ -260,10 +265,11 @@ export const generateComplianceReport = mutation({
       end: v.number(),
     }),
     format: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     // In a real app, this would generate a comprehensive compliance report
     console.log("Generating compliance report:", {
@@ -285,10 +291,11 @@ export const getSecurityLogs = mutation({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     // In a real app, this would fetch security logs from the database
     console.log("Fetching security logs:", args);
@@ -324,10 +331,11 @@ export const resolveVulnerability = mutation({
     vulnerabilityId: v.string(),
     resolution: v.string(),
     resolvedBy: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     // In a real app, this would update the vulnerability status
     console.log("Resolving vulnerability:", {
@@ -345,10 +353,11 @@ export const updateSecurityIncident = mutation({
     incidentId: v.string(),
     status: v.string(),
     notes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     // In a real app, this would update the security incident
     console.log("Updating security incident:", {
@@ -369,10 +378,11 @@ export const generateSecurityReport = mutation({
       end: v.number(),
     }),
     format: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     // Require admin authentication
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, args.sessionToken);
     
     // In a real app, this would generate a comprehensive security report
     console.log("Generating security report:", {

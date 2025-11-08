@@ -25,6 +25,12 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+// Utility to get a cookie value by name (client-side only)
+function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : undefined;
+}
 
 interface StaffProfile {
   id: string;
@@ -93,8 +99,20 @@ export default function StaffProfilePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   
+  // Get session token from cookies
+  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const token = getCookie('convex-auth-token');
+    setSessionToken(token);
+  }, []);
+  
   // Fetch full profile data using user ID
-  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
+  const profile = useQuery(
+    api.queries.users.getById,
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, sessionToken }
+      : 'skip'
+  );
   const updateUser = useMutation(api.mutations.users.updateUser);
   const hashPassword = useAction(api.actions.password.hashPasswordAction);
 

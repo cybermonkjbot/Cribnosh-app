@@ -1,6 +1,6 @@
-import { query } from '../_generated/server';
 import { v } from 'convex/values';
-import { requireAuth, requireStaff, isAdmin, isStaff } from '../utils/auth';
+import { query } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 export const getTimelogs = query({
   args: {
@@ -10,10 +10,11 @@ export const getTimelogs = query({
     end: v.optional(v.number()),   // timestamp <=
     skip: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // If staffId is provided, check ownership
     if (args.staffId) {

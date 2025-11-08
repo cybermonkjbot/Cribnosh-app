@@ -18,10 +18,11 @@ export const createOrderReview = mutation({
         customer_service: v.optional(v.number()),
       })
     ),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can only create reviews for themselves
     if (!isAdmin(user) && !isStaff(user) && args.user_id !== user._id) {

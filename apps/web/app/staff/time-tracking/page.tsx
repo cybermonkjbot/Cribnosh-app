@@ -12,12 +12,26 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+// Utility to get a cookie value by name (client-side only)
+function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : undefined;
+}
+
 export default function TimeTrackingPage() {
   // All hooks at the top!
   const router = useRouter();
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
   const [isActivityWatchSetup, setIsActivityWatchSetup] = useState<boolean>(false);
   const [awError, setAwError] = useState<string | null>(null);
+  
+  // Get session token from cookies
+  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const token = getCookie('convex-auth-token');
+    setSessionToken(token);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -54,7 +68,12 @@ export default function TimeTrackingPage() {
   // Fetch full profile data using user ID
   // Auth is handled at layout level, no page-level checks needed
   // @ts-ignore - Type instantiation is excessively deep (TypeScript limitation with complex Convex types)
-  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
+  const profile = useQuery(
+    api.queries.users.getById,
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, sessionToken }
+      : 'skip'
+  );
   
   // Handle authentication errors
   useEffect(() => {

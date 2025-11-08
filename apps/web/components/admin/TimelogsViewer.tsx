@@ -52,6 +52,18 @@ export default function TimelogsViewer() {
   const [logDetail, setLogDetail] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Get session token from cookies
+  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const getCookie = (name: string): string | undefined => {
+      if (typeof document === 'undefined') return undefined;
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : undefined;
+    };
+    const token = getCookie('convex-auth-token');
+    setSessionToken(token);
+  }, []);
+
   // Get timelogs from Convex
   const timelogsData = useQuery(api.queries.timelogs.getTimelogs, {
     staffId: staff ? staff as Id<"users"> : undefined,
@@ -63,7 +75,10 @@ export default function TimelogsViewer() {
   });
 
   // Get staff list from Convex - using admin dashboard query
-  const adminStaffData = useQuery(api.queries.staff.getAdminStaffDashboard);
+  const adminStaffData = useQuery(
+    api.queries.staff.getAdminStaffDashboard,
+    sessionToken ? { sessionToken } : 'skip'
+  );
   const staffList = adminStaffData?.staff || [];
 
   const timelogs = timelogsData?.results || [];

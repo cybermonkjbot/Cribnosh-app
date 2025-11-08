@@ -8,11 +8,12 @@ export const clockIn = mutation({
     staffId: v.id('users'),
     notes: v.optional(v.string()),
     location: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId, notes, location } = args;
     
@@ -62,11 +63,12 @@ export const clockOut = mutation({
   args: {
     staffId: v.id('users'),
     notes: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId, notes } = args;
     
@@ -118,11 +120,12 @@ export const clockOut = mutation({
 export const getActiveSession = mutation({
   args: {
     staffId: v.id('users'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId } = args;
     
@@ -148,11 +151,12 @@ export const getWorkSessions = mutation({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId, startDate, endDate, limit = 50 } = args;
     
@@ -188,11 +192,12 @@ export const getWeeklyHours = mutation({
     staffId: v.id('users'),
     weekStart: v.number(), // Start of week timestamp
     weekEnd: v.number(),   // End of week timestamp
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId, weekStart, weekEnd } = args;
     
@@ -242,11 +247,12 @@ export const adjustSession = mutation({
       isOvertime: v.optional(v.boolean()),
       payPeriodId: v.optional(v.id('payPeriods')),
     }),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin/HR authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     if (!isHROrAdmin(user)) {
       return { status: 'error', error: 'Not authorized' };
     }
@@ -270,11 +276,14 @@ export const adjustSession = mutation({
 
 // Admin: Delete a work session
 export const deleteSession = mutation({
-  args: { sessionId: v.id('workSessions') },
+  args: { 
+    sessionId: v.id('workSessions'),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
     // Require admin/HR authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     if (!isHROrAdmin(user)) {
       return { status: 'error', error: 'Not authorized' };
     }

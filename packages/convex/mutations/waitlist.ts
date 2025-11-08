@@ -77,10 +77,11 @@ export const updateWaitlistStatus = mutation({
     waitlistId: v.id("waitlist"),
     status: v.union(v.literal("active"), v.literal("converted"), v.literal("inactive")),
     notes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     const waitlist = await ctx.db.get(args.waitlistId);
     if (!waitlist) {
       throw new Error("Waitlist entry not found");
@@ -121,10 +122,11 @@ export const createEmailCampaign = mutation({
     subject: v.string(),
     template: v.string(),
     targetSegment: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     // In a real app, this would create an email campaign record
     console.log("Creating email campaign:", args.name);
     
@@ -153,10 +155,11 @@ export const sendEmailCampaign = mutation({
     waitlistIds: v.array(v.id("waitlist")),
     subject: v.string(),
     content: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     // Get waitlist entries
     const waitlistEntries = await Promise.all(
       args.waitlistIds.map(async (id: Id<'waitlist'>) => {
@@ -228,13 +231,14 @@ export const sendEmailCampaign = mutation({
 export const deleteWaitlistEntry = mutation({
   args: {
     entryId: v.id("waitlist"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
   }),
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     await ctx.db.delete(args.entryId);
     return { success: true };
@@ -249,10 +253,11 @@ export const updateWaitlistEntry = mutation({
     priority: v.optional(v.string()),
     addedBy: v.optional(v.id("users")),
     addedByName: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require staff authentication
-    const user = await requireStaff(ctx);
+    const user = await requireStaff(ctx, args.sessionToken);
     
     // If addedBy is provided, ensure it matches the authenticated user or user is admin
     if (args.addedBy && args.addedBy !== user._id) {
@@ -279,10 +284,11 @@ export const updateWaitlistEntry = mutation({
 export const approveWaitlistEntry = mutation({
   args: {
     entryId: v.id("waitlist"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     await ctx.db.patch(args.entryId, {
       status: 'approved',
       updatedAt: Date.now(),
@@ -295,10 +301,11 @@ export const rejectWaitlistEntry = mutation({
   args: {
     entryId: v.id("waitlist"),
     reason: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require staff authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     const updateData: Record<string, unknown> = {
       status: 'rejected',
       updatedAt: Date.now(),
@@ -319,6 +326,7 @@ export const addBulkWaitlistEntries = mutation({
     addedBy: v.optional(v.id("users")),
     addedByName: v.optional(v.string()),
     source: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
@@ -327,7 +335,7 @@ export const addBulkWaitlistEntries = mutation({
   }),
   handler: async (ctx, args) => {
     // Require staff authentication
-    const user = await requireStaff(ctx);
+    const user = await requireStaff(ctx, args.sessionToken);
     
     // Ensure addedBy matches authenticated user if provided
     if (args.addedBy && args.addedBy !== user._id) {

@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { query } from '../_generated/server';
-import { requireAuth, requireStaff, requireAdmin, isAdmin, isStaff } from '../utils/auth';
+import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 
 // Chef document validator based on schema
 const chefDocValidator = v.object({
@@ -126,11 +126,11 @@ export const getChefById = query({
 export const getById = getChefById;
 
 export const getPendingCuisines = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.array(cuisineDocValidator),
-  handler: async (ctx) => {
+  handler: async (ctx, args: { sessionToken?: string }) => {
     // Require staff/admin authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     // Assume there is a cuisines table with a status field
     const pending = await ctx.db.query('cuisines').filter(q => q.eq(q.field('status'), 'pending')).collect();
@@ -155,11 +155,14 @@ export const listAllCuisines = query({
 });
 
 export const listCuisinesByStatus = query({
-  args: { status: v.string() },
+  args: { 
+    status: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.array(cuisineDocValidator),
   handler: async (ctx, args) => {
     // Require staff/admin authentication
-    await requireStaff(ctx);
+    await requireStaff(ctx, args.sessionToken);
     
     return await ctx.db.query('cuisines').filter(q => q.eq(q.field('status'), args.status)).collect();
   }
@@ -182,11 +185,14 @@ export const getMenusByChefId = query({
 });
 
 export const getByUserId = query({
-  args: { userId: v.string() },
+  args: { 
+    userId: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.union(chefDocValidator, v.null()),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can access their own chef profile, staff/admin can access any
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id.toString()) {
@@ -471,11 +477,14 @@ const chefWithFavoriteValidator = v.object({
 });
 
 export const getFavoriteChefs = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.array(chefWithFavoriteValidator),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     // Users can access their own favorites, staff/admin can access any
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
