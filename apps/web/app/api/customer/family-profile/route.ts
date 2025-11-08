@@ -5,27 +5,10 @@ import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { sendFamilyInvitationEmail } from '@/lib/services/email-service';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
 import type { FamilyProfileSettings, SetupFamilyProfileRequest } from '@/types/family-profile';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
-function getAuthPayload(request: NextRequest): JWTPayload {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('Invalid or missing token');
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    throw new Error('Invalid or expired token');
-  }
-}
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -42,13 +25,9 @@ function getAuthPayload(request: NextRequest): JWTPayload {
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const payload = getAuthPayload(request);
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse('Only customers can access family profiles', 'FORBIDDEN', 403);
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClient();
-    const userId = payload.user_id as string;
 
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
@@ -82,10 +61,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(formattedProfile, 'Family profile retrieved successfully');
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
-      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
     }
+    const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
       errorMessage || 'Failed to get family profile',
       'INTERNAL_ERROR',
@@ -155,10 +134,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const payload = getAuthPayload(request);
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse('Only customers can setup family profiles', 'FORBIDDEN', 403);
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     // Parse and validate request body
     let body: SetupFamilyProfileRequest;
@@ -194,7 +170,6 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id as string;
 
     // Check if family profile already exists
     const existingProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
@@ -263,10 +238,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(familyProfile, 'Family profile setup successfully');
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
-      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
     }
+    const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
       errorMessage || 'Failed to setup family profile',
       'INTERNAL_ERROR',
