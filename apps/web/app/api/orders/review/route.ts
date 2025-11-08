@@ -6,8 +6,8 @@ import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { logger } from '@/lib/utils/logger';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -180,10 +180,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    logger.error('Order review error:', error);
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);
     }
+    logger.error('Order review error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark order as reviewed.'));
   }
 }

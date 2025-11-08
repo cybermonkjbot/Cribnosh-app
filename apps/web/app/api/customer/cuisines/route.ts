@@ -2,12 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withCaching } from '@/lib/api/cache';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 
 // Type definition for meal data structure
 interface MealData {
@@ -54,18 +54,25 @@ interface MealData {
  *     security: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const convex = getConvexClient();
-  
-  // Use optimized query that only gets unique cuisines without loading all meals
-  const cuisines = await convex.query(api.queries.meals.getCuisines, {});
-  
-  const response = ResponseFactory.success({ cuisines });
-  
-  // Add cache headers - cuisines don't change frequently, cache for 1 hour
-  response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
-  response.headers.set('CDN-Cache-Control', 'public, s-maxage=3600');
-  
-  return response;
+  try {
+    const convex = getConvexClientFromRequest(request);
+    
+    // Use optimized query that only gets unique cuisines without loading all meals
+    const cuisines = await convex.query(api.queries.meals.getCuisines, {});
+    
+    const response = ResponseFactory.success({ cuisines });
+    
+    // Add cache headers - cuisines don't change frequently, cache for 1 hour
+    response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=3600');
+    
+    return response;
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch cuisines.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(withCaching(handleGET, { ttl: 3600 })));

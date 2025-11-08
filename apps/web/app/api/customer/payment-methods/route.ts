@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { validatePaymentMethod } from '@/lib/services/payment-service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
@@ -72,7 +73,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Authentication
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Query payment methods from database
     const paymentMethods = await convex.query(api.queries.paymentMethods.getByUserId, {
@@ -81,12 +82,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(paymentMethods);
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch payment methods';
     return createSpecErrorResponse(
@@ -214,7 +211,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Validate payment method with payment provider (Stripe)
     let validatedPaymentMethod: { valid: boolean; type: string; card: { last4: string; brand: string; exp_month: number; exp_year: number; } | null };
@@ -291,12 +288,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'Payment method added successfully'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = error instanceof Error ? error.message : 'Failed to add payment method';
     return createSpecErrorResponse(

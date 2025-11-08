@@ -1,7 +1,8 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { EmailService } from '@/lib/email/email.service';
 import { withErrorHandling } from '@/lib/errors';
 import { mattermostService } from '@/lib/mattermost';
@@ -130,7 +131,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('number_of_guests must be a positive number.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get customer profile to get name
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
@@ -202,8 +203,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'Request submitted successfully'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to submit event chef request.'));
   }

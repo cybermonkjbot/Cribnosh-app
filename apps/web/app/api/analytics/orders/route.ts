@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -204,7 +204,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const groupBy = searchParams.get('groupBy') || 'day'; // day, week, month, chef, status
     const limit = parseInt(searchParams.get('limit') || '100');
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order analytics based on filters
     const analytics = await convex.query(api.queries.analytics.getOrderAnalytics, {
@@ -233,6 +233,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Get order analytics error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to get order analytics.' 
     );

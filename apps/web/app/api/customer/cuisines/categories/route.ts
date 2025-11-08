@@ -3,13 +3,13 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withCaching } from '@/lib/api/cache';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 // Type definitions for meal and chef data structures
 interface MealData {
@@ -79,7 +79,7 @@ interface ChefData {
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
@@ -165,8 +165,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     return response;
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

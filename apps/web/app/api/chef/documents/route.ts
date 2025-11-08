@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import { getErrorMessage } from '@/types/errors';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -153,12 +153,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated chef from session token
     const { userId } = await getAuthenticatedChef(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const documents = await convex.query(api.queries.documents.getByChefId, { chef_id: userId });
     return ResponseFactory.success({ documents });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

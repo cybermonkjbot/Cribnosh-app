@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClientFromRequest } from '@/lib/conxed-client';

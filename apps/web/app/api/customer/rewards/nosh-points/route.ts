@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { withErrorHandling } from '@/lib/errors';
-import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { getErrorMessage } from '@/types/errors';
-import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -76,7 +77,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get Nosh Points from Convex
     const pointsData = await convex.query(api.queries.noshPoints.getPointsByUserId, {
@@ -107,12 +108,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       last_updated: pointsData.last_updated || new Date().toISOString(),
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to fetch Nosh Points'),

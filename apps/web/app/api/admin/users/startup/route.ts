@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -85,11 +85,18 @@ import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-e
  */
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  // Get authenticated admin from session token
+  try {
+    // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
-  const convex = getConvexClient();
-  const users = await convex.query(api.queries.users.getRecentUsers, { limit: 20 });
-  return ResponseFactory.success(users);
+    const convex = getConvexClientFromRequest(request);
+    const users = await convex.query(api.queries.users.getRecentUsers, { limit: 20 });
+    return ResponseFactory.success(users);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
@@ -69,7 +69,7 @@ async function handleGET(
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Verify the meal exists
     const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
@@ -87,6 +87,9 @@ async function handleGET(
     return ResponseFactory.success(favoriteStatus, 'Favorite status retrieved successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Favorite status retrieval error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve favorite status')
@@ -135,7 +138,7 @@ async function handlePOST(
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Verify the meal exists
     const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
@@ -153,6 +156,9 @@ async function handlePOST(
     return ResponseFactory.success(null, 'Dish added to favorites successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Add favorite error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to add dish to favorites')
@@ -201,7 +207,7 @@ async function handleDELETE(
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Verify the meal exists
     const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
@@ -219,6 +225,9 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'Dish removed from favorites successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Remove favorite error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to remove dish from favorites')

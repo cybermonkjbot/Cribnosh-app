@@ -1,11 +1,11 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 
 /**
@@ -165,7 +165,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     // Store file in Convex file storage
     const buffer = Buffer.from(await file.arrayBuffer());
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
     
     // Upload the file to Convex storage
@@ -207,8 +207,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       profile_image_url: fileUrl,
     });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

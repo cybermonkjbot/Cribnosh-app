@@ -4,11 +4,11 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -117,7 +117,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (!status || !['approved', 'rejected', 'expired'].includes(status)) {
       return ResponseFactory.validationError('Invalid status');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.documents.updateDocumentStatus, {
       documentId: document_id,
       status,
@@ -125,8 +125,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
@@ -77,7 +78,7 @@ async function handlePUT(
       );
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const paymentMethodId: Id<'paymentMethods'> = payment_method_id as Id<'paymentMethods'>;
 
     // Query payment method from database and verify it belongs to the user
@@ -118,12 +119,8 @@ async function handlePUT(
       'Default payment method updated successfully'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = error instanceof Error ? error.message : 'Failed to update default payment method';
     return createSpecErrorResponse(

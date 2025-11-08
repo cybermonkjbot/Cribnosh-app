@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -166,7 +166,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const pendingUsers = await convex.query(api.queries.users.getUsersByStatus, { status: 'pending' });
     const allChefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
     const pendingChefs = allChefs.filter((c: { status?: string }) => c.status === 'pending');
@@ -177,8 +177,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       pendingDishes,
     });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

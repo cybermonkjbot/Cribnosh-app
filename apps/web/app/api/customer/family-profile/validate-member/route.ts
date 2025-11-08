@@ -1,12 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -64,7 +65,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return createSpecErrorResponse('Valid email is required', 'BAD_REQUEST', 400);
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Check if user exists by email
     const existingUser = await convex.query(api.queries.users.getUserByEmail, {
@@ -88,8 +89,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'No account found for this email'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(

@@ -1,13 +1,11 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -97,7 +95,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Use correct queries for orders
     const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
     const users = await convex.query(api.queries.users.getAllUsers, {});
@@ -139,7 +137,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       .sort((a, b) => b!.orders - a!.orders)
       .slice(0, 5);
     return ResponseFactory.success({ topMenus });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch top menus.';
     return ResponseFactory.internalError(errorMessage);
   }

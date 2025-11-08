@@ -1,12 +1,13 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
+import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -30,7 +31,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'all';
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     let treats: Array<Record<string, unknown>> = [];
     
@@ -50,8 +51,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success(treats, 'Treats retrieved successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch treats.'));
   }
@@ -87,7 +88,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { treated_user_id, order_id, expires_in_hours, metadata } = body;
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const result = await convex.mutation(api.mutations.treats.createTreat, {
       treater_id: userId as Id<'users'>,
       treated_user_id: treated_user_id ? (treated_user_id as Id<'users'>) : undefined,
@@ -98,8 +99,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success(result, 'Treat created successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create treat.'));
   }

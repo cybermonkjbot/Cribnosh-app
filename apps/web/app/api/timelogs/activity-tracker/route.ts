@@ -47,13 +47,13 @@
  *           description: Batch identifier for deduplication
  */
 
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Chrome Activity Log type
 interface ChromeActivityLog {
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
       return ResponseFactory.badRequest("Validation error");
     }
     const batchId = data.batchId;
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(req);
     
     // Get staff user first
     const staff = await convex.query(api.queries.users.getUserByNameOrEmail, { identifier: data.user });
@@ -202,7 +202,10 @@ export async function POST(req: NextRequest) {
       processedBatchIds.add(batchId);
     }
     return ResponseFactory.success({});
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     return ResponseFactory.badRequest("Validation error");
   }
 }

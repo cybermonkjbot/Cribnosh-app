@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 
 interface UserGrowthData {
   date: string;
@@ -130,7 +130,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start') ? Number(searchParams.get('start')) : undefined;
     const end = searchParams.get('end') ? Number(searchParams.get('end')) : undefined;
@@ -172,6 +172,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       period
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch user analytics.';
     return ResponseFactory.internalError(errorMessage);
   }

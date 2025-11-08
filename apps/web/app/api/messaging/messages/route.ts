@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -56,14 +56,15 @@ import { logger } from '@/lib/utils/logger';
  *         description: Internal server error
  */
 export const GET = withErrorHandling(async (request: NextRequest) => {
-  const convex = getConvexClient();
-  const { searchParams } = new URL(request.url);
-  
-  const chatId = searchParams.get('chatId');
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const offset = parseInt(searchParams.get('offset') || '0');
-  
   try {
+    const { searchParams } = new URL(request.url);
+    
+    const chatId = searchParams.get('chatId');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
+    
+    const convex = getConvexClientFromRequest(request);
+    
     // For now, return mock data until Convex functions are implemented
     const mockMessages = [
       {
@@ -89,8 +90,11 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         hasMore: (offset + limit) < 25
       }
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error in messaging messages:', error);
-    return ResponseFactory.error('Failed to retrieve messages', 'MESSAGING_MESSAGES_ERROR', 500);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve messages.'));
   }
 });

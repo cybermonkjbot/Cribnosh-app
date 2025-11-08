@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { withErrorHandling } from '@/lib/errors';
-import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { getErrorMessage } from '@/types/errors';
-import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -111,7 +112,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     if (limit < 1) limit = DEFAULT_LIMIT;
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Query transactions from database
     const allTransactions = await convex.query(api.queries.customerBalance.getTransactions, {
@@ -136,8 +137,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to fetch transactions'),

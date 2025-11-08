@@ -1,10 +1,10 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { city, country, address } = body;
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     const isSupported = await convex.query(api.queries.admin.checkRegionAvailability as any, {
       city,
@@ -74,8 +74,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       isSupported,
     });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

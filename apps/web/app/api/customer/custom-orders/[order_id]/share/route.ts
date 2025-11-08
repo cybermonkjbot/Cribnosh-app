@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { getUserFromRequest } from '@/lib/auth/session';
@@ -81,7 +82,7 @@ async function handlePOST(
       return ResponseFactory.validationError('Order ID is required.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get the custom order
     const customOrder = await convex.query(api.queries.custom_orders.getById, {
@@ -125,6 +126,9 @@ async function handlePOST(
       'Share link generated successfully'
     );
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error generating share link:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to generate share link')

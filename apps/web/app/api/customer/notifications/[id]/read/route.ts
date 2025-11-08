@@ -1,11 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -47,7 +48,7 @@ async function handlePOST(
       return ResponseFactory.success({ success: true }, 'Notification marked as read');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Mark notification as read
     await convex.mutation(api.mutations.notifications.markAsRead, {
@@ -56,8 +57,8 @@ async function handlePOST(
     
     return ResponseFactory.success({ success: true }, 'Notification marked as read');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark notification as read.'));
   }

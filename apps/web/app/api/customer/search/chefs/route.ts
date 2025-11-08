@@ -1,12 +1,12 @@
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 
 /**
@@ -211,15 +211,22 @@ import { getErrorMessage } from '@/types/errors';
  */
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const url = new URL(request.url);
-  const q = url.searchParams.get('q')?.toLowerCase() || '';
-  const convex = getConvexClient();
-  const chefs = await convex.query(api.queries.chefs.getAll, {});
-  const filtered = chefs.filter((chef: any) =>
-    chef.name?.toLowerCase().includes(q) ||
-    chef.specialties?.some((c: string) => c.toLowerCase().includes(q))
-  );
-  return ResponseFactory.success({ chefs: filtered });
+  try {
+    const url = new URL(request.url);
+    const q = url.searchParams.get('q')?.toLowerCase() || '';
+    const convex = getConvexClientFromRequest(request);
+    const chefs = await convex.query(api.queries.chefs.getAll, {});
+    const filtered = chefs.filter((chef: any) =>
+      chef.name?.toLowerCase().includes(q) ||
+      chef.specialties?.some((c: string) => c.toLowerCase().includes(q))
+    );
+    return ResponseFactory.success({ chefs: filtered });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 

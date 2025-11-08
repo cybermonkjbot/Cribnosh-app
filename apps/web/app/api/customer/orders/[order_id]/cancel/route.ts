@@ -8,8 +8,8 @@ import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { processRefund } from '@/lib/services/payment-service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { logger } from '@/lib/utils/logger';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger

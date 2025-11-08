@@ -4,7 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
 import { NextResponse } from 'next/server';
 
 // Endpoint: /v1/chat/conversations/
@@ -126,49 +128,63 @@ import { NextResponse } from 'next/server';
  *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user || !user._id) {
-    return ResponseFactory.unauthorized('Unauthorized');
+  try {
+    const user = await getUserFromRequest(request);
+    if (!user || !user._id) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    const convex = getConvexClientFromRequest(request);
+    // Pagination
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '') || 20;
+    const offset = parseInt(searchParams.get('offset') || '') || 0;
+    // Query real conversations for this user
+    const result = await convex.query(api.queries.chats.listConversationsForUser, {
+      userId: user._id,
+      limit,
+      offset
+    });
+    return ResponseFactory.success(result);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get conversations.'));
   }
-  const convex = getConvexClient();
-  // Pagination
-  const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '') || 20;
-  const offset = parseInt(searchParams.get('offset') || '') || 0;
-  // Query real conversations for this user
-  const result = await convex.query(api.queries.chats.listConversationsForUser, {
-    userId: user._id,
-    limit,
-    offset
-  });
-  return ResponseFactory.success(result);
 }
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user || !user._id) {
-    return ResponseFactory.unauthorized('Unauthorized');
-  }
-  let body;
   try {
-    body = await request.json();
-  } catch {
-    return ResponseFactory.validationError('Invalid JSON');
+    const user = await getUserFromRequest(request);
+    if (!user || !user._id) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return ResponseFactory.validationError('Invalid JSON');
+    }
+    const { participants, metadata } = body;
+    if (!Array.isArray(participants) || participants.length < 2) {
+      return ResponseFactory.validationError('At least two participants required');
+    }
+    // Ensure the current user is included
+    if (!participants.includes(user._id)) {
+      participants.push(user._id);
+    }
+    const convex = getConvexClientFromRequest(request);
+    const result = await convex.mutation(api.mutations.chats.createConversation, {
+      participants,
+      metadata
+    });
+    return ResponseFactory.success(result);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create conversation.'));
   }
-  const { participants, metadata } = body;
-  if (!Array.isArray(participants) || participants.length < 2) {
-    return ResponseFactory.validationError('At least two participants required');
-  }
-  // Ensure the current user is included
-  if (!participants.includes(user._id)) {
-    participants.push(user._id);
-  }
-  const convex = getConvexClient();
-  const result = await convex.mutation(api.mutations.chats.createConversation, {
-    participants,
-    metadata
-  });
-  return ResponseFactory.success(result);
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET));

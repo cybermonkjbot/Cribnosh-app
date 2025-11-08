@@ -1,10 +1,11 @@
 import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiMutations, getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { getApiMutations, getApiQueries, getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
 import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
@@ -174,7 +175,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('payment_intent_id is required.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Verify payment intent succeeded via Stripe API
     if (!stripe) {
@@ -382,8 +383,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       },
     }, 'Order created successfully from cart');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     logger.error('Error creating order from cart:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create order from cart.'));

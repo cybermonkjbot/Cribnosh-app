@@ -1,14 +1,14 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { generateOTPCode, sendOTPEmail } from '@/lib/email/send-otp-email';
 import { ErrorFactory, withErrorHandling } from '@/lib/errors';
 import { ErrorCode } from '@/lib/errors/types';
 import { otpRateLimiter, verificationRateLimiter } from '@/lib/rate-limiting';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -133,7 +133,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Invalid email format.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     if (action === 'send') {
       // Check rate limit for OTP requests
@@ -321,6 +321,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.validationError('Invalid action.');
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Email OTP error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Email OTP verification failed.';
     return ResponseFactory.internalError(errorMessage);

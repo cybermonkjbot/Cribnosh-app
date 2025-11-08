@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextResponse } from 'next/server';
 import { generateOTPCode, sendOTPEmail } from '@/lib/email/send-otp-email';
@@ -99,7 +99,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Action must be either "send" or "verify".');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     if (action === 'send') {
       if (type === 'phone') {
@@ -218,8 +218,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.badRequest('Invalid action.');
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

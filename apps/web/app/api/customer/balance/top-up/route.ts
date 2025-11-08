@@ -2,7 +2,8 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
 import { getErrorMessage } from '@/types/errors';
@@ -87,7 +88,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Fetch user from database to get email (user already captured from auth)
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     if (!user) {
       return createSpecErrorResponse(
         'User not found',
@@ -165,12 +166,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       paymentIntentId: paymentIntent.id,
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to create top-up payment intent'),

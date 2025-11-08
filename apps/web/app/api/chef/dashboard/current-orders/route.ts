@@ -3,11 +3,11 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 interface JWTPayload {
   user_id: string;
@@ -201,11 +201,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated chef from session token
     const { userId } = await getAuthenticatedChef(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const orders = await convex.query(api.queries.orders.listByChef, { chef_id: userId });
     const currentOrders = orders.filter((o: { order_status: string }) => !['DELIVERED', 'CANCELLED', 'DECLINED'].includes(o.order_status));
     return ResponseFactory.success({ current_orders: currentOrders });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch current orders.';
     return ResponseFactory.internalError(errorMessage);
   }

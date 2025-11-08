@@ -2,7 +2,8 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { sendFamilyInvitationEmail } from '@/lib/services/email-service';
 import { getErrorMessage } from '@/types/errors';
@@ -28,7 +29,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
@@ -62,8 +63,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(formattedProfile, 'Family profile retrieved successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
@@ -170,7 +171,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Check if family profile already exists
     const existingProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
@@ -239,8 +240,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(familyProfile, 'Family profile setup successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(

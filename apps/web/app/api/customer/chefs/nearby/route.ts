@@ -4,9 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withCaching } from '@/lib/api/cache';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/customer/chefs/nearby
@@ -134,7 +134,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('radius must be a positive number');
   }
 
-  const convex = getConvexClient();
+  try {
+    const convex = getConvexClientFromRequest(request);
   
   // Get nearby chefs using the Convex query
   const nearbyChefs = await convex.query(api.queries.chefs.findNearbyChefs, {
@@ -181,10 +182,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   
   // Add cache headers - location-based queries change more frequently, cache for 5 minutes
   // Cache key includes location params so different locations get different cache entries
-  response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-  response.headers.set('CDN-Cache-Control', 'public, s-maxage=300');
-  
-  return response;
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=300');
+    
+    return response;
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
 // Use caching - the default key generation includes query params, so different locations get different cache entries

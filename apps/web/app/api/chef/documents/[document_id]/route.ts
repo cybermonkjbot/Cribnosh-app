@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
-import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -190,7 +190,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (!document_id) {
       return ResponseFactory.validationError('Missing document_id');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const document = await convex.query(api.queries.documents.getById, { documentId: document_id });
     if (!document || document.userEmail !== user.email) {
       return ResponseFactory.notFound('Document not found or not owned by chef.');
@@ -198,8 +198,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Ensure storageId is present in the response
     return ResponseFactory.success({ document });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -216,7 +216,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     if (!document_id) {
       return ResponseFactory.validationError('Missing document_id');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const document = await convex.query(api.queries.documents.getById, { documentId: document_id });
     if (!document || document.userEmail !== user.email) {
       return ResponseFactory.notFound('Document not found or not owned by chef.');
@@ -224,8 +224,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.documents.deleteDocument, { documentId: document_id });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

@@ -111,12 +111,12 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -192,7 +192,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required fields: reportType, startDate, endDate.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Generate report based on type
     const report = await convex.query(api.queries.analytics.generateOrderReport, {
@@ -213,7 +213,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         contentType = 'text/csv';
         break;
       case 'pdf':
-        responseData = await convertToPDF(report, body);
+        responseData = await convertToPDF(report, body, request);
         contentType = 'application/pdf';
         break;
       default:
@@ -230,6 +230,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.fileDownload(responseData, filename, contentType);
 
   } catch (error: any) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Generate order report error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to generate order report.' 
     );
@@ -293,12 +296,12 @@ function convertToCSV(report: any): string {
 }
 
 // Helper function to convert report data to PDF
-async function convertToPDF(report: any, requestBody: GenerateReportRequest): Promise<string> {
+async function convertToPDF(report: any, requestBody: GenerateReportRequest, request: NextRequest): Promise<string> {
   // Implementation for PDF conversion
   // This would typically use a library like jsPDF or similar
   // Generate real report data
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get real order data - using the analytics query that exists
     const orders = await convex.query(api.queries.analytics.generateOrderReport, {

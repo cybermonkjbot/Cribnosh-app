@@ -176,10 +176,10 @@ async function handlePOST(request: NextRequest) {
       estimatedReadyTime: confirmedOrder.estimated_prep_time_minutes
     });
   } catch (error: unknown) {
-    logger.error('Error confirming order:', error);
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);
     }
+    logger.error('Error confirming order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to confirm order'));
   }
 }

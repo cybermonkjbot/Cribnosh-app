@@ -4,7 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
 
@@ -192,54 +194,68 @@ import { NextResponse } from 'next/server';
  */
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user || !user._id) {
-    return ResponseFactory.unauthorized('Unauthorized');
+  try {
+    const user = await getUserFromRequest(request);
+    if (!user || !user._id) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    // Extract chat_id from the URL
+    const url = new URL(request.url);
+    const match = url.pathname.match(/\/conversations\/([^/]+)/);
+    const chatId = match ? (match[1] as Id<'chats'>) : undefined;
+    if (!chatId) {
+      return ResponseFactory.validationError('Missing chat_id');
+    }
+    const convex = getConvexClientFromRequest(request);
+    const result = await convex.mutation(api.mutations.chats.deleteConversation, {
+      chatId,
+      userId: user._id
+    });
+    return ResponseFactory.success(result);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete conversation.'));
   }
-  // Extract chat_id from the URL
-  const url = new URL(request.url);
-  const match = url.pathname.match(/\/conversations\/([^/]+)/);
-  const chatId = match ? (match[1] as Id<'chats'>) : undefined;
-  if (!chatId) {
-    return ResponseFactory.validationError('Missing chat_id');
-  }
-  const convex = getConvexClient();
-  const result = await convex.mutation(api.mutations.chats.deleteConversation, {
-    chatId,
-    userId: user._id
-  });
-  return ResponseFactory.success(result);
 }
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user || !user._id) {
-    return ResponseFactory.unauthorized('Unauthorized');
-  }
-  // Extract chat_id from the URL
-  const url = new URL(request.url);
-  const match = url.pathname.match(/\/conversations\/([^/]+)/);
-  const chatId = match ? (match[1] as Id<'chats'>) : undefined;
-  if (!chatId) {
-    return ResponseFactory.validationError('Missing chat_id');
-  }
-  let body;
   try {
-    body = await request.json();
-  } catch {
-    return ResponseFactory.validationError('Invalid JSON');
+    const user = await getUserFromRequest(request);
+    if (!user || !user._id) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    // Extract chat_id from the URL
+    const url = new URL(request.url);
+    const match = url.pathname.match(/\/conversations\/([^/]+)/);
+    const chatId = match ? (match[1] as Id<'chats'>) : undefined;
+    if (!chatId) {
+      return ResponseFactory.validationError('Missing chat_id');
+    }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return ResponseFactory.validationError('Invalid JSON');
+    }
+    const { metadata } = body;
+    if (!metadata) {
+      return ResponseFactory.validationError('Missing metadata');
+    }
+    const convex = getConvexClientFromRequest(request);
+    const result = await convex.mutation(api.mutations.chats.editConversation, {
+      chatId,
+      userId: user._id,
+      metadata
+    });
+    return ResponseFactory.success(result);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update conversation.'));
   }
-  const { metadata } = body;
-  if (!metadata) {
-    return ResponseFactory.validationError('Missing metadata');
-  }
-  const convex = getConvexClient();
-  const result = await convex.mutation(api.mutations.chats.editConversation, {
-    chatId,
-    userId: user._id,
-    metadata
-  });
-  return ResponseFactory.success(result);
 }
 
 export const DELETE = withAPIMiddleware(withErrorHandling(handleDELETE));

@@ -3,7 +3,8 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -60,7 +61,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Authentication
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Query data sharing preferences from database
     const preferences = await convex.query(api.queries.dataSharingPreferences.getByUserId, {
@@ -69,8 +70,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(preferences);
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch data sharing preferences';
     return createSpecErrorResponse(
@@ -183,7 +184,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Update data sharing preferences in database
     try {
@@ -216,8 +217,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       'Data sharing preferences updated successfully'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     logger.error('Error updating data sharing preferences:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to update data sharing preferences';

@@ -1,12 +1,12 @@
 import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 
 // Type definitions for data structures
@@ -178,8 +178,9 @@ interface ReviewData {
  *     security: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const convex = getConvexClient();
-  const apiQueries = getApiQueries();
+  try {
+    const convex = getConvexClientFromRequest(request);
+    const apiQueries = getApiQueries();
   
   type ChefsLocationsQuery = FunctionReference<"query", "public", Record<string, never>, ChefLocationData[]>;
   type UsersQuery = FunctionReference<"query", "public", Record<string, never>, UserData[]>;
@@ -250,9 +251,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       profile_image_url: chefUser?.avatar || null,
     };
   });
-  // Sort by avg_rating desc, then total_reviews desc
-  chefStats.sort((a: any, b: any) => b.avg_rating - a.avg_rating || b.total_reviews - a.total_reviews);
-  return ResponseFactory.success({ chefs: chefStats });
+    // Sort by avg_rating desc, then total_reviews desc
+    chefStats.sort((a: any, b: any) => b.avg_rating - a.avg_rating || b.total_reviews - a.total_reviews);
+    return ResponseFactory.success({ chefs: chefStats });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 

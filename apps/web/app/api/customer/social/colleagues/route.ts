@@ -1,12 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { Id } from '@/convex/_generated/dataModel';
-import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -73,7 +74,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Authenticate user
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get users that current user is following
     // Access userFollows queries through api.queries (may need type assertion)
@@ -126,8 +127,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       total: colleagues.length,
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch colleague connections.'));
   }

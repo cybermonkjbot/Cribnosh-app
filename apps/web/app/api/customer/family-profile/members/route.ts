@@ -1,12 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -23,7 +24,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
@@ -48,8 +49,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(members, 'Family members retrieved successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(

@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { randomBytes, scryptSync } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 // Endpoint: /v1/auth/register
 // Group: auth
@@ -118,7 +118,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (!validateEmail(email)) {
       return ResponseFactory.validationError('Invalid email format.');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Check for existing user
     const existing = await convex.query(api.queries.users.getUserByEmail, { email });
     if (existing) {
@@ -138,8 +138,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true, userId, email, name, roles: [role || 'customer'] });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

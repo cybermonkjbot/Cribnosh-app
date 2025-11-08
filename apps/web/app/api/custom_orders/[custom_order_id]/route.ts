@@ -3,7 +3,8 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 interface JWTPayload {
@@ -339,26 +340,34 @@ function extractCustomOrderId(request: NextRequest): string | undefined {
 }
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const custom_order_id = extractCustomOrderId(request);
-  if (!custom_order_id) {
-    return ResponseFactory.validationError('Missing custom_order_id');
+  try {
+    const custom_order_id = extractCustomOrderId(request);
+    if (!custom_order_id) {
+      return ResponseFactory.validationError('Missing custom_order_id');
+    }
+    const convex = getConvexClientFromRequest(request);
+    const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
+    if (!order) {
+      return ResponseFactory.notFound('Custom order not found');
+    }
+    return ResponseFactory.success(order);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    throw error;
   }
-  const convex = getConvexClient();
-  const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
-  if (!order) {
-    return ResponseFactory.notFound('Custom order not found');
-  }
-  return ResponseFactory.success(order);
 }
 
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
-  const custom_order_id = extractCustomOrderId(request);
-  if (!custom_order_id) {
-    return ResponseFactory.validationError('Missing custom_order_id');
-  }
-  // Get authenticated user from session token
-  const { userId, user } = await getAuthenticatedUser(request);
-  const convex = getConvexClient();
+  try {
+    const custom_order_id = extractCustomOrderId(request);
+    if (!custom_order_id) {
+      return ResponseFactory.validationError('Missing custom_order_id');
+    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClientFromRequest(request);
   const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
   if (!order) {
     return ResponseFactory.notFound('Custom order not found');
@@ -370,23 +379,30 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
   if (!details || typeof details !== 'object') {
     return ResponseFactory.error('Order details are required.', 'CUSTOM_ERROR', 422);
   }
-  await convex.mutation(api.mutations.customOrders.update, {
-    orderId: custom_order_id as Id<'custom_orders'>,
-    updates: {
-      requirements: JSON.stringify(details),
-    },
-  });
-  return ResponseFactory.success({ success: true });
+    await convex.mutation(api.mutations.customOrders.update, {
+      orderId: custom_order_id as Id<'custom_orders'>,
+      updates: {
+        requirements: JSON.stringify(details),
+      },
+    });
+    return ResponseFactory.success({ success: true });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    throw error;
+  }
 }
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
-  const custom_order_id = extractCustomOrderId(request);
-  if (!custom_order_id) {
-    return ResponseFactory.validationError('Missing custom_order_id');
-  }
-  // Get authenticated user from session token
-  const { userId, user } = await getAuthenticatedUser(request);
-  const convex = getConvexClient();
+  try {
+    const custom_order_id = extractCustomOrderId(request);
+    if (!custom_order_id) {
+      return ResponseFactory.validationError('Missing custom_order_id');
+    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClientFromRequest(request);
   const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
   if (!order) {
     return ResponseFactory.notFound('Custom order not found');
@@ -394,8 +410,14 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   if (order.userId !== userId && !user.roles?.includes('admin')) {
     return ResponseFactory.forbidden('Forbidden: Not your order.');
   }
-  await convex.mutation(api.mutations.customOrders.deleteOrder, { orderId: custom_order_id as Id<'custom_orders'> });
-  return ResponseFactory.success({ success: true });
+    await convex.mutation(api.mutations.customOrders.deleteOrder, { orderId: custom_order_id as Id<'custom_orders'> });
+    return ResponseFactory.success({ success: true });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    throw error;
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET));

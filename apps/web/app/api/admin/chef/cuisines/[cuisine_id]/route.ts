@@ -3,11 +3,11 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 /**
  * @swagger
  * /admin/chef/cuisines/{cuisine_id}:
@@ -238,7 +238,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (!cuisine_id) {
       return ResponseFactory.validationError('Missing cuisine_id');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const cuisine = await convex.query(api.queries.chefs.getCuisineById, { cuisineId: cuisine_id });
     if (!cuisine) {
       return ResponseFactory.notFound('Cuisine not found');
@@ -253,8 +253,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       cuisine_image_url: cuisine.image || null,
     });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -271,15 +271,15 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing cuisine_id');
     }
     const updates = await request.json();
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.chefs.updateCuisine, {
       cuisineId: cuisine_id,
       ...updates,
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -295,12 +295,12 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     if (!cuisine_id) {
       return ResponseFactory.validationError('Missing cuisine_id');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.chefs.deleteCuisine, { cuisineId: cuisine_id });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

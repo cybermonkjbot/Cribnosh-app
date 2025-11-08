@@ -4,7 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
 
@@ -512,121 +514,149 @@ function getChatIdFromParams(request: NextRequest): Id<'chats'> | null {
 }
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user || !user._id) {
-    return ResponseFactory.unauthorized('Unauthorized');
+  try {
+    const user = await getUserFromRequest(request);
+    if (!user || !user._id) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    const chatId = getChatIdFromParams(request);
+    if (!chatId) {
+      return ResponseFactory.validationError('Missing or invalid chat_id');
+    }
+    const convex = getConvexClientFromRequest(request);
+    // Pagination
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '') || 20;
+    const offset = parseInt(searchParams.get('offset') || '') || 0;
+    // Query real messages for this chat
+    const result = await convex.query(api.queries.chats.listMessagesForChat, {
+      chatId,
+      limit,
+      offset
+    });
+    return ResponseFactory.success(result);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get messages.'));
   }
-  const chatId = getChatIdFromParams(request);
-  if (!chatId) {
-    return ResponseFactory.validationError('Missing or invalid chat_id');
-  }
-  const convex = getConvexClient();
-  // Pagination
-  const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '') || 20;
-  const offset = parseInt(searchParams.get('offset') || '') || 0;
-  // Query real messages for this chat
-  const result = await convex.query(api.queries.chats.listMessagesForChat, {
-    chatId,
-    limit,
-    offset
-  });
-  return ResponseFactory.success(result);
 }
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user || !user._id) {
-    return ResponseFactory.unauthorized('Unauthorized');
-  }
-  const chatId = getChatIdFromParams(request);
-  if (!chatId) {
-    return ResponseFactory.validationError('Missing or invalid chat_id');
-  }
-  let body;
   try {
-    body = await request.json();
-  } catch {
-    return ResponseFactory.validationError('Invalid JSON');
+    const user = await getUserFromRequest(request);
+    if (!user || !user._id) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    const chatId = getChatIdFromParams(request);
+    if (!chatId) {
+      return ResponseFactory.validationError('Missing or invalid chat_id');
+    }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return ResponseFactory.validationError('Invalid JSON');
+    }
+    const { content, fileUrl, fileType, fileName, fileSize, metadata } = body;
+    if (!content && !fileUrl) {
+      return ResponseFactory.validationError('Message content or file required');
+    }
+    const convex = getConvexClientFromRequest(request);
+    const result = await convex.mutation(api.mutations.chats.sendMessage, {
+      chatId,
+      senderId: user._id,
+      content: content || '',
+      fileUrl,
+      fileType,
+      fileName,
+      fileSize,
+      metadata
+    });
+    return ResponseFactory.success(result);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message.'));
   }
-  const { content, fileUrl, fileType, fileName, fileSize, metadata } = body;
-  if (!content && !fileUrl) {
-    return ResponseFactory.validationError('Message content or file required');
-  }
-  const convex = getConvexClient();
-  const result = await convex.mutation(api.mutations.chats.sendMessage, {
-    chatId,
-    senderId: user._id,
-    content: content || '',
-    fileUrl,
-    fileType,
-    fileName,
-    fileSize,
-    metadata
-  });
-  return ResponseFactory.success(result);
 }
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user || !user._id) {
-    return ResponseFactory.unauthorized('Unauthorized');
-  }
-  const chatId = getChatIdFromParams(request);
-  if (!chatId) {
-    return ResponseFactory.validationError('Missing or invalid chat_id');
-  }
-  let body;
   try {
-    body = await request.json();
-  } catch {
-    return ResponseFactory.validationError('Invalid JSON');
+    const user = await getUserFromRequest(request);
+    if (!user || !user._id) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    const chatId = getChatIdFromParams(request);
+    if (!chatId) {
+      return ResponseFactory.validationError('Missing or invalid chat_id');
+    }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return ResponseFactory.validationError('Invalid JSON');
+    }
+    const { messageId } = body;
+    if (!messageId) {
+      return ResponseFactory.validationError('Missing messageId');
+    }
+    const convex = getConvexClientFromRequest(request);
+    const result = await convex.mutation(api.mutations.chats.deleteMessage, {
+      chatId,
+      messageId,
+      userId: user._id
+    });
+    return ResponseFactory.success(result);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete message.'));
   }
-  const { messageId } = body;
-  if (!messageId) {
-    return ResponseFactory.validationError('Missing messageId');
-  }
-  const convex = getConvexClient();
-  const result = await convex.mutation(api.mutations.chats.deleteMessage, {
-    chatId,
-    messageId,
-    userId: user._id
-  });
-  return ResponseFactory.success(result);
 }
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user || !user._id) {
-    return ResponseFactory.unauthorized('Unauthorized');
-  }
-  const chatId = getChatIdFromParams(request);
-  if (!chatId) {
-    return ResponseFactory.validationError('Missing or invalid chat_id');
-  }
-  let body;
   try {
-    body = await request.json();
-  } catch {
-    return ResponseFactory.validationError('Invalid JSON');
+    const user = await getUserFromRequest(request);
+    if (!user || !user._id) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    const chatId = getChatIdFromParams(request);
+    if (!chatId) {
+      return ResponseFactory.validationError('Missing or invalid chat_id');
+    }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return ResponseFactory.validationError('Invalid JSON');
+    }
+    const { messageId, content, fileUrl, fileType, fileName, fileSize, metadata } = body;
+    if (!messageId) {
+      return ResponseFactory.validationError('Missing messageId');
+    }
+    const convex = getConvexClientFromRequest(request);
+    const result = await convex.mutation(api.mutations.chats.editMessage, {
+      chatId,
+      messageId,
+      userId: user._id,
+      content,
+      fileUrl,
+      fileType,
+      fileName,
+      fileSize,
+      metadata
+    });
+    return ResponseFactory.success(result);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to edit message.'));
   }
-  const { messageId, content, fileUrl, fileType, fileName, fileSize, metadata } = body;
-  if (!messageId) {
-    return ResponseFactory.validationError('Missing messageId');
-  }
-  const convex = getConvexClient();
-  const result = await convex.mutation(api.mutations.chats.editMessage, {
-    chatId,
-    messageId,
-    userId: user._id,
-    content,
-    fileUrl,
-    fileType,
-    fileName,
-    fileSize,
-    metadata
-  });
-  return ResponseFactory.success(result);
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET));

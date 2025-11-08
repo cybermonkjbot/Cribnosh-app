@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -70,7 +70,7 @@ async function handleGET(
     // Get authenticated customer from session token
     const { userId } = await getAuthenticatedCustomer(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Check favorite status
     const favoriteStatus = await convex.query(
@@ -81,8 +81,8 @@ async function handleGET(
     return ResponseFactory.success(favoriteStatus, 'Favorite status retrieved successfully');
 
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     logger.error('Favorite status retrieval error:', error);
     return ResponseFactory.internalError(
@@ -129,7 +129,7 @@ async function handlePOST(
     // Get authenticated customer from session token
     const { userId } = await getAuthenticatedCustomer(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
@@ -150,8 +150,8 @@ async function handlePOST(
     return ResponseFactory.success(null, 'Kitchen added to favorites successfully');
 
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     logger.error('Add favorite error:', error);
     return ResponseFactory.internalError(
@@ -198,7 +198,7 @@ async function handleDELETE(
     // Get authenticated customer from session token
     const { userId } = await getAuthenticatedCustomer(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
@@ -219,8 +219,8 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'Kitchen removed from favorites successfully');
 
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     logger.error('Remove favorite error:', error);
     return ResponseFactory.internalError(

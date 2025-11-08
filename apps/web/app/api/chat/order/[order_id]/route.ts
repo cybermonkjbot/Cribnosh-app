@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -126,7 +126,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   }
   // Get authenticated user from session token
   const { userId, user } = await getAuthenticatedUser(request);
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   // Use the proper Convex query to get chats for the current user
   const chats = await convex.query(api.queries.chats.listConversationsForUser, { 
     userId: userId as Id<'users'> 
@@ -163,7 +163,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     }
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // First, try to find an existing chat for this order
     const chatsResponse = await convex.query(api.queries.chats.listConversationsForUser, { 
@@ -212,8 +212,8 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     }
     return ResponseFactory.success(chat);
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

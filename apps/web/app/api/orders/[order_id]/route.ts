@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { logger } from '@/lib/utils/logger';
 
 interface UpdateOrderRequest {
@@ -164,7 +164,7 @@ async function handlePATCH(request: NextRequest) {
 
     const body: UpdateOrderRequest = await request.json();
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details
     const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
@@ -204,6 +204,9 @@ async function handlePATCH(request: NextRequest) {
 
     return ResponseFactory.success({});
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error updating order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update order'));
   }
@@ -407,7 +410,7 @@ async function handleGET(request: NextRequest) {
       return ResponseFactory.validationError('Missing order_id parameter.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details
     const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
@@ -450,6 +453,9 @@ async function handleGET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Order get error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order.'));
   }

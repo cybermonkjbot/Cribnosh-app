@@ -1,7 +1,8 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -23,15 +24,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const connections = await convex.query(api.queries.userConnections.getAllUserConnections, {
       user_id: userId as Id<'users'>,
     });
     
     return ResponseFactory.success(connections, 'Connections retrieved successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch connections.'));
   }
@@ -77,7 +78,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('connection_type must be either "colleague" or "friend".');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.userConnections.createConnection, {
       user_id: userId as Id<'users'>,
       connected_user_id: connected_user_id as Id<'users'>,
@@ -87,8 +88,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ success: true }, 'Connection created successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create connection.'));
   }

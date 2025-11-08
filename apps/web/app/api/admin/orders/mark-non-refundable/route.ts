@@ -2,10 +2,11 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest } from 'next/server';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 /**
  * @swagger
  * /admin/orders/mark-non-refundable:
@@ -142,7 +143,7 @@ async function handlePOST(request: NextRequest) {
       return ResponseFactory.validationError('Missing required fields: orderId, reason, and description are required.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details
     const order = await convex.query(api.queries.orders.getOrderById, { orderId });
@@ -195,6 +196,9 @@ async function handlePOST(request: NextRequest) {
     }, 'Order marked as non-refundable successfully');
   } catch (error: unknown) {
     logger.error('Error marking order as non-refundable:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError('Failed to mark order as non-refundable');
   }
 }

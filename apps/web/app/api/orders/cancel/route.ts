@@ -249,10 +249,10 @@ const refund = await stripe.refunds.create(refundData);
 
     return ResponseFactory.success({});
   } catch (error: unknown) {
-    logger.error('Error cancelling order:', error);
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);
     }
+    logger.error('Error cancelling order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to cancel order'));
   }
 }

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
@@ -121,7 +122,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (limit < 1) limit = DEFAULT_LIMIT;
     const status = searchParams.get('status'); // optional filter
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Query support cases from database
     const allCases = await convex.query(api.queries.supportCases.getByUserId, {
@@ -156,12 +157,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to fetch support cases'),
@@ -319,7 +316,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Create support case in database
     const caseId = await convex.mutation(api.mutations.supportCases.create, {
@@ -375,12 +372,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'Support case created successfully'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to create support case'),

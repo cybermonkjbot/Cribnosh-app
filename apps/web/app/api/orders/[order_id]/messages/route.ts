@@ -204,10 +204,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    logger.error('Send message error:', error);
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);
     }
+    logger.error('Send message error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message.'));
   }
 }
@@ -263,10 +263,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    logger.error('Get order messages error:', error);
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);
     }
+    logger.error('Get order messages error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order messages.'));
   }
 }

@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 
 /**
@@ -71,7 +71,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);// notification_id is already extracted from searchParams
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Get all notifications and find the one we want
     const notifications = await convex.query(api.queries.notifications.getAll, {});
     const notification = notifications.find((n: { _id: string }) => n._id === notification_id);
@@ -85,8 +85,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.notifications.markAsRead, { notificationId: notification_id as Id<'notifications'> });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to mark notification as read.';
-    return ResponseFactory.internalError(errorMessage);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark notification as read.'));
   }
 }
 

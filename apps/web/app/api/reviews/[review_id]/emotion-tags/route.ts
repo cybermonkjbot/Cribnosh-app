@@ -35,13 +35,13 @@
 
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient, api } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, api } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -92,7 +92,7 @@ async function handleGET(
       return ResponseFactory.validationError('Missing review_id');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const review = await convex.query(api.queries.reviews.get, { id: review_id as Id<'reviews'> });
     
     if (!review) {
@@ -121,6 +121,9 @@ async function handleGET(
       summary: data.summary || '',
     });
   } catch (error: any) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error in emotion-tags API:', error);
     return ResponseFactory.internalError(error.message || 'Emotion tagging failed.' );
   }

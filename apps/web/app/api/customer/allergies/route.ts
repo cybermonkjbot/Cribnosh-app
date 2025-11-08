@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
@@ -59,7 +60,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Authentication
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Query allergies from database
     const allergies = await convex.query(api.queries.allergies.getByUserId, {
@@ -68,8 +69,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(allergies);
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to fetch allergies'),
@@ -213,7 +214,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Update allergies in database
     await convex.mutation(api.mutations.allergies.updateByUserId, {
@@ -231,8 +232,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       'Allergies updated successfully'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to update allergies'),

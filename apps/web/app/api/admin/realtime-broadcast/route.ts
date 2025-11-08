@@ -1,9 +1,10 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest } from 'next/server';
 
@@ -144,7 +145,7 @@ async function handlePOST(request: NextRequest) {
   try {
     // Get authenticated admin from session token
     const { userId } = await getAuthenticatedAdmin(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const { event, data } = await request.json();
     if (!event) {
       return ResponseFactory.error('event is required.', 'CUSTOM_ERROR', 422);
@@ -165,6 +166,9 @@ async function handlePOST(request: NextRequest) {
     });
     return ResponseFactory.success({ success: true, message: 'Event broadcasted via Convex', event, changeId });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to broadcast event.';
     return ResponseFactory.internalError(errorMessage);
   }

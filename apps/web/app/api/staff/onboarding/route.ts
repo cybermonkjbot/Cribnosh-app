@@ -6,10 +6,11 @@ import { mattermostService } from '@/lib/mattermost';
 import { jwtVerify } from 'jose';
 import { onboardStaff } from '@/lib/onboarding/onboardStaff';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { notifyStaffOnboardingComplete, notifyOnboardingError } from '@/lib/mattermost/utils';
 import { getUserFromRequest } from "@/lib/auth/session";
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -182,7 +183,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const onboardResult = await onboardStaff(onboardingData);
 
     // Save onboarding data to Convex - this consolidates user update and onboarding record creation
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.staff.createOrUpdateStaffOnboarding, {
       userId: user._id,
       onboardingData: onboardingData,
@@ -254,7 +255,7 @@ async function handlePOST_validateCode(request: NextRequest): Promise<NextRespon
     if (!code || typeof code !== 'string' || code.length !== 6) {
       throw ErrorFactory.custom(ErrorCode.VALIDATION_ERROR, 'Invalid code format', ErrorSeverity.MEDIUM);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const result = await convex.mutation(api.mutations.staff.validateOnboardingCode, { code });
     return ResponseFactory.success(result);
   } catch (error) {

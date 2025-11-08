@@ -1,12 +1,11 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -102,7 +101,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Replace api.orders with api.queries.custom_orders.getAllOrders
     const orders = await convex.query(api.queries.custom_orders.getAllOrders, {});
     const { searchParams } = new URL(request.url);
@@ -110,7 +109,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const grouped = groupByDate(orders, 'createdAt', range);
     const revenueChart = Object.entries(grouped).map(([date, revenue]) => ({ date, revenue }));
     return ResponseFactory.success({ revenueChart });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch revenue chart.';
     return ResponseFactory.internalError(errorMessage);
   }

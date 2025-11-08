@@ -6,7 +6,8 @@ import { runInference } from '@/lib/emotions-engine/core/inferenceEngine';
 // import { EmotionsEngineRequest } from '@/lib/emotions-engine/types'; // Unused for now
 import { withRetry } from '@/lib/api/retry';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest) {
     const user = await getUserFromRequest(req);
     const userId = user?._id || body.userId || undefined;
     // Get emotions engine context - this consolidates nearby chefs, user data, and preferences
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(req);
     const emotionsContext = await convex.action(api.actions.emotionsEngine.getEmotionsEngineContext, {
       userId: userId as any,
       location: body.location ? {
@@ -176,6 +177,9 @@ export async function POST(req: NextRequest) {
     const result = await runInference({ ...context, ...body });
     return ResponseFactory.success(result.data);
   } catch (err: unknown) {
+    if (isAuthenticationError(err) || isAuthorizationError(err)) {
+      return handleConvexError(err, req);
+    }
     logger.error('Emotions engine error:', err);
     return ResponseFactory.internalError(
       err instanceof Error ? err.message : 'Emotions engine processing failed'

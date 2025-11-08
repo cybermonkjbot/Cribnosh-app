@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient, getApiFunction } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getApiFunction } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -106,7 +106,7 @@ interface AnalyticsEvent {
 export async function POST(req: NextRequest) {
   try {
     const { events } = await req.json();
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(req);
     const saveAnalyticsEvent = getApiFunction('mutations/analytics', 'saveAnalyticsEvent') as any;
 
     // Process events in parallel with a concurrency limit
@@ -131,6 +131,9 @@ export async function POST(req: NextRequest) {
 
     return ResponseFactory.success({ success: true });
   } catch (error) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     logger.error('Analytics event error:', error);
     return ResponseFactory.error(
       (error as Error).message,

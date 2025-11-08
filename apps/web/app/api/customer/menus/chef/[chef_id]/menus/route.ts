@@ -1,14 +1,12 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import { NextResponse } from 'next/server';
-import { getAuthenticatedChef } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Endpoint: /v1/customer/menus/chef/{chef_id}/menus
 // Group: customer
@@ -161,10 +159,17 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   } catch {
     return ResponseFactory.validationError('Invalid chef_id');
   }
-  const convex = getConvexClient();
-  const meals = await convex.query(api.queries.chefs.getMenusByChefId, { chefId });
-  // Return the meals array as-is, since each meal is not a menu with items
-  return ResponseFactory.success(Array.isArray(meals) ? meals : []);
+  try {
+    const convex = getConvexClientFromRequest(request);
+    const meals = await convex.query(api.queries.chefs.getMenusByChefId, { chefId });
+    // Return the meals array as-is, since each meal is not a menu with items
+    return ResponseFactory.success(Array.isArray(meals) ? meals : []);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET));

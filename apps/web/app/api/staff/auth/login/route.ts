@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { cookies } from 'next/headers';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withCustomSensitiveRateLimit } from '@/lib/api/sensitive-middleware';
 
 /**
@@ -103,7 +104,7 @@ async function handlePOST(request: NextRequest) {
     // Sanitize email (trim whitespace and convert to lowercase)
     const sanitizedEmail = email.trim().toLowerCase();
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Get user agent and IP address for session tracking
     const userAgent = request.headers.get('user-agent') || undefined;
     const ipAddress = request.headers.get('x-real-ip') || 
@@ -132,7 +133,10 @@ async function handlePOST(request: NextRequest) {
       path: '/',
     });
     return response;
-  } catch (e) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError('Login failed');
   }
 }

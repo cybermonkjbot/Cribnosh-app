@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { getErrorMessage } from '@/types/errors';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -37,7 +37,7 @@ async function handlePOST(
       return ResponseFactory.validationError('order_items must be a non-empty array if provided.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get group order
     let groupOrder;
@@ -71,8 +71,8 @@ async function handlePOST(
     
     return ResponseFactory.success(result, 'Successfully joined group order');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to join group order.'));
   }

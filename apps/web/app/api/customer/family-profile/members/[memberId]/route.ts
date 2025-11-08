@@ -1,13 +1,14 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import type { UpdateMemberBudgetRequest } from '@/types/family-profile';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -64,7 +65,7 @@ async function handlePUT(
       return createSpecErrorResponse('Member ID is required', 'BAD_REQUEST', 400);
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
@@ -99,8 +100,8 @@ async function handlePUT(
 
     return ResponseFactory.success({ success: true }, 'Member updated successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
@@ -138,7 +139,7 @@ async function handleDELETE(
       return createSpecErrorResponse('Member ID is required', 'BAD_REQUEST', 400);
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
@@ -158,8 +159,8 @@ async function handleDELETE(
 
     return ResponseFactory.success({ success: true }, 'Member removed successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(

@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
-import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 interface PrepareOrderRequest {
   orderId: string;
   prepNotes?: string;
@@ -192,10 +192,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       prepNotes: preparedOrder.chef_notes
     });
   } catch (error: unknown) {
-    logger.error('Error preparing order:', error);
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);
     }
+    logger.error('Error preparing order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to prepare order'));
   }
 }

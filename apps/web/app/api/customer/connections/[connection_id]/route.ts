@@ -1,7 +1,8 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -28,7 +29,7 @@ async function handleDELETE(
       return ResponseFactory.validationError('connection_id is required.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.userConnections.removeConnection, {
       connection_id: connection_id as Id<'user_connections'>,
       user_id: userId as Id<'users'>,
@@ -36,8 +37,8 @@ async function handleDELETE(
     
     return ResponseFactory.success({ success: true }, 'Connection removed successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to remove connection.'));
   }

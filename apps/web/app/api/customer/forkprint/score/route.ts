@@ -76,7 +76,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get ForkPrint score from Convex
     let forkPrintData = await convex.query(api.queries.forkPrint.getScoreByUserId, {
@@ -127,8 +127,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       updated_at: forkPrintData.updated_at,
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to fetch ForkPrint score'),

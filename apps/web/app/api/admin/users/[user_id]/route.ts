@@ -3,12 +3,12 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -331,7 +331,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await convex.query(api.queries.users.getById, { userId: user_id });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
@@ -339,8 +339,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { password, sessionToken, sessionExpiry, ...safeUser } = user;
     return ResponseFactory.success({ user: safeUser });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -355,7 +355,7 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing user_id');
     }
     const updates = await request.json();
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.users.updateUser, {
       userId: user_id,
       ...updates,
@@ -368,8 +368,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -383,7 +383,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.users.deleteUser, { userId: user_id });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
@@ -393,8 +393,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -414,7 +414,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     delete newUserData.password;
     delete newUserData.sessionToken;
     delete newUserData.sessionExpiry;
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     await convex.mutation(api.mutations.users.updateUser, {
       userId: user_id,
       ...newUserData,
@@ -427,8 +427,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

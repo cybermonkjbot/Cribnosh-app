@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 /**
@@ -167,7 +167,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required parameter: action.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     switch (action) {
       case 'capture':
@@ -180,10 +180,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         return ResponseFactory.validationError('Invalid action specified.');
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Payment management error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to process payment management request.' 
-    );
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process payment management request.';
+    return ResponseFactory.internalError(errorMessage);
   }
 }
 

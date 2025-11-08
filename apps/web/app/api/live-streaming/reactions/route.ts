@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -338,7 +338,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required fields: sessionId and reactionType.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get live session details first to verify it exists and is active
     const session = await convex.query(api.queries.liveSessions.getLiveSessionById, { sessionId });
@@ -387,6 +387,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Send live reaction error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to send live reaction.' 
     );
@@ -407,7 +410,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required parameter: sessionId.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get live session details first to verify it exists
     const session = await convex.query(api.queries.liveSessions.getLiveSessionById, { sessionId });
@@ -445,6 +448,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Get live reactions error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to get live reactions.' 
     );

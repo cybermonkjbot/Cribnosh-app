@@ -43,11 +43,11 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/reviews/popular-picks
@@ -72,10 +72,11 @@ import { getErrorMessage } from '@/types/errors';
  *     security: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const convex = getConvexClient();
-  
-  // Extract userId from request (optional for public endpoints)
-  const userId = extractUserIdFromRequest(request);
+  try {
+    const convex = getConvexClientFromRequest(request);
+    
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
   
   // Get all reviews, meals, and chefs using the correct query references
   // Apply user preferences to meals
@@ -106,7 +107,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     .sort((a, b) => b.reviewCount - a.reviewCount || b.avgRating - a.avgRating)
     .slice(0, 10);
 
-  return ResponseFactory.success({ popular: popularMeals });
+    return ResponseFactory.success({ popular: popularMeals });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 

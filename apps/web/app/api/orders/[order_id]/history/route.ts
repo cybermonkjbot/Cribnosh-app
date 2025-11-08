@@ -6,8 +6,8 @@ import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { logger } from '@/lib/utils/logger';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -174,10 +174,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    logger.error('Order history error:', error);
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);
     }
+    logger.error('Order history error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order history.'));
   }
 }

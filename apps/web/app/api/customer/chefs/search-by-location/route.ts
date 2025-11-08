@@ -2,11 +2,11 @@ import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { calculateDistanceKm, formatDistanceMiles } from '@/lib/apple-maps/service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -230,7 +230,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Page must be 1 or greater');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get chefs with location data
     const chefsData = await convex.query(api.queries.chefs.getChefsByLocation, {
@@ -291,6 +291,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Chefs retrieved successfully');
 
   } catch (error) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error getting chefs by location:', error);
     return errorHandler.handleError(error);
   }

@@ -1,8 +1,9 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -208,7 +209,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Too many orders. Maximum 50 orders per request.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     interface RefundOperationResult {
       orderId: string;
       success: boolean;
@@ -404,6 +405,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Bulk refund eligibility error:', error);
     return ResponseFactory.internalError(error instanceof Error ? error.message : 'Failed to process bulk refund eligibility operation.' 
     );

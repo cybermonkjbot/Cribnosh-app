@@ -1,12 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -47,7 +48,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return createSpecErrorResponse('Invitation token is required', 'BAD_REQUEST', 400);
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Accept invitation
     const result = await convex.mutation(api.mutations.familyProfiles.acceptInvitation, {
@@ -63,8 +64,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'Invitation accepted successfully'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(

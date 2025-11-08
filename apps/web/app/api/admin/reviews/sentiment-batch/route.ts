@@ -1,14 +1,14 @@
-import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
-import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { ErrorCode, ErrorFactory, withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -149,7 +149,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (!model || !start_date || !end_date) {
       return ResponseFactory.validationError('model, start_date, and end_date are required.');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const allReviews = await convex.query(api.queries.reviews.getAll);
     const reviews = allReviews.filter((r: { createdAt?: number }) => {
       const created = new Date(r.createdAt || 0);
@@ -215,14 +215,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         processedCount: reviews.length
       });
     } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+      if (isAuthenticationError(error) || isAuthorizationError(error)) {
+        return handleConvexError(error, request);
+      }
+      return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
     }
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
-  }
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

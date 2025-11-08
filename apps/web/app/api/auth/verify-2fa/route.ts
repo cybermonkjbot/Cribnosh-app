@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { scryptSync, timingSafeEqual } from 'crypto';
 import { authenticator } from 'otplib';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { logger } from '@/lib/utils/logger';
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -72,7 +72,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Verification sessionResult.sessionToken and code are required.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get verification session
     const session = await convex.mutation(api.mutations.verificationSessions.getVerificationSession, {
@@ -214,8 +214,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     return response;
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

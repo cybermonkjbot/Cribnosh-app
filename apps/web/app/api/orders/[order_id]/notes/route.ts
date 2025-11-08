@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { logger } from '@/lib/utils/logger';
 
 interface AddNoteRequest {
@@ -157,7 +157,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.forbidden('Forbidden: Only admin and staff can add internal notes.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details first to verify permissions
     const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
@@ -208,9 +208,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Add order note error:', error);
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to add note to order.') 
-    );
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to add note to order.'));
   }
 }
 
@@ -227,7 +229,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing order_id parameter.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details first to verify permissions
     const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
@@ -275,9 +277,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Get order notes error:', error);
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order notes.') 
-    );
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order notes.'));
   }
 }
 

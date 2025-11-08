@@ -3,12 +3,12 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -57,7 +57,7 @@ async function handleGET(
     // Extract userId from request (optional for similar meals)
     const userId = extractUserIdFromRequest(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get similar meals with user preferences
     const similarMeals = await convex.query(api.queries.mealRecommendations.getSimilar, {
@@ -98,6 +98,9 @@ async function handleGET(
     }, 'Similar meals retrieved successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Get similar meals error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve similar meals')

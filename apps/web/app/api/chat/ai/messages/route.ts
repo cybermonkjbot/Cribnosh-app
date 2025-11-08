@@ -2,7 +2,8 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withRetry } from '@/lib/api/retry';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { aggregateContext } from '@/lib/emotions-engine/core/contextAggregation';
 import { runInference } from '@/lib/emotions-engine/core/inferenceEngine';
 import { DishRecommendation } from '@/lib/emotions-engine/types';
@@ -148,7 +149,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     };
 
     // Get emotions engine context - this consolidates nearby chefs, user data, and preferences
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const emotionsContextData = await convex.action(api.actions.emotionsEngine.getEmotionsEngineContext, {
       userId: userId as Id<'users'> | undefined,
       location: location ? {
@@ -185,6 +186,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       message_id: messageId,
     });
   } catch (err: unknown) {
+    if (isAuthenticationError(err) || isAuthorizationError(err)) {
+      return handleConvexError(err, request);
+    }
     logger.error('AI chat error:', err);
     return ResponseFactory.internalError(
       err instanceof Error ? err.message : 'Failed to process AI chat message'

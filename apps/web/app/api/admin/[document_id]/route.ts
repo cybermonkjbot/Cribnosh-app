@@ -2,11 +2,11 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -134,15 +134,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (!document_id) {
       return ResponseFactory.validationError('Missing document_id');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const document = await convex.query(api.queries.documents.getById, { documentId: document_id });
     if (!document) {
       return ResponseFactory.notFound('Document not found.');
     }
     return ResponseFactory.success({ document });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

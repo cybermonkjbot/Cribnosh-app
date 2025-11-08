@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -44,7 +44,7 @@ async function handleGET(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get kitchen details (including chef name)
     const kitchenDetails = await convex.query(
@@ -59,6 +59,9 @@ async function handleGET(
     return ResponseFactory.success(kitchenDetails, 'Kitchen details retrieved successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Get kitchen details error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve kitchen details')

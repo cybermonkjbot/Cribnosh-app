@@ -2,12 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/chat/messages/
@@ -130,7 +130,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   if (!user || !user._id) {
     return ResponseFactory.unauthorized('Unauthorized');
   }
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   // Get all conversations for the user
   const chatResult = await convex.query(api.queries.chats.listConversationsForUser, { userId: user._id });
   // Aggregate all messages from all conversations
@@ -290,7 +290,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     if (!recipient_id || (!content && !fileUrl)) {
       return ResponseFactory.validationError('recipient_id and content or file required');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Find or create chat between sender and recipient
     const chats = await convex.query(api.queries.chats.listConversationsForUser, { userId });
     // Access the chats array from the chats object and find an existing chat
@@ -324,8 +324,8 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     });
     return ResponseFactory.success(message);
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message'));
   }

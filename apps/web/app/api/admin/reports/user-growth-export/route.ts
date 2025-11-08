@@ -31,7 +31,9 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -92,7 +94,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
     const { userId } = await getAuthenticatedAdmin(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
     const start = searchParams.get('start');
@@ -141,6 +143,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Default: JSON
     return ResponseFactory.jsonDownload(rows, 'user-growth-export.json');
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to export user growth.';
     return ResponseFactory.internalError(errorMessage);
   }

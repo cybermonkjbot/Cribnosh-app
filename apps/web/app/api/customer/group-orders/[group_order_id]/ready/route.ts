@@ -1,12 +1,13 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
+import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -28,7 +29,7 @@ async function handlePOST(
       return ResponseFactory.validationError('group_order_id is required.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get group order to get the document ID
     const groupOrder = await convex.query(api.queries.groupOrders.getById, {
@@ -46,8 +47,8 @@ async function handlePOST(
     
     return ResponseFactory.success(result, 'Selections marked as ready successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark selections as ready.'));
   }
@@ -73,7 +74,7 @@ async function handleGET(
       return ResponseFactory.validationError('group_order_id is required.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const status = await convex.query(api.queries.groupOrders.getGroupOrderStatus, {
       group_order_id,
     });
@@ -84,8 +85,8 @@ async function handleGET(
     
     return ResponseFactory.success(status, 'Ready status retrieved successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch ready status.'));
   }

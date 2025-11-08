@@ -1,7 +1,8 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -59,7 +60,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('initial_budget is required and must be a positive number.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const result = await convex.mutation(api.mutations.groupOrders.create, {
       created_by: userId as any,
       chef_id: chef_id as any,
@@ -78,8 +79,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       expires_at: result.expires_at,
     }, 'Group order created successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create group order.'));
   }
