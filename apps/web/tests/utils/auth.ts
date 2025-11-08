@@ -69,7 +69,39 @@ export function withAuthHeaders(headers: HeadersInit = {}, token?: string): Head
 }
 
 // Normalize RequestInit so `signal` is never null and allow an optional `user` helper field
-export function buildAuthedRequest(
+// Updated to use sessionToken by default, with JWT fallback for backward compatibility
+export async function buildAuthedRequest(
+  url: string,
+  init: (Omit<RequestInit, 'signal'> & { signal?: AbortSignal; user?: any; useJWT?: boolean }) = {}
+): Promise<NextRequest> {
+  let token: string | undefined = undefined
+
+  if (init.user) {
+    // Use sessionToken by default, JWT as fallback
+    if (init.useJWT) {
+      // Use JWT for backward compatibility
+      token = createTestJwt({ user_id: init.user.id, email: init.user.email, roles: init.user.roles ?? ['customer'] })
+    } else {
+      // Use sessionToken (preferred)
+      token = await createTestSessionToken(init.user.id)
+    }
+  }
+
+  const { user, signal, useJWT, ...rest } = init
+  const headers = withAuthHeaders(init.headers, token)
+
+  const normalizedInit: RequestInit = {
+    ...rest,
+    ...(signal ? { signal } : {}),
+    headers,
+  }
+
+  type NextInit = import('next/dist/server/web/spec-extension/request').RequestInit
+  return new NextRequest(url, normalizedInit as unknown as NextInit)
+}
+
+// Synchronous version using JWT (for backward compatibility)
+export function buildAuthedRequestSync(
   url: string,
   init: (Omit<RequestInit, 'signal'> & { signal?: AbortSignal; user?: any }) = {}
 ): NextRequest {

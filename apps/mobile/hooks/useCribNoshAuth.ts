@@ -24,7 +24,8 @@ export interface CribNoshUser {
 export interface AuthResponse {
   success: boolean;
   message: string;
-  token?: string;
+  token?: string; // Deprecated: use sessionToken instead
+  sessionToken?: string; // Preferred: sessionToken
   user?: CribNoshUser;
   requires2FA?: boolean;
   verificationToken?: string;
@@ -72,37 +73,44 @@ export interface PhoneOTPData {
 
 // API Configuration
 import { API_CONFIG } from '@/constants/api';
+import * as SecureStore from "expo-secure-store";
 
 export const API_BASE_URL = API_CONFIG.baseUrlNoTrailing;
 
 class CribNoshAuthAPI {
   private baseUrl: string;
-  private token: string | null = null;
+  private sessionToken: string | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
     this.loadToken();
   }
 
-  private loadToken() {
-    // Load token from secure storage
-    // For now, using a simple approach - replace with AsyncStorage or Expo SecureStore
-    if (typeof localStorage !== "undefined") {
-      this.token = localStorage.getItem("cribnosh_token");
+  private async loadToken() {
+    // Load sessionToken from secure storage
+    try {
+      this.sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+    } catch (error) {
+      console.error("Error loading sessionToken:", error);
+      this.sessionToken = null;
     }
   }
 
-  private saveToken(token: string) {
-    this.token = token;
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("cribnosh_token", token);
+  private async saveToken(sessionToken: string) {
+    this.sessionToken = sessionToken;
+    try {
+      await SecureStore.setItemAsync("cribnosh_session_token", sessionToken);
+    } catch (error) {
+      console.error("Error saving sessionToken:", error);
     }
   }
 
-  private clearToken() {
-    this.token = null;
-    if (typeof localStorage !== "undefined") {
-      localStorage.removeItem("cribnosh_token");
+  private async clearToken() {
+    this.sessionToken = null;
+    try {
+      await SecureStore.deleteItemAsync("cribnosh_session_token");
+    } catch (error) {
+      console.error("Error clearing sessionToken:", error);
     }
   }
 
@@ -112,14 +120,20 @@ class CribNoshAuthAPI {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
+    // Ensure sessionToken is loaded
+    if (!this.sessionToken) {
+      await this.loadToken();
+    }
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
     };
 
-    // Add authentication header if token exists
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    // Add sessionToken header if exists
+    if (this.sessionToken) {
+      headers["X-Session-Token"] = this.sessionToken;
+      // Alternative: headers.Authorization = `Bearer ${this.sessionToken}`;
     }
 
     const response = await fetch(url, {
@@ -155,8 +169,9 @@ class CribNoshAuthAPI {
       body: JSON.stringify(registerData),
     });
 
-    if (response.success && response.token) {
-      this.saveToken(response.token);
+    // Store sessionToken if present (preferred) or token (fallback)
+    if (response.success && (response.sessionToken || response.token)) {
+      await this.saveToken(response.sessionToken || response.token!);
     }
 
     return response;
@@ -168,9 +183,11 @@ class CribNoshAuthAPI {
       body: JSON.stringify(data),
     });
 
-    // Only save token if 2FA is not required
-    if (response.success && response.token && !response.requires2FA) {
-      this.saveToken(response.token);
+    // Only save sessionToken if 2FA is not required
+    if (response.success && !response.requires2FA) {
+      if (response.sessionToken || response.token) {
+        await this.saveToken(response.sessionToken || response.token!);
+      }
     }
 
     return response;
@@ -182,7 +199,7 @@ class CribNoshAuthAPI {
         method: "POST",
       });
     } finally {
-      this.clearToken();
+      await this.clearToken();
     }
   }
 
@@ -192,9 +209,11 @@ class CribNoshAuthAPI {
       body: JSON.stringify(data),
     });
 
-    // Only save token if 2FA is not required
-    if (response.success && response.token && !response.requires2FA) {
-      this.saveToken(response.token);
+    // Only save sessionToken if 2FA is not required
+    if (response.success && !response.requires2FA) {
+      if (response.sessionToken || response.token) {
+        await this.saveToken(response.sessionToken || response.token!);
+      }
     }
 
     return response;
@@ -213,8 +232,8 @@ class CribNoshAuthAPI {
       body: JSON.stringify(data),
     });
 
-    if (response.success && response.token) {
-      this.saveToken(response.token);
+    if (response.success && (response.sessionToken || response.token)) {
+      await this.saveToken(response.sessionToken || response.token!);
     }
 
     return response;
@@ -235,15 +254,15 @@ class CribNoshAuthAPI {
       body: JSON.stringify(data),
     });
 
-    if (response.success && response.token) {
-      this.saveToken(response.token);
+    if (response.success && (response.sessionToken || response.token)) {
+      await this.saveToken(response.sessionToken || response.token!);
     }
 
     return response;
   }
 
   async getCurrentUser(): Promise<CribNoshUser | null> {
-    if (!this.token) return null;
+    if (!this.sessionToken) return null;
 
     try {
       const response = await this.request<{
@@ -252,14 +271,14 @@ class CribNoshAuthAPI {
       }>("/auth/me");
       return response.success ? response.user : null;
     } catch {
-      // Token might be invalid, clear it
-      this.clearToken();
+      // SessionToken might be invalid, clear it
+      await this.clearToken();
       return null;
     }
   }
 
   isAuthenticated(): boolean {
-    return !!this.token;
+    return !!this.sessionToken;
   }
 }
 
@@ -418,7 +437,7 @@ export const useCribNoshAuth = () => {
           return null;
         }
 
-        if (!response.user || !response.token) {
+        if (!response.user || (!response.sessionToken && !response.token)) {
           throw new Error('Invalid response from server');
         }
 
