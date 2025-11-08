@@ -5,6 +5,7 @@ import {
 import { api } from '../_generated/api';
 import { Id } from '../_generated/dataModel';
 import { mutation, MutationCtx } from '../_generated/server';
+import { requireAuth, requireAdmin, requireStaff, isAdmin, isStaff } from '../utils/auth';
 
 /**
  * Initialize profile tracking records for a new user
@@ -99,6 +100,19 @@ export const updateUser = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can update their own data, but only admins can update roles/status
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    // Only admins can update roles or status
+    if ((args.roles || args.status) && !isAdmin(user)) {
+      throw new Error('Only admins can update roles or status');
+    }
+    
     const { userId, ...updates } = args;
     // Check if email is being updated and if it's already taken
     if (updates.email) {
@@ -124,6 +138,13 @@ export const setupTwoFactor = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can only set up 2FA for themselves
+    if (!isAdmin(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     const { userId, secret, backupCodes } = args;
     await ctx.db.patch(userId, {
       twoFactorEnabled: true,
@@ -141,6 +162,13 @@ export const disableTwoFactor = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can only disable 2FA for themselves, admins can disable for anyone
+    if (!isAdmin(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     const { userId } = args;
     await ctx.db.patch(userId, {
       twoFactorEnabled: false,
@@ -160,9 +188,16 @@ export const verifyTwoFactorCode = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const authUser = await requireAuth(ctx);
+    
+    // Users can only verify 2FA for themselves
+    if (!isAdmin(authUser) && args.userId !== authUser._id) {
+      throw new Error('Access denied');
+    }
     const { userId, code, isValid } = args;
-    const user = await ctx.db.get(userId);
-    if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser || !targetUser.twoFactorEnabled || !targetUser.twoFactorSecret) {
       return false;
     }
     
@@ -171,10 +206,10 @@ export const verifyTwoFactorCode = mutation({
     }
     
     // If code is valid and it's a backup code, remove it from the list
-    if (user.twoFactorBackupCodes && user.twoFactorBackupCodes.length > 0) {
+    if (targetUser.twoFactorBackupCodes && targetUser.twoFactorBackupCodes.length > 0) {
       // Check if code matches any backup code (this check was done in API route)
       // Remove the used backup code
-      const updatedCodes = user.twoFactorBackupCodes.filter((hashedCode: string) => {
+      const updatedCodes = targetUser.twoFactorBackupCodes.filter((hashedCode: string) => {
         // We'll identify which backup code was used in the API route
         // For now, just remove one code if it was a backup code
         // This is a simplified approach - the API route will handle the actual verification
@@ -195,13 +230,20 @@ export const removeBackupCode = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const authUser = await requireAuth(ctx);
+    
+    // Users can only remove backup codes for themselves
+    if (!isAdmin(authUser) && args.userId !== authUser._id) {
+      throw new Error('Access denied');
+    }
     const { userId, hashedCode } = args;
-    const user = await ctx.db.get(userId);
-    if (!user || !user.twoFactorBackupCodes) {
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser || !targetUser.twoFactorBackupCodes) {
       return false;
     }
     
-    const updatedCodes = user.twoFactorBackupCodes.filter((code: string) => code !== hashedCode);
+    const updatedCodes = targetUser.twoFactorBackupCodes.filter((code: string) => code !== hashedCode);
     await ctx.db.patch(userId, {
       twoFactorBackupCodes: updatedCodes,
       lastModified: Date.now(),
@@ -217,6 +259,9 @@ export const deleteUser = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     await ctx.db.delete(args.userId);
   },
 });
@@ -228,6 +273,9 @@ export const updateUserStatus = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     await ctx.db.patch(args.userId, {
       status: args.status,
     });
@@ -241,6 +289,9 @@ export const updateUserRoles = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     await ctx.db.patch(args.userId, {
       roles: args.roles,
       lastModified: Date.now(),
@@ -312,6 +363,8 @@ export const bulkUpdateUserStatus = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
     for (const userId of args.userIds) {
       await ctx.db.patch(userId, {
         status: args.status,
@@ -328,6 +381,8 @@ export const bulkUpdateUserRoles = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
     for (const userId of args.userIds) {
       await ctx.db.patch(userId, {
         roles: args.roles,
@@ -343,6 +398,8 @@ export const deleteMultipleUsers = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
     for (const userId of args.userIds) {
       await ctx.db.delete(userId);
     }
@@ -352,6 +409,8 @@ export const deleteMultipleUsers = mutation({
 export const getUserStats = mutation({
   args: {},
   handler: async (ctx: MutationCtx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
     const users = await ctx.db.query("users").collect();
     const activeUsers = users.filter(user => user.status === 'active');
     const inactiveUsers = users.filter(user => user.status === 'inactive');
@@ -374,6 +433,8 @@ export const searchUsers = mutation({
   },
   returns: v.array(v.any()),
   handler: async (ctx: MutationCtx, args) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
     const users = await ctx.db.query("users").collect();
     const filtered = users.filter(user => 
       user.name.toLowerCase().includes(args.query.toLowerCase()) ||
@@ -396,6 +457,13 @@ export const updateUserOnboarding = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can update their own onboarding, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     await ctx.db.patch(args.userId, {
       onboarding: args.onboarding,
       lastModified: Date.now(),
@@ -416,6 +484,20 @@ export const updateMattermostStatus = mutation({
 export const markNotificationRead = mutation({
   args: { notificationId: v.id("notifications") },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Get notification to check ownership
+    const notification = await ctx.db.get(args.notificationId);
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+    
+    // Users can mark their own notifications as read, staff/admin can mark any
+    if (notification.userId && !isAdmin(user) && !isStaff(user) && notification.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     await ctx.db.patch(args.notificationId, { read: true });
   },
 });
@@ -429,6 +511,15 @@ export const createNotification = mutation({
     roles: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // If creating global notification or notification for other users, require staff/admin
+    if (args.global || (args.userId && args.userId !== user._id)) {
+      if (!isAdmin(user) && !isStaff(user)) {
+        throw new Error('Access denied');
+      }
+    }
     await ctx.db.insert("notifications", {
       userId: args.userId,
       type: args.type,
@@ -447,6 +538,13 @@ export const generateReferralLink = mutation({
   },
   returns: v.string(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can generate referral links for themselves
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     // Generate a unique referral code (could be userId or a hash)
     const referralCode = args.userId;
     const referralLink = `${process.env.NEXT_PUBLIC_BASE_URL || "https://cribnosh.com"}/waitlist?ref=${referralCode}`;

@@ -1,5 +1,6 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
+import { requireAuth, requireAdmin, isAdmin } from "../utils/auth";
 
 export const updateGDPRCompliance = mutation({
   args: {
@@ -30,6 +31,12 @@ export const updateGDPRCompliance = mutation({
     modifiedBy: v.id("users"),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    const user = await requireAuth(ctx);
+    if (!isAdmin(user)) {
+      throw new Error('Access denied: Admin access required');
+    }
+    
     const settingId = "gdpr-compliance";
     
     // Check if GDPR compliance setting already exists
@@ -97,6 +104,12 @@ export const updateSecurityCompliance = mutation({
     modifiedBy: v.id("users"),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    const user = await requireAuth(ctx);
+    if (!isAdmin(user)) {
+      throw new Error('Access denied: Admin access required');
+    }
+    
     const settingId = "security-compliance";
     
     // Check if security compliance setting already exists
@@ -160,6 +173,9 @@ export const reportSecurityIncident = mutation({
     details: v.optional(v.any()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require authentication (any authenticated user can report incidents)
+    await requireAuth(ctx);
+    
     await ctx.db.insert("adminActivity", {
       type: "security_incident",
       description: `Security incident reported: ${args.description}`,
@@ -192,6 +208,14 @@ export const processDataRequest = mutation({
     ),
   },
   handler: async (ctx: any, args: any) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can only process their own data requests unless they're admin
+    if (args.userId !== user._id && !isAdmin(user)) {
+      throw new Error('Access denied');
+    }
+    
     await ctx.db.insert("adminActivity", {
       type: "data_request",
       description: `Data request processed: ${args.description}`,
@@ -214,6 +238,9 @@ export const resolveComplianceIssue = mutation({
     resolvedBy: v.string(),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     // In a real app, this would update the compliance issue in the database
     console.log("Resolving compliance issue:", {
       issueId: args.issueId,
@@ -235,6 +262,9 @@ export const generateComplianceReport = mutation({
     format: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     // In a real app, this would generate a comprehensive compliance report
     console.log("Generating compliance report:", {
       reportType: args.reportType,
@@ -257,6 +287,9 @@ export const getSecurityLogs = mutation({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     // In a real app, this would fetch security logs from the database
     console.log("Fetching security logs:", args);
     
@@ -293,6 +326,9 @@ export const resolveVulnerability = mutation({
     resolvedBy: v.string(),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     // In a real app, this would update the vulnerability status
     console.log("Resolving vulnerability:", {
       vulnerabilityId: args.vulnerabilityId,
@@ -311,6 +347,9 @@ export const updateSecurityIncident = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     // In a real app, this would update the security incident
     console.log("Updating security incident:", {
       incidentId: args.incidentId,
@@ -332,6 +371,9 @@ export const generateSecurityReport = mutation({
     format: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     // In a real app, this would generate a comprehensive security report
     console.log("Generating security report:", {
       reportType: args.reportType,

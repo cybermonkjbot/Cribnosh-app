@@ -1,8 +1,9 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
@@ -149,7 +150,7 @@ const MAX_LIMIT = 100;
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Pagination and filtering
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -188,8 +189,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       offset,
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch orders.'));
   }
@@ -321,7 +322,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     if (!chef_id || !Array.isArray(order_items) || order_items.length === 0) {
       return ResponseFactory.validationError('chef_id (or kitchen_id) and items (or order_items) are required.');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Check regional availability if delivery address is provided
     if (delivery_address) {
@@ -405,8 +406,8 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       message: "Order created successfully"
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create order.'));
   }

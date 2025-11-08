@@ -1,20 +1,84 @@
 import { api } from "@/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import type { FunctionReference } from "convex/server";
+import { NextRequest } from "next/server";
 
 let convex: ConvexHttpClient | null = null;
 
-export function getConvexClient() {
+export function getConvexClient(sessionToken?: string) {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) {
+    throw new Error(
+      "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
+    );
+  }
+
+  // If session token is provided, create a new client instance with auth
+  if (sessionToken) {
+    const authenticatedClient = new ConvexHttpClient(convexUrl);
+    authenticatedClient.setAuth(sessionToken);
+    return authenticatedClient;
+  }
+
+  // Otherwise, use the singleton (for backward compatibility)
   if (!convex) {
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) {
-      throw new Error(
-        "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
-      );
-    }
     convex = new ConvexHttpClient(convexUrl);
   }
   return convex;
+}
+
+/**
+ * Extract session token from request (cookie or header)
+ * Supports multiple sources for backward compatibility
+ */
+function extractSessionToken(request: NextRequest): string | null {
+  // Priority 1: Cookie (web app)
+  const cookieToken = request.cookies.get('convex-auth-token')?.value;
+  if (cookieToken) {
+    return cookieToken;
+  }
+
+  // Priority 2: X-Session-Token header (mobile app)
+  const headerToken = request.headers.get('X-Session-Token');
+  if (headerToken) {
+    return headerToken;
+  }
+
+  // Priority 3: Authorization header (mobile app - sessionToken format)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.replace('Bearer ', '');
+    // SessionToken is typically 43 chars (base64url of 32 bytes)
+    // JWT is typically longer (3 parts separated by dots)
+    // If it looks like a sessionToken (no dots, ~43 chars), use it
+    if (!token.includes('.') && token.length >= 40 && token.length <= 50) {
+      return token;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get authenticated Convex client from request
+ * Extracts session token from request and creates authenticated client
+ * 
+ * @param request - Next.js request object
+ * @returns ConvexHttpClient with authentication set
+ */
+export function getConvexClientFromRequest(request: NextRequest): ConvexHttpClient {
+  const sessionToken = extractSessionToken(request);
+  return getConvexClient(sessionToken || undefined);
+}
+
+/**
+ * Create an authenticated Convex client with a session token
+ * 
+ * @param sessionToken - Session token to authenticate with
+ * @returns ConvexHttpClient with authentication set
+ */
+export function getAuthenticatedConvexClient(sessionToken: string): ConvexHttpClient {
+  return getConvexClient(sessionToken);
 }
 
 export { api };

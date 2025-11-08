@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
 import { filterAndRankMealsByPreferences, getUserPreferences } from '../utils/userPreferencesFilter';
+import { requireStaff } from '../utils/auth';
 
 interface MealDoc {
   _id: Id<'meals'>;
@@ -200,6 +201,9 @@ export const getPending = query({
   args: {},
   returns: v.array(v.any()),
   handler: async (ctx: QueryCtx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     return await ctx.db.query('meals').filter((q) => q.eq(q.field('status'), 'pending')).collect();
   },
 });
@@ -771,6 +775,14 @@ export const getPreviousMeals = query({
   },
   returns: v.array(v.any()),
   handler: async (ctx: QueryCtx, args: { userId: Id<'users'>; applyPreferences?: boolean }) => {
+    // Require authentication - users can only access their own previous meals
+    const { requireAuth, isAdmin, isStaff } = await import('../utils/auth');
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own previous meals, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     try {
       // Get user's order history
       const orders = await ctx.db

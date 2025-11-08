@@ -34,6 +34,9 @@ export const generateTaxDocument = mutation({
     notes: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     // Get employee details
     const employee = await ctx.db.get(args.employeeId);
     if (!employee) {
@@ -69,6 +72,9 @@ export const deleteTaxDocument = mutation({
     documentId: v.id('taxDocuments')
   },
   handler: async (ctx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     await ctx.db.delete(args.documentId);
     return { success: true };
   },
@@ -79,9 +85,17 @@ export const downloadTaxDocument = mutation({
     documentId: v.id('taxDocuments')
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
     const document = await ctx.db.get(args.documentId);
     if (!document) {
       throw new Error('Document not found');
+    }
+    
+    // Users can download their own tax documents, staff/admin can download any
+    if (!isAdmin(user) && !isStaff(user) && (document as any).employeeId !== user._id) {
+      throw new Error('Access denied');
     }
 
     // Generate the actual PDF document

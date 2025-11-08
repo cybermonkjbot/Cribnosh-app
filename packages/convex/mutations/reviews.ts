@@ -1,5 +1,6 @@
 import { mutation } from '../_generated/server';
 import { v } from 'convex/values';
+import { requireAuth, isAdmin, isStaff } from '../utils/auth';
 
 export const create = mutation({
   args: {
@@ -19,6 +20,13 @@ export const create = mutation({
     createdAt: v.number(),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can only create reviews for themselves
+    if (!isAdmin(user) && !isStaff(user) && args.user_id !== user._id) {
+      throw new Error('Access denied');
+    }
     return await ctx.db.insert('reviews', {
       user_id: args.user_id,
       meal_id: args.meal_id,
@@ -44,6 +52,27 @@ export const updateReview = mutation({
     analyzedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Get review to check ownership
+    const review = await ctx.db.get(args.reviewId);
+    if (!review) {
+      throw new Error('Review not found');
+    }
+    
+    // Users can update their own reviews, staff/admin can update any
+    // Only staff/admin can update status and approvalNotes
+    if (args.status || args.approvalNotes) {
+      if (!isAdmin(user) && !isStaff(user)) {
+        throw new Error('Only staff/admin can update review status');
+      }
+    } else {
+      // For other fields, check ownership
+      if (!isAdmin(user) && !isStaff(user) && (review as any).user_id !== user._id) {
+        throw new Error('Access denied');
+      }
+    }
     await ctx.db.patch(args.reviewId, {
       ...(args.rating !== undefined ? { rating: args.rating } : {}),
       ...(args.comment !== undefined ? { comment: args.comment } : {}),
@@ -60,6 +89,20 @@ export const deleteReview = mutation({
     reviewId: v.id('reviews'),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Get review to check ownership
+    const review = await ctx.db.get(args.reviewId);
+    if (!review) {
+      throw new Error('Review not found');
+    }
+    
+    // Users can delete their own reviews, staff/admin can delete any
+    if (!isAdmin(user) && !isStaff(user) && (review as any).user_id !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     await ctx.db.delete(args.reviewId);
   },
 });
@@ -91,6 +134,13 @@ export const createReviewWithChefRatingUpdate = mutation({
     averageRating: v.optional(v.number()),
   }),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can only create reviews for themselves
+    if (!isAdmin(user) && !isStaff(user) && args.user_id !== user._id) {
+      throw new Error('Access denied');
+    }
     // Create the review
     const reviewId = await ctx.db.insert('reviews', {
       user_id: args.user_id,

@@ -1,5 +1,6 @@
 import { query } from '../_generated/server';
 import { v } from 'convex/values';
+import { requireAuth, requireStaff, isAdmin, isStaff } from '../utils/auth';
 
 export const getTimelogs = query({
   args: {
@@ -11,6 +12,22 @@ export const getTimelogs = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // If staffId is provided, check ownership
+    if (args.staffId) {
+      // Users can only access their own timelogs unless they're staff/admin
+      if (!isAdmin(user) && !isStaff(user) && args.staffId !== user._id) {
+        throw new Error('Access denied');
+      }
+    } else {
+      // If no staffId provided, default to current user unless they're staff/admin
+      if (!isAdmin(user) && !isStaff(user)) {
+        args.staffId = user._id;
+      }
+    }
+    
     let q = ctx.db.query('timelogs');
     if (args.staffId) q = q.filter(q => q.eq(q.field('staffId'), args.staffId));
     if (args.bucket) q = q.filter(q => q.eq(q.field('bucket'), args.bucket));

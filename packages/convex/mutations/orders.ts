@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { mutation, internalMutation } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
 import { api } from '../_generated/api';
+import { requireAuth, requireResourceAccess, isAdmin, isStaff } from '../utils/auth';
 
 // Define types for cart items
 type CartItem = {
@@ -127,6 +128,16 @@ export const createOrderWithValidation = mutation({
     })),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Ensure user can only create orders for themselves unless they're staff/admin
+    if (!isAdmin(user) && !isStaff(user)) {
+      if (args.customer_id !== user._id.toString()) {
+        throw new Error('You can only create orders for yourself');
+      }
+    }
+    
     // Check regional availability if delivery address is provided
     if (args.delivery_address) {
       const { checkRegionAvailability } = await import('../queries/admin');

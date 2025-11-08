@@ -1,6 +1,7 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "../_generated/dataModel";
+import { requireStaff, getAuthenticatedUser } from "../utils/auth";
 
 export const addToWaitlist = mutation({
   args: {
@@ -78,6 +79,8 @@ export const updateWaitlistStatus = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
     const waitlist = await ctx.db.get(args.waitlistId);
     if (!waitlist) {
       throw new Error("Waitlist entry not found");
@@ -120,6 +123,8 @@ export const createEmailCampaign = mutation({
     targetSegment: v.string(),
   },
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
     // In a real app, this would create an email campaign record
     console.log("Creating email campaign:", args.name);
     
@@ -150,6 +155,8 @@ export const sendEmailCampaign = mutation({
     content: v.string(),
   },
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
     // Get waitlist entries
     const waitlistEntries = await Promise.all(
       args.waitlistIds.map(async (id: Id<'waitlist'>) => {
@@ -226,6 +233,9 @@ export const deleteWaitlistEntry = mutation({
     success: v.boolean(),
   }),
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     await ctx.db.delete(args.entryId);
     return { success: true };
   },
@@ -241,6 +251,16 @@ export const updateWaitlistEntry = mutation({
     addedByName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Require staff authentication
+    const user = await requireStaff(ctx);
+    
+    // If addedBy is provided, ensure it matches the authenticated user or user is admin
+    if (args.addedBy && args.addedBy !== user._id) {
+      const { isAdmin } = await import("../utils/auth");
+      if (!isAdmin(user)) {
+        throw new Error("You can only update entries you added, or you must be an admin");
+      }
+    }
     const updateData: Record<string, unknown> = {
       updatedAt: Date.now(),
     };
@@ -261,6 +281,8 @@ export const approveWaitlistEntry = mutation({
     entryId: v.id("waitlist"),
   },
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
     await ctx.db.patch(args.entryId, {
       status: 'approved',
       updatedAt: Date.now(),
@@ -275,6 +297,8 @@ export const rejectWaitlistEntry = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
     const updateData: Record<string, unknown> = {
       status: 'rejected',
       updatedAt: Date.now(),
@@ -302,6 +326,16 @@ export const addBulkWaitlistEntries = mutation({
     existing: v.number(),
   }),
   handler: async (ctx, args) => {
+    // Require staff authentication
+    const user = await requireStaff(ctx);
+    
+    // Ensure addedBy matches authenticated user if provided
+    if (args.addedBy && args.addedBy !== user._id) {
+      const { isAdmin } = await import("../utils/auth");
+      if (!isAdmin(user)) {
+        throw new Error("You can only add entries as yourself, or you must be an admin");
+      }
+    }
     let addedCount = 0;
     let existingCount = 0;
 

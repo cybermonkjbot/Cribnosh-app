@@ -54,6 +54,15 @@ export default function TimeTrackingPage() {
   // Fetch full profile data using user ID
   // Auth is handled at layout level, no page-level checks needed
   const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
+  
+  // Handle authentication errors
+  useEffect(() => {
+    if (profile === null && staffUser?._id) {
+      // Profile query returned null - could be authentication error
+      // The layout should handle redirect, but we can show a message
+      console.warn('Failed to load profile - authentication may be required');
+    }
+  }, [profile, staffUser]);
 
   // Enforce ActivityWatch setup
   if (!isActivityWatchSetup) {

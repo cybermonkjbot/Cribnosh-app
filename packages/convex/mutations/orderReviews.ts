@@ -2,6 +2,7 @@ import { mutation } from '../_generated/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { api } from '../_generated/api';
+import { requireAuth, isAdmin, isStaff } from '../utils/auth';
 
 export const createOrderReview = mutation({
   args: {
@@ -19,6 +20,14 @@ export const createOrderReview = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can only create reviews for themselves
+    if (!isAdmin(user) && !isStaff(user) && args.user_id !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     // Verify order belongs to user and is delivered/completed
     const order = await ctx.db.get(args.order_id);
     if (!order || order.customer_id !== args.user_id) {

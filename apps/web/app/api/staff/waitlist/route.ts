@@ -1,7 +1,8 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withStaffAuth } from '@/lib/api/staff-middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -99,7 +100,7 @@ async function handlePOST(request: NextRequest, user: any): Promise<NextResponse
       return ResponseFactory.badRequest('Invalid email format.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Add directly to waitlist using the mutation
     const result = await convex.mutation(api.mutations.waitlist.addToWaitlist, {
@@ -142,6 +143,9 @@ async function handlePOST(request: NextRequest, user: any): Promise<NextResponse
 
   } catch (error: unknown) {
     logger.error('[STAFF WAITLIST] Error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(
       error instanceof Error ? error.message : 'Failed to add lead to waitlist.'
     );
@@ -243,7 +247,7 @@ async function handleGET(request: NextRequest, user: any): Promise<NextResponse>
     const page = parseInt(searchParams.get('page') || '1');
     const offset = (page - 1) * limit;
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get waitlist entries - filter by entries added by this staff member
     const result = await convex.query(api.queries.waitlist.getWaitlistEntries, {
@@ -263,6 +267,9 @@ async function handleGET(request: NextRequest, user: any): Promise<NextResponse>
     }, 'Waitlist entries retrieved successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(
       error instanceof Error ? error.message : 'Failed to retrieve waitlist entries.'
     );

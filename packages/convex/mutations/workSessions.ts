@@ -1,18 +1,6 @@
-import { mutation, MutationCtx } from '../_generated/server';
 import { v } from 'convex/values';
-import { api } from '../_generated/api';
-import { Id } from '../_generated/dataModel';
-import { 
-  withConvexErrorHandling, 
-  validateConvexArgs, 
-  safeConvexOperation,
-  ErrorFactory,
-  ErrorCode
-} from '../../../apps/web/lib/errors/convex-exports';
-
-function isAdminOrHR(user: any): boolean {
-  return user && (user.role === 'admin' || user.role === 'hr' || user.role === 'human_resources');
-}
+import { mutation, MutationCtx } from '../_generated/server';
+import { isAdmin, isHROrAdmin, requireAuth } from '../utils/auth';
 
 // Clock in - start a new work session
 export const clockIn = mutation({
@@ -23,7 +11,15 @@ export const clockIn = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
     const { staffId, notes, location } = args;
+    
+    // Users can only clock in for themselves unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user)) {
+      return { status: 'error', error: 'Access denied' };
+    }
     
     // Get the staff member
     const staff = await ctx.db.get(staffId);
@@ -69,7 +65,15 @@ export const clockOut = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
     const { staffId, notes } = args;
+    
+    // Users can only clock out for themselves unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user)) {
+      return { status: 'error', error: 'Access denied' };
+    }
     
     // Get the staff member
     const staff = await ctx.db.get(staffId);
@@ -117,7 +121,15 @@ export const getActiveSession = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
     const { staffId } = args;
+    
+    // Users can only get their own active session unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user)) {
+      return { status: 'error', error: 'Access denied' };
+    }
     
     const activeSession = await ctx.db
       .query('workSessions')
@@ -139,7 +151,15 @@ export const getWorkSessions = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
     const { staffId, startDate, endDate, limit = 50 } = args;
+    
+    // Users can only get their own work sessions unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user)) {
+      return { status: 'error', error: 'Access denied' };
+    }
     
     let query = ctx.db
       .query('workSessions')
@@ -171,7 +191,15 @@ export const getWeeklyHours = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
     const { staffId, weekStart, weekEnd } = args;
+    
+    // Users can only get their own weekly hours unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user)) {
+      return { status: 'error', error: 'Access denied' };
+    }
     
     const sessions = await ctx.db
       .query('workSessions')
@@ -217,15 +245,16 @@ export const adjustSession = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return { status: 'error', error: 'Not authenticated' };
-    const adminUser = await ctx.runQuery(api.queries.users.getById, { userId: identity.subject as Id<"users"> });
-    if (!isAdminOrHR(adminUser)) return { status: 'error', error: 'Not authorized' };
+    // Require admin/HR authentication
+    const user = await requireAuth(ctx);
+    if (!isHROrAdmin(user)) {
+      return { status: 'error', error: 'Not authorized' };
+    }
 
     const session = await ctx.db.get(args.sessionId);
     if (!session) return { status: 'error', error: 'Session not found' };
 
-    const update: any = { ...args.updates, updatedBy: identity.subject as Id<"users">, updatedAt: Date.now() };
+    const update: any = { ...args.updates, updatedBy: user._id, updatedAt: Date.now() };
     // If only times provided, recompute duration
     const inTime = update.clockInTime ?? (session as any)?.clockInTime;
     const outTime = update.clockOutTime ?? (session as any)?.clockOutTime;
@@ -244,10 +273,11 @@ export const deleteSession = mutation({
   args: { sessionId: v.id('workSessions') },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return { status: 'error', error: 'Not authenticated' };
-    const adminUser = await ctx.runQuery(api.queries.users.getById, { userId: identity.subject as Id<"users"> });
-    if (!isAdminOrHR(adminUser)) return { status: 'error', error: 'Not authorized' };
+    // Require admin/HR authentication
+    const user = await requireAuth(ctx);
+    if (!isHROrAdmin(user)) {
+      return { status: 'error', error: 'Not authorized' };
+    }
     const session = await ctx.db.get(args.sessionId);
     if (!session) return { status: 'error', error: 'Session not found' };
     await ctx.db.delete(args.sessionId);

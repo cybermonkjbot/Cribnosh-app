@@ -7,6 +7,7 @@ import type { QueryCtx } from "../_generated/server";
 import { GenericQueryCtx } from "convex/server";
 import type { FilterBuilder } from "convex/server";
 import { ConvexError } from "convex/values";
+import { requireAuth, isAdmin, isStaff } from "../utils/auth";
 
 type PaySlip = DataModel["paySlips"]["document"] & {
   _id: Id<"paySlips">;
@@ -47,15 +48,13 @@ export const getMyPaySlips = query({
     )),
   },
   handler: async (ctx: QueryCtx, args: { limit?: number; status?: 'draft' | 'processing' | 'paid' | 'cancelled' }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    // Require authentication
+    const user = await requireAuth(ctx);
 
     // Get pay slips with status filter if provided
     let paySlipsQuery = ctx.db
       .query("paySlips")
-      .withIndex("by_staff", (q) => q.eq("staffId", identity.subject as Id<"users">));
+      .withIndex("by_staff", (q) => q.eq("staffId", user._id));
 
     // Apply status filter if provided
     if (args.status) {
@@ -95,19 +94,17 @@ export const getPaySlip = query({
     paySlipId: v.id("paySlips"),
   },
   handler: async (ctx: QueryCtx, args: { paySlipId: Id<"paySlips"> }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    // Require authentication
+    const user = await requireAuth(ctx);
 
     const paySlip = await ctx.db.get(args.paySlipId) as PaySlip | null;
     if (!paySlip) {
       throw new Error("Pay slip not found");
     }
 
-    // Ensure the pay slip belongs to the current user
-    if (paySlip.staffId !== identity.subject) {
-      throw new Error("Unauthorized");
+    // Users can access their own pay slips, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && paySlip.staffId !== user._id) {
+      throw new Error("Access denied");
     }
 
     // Get the pay period details
@@ -119,7 +116,7 @@ export const getPaySlip = query({
       workSessions = await ctx.db
         .query("workSessions")
         .withIndex("by_staff_date", (q) => 
-          q.eq("staffId", identity.subject as Id<"users">)
+          q.eq("staffId", user._id)
         )
         .filter((q) => {
           const clockInTime = q.field("clockInTime");
@@ -152,19 +149,17 @@ export const getMyWorkHistory = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: QueryCtx, args: { startDate?: number; endDate?: number; limit?: number }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    // Require authentication
+    const user = await requireAuth(ctx);
     
     // Get user data for department/position
-    const user = await ctx.db.get(identity.subject as Id<"users">) as UserDoc | null;
+    const userDoc = await ctx.db.get(user._id) as UserDoc | null;
     
     // Create base query
     let workSessionsQuery = ctx.db
       .query("workSessions")
       .withIndex("by_staff_date", (q) => 
-        q.eq("staffId", identity.subject as Id<"users">)
+        q.eq("staffId", user._id)
       )
 
       
@@ -202,9 +197,9 @@ export const getMyWorkHistory = query({
       const result: any = { ...session };
       
       // Add department and position from user if available
-      if (user) {
-        result.department = user.department || 'Unassigned';
-        result.position = user.position || 'N/A';
+      if (userDoc) {
+        result.department = userDoc.department || 'Unassigned';
+        result.position = userDoc.position || 'N/A';
       } else {
         result.department = 'Unassigned';
         result.position = 'N/A';
@@ -218,10 +213,9 @@ export const getMyWorkHistory = query({
 // Get current pay period information
 export const getCurrentPayPeriod = query({
   handler: async (ctx: QueryCtx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    // Require staff authentication
+    const { requireStaff } = await import("../utils/auth");
+    await requireStaff(ctx);
 
     // Get payroll settings to determine pay period
     const settings = await ctx.db
@@ -319,19 +313,17 @@ export const getPayrollProfile = query({
     staffId: v.id("users"),
   },
   handler: async (ctx, args): Promise<PayrollProfileResponse> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError("Not authenticated");
-    }
-
-    // Verify the user is requesting their own data or is an admin
-    if (identity.subject !== args.staffId && identity.tokenIdentifier !== 'admin') {
-      throw new ConvexError("Unauthorized access to payroll profile");
+    // Require authentication
+    const authUser = await requireAuth(ctx);
+    
+    // Users can access their own payroll profile, staff/admin can access any
+    if (!isAdmin(authUser) && !isStaff(authUser) && args.staffId !== authUser._id) {
+      throw new ConvexError("Access denied");
     }
 
     // Get the staff member's basic info
-    const user = await ctx.db.get(args.staffId);
-    if (!user) {
+    const targetUser = await ctx.db.get(args.staffId);
+    if (!targetUser) {
       throw new ConvexError("User not found");
     }
 
@@ -377,13 +369,13 @@ export const getPayrollProfile = query({
 
     return {
       staffId: args.staffId,
-      employeeId: user.employeeId || 'N/A',
-      fullName: user.name || 'Unknown',
-      email: user.email || '',
+      employeeId: targetUser.employeeId || 'N/A',
+      fullName: targetUser.name || 'Unknown',
+      email: targetUser.email || '',
       // Optional fields with fallbacks
-      ...(user.position && { jobTitle: user.position }),
-      ...(user.department && { department: user.department }),
-      ...(user.startDate && { hireDate: new Date(user.startDate).getTime() }),
+      ...(targetUser.position && { jobTitle: targetUser.position }),
+      ...(targetUser.department && { department: targetUser.department }),
+      ...(targetUser.startDate && { hireDate: new Date(targetUser.startDate).getTime() }),
       
       // Payroll details
       hourlyRate: payrollProfile.hourlyRate,

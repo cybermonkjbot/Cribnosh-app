@@ -1,12 +1,14 @@
 import { query, mutation, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
-
-// Authentication is handled by middleware for admin routes
+import { requireStaff, requireAdmin } from "../utils/auth";
 
 // Get payroll settings
 export const getPayrollSettings = query({
   handler: async (ctx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     const settings = await ctx.db.query("payrollSettings").order("desc").first();
     return settings || null;
   },
@@ -28,7 +30,9 @@ export const upsertPayrollSettings = mutation({
     weekendOvertimeMultiplier: v.number(),
   },
   handler: async (ctx, args) => {
-    // Authentication is handled by middleware
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     const settings = {
       ...args,
       updatedBy: (await ctx.auth.getUserIdentity())?.subject as Id<"users">,
@@ -50,7 +54,9 @@ export const getStaffPayrollProfiles = query({
     )),
   },
   handler: async (ctx, args) => {
-    // Authentication is handled by middleware
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     let results;
     
     if (args.status) {
@@ -105,7 +111,9 @@ export const updateStaffPayrollProfile = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    // Authentication is handled by middleware
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     const profile = await ctx.db
       .query("staffPayrollProfiles")
       .withIndex("by_staff", (q) => q.eq("staffId", args.staffId))
@@ -137,7 +145,9 @@ export const processPayroll = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Authentication is handled by middleware
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     const period = await ctx.db.get(args.periodId);
     if (!period) {
       throw new Error("Pay period not found");
@@ -220,7 +230,8 @@ export const getYearToDateHoursSummary = query({
     year: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Authentication is handled by middleware
+    // Require staff/admin authentication
+    await requireStaff(ctx);
     
     const currentYear = new Date().getFullYear();
     const targetYear = args.year || currentYear;

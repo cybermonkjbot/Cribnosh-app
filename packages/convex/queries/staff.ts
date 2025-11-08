@@ -1,9 +1,7 @@
 import { v } from 'convex/values';
-import {
-  ErrorFactory
-} from '../../../apps/web/lib/errors/convex-exports';
 import { Doc } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
+import { isAdmin, isStaff, requireAdmin, requireAuth, requireStaff } from '../utils/auth';
 
 // Staff Email Campaign Queries
 export const getStaffEmailCampaigns = query({
@@ -33,6 +31,9 @@ export const getStaffEmailCampaigns = query({
     sentAt: v.optional(v.number()),
   })),
   handler: async (ctx: QueryCtx) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     return await ctx.db
       .query("staffEmailCampaigns")
       .order("desc")
@@ -52,6 +53,9 @@ export const getStaffStats = query({
     deliveryRate: v.number(),
   }),
   handler: async (ctx: QueryCtx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     const allStaff = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("roles"), ["staff"]))
@@ -105,6 +109,14 @@ export const getWorkEmailRequestsByUser = query({
   args: { userId: v.id("users") },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own requests, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db
       .query('workEmailRequests')
       .filter(q => q.eq(q.field('userId'), args.userId))
@@ -117,7 +129,8 @@ export const getAllWorkEmailRequests = query({
   args: { status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))) },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
-    // Authentication is handled by middleware
+    // Require staff authentication
+    await requireStaff(ctx);
     let query = ctx.db.query('workEmailRequests');
     if (args.status) {
       query = query.filter(q => q.eq(q.field('status'), args.status));
@@ -141,6 +154,9 @@ export const getWorkEmailRequestsByDepartment = query({
   args: { department: v.string() },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     return await ctx.db
       .query('workEmailRequests')
       .filter(q => q.eq(q.field('department'), args.department))
@@ -152,9 +168,8 @@ export const getWorkEmailRequestsByDepartment = query({
 export const getPendingWorkEmailRequests = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    if (!((ctx.auth as any)?.isAdmin || (ctx.auth as any)?.isManagement || (ctx.auth as any)?.isDeveloper || (ctx.auth as any)?.isCompliance)) {
-      throw ErrorFactory.conflict('Permission denied: Only admins, management, developer, or compliance can view pending work email requests.');
-    }
+    // Require HR/admin authentication
+    await requireAdmin(ctx);
     return await ctx.db
       .query('workEmailRequests')
       .filter(q => q.eq(q.field('status'), 'pending'))
@@ -168,6 +183,14 @@ export const getLeaveRequestsByUser = query({
   args: { userId: v.id("users") },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own requests, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db
       .query('leaveRequests')
       .filter(q => q.eq(q.field('userId'), args.userId))
@@ -183,7 +206,8 @@ export const getAllLeaveRequests = query({
   },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
-    // Authentication is handled by middleware
+    // Require staff authentication
+    await requireStaff(ctx);
     let query = ctx.db.query('leaveRequests');
     if (args.status) {
       query = query.filter(q => q.eq(q.field('status'), args.status));
@@ -209,9 +233,8 @@ export const getAllLeaveRequests = query({
 export const getPendingLeaveRequests = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    if (!((ctx.auth as any)?.isAdmin || (ctx.auth as any)?.isManagement || (ctx.auth as any)?.isDeveloper || (ctx.auth as any)?.isCompliance)) {
-      throw ErrorFactory.conflict('Permission denied: Only admins, management, developer, or compliance can view pending leave requests.');
-    }
+    // Require HR/admin authentication
+    await requireAdmin(ctx);
     return await ctx.db
       .query('leaveRequests')
       .filter(q => q.eq(q.field('status'), 'pending'))
@@ -227,6 +250,9 @@ export const getLeaveRequestsByDateRange = query({
   },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     return await ctx.db
       .query('leaveRequests')
       .filter(q => 
@@ -245,6 +271,14 @@ export const getWorkIdByUser = query({
   args: { userId: v.id("users") },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own work ID, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db
       .query('workIds')
       .filter(q => q.eq(q.field('userId'), args.userId))
@@ -259,7 +293,8 @@ export const getAllWorkIds = query({
   },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
-    // Authentication is handled by middleware
+    // Require staff authentication
+    await requireStaff(ctx);
     let query = ctx.db.query('workIds');
     
     if (args.status) {
@@ -273,9 +308,8 @@ export const getAllWorkIds = query({
 export const getActiveWorkIds = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    if (!((ctx.auth as any)?.isAdmin || (ctx.auth as any)?.isManagement || (ctx.auth as any)?.isDeveloper || (ctx.auth as any)?.isCompliance)) {
-      throw ErrorFactory.conflict('Permission denied: Only admins, management, developer, or compliance can view active work IDs.');
-    }
+    // Require HR/admin authentication
+    await requireAdmin(ctx);
     return await ctx.db
       .query('workIds')
       .filter(q => q.eq(q.field('status'), 'active'))
@@ -287,9 +321,8 @@ export const getActiveWorkIds = query({
 export const getExpiredWorkIds = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    if ((ctx.auth as any)?.isAdmin) {
-      throw ErrorFactory.conflict('Permission denied: Only admins can view expired work IDs.');
-    }
+    // Require admin authentication
+    await requireAdmin(ctx);
     const now = Date.now();
     return await ctx.db
       .query('workIds')
@@ -308,6 +341,9 @@ export const getWorkIdByNumber = query({
   args: { workIdNumber: v.string() },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     return await ctx.db
       .query('workIds')
       .filter(q => q.eq(q.field('workIdNumber'), args.workIdNumber))
@@ -319,7 +355,8 @@ export const getWorkIdByNumber = query({
 export const getStaffOverviewStats = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    // Authentication is handled by middleware
+    // Require staff authentication
+    await requireStaff(ctx);
     const [
       totalStaff,
       pendingWorkEmailRequests,
@@ -348,6 +385,9 @@ export const getStaffByDepartment = query({
   args: { department: v.optional(v.string()) },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     let users = await ctx.db.query('users').collect();
     users = users.filter(u => Array.isArray(u.roles) && (u.roles.includes('staff') || u.roles.includes('admin')));
     if (args.department) {
@@ -360,6 +400,14 @@ export const getStaffByDepartment = query({
 export const getStaffAssignmentByUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own assignment, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db.query("staffAssignments").filter(q => q.eq(q.field("userId"), args.userId)).first();
   },
 });
@@ -372,6 +420,13 @@ export const getRequestHistory = query({
   },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own history, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     const results: any[] = [];
     
     if (!args.type || args.type === 'workEmail') {
@@ -429,6 +484,8 @@ export const getRequestHistory = query({
 export const getAdminStaffDashboard = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
     const [
       pendingWorkEmailRequests,
       pendingLeaveRequests,
@@ -481,6 +538,8 @@ export const getActiveStaffNotices = query({
     position: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
     let query = ctx.db.query('staffNotices').withIndex('by_isActive', q => q.eq('isActive', true));
     let notices = await query.order('desc').collect();
     // Filter: show global notices, or those matching department/position

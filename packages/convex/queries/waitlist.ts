@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel";
 import { query } from "../_generated/server";
+import { requireStaff } from "../utils/auth";
 
 // Type definitions for waitlist stats
 interface WaitlistStats {
@@ -21,6 +22,8 @@ export const getWaitlistStats = query({
     conversionRate: v.number(),
   }),
   handler: async (ctx): Promise<WaitlistStats> => {
+    // Require staff authentication
+    await requireStaff(ctx);
     const waitlist = await ctx.db.query("waitlist").collect();
     const total = waitlist.length;
     const active = waitlist.filter((entry: Doc<"waitlist">) => entry.status === 'active').length;
@@ -59,6 +62,9 @@ export const getWaitlistDetails = query({
     priority: v.string(),
   })),
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     let waitlist = await ctx.db.query("waitlist").collect();
     
     if (args.status) {
@@ -109,6 +115,9 @@ export const getWaitlistEmailCampaigns = query({
     targetSegment: v.string(),
   })),
   handler: async (ctx) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     // Query actual email campaigns from database
     const campaigns = await ctx.db.query("emailCampaigns").collect();
     
@@ -159,6 +168,9 @@ export const getAll = query({
   args: {},
   returns: v.array(waitlistDocValidator),
   handler: async (ctx) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     return await ctx.db.query("waitlist").collect();
   },
 });
@@ -169,6 +181,9 @@ export const getById = query({
   },
   returns: v.union(waitlistDocValidator, v.null()),
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     return await ctx.db.get(args.id);
   },
 });
@@ -178,6 +193,8 @@ export const getByEmail = query({
     email: v.string(),
   },
   handler: async (ctx, args) => {
+    // Public query - anyone can check if an email is on the waitlist
+    // This is safe as it only returns basic info
     return await ctx.db
       .query("waitlist")
       .filter((q) => q.eq(q.field("email"), args.email))
@@ -189,6 +206,9 @@ export const getWaitlistCount = query({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     const entries = await ctx.db.query("waitlist").collect();
     return entries.length;
   },
@@ -229,6 +249,9 @@ export const getWaitlistEntries = query({
     total: v.number(), // Total count of entries matching filters
   }),
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx);
+    
     let entries = await ctx.db.query("waitlist").collect();
     
     // Filter by staff member who added the entry (if provided)

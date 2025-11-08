@@ -198,6 +198,7 @@ import type * as services_resend from "../services/resend.js";
 import type * as types_convexContexts from "../types/convexContexts.js";
 import type * as types_email from "../types/email.js";
 import type * as types_livestream from "../types/livestream.js";
+import type * as utils_auth from "../utils/auth.js";
 import type * as utils_mealRecommendations from "../utils/mealRecommendations.js";
 import type * as utils_priceEstimation from "../utils/priceEstimation.js";
 import type * as utils_regionValidation from "../utils/regionValidation.js";
@@ -408,6 +409,7 @@ declare const fullApi: ApiFromModules<{
   "types/convexContexts": typeof types_convexContexts;
   "types/email": typeof types_email;
   "types/livestream": typeof types_livestream;
+  "utils/auth": typeof utils_auth;
   "utils/mealRecommendations": typeof utils_mealRecommendations;
   "utils/priceEstimation": typeof utils_priceEstimation;
   "utils/regionValidation": typeof utils_regionValidation;

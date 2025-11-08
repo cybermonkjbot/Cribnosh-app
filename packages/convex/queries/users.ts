@@ -2,10 +2,19 @@ import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
+import { isAdmin, isStaff, requireAdmin, requireAuth, requireStaff } from '../utils/auth';
 
 export const getById = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own data, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db.get(args.userId);
   },
 });
@@ -23,10 +32,20 @@ export const getUserByEmail = query({
 export const getUserByPhone = query({
   args: { phone: v.string() },
   handler: async (ctx: QueryCtx, args: { phone: string }) => {
-    return await ctx.db
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    const foundUser = await ctx.db
       .query('users')
       .withIndex('by_phone', (q) => q.eq('phone_number', args.phone))
       .first();
+    
+    // Users can access their own data, staff/admin can access any
+    if (foundUser && !isAdmin(user) && !isStaff(user) && foundUser._id !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    return foundUser;
   },
 });
 
@@ -36,21 +55,34 @@ export const getUserByOAuthProvider = query({
     providerId: v.string() 
   },
   handler: async (ctx: QueryCtx, args: { provider: 'google' | 'apple', providerId: string }) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
     const users = await ctx.db.query('users').collect();
     
     // Find user by OAuth provider ID
-    return users.find(user => 
+    const foundUser = users.find(user => 
       user.oauthProviders?.some(oauth => 
         oauth.provider === args.provider && 
         oauth.providerId === args.providerId
       )
     );
+    
+    // Users can access their own data, staff/admin can access any
+    if (foundUser && !isAdmin(user) && !isStaff(user) && foundUser._id !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    return foundUser;
   },
 });
 
 export const getAllUsers = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     return await ctx.db.query('users').collect();
   },
 });
@@ -58,6 +90,9 @@ export const getAllUsers = query({
 export const getUsersByRole = query({
   args: { roles: v.array(v.string()) },
   handler: async (ctx: QueryCtx, args: { roles: string[] }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     const users = await ctx.db.query('users').collect();
     return users.filter(u => {
       const userRoles = (u as any).roles as string[] | undefined;
@@ -71,6 +106,9 @@ export const getUsersByRole = query({
 export const getUsersByStatus = query({
   args: { status: v.string() },
   handler: async (ctx: QueryCtx, args: { status: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     return await ctx.db
       .query('users')
       .filter(q => q.eq(q.field('status'), args.status))
@@ -81,6 +119,9 @@ export const getUsersByStatus = query({
 export const getRecentUsers = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx: QueryCtx, args: { limit?: number }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     const users = await ctx.db.query('users').collect();
     const sorted = users.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
     return sorted.slice(0, args.limit || 10);
@@ -90,6 +131,9 @@ export const getRecentUsers = query({
 export const getAllStaff = query({
   args: {},
   handler: async (ctx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     const users = await ctx.db.query('users').collect();
     return users.filter(u => Array.isArray(u.roles) && u.roles.includes('staff')).map(u => ({ _id: u._id, name: u.name, email: u.email }));
   },
@@ -98,6 +142,20 @@ export const getAllStaff = query({
 export const getUserDocuments = query({
   args: { email: v.string() },
   handler: async (ctx: QueryCtx, args: { email: string }) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Get user by email to check ownership
+    const targetUser = await ctx.db
+      .query('users')
+      .filter(q => q.eq(q.field('email'), args.email))
+      .first();
+    
+    // Users can access their own documents, staff/admin can access any
+    if (targetUser && !isAdmin(user) && !isStaff(user) && targetUser._id !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db
       .query('documents')
       .filter(q => q.eq(q.field('userEmail'), args.email))
@@ -108,6 +166,9 @@ export const getUserDocuments = query({
 export const getAllDocuments = query({
   args: {},
   handler: async (ctx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     return await ctx.db.query('documents').collect();
   },
 });
@@ -115,6 +176,13 @@ export const getAllDocuments = query({
 export const getUserNotifications = query({
   args: { userId: v.id("users"), roles: v.optional(v.array(v.string())) },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own notifications, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     // User-specific notifications
     const userNotifs = await ctx.db
       .query("notifications")
@@ -144,6 +212,14 @@ export const getUserNotifications = query({
 export const countUnreadNotifications = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own notifications, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     const notifs = await ctx.db.query('notifications')
       .withIndex('by_user', q => q.eq('userId', args.userId))
       .collect();
@@ -161,10 +237,17 @@ export const getUserReferralStats = query({
     referralHistory: v.array(v.any())
   }),
   handler: async (ctx, args) => {
+    // Require authentication
+    const authUser = await requireAuth(ctx);
+    
+    // Users can access their own stats, staff/admin can access any
+    if (!isAdmin(authUser) && !isStaff(authUser) && args.userId !== authUser._id) {
+      throw new Error('Access denied');
+    }
     try {
-      const user = await ctx.db.get(args.userId);
-      if (!user) throw new Error("User not found");
-      const userData = user as { referralCount?: number; rewards?: unknown; affiliateStatus?: string; referralLink?: string | null; referralHistory?: unknown[] };
+      const targetUser = await ctx.db.get(args.userId);
+      if (!targetUser) throw new Error("User not found");
+      const userData = targetUser as { referralCount?: number; rewards?: unknown; affiliateStatus?: string; referralLink?: string | null; referralHistory?: unknown[] };
       return {
         referralCount: userData.referralCount || 0,
         rewards: userData.rewards || {},
@@ -218,6 +301,13 @@ export const getUserReferralHistory = query({
     status: v.optional(v.string())
   })),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own history, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     try {
       // Fetch referrals using index for performance
       const referrals = await ctx.db
@@ -263,6 +353,13 @@ export const getUserReferralHistoryPaginated = query({
     continueCursor: v.union(v.string(), v.null())
   }),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own history, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     try {
       const q = ctx.db
         .query("referrals")
@@ -312,6 +409,14 @@ export const getStripeCustomerId = query({
 export const getUserProfile = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own profile, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db.get(args.userId);
   },
 });
@@ -319,9 +424,17 @@ export const getUserProfile = query({
 export const getDietaryPreferences = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own preferences, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    const targetUser = await ctx.db.get(args.userId);
     return {
-      tags: user?.preferences?.dietary || [],
+      tags: targetUser?.preferences?.dietary || [],
       allergies: [] // allergies field doesn't exist in schema, using empty array
     };
   },
@@ -330,8 +443,16 @@ export const getDietaryPreferences = query({
 export const getFavoriteCuisines = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    return user?.preferences?.cuisine || [];
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own preferences, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    const targetUser = await ctx.db.get(args.userId);
+    return targetUser?.preferences?.cuisine || [];
   },
 });
 
@@ -339,6 +460,14 @@ export const getFavoriteCuisines = query({
 export const getUserById = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx);
+    
+    // Users can access their own data, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db.get(args.userId);
   },
 });
@@ -373,6 +502,9 @@ export const getUserByToken = query({
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     return await ctx.db.query('users').collect();
   },
 });
@@ -381,6 +513,9 @@ export const getAll = query({
 export const getTotalUserCount = query({
   args: {},
   handler: async (ctx) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx);
+    
     const users = await ctx.db.query('users').collect();
     return users.length;
   },
@@ -389,6 +524,9 @@ export const getTotalUserCount = query({
 export const getUsersForAdmin = query({
   args: {},
   handler: async (ctx) => {
+    // Require admin authentication
+    await requireAdmin(ctx);
+    
     const users = await ctx.db
       .query('users')
       .filter(q => q.eq(q.field('status'), 'active'))
