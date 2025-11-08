@@ -5,16 +5,8 @@ import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
-interface JWTPayload {
-  user_id?: string | Id<'users'>;
-  roles?: string[];
-  [key: string]: unknown;
-}
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -65,7 +57,7 @@ interface JWTPayload {
  *       400:
  *         description: Payment method cannot be set as default
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePUT(
   request: NextRequest,
@@ -75,35 +67,8 @@ async function handlePUT(
     const { payment_method_id } = params;
     
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can update payment methods',
-        'FORBIDDEN',
-        403
-      );
-    }
-
+    const { userId } = await getAuthenticatedCustomer(request);
+    
     if (!payment_method_id) {
       return createSpecErrorResponse(
         'payment_method_id is required',
@@ -113,17 +78,6 @@ async function handlePUT(
     }
 
     const convex = getConvexClient();
-    const userIdRaw = payload.user_id;
-
-    if (!userIdRaw) {
-      return createSpecErrorResponse(
-        'User ID not found in token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const userId: Id<'users'> = userIdRaw as Id<'users'>;
     const paymentMethodId: Id<'paymentMethods'> = payment_method_id as Id<'paymentMethods'>;
 
     // Query payment method from database and verify it belongs to the user
@@ -164,6 +118,13 @@ async function handlePUT(
       'Default payment method updated successfully'
     );
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(
+        error.message,
+        'UNAUTHORIZED',
+        401
+      );
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to update default payment method';
     return createSpecErrorResponse(
       errorMessage,

@@ -4,13 +4,10 @@ import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendSupportCaseNotification } from '@/lib/services/email-service';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
@@ -108,39 +105,12 @@ const MAX_LIMIT = 50;
  *       401:
  *         description: Unauthorized - invalid or missing token
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can access support cases',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
@@ -151,7 +121,6 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const status = searchParams.get('status'); // optional filter
 
     const convex = getConvexClient();
-    const userId = payload.user_id;
 
     // Query support cases from database
     const allCases = await convex.query(api.queries.supportCases.getByUserId, {
@@ -186,6 +155,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(
+        error.message,
+        'UNAUTHORIZED',
+        401
+      );
+    }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to fetch support cases'),
       'INTERNAL_ERROR',
@@ -280,39 +256,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
  *       401:
  *         description: Unauthorized - invalid or missing token
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can create support cases',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     // Parse and validate request body
     let body: Record<string, unknown>;
@@ -370,7 +319,6 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id;
 
     // Create support case in database
     const caseId = await convex.mutation(api.mutations.supportCases.create, {
@@ -426,6 +374,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'Support case created successfully'
     );
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(
+        error.message,
+        'UNAUTHORIZED',
+        401
+      );
+    }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to create support case'),
       'INTERNAL_ERROR',
