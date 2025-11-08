@@ -141,9 +141,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   }
   const convex = getConvexClient();
   try {
-    // Auth: get admin user_id from JWT
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);const userId = chef_id as Id<'users'>;
+    await getAuthenticatedAdmin(request);
+    const userId = chef_id as Id<'users'>;
     await convex.mutation(api.mutations.users.updateUser, { userId, status: 'inactive', roles: ['chef'] });
     const chef = await convex.query(api.queries.users.getById, { userId });
     if (!chef) {

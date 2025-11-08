@@ -73,7 +73,6 @@ async function handlePOST(request: NextRequest, { params }: { params: { videoId:
       return ResponseFactory.error('Reason is required', 'VALIDATION_ERROR', 400);
     }
     
-    // Get user from JWT token
     // Get authenticated user from session token
     const { userId } = await getAuthenticatedUser(request);
     

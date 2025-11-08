@@ -63,9 +63,9 @@ async function handleGET(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from JWT token
     // Get authenticated customer from session token
-    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
+    const { userId } = await getAuthenticatedCustomer(request);
+    if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
@@ -130,9 +130,9 @@ async function handlePOST(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from JWT token
     // Get authenticated customer from session token
-    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
+    const { userId } = await getAuthenticatedCustomer(request);
+    if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
@@ -197,9 +197,9 @@ async function handleDELETE(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from JWT token
     // Get authenticated customer from session token
-    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
+    const { userId } = await getAuthenticatedCustomer(request);
+    if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 

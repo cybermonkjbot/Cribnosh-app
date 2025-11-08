@@ -123,9 +123,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   if (!order_id) {
     return ResponseFactory.validationError('Missing order_id');
   }
-  // Auth: get user from JWT
   // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+  const { userId, user } = await getAuthenticatedUser(request);
+  const convex = getConvexClient();
   // Use the proper Convex query to get chats for the current user
   const chats = await convex.query(api.queries.chats.listConversationsForUser, { 
     userId: userId as Id<'users'> 
@@ -160,9 +160,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     if (!order_id) {
       return ResponseFactory.validationError('Missing order_id');
     }
-    // Auth: get user from JWT
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClient();
     
     // First, try to find an existing chat for this order
     const chatsResponse = await convex.query(api.queries.chats.listConversationsForUser, { 
