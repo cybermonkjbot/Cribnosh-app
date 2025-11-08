@@ -74,12 +74,12 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextRequestWithParams } from '@/types/next';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -160,7 +160,7 @@ async function handleGET(request: NextRequestWithParams<{ chat_id: string }>): P
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '20', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   const result = await convex.query(api.queries.chats.listMessagesForChat, { chatId, limit, offset });
   return ResponseFactory.success(result);
 }
@@ -224,7 +224,7 @@ async function handlePOST(request: NextRequestWithParams<{ chat_id: string }>): 
     if (!content && !fileUrl) {
       return ResponseFactory.validationError('Message content or file required');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const message = await convex.mutation(api.mutations.chats.sendMessage, {
       chatId: chat_id as Id<'chats'>,
       senderId: userId,
@@ -237,8 +237,8 @@ async function handlePOST(request: NextRequestWithParams<{ chat_id: string }>): 
     });
     return ResponseFactory.success(message);
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

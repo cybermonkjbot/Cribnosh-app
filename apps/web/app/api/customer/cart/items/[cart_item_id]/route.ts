@@ -1,12 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Helper function to handle route parameters
 type RouteParams = {
@@ -128,7 +129,7 @@ export const PUT = withAPIMiddleware(
           return ResponseFactory.validationError('Missing quantity.');
         }
         
-        const convex = getConvexClient();
+        const convex = getConvexClientFromRequest(request);
         const item = await convex.mutation(api.mutations.orders.updateCartItem, {
           userId,
           itemId: cart_item_id,
@@ -137,8 +138,8 @@ export const PUT = withAPIMiddleware(
         
         return ResponseFactory.success({ item });
       } catch (error: unknown) {
-        if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-          return ResponseFactory.unauthorized(error.message);
+        if (isAuthenticationError(error) || isAuthorizationError(error)) {
+          return handleConvexError(error, request);
         }
         throw error;
       }
@@ -208,7 +209,7 @@ export const DELETE = withAPIMiddleware(
       try {
         const { userId } = await getAuthenticatedCustomer(request);
         
-        const convex = getConvexClient();
+        const convex = getConvexClientFromRequest(request);
         const success = await convex.mutation(api.mutations.orders.removeFromCart, {
           userId,
           itemId: cart_item_id,
@@ -216,8 +217,8 @@ export const DELETE = withAPIMiddleware(
         
         return ResponseFactory.success({ success });
       } catch (error: unknown) {
-        if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-          return ResponseFactory.unauthorized(error.message);
+        if (isAuthenticationError(error) || isAuthorizationError(error)) {
+          return handleConvexError(error, request);
         }
         throw error;
       }

@@ -1,11 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -132,7 +133,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -159,7 +160,7 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Mark all notifications as read for this user
     if (!userId) {
       return ResponseFactory.unauthorized('Missing user ID in token.');
@@ -182,7 +183,7 @@ async function handleBulkMarkRead(request: NextRequest): Promise<NextResponse> {
     if (!Array.isArray(notification_ids) || notification_ids.length === 0) {
       return ResponseFactory.error('notification_ids array is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     for (const notificationId of notification_ids) {
       await convex.mutation(api.mutations.notifications.markAsRead, { notificationId });
     }
@@ -200,7 +201,7 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can send notifications.');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const allNotifications = await convex.query(api.queries.notifications.getAll, {});
     return ResponseFactory.jsonDownload(allNotifications, 'notifications-export.json');
   } catch (error: unknown) {
