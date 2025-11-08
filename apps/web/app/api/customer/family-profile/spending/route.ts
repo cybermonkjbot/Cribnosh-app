@@ -73,7 +73,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       })
     );
 
-    const totalSpending = memberSpending.reduce((sum, m) => sum + (m.monthly_spent || 0), 0);
+    const totalSpending = memberSpending.reduce((sum: number, m: any) => sum + (m.monthly_spent || 0), 0);
 
     return ResponseFactory.success(
       {

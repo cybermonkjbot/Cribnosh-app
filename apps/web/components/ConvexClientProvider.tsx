@@ -114,8 +114,8 @@ export function ConvexClientProvider({
   // Use ConvexProvider for basic hooks (useQuery, useMutation, useAction)
   // Wrap with ConvexAuthProvider for authentication features
   return (
-    <ConvexProvider client={convex}>
-      <ConvexAuthProvider client={convex}>
+    <ConvexProvider client={convex as any}>
+      <ConvexAuthProvider client={convex as any}>
         {children}
       </ConvexAuthProvider>
     </ConvexProvider>

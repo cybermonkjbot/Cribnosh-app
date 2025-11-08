@@ -1,4 +1,5 @@
 import { render } from '@react-email/render';
+import type React from 'react';
 import { WelcomeEmail } from './templates/welcome';
 import { OrderConfirmationEmail } from './templates/order-confirmation';
 import { ChefRecommendationsEmail } from './templates/chef-recommendations';
@@ -7,6 +8,9 @@ import { ChefApplicationEmail } from './templates/chef-application';
 import { GenericNotificationEmail } from './templates/generic-notification';
 import { AdminNotificationEmail } from './templates/admin-notification';
 import { OTPVerificationEmail } from './templates/otp-verification';
+
+// Type assertion helper for render function
+const renderEmail = render as (component: React.ReactElement) => Promise<string>;
 
 export class EmailTemplateRenderer {
   private companyAddress: string;
@@ -170,14 +174,14 @@ export class EmailTemplateRenderer {
     expiryMinutes?: number;
     unsubscribeUrl?: string;
   }): Promise<string> {
-    return render(
+    return await renderEmail(
       OTPVerificationEmail({
         otpCode: params.otpCode,
         recipientName: params.recipientName || 'there',
         expiryMinutes: params.expiryMinutes || 5,
         unsubscribeUrl: params.unsubscribeUrl || this.defaultUnsubscribeUrl,
         companyAddress: this.companyAddress,
-      })
+      }) as React.ReactElement
     );
   }
 }

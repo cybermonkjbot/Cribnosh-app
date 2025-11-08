@@ -148,8 +148,8 @@ async function handlePATCH(request: NextRequest) {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to update orders
-    if (!user.roles?.some(role => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
+    const { userId, user } = await getAuthenticatedUser(request);    // Check if user has permission to update orders
+    if (!user.roles?.some((role: string) => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 

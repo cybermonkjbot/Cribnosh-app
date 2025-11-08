@@ -104,15 +104,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     let filtered = users;
     if (start) {
       const startTimestamp = Number(start);
-      filtered = filtered.filter((u) => u._creationTime && u._creationTime >= startTimestamp);
+      filtered = filtered.filter((u: any) => u._creationTime && u._creationTime >= startTimestamp);
     }
     if (end) {
       const endTimestamp = Number(end);
-      filtered = filtered.filter((u) => u._creationTime && u._creationTime <= endTimestamp);
+      filtered = filtered.filter((u: any) => u._creationTime && u._creationTime <= endTimestamp);
     }
     // Group by signup date (_creationTime)
     const byDate: Record<string, number> = {};
-    filtered.forEach((u) => {
+    filtered.forEach((u: any) => {
       if (!u._creationTime) return;
       const date = new Date(u._creationTime).toISOString().slice(0, 10);
       byDate[date] = (byDate[date] || 0) + 1;

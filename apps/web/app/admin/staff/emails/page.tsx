@@ -47,7 +47,6 @@ export default function StaffEmailsPage() {
   });
 
   // Fetch data
-  // @ts-expect-error - TypeScript limitation with complex Convex validators
   const campaigns = useQuery(api.queries.staff.getStaffEmailCampaigns) as StaffEmailCampaignsArray;
   const staffStats = useQuery(api.queries.staff.getStaffStats) as {
     totalStaff: number;

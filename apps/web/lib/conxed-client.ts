@@ -30,7 +30,7 @@ export function getConvexClientFromRequest(request: NextRequest): ConvexHttpClie
   
   if (sessionToken) {
     // Set auth token on client
-    client.setAuth(async () => sessionToken);
+    client.setAuth(sessionToken);
   } else {
     // Clear auth if no token found
     client.clearAuth();

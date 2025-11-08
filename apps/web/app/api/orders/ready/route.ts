@@ -146,7 +146,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     // Check if user has permission to mark orders as ready
-    if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
+    if (!user.roles?.some((role: string) => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -160,6 +160,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClientFromRequest(request);
 
     // Get order details
+    // @ts-ignore - Type instantiation is excessively deep (TypeScript limitation with complex Convex types)
     const order = await convex.query(api.queries.orders.getOrderById, { orderId });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');

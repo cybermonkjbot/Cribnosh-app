@@ -153,7 +153,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Validate note type permissions
-    if (noteType === 'internal_note' && !user.roles?.some(role => ['admin', 'staff'].includes(role))) {
+    if (noteType === 'internal_note' && !user.roles?.some((role: string) => ['admin', 'staff'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Only admin and staff can add internal notes.');
     }
 

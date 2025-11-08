@@ -39,14 +39,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       const given = await convex.query(api.queries.treats.getTreatsByTreater, {
         treater_id: userId,
       });
-      treats = [...treats, ...given.map(t => ({ ...t, direction: 'given' }))];
+      treats = [...treats, ...given.map((t: any) => ({ ...t, direction: 'given' }))];
     }
     
     if (type === 'received' || type === 'all') {
       const received = await convex.query(api.queries.treats.getTreatsByRecipient, {
         treated_user_id: userId,
       });
-      treats = [...treats, ...received.map(t => ({ ...t, direction: 'received' }))];
+      treats = [...treats, ...received.map((t: any) => ({ ...t, direction: 'received' }))];
     }
     
     return ResponseFactory.success(treats, 'Treats retrieved successfully');

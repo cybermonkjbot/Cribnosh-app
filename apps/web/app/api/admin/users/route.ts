@@ -2,8 +2,10 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 const DEFAULT_LIMIT = 20;
@@ -188,7 +190,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -197,12 +199,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Fetch all users
     const allUsers = await convex.query(api.queries.users.getAllUsers, {});
     // Consistent ordering (createdAt DESC)
-    allUsers.sort((a, b) => ((b._creationTime ?? 0) - (a._creationTime ?? 0)));
+    allUsers.sort((a: any, b: any) => ((b._creationTime ?? 0) - (a._creationTime ?? 0)));
     const paginated = allUsers.slice(offset, offset + limit);
     return ResponseFactory.success({ users: paginated, total: allUsers.length, limit, offset });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch users.';
-    return ResponseFactory.internalError(errorMessage);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch users.'));
   }
 }
 
@@ -214,7 +218,7 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     if (!Array.isArray(user_ids) || user_ids.length === 0) {
       return ResponseFactory.error('user_ids array is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     for (const userId of user_ids) {
       await convex.mutation(api.mutations.users.deleteUser, { userId });
     }
@@ -226,8 +230,10 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true, deleted: user_ids.length });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to bulk delete users.';
-    return ResponseFactory.internalError(errorMessage);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to bulk delete users.'));
   }
 }
 
@@ -238,17 +244,19 @@ async function handleSearch(request: NextRequest): Promise<NextResponse> {
     
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get('q') || '').toLowerCase();
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const allUsers = await convex.query(api.queries.users.getAllUsers, {});
-    const results = allUsers.filter((u) =>
+    const results = allUsers.filter((u: any) =>
       (typeof u.name === 'string' && u.name.toLowerCase().includes(q)) ||
       (typeof u.email === 'string' && u.email.toLowerCase().includes(q)) ||
-      (Array.isArray(u.roles) && u.roles.some(role => typeof role === 'string' && role.toLowerCase().includes(q)))
+      (Array.isArray(u.roles) && u.roles.some((role: any) => typeof role === 'string' && role.toLowerCase().includes(q)))
     );
     return ResponseFactory.success({ results });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to search users.';
-    return ResponseFactory.internalError(errorMessage);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to search users.'));
   }
 }
 

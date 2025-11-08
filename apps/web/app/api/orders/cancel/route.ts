@@ -122,7 +122,7 @@ async function handlePOST(request: NextRequest) {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     // Check if user has permission to cancel orders
-    if (!user.roles?.some(role => ['admin', 'staff', 'customer'].includes(role))) {
+    if (!user.roles?.some((role: string) => ['admin', 'staff', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 

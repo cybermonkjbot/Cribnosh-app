@@ -128,7 +128,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     // Check if user has permission to mark orders as reviewed
-    if (!user.roles?.some(role => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
+    if (!user.roles?.some((role: string) => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 

@@ -167,7 +167,6 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const result = await runInference({
       ...context,
       ...emotionsContext,
-      userId: userId as any, // Cast to any to bypass strict type checking
       intent: 'recommendation',
     });
 

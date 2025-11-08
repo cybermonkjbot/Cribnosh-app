@@ -203,7 +203,7 @@ async function handleGET(request: NextRequest) {
     }
 
     // Process orders to add eligibility details
-    const processedOrders = orders.map((order) => {
+    const processedOrders = orders.map((order: any) => {
       const orderForEligibility: OrderForEligibility = {
         _id: order._id,
         order_id: order.order_id || '',

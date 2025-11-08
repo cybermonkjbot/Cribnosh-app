@@ -137,14 +137,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const users = await convex.query(api.queries.users.getAllUsers, {});
     // Calculate stats
     const total_users = users.length;
-    const customers = users.filter((u) => u.roles?.includes('customer')).length;
-    const chefs = users.filter((u) => u.roles?.includes('chef')).length;
-    const admins = users.filter((u) => u.roles?.includes('admin')).length;
-    const active_users = users.filter((u) => u.status === 'active').length;
+    const customers = users.filter((u: any) => u.roles?.includes('customer')).length;
+    const chefs = users.filter((u: any) => u.roles?.includes('chef')).length;
+    const admins = users.filter((u: any) => u.roles?.includes('admin')).length;
+    const active_users = users.filter((u: any) => u.status === 'active').length;
     // User growth (by day)
     const user_growth: UserGrowthData[] = [];
     const growthMap: Record<string, { total_users: number, new_users: number }> = {};
-    users.forEach((u) => {
+    users.forEach((u: any) => {
       const date = u._creationTime ? new Date(u._creationTime).toISOString().slice(0, 10) : null;
       if (date) {
         if (!growthMap[date]) growthMap[date] = { total_users: 0, new_users: 0 };

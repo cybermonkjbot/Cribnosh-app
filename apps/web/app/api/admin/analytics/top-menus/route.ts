@@ -103,9 +103,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const dishStats: Record<string, { orders: number; revenue: number; chefId: string }> = {};
     for (const chef of chefs) {
       const orders = await convex.query(api.queries.orders.listByChef, { chef_id: chef.chefId });
-      orders.forEach((o) => {
+      orders.forEach((o: any) => {
         if (o.order_items && Array.isArray(o.order_items)) {
-          o.order_items.forEach((item) => {
+          o.order_items.forEach((item: any) => {
             const dishId = String(item.dish_id || '');
             if (dishId) {
               if (!dishStats[dishId]) dishStats[dishId] = { orders: 0, revenue: 0, chefId: chef.chefId };
@@ -119,8 +119,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     const topMenus = Object.entries(dishStats)
       .map(([menuId, stats]) => {
-        const chef = chefs.find((c) => c.chefId === stats.chefId);
-        const user = chef ? users.find((u) => u._id === chef.userId) : null;
+        const chef = chefs.find((c: any) => c.chefId === stats.chefId);
+        const user = chef ? users.find((u: any) => u._id === chef.userId) : null;
         return chef && user
           ? {
               menu_id: menuId,

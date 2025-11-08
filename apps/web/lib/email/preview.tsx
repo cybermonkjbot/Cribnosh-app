@@ -9,6 +9,9 @@ import { GenericNotificationEmail } from './templates/generic-notification';
 import { FormConfirmationEmail } from './templates/form-confirmation';
 import { AdminNotificationEmail } from './templates/admin-notification';
 
+// Type assertion helper for render function
+const renderEmail = render as (component: React.ReactElement) => Promise<string>;
+
 // Email Preview Component for Development
 export const EmailPreview = async () => {
   const sampleData = {
@@ -151,14 +154,14 @@ export const EmailPreview = async () => {
       <div style={{ marginBottom: '40px' }}>
         <h2>OTP Verification Email</h2>
         <div dangerouslySetInnerHTML={{ 
-          __html: await render(OTPVerificationEmail(sampleData.otpVerification)) 
+          __html: String(await renderEmail(OTPVerificationEmail(sampleData.otpVerification) as React.ReactElement))
         }} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
         <h2>Promotional Email</h2>
         <div dangerouslySetInnerHTML={{ 
-          __html: await render(PromotionalEmail(sampleData.promotional)) 
+          __html: String(await renderEmail(PromotionalEmail(sampleData.promotional) as React.ReactElement))
         }} />
       </div>
 

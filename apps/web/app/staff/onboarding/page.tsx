@@ -240,7 +240,7 @@ export default function OnboardingPage() {
 
   if (!staffUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-amber-50 to-orange-100 flex items-center justify-center">
         <GlassCard className="p-8 text-center max-w-md">
           <h1 className="text-2xl font-asgard text-white mb-4">Authentication Required</h1>
           <p className="text-white/80 mb-6">Please sign in to access the onboarding portal.</p>
@@ -258,7 +258,7 @@ export default function OnboardingPage() {
   // If onboarding is complete
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-amber-50 to-orange-100 flex items-center justify-center">
         <GlassCard className="p-8 text-center max-w-md">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-2xl font-asgard text-white mb-4">Onboarding Complete!</h1>
@@ -277,7 +277,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 pb-24 sm:pb-8">
+    <div className="min-h-screen bg-linear-to-br from-amber-50 to-orange-100 pb-24 sm:pb-8">
       {/* Back Button */}
       <div className="w-full mx-auto max-w-4xl px-3 py-4 sm:px-4 sm:py-3">
         <Link

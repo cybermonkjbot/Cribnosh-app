@@ -17,7 +17,7 @@ type MealId = Id<'meals'>;
 // Helper function to get a meal by ID since we don't have a direct query for it
 async function getMealById(convex: ConvexHttpClient, mealId: MealId) {
   const meals = await convex.query(api.queries.meals.getAll, {});
-  return meals.find((meal) => meal._id === mealId);
+  return meals.find((meal: any) => meal._id === mealId);
 }
 
 /**

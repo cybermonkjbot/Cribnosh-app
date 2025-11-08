@@ -285,7 +285,7 @@ export default function RevenueAnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {revenueAnalytics?.paymentMethods?.map((method, index: number) => (
+                  {revenueAnalytics?.paymentMethods?.map((method: { method: string; amount: number; percentage: number }, index: number) => (
                     <div key={method.method} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full ${
@@ -318,7 +318,7 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                  {revenueAnalytics?.monthlyRevenueData?.map((month, index: number) => (
+                  {revenueAnalytics?.monthlyRevenueData?.map((month: { month: string; revenue: number; growth: number }, index: number) => (
                   <div key={month.month} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{month.month}</p>
@@ -343,11 +343,11 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {revenueAnalytics?.dailyRevenueData?.slice(-7).map((day, index: number) => (
+                {revenueAnalytics?.dailyRevenueData?.slice(-7).map((day: { date: string; revenue: number }, index: number) => (
                   <div key={day.date} className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">{day.date}</span>
                     <div className="flex items-center gap-2">
-                      <Progress value={(day.revenue / Math.max(...(revenueAnalytics?.dailyRevenueData?.map((d) => d.revenue) || [1]))) * 100} className="w-32 h-2" />
+                      <Progress value={(day.revenue / Math.max(...(revenueAnalytics?.dailyRevenueData?.map((d: { date: string; revenue: number }) => d.revenue) || [1]))) * 100} className="w-32 h-2" />
                       <span className="text-sm font-medium w-20 text-right">{formatCurrency(day.revenue)}</span>
                     </div>
                   </div>
@@ -370,7 +370,7 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                  {revenueAnalytics?.revenueBySource?.map((source, index: number) => (
+                  {revenueAnalytics?.revenueBySource?.map((source: { source: string; amount: number; percentage: number }, index: number) => (
                   <div key={source.source} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${

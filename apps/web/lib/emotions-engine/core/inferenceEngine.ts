@@ -291,7 +291,13 @@ export async function runInference(
       if (dishes.length > 0) {
         return {
           success: true,
-          data: dishes,
+          data: {
+            response_type: 'recommendation' as const,
+            intent: 'recommendation',
+            inferred_context: {},
+            dishes: dishes,
+            message: 'Search completed successfully',
+          },
           message: 'Search completed successfully',
         };
       }
