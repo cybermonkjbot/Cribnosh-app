@@ -1,6 +1,5 @@
 import { Resend } from 'resend';
 import { ErrorFactory, ErrorCode } from '../errors';
-import { logger } from '@/lib/utils/logger';
 
 // Lazy initialization to avoid errors during code analysis
 let resendInstance: Resend | null = null;
@@ -71,7 +70,7 @@ export async function sendBroadcastEmail({
       });
     }
   } catch (error) {
-    logger.error('Failed to send broadcast email:', error);
+    console.error('Failed to send broadcast email:', error);
     throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, `Failed to send broadcast email: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

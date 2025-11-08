@@ -26,7 +26,8 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
 
-  // Check for session token in cookies (client only)
+  // Authentication is session-based: check for session token in cookies (client only)
+  // The session token (convex-auth-token) is set during login and validated server-side
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const getCookie = (name: string) => {
@@ -93,13 +94,13 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Fetch user data from API
+    // Fetch user data from API (server validates session token and returns user data)
     async function fetchUser() {
       try {
         console.log('[AdminUserProvider] Fetching user data from /api/admin/me');
         const response = await fetch('/api/admin/me', {
           method: 'GET',
-          credentials: 'include', // Include cookies
+          credentials: 'include', // Include cookies (session token)
         });
 
         console.log('[AdminUserProvider] Response status:', response.status);

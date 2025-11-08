@@ -72,7 +72,8 @@ export default function AdminDashboard() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Auth is handled by middleware, no client-side checks needed
+  // Auth is handled by layout via session-based authentication (session token in cookies)
+  // Middleware (proxy.ts) validates session token server-side, no client-side checks needed
 
   if (error) {
     return (

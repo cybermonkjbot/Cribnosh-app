@@ -1,5 +1,4 @@
 // SMS Provider configuration for UK SMS services
-import { logger } from '@/lib/utils/logger';
 export interface SMSProvider {
   name: string;
   baseUrl: string;
@@ -81,7 +80,7 @@ export class SMSService {
         throw new Error(`Unsupported SMS provider: ${this.config.provider.name}`);
       }
     } catch (error) {
-      logger.error('SMS sending error:', error);
+      console.error('SMS sending error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to send SMS'

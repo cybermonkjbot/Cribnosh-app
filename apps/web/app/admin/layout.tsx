@@ -60,12 +60,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Show loading state while checking authentication
+  // Authentication is session-based via session token in cookies (convex-auth-token)
+  // The session token is validated server-side by middleware (proxy.ts) and API routes
+  // Client-side hook (useAdminUser) checks for session token and fetches user data
+  
+  // Show loading state while checking session token and fetching user data
   if (adminLoading) {
     return <UnauthenticatedState type="loading" role="admin" />;
   }
 
-  // Show unauthenticated state if not authenticated
+  // Show unauthenticated state if session token is missing or invalid
   if (!adminUser) {
     return <UnauthenticatedState type="unauthenticated" role="admin" />;
   }

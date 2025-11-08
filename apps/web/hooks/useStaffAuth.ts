@@ -26,26 +26,12 @@ export function useStaffAuth(): StaffAuthState {
   useEffect(() => {
     const checkStaffAuth = async () => {
       try {
-        // Check if we have a session token in cookies
-        const getCookie = (name: string) => {
-          const value = `; ${document.cookie}`;
-          const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) return parts.pop()?.split(';').shift();
-          return null;
-        };
-        
-        const sessionToken = getCookie('convex-auth-token');
-        
-        if (!sessionToken) {
-          setStaff(null);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch user data from API
+        // Authentication is session-based via httpOnly cookie (convex-auth-token)
+        // The cookie is not accessible via JavaScript (httpOnly), but is automatically
+        // sent with requests. Always make the API call and let the server validate the cookie.
         const response = await fetch('/api/staff/data', {
           method: 'GET',
-          credentials: 'include', // Include cookies
+          credentials: 'include', // Include cookies (session token is sent automatically)
         });
 
         if (!response.ok) {

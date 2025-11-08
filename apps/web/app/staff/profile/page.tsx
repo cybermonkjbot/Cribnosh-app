@@ -79,7 +79,8 @@ function mapUserToStaffProfile(user: any): StaffProfile {
 }
 
 export default function StaffProfilePage() {
-  // Auth is handled by middleware, no client-side checks needed
+  // Auth is handled by layout via session-based authentication (session token in cookies)
+  // Middleware (proxy.ts) validates session token server-side, no client-side checks needed
 
   // All hooks must be called at the top, before any conditional logic
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
@@ -104,14 +105,8 @@ export default function StaffProfilePage() {
     }
   }, [profile, tempProfile]);
 
-  if (staffAuthLoading) {
-    return <UnauthenticatedState type="loading" role="staff" message="Loading your profile..." />;
-  }
-  
-  if (!staffUser) {
-    return <UnauthenticatedState type="unauthenticated" role="staff" message="Please log in to view your profile." />;
-  }
-  
+  // Auth is handled at layout level, no page-level checks needed
+  // Wait for profile data to load
   if (!profile) {
     return <UnauthenticatedState type="loading" role="staff" message="Loading your profile information..." />;
   }

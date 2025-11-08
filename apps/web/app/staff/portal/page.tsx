@@ -2,7 +2,6 @@
 
 import { GlassCard } from '@/components/ui/glass-card';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
-import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { api } from "@/convex/_generated/api";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
@@ -118,22 +117,22 @@ export default function StaffPortal() {
   };
 
   // --- Conditional UI states ---
-  // Server-side middleware handles authentication and role checks
-  // Client-side only handles loading states
+  // Auth is handled at layout level via session-based authentication (session token in cookies)
+  // No page-level auth checks needed - layout validates session token server-side
+  // Wait for staff member data to load
   if (staffAuthLoading) {
-    return <UnauthenticatedState type="loading" role="staff" />;
+    return null; // Layout handles loading state
   }
 
-  if (!staffMember) {
-    return <UnauthenticatedState type="unauthenticated" role="staff" />;
-  }
+  // Use staffUser directly if available, otherwise use staffMember (from API fallback)
+  // This ensures we have data even if staffMember hasn't been set yet from the useEffect
+  const safeStaffMember = staffUser || staffMember;
 
-  if (staffMember.status && staffMember.status !== 'active') {
-    return <UnauthenticatedState type="inactive-account" role="staff" />;
+  // If we still don't have staff data after loading completes, show loading
+  // This can happen if the API call is still in progress
+  if (!safeStaffMember) {
+    return null; // Wait for staff data to be available
   }
-
-  // At this point, staffMember is guaranteed to be a valid object with correct role and status
-  const safeStaffMember = staffMember;
 
   // --- Main portal UI ---
   return (

@@ -104,8 +104,20 @@ async function handlePOST(request: NextRequest) {
     const sanitizedEmail = email.trim().toLowerCase();
 
     const convex = getConvexClient();
+    // Get user agent and IP address for session tracking
+    const userAgent = request.headers.get('user-agent') || undefined;
+    const ipAddress = request.headers.get('x-real-ip') || 
+                      request.headers.get('cf-connecting-ip') || 
+                      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      undefined;
+    
     // Call Convex action to validate credentials and create session
-    const result = await convex.action(api.actions.users.loginAndCreateSession, { email: sanitizedEmail, password });
+    const result = await convex.action(api.actions.users.loginAndCreateSession, { 
+      email: sanitizedEmail, 
+      password,
+      userAgent,
+      ipAddress,
+    });
     if (!result || !result.sessionToken) {
       return ResponseFactory.unauthorized(result?.error || 'Invalid credentials' );
     }

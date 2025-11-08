@@ -37,7 +37,8 @@ interface Document {
 }
 
 export default function StaffDocumentsPage() {
-  // Auth is handled by middleware, no client-side checks needed
+  // Auth is handled by layout via session-based authentication (session token in cookies)
+  // Middleware (proxy.ts) validates session token server-side, no client-side checks needed
 
   const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
   const documents = useQuery(api.queries.users.getUserDocuments, staffUser?.email ? { email: staffUser.email } : "skip");
@@ -53,14 +54,8 @@ export default function StaffDocumentsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (staffAuthLoading) {
-    return <UnauthenticatedState type="loading" role="staff" message="Loading your documents..." />;
-  }
-
-  if (!staffUser) {
-    return <UnauthenticatedState type="unauthenticated" role="staff" message="Please log in to access your documents." />;
-  }
-  
+  // Auth is handled at layout level, no page-level checks needed
+  // Wait for documents data to load
   if (!documents) {
     return <UnauthenticatedState type="loading" role="staff" message="Loading your documents..." />;
   }

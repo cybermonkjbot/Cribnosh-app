@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "../../apps/web/types/convex-contexts";
-import type { DeviceAnalyticsStats, EmailAnalyticsData, EmailHealthMetrics, EmailTemplate, EmailTestResults } from "../../apps/web/types/email";
+import type { MutationCtx, QueryCtx } from "./types/convexContexts";
+import type { DeviceAnalyticsStats, EmailAnalyticsData, EmailHealthMetrics, EmailTemplate, EmailTestResults } from "./types/email";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 

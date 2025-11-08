@@ -111,7 +111,7 @@ export async function proxy(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https:",
+    "connect-src 'self' https: wss://*.convex.cloud wss://wandering-finch-293.convex.cloud",
     "frame-ancestors 'none'",
   ].join('; ');
   

@@ -42,6 +42,23 @@ export default function StaffLayout({
   const { isMobile } = useMobileDevice();
   const hasMounted = useHasMounted();
 
+  // All hooks must be called before any conditional returns (Rules of Hooks)
+  // If user data is not available after loading, redirect to login
+  // This handles edge cases where middleware might have missed something
+  useEffect(() => {
+    if (!isLoginPage && !staffAuthLoading && !staffUser) {
+      router.replace('/staff/login');
+    }
+  }, [isLoginPage, staffAuthLoading, staffUser, router]);
+
+  // If account is inactive, redirect to login
+  useEffect(() => {
+    if (!isLoginPage && staffUser && staffUser.status && staffUser.status !== 'active') {
+      router.replace('/staff/login');
+    }
+  }, [isLoginPage, staffUser, router]);
+
+  // Early return after all hooks are called
   if (!hasMounted) return null;
 
   const handleLogout = async () => {
@@ -62,8 +79,36 @@ export default function StaffLayout({
   const envColor = isProduction ? 'bg-green-500' : 'bg-yellow-400';
   const envText = isProduction ? 'text-green-700' : 'text-yellow-700';
 
+  // Early return for login page (after all hooks are called)
   if (isLoginPage) {
     return <>{children}</>;
+  }
+
+  // Authentication is handled server-side by middleware (proxy.ts)
+  // Middleware validates session token and redirects unauthenticated users to login
+  // If we reach this point, the user is authenticated (middleware verified)
+  // We only need to wait for user data to load, then redirect if account is inactive
+  
+  // Show loading state while fetching user data
+  if (staffAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-satoshi">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user data is not available, don't render (redirect is in progress)
+  if (!staffUser) {
+    return null;
+  }
+
+  // If account is inactive, don't render (redirect is in progress)
+  if (staffUser.status && staffUser.status !== 'active') {
+    return null;
   }
 
   return (

@@ -3,27 +3,24 @@
 
 'use client';
 
-import Link from 'next/link';
-import { 
-  User, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Calendar,
-  FileText,
-  Banknote,
-  Shield,
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle,
-  Upload 
-} from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
+import { useMutation, useQuery } from "convex/react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Banknote,
+  CheckCircle,
+  FileText,
+  Phone,
+  Shield,
+  Upload,
+  User
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface OnboardingData {
   // Personal Information
@@ -235,13 +232,10 @@ export default function OnboardingPage() {
     }
   };
 
-  // If not signed in
-  if (staffAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading...</div>
-      </div>
-    );
+  // Auth is handled at layout level, no page-level checks needed
+  // Wait for data to load
+  if (!staffUser && staffAuthLoading) {
+    return null; // Layout handles loading state
   }
 
   if (!staffUser) {

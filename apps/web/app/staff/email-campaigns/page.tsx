@@ -11,6 +11,7 @@ import { Doc, Id } from '@/convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
 import {
   AlertCircle,
+  ArrowLeft,
   CheckCircle,
   Eye,
   Mail,
@@ -20,6 +21,7 @@ import {
   Trash2,
   Users
 } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 type StaffEmailCampaign = Doc<"staffEmailCampaigns">;
@@ -135,6 +137,14 @@ export default function StaffEmailCampaignsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <div className="mb-4">
+        <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

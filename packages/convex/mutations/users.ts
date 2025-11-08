@@ -705,13 +705,15 @@ export const createAndSetSessionToken = mutation({
   args: {
     userId: v.id("users"),
     expiresInDays: v.optional(v.number()), // Default to 30 days if not provided
+    userAgent: v.optional(v.string()), // User agent for session tracking
+    ipAddress: v.optional(v.string()), // IP address for session tracking
   },
   returns: v.object({
     sessionToken: v.string(),
     sessionExpiry: v.number(),
   }),
   handler: async (ctx: MutationCtx, args) => {
-    const { userId, expiresInDays = 30 } = args;
+    const { userId, expiresInDays = 30, userAgent, ipAddress } = args;
     
     // Generate secure session token using Convex-native crypto
     const sessionToken = generateSecureSessionToken();
@@ -719,12 +721,23 @@ export const createAndSetSessionToken = mutation({
     // Calculate expiry (default 30 days)
     const expiresInMs = expiresInDays * 24 * 60 * 60 * 1000;
     const sessionExpiry = Date.now() + expiresInMs;
+    const now = Date.now();
     
-    // Store token and expiry atomically
+    // Store token and expiry atomically on user document
     await ctx.db.patch(userId, {
       sessionToken,
       sessionExpiry,
-      lastModified: Date.now(),
+      lastModified: now,
+    });
+    
+    // Also create an entry in the sessions table for session management
+    await ctx.db.insert("sessions", {
+      userId,
+      sessionToken,
+      expiresAt: sessionExpiry,
+      createdAt: now,
+      userAgent: userAgent || undefined,
+      ipAddress: ipAddress || undefined,
     });
     
     return {

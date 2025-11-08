@@ -31,7 +31,12 @@ export const activateReferralProgram = action({
 });
 
 export const loginAndCreateSession = action({
-  args: { email: v.string(), password: v.string() },
+  args: { 
+    email: v.string(), 
+    password: v.string(),
+    userAgent: v.optional(v.string()), // User agent for session tracking
+    ipAddress: v.optional(v.string()), // IP address for session tracking
+  },
   handler: async (ctx, args) => {
     // Find user by email
     const user = await ctx.runQuery(api.queries.users.getUserByEmail, { email: args.email });
@@ -69,6 +74,8 @@ export const loginAndCreateSession = action({
     const sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
       userId: user._id,
       expiresInDays: ONE_YEAR_DAYS,
+      userAgent: args.userAgent,
+      ipAddress: args.ipAddress,
     });
     return { sessionToken: sessionResult.sessionToken };
   }

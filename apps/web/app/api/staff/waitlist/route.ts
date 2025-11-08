@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
 import { withStaffAuth } from '@/lib/api/staff-middleware';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -243,19 +240,26 @@ async function handleGET(request: NextRequest, user: any): Promise<NextResponse>
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || undefined;
     const limit = parseInt(searchParams.get('limit') || '50');
+    const page = parseInt(searchParams.get('page') || '1');
+    const offset = (page - 1) * limit;
 
     const convex = getConvexClient();
 
-    // Get waitlist entries
-    const entries = await convex.query(api.queries.waitlist.getWaitlistEntries, {
+    // Get waitlist entries - filter by entries added by this staff member
+    const result = await convex.query(api.queries.waitlist.getWaitlistEntries, {
       status: status === 'all' ? undefined : status,
       search,
       limit,
+      offset,
+      addedBy: user._id, // Only show entries added by this staff member
     });
 
     return ResponseFactory.success({
-      entries,
-      total: entries.length,
+      entries: result.entries,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit),
     }, 'Waitlist entries retrieved successfully');
 
   } catch (error: unknown) {

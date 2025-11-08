@@ -119,12 +119,10 @@ export default function LeaveRequestPage() {
     </div>
   );
 
-  if (staffAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading...</div>
-      </div>
-    );
+  // Auth is handled at layout level, no page-level checks needed
+  // Wait for data to load
+  if (!staffUser && staffAuthLoading) {
+    return null; // Layout handles loading state
   }
 
   if (!staffUser) {

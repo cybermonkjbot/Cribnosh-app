@@ -3,7 +3,6 @@
 import { ActivityWatchSetupStatus } from '@/components/staff/ActivityWatchSetupStatus';
 import { ClockInCard } from '@/components/staff/ClockInCard';
 import { WeeklyHoursCard } from '@/components/staff/WeeklyHoursCard';
-import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { api } from '@/convex/_generated/api';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useQuery } from 'convex/react';
@@ -53,16 +52,8 @@ export default function TimeTrackingPage() {
   };
 
   // Fetch full profile data using user ID
+  // Auth is handled at layout level, no page-level checks needed
   const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
-
-  // Loading states
-  if (staffAuthLoading) {
-    return <UnauthenticatedState type="loading" role="staff" message="Loading time tracking..." />;
-  }
-  
-  if (!staffUser) {
-    return <UnauthenticatedState type="unauthenticated" role="staff" message="Please log in to access time tracking." />;
-  }
 
   // Enforce ActivityWatch setup
   if (!isActivityWatchSetup) {
