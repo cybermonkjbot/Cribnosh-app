@@ -1,14 +1,10 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { Id } from '@/convex/_generated/dataModel';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -213,7 +209,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);
+    const { userId: adminUserId } = await getAuthenticatedAdmin(request);
     const { user_ids } = await request.json();
     if (!Array.isArray(user_ids) || user_ids.length === 0) {
       return ResponseFactory.error('user_ids array is required.', 'CUSTOM_ERROR', 422);
@@ -223,14 +219,11 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
       await convex.mutation(api.mutations.users.deleteUser, { userId });
     }
     // Audit log
-    const adminId = userId ?? payload.userId;
-    if (adminId && typeof adminId === 'string') {
-      await convex.mutation(api.mutations.admin.insertAdminLog, {
-        action: 'bulk_delete_users',
-        details: { user_ids },
-        adminId: adminId as unknown as Id<"users">,
-      });
-    }
+    await convex.mutation(api.mutations.admin.insertAdminLog, {
+      action: 'bulk_delete_users',
+      details: { user_ids },
+      adminId: adminUserId,
+    });
     return ResponseFactory.success({ success: true, deleted: user_ids.length });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to bulk delete users.';

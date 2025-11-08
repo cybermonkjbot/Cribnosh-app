@@ -1,15 +1,14 @@
 // Implements POST, PUT for /admin/reviews/{review_id}/approval
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -177,7 +176,7 @@ function extractReviewIdFromUrl(request: NextRequest): Id<'reviews'> | undefined
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);
+    const { userId } = await getAuthenticatedAdmin(request);
     const review_id = extractReviewIdFromUrl(request);
     if (!review_id) {
       return ResponseFactory.validationError('Missing review_id');

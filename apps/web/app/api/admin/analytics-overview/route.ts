@@ -1,12 +1,10 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest } from 'next/server';
 function groupByDate<T extends Record<string, unknown>>(
   items: T[],
   field: keyof T,
@@ -125,9 +123,7 @@ function groupByDate<T extends Record<string, unknown>>(
 async function handleGET(request: NextRequest) {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);if (payload.role !== 'admin' && !user.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access analytics.');
-    }
+    const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start') ? Number(searchParams.get('start')) : undefined;
@@ -189,14 +185,11 @@ async function handleGET(request: NextRequest) {
     const aov_trend = trend(average_order_value, aovPrev);
     const users_trend = trend(total_users, usersPrev.length);
     // Audit log
-    const userId = userId || payload.userId;
-    if (userId) {
-      await convex.mutation(api.mutations.admin.insertAdminLog, {
-        action: 'view_analytics_overview',
-        details: { start, end },
-        adminId: userId as unknown as import('@/convex/_generated/dataModel').Id<"users">,
-      });
-    }
+    await convex.mutation(api.mutations.admin.insertAdminLog, {
+      action: 'view_analytics_overview',
+      details: { start, end },
+      adminId: userId,
+    });
     return ResponseFactory.success({
       total_revenue,
       total_orders,
