@@ -68,7 +68,6 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       return ResponseFactory.error('Content and chatId are required', 'VALIDATION_ERROR', 400);
     }
     
-    // Get user from JWT token
     // Get authenticated user from session token
     const { userId } = await getAuthenticatedUser(request);
     

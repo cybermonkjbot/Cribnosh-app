@@ -145,9 +145,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   if (!order_id) {
     return ResponseFactory.validationError('Missing order_id');
   }
-  // Auth: get user from JWT
   // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+  const { userId, user } = await getAuthenticatedUser(request);
+  const convex = getConvexClient();
   const chatsResult = await convex.query(api.queries.chats.listConversationsForUser, { userId: userId });
   const chat = chatsResult.chats.find((c: any) => c.metadata && c.metadata.order_id === order_id);
   if (!chat) {

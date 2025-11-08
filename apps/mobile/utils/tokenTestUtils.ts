@@ -1,6 +1,9 @@
 /**
  * Utility functions for testing token expiration functionality
  * These should only be used in development/testing environments
+ * 
+ * @deprecated SessionToken expiration is validated server-side.
+ * These utilities are kept for backward compatibility during migration.
  */
 
 import * as SecureStore from "expo-secure-store";
@@ -8,6 +11,7 @@ import * as SecureStore from "expo-secure-store";
 /**
  * Creates a test JWT token that expires in the specified number of seconds
  * This is for testing purposes only
+ * @deprecated Use sessionToken instead - expiration is validated server-side
  * @param expiresInSeconds - Number of seconds until expiration
  * @returns A test JWT token string
  */
@@ -41,6 +45,7 @@ export const createTestExpiredToken = (
 
 /**
  * Sets a test token that will expire soon for testing session expiration
+ * @deprecated SessionToken expiration is validated server-side
  * @param expiresInSeconds - Number of seconds until expiration (default: 5)
  */
 export const setTestExpiringToken = async (
@@ -57,7 +62,8 @@ export const setTestExpiringToken = async (
     provider: "phone" as const,
   };
 
-  await SecureStore.setItemAsync("cribnosh_token", testToken);
+  // Use sessionToken key for consistency
+  await SecureStore.setItemAsync("cribnosh_session_token", testToken);
   await SecureStore.setItemAsync("cribnosh_user", JSON.stringify(testUser));
 
   console.log(`Test token set to expire in ${expiresInSeconds} seconds`);
@@ -67,7 +73,7 @@ export const setTestExpiringToken = async (
  * Clears all test tokens and user data
  */
 export const clearTestTokens = async (): Promise<void> => {
-  await SecureStore.deleteItemAsync("cribnosh_token");
+  await SecureStore.deleteItemAsync("cribnosh_session_token");
   await SecureStore.deleteItemAsync("cribnosh_user");
   console.log("Test tokens cleared");
 };

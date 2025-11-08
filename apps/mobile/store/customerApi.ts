@@ -154,7 +154,6 @@ import {
   ValidateFamilyMemberEmailRequest,
   ValidateFamilyMemberEmailResponse,
 } from "@/types/customer";
-import { isTokenExpired } from "@/utils/jwtUtils";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
 
@@ -170,27 +169,17 @@ const rawBaseQuery = fetchBaseQuery({
     console.log("[Customer API] prepareHeaders called for endpoint:", endpoint);
     
     try {
-      const token = await SecureStore.getItemAsync("cribnosh_token");
-      console.log("[Customer API] Token exists:", !!token);
-      console.log("[Customer API] Token length:", token?.length || 0);
+      const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+      console.log("[Customer API] SessionToken exists:", !!sessionToken);
+      console.log("[Customer API] SessionToken length:", sessionToken?.length || 0);
       
-      if (token) {
-        // Check if token is expired before adding to headers
-        const expired = isTokenExpired(token);
-        console.log("[Customer API] Token expired check:", expired);
-        
-        if (expired) {
-          // Clear expired token
-          await SecureStore.deleteItemAsync("cribnosh_token");
-          await SecureStore.deleteItemAsync("cribnosh_user");
-          // Don't add the expired token to headers
-          console.log("[Customer API] Token expired, cleared from storage");
-        } else {
-          headers.set("authorization", `Bearer ${token}`);
-          console.log("[Customer API] Authorization header set for endpoint:", endpoint);
-        }
+      if (sessionToken) {
+        // Send sessionToken in X-Session-Token header (preferred) or as Bearer token
+        headers.set("X-Session-Token", sessionToken);
+        // Alternative: headers.set("authorization", `Bearer ${sessionToken}`);
+        console.log("[Customer API] X-Session-Token header set for endpoint:", endpoint);
       } else {
-        console.log("[Customer API] No token found in SecureStore for endpoint:", endpoint);
+        console.log("[Customer API] No sessionToken found in SecureStore for endpoint:", endpoint);
       }
     } catch (error) {
       console.error("[Customer API] Error accessing SecureStore for endpoint:", endpoint, error);
@@ -211,14 +200,11 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
     const customBaseQuery = fetchBaseQuery({
       baseUrl: API_CONFIG.baseUrlNoTrailing,
       prepareHeaders: async (headers) => {
-        const token = await SecureStore.getItemAsync("cribnosh_token");
-        if (token) {
-          if (isTokenExpired(token)) {
-            await SecureStore.deleteItemAsync("cribnosh_token");
-            await SecureStore.deleteItemAsync("cribnosh_user");
-          } else {
-            headers.set("authorization", `Bearer ${token}`);
-          }
+        const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+        if (sessionToken) {
+          // Send sessionToken in X-Session-Token header
+          headers.set("X-Session-Token", sessionToken);
+          // Alternative: headers.set("authorization", `Bearer ${sessionToken}`);
         }
         headers.set("accept", "application/json");
         // Don't set content-type for FormData - let browser set it with boundary
@@ -237,7 +223,7 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
       const errorData = result.error.data;
 
       if (errorStatus === 401 || errorStatus === "401") {
-        await SecureStore.deleteItemAsync("cribnosh_token");
+        await SecureStore.deleteItemAsync("cribnosh_session_token");
         await SecureStore.deleteItemAsync("cribnosh_user");
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { handle401Error } = require("@/utils/authErrorHandler");
@@ -326,8 +312,8 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
       errorCode === 401 ||
       errorCode === "401"
     ) {
-      // Clear expired/invalid tokens
-      await SecureStore.deleteItemAsync("cribnosh_token");
+      // Clear expired/invalid sessionToken
+      await SecureStore.deleteItemAsync("cribnosh_session_token");
       await SecureStore.deleteItemAsync("cribnosh_user");
 
       // Use the global 401 handler (dynamic import to avoid circular deps)
