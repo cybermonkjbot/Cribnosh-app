@@ -72,8 +72,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     // Get sessions from the sessions table
     const sessions = await convex.query(api.queries.sessions.getSessionsByUserId, {
-      userId: userId as Id<'users'>,
-    });
+      userId: userId,
+    }) as any[];
 
     // Filter active sessions (expiresAt > now)
     const now = Date.now();
@@ -119,7 +119,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
     // Sort by creation time (newest first)
-    formattedSessions.sort((a, b) => {
+    formattedSessions.sort((a: { created_at: string }, b: { created_at: string }) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
