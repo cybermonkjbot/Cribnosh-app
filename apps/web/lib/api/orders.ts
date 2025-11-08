@@ -82,51 +82,51 @@ interface GetOrdersListResponse {
 }
 
 /**
- * Get JWT token from session token
+ * Get sessionToken from cookies (client-side)
+ * SessionToken is automatically sent with cookies, but this helper can be used
+ * if headers need to be set explicitly
  */
-async function getJWTToken(): Promise<string | null> {
+function getSessionTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
   try {
-    const response = await fetch('/api/auth/token/get-jwt', {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.data?.token) {
-        return data.data.token;
-      }
-    }
-
-    return null;
+    const match = document.cookie.match(/(^| )convex-auth-token=([^;]+)/);
+    return match ? match[2] : null;
   } catch (error) {
-    console.error('Error getting JWT token:', error);
+    console.error('Error reading sessionToken from cookie:', error);
     return null;
   }
 }
 
 /**
  * Make authenticated API request
+ * SessionToken is automatically sent via cookies (credentials: 'include')
+ * Headers are optional - only needed if backend requires explicit header
  */
 async function authenticatedFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const token = await getJWTToken();
+  // SessionToken is automatically sent via cookies
+  // Optionally add header if needed (backend supports both cookie and header)
+  const sessionToken = getSessionTokenFromCookie();
   
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> || {}),
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  // Optionally add sessionToken header (backend supports both cookie and header)
+  // Cookies are automatically sent with credentials: 'include'
+  if (sessionToken) {
+    // Backend supports both cookie and header, so we can add header for explicit auth
+    // headers['X-Session-Token'] = sessionToken;
+    // OR: headers['Authorization'] = `Bearer ${sessionToken}`;
   }
 
   return fetch(url, {
     ...options,
     headers,
-    credentials: 'include',
+    credentials: 'include', // Automatically sends cookies including sessionToken
   });
 }
 

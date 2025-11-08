@@ -15,7 +15,14 @@ type User = {
   // Add other user fields as needed
 };
 
+// Helper to check if token is a JWT (has 3 parts separated by dots)
+// Used for backward compatibility during migration
+function isJWT(token: string): boolean {
+  return token.split('.').length === 3;
+}
+
 // Helper to decode JWT token (client-side, no verification needed for user_id extraction)
+// @deprecated SessionToken doesn't need decoding - kept for backward compatibility
 function decodeJWT(token: string): { user_id?: string; roles?: string[] } | null {
   try {
     const base64Url = token.split('.')[1];
@@ -32,11 +39,6 @@ function decodeJWT(token: string): { user_id?: string; roles?: string[] } | null
     console.error('Failed to decode JWT:', error);
     return null;
   }
-}
-
-// Helper to check if token is a JWT (has 3 parts separated by dots)
-function isJWT(token: string): boolean {
-  return token.split('.').length === 3;
 }
 
 export function useSession() {
@@ -61,17 +63,16 @@ export function useSession() {
     if (token) {
       setSessionToken(token);
       
-      // If it's a JWT token, extract user_id
+      // SessionToken doesn't need decoding - it's validated server-side
+      // JWT fallback: If it's a JWT token (backward compatibility), extract user_id
       if (isJWT(token)) {
         const decoded = decodeJWT(token);
         if (decoded?.user_id) {
           setUserId(decoded.user_id as Id<'users'>);
-          console.log('[useSession] JWT decoded, user_id:', decoded.user_id);
-        } else {
-          console.warn('[useSession] JWT token found but no user_id in payload:', decoded);
+          console.log('[useSession] JWT token detected (legacy), user_id:', decoded.user_id);
         }
       } else {
-        console.log('[useSession] Session token found (not JWT)');
+        console.log('[useSession] Session token found');
       }
     } else {
       console.log('[useSession] No token found in cookies');
@@ -79,7 +80,7 @@ export function useSession() {
     setHasCheckedToken(true);
   }, []);
   
-  // Fetch user data - use userId if JWT, otherwise use sessionToken
+  // Fetch user data - prefer sessionToken query (faster), fallback to userId if JWT
   const userDataBySessionToken = useQuery(
     api.queries.users.getUserBySessionToken, 
     sessionToken && !userId ? { sessionToken } : 'skip'
@@ -87,11 +88,11 @@ export function useSession() {
   
   const userDataById = useQuery(
     api.queries.users.getById,
-    userId ? { userId } : 'skip'
+    userId && !userDataBySessionToken ? { userId } : 'skip'
   ) as User | null;
   
-  // Use userDataById if we have userId (JWT), otherwise use userDataBySessionToken
-  const userData = userId ? userDataById : userDataBySessionToken;
+  // Prefer sessionToken-based query, fallback to userId-based query (JWT legacy)
+  const userData = userDataBySessionToken || userDataById;
   
   // Check if session is expired
   const isExpired = userData?.sessionExpiry 
