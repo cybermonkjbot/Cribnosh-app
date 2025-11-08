@@ -4,27 +4,10 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
 import type { UpdateMemberBudgetRequest } from '@/types/family-profile';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
-function getAuthPayload(request: NextRequest): JWTPayload {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('Invalid or missing token');
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    throw new Error('Invalid or expired token');
-  }
-}
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -65,10 +48,7 @@ async function handlePUT(
   { params }: { params: { memberId: string } }
 ): Promise<NextResponse> {
   try {
-    const payload = getAuthPayload(request);
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse('Only customers can update budgets', 'FORBIDDEN', 403);
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     let body: UpdateMemberBudgetRequest;
     try {
@@ -120,10 +100,10 @@ async function handlePUT(
 
     return ResponseFactory.success({ success: true }, 'Member updated successfully');
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
-      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
     }
+    const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
       errorMessage || 'Failed to update member',
       'INTERNAL_ERROR',
@@ -151,10 +131,7 @@ async function handleDELETE(
   { params }: { params: { memberId: string } }
 ): Promise<NextResponse> {
   try {
-    const payload = getAuthPayload(request);
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse('Only customers can remove members', 'FORBIDDEN', 403);
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     const { memberId } = params;
 
@@ -163,7 +140,6 @@ async function handleDELETE(
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id as string;
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
@@ -183,10 +159,10 @@ async function handleDELETE(
 
     return ResponseFactory.success({ success: true }, 'Member removed successfully');
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
-      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
     }
+    const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
       errorMessage || 'Failed to remove member',
       'INTERNAL_ERROR',
