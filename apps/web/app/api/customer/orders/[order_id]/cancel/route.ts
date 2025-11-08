@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { processRefund } from '@/lib/services/payment-service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -117,7 +118,7 @@ async function handlePOST(
       );
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Query order and verify ownership
     const order = await convex.query(api.queries.orders.getById, { order_id });
@@ -227,12 +228,8 @@ async function handlePOST(
       'Order cancellation request submitted'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     const errorMessage = error instanceof Error ? error.message : 'Failed to cancel order';
     return createSpecErrorResponse(

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { logger } from '@/lib/utils/logger';
 interface ReadyOrderRequest {
   orderId: string;
@@ -156,7 +157,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required field: orderId.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details
     const order = await convex.query(api.queries.orders.getOrderById, { orderId });
@@ -198,6 +199,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       readyNotes: readyOrder.chef_notes
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error marking order as ready:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark order as ready'));
   }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MonitoringService } from '../monitoring/monitoring.service';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { createSpecErrorResponse } from './spec-error-response';
 
 const monitoring = MonitoringService.getInstance();
 
@@ -247,4 +249,45 @@ export function withErrorHandling<T extends any[]>(
       return apiErrorHandler.handleError(error, request);
     }
   };
+}
+
+/**
+ * Check if error is an AuthenticationError
+ */
+export function isAuthenticationError(error: unknown): error is AuthenticationError {
+  return error instanceof AuthenticationError || 
+         (error instanceof Error && error.name === 'AuthenticationError');
+}
+
+/**
+ * Check if error is an AuthorizationError
+ */
+export function isAuthorizationError(error: unknown): error is AuthorizationError {
+  return error instanceof AuthorizationError || 
+         (error instanceof Error && error.name === 'AuthorizationError');
+}
+
+/**
+ * Handle Convex errors and return appropriate NextResponse
+ * Specifically handles authentication and authorization errors
+ */
+export function handleConvexError(error: unknown, request: NextRequest): NextResponse {
+  if (isAuthenticationError(error)) {
+    return createSpecErrorResponse(
+      error.message || 'Authentication failed',
+      'UNAUTHORIZED',
+      401
+    );
+  }
+  
+  if (isAuthorizationError(error)) {
+    return createSpecErrorResponse(
+      error.message || 'Authorization failed',
+      'FORBIDDEN',
+      403
+    );
+  }
+  
+  // For other errors, use the standard error handler
+  return apiErrorHandler.handleError(error, request);
 } 
