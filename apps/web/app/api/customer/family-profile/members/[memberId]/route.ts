@@ -65,7 +65,6 @@ async function handlePUT(
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id as string;
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {

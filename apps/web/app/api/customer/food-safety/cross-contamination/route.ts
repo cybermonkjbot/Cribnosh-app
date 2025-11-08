@@ -87,7 +87,6 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id;
 
     // Update cross-contamination setting in database
     await convex.mutation(api.mutations.foodSafetySettings.updateCrossContamination, {
