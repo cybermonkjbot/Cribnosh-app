@@ -72,17 +72,17 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from "@/convex/_generated/api";
 import { withModerationRateLimit } from '../../../../../lib/api/sensitive-middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
 async function handlePOST(req: NextRequest) {
   try {
-    const client = getConvexClient();
+    const client = getConvexClientFromRequest(req);
     const { channelName, userId, duration, reason, moderatorId } = await req.json();
 
     if (!channelName || !userId || !duration || !reason) {
@@ -100,9 +100,12 @@ async function handlePOST(req: NextRequest) {
     };
 
     return ResponseFactory.success(result);
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     logger.error('Error muting user:', error);
-    return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
+    return ResponseFactory.error(getErrorMessage(error, 'Internal Server Error'), 'CUSTOM_ERROR', 500);
   }
 }
 

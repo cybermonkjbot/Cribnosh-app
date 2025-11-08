@@ -1,14 +1,12 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import { withErrorHandling } from '@/lib/errors';
-import { Id } from '@/convex/_generated/dataModel';
-import { getUserFromRequest } from '@/lib/auth/session';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -63,9 +61,8 @@ import { logger } from '@/lib/utils/logger';
  *         description: Internal server error
  */
 async function handlePOST(request: NextRequest, { params }: { params: { videoId: string } }) {
-  const convex = getConvexClient();
-  
   try {
+    const convex = getConvexClientFromRequest(request);
     const body = await request.json();
     const { reason, description, timestamp } = body;
     
@@ -93,9 +90,12 @@ async function handlePOST(request: NextRequest, { params }: { params: { videoId:
         reportedAt: new Date().toISOString()
       }
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error in video report:', error);
-    return ResponseFactory.error('Failed to report video', 'VIDEO_REPORT_ERROR', 500);
+    return ResponseFactory.error(getErrorMessage(error, 'Failed to report video'), 'VIDEO_REPORT_ERROR', 500);
   }
 }
 

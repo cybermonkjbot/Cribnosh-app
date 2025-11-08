@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import { getUserFromRequest } from '@/lib/auth/session';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -109,14 +107,12 @@ async function handlePOST(
 
     // Get user from token (optional for anonymous views)
     let user = null;
+    const convex = getConvexClientFromRequest(request);
     const authHeader = request.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
-      const convex = getConvexClient();
       user = await convex.query(api.queries.users.getUserByToken, { token });
     }
-
-    const convex = getConvexClient();
 
     // Record view
     await convex.mutation((api as any).mutations.videoPosts.recordVideoView, {
@@ -130,9 +126,12 @@ async function handlePOST(
 
     return ResponseFactory.success(null, 'View recorded successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Video view recording error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to record view');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to record view'));
   }
 }
 

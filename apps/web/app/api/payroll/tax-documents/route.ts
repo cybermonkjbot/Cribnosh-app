@@ -48,11 +48,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 interface GenerateTaxDocumentRequest {
@@ -196,7 +196,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Invalid document type for Nigeria');
     } 
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Generate tax document based on type
     const taxDocument = await convex.mutation(api.mutations.payroll.generateTaxDocument, {
@@ -235,17 +235,19 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         contentType = 'application/json';
         break;
       default:
-        responseData = await convertTaxDocumentToPDF(taxDocument, body);
+        responseData = await convertTaxDocumentToPDF(taxDocument, body, request);
         contentType = 'application/pdf';
     }
 
     const filename = `tax-document-${documentType}-${country}-${employeeId}-${taxYear}.${format}`;
     return ResponseFactory.fileDownload(responseData, filename, contentType);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Generate tax document error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to generate tax document.' 
-    );
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to generate tax document.'));
   }
 }
 
@@ -264,7 +266,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const country = searchParams.get('country');
     const documentType = searchParams.get('documentType');
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get available tax documents
     const taxDocuments = await convex.query(api.queries.payroll.getTaxDocuments, {});
@@ -281,10 +283,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       generatedAt: new Date().toISOString()
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Get tax documents error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to get tax documents.' 
-    );
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get tax documents.'));
   }
 }
 
@@ -415,9 +419,9 @@ function generateTaxDocumentHTML(data: any): string {
 }
 
 // Helper function to convert tax document to PDF
-async function convertTaxDocumentToPDF(taxDocument: any, requestBody: any): Promise<string> {
+async function convertTaxDocumentToPDF(taxDocument: any, requestBody: any, request: NextRequest): Promise<string> {
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Generate comprehensive tax document data
     const documentData = {

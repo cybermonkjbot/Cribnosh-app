@@ -1,10 +1,10 @@
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
+import { getApiFunction, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -54,7 +54,7 @@ async function handleGET(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const getFeaturedVideo = getApiFunction('queries/kitchens', 'getFeaturedVideo') as any;
     const featuredVideo = await convex.query(getFeaturedVideo, { kitchenId });
 
@@ -68,9 +68,11 @@ async function handleGET(
     );
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Featured video retrieval error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to retrieve featured video';
-    return ResponseFactory.internalError(message);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve featured video'));
   }
 }
 

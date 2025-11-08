@@ -1,11 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -53,7 +55,7 @@ async function handleGET(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const video = await convex.query((api as any).queries.videoPosts.getVideoById, { videoId });
 
     if (!video) {
@@ -62,9 +64,12 @@ async function handleGET(
 
     return ResponseFactory.success(video, 'Video retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Video retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve video');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve video'));
   }
 }
 
@@ -138,7 +143,7 @@ async function handlePUT(
     }
 
     // Get user from session token
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await getUserFromRequest(request);
 
     if (!user) {
@@ -158,9 +163,12 @@ async function handlePUT(
 
     return ResponseFactory.success(null, 'Video updated successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Video update error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to update video');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update video'));
   }
 }
 
@@ -202,7 +210,7 @@ async function handleDELETE(
     }
 
     // Get user from session token
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await getUserFromRequest(request);
 
     if (!user) {
@@ -216,9 +224,12 @@ async function handleDELETE(
 
     return ResponseFactory.success(null, 'Video deleted successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Video deletion error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to delete video');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete video'));
   }
 }
 

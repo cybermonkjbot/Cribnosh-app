@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAdminAuth } from '@/lib/api/admin-middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -71,7 +73,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const cursor = searchParams.get('cursor') || undefined;
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get videos based on status filter
     let videos;
@@ -92,9 +94,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(videos, 'Videos retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Admin videos retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve videos');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve videos'));
   }
 }
 

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -84,7 +86,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get user from session token
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -103,9 +105,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       collectionId,
     }, 'Collection created successfully', 201);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Collection creation error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to create collection');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create collection'));
   }
 }
 
@@ -166,7 +171,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const cursor = searchParams.get('cursor') || undefined;
     const publicOnly = searchParams.get('publicOnly') !== 'false';
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const collections = await convex.query((api as any).queries.videoCollections.getCollections, {
       limit,
       cursor,
@@ -175,9 +180,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(collections, 'Collections retrieved successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Collections retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve collections');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve collections'));
   }
 }
 

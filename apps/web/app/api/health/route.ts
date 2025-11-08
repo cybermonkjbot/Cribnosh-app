@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { MonitoringService } from '../../../lib/monitoring/monitoring.service';
 import { EmailService } from '../../../lib/email/email.service';
 import { apiMonitoring, APIMetrics } from '../../../lib/api/monitoring';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { securityMiddleware } from '@/lib/api/security';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
@@ -242,7 +242,7 @@ export async function GET(request: NextRequest) {
 
     // Check Convex DB health with optimized timeout
     try {
-      const convex = getConvexClient();
+      const convex = getConvexClientFromRequest(request);
       // Try a simple query with shorter timeout for faster health checks
       healthChecks.services.convex = await checkServiceWithTimeout(async () => {
         await convex.query(api.queries.users.getAllUsers, {});

@@ -1,9 +1,11 @@
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
+import { getApiFunction, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -134,7 +136,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get user from session token
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -170,9 +172,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Video post created successfully', 201);
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Video creation error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to create video post';
-    return ResponseFactory.internalError(message);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create video post'));
   }
 }
 
@@ -226,7 +230,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const cursor = searchParams.get('cursor') || undefined;
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const getVideoFeed = getApiFunction('queries/videoPosts', 'getVideoFeed') as any;
     const feed = await convex.query(getVideoFeed, {
       limit,
@@ -236,9 +240,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success(feed, 'Video feed retrieved successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Video feed retrieval error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to retrieve video feed';
-    return ResponseFactory.internalError(message);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve video feed'));
   }
 }
 

@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withSensitiveRateLimit } from '@/lib/api/sensitive-middleware';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -218,7 +218,7 @@ import { logger } from '@/lib/utils/logger';
 
 async function handleGET(req: NextRequest) {
   try {
-    const client = getConvexClient();
+    const client = getConvexClientFromRequest(req);
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const chefId = searchParams.get('chefId');
@@ -242,9 +242,12 @@ async function handleGET(req: NextRequest) {
     const result = await query;
 
     return ResponseFactory.success(result);
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     logger.error('Error getting all live sessions:', error);
-    return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
+    return ResponseFactory.error(getErrorMessage(error, 'Internal Server Error'), 'CUSTOM_ERROR', 500);
   }
 }
 

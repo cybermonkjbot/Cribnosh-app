@@ -1,10 +1,12 @@
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
-import { withErrorHandling } from '@/lib/errors';
-import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { getApiFunction, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -46,7 +48,7 @@ async function handleDELETE(
     }
 
     // Get user from session token
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -61,8 +63,11 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'Video deleted successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error in video delete:', error);
-    const message = error instanceof Error ? error.message : 'Failed to delete video';
+    const message = getErrorMessage(error, 'Failed to delete video');
     
     // Handle specific error cases
     if (message.includes('not authorized')) {

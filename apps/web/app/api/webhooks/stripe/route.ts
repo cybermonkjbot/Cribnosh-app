@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { stripe } from '@/lib/stripe';
 import { headers } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -107,7 +107,7 @@ async function handlePOST(request: NextRequest) {
       return ResponseFactory.validationError('Invalid signature');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Handle the event
     switch (event.type) {
@@ -136,9 +136,12 @@ async function handlePOST(request: NextRequest) {
     }
 
     return ResponseFactory.success({ received: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Webhook error:', error);
-    return ResponseFactory.error('Webhook handler failed', 'CUSTOM_ERROR', 500);
+    return ResponseFactory.error(getErrorMessage(error, 'Webhook handler failed'), 'CUSTOM_ERROR', 500);
   }
 }
 

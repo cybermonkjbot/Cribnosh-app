@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { withErrorHandling } from '@/lib/errors';
 import { api } from '@/convex/_generated/api';
 import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';

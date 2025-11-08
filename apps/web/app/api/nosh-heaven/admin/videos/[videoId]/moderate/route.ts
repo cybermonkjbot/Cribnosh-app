@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAdminAuth } from '@/lib/api/admin-middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -85,7 +87,7 @@ async function handlePOST(
       return ResponseFactory.validationError('Valid action is required (approve, reject, flag, remove)');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get video to check if it exists
     const video = await convex.query((api as any).queries.videoPosts.getVideoById, { videoId });
@@ -131,9 +133,12 @@ async function handlePOST(
 
     return ResponseFactory.success(null, 'Video moderated successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Video moderation error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to moderate video');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to moderate video'));
   }
 }
 

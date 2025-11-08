@@ -106,11 +106,11 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -158,7 +158,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -171,8 +171,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const paginated = allApplications.slice(offset, offset + limit);
     return ResponseFactory.success({ delivery_applications: paginated, total: allApplications.length, limit, offset });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -219,7 +219,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return ResponseFactory.error('Invalid email format.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const applicationId = await convex.mutation(api.mutations.drivers.createDriver, {
       name,
       email,
@@ -230,8 +230,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true, applicationId });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -280,7 +280,7 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     if (!application_id || !status) {
       return ResponseFactory.error('application_id and status are required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Update the driver application status
     await convex.mutation(api.mutations.drivers.updateDriver, {
       id: application_id as Id<'drivers'>,
@@ -289,8 +289,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -339,7 +339,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     if (!application_id) {
       return ResponseFactory.error('application_id is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Delete the driver application
     try {
       await convex.mutation(api.mutations.drivers.deleteDriver, { id: application_id as Id<'drivers'> });
@@ -356,8 +356,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -371,7 +371,7 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     if (!Array.isArray(application_ids) || application_ids.length === 0) {
       return ResponseFactory.error('application_ids array is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     for (const applicationId of application_ids) {
       await convex.mutation(api.mutations.drivers.deleteDriver, { id: applicationId as Id<'drivers'> });
     }
@@ -384,8 +384,8 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true, deleted: application_ids.length });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -395,7 +395,7 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const allApplications = await convex.query(api.queries.drivers.getAll, {});
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
@@ -406,8 +406,8 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.jsonDownload(allApplications, 'delivery-applications-export.json');
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

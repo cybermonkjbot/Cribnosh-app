@@ -1,12 +1,11 @@
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
+import { getApiFunction, getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -59,7 +58,7 @@ async function handleGET(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get video post to retrieve storage ID
     const getVideoById = getApiFunction('queries/videoPosts', 'getVideoById') as any;
@@ -83,8 +82,11 @@ async function handleGET(
     }, 'Video download URL retrieved successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error in video download:', error);
-    const message = error instanceof Error ? error.message : 'Failed to retrieve video download URL';
+    const message = getErrorMessage(error, 'Failed to retrieve video download URL');
     
     if (message.includes('not found')) {
       return ResponseFactory.notFound(message);

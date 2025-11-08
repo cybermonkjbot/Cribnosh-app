@@ -150,16 +150,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('model, start_date, and end_date are required.');
     }
     const convex = getConvexClientFromRequest(request);
-    const allReviews = await convex.query(api.queries.reviews.getAll);
-    const reviews = allReviews.filter((r: { createdAt?: number }) => {
+    // Type assertion to avoid deep type inference issue
+    const queryResult = await convex.query(api.queries.reviews.getAll);
+    const allReviews = queryResult as unknown as Review[];
+    const reviews = allReviews.filter((r: Review) => {
       const created = new Date(r.createdAt || 0);
       const start = new Date(start_date);
       const end = new Date(end_date);
       return created >= start && created <= end;
     });
     const reviewTexts = reviews
-      .map((r: { comment?: string }) => r.comment)
-      .filter((comment): comment is string => typeof comment === 'string' && comment.trim().length > 0);
+      .map((r: Review) => r.comment)
+      .filter((comment: string | undefined): comment is string => typeof comment === 'string' && comment.trim().length > 0);
 
     if (reviewTexts.length === 0) {
       return ResponseFactory.success({ success: true, message: 'No reviews with valid text found in the date range', results: [] });

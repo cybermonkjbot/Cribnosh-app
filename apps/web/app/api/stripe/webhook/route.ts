@@ -1,5 +1,5 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { stripe } from '@/lib/stripe';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     return ResponseFactory.validationError('Webhook signature verification failed');
   }
 
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
 
   switch (event.type) {
     case 'payment_intent.succeeded': {

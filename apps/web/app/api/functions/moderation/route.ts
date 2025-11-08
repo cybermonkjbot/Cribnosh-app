@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
@@ -42,9 +42,8 @@ import { logger } from '@/lib/utils/logger';
  *         description: Internal server error
  */
 export const GET = withErrorHandling(async (request: NextRequest) => {
-  const convex = getConvexClient();
-  
   try {
+    const convex = getConvexClientFromRequest(request);
     // For now, return mock data until Convex functions are implemented
     return ResponseFactory.success({
       data: {
@@ -67,8 +66,11 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         }
       }
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Error in moderation functions:', error);
-    return ResponseFactory.error('Failed to retrieve moderation functions', 'MODERATION_FUNCTIONS_ERROR', 500);
+    return ResponseFactory.error(getErrorMessage(error, 'Failed to retrieve moderation functions'), 'MODERATION_FUNCTIONS_ERROR', 500);
   }
 });

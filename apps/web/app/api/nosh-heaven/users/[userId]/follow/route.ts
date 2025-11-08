@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -56,7 +58,7 @@ async function handlePOST(
     }
 
     // Get user from session token
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -69,9 +71,12 @@ async function handlePOST(
 
     return ResponseFactory.success(null, 'User followed successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('User follow error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to follow user');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to follow user'));
   }
 }
 
@@ -113,7 +118,7 @@ async function handleDELETE(
     }
 
     // Get user from session token
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -126,9 +131,12 @@ async function handleDELETE(
 
     return ResponseFactory.success(null, 'User unfollowed successfully');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('User unfollow error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to unfollow user');
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to unfollow user'));
   }
 }
 
