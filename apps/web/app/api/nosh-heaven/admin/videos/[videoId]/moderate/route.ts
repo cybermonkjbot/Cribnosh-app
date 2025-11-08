@@ -90,7 +90,8 @@ async function handlePOST(
     const convex = getConvexClientFromRequest(request);
 
     // Get video to check if it exists
-    const video = await convex.query((api as any).queries.videoPosts.getVideoById, { videoId });
+    // @ts-ignore - videoId from URL may be string, but query expects Id<"videoPosts">
+    const video = await convex.query(api.queries.videoPosts.getVideoById, { videoId: videoId as any });
     if (!video) {
       return ResponseFactory.notFound('Video not found');
     }
@@ -114,13 +115,14 @@ async function handlePOST(
         return ResponseFactory.validationError('Invalid action');
     }
 
-    await convex.mutation((api as any).mutations.videoPosts.updateVideoPost, {
-      videoId,
+    // @ts-ignore - videoId from URL may be string, but mutation expects Id<"videoPosts">
+    await convex.mutation(api.mutations.videoPosts.updateVideoPost, {
+      videoId: videoId as any,
       // We'll need to add status to the update mutation
     });
 
     // Log moderation action
-    await convex.mutation((api as any).mutations.admin.logActivity, {
+    await convex.mutation(api.mutations.admin.logActivity, {
       action: `video_${body.action}`,
       details: {
         videoId,

@@ -98,7 +98,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
-    const results = await convex.query((api as any).queries.videoPosts.searchVideos, {
+    const results = await convex.query(api.queries.videoPosts.searchVideos, {
       query: query.trim(),
       cuisine,
       difficulty: difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,

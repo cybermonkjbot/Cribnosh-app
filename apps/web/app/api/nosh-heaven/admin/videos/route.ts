@@ -78,7 +78,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get videos based on status filter
     let videos;
     if (status) {
-      videos = await convex.query((api as any).queries.videoPosts.getVideoFeed, {
+      videos = await convex.query(api.queries.videoPosts.getVideoFeed, {
         limit,
         cursor,
       });
@@ -86,7 +86,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       // In production, you'd want a proper index for this
       videos.videos = videos.videos.filter((video: any) => video.status === status);
     } else {
-      videos = await convex.query((api as any).queries.videoPosts.getVideoFeed, {
+      videos = await convex.query(api.queries.videoPosts.getVideoFeed, {
         limit,
         cursor,
       });

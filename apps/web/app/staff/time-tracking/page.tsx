@@ -53,6 +53,7 @@ export default function TimeTrackingPage() {
 
   // Fetch full profile data using user ID
   // Auth is handled at layout level, no page-level checks needed
+  // @ts-ignore - Type instantiation is excessively deep (TypeScript limitation with complex Convex types)
   const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
   
   // Handle authentication errors

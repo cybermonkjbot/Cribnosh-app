@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -9,6 +9,7 @@ import { getAuthenticatedUser, getAuthenticatedAdmin } from '@/lib/api/session-a
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 interface CustomOrder {
   _id: Id<'custom_orders'>;
@@ -155,7 +156,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Pagination - support both 'page' and 'offset' parameters
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -186,6 +187,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       offset 
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch custom orders.';
     return ResponseFactory.internalError(errorMessage);
   }
@@ -336,7 +340,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Desired delivery time must be in the future.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Check regional availability if delivery address is provided in details
     // or get from user's profile if available
@@ -405,6 +409,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       estimatedPrice: createdOrder?.estimatedPrice || null
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to create custom order.';
     return ResponseFactory.internalError(errorMessage);
   }
@@ -425,7 +432,7 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Order details are required for update.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get order by ID
     const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: order_id });
@@ -499,6 +506,9 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to update order.';
     return ResponseFactory.internalError(errorMessage);
   }
@@ -515,7 +525,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('order_id is required.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get order by ID
     const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: order_id });
@@ -553,6 +563,9 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to delete order.';
     return ResponseFactory.internalError(errorMessage);
   }
@@ -577,7 +590,7 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Cannot delete more than 100 orders at once.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Type check order_ids to ensure they're strings
     const validOrderIds = order_ids.filter((id: unknown): id is string => typeof id === 'string');
@@ -611,6 +624,9 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ success: true, deleted: validOrderIds.length });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to bulk delete custom orders.';
     return ResponseFactory.internalError(errorMessage);
   }
@@ -622,7 +638,7 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     await getAuthenticatedAdmin(request);
 
     // Fetch orders
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const allOrders = await convex.query(api.queries.custom_orders.getAll) as CustomOrder[];
     
     // Convert orders to CSV format
@@ -678,6 +694,9 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     const filename = `custom-orders-${new Date().toISOString().split('T')[0]}.csv`;
     return ResponseFactory.csvDownload(csvContent, filename);
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     logger.error('Export failed:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to export custom orders.';
     return ResponseFactory.internalError(errorMessage);

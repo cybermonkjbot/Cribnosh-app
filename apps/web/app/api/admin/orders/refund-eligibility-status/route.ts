@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { Id } from '@/convex/_generated/dataModel';
@@ -9,6 +9,7 @@ import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 /**
  * @swagger
  * /admin/orders/refund-eligibility-status:
@@ -182,7 +183,7 @@ async function handleGET(request: NextRequest) {
     const status: 'expired' | 'refundable' | 'non-refundable' | undefined = 
       isValidStatus(statusParam) ? statusParam : undefined;
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const now = Date.now();
 
     // Get orders based on filters
@@ -245,6 +246,9 @@ async function handleGET(request: NextRequest) {
       summary
     }, 'Refund eligibility status retrieved successfully');
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to get refund eligibility status';
     logger.error('Error getting refund eligibility status:', error);
     return ResponseFactory.internalError(errorMessage);

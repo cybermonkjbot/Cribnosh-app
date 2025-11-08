@@ -150,7 +150,7 @@ export default function StaffPortal() {
         </ParallaxLayer>
         {/* Main content wrapper */}
         <div className="relative z-10">
-          <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
+          <div className="min-h-screen bg-linear-to-br from-amber-50 to-orange-100">
             {/* Header */}
             <div className="bg-white/80 backdrop-blur-sm border-b border-amber-200">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -428,7 +428,7 @@ export default function StaffPortal() {
                     <div className="space-y-4">
                       {sessions.slice(0, 3).map((session: any) => (
                         <div key={session.sessionToken} className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg">
-                          <svg className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <svg className="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                           </svg>
                           <div className="flex-1 min-w-0">
@@ -438,7 +438,7 @@ export default function StaffPortal() {
                         </div>
                       ))}
                       <button
-                        className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-satoshi font-medium hover:from-red-600 hover:to-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
+                        className="w-full mt-4 px-4 py-2 bg-linear-to-r from-red-500 to-red-600 text-white rounded-lg font-satoshi font-medium hover:from-red-600 hover:to-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
                         onClick={async () => {
                           if (window.confirm('Are you sure you want to revoke all sessions? This will log you out of all devices.')) {
                             // The original code had revokeAllSessions({ userId: safeStaffMember._id });

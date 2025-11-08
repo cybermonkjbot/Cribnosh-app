@@ -338,7 +338,7 @@ export default function OnboardingPage() {
               <div className="flex items-center justify-between overflow-x-auto pb-2 -mx-2 sm:mx-0 sm:pb-0">
                 <div className="flex space-x-1 sm:space-x-2 px-2 sm:px-0 min-w-max w-full">
                   {steps.map((step, index) => (
-                    <div key={step.id} className="flex flex-col items-center flex-shrink-0" style={{ minWidth: '60px' }}>
+                    <div key={step.id} className="flex flex-col items-center shrink-0" style={{ minWidth: '60px' }}>
                       <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 ${
                         currentStep >= step.id 
                           ? 'bg-amber-600 border-amber-600 text-white' 

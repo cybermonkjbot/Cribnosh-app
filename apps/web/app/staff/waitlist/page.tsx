@@ -259,7 +259,7 @@ export default function StaffWaitlistPage() {
 
   // --- Main waitlist UI ---
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-white">
         {/* Background accents */}
         <div className="pointer-events-none select-none absolute -top-24 -left-24 w-[420px] h-[420px] rounded-full bg-[#F23E2E]/5 blur-3xl z-0" />
         <div className="pointer-events-none select-none absolute bottom-0 right-0 w-[320px] h-[320px] rounded-full bg-[#F23E2E]/3 blur-2xl z-0" />
