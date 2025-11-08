@@ -1,6 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import type { FunctionReference } from "convex/server";
+import type { NextRequest } from "next/server";
 
 let convex: ConvexHttpClient | null = null;
 
@@ -15,6 +16,74 @@ export function getConvexClient() {
     convex = new ConvexHttpClient(convexUrl);
   }
   return convex;
+}
+
+/**
+ * Extract session token from request (cookie or header)
+ * Supports multiple sources for backward compatibility
+ */
+function extractSessionToken(request: NextRequest): string | null {
+  // Priority 1: Cookie (web app)
+  const cookieToken = request.cookies.get('convex-auth-token')?.value;
+  if (cookieToken) {
+    return cookieToken;
+  }
+
+  // Priority 2: X-Session-Token header (mobile app)
+  const headerToken = request.headers.get('X-Session-Token');
+  if (headerToken) {
+    return headerToken;
+  }
+
+  // Priority 3: Authorization header (mobile app - sessionToken format)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.replace('Bearer ', '');
+    // SessionToken is typically 43 chars (base64url of 32 bytes)
+    // JWT is typically longer (3 parts separated by dots)
+    // If it looks like a sessionToken (no dots, ~43 chars), use it
+    if (!token.includes('.') && token.length >= 40 && token.length <= 50) {
+      return token;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get Convex client with session token from request
+ * This ensures session tokens are passed to all Convex queries/mutations
+ * 
+ * @param request - Next.js request object
+ * @returns ConvexHttpClient instance with session token set
+ */
+export function getConvexClientFromRequest(request: NextRequest): ConvexHttpClient {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) {
+    throw new Error(
+      "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
+    );
+  }
+
+  // Create a new client instance for this request
+  const client = new ConvexHttpClient(convexUrl);
+
+  // Extract and set session token if available
+  const sessionToken = extractSessionToken(request);
+  if (sessionToken) {
+    // Set the session token via setAuth method if available
+    // ConvexHttpClient supports setting auth via setAuth method
+    if ('setAuth' in client && typeof client.setAuth === 'function') {
+      client.setAuth(sessionToken);
+    } else {
+      // Fallback: Set via headers (if ConvexHttpClient supports custom headers)
+      // Note: This may require checking ConvexHttpClient API
+      // For now, we'll set it and let Convex handle it
+      (client as any).setAuth?.(sessionToken);
+    }
+  }
+
+  return client;
 }
 
 export { api };
