@@ -9,6 +9,7 @@ import { GlassInput } from '@/components/ui/glass-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WaitlistEntrySkeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { Filter, Mail, Plus, RefreshCw, Search, Users } from 'lucide-react';
@@ -219,49 +220,29 @@ export default function StaffWaitlistPage() {
   });
 
   // --- Conditional UI states ---
-  let content = null;
-  if (adminLoading || staffAuthLoading) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading waitlist management...</div>
-      </div>
-    );
-  } else if (!staffUser && !adminUser) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Please log in to access waitlist management.</div>
-      </div>
-    );
-  } else if (localStaffLoading) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading waitlist management...</div>
-      </div>
-    );
-  } else if (staffMember === null) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Staff member not found.</div>
-      </div>
-    );
-  } else if (!staffMember.roles?.includes('staff') && !staffMember.roles?.includes('admin')) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Access denied: You do not have staff access.</div>
-      </div>
-    );
-  } else if (staffMember.status && staffMember.status !== 'active') {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Your staff account is not active. Please contact support.</div>
-      </div>
-    );
+  if (adminLoading || staffAuthLoading || localStaffLoading) {
+    return <UnauthenticatedState type="loading" role="staff" message="Loading waitlist management..." />;
+  }
+
+  if (!staffUser && !adminUser) {
+    return <UnauthenticatedState type="unauthenticated" role="staff" message="Please log in to access waitlist management." />;
+  }
+
+  if (staffMember === null) {
+    return <UnauthenticatedState type="unauthenticated" role="staff" message="Staff member not found." />;
+  }
+
+  if (!staffMember.roles?.includes('staff') && !staffMember.roles?.includes('admin')) {
+    return <UnauthenticatedState type="unauthorized" role="staff" message="Access denied: You do not have staff access." />;
+  }
+
+  if (staffMember.status && staffMember.status !== 'active') {
+    return <UnauthenticatedState type="inactive-account" role="staff" />;
   }
 
   // --- Main waitlist UI ---
-  if (!content) {
-    content = (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
         {/* Background accents */}
         <div className="pointer-events-none select-none absolute -top-24 -left-24 w-[420px] h-[420px] rounded-full bg-[#F23E2E]/5 blur-3xl z-0" />
         <div className="pointer-events-none select-none absolute bottom-0 right-0 w-[320px] h-[320px] rounded-full bg-[#F23E2E]/3 blur-2xl z-0" />
@@ -442,8 +423,5 @@ export default function StaffWaitlistPage() {
           </Tabs>
         </div>
       </div>
-    );
-  }
-
-  return content;
+  );
 }

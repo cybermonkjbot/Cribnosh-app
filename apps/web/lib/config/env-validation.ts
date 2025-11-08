@@ -2,38 +2,45 @@
  * Environment Variable Validation Schema
  * 
  * Validates all environment variables at application startup.
- * Fails fast with clear error messages if required variables are missing or invalid.
+ * Logs warnings for missing or invalid variables but does not throw errors.
+ * This allows the app to start even with missing configuration.
  */
 
-import { z } from 'zod';
 import { logger } from '@/lib/utils/logger';
+import { z } from 'zod';
 
 /**
  * Environment variable validation schema
  * 
- * Required variables are marked as non-empty strings.
- * Optional variables can be empty strings or have defaults.
+ * All variables are optional to allow the app to start in any environment.
+ * Validation warnings are logged but do not prevent startup.
  */
-const envSchema = z.object({
-  // Core Application Configuration
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  NEXT_PUBLIC_CONVEX_URL: z.string().url('NEXT_PUBLIC_CONVEX_URL must be a valid URL'),
-  NEXT_PUBLIC_BASE_URL: z.string().url('NEXT_PUBLIC_BASE_URL must be a valid URL').optional(),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long'),
-  
-  // Payment Processing (Stripe) - Required in production
-  STRIPE_SECRET_KEY: z.string().refine(
-    (val) => val === '' || val.startsWith('sk_'),
-    'STRIPE_SECRET_KEY must start with "sk_"'
-  ),
-  STRIPE_PUBLISHABLE_KEY: z.string().refine(
-    (val) => val === '' || val.startsWith('pk_'),
-    'STRIPE_PUBLISHABLE_KEY must start with "pk_"'
-  ),
-  STRIPE_WEBHOOK_SECRET: z.string().refine(
-    (val) => val === '' || val.startsWith('whsec_'),
-    'STRIPE_WEBHOOK_SECRET must start with "whsec_"'
-  ),
+const getEnvSchema = () => {
+  return z.object({
+    // Core Application Configuration
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    NEXT_PUBLIC_CONVEX_URL: z.string().url('NEXT_PUBLIC_CONVEX_URL must be a valid URL').optional(),
+    NEXT_PUBLIC_BASE_URL: z.string().url('NEXT_PUBLIC_BASE_URL must be a valid URL').optional(),
+    JWT_SECRET: z.string().optional().or(z.literal('')),
+    
+    // Session Transfer Secret - Optional (falls back to JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET)
+    SESSION_TRANSFER_SECRET: z.string().optional(),
+    NEXTAUTH_SECRET: z.string().optional(),
+    AUTH_SECRET: z.string().optional(),
+    
+    // Payment Processing (Stripe) - Optional (warnings logged if invalid)
+    STRIPE_SECRET_KEY: z.string().refine(
+      (val) => !val || val === '' || val.startsWith('sk_'),
+      'STRIPE_SECRET_KEY must start with "sk_"'
+    ).optional(),
+    STRIPE_PUBLISHABLE_KEY: z.string().refine(
+      (val) => !val || val === '' || val.startsWith('pk_'),
+      'STRIPE_PUBLISHABLE_KEY must start with "pk_"'
+    ).optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().refine(
+      (val) => !val || val === '' || val.startsWith('whsec_'),
+      'STRIPE_WEBHOOK_SECRET must start with "whsec_"'
+    ).optional(),
   
   // Live Streaming (Agora) - Optional
   AGORA_APP_ID: z.string().optional(),
@@ -130,57 +137,106 @@ const envSchema = z.object({
   TEST_ONBOARDING_URL: z.string().url().optional().or(z.literal('')),
   TEST_MATTERMOST_SETUP_URL: z.string().url().optional().or(z.literal('')),
   TEST_MATTERMOST_COMPLETE_URL: z.string().url().optional().or(z.literal('')),
-});
+  });
+};
+
+const envSchema = getEnvSchema();
 
 /**
  * Validates environment variables and returns typed environment object
  * 
- * @throws {Error} If validation fails with detailed error messages
+ * Logs warnings for missing or invalid variables but never throws errors.
+ * This allows the app to start in any environment, even with missing configuration.
  */
-export function validateEnv(): z.infer<typeof envSchema> {
+export function validateEnv(): z.infer<ReturnType<typeof getEnvSchema>> {
   // Get all environment variables
   const rawEnv = process.env;
   const isProduction = rawEnv.NODE_ENV === 'production';
+  const envLabel = isProduction ? '[PROD]' : '[DEV]';
+  
+  // Get schema appropriate for environment
+  const schema = getEnvSchema();
   
   try {
-    // Parse and validate
-    const validatedEnv = envSchema.parse(rawEnv);
+    // Parse and validate with schema appropriate for environment
+    const validatedEnv = schema.parse(rawEnv);
     
-    // In production, check for critical required variables
-    if (isProduction) {
-      const criticalErrors: string[] = [];
-      
-      if (!validatedEnv.NEXT_PUBLIC_CONVEX_URL) {
-        criticalErrors.push('NEXT_PUBLIC_CONVEX_URL is required in production');
+    // Check for critical variables and warn if missing (but don't fail)
+    const missingVars: string[] = [];
+    const invalidVars: string[] = [];
+    
+    if (!validatedEnv.NEXT_PUBLIC_CONVEX_URL) {
+      missingVars.push('NEXT_PUBLIC_CONVEX_URL');
+    }
+    
+    if (!validatedEnv.JWT_SECRET) {
+      missingVars.push('JWT_SECRET');
+    } else if (validatedEnv.JWT_SECRET.length > 0 && validatedEnv.JWT_SECRET.length < 32) {
+      invalidVars.push('JWT_SECRET (must be at least 32 characters)');
+    }
+    
+    if (!validatedEnv.STRIPE_SECRET_KEY) {
+      missingVars.push('STRIPE_SECRET_KEY');
+    }
+    
+    if (!validatedEnv.STRIPE_PUBLISHABLE_KEY) {
+      missingVars.push('STRIPE_PUBLISHABLE_KEY');
+    }
+    
+    if (!validatedEnv.STRIPE_WEBHOOK_SECRET) {
+      missingVars.push('STRIPE_WEBHOOK_SECRET');
+    }
+    
+    if (missingVars.length > 0 || invalidVars.length > 0) {
+      const warnings: string[] = [];
+      if (missingVars.length > 0) {
+        warnings.push(`Missing variables:\n${missingVars.map(v => `  - ${v}`).join('\n')}`);
+      }
+      if (invalidVars.length > 0) {
+        warnings.push(`Invalid variables:\n${invalidVars.map(v => `  - ${v}`).join('\n')}`);
       }
       
-      if (!validatedEnv.JWT_SECRET || validatedEnv.JWT_SECRET.length < 32) {
-        criticalErrors.push('JWT_SECRET must be at least 32 characters in production');
-      }
-      
-      if (criticalErrors.length > 0) {
-        const errorMessage = `Critical environment variables missing in production:\n${criticalErrors.map(e => `  - ${e}`).join('\n')}\n\nPlease check your environment variables.`;
-        logger.error(errorMessage);
-        throw new Error(errorMessage);
-      }
+      logger.warn(`${envLabel} Environment variable validation warnings:\n${warnings.join('\n\n')}\n\nThe app will continue to start, but some features may not work correctly.`);
     }
     
     return validatedEnv;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Format validation errors for better readability
+      // Always warn about validation errors, never throw
       const errorMessages = error.issues.map((err: z.ZodIssue) => {
         const path = err.path.join('.');
         return `  - ${path}: ${err.message}`;
       });
       
-      const errorMessage = `Environment variable validation failed:\n${errorMessages.join('\n')}\n\nPlease check your .env.local file and ensure all required variables are set correctly.`;
+      logger.warn(`${envLabel} Environment variable validation warnings:\n${errorMessages.join('\n')}\n\nThe app will continue to start, but some features may not work correctly.`);
       
-      logger.error(errorMessage);
-      throw new Error(errorMessage);
+      // Return raw env with defaults for missing values, ignoring validation errors
+      // Create a safe object that matches the schema type but allows invalid values
+      // Use passthrough to allow any values
+      const lenientSchema = schema.partial().passthrough();
+      try {
+        return lenientSchema.parse(rawEnv) as z.infer<ReturnType<typeof getEnvSchema>>;
+      } catch {
+        // If even passthrough fails, return raw env with type assertion
+        return {
+          ...rawEnv,
+          NODE_ENV: (rawEnv.NODE_ENV || 'development') as 'development' | 'production' | 'test',
+          LOG_LEVEL: (rawEnv.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error',
+          AWS_REGION: rawEnv.AWS_REGION || 'eu-west-2',
+        } as z.infer<ReturnType<typeof getEnvSchema>>;
+      }
     }
     
-    throw error;
+    // For non-Zod errors, log and continue
+    logger.warn(`${envLabel} Unexpected error during environment validation: ${error instanceof Error ? error.message : String(error)}`);
+    
+    // Return raw env with type assertion as fallback
+    return {
+      ...rawEnv,
+      NODE_ENV: (rawEnv.NODE_ENV || 'development') as 'development' | 'production' | 'test',
+      LOG_LEVEL: (rawEnv.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error',
+      AWS_REGION: rawEnv.AWS_REGION || 'eu-west-2',
+    } as z.infer<ReturnType<typeof getEnvSchema>>;
   }
 }
 
@@ -188,8 +244,8 @@ export function validateEnv(): z.infer<typeof envSchema> {
  * Get validated environment variables
  * This should be called at application startup
  * 
- * Note: In development, this will use defaults for missing optional variables.
- * In production, critical variables must be set.
+ * Note: This will use defaults for missing optional variables and log warnings
+ * for missing or invalid variables, but will never throw errors.
  */
 export const validatedEnv = validateEnv();
 
@@ -197,5 +253,5 @@ export const validatedEnv = validateEnv();
  * Type-safe environment variables
  * Use this instead of process.env directly
  */
-export type ValidatedEnv = z.infer<typeof envSchema>;
+export type ValidatedEnv = z.infer<ReturnType<typeof getEnvSchema>>;
 

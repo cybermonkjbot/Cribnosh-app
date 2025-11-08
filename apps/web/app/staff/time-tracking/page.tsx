@@ -3,11 +3,12 @@
 import { ActivityWatchSetupStatus } from '@/components/staff/ActivityWatchSetupStatus';
 import { ClockInCard } from '@/components/staff/ClockInCard';
 import { WeeklyHoursCard } from '@/components/staff/WeeklyHoursCard';
+import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { api } from '@/convex/_generated/api';
-import { useQuery } from 'convex/react';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
-import { motion } from 'motion/react';
+import { useQuery } from 'convex/react';
 import { ArrowLeft } from 'lucide-react';
+import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -56,19 +57,11 @@ export default function TimeTrackingPage() {
 
   // Loading states
   if (staffAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading...</div>
-      </div>
-    );
+    return <UnauthenticatedState type="loading" role="staff" message="Loading time tracking..." />;
   }
   
   if (!staffUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Please log in to access time tracking.</div>
-      </div>
-    );
+    return <UnauthenticatedState type="unauthenticated" role="staff" message="Please log in to access time tracking." />;
   }
 
   // Enforce ActivityWatch setup

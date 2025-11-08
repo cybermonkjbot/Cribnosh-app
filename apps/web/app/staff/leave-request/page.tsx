@@ -1,14 +1,14 @@
 ﻿"use client";
-import { useState, useEffect, useRef } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { RequestHistory } from '@/components/ui/request-history';
-import { ArrowLeft, Calendar, Info, CheckCircle } from 'lucide-react';
-import Link from 'next/link';
+import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { useMutation, useQuery } from 'convex/react';
+import { ArrowLeft, Calendar, CheckCircle, Info } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import Link from 'next/link';
+import { useRef, useState } from 'react';
 
 const leaveTypes = [
   { value: 'annual', label: 'Annual Leave' },

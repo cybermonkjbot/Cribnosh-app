@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import React from "react";
 import { AdminUserProvider, useAdminUser } from "./AdminUserProvider";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { AdminPageSkeleton } from '@/components/admin/skeletons';
+import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -62,13 +62,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Show loading state while checking authentication
   if (adminLoading) {
-    return <AdminPageSkeleton description="Loading admin dashboard..." />;
+    return <UnauthenticatedState type="loading" role="admin" />;
   }
 
-  // Redirect to login if not authenticated
+  // Show unauthenticated state if not authenticated
   if (!adminUser) {
-    router.push('/admin/login');
-    return null;
+    return <UnauthenticatedState type="unauthenticated" role="admin" />;
   }
 
   return (

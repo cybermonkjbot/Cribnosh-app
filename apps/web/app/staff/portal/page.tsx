@@ -2,6 +2,7 @@
 
 import { GlassCard } from '@/components/ui/glass-card';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
+import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { api } from "@/convex/_generated/api";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
@@ -119,32 +120,23 @@ export default function StaffPortal() {
   // --- Conditional UI states ---
   // Server-side middleware handles authentication and role checks
   // Client-side only handles loading states
-  let content = null;
   if (staffAuthLoading) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading your staff portal...</div>
-      </div>
-    );
-  } else if (!staffMember) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Please log in to view your staff portal.</div>
-      </div>
-    );
-  } else if (staffMember.status && staffMember.status !== 'active') {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Your staff account is not active. Please contact support.</div>
-      </div>
-    );
+    return <UnauthenticatedState type="loading" role="staff" />;
   }
 
+  if (!staffMember) {
+    return <UnauthenticatedState type="unauthenticated" role="staff" />;
+  }
+
+  if (staffMember.status && staffMember.status !== 'active') {
+    return <UnauthenticatedState type="inactive-account" role="staff" />;
+  }
+
+  // At this point, staffMember is guaranteed to be a valid object with correct role and status
+  const safeStaffMember = staffMember;
+
   // --- Main portal UI ---
-  if (!content) {
-    // At this point, staffMember is guaranteed to be a valid object with correct role and status
-    const safeStaffMember = staffMember!;
-    content = (
+  return (
       <ParallaxGroup>
         {/* Red accent blob (stain) */}
         <ParallaxLayer asBackground speed={0.2} className="z-0 pointer-events-none">
@@ -538,7 +530,4 @@ export default function StaffPortal() {
     </div>
       </ParallaxGroup>
   );
-  }
-
-  return content;
 } 
