@@ -2,13 +2,9 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
-import type { JWTPayload } from '@/types/convex-contexts';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -129,22 +125,12 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -152,7 +138,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch notifications for this user
     const allNotifications = await convex.query(api.queries.notifications.getAll, {});
-    const userId = payload.user_id || payload.userId;
+    const userId = userId || payload.userId;
     const userRole = payload.role;
     type Notification = { userId?: string; global?: boolean; role?: string; createdAt?: number; [key: string]: unknown };
     const userNotifications = allNotifications.filter((n: Notification) => 
@@ -170,20 +156,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
     // Mark all notifications as read for this user
-    const userId = payload.user_id || payload.userId;
+    const userId = userId || payload.userId;
     if (!userId) {
       return ResponseFactory.unauthorized('Missing user ID in token.');
     }
@@ -199,18 +175,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
 
 async function handleBulkMarkRead(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const { notification_ids } = await request.json();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const { notification_ids } = await request.json();
     if (!Array.isArray(notification_ids) || notification_ids.length === 0) {
       return ResponseFactory.error('notification_ids array is required.', 'CUSTOM_ERROR', 422);
     }
@@ -227,18 +193,8 @@ async function handleBulkMarkRead(request: NextRequest): Promise<NextResponse> {
 
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can send notifications.');
     }
     const convex = getConvexClient();

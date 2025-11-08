@@ -1,5 +1,8 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -79,7 +82,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export async function GET(request: NextRequest) {
   try {

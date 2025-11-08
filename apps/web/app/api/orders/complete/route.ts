@@ -4,11 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 interface CompleteOrderRequest {
   orderId: string;
@@ -113,26 +111,14 @@ interface CompleteOrderRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to mark orders as completed
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to mark orders as completed
+    if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -159,15 +145,15 @@ async function handlePOST(request: NextRequest) {
     // Mark order as completed
     const completedOrder = await convex.mutation(api.mutations.orders.markOrderCompleted, {
       orderId: order._id,
-      completedBy: payload.user_id || '',
+      completedBy: userId || '',
       completionNotes: completionNotes || 'Order completed',
       metadata: {
-        completedByRole: payload.roles?.[0] || 'unknown',
+        completedByRole: user.roles?.[0] || 'unknown',
         ...metadata
       }
     });
 
-    console.log(`Order ${orderId} marked as completed by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    console.log(`Order ${orderId} marked as completed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({});
   } catch (error: unknown) {

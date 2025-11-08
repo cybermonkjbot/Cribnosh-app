@@ -2,10 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser, getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 interface CustomOrder {
   _id: Id<'custom_orders'>;
@@ -23,15 +25,6 @@ interface CustomOrder {
   updatedAt?: number;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
-interface JWTPayload {
-  user_id: string;
-  role: string;
-  email?: string;
-  iat?: number;
-  exp?: number;
-}
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -154,21 +147,13 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    
     const convex = getConvexClient();
     // Pagination - support both 'page' and 'offset' parameters
     const { searchParams } = new URL(request.url);
@@ -186,7 +171,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Get orders for the current user with pagination
     const userOrders = await convex.query(api.queries.custom_orders.getByUserId, {
-      userId: payload.user_id as Id<'users'>
+      userId: userId as Id<'users'>
     }) as CustomOrder[] || [];
     
     // Apply pagination
@@ -297,22 +282,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const body = await request.json();
     
     // Support both formats: nested { details: {...} } and top-level fields
@@ -382,7 +357,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // Try to get user's default address from profile
       try {
         const userProfile = await convex.query(api.queries.users.getUserProfile, {
-          userId: payload.user_id as Id<'users'>,
+          userId: userId as Id<'users'>,
         });
         
         if (userProfile?.address) {
@@ -408,7 +383,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     const customOrderId = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     const orderId = await convex.mutation(api.mutations.customOrders.create, {
-      userId: payload.user_id as Id<'users'>,
+      userId: userId as Id<'users'>,
       requirements: details.requirements.trim(),
       servingSize: details.servingSize,
       desiredDeliveryTime: details.desiredDeliveryTime,
@@ -436,18 +411,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const body = await request.json();
     const { order_id, details } = body;
     
@@ -467,7 +432,7 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.notFound('Order not found.');
     }
     
-    if (order.userId !== payload.user_id) {
+    if (order.userId !== userId) {
       return ResponseFactory.forbidden('Unauthorized: You can only update your own orders.');
     }
     
@@ -540,18 +505,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const body = await request.json();
     const { order_id } = body;
     
@@ -567,12 +522,12 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.notFound('Order not found.');
     }
     
-    if (order.userId !== payload.user_id && payload.role !== 'admin') {
+    if (order.userId !== userId && user.roles?.[0] !== 'admin') {
       return ResponseFactory.forbidden('Forbidden: You can only delete your own orders.');
     }
     
     // Check if order can be deleted
-    if ((order.status || 'pending') !== 'pending' && payload.role !== 'admin') {
+    if ((order.status || 'pending') !== 'pending' && user.roles?.[0] !== 'admin') {
       return ResponseFactory.forbidden('Cannot delete a processed order unless you are admin.');
     }
     
@@ -582,7 +537,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     });
     
     // Audit log - only if admin
-    if (payload.role === 'admin') {
+    if (user.roles?.[0] === 'admin') {
       await convex.mutation(api.mutations.admin.logActivity, {
         type: 'custom_order_deletion',
         description: `Custom order ${order_id} was deleted`,
@@ -591,7 +546,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
           entityType: 'custom_order',
           details: { count: 1 }
         },
-        userId: payload.user_id
+        userId: userId
       });
     }
     
@@ -604,19 +559,9 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
 
 async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    
-    if (payload.role !== 'admin') {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    if (user.roles?.[0] !== 'admin') {
       return ResponseFactory.forbidden('Forbidden: Only admins can bulk delete custom orders.');
     }
     
@@ -672,25 +617,8 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
 
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
-    // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    // Verify JWT token
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { user_id: string; role?: string };
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { user_id: string; role?: string };
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Authorization check
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can export custom orders.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
 
     // Fetch orders
     const convex = getConvexClient();

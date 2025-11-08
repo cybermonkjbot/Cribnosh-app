@@ -3,12 +3,8 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 interface ConfirmOrderRequest {
   orderId: string;
@@ -113,26 +109,14 @@ interface ConfirmOrderRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to confirm orders
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to confirm orders
+    if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -155,7 +139,7 @@ async function handlePOST(request: NextRequest) {
     const validOrder = order;
 
     // Verify user has permission to confirm this specific order
-    if (payload.roles?.includes('chef') && validOrder.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && validOrder.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only confirm your own orders.');
     }
 
@@ -167,11 +151,11 @@ async function handlePOST(request: NextRequest) {
     // Confirm order
     const confirmedOrder = await convex.mutation(api.mutations.orders.confirmOrder, {
       orderId: validOrder._id,
-      confirmedBy: payload.user_id || '',
+      confirmedBy: userId || '',
       estimatedReadyTime: estimatedPrepTime || validOrder.estimated_prep_time_minutes,
       notes: chefNotes || validOrder.chef_notes,
       metadata: {
-        confirmedByRole: payload.roles?.[0] || 'unknown',
+        confirmedByRole: user.roles?.[0] || 'unknown',
         ...metadata
       }
     });
@@ -180,7 +164,7 @@ async function handlePOST(request: NextRequest) {
       return ResponseFactory.internalError('Failed to confirm order');
     }
 
-    console.log(`Order ${orderId} confirmed by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    console.log(`Order ${orderId} confirmed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: confirmedOrder._id,

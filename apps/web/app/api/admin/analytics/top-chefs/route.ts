@@ -2,12 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -89,24 +89,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { roles?: string[] } | string;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { roles?: string[] } | string;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (typeof payload === 'string' || !payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
     const convex = getConvexClient();
     // Use correct queries for orders and chefs
     const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});

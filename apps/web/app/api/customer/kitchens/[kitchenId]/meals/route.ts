@@ -6,6 +6,9 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -15,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Get all meals available from a specific kitchen/chef with optional filters
  *     tags: [Customer, Kitchens, Meals]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId

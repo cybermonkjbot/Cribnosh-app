@@ -2,6 +2,9 @@ import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger

@@ -27,11 +27,13 @@
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/images/dish/{dish_id}/primary/{image_id}
 // Group: images
@@ -44,7 +46,7 @@ import { NextResponse } from 'next/server';
  *     description: Set a specific image as the primary image for a dish (chef or admin only)
  *     tags: [Images]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: dish_id
@@ -79,18 +81,8 @@ export async function POST(request: NextRequest, { params }: { params: { dish_id
   if (!dish_id || !image_id) {
     return ResponseFactory.validationError('Missing dish_id or image_id');
   }
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: any;
-  try {
-    payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  if (payload.role !== 'chef' && payload.role !== 'admin') {
+  // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);if (user.roles?.[0] !== 'chef' && user.roles?.[0] !== 'admin') {
     return ResponseFactory.forbidden('Forbidden: Only chefs or admins can set primary image.');
   }
   const convex = getConvexClient();

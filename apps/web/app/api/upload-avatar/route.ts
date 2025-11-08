@@ -3,6 +3,9 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { ErrorFactory, ErrorCode } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -75,7 +78,7 @@ import { ErrorFactory, ErrorCode } from '@/lib/errors';
  *                   type: string
  *                   example: "Convex upload error"
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 export async function POST(request: NextRequest) {

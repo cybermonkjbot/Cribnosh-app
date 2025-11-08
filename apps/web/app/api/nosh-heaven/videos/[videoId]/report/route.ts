@@ -4,9 +4,10 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -73,13 +74,8 @@ async function handlePOST(request: NextRequest, { params }: { params: { videoId:
     }
     
     // Get user from JWT token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return ResponseFactory.error('Authorization token required', 'AUTH_ERROR', 401);
-    }
-    
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const userId = decoded.userId;
+    // Get authenticated user from session token
+    const { userId } = await getAuthenticatedUser(request);
     
     // Create report
     await convex.mutation((api as any).mutations.videoPosts.flagVideo, {

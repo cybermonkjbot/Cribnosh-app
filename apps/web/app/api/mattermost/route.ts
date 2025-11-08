@@ -3,6 +3,9 @@ import { ResponseFactory } from '@/lib/api';
 import { ErrorCode, ErrorFactory, errorHandler, ErrorSeverity, withErrorHandling } from '@/lib/errors';
 import { mattermostService } from '@/lib/mattermost';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger

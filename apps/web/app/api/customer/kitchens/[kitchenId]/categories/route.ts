@@ -5,6 +5,9 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -14,7 +17,7 @@ import { getErrorMessage } from '@/types/errors';
  *     description: Get all available meal categories with meal counts for a specific kitchen/chef
  *     tags: [Customer, Kitchens, Meals, Categories]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId

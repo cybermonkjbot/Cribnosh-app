@@ -4,10 +4,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-
 /**
  * @swagger
  * /admin/reviews:
@@ -109,32 +106,21 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
     const reviews = await convex.query(api.queries.reviews.getAll, {});
     return ResponseFactory.success({ reviews });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch reviews.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

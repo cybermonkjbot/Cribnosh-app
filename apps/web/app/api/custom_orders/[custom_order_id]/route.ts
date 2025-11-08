@@ -5,10 +5,6 @@ import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
 interface JWTPayload {
   user_id: string;
   role: string;
@@ -257,7 +253,7 @@ interface JWTPayload {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   delete:
  *     summary: Delete Custom Order
  *     description: Permanently delete a custom order. This action can only be performed by the order owner or administrators. This action cannot be undone.
@@ -330,7 +326,7 @@ interface JWTPayload {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 // Helper to extract custom_order_id from the URL
@@ -359,23 +355,13 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
   if (!custom_order_id) {
     return ResponseFactory.validationError('Missing custom_order_id');
   }
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: JWTPayload;
-  try {
-    payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  const convex = getConvexClient();
+  // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
   const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
   if (!order) {
     return ResponseFactory.notFound('Custom order not found');
   }
-  if (order.userId !== payload.user_id && payload.role !== 'admin') {
+  if (order.userId !== userId && payload.role !== 'admin') {
     return ResponseFactory.forbidden('Forbidden: Not your order.');
   }
   const { details } = await request.json();
@@ -396,23 +382,13 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   if (!custom_order_id) {
     return ResponseFactory.validationError('Missing custom_order_id');
   }
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: JWTPayload;
-  try {
-    payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  const convex = getConvexClient();
+  // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
   const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
   if (!order) {
     return ResponseFactory.notFound('Custom order not found');
   }
-  if (order.userId !== payload.user_id && payload.role !== 'admin') {
+  if (order.userId !== userId && payload.role !== 'admin') {
     return ResponseFactory.forbidden('Forbidden: Not your order.');
   }
   await convex.mutation(api.mutations.customOrders.deleteOrder, { orderId: custom_order_id as Id<'custom_orders'> });

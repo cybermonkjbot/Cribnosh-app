@@ -4,10 +4,11 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -120,7 +121,7 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   post:
  *     summary: Submit Contact Form
  *     description: Submit a contact form with name, email, subject, and message
@@ -253,24 +254,12 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClient();
     // Pagination
     const { searchParams } = new URL(request.url);
@@ -283,8 +272,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     allContacts.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     const paginated = allContacts.slice(offset, offset + limit);
     return ResponseFactory.success({ contacts: paginated, total: allContacts.length, limit, offset });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch contacts.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
@@ -307,27 +299,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       createdAt: Date.now(),
     });
     return ResponseFactory.success({ success: true, contactId });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to submit contact form.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can delete contacts.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { contact_id } = await request.json();
     if (!contact_id) {
       return ResponseFactory.error('contact_id is required.', 'CUSTOM_ERROR', 422);
@@ -338,30 +321,21 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_contact',
       details: { contact_id },
-      adminId: payload.user_id,
+      adminId: userId,
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete contact.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can bulk delete contacts.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { contact_ids } = await request.json();
     if (!Array.isArray(contact_ids) || contact_ids.length === 0) {
       return ResponseFactory.error('contact_ids array is required.', 'CUSTOM_ERROR', 422);
@@ -374,41 +348,35 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'bulk_delete_contacts',
       details: { contact_ids },
-      adminId: payload.user_id,
+      adminId: userId,
     });
     return ResponseFactory.success({ success: true, deleted: contact_ids.length });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to bulk delete contacts.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can export contacts.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClient();
     const allContacts = await convex.query(api.queries.contacts.getAll, {});
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_contacts',
       details: {},
-      adminId: payload.user_id,
+      adminId: userId,
     });
     return ResponseFactory.jsonDownload(allContacts, 'contacts-export.json');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to export contacts.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

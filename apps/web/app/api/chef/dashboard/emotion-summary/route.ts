@@ -35,40 +35,29 @@
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const EMOTIONS_ENGINE_URL = process.env.EMOTIONS_ENGINE_URL || 'http://localhost:3000/api/emotions-engine';
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'chef') {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can access this endpoint.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
     // Get all meals for this chef
-    const meals = await convex.query(api.queries.meals.getAll, {}).then((meals: any[]) => meals.filter(m => m.chefId === payload.user_id));
+    const meals = await convex.query(api.queries.meals.getAll, {}).then((meals: any[]) => meals.filter(m => m.chefId === userId));
     // Get all reviews for these meals
     const reviews = await convex.query(api.queries.reviews.getAll, {}).then((reviews: any[]) => reviews.filter(r => meals.some(m => m._id === r.meal_id)));
     // Aggregate review texts
@@ -80,8 +69,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
     const data = await res.json();
     return ResponseFactory.success({ success: true, data });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Emotion summary failed.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

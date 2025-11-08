@@ -70,6 +70,9 @@ import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { withModerationRateLimit } from '../../../../../lib/api/sensitive-middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 async function handlePOST(req: NextRequest) {
   try {

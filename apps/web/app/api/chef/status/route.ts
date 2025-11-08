@@ -54,7 +54,7 @@ import { NextResponse } from 'next/server';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   const user = await getUserFromRequest(request);

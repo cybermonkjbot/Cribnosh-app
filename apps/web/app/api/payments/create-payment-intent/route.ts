@@ -1,10 +1,10 @@
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -101,36 +101,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: any;
   try {
-    payload = jwt.verify(token, JWT_SECRET);
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  const { email } = payload;
-  if (!email) {
-    return ResponseFactory.validationError('User email required.');
-  }
-  const { amount, currency = 'gbp', payment_method_id, metadata, orderId, chefId, bookingId } = await request.json();
-  if (!amount || typeof amount !== 'number' || amount < 50) {
-    return ResponseFactory.validationError('Amount (in smallest currency unit) is required and must be >= 50.');
-  }
-  const customer = await getOrCreateCustomer({ userId: payload.user_id, email });
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    
+    const email = user.email;
+    if (!email) {
+      return ResponseFactory.validationError('User email required.');
+    }
+    const { amount, currency = 'gbp', payment_method_id, metadata, orderId, chefId, bookingId } = await request.json();
+    if (!amount || typeof amount !== 'number' || amount < 50) {
+      return ResponseFactory.validationError('Amount (in smallest currency unit) is required and must be >= 50.');
+    }
+    const customer = await getOrCreateCustomer({ userId, email });
   const params: any = {
     amount,
     currency,
     customer: customer.id,
     metadata: {
       ...(metadata || {}),
-      user_id: payload.user_id,
+      user_id: userId,
       ...(orderId ? { order_id: orderId } : {}),
       ...(chefId ? { chef_id: chefId } : {}),
       ...(bookingId ? { booking_id: bookingId } : {}),
@@ -147,4 +140,10 @@ export async function POST(request: NextRequest) {
   }
   const paymentIntent = await stripe.paymentIntents.create(params);
   return ResponseFactory.success({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create payment intent'));
+  }
 } 

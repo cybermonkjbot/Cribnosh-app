@@ -4,7 +4,6 @@ import { action } from "../_generated/server";
 import { v } from "convex/values";
 import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
-import { randomBytes } from "crypto";
 
 interface WaitlistResult {
   success: boolean;
@@ -117,13 +116,12 @@ export const addToWaitlistComplete = action({
       });
     }
 
-    // Step 2: Generate and set session token
-    const sessionToken = randomBytes(32).toString('hex');
-    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 1 week
-    await ctx.runMutation(api.mutations.users.setSessionToken, {
+    // Step 2: Generate and set session token atomically using Convex mutation
+    // This is more performant and uses base64url encoding for better security
+    const ONE_WEEK_DAYS = 7;
+    const sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
       userId,
-      sessionToken,
-      sessionExpiry: expiresAt,
+      expiresInDays: ONE_WEEK_DAYS,
     });
 
     // Step 3: Generate referral link

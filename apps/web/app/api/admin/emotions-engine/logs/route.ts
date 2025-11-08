@@ -72,7 +72,7 @@
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 import { api } from '@/convex/_generated/api';

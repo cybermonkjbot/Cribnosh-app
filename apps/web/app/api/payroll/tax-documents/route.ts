@@ -51,10 +51,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 interface GenerateTaxDocumentRequest {
   documentType: 'p60' | 'p45' | 'p11d' | 'self_assessment' | 'payslip' | 'payslip_ng' | 'tax_clearance' | 'nhf_certificate' | 'nhis_certificate' | 'pension_certificate';
   employeeId: string;
@@ -104,7 +103,7 @@ interface GenerateTaxDocumentRequest {
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   get:
  *     summary: Get tax documents
  *     description: Retrieve available tax documents with optional filtering
@@ -166,26 +165,14 @@ interface GenerateTaxDocumentRequest {
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to generate tax documents
-    if (!['admin', 'staff'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to generate tax documents
+    if (!['admin', 'staff'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -264,21 +251,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to view tax documents
-    if (!['admin', 'staff'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to view tax documents
+    if (!['admin', 'staff'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 

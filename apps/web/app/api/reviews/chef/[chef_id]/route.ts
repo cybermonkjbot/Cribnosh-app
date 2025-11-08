@@ -4,6 +4,9 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { api } from '@/convex/_generated/api';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/reviews/chef/{chef_id}
 // Group: reviews

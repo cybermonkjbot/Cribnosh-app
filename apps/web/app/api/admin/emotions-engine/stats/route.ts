@@ -53,7 +53,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Retrieve comprehensive statistics about the emotions engine performance (admin only)
  *     tags: [Admin Emotions Engine]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Emotions engine statistics retrieved successfully

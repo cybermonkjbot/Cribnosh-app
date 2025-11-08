@@ -3,12 +3,13 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -109,7 +110,7 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   post:
  *     summary: Bulk Delete Users (Admin)
  *     description: Delete multiple users by their IDs (admin only)
@@ -184,38 +185,13 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-interface JWTPayload {
-  role?: string;
-  roles?: string[];
-  userId?: string;
-  user_id?: string;
-  email?: string;
-  [key: string]: unknown;
-}
-
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'object' && verified !== null) {
-        payload = verified as JWTPayload;
-      } else {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
     const convex = getConvexClient();
     // Pagination
     const { searchParams } = new URL(request.url);
@@ -236,25 +212,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
 async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'object' && verified !== null) {
-        payload = verified as JWTPayload;
-      } else {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can bulk delete users.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const { user_ids } = await request.json();
     if (!Array.isArray(user_ids) || user_ids.length === 0) {
       return ResponseFactory.error('user_ids array is required.', 'CUSTOM_ERROR', 422);
@@ -264,7 +223,7 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
       await convex.mutation(api.mutations.users.deleteUser, { userId });
     }
     // Audit log
-    const adminId = payload.user_id ?? payload.userId;
+    const adminId = userId ?? payload.userId;
     if (adminId && typeof adminId === 'string') {
       await convex.mutation(api.mutations.admin.insertAdminLog, {
         action: 'bulk_delete_users',
@@ -281,25 +240,9 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
 
 async function handleSearch(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'object' && verified !== null) {
-        payload = verified as JWTPayload;
-      } else {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can search users.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get('q') || '').toLowerCase();
     const convex = getConvexClient();

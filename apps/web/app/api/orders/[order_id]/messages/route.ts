@@ -3,12 +3,8 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 interface SendMessageRequest {
   message: string;
@@ -131,25 +127,13 @@ interface SendMessageRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Extract order_id from URL
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Extract order_id from URL
     const url = new URL(request.url);
     const match = url.pathname.match(/\/orders\/([^\/]+)\/messages/);
     const order_id = match ? match[1] : undefined;
@@ -173,10 +157,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to send messages for this specific order
-    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
+    if (user.roles?.includes('customer') && order.customer_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only send messages for your own orders.');
     }
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only send messages for your own orders.');
     }
 
@@ -190,15 +174,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       orderId: order._id,
       message,
       messageType,
-      sentBy: payload.user_id || '',
+      sentBy: userId || '',
       metadata: {
-        sentByRole: payload.roles?.[0] || 'unknown',
+        sentByRole: user.roles?.[0] || 'unknown',
         orderStatus: order.order_status,
         ...metadata
       }
     });
 
-    console.log(`Message sent for order ${order_id} by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    console.log(`Message sent for order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -207,8 +191,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         id: messageResult._id,
         message,
         messageType,
-        sentBy: payload.user_id,
-        sentByRole: payload.roles?.[0] || 'unknown',
+        sentBy: userId,
+        sentByRole: user.roles?.[0] || 'unknown',
         sentAt: new Date().toISOString(),
         metadata: metadata || {}
       } : null,
@@ -225,20 +209,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Extract order_id from URL
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Extract order_id from URL
     const url = new URL(request.url);
     const match = url.pathname.match(/\/orders\/([^\/]+)\/messages/);
     const order_id = match ? match[1] : undefined;
@@ -256,10 +228,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to view this specific order
-    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
+    if (user.roles?.includes('customer') && order.customer_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
 

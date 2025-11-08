@@ -4,6 +4,7 @@ import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getUserFromRequest } from '@/lib/auth/session';
 
 /**
  * @swagger
@@ -13,7 +14,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Creates a new video collection/playlist
  *     tags: [Nosh Heaven, Collections]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -81,18 +82,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('name and videoIds array are required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
+    // Get user from session token
     const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Create collection

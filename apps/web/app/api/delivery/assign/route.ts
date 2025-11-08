@@ -5,10 +5,9 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 interface AssignDeliveryRequest {
   orderId: string;
   driverId?: string; // Optional - if not provided, auto-assign
@@ -154,26 +153,14 @@ interface AssignDeliveryRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to assign deliveries
-    if (!['admin', 'staff'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to assign deliveries
+    if (!['admin', 'staff'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Only admins and staff can assign deliveries.');
     }
 
@@ -240,13 +227,13 @@ async function handlePOST(request: NextRequest) {
     const assignmentResult = await convex.mutation(api.mutations.delivery.assignDelivery, {
       orderId: order._id,
       driverId: selectedDriverId as Id<'drivers'>,
-      assignedBy: payload.user_id as Id<'users'>,
+      assignedBy: userId as Id<'users'>,
       estimatedPickupTime: estimatedPickupTime ? new Date(estimatedPickupTime).getTime() : undefined,
       estimatedDeliveryTime: estimatedDeliveryTime ? new Date(estimatedDeliveryTime).getTime() : undefined,
       pickupInstructions,
       deliveryInstructions,
       metadata: {
-        assignedByRole: payload.role,
+        assignedByRole: user.roles?.[0],
         orderStatus: order.order_status,
         ...metadata
       }
@@ -256,7 +243,7 @@ async function handlePOST(request: NextRequest) {
       return ResponseFactory.error('Failed to create delivery assignment.', 'CUSTOM_ERROR', 500);
     }
 
-    console.log(`Delivery assigned for order ${orderId} to driver ${selectedDriverId} by ${payload.user_id}`);
+    console.log(`Delivery assigned for order ${orderId} to driver ${selectedDriverId} by ${userId}`);
 
     return ResponseFactory.success({});
   } catch (error: any) {

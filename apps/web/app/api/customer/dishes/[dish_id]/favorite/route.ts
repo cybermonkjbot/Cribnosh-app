@@ -5,11 +5,9 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /api/customer/dishes/{dishId}/favorite:
@@ -18,7 +16,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *     description: Check if the current user has favorited a dish/meal
  *     tags: [Customer, Dishes, Favorites]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: dishId
@@ -66,24 +64,12 @@ async function handleGET(
     }
 
     // Get user from JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    if (!payload.user_id) {
+    // Get authenticated customer from session token
+    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const userId = payload.user_id;
+    const userId = userId;
     const convex = getConvexClient();
 
     // Verify the meal exists
@@ -117,7 +103,7 @@ async function handleGET(
  *     description: Add a dish/meal to the user's favorites
  *     tags: [Customer, Dishes, Favorites]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: dishId
@@ -145,24 +131,12 @@ async function handlePOST(
     }
 
     // Get user from JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    if (!payload.user_id) {
+    // Get authenticated customer from session token
+    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const userId = payload.user_id;
+    const userId = userId;
     const convex = getConvexClient();
 
     // Verify the meal exists
@@ -196,7 +170,7 @@ async function handlePOST(
  *     description: Remove a dish/meal from the user's favorites
  *     tags: [Customer, Dishes, Favorites]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: dishId
@@ -224,24 +198,12 @@ async function handleDELETE(
     }
 
     // Get user from JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    if (!payload.user_id) {
+    // Get authenticated customer from session token
+    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const userId = payload.user_id;
+    const userId = userId;
     const convex = getConvexClient();
 
     // Verify the meal exists

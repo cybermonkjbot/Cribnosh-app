@@ -5,8 +5,9 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /admin/orders/refund-eligibility-status:
@@ -137,10 +138,8 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 // Helper interface for eligibility calculation
 interface OrderForEligibility {
@@ -162,29 +161,9 @@ function isValidStatus(status: string | null): status is 'expired' | 'refundable
 async function handleGET(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);// Check if user has admin permissions
     
-    interface JWTPayload {
-      role?: string;
-      userId?: string;
-      email?: string;
-      [key: string]: unknown;
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has admin permissions
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Admin access required.');
-    }
 
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');

@@ -5,8 +5,9 @@ import { stripe } from '@/lib/stripe';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /payments/manage:
@@ -126,10 +127,8 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 interface PaymentCaptureRequest {
   paymentIntentId: string;
@@ -152,22 +151,11 @@ interface PaymentMethodUpdateRequest {
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { user } = await getAuthenticatedUser(request);
 
     // Check if user has permission to manage payments
-    if (!['admin', 'staff'].includes(payload.role)) {
+    if (!user.roles || !['admin', 'staff'].some(role => user.roles?.includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -221,8 +209,8 @@ async function handleCapture(request: NextRequest, payload: any, convex: any): P
     // Prepare capture data
     const captureData: any = {
       metadata: {
-        capturedBy: payload.user_id,
-        capturedByRole: payload.role,
+        capturedBy: userId,
+        capturedByRole: user.roles?.[0],
         ...metadata
       }
     };
@@ -258,7 +246,7 @@ async function handleCapture(request: NextRequest, payload: any, convex: any): P
       });
     }
 
-    console.log(`Payment captured: ${paymentIntentId} by ${payload.user_id} (${payload.role})`);
+    console.log(`Payment captured: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
@@ -306,7 +294,7 @@ async function handleVoid(request: NextRequest, payload: any, convex: any) {
       });
     }
 
-    console.log(`Payment voided: ${paymentIntentId} by ${payload.user_id} (${payload.role})`);
+    console.log(`Payment voided: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
@@ -332,13 +320,13 @@ async function handleUpdatePaymentMethod(request: NextRequest, payload: any, con
     const updatedPayment = await stripe!.paymentIntents.update(paymentIntentId, {
       payment_method: paymentMethodId,
       metadata: {
-        updatedBy: payload.user_id,
-        updatedByRole: payload.role,
+        updatedBy: userId,
+        updatedByRole: user.roles?.[0],
         ...metadata
       }
     });
 
-    console.log(`Payment method updated: ${paymentIntentId} by ${payload.user_id} (${payload.role})`);
+    console.log(`Payment method updated: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {

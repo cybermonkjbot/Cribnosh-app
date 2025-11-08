@@ -3,6 +3,9 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 const EMOTIONS_ENGINE_URL = process.env.EMOTIONS_ENGINE_URL || 'http://localhost:3000/api/emotions-engine';
 
@@ -176,7 +179,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const data = await res.json();
     return ResponseFactory.success({});
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Trending failed.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

@@ -4,11 +4,11 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /admin/chef/cuisines/{cuisine_id}:
@@ -169,7 +169,7 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   delete:
  *     summary: Delete Cuisine (Admin)
  *     description: Permanently delete a cuisine type. Only accessible by administrators. This action cannot be undone.
@@ -227,7 +227,7 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
@@ -254,26 +254,17 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       cuisine_image_url: cuisine.image || null,
     });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch cuisine.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret') as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can update cuisines.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const url = new URL(request.url);
     const match = url.pathname.match(/\/cuisines\/([^/]+)/);
     const cuisine_id = match ? (match[1] as Id<'cuisines'>) : undefined;
@@ -288,26 +279,17 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update cuisine.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret') as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can delete cuisines.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const url = new URL(request.url);
     const match = url.pathname.match(/\/cuisines\/([^/]+)/);
     const cuisine_id = match ? (match[1] as Id<'cuisines'>) : undefined;
@@ -318,7 +300,10 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.chefs.deleteCuisine, { cuisineId: cuisine_id });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete cuisine.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

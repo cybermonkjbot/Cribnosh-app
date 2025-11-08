@@ -5,10 +5,11 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -88,7 +89,7 @@ import { Id } from '@/convex/_generated/dataModel';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   put:
  *     summary: Update Review Approval Status (Admin)
  *     description: Update the approval status of a review. This is an alias for the POST endpoint with identical functionality.
@@ -164,10 +165,8 @@ import { Id } from '@/convex/_generated/dataModel';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 function extractReviewIdFromUrl(request: NextRequest): Id<'reviews'> | undefined {
   const url = new URL(request.url);
@@ -177,20 +176,8 @@ function extractReviewIdFromUrl(request: NextRequest): Id<'reviews'> | undefined
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can approve/reject reviews.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const review_id = extractReviewIdFromUrl(request);
     if (!review_id) {
       return ResponseFactory.validationError('Missing review_id');
@@ -208,11 +195,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'review_approval',
       details: { review_id, status, notes: approvalNotes },
-      adminId: payload.user_id
+      adminId: userId
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to approve/reject review.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

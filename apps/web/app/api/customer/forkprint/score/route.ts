@@ -7,10 +7,8 @@ import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 <<<<<<< Current (Your changes)
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 =======
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 >>>>>>> Incoming (Background Agent changes)

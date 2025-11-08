@@ -5,10 +5,9 @@ import { stripe } from '@/lib/stripe';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /payments/status:
@@ -153,23 +152,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    await getAuthenticatedUser(request);
 
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
@@ -191,7 +179,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       }
 
       // Verify user has permission to view this order
-      if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+      if (user.roles?.[0] === 'customer' && order.customer_id !== userId) {
         return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
       }
 

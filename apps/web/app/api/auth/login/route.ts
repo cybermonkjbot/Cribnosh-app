@@ -4,21 +4,18 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { scryptSync, timingSafeEqual } from 'crypto';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 
 // Endpoint: /v1/auth/login
 // Group: auth
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
 /**
  * @swagger
  * /auth/login:
  *   post:
  *     summary: User Login
- *     description: Authenticate user with email and password, returns JWT token
+ *     description: Authenticate user with email and password, returns session token
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -156,9 +153,34 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       });
     }
     
-    // No 2FA required - create JWT token
-    const token = jwt.sign({ user_id: user._id, roles: userRoles }, JWT_SECRET, { expiresIn: '2h' });
-    return ResponseFactory.success({ success: true, token, user: { user_id: user._id, email: user.email, name: user.name, roles: userRoles } });
+    // No 2FA required - create session token using Convex mutation
+    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+      userId: user._id,
+      expiresInDays: 30, // 30 days expiry
+    });
+    
+    // Set session token cookie
+    const isProd = process.env.NODE_ENV === 'production';
+    const response = ResponseFactory.success({ 
+      success: true, 
+      sessionToken: sessionResult.sessionToken,
+      user: { 
+        user_id: user._id, 
+        email: user.email, 
+        name: user.name, 
+        roles: userRoles 
+      } 
+    });
+    
+    response.cookies.set('convex-auth-token', sessionResult.sessionToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
+    });
+    
+    return response;
   } catch (error: unknown) {
     return ResponseFactory.internalError(getErrorMessage(error, 'Login failed.'));
   }

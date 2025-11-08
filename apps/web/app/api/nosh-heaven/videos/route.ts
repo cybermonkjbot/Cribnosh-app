@@ -3,6 +3,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getUserFromRequest } from '@/lib/auth/session';
 
 /**
  * @swagger
@@ -12,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Creates a new video post in Nosh Heaven
  *     tags: [Nosh Heaven, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -131,19 +132,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Resolution must have width and height');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
+    // Get user from session token
     const convex = getConvexClient();
-    const getUserByToken = getApiFunction('queries/users', 'getUserByToken');
-    const user = await convex.query(getUserByToken, { token });
-
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Check if user is a chef or food creator

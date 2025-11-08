@@ -4,6 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '../../../lib/api/middleware';
 import { getConvexClient, api } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 type ActivityWatchLog = {
   timestamp: string;
@@ -104,7 +107,7 @@ function validateTimelogRequest(data: any): data is TimelogRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *       - cookieAuth: []
  */
 async function postHandler(req: NextRequest) {
@@ -195,7 +198,7 @@ export function OPTIONS() {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *       - cookieAuth: []
  */
 export async function GET(req: NextRequest) {

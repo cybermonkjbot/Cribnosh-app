@@ -5,6 +5,9 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withSensitiveRateLimit } from '@/lib/api/sensitive-middleware';
 import { Id } from '@/convex/_generated/dataModel';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger

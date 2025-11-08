@@ -3,6 +3,9 @@ import { getConvexClient, api } from '@/lib/conxed-client';
 import crypto from 'crypto';
 import { ConvexHttpClient } from 'convex/browser';
 import { Id } from '@/convex/_generated/dataModel';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 interface WebhookEventData {
   type: string;

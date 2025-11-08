@@ -45,7 +45,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Retrieve emotions engine configuration settings (admin only)
  *     tags: [Admin Emotions Engine]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: key
@@ -82,7 +82,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Create or update an emotions engine setting (admin only)
  *     tags: [Admin Emotions Engine]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -124,7 +124,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Delete an emotions engine setting (admin only)
  *     tags: [Admin Emotions Engine]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: key

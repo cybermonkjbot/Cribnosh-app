@@ -3,17 +3,12 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
-
-interface JWTPayload {
-  user_id: string;
-  role: string;
-}
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -58,13 +53,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-interface JWTPayload {
-  user_id: string;
-  role: string;
-}
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   const url = new URL(request.url);
@@ -79,22 +69,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'string') {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-      payload = verified as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    // notification_id is already extracted from searchParams
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// notification_id is already extracted from searchParams
     const convex = getConvexClient();
     // Get all notifications and find the one we want
     const notifications = await convex.query(api.queries.notifications.getAll, {});
@@ -103,7 +79,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.notFound('Notification not found.');
     }
     const userHasRole = notification.roles?.some((role: string) => (payload.role === role)) || false;
-    if (notification.userId !== payload.user_id && !notification.global && !userHasRole) {
+    if (notification.userId !== userId && !notification.global && !userHasRole) {
       return ResponseFactory.forbidden('Forbidden: Not your notification.');
     }
     await convex.mutation(api.mutations.notifications.markAsRead, { notificationId: notification_id as Id<'notifications'> });

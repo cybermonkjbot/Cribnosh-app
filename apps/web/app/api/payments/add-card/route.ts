@@ -1,8 +1,10 @@
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -51,28 +53,19 @@ import { withErrorHandling } from '@/lib/errors';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: any;
   try {
-    payload = jwt.verify(token, JWT_SECRET);
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  const { email } = payload;
-  if (!email) {
-    return ResponseFactory.validationError('User email required.');
-  }
-  const customer = await getOrCreateCustomer({ userId: payload.user_id, email });
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    
+    const email = user.email;
+    if (!email) {
+      return ResponseFactory.validationError('User email required.');
+    }
+    const customer = await getOrCreateCustomer({ userId, email });
   if (!stripe) {
     return ResponseFactory.internalError('Stripe is not configured');
   }
@@ -81,4 +74,10 @@ export async function POST(request: NextRequest) {
     usage: 'off_session',
   });
   return ResponseFactory.success({ clientSecret: setupIntent.client_secret });
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create setup intent'));
+  }
 } 

@@ -4,14 +4,14 @@ import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
 import { generateOTPCode } from '@/lib/utils/otp';
 import { sendOTPEmail } from '@/lib/email/send-otp-email';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const TEST_OTP = '123456'; // Test OTP for development
 
 /**
@@ -83,24 +83,12 @@ const TEST_OTP = '123456'; // Test OTP for development
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
+    // Get authenticated customer from session token
+    const { userId } = await getAuthenticatedCustomer(request);
 
     const body = await request.json();
     const { type, action, phone, email, otp } = body;
@@ -114,7 +102,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id;
+    const userId = userId;
 
     if (action === 'send') {
       if (type === 'phone') {
@@ -233,7 +221,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.badRequest('Invalid action.');
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update phone/email.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

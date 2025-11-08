@@ -3,12 +3,8 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 /**
  * @swagger
@@ -114,7 +110,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 interface ReviewOrderRequest {
@@ -126,21 +122,9 @@ interface ReviewOrderRequest {
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to mark orders as reviewed
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to mark orders as reviewed
+    if (!user.roles?.some(role => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -160,7 +144,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to review this specific order
-    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
+    if (user.roles?.includes('customer') && order.customer_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only review your own orders.');
     }
 
@@ -172,15 +156,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Mark order as reviewed
     const reviewedOrder = await convex.mutation(api.mutations.orders.markOrderReviewed, {
       orderId: order._id,
-      reviewedBy: payload.user_id || '',
+      reviewedBy: userId || '',
       reviewNotes: reviewNotes || 'Order reviewed',
       metadata: {
-        reviewedByRole: payload.roles?.[0] || 'unknown',
+        reviewedByRole: user.roles?.[0] || 'unknown',
         ...metadata
       }
     });
 
-    console.log(`Order ${orderId} marked as reviewed by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    console.log(`Order ${orderId} marked as reviewed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,

@@ -4,6 +4,7 @@ import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getUserFromRequest } from '@/lib/auth/session';
 
 /**
  * @swagger
@@ -13,7 +14,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Records a video share event
  *     tags: [Nosh Heaven, Videos, Interactions]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -67,18 +68,11 @@ async function handlePOST(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
+    // Get user from session token
     const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Share video

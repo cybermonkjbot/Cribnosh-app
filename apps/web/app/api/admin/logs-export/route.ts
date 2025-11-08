@@ -2,11 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -112,10 +113,8 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 function toCSV(data: any[]): string {
   if (!data.length) return '';
@@ -127,20 +126,8 @@ function toCSV(data: any[]): string {
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can export logs.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
@@ -158,10 +145,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_logs',
       details: { format, action, user, start, end },
-      adminId: payload.user_id,
+      adminId: userId,
     });
     // Trigger webhook and real-time broadcast (non-blocking)
-    const eventPayload = { type: 'logs_export', user: payload.user_id, format, filters: { action, user, start, end }, count: logs.length };
+    const eventPayload = { type: 'logs_export', user: userId, format, filters: { action, user, start, end }, count: logs.length };
     fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/admin/webhooks-trigger', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': request.headers.get('authorization') || '' },
@@ -179,7 +166,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Default: JSON
     return ResponseFactory.jsonDownload(logs, 'logs-export.json');
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to export logs.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

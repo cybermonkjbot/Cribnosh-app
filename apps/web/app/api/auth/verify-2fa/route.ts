@@ -5,11 +5,12 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { scryptSync, timingSafeEqual } from 'crypto';
 import { authenticator } from 'otplib';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 
@@ -32,7 +33,7 @@ const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
  *             properties:
  *               verificationToken:
  *                 type: string
- *                 description: Temporary verification token from login
+ *                 description: Temporary verification sessionResult.sessionToken from login
  *               code:
  *                 type: string
  *                 description: 6-digit TOTP code or backup code
@@ -50,9 +51,9 @@ const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
  *                 data:
  *                   type: object
  *                   properties:
- *                     token:
+ *                     sessionResult.sessionToken:
  *                       type: string
- *                       description: JWT authentication token
+ *                       description: JWT authentication sessionResult.sessionToken
  *                     user:
  *                       type: object
  *                       description: User information
@@ -68,7 +69,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const { verificationToken, code } = await request.json();
     
     if (!verificationToken || !code) {
-      return ResponseFactory.validationError('Verification token and code are required.');
+      return ResponseFactory.validationError('Verification sessionResult.sessionToken and code are required.');
     }
     
     const convex = getConvexClient();
@@ -182,16 +183,17 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       userId: user._id,
     });
     
-    // Create JWT token
-    const token = jwt.sign(
-      { user_id: user._id, roles: userRoles },
-      JWT_SECRET,
-      { expiresIn: '2h' }
-    );
+    // Create session token using Convex mutation
+    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+      userId: user._id,
+      expiresInDays: 30, // 30 days expiry
+    });
     
-    return ResponseFactory.success({
+    // Set session token cookie
+    const isProd = process.env.NODE_ENV === 'production';
+    const response = ResponseFactory.success({
       success: true,
-      token,
+      sessionToken: sessionResult.sessionToken,
       user: {
         user_id: user._id,
         email: user.email,
@@ -201,8 +203,21 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       },
       message: '2FA verification successful',
     });
+    
+    response.cookies.set('convex-auth-token', sessionResult.sessionToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
+    });
+    
+    return response;
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, '2FA verification failed.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

@@ -4,10 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 interface UpdateDeliveryStatusRequest {
   assignmentId: string;
   status: 'accepted' | 'picked_up' | 'in_transit' | 'delivered' | 'failed';
@@ -152,25 +151,13 @@ interface UpdateDeliveryStatusRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    const body: UpdateDeliveryStatusRequest = await request.json();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const body: UpdateDeliveryStatusRequest = await request.json();
     const { assignmentId, status, location, notes, metadata } = body;
 
     if (!assignmentId || !status) {
@@ -186,7 +173,7 @@ async function handlePOST(request: NextRequest) {
     }
 
     // Verify user has permission to update this delivery
-    if (payload.role === 'driver' && assignment.driver_id !== payload.user_id) {
+    if (user.roles?.[0] === 'driver' && assignment.driver_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own deliveries.');
     }
 
@@ -198,13 +185,13 @@ async function handlePOST(request: NextRequest) {
       location,
       notes,
       metadata: {
-        updatedByRole: payload.role,
-        updatedBy: payload.user_id,
+        updatedByRole: user.roles?.[0],
+        updatedBy: userId,
         ...metadata
       }
     });
 
-    console.log(`Delivery status updated for assignment ${assignmentId} to ${status} by ${payload.user_id}`);
+    console.log(`Delivery status updated for assignment ${assignmentId} to ${status} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,
@@ -225,20 +212,8 @@ async function handlePOST(request: NextRequest) {
 async function handleGET(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    const { searchParams } = new URL(request.url);
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const { searchParams } = new URL(request.url);
     const assignmentId = searchParams.get('assignmentId');
     const orderId = searchParams.get('orderId');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -261,7 +236,7 @@ async function handleGET(request: NextRequest) {
     }
 
     // Verify user has permission to view this delivery
-    if (payload.role === 'driver' && assignment.driver_id !== payload.user_id) {
+    if (user.roles?.[0] === 'driver' && assignment.driver_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own deliveries.');
     }
 

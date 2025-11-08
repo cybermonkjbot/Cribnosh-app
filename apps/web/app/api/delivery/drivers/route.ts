@@ -5,10 +5,9 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 interface UpdateDriverLocationRequest {
   driverId: string;
   location: {
@@ -381,26 +380,14 @@ async function handleGET(request: NextRequest) {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to update driver location
-    if (!['admin', 'staff', 'driver'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to update driver location
+    if (!['admin', 'staff', 'driver'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -412,7 +399,7 @@ async function handlePOST(request: NextRequest) {
     }
 
     // Verify driver can only update their own location
-    if (payload.role === 'driver' && driverId !== payload.user_id) {
+    if (user.roles?.[0] === 'driver' && driverId !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own location.');
     }
 
@@ -424,13 +411,13 @@ async function handlePOST(request: NextRequest) {
       location,
       availability,
       metadata: {
-        updatedByRole: payload.role,
-        updatedBy: payload.user_id,
+        updatedByRole: user.roles?.[0],
+        updatedBy: userId,
         ...metadata
       }
     });
 
-    console.log(`Driver location updated for ${driverId} by ${payload.user_id}`);
+    console.log(`Driver location updated for ${driverId} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,
@@ -451,21 +438,9 @@ async function handlePOST(request: NextRequest) {
 async function handlePATCH(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to update driver status
-    if (!['admin', 'staff'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to update driver status
+    if (!['admin', 'staff'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Only admins and staff can update driver status.');
     }
 
@@ -483,14 +458,14 @@ async function handlePATCH(request: NextRequest) {
       driverId: driverId as Id<'drivers'>,
       status,
       reason,
-      updatedBy: payload.user_id as Id<'users'>,
+      updatedBy: userId as Id<'users'>,
       metadata: {
-        updatedByRole: payload.role,
+        updatedByRole: user.roles?.[0],
         ...metadata
       }
     });
 
-    console.log(`Driver status updated for ${driverId} to ${status} by ${payload.user_id}`);
+    console.log(`Driver status updated for ${driverId} to ${status} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,

@@ -5,6 +5,9 @@ import { cookies } from 'next/headers';
 import { withErrorHandling } from '@/lib/errors';
 import { NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger

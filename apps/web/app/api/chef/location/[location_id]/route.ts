@@ -5,6 +5,9 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/chef/location/location
 // Group: chef

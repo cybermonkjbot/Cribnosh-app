@@ -81,7 +81,7 @@ import { NextResponse } from 'next/server';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   patch:
  *     summary: Update Chat Conversation
  *     description: Update chat conversation settings (mute, archive, etc.)
@@ -188,7 +188,7 @@ import { NextResponse } from 'next/server';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {

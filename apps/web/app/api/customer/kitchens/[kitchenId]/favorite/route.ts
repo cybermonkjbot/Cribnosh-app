@@ -5,6 +5,8 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -14,7 +16,7 @@ import { getErrorMessage } from '@/types/errors';
  *     description: Check if the current user has favorited a kitchen/chef
  *     tags: [Customer, Kitchens, Favorites]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId
@@ -64,29 +66,23 @@ async function handleGET(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
+    // Get authenticated customer from session token
+    const { userId } = await getAuthenticatedCustomer(request);
+    
     const convex = getConvexClient();
-    const user = await convex.query((api as any).queries.users.getUserByToken, { token });
-
-    if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
-    }
-
+    
     // Check favorite status
     const favoriteStatus = await convex.query(
       (api as any).queries.userFavorites.isKitchenFavorited,
-      { userId: user._id, kitchenId }
+      { userId, kitchenId }
     );
 
     return ResponseFactory.success(favoriteStatus, 'Favorite status retrieved successfully');
 
   } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     console.error('Favorite status retrieval error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve favorite status')
@@ -102,7 +98,7 @@ async function handleGET(
  *     description: Add a kitchen/chef to the user's favorites
  *     tags: [Customer, Kitchens, Favorites]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId
@@ -129,20 +125,11 @@ async function handlePOST(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
+    // Get authenticated customer from session token
+    const { userId } = await getAuthenticatedCustomer(request);
+    
     const convex = getConvexClient();
-    const user = await convex.query((api as any).queries.users.getUserByToken, { token });
-
-    if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
-    }
-
+    
     // Get chef ID from kitchen
     const chefId = await convex.query(
       (api as any).queries.kitchens.getChefByKitchenId,
@@ -155,13 +142,16 @@ async function handlePOST(
 
     // Add to favorites
     await convex.mutation((api as any).mutations.userFavorites.addFavorite, {
-      userId: user._id,
+      userId,
       chefId,
     });
 
     return ResponseFactory.success(null, 'Kitchen added to favorites successfully');
 
   } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     console.error('Add favorite error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to add kitchen to favorites')
@@ -177,7 +167,7 @@ async function handlePOST(
  *     description: Remove a kitchen/chef from the user's favorites
  *     tags: [Customer, Kitchens, Favorites]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId
@@ -204,20 +194,11 @@ async function handleDELETE(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
+    // Get authenticated customer from session token
+    const { userId } = await getAuthenticatedCustomer(request);
+    
     const convex = getConvexClient();
-    const user = await convex.query((api as any).queries.users.getUserByToken, { token });
-
-    if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
-    }
-
+    
     // Get chef ID from kitchen
     const chefId = await convex.query(
       (api as any).queries.kitchens.getChefByKitchenId,
@@ -230,13 +211,16 @@ async function handleDELETE(
 
     // Remove from favorites
     await convex.mutation((api as any).mutations.userFavorites.removeFavorite, {
-      userId: user._id,
+      userId,
       chefId,
     });
 
     return ResponseFactory.success(null, 'Kitchen removed from favorites successfully');
 
   } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     console.error('Remove favorite error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to remove kitchen from favorites')

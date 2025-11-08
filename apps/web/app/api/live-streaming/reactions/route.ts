@@ -4,10 +4,10 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -144,7 +144,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   get:
  *     summary: Get Live Stream Reactions
  *     description: Retrieve reactions from a live streaming session. This endpoint allows fetching reaction history with optional filtering by reaction type, pagination, and real-time updates for live session engagement tracking.
@@ -316,7 +316,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 interface SendLiveReactionRequest {
@@ -329,20 +329,8 @@ interface SendLiveReactionRequest {
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    const body: SendLiveReactionRequest = await request.json();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const body: SendLiveReactionRequest = await request.json();
     const { sessionId, reactionType, intensity, metadata } = body;
 
     if (!sessionId || !reactionType) {
@@ -363,24 +351,24 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check if user is muted in this session
-    if (session.mutedUsers && session.mutedUsers.includes(payload.user_id)) {
+    if (session.mutedUsers && session.mutedUsers.includes(userId)) {
       return ResponseFactory.forbidden('You are muted in this live session.');
     }
 
     // Send live reaction
     const reactionResult = await convex.mutation(api.mutations.liveSessions.sendLiveReaction, {
       sessionId: session._id,
-      sentBy: payload.user_id,
+      sentBy: userId,
       reactionType,
       intensity: intensity || 'medium',
       metadata: {
-        sentByRole: payload.role,
+        sentByRole: user.roles?.[0],
         userDisplayName: payload.displayName || payload.username,
         ...metadata
       }
     });
 
-    console.log(`Live reaction sent for session ${sessionId} by ${payload.user_id} (${payload.role})`);
+    console.log(`Live reaction sent for session ${sessionId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({
       success: true,
@@ -389,8 +377,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         id: reactionResult._id,
         reactionType,
         intensity: intensity || 'medium',
-        sentBy: payload.user_id,
-        sentByRole: payload.role,
+        sentBy: userId,
+        sentByRole: user.roles?.[0],
         sentAt: new Date().toISOString(),
         metadata: metadata || {}
       } : null,
@@ -407,20 +395,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    const { searchParams } = new URL(request.url);
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');

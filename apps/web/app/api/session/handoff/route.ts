@@ -31,6 +31,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { verifySessionTransferToken } from '@/lib/auth/session-transfer';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 export async function GET(req: NextRequest) {
   const xfer = req.nextUrl.searchParams.get('xfer');

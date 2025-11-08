@@ -4,11 +4,11 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -161,7 +161,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   patch:
  *     summary: Update Dish (Admin)
  *     description: Partially update a dish's information. Only provided fields will be updated.
@@ -283,7 +283,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   put:
  *     summary: Replace Dish (Admin)
  *     description: Completely replace a dish's information with new data.
@@ -386,7 +386,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   delete:
  *     summary: Delete Dish (Admin)
  *     description: Permanently delete a dish from the system. This action cannot be undone.
@@ -444,10 +444,8 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 function extractDishIdFromUrl(request: NextRequest): Id<'meals'> | undefined {
   const url = new URL(request.url);
@@ -457,20 +455,8 @@ function extractDishIdFromUrl(request: NextRequest): Id<'meals'> | undefined {
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const dish_id = extractDishIdFromUrl(request);
     if (!dish_id) {
       return ResponseFactory.validationError('Missing dish_id');
@@ -483,26 +469,18 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     return ResponseFactory.success({ dish });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch dish.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can update dishes.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
     const dish_id = extractDishIdFromUrl(request);
     if (!dish_id) {
       return ResponseFactory.validationError('Missing dish_id');
@@ -515,26 +493,18 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update dish.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can update dishes.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
     const dish_id = extractDishIdFromUrl(request);
     if (!dish_id) {
       return ResponseFactory.validationError('Missing dish_id');
@@ -547,26 +517,18 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update dish.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can delete dishes.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
     const dish_id = extractDishIdFromUrl(request);
     if (!dish_id) {
       return ResponseFactory.validationError('Missing dish_id');
@@ -575,7 +537,10 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.meals.deleteMeal, { mealId: dish_id });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete dish.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

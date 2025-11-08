@@ -108,10 +108,11 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -123,7 +124,7 @@ const MAX_LIMIT = 100;
  *     description: Retrieve a paginated list of all delivery applications (admin only)
  *     tags: [Delivery Applications]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: limit
@@ -154,20 +155,8 @@ const MAX_LIMIT = 100;
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClient();
     // Pagination
     const { searchParams } = new URL(request.url);
@@ -180,8 +169,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     allApplications.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     const paginated = allApplications.slice(offset, offset + limit);
     return ResponseFactory.success({ delivery_applications: paginated, total: allApplications.length, limit, offset });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch delivery applications.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
@@ -236,8 +228,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       createdAt: Date.now(),
     });
     return ResponseFactory.success({ success: true, applicationId });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to submit delivery application.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
@@ -249,7 +244,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
  *     description: Update the status of a delivery application (admin only)
  *     tags: [Delivery Applications]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -278,20 +273,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
  */
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can update delivery applications.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { application_id, status } = await request.json();
     if (!application_id || !status) {
       return ResponseFactory.error('application_id and status are required.', 'CUSTOM_ERROR', 422);
@@ -304,8 +287,11 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       updatedAt: Date.now(),
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update application.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
@@ -317,7 +303,7 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
  *     description: Delete a specific delivery application (admin only)
  *     tags: [Delivery Applications]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -346,20 +332,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
  */
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can delete delivery applications.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { application_id } = await request.json();
     if (!application_id) {
       return ResponseFactory.error('application_id is required.', 'CUSTOM_ERROR', 422);
@@ -376,31 +350,22 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_delivery_application',
       details: { application_id },
-      adminId: payload.user_id,
+      adminId: userId,
       // Timestamp is added automatically by the mutation
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete application.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can bulk delete delivery applications.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { application_ids } = await request.json();
     if (!Array.isArray(application_ids) || application_ids.length === 0) {
       return ResponseFactory.error('application_ids array is required.', 'CUSTOM_ERROR', 422);
@@ -413,43 +378,37 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'bulk_delete_delivery_applications',
       details: { application_ids },
-      adminId: payload.user_id,
+      adminId: userId,
       // Timestamp is added automatically by the mutation
     });
     return ResponseFactory.success({ success: true, deleted: application_ids.length });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to bulk delete delivery applications.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can export delivery applications.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClient();
     const allApplications = await convex.query(api.queries.drivers.getAll, {});
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_delivery_applications',
       details: {},
-      adminId: payload.user_id,
+      adminId: userId,
       // Timestamp is added automatically by the mutation
     });
     return ResponseFactory.jsonDownload(allApplications, 'delivery-applications-export.json');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to export delivery applications.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

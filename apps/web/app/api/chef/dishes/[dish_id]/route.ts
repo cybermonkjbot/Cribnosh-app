@@ -3,20 +3,15 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
-
-interface JWTPayload {
-  user_id: string;
-  role: string;
-}
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 type MealId = Id<'meals'>;
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 // Helper function to get a meal by ID since we don't have a direct query for it
 async function getMealById(convex: ConvexHttpClient, mealId: MealId) {
@@ -135,7 +130,7 @@ async function getMealById(convex: ConvexHttpClient, mealId: MealId) {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   delete:
  *     summary: Delete Dish
  *     description: Delete a dish/meal created by the authenticated chef
@@ -196,26 +191,12 @@ async function getMealById(convex: ConvexHttpClient, mealId: MealId) {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePATCH(request: NextRequest, { params }: { params: { dish_id: string } }): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'string') {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-      payload = verified as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'chef') {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedChef(request);if (payload.role !== 'chef') {
       return ResponseFactory.forbidden('Forbidden: Only chefs can update dishes.');
     }
     const updates = await request.json();
@@ -226,7 +207,7 @@ async function handlePATCH(request: NextRequest, { params }: { params: { dish_id
       return ResponseFactory.notFound('Dish not found');
     }
     // Check if the current user is the owner of the dish
-    if (dish.chefId !== payload.user_id) {
+    if (dish.chefId !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own dishes.');
     }
     // Update the dish
@@ -248,22 +229,8 @@ async function handlePATCH(request: NextRequest, { params }: { params: { dish_id
 
 async function handleDELETE(request: NextRequest, { params }: { params: { dish_id: string } }): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'string') {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-      payload = verified as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'chef') {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedChef(request);if (payload.role !== 'chef') {
       return ResponseFactory.forbidden('Forbidden: Only chefs can delete dishes.');
     }
     const convex = getConvexClient();
@@ -273,7 +240,7 @@ async function handleDELETE(request: NextRequest, { params }: { params: { dish_i
       return ResponseFactory.notFound('Dish not found');
     }
     // Check if the current user is the owner of the dish
-    if (dish.chefId !== payload.user_id) {
+    if (dish.chefId !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only delete your own dishes.');
     }
     // Delete the dish

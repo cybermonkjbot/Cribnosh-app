@@ -51,7 +51,7 @@
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   post:
  *     summary: Create chat conversation
  *     description: Create a new chat conversation with specified participants
@@ -98,35 +98,28 @@
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId } = await getAuthenticatedUser(request);
+    
     const convex = getConvexClient();
     // Pagination
     const { searchParams } = new URL(request.url);
@@ -135,13 +128,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch all chats for this user (assuming a 'chats' table with userId or participants)
     const allChats = await convex.query(api.queries.chats.getAll, {});
-    const userChats = allChats.filter((c: any) => c.userId === payload.user_id || (Array.isArray(c.participants) && c.participants.includes(payload.user_id)));
+    const userChats = allChats.filter((c: any) => c.userId === userId || (Array.isArray(c.participants) && c.participants.includes(userId)));
     // Consistent ordering (createdAt DESC)
     userChats.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     const paginated = userChats.slice(offset, offset + limit);
     return ResponseFactory.success({ chats: paginated, total: userChats.length, limit, offset });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch chats.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 
@@ -149,25 +145,17 @@ export const GET = withAPIMiddleware(withErrorHandling(handleGET));
 
 export const POST = withAPIMiddleware(withErrorHandling(async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId } = await getAuthenticatedUser(request);
+    
     const body = await request.json();
     const { participants, metadata } = body;
     if (!Array.isArray(participants) || participants.length < 2) {
       return ResponseFactory.validationError('At least two participants required');
     }
     // Ensure the current user is included
-    if (!participants.includes(payload.user_id)) {
-      participants.push(payload.user_id);
+    if (!participants.includes(userId)) {
+      participants.push(userId);
     }
     const convex = getConvexClient();
     const chat = await convex.mutation(api.mutations.chats.createConversation, {
@@ -175,7 +163,10 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       metadata: metadata || {},
     });
     return ResponseFactory.success(chat);
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to create chat.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 })); 

@@ -6,6 +6,9 @@ import { getErrorMessage } from '@/types/errors';
 import { randomBytes, scryptSync } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/auth/register
 // Group: auth
@@ -136,7 +139,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true, userId, email, name, roles: [role || 'customer'] });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Registration failed.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

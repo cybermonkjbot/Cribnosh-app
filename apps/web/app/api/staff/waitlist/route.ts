@@ -4,6 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withStaffAuth } from '@/lib/api/staff-middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -13,7 +16,7 @@ import { withStaffAuth } from '@/lib/api/staff-middleware';
  *     description: Allow staff to directly add leads to the waitlist without email verification
  *     tags: [Staff, Waitlist]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -155,7 +158,7 @@ async function handlePOST(request: NextRequest, user: any): Promise<NextResponse
  *     description: Retrieve waitlist entries for staff viewing
  *     tags: [Staff, Waitlist]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: status

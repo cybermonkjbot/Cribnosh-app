@@ -3,14 +3,12 @@ import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 
 // Endpoint: /v1/auth/phone-signin
 // Group: auth
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const TEST_OTP = '123456'; // Test OTP for development
 
 /**
@@ -67,10 +65,10 @@ const TEST_OTP = '123456'; // Test OTP for development
  *                       type: string
  *                       description: Test OTP (development only)
  *                       example: "123456"
- *                     token:
+ *                     sessionToken:
  *                       type: string
- *                       description: JWT token (for verify action)
- *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                       description: Session token (for verify action)
+ *                       example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6"
  *                     user:
  *                       type: object
  *                       description: User information (for verify action)
@@ -202,17 +200,18 @@ async function handlePOST(request: NextRequest) {
           });
         }
 
-        // No 2FA required - create JWT token
-        const token = jwt.sign(
-          { user_id: newUser._id, roles: userRoles }, 
-          JWT_SECRET, 
-          { expiresIn: '2h' }
-        );
+        // No 2FA required - create session token using Convex mutation
+        const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+          userId: newUser._id,
+          expiresInDays: 30, // 30 days expiry
+        });
 
-        return ResponseFactory.success({
+        // Set session token cookie
+        const isProd = process.env.NODE_ENV === 'production';
+        const response = ResponseFactory.success({
           success: true,
           message: 'User created and authenticated successfully',
-          token,
+          sessionToken: sessionResult.sessionToken,
           user: {
             user_id: newUser._id,
             phone: newUser.phone_number,
@@ -221,6 +220,16 @@ async function handlePOST(request: NextRequest) {
             isNewUser: true,
           },
         });
+        
+        response.cookies.set('convex-auth-token', sessionResult.sessionToken, {
+          httpOnly: true,
+          secure: isProd,
+          sameSite: 'strict',
+          maxAge: 30 * 24 * 60 * 60, // 30 days
+          path: '/',
+        });
+        
+        return response;
       }
 
       // Ensure user has 'customer' role for API access
@@ -255,22 +264,23 @@ async function handlePOST(request: NextRequest) {
         });
       }
 
-      // No 2FA required - create JWT token
-      const token = jwt.sign(
-        { user_id: user._id, roles: userRoles }, 
-        JWT_SECRET, 
-        { expiresIn: '2h' }
-      );
+      // No 2FA required - create session token using Convex mutation
+      const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+        userId: user._id,
+        expiresInDays: 30, // 30 days expiry
+      });
 
       // Update last login
       await convex.mutation(api.mutations.users.updateLastLogin, {
         userId: user._id,
       });
 
-      return ResponseFactory.success({
+      // Set session token cookie
+      const isProd = process.env.NODE_ENV === 'production';
+      const response = ResponseFactory.success({
         success: true,
         message: 'Authentication successful',
-        token,
+        sessionToken: sessionResult.sessionToken,
         user: {
           user_id: user._id,
           phone: user.phone_number,
@@ -279,6 +289,16 @@ async function handlePOST(request: NextRequest) {
           isNewUser: false,
         },
       });
+      
+      response.cookies.set('convex-auth-token', sessionResult.sessionToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+      });
+      
+      return response;
     }
 
     return ResponseFactory.validationError('Invalid action.');

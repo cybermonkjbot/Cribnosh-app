@@ -5,6 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAdminAuth } from '@/lib/api/admin-middleware';
+import { getUserFromRequest } from '@/lib/auth/session';
 
 /**
  * @swagger
@@ -14,7 +15,7 @@ import { withAdminAuth } from '@/lib/api/admin-middleware';
  *     description: Retrieves all videos with admin details for moderation
  *     tags: [Nosh Heaven, Admin, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: status

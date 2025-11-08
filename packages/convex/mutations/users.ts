@@ -1,14 +1,10 @@
 import { v } from 'convex/values';
-import { mutation, MutationCtx } from '../_generated/server';
-import { 
-  withConvexErrorHandling, 
-  validateConvexArgs, 
-  safeConvexOperation,
-  ErrorFactory,
-  ErrorCode
+import {
+  ErrorFactory
 } from '../../../apps/web/lib/errors/convex-exports';
 import { api } from '../_generated/api';
 import { Id } from '../_generated/dataModel';
+import { mutation, MutationCtx } from '../_generated/server';
 
 /**
  * Initialize profile tracking records for a new user
@@ -663,6 +659,78 @@ export const createOrUpdateUserWithRoles = mutation({
     }
     
     return user;
+  },
+});
+
+/**
+ * Convert bytes to base64url encoding (URL-safe base64 without padding)
+ * This is more performant and secure than hex encoding:
+ * - Shorter tokens (43 chars vs 64 chars for 32 bytes) = 33% reduction in size
+ * - URL-safe (can be used in URLs without encoding)
+ * - Better entropy per character (6 bits vs 4 bits for hex)
+ * - Industry standard (used in JWT, OAuth tokens, etc.)
+ */
+function toBase64Url(bytes: Uint8Array): string {
+  // Convert bytes to binary string
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  // Convert to base64, then to base64url: replace + with -, / with _, and remove padding
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * Generate a secure session token using crypto.getRandomValues (available in V8 runtime)
+ * Uses base64url encoding for better performance and URL safety
+ * This is more performant than Node.js crypto.randomBytes and works natively in Convex
+ */
+function generateSecureSessionToken(): string {
+  // Generate 32 bytes of cryptographically secure random data
+  // This provides 256 bits of entropy, which is more than sufficient for session tokens
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  // Use base64url encoding for better performance and URL safety
+  return toBase64Url(array);
+}
+
+/**
+ * Create and set a session token atomically
+ * This is more performant than generating tokens externally and setting them separately
+ */
+export const createAndSetSessionToken = mutation({
+  args: {
+    userId: v.id("users"),
+    expiresInDays: v.optional(v.number()), // Default to 30 days if not provided
+  },
+  returns: v.object({
+    sessionToken: v.string(),
+    sessionExpiry: v.number(),
+  }),
+  handler: async (ctx: MutationCtx, args) => {
+    const { userId, expiresInDays = 30 } = args;
+    
+    // Generate secure session token using Convex-native crypto
+    const sessionToken = generateSecureSessionToken();
+    
+    // Calculate expiry (default 30 days)
+    const expiresInMs = expiresInDays * 24 * 60 * 60 * 1000;
+    const sessionExpiry = Date.now() + expiresInMs;
+    
+    // Store token and expiry atomically
+    await ctx.db.patch(userId, {
+      sessionToken,
+      sessionExpiry,
+      lastModified: Date.now(),
+    });
+    
+    return {
+      sessionToken,
+      sessionExpiry,
+    };
   },
 });
 

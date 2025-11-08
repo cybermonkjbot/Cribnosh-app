@@ -2,13 +2,11 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import type { JWTPayload } from '@/types/convex-contexts';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 function groupByDate<T extends Record<string, unknown>>(
   items: T[],
   field: keyof T,
@@ -122,22 +120,12 @@ function groupByDate<T extends Record<string, unknown>>(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin' && !payload.roles?.includes('admin')) {
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);if (payload.role !== 'admin' && !user.roles?.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can access analytics.');
     }
     const convex = getConvexClient();
@@ -201,7 +189,7 @@ async function handleGET(request: NextRequest) {
     const aov_trend = trend(average_order_value, aovPrev);
     const users_trend = trend(total_users, usersPrev.length);
     // Audit log
-    const userId = payload.user_id || payload.userId;
+    const userId = userId || payload.userId;
     if (userId) {
       await convex.mutation(api.mutations.admin.insertAdminLog, {
         action: 'view_analytics_overview',

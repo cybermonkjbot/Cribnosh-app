@@ -5,8 +5,9 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /admin/orders/mark-non-refundable:
@@ -119,10 +120,8 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 interface MarkNonRefundableRequest {
   orderId: string;
@@ -135,30 +134,9 @@ interface MarkNonRefundableRequest {
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);// Check if user has admin permissions
     
-    interface JWTPayload {
-      role?: string;
-      userId?: string;
-      user_id?: string;
-      email?: string;
-      [key: string]: unknown;
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has admin permissions
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Admin access required.');
-    }
 
     const body: MarkNonRefundableRequest = await request.json();
     const { orderId, reason, description, effectiveImmediately = false, metadata } = body;
@@ -194,13 +172,13 @@ async function handlePOST(request: NextRequest) {
     // Update refund eligibility
     const updatedOrder = await convex.mutation(api.mutations.orders.updateRefundEligibility, {
       orderId: order._id,
-      updatedBy: (payload.user_id || payload.userId) as Id<"users">,
+      updatedBy: (userId || payload.userId) as Id<"users">,
       reason: `Admin override: ${description}`,
       metadata: {
         adminReason: reason,
         adminDescription: description,
         effectiveImmediately,
-        adminUserId: payload.user_id,
+        adminUserId: userId,
         adminOverride: true,
         originalRefundEligibleUntil: order.refund_eligible_until,
         originalIsRefundable: order.is_refundable,
@@ -208,7 +186,7 @@ async function handlePOST(request: NextRequest) {
       }
     });
 
-    console.log(`Order ${orderId} marked as non-refundable by admin ${payload.user_id}: ${reason} - ${description}`);
+    console.log(`Order ${orderId} marked as non-refundable by admin ${userId}: ${reason} - ${description}`);
 
     return ResponseFactory.success({
       success: true,

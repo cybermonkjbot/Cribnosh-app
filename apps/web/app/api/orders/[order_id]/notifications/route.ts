@@ -4,11 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -133,25 +131,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Extract order_id from URL
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Extract order_id from URL
     const url = new URL(request.url);
     const match = url.pathname.match(/\/orders\/([^\/]+)\/notifications/);
     const order_id = match ? match[1] : undefined;
@@ -169,10 +155,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to view this specific order
-    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
+    if (user.roles?.includes('customer') && order.customer_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
 

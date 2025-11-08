@@ -6,13 +6,14 @@ import { generateOTPCode, sendOTPEmail } from '@/lib/email/send-otp-email';
 import { ErrorFactory, withErrorHandling } from '@/lib/errors';
 import { ErrorCode } from '@/lib/errors/types';
 import { otpRateLimiter, verificationRateLimiter } from '@/lib/rate-limiting';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/auth/email-otp
 // Group: auth
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const TEST_OTP = '123456'; // Test OTP for development
 
 /**
@@ -70,9 +71,9 @@ const TEST_OTP = '123456'; // Test OTP for development
  *                       type: string
  *                       description: Test OTP (development only)
  *                       example: "123456"
- *                     token:
+ *                     sessionResult.sessionToken:
  *                       type: string
- *                       description: JWT token (for verify action)
+ *                       description: JWT sessionResult.sessionToken (for verify action)
  *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *                     user:
  *                       type: object
@@ -241,17 +242,23 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
         const userRoles = newUser.roles || ['customer'];
 
-        // Create JWT token
-        const token = jwt.sign(
-          { user_id: newUser._id, roles: userRoles }, 
-          JWT_SECRET, 
-          { expiresIn: '2h' }
-        );
+        // Create JWT sessionResult.sessionToken
+        // Create session sessionResult.sessionToken using Convex mutation
+    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+      userId: user._id,
+      expiresInDays: 30, // 30 days expiry
+    });
+    
+    // Set session sessionResult.sessionToken cookie
+    const isProd = process.env.NODE_ENV === 'production';
+    const response = ResponseFactory.success({
+      success: true,
+      sessionToken: sessionResult.sessionToken,
 
         return ResponseFactory.success({
           success: true,
           message: 'Email verified and user created successfully',
-          token,
+          sessionToken: sessionResult.sessionToken,
           user: {
             user_id: newUser._id,
             email: newUser.email,
@@ -277,12 +284,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         userRoles = updatedUser.roles || userRoles;
       }
 
-      // User exists, create JWT token
-      const token = jwt.sign(
-        { user_id: user._id, roles: userRoles }, 
-        JWT_SECRET, 
-        { expiresIn: '2h' }
-      );
+      // User exists, create JWT sessionResult.sessionToken
+      // Create session sessionResult.sessionToken using Convex mutation
+    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+      userId: user._id,
+      expiresInDays: 30, // 30 days expiry
+    });
+    
+    // Set session sessionResult.sessionToken cookie
+    const isProd = process.env.NODE_ENV === 'production';
+    const response = ResponseFactory.success({
+      success: true,
+      sessionToken: sessionResult.sessionToken,
 
       // Update last login
       await convex.mutation(api.mutations.users.updateLastLogin, {
@@ -292,7 +305,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.success({
         success: true,
         message: 'Email verified successfully',
-        token,
+        sessionToken: sessionResult.sessionToken,
         user: {
           user_id: user._id,
           email: user.email,

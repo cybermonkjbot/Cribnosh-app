@@ -3,10 +3,9 @@ import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /api/messaging/send:
@@ -70,13 +69,8 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     }
     
     // Get user from JWT token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return ResponseFactory.error('Authorization token required', 'AUTH_ERROR', 401);
-    }
-    
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const userId = decoded.userId;
+    // Get authenticated user from session token
+    const { userId } = await getAuthenticatedUser(request);
     
     // Send message
     const messageId = await convex.mutation(api.mutations.chats.sendMessage, {

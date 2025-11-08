@@ -4,6 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from "@/convex/_generated/api";
 import { withAdminAuth } from '../../../../../lib/api/admin-middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -145,7 +148,7 @@ import { withAdminAuth } from '../../../../../lib/api/admin-middleware';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handlePOST(req: NextRequest) {

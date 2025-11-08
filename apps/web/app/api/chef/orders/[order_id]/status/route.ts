@@ -5,21 +5,16 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-interface OrderPayload {
-  user_id: Id<'users'>;
-  roles: string[];
-}
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 interface Order {
   _id: Id<'orders'>;
   chef_id: Id<'users'>;
   [key: string]: any;
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 interface RequestWithParams extends NextRequest {
   params: {
@@ -137,23 +132,15 @@ interface RequestWithParams extends NextRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePATCH(
   request: RequestWithParams
 ): Promise<NextResponse> {
   try {
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) {
-      return ResponseFactory.unauthorized('No token provided.');
-    }
-    const payload = jwt.verify(token, JWT_SECRET) as OrderPayload;
-    if (!payload) {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('chef')) {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can update order status.');
-    }
+    // Get authenticated chef from session token
+    const { userId } = await getAuthenticatedChef(request);
+    
     const { order_id } = request.params;
     const { status } = await request.json();
     if (!status) {
@@ -162,7 +149,7 @@ async function handlePATCH(
     const convex = getConvexClient();
     // Fetch order and check chef_id
     const order = await convex.query(api.queries.orders.getById, { order_id }) as Order | null;
-    if (!order || order.chef_id !== payload.user_id) {
+    if (!order || order.chef_id !== userId) {
       return ResponseFactory.notFound('Order not found or not owned by chef.');
     }
     const updated = await convex.mutation(api.mutations.orders.updateStatus, { order_id, status });

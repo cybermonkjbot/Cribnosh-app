@@ -4,6 +4,7 @@ import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getUserFromRequest } from '@/lib/auth/session';
 
 /**
  * @swagger
@@ -94,7 +95,7 @@ async function handleGET(
  *     description: Adds a new comment to a video post
  *     tags: [Nosh Heaven, Videos, Comments]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -163,18 +164,11 @@ async function handlePOST(
       return ResponseFactory.validationError('Comment content is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
+    // Get user from session token
     const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Add comment

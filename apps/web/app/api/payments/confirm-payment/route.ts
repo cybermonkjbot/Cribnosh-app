@@ -1,10 +1,10 @@
 import { stripe } from '@/lib/stripe';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -91,20 +91,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
   try {
-    jwt.verify(token, JWT_SECRET);
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  const { payment_intent_id, payment_method_id } = await request.json();
+    // Get authenticated user from session token
+    await getAuthenticatedUser(request);
+    
+    const { payment_intent_id, payment_method_id } = await request.json();
   if (!payment_intent_id) {
     return ResponseFactory.validationError('payment_intent_id is required.');
   }
@@ -117,4 +111,10 @@ export async function POST(request: NextRequest) {
   }
   const paymentIntent = await stripe.paymentIntents.confirm(payment_intent_id, params);
   return ResponseFactory.success({ status: paymentIntent.status, paymentIntent }, 'Payment confirmed successfully');
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to confirm payment'));
+  }
 } 

@@ -34,10 +34,10 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 function toCSV(data: Record<string, unknown>[]): string {
   if (!data.length) return '';
@@ -55,7 +55,7 @@ function toCSV(data: Record<string, unknown>[]): string {
  *     description: Export user growth statistics in JSON or CSV format (admin only)
  *     tags: [Admin Reports]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: format
@@ -94,28 +94,8 @@ function toCSV(data: Record<string, unknown>[]): string {
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    interface JWTPayload {
-      role?: string;
-      roles?: string[];
-      userId?: string;
-      user_id?: string;
-      email?: string;
-      [key: string]: unknown;
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can export user growth.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
@@ -144,10 +124,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_user_growth',
       details: { format, start, end },
-      adminId: (payload.user_id || payload.userId) as Id<"users">,
+      adminId: (userId || payload.userId) as Id<"users">,
     });
     // Trigger webhook and real-time broadcast (non-blocking)
-    const eventPayload = { type: 'user_growth_export', user: payload.user_id, format, filters: { start, end }, count: rows.length };
+    const eventPayload = { type: 'user_growth_export', user: userId, format, filters: { start, end }, count: rows.length };
     fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/admin/webhooks-trigger', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': request.headers.get('authorization') || '' },

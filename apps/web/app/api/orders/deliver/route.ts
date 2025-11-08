@@ -4,11 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 interface DeliverOrderRequest {
   orderId: string;
@@ -128,26 +126,14 @@ interface DeliverOrderRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to mark orders as delivered
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to mark orders as delivered
+    if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -175,17 +161,17 @@ async function handlePOST(request: NextRequest) {
     // Mark order as delivered
     const deliveredOrder = await convex.mutation(api.mutations.orders.markOrderDelivered, {
       orderId: order._id,
-      deliveredBy: payload.user_id || '',
+      deliveredBy: userId || '',
       deliveryNotes: deliveryNotes || 'Order delivered',
       metadata: {
-        deliveredByRole: payload.roles?.[0] || 'unknown',
+        deliveredByRole: user.roles?.[0] || 'unknown',
         ...metadata
       }
     });
 
     const refundEligibleUntil = new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString();
 
-    console.log(`Order ${orderId} marked as delivered by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    console.log(`Order ${orderId} marked as delivered by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({});
   } catch (error: unknown) {

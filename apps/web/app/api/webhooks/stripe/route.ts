@@ -5,6 +5,9 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { stripe } from '@/lib/stripe';
 import { headers } from 'next/headers';
 import { NextRequest } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger

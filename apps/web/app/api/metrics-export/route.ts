@@ -1,11 +1,11 @@
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 function toCSV(data: Record<string, any>): string {
   const keys = Object.keys(data);
@@ -106,22 +106,12 @@ function toCSV(data: Record<string, any>): string {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can export metrics.');
     }
     const convex = getConvexClient();
@@ -148,11 +138,11 @@ export async function GET(request: NextRequest) {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_metrics',
       details: { format },
-      adminId: payload.user_id,
+      adminId: userId,
       timestamp: Date.now(),
     });
     // Trigger webhook and real-time broadcast (non-blocking)
-    const eventPayload = { type: 'metrics_export', user: payload.user_id, format, count: Object.keys(metrics).length };
+    const eventPayload = { type: 'metrics_export', user: userId, format, count: Object.keys(metrics).length };
     fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/admin/webhooks-trigger', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': request.headers.get('authorization') || '' },
@@ -169,7 +159,10 @@ export async function GET(request: NextRequest) {
     }
     // Default: JSON
     return ResponseFactory.jsonDownload(metrics, 'metrics-export.json');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to export metrics.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 } 

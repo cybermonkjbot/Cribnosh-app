@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { otpRateLimiter, verificationRateLimiter, generalAuthRateLimiter } from '@/lib/rate-limiting';
 import { authRateLimiter, sensitiveRateLimiter, moderationRateLimiter } from '@/lib/middleware/sensitive-rate-limit';
 import { apiRateLimiter, authRateLimiter as middlewareAuthRateLimiter, webhookRateLimiter, searchRateLimiter } from '@/lib/middleware/rate-limit';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger

@@ -4,11 +4,12 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -142,7 +143,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   put:
  *     summary: Update Dish Review (Admin)
  *     description: Update an existing administrative review for a dish. This endpoint allows modifying review status, notes, or other review details.
@@ -270,10 +271,8 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 function extractDishIdFromUrl(request: NextRequest): Id<'meals'> | undefined {
   const url = new URL(request.url);
@@ -283,20 +282,8 @@ function extractDishIdFromUrl(request: NextRequest): Id<'meals'> | undefined {
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can review dishes.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const dish_id = extractDishIdFromUrl(request);
     if (!dish_id) {
       return ResponseFactory.validationError('Missing dish_id');
@@ -315,11 +302,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'review_dish',
       details: { dish_id, status, notes },
-      adminId: payload.user_id,
+      adminId: userId,
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to review dish.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

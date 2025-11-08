@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { api } from '@/convex/_generated/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * GET /api/files/[storageId]

@@ -2,15 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
-
-interface AdminJWTPayload {
-  role: string;
-  user_id: string;
-}
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -142,29 +139,13 @@ interface AdminJWTPayload {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 async function handlePOST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: AdminJWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'string') {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-      payload = verified as AdminJWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);if (user.roles?.[0] !== 'admin') {
       return ResponseFactory.forbidden('Forbidden: Only admins can broadcast real-time events.');
     }
     const convex = getConvexClient();
@@ -184,7 +165,7 @@ async function handlePOST(request: NextRequest) {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'broadcast_realtime',
       details: { event, data, changeId },
-      adminId: payload.user_id as Id<'users'>,
+      adminId: userId as Id<'users'>,
     });
     return ResponseFactory.success({ success: true, message: 'Event broadcasted via Convex', event, changeId });
   } catch (error: unknown) {

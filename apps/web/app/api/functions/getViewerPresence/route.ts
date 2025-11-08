@@ -1,5 +1,8 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 const presence: Record<string, Set<string>> = {};
 
@@ -117,7 +120,7 @@ const presence: Record<string, Set<string>> = {};
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 export async function POST(req: NextRequest) {

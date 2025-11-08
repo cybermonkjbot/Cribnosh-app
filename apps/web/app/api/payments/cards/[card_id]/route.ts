@@ -1,11 +1,9 @@
 import { stripe } from '@/lib/stripe';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-
-interface JWTPayload {
-  user_id: string;
-}
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -61,35 +59,30 @@ interface JWTPayload {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
 export async function DELETE(request: NextRequest, { params }: { params: { card_id: string } }) {
-  const { card_id } = params;
-  if (!card_id) {
-    return ResponseFactory.validationError('Missing card_id');
-  }
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
   try {
-    jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  // Optionally, check if card belongs to user
-  if (!stripe) {
-    return ResponseFactory.error('Stripe is not configured.', 'CUSTOM_ERROR', 500);
-  }
-  
-  try {
+    const { card_id } = params;
+    if (!card_id) {
+      return ResponseFactory.validationError('Missing card_id');
+    }
+    
+    // Get authenticated user from session token
+    await getAuthenticatedUser(request);
+    
+    // Optionally, check if card belongs to user
+    if (!stripe) {
+      return ResponseFactory.error('Stripe is not configured.', 'CUSTOM_ERROR', 500);
+    }
+    
     await stripe.paymentMethods.detach(card_id);
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to detach card.';
     return ResponseFactory.internalError(errorMessage);
   }

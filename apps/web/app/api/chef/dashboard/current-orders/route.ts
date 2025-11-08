@@ -4,10 +4,10 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 interface JWTPayload {
   user_id: string;
@@ -194,27 +194,17 @@ interface JWTPayload {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'chef') {
+    // Get authenticated chef from session token
+    const { userId } = await getAuthenticatedChef(request);if (payload.role !== 'chef') {
       return ResponseFactory.forbidden('Forbidden: Only chefs can access current orders.');
     }
     const convex = getConvexClient();
-    const orders = await convex.query(api.queries.orders.listByChef, { chef_id: payload.user_id });
+    const orders = await convex.query(api.queries.orders.listByChef, { chef_id: userId });
     const currentOrders = orders.filter((o: { order_status: string }) => !['DELIVERED', 'CANCELLED', 'DECLINED'].includes(o.order_status));
     return ResponseFactory.success({ current_orders: currentOrders });
   } catch (error: unknown) {

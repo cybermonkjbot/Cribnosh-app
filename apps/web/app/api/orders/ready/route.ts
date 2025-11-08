@@ -4,10 +4,6 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
 interface ReadyOrderRequest {
   orderId: string;
   readyNotes?: string;
@@ -138,26 +134,14 @@ interface ReadyOrderRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to mark orders as ready
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to mark orders as ready
+    if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -177,7 +161,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to mark this specific order as ready
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only mark your own orders as ready.');
     }
 
@@ -189,10 +173,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Mark order as ready
     const readyOrder = await convex.mutation(api.mutations.orders.markOrderReady, {
       orderId: order._id,
-      readyBy: payload.user_id || '',
+      readyBy: userId || '',
       readyNotes: readyNotes || order.chef_notes,
       metadata: {
-        markedReadyByRole: payload.roles?.[0] || 'unknown',
+        markedReadyByRole: user.roles?.[0] || 'unknown',
         packagingNotes,
         ...metadata
       }
@@ -202,7 +186,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.internalError('Failed to mark order as ready');
     }
 
-    console.log(`Order ${orderId} marked as ready by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    console.log(`Order ${orderId} marked as ready by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: readyOrder._id,

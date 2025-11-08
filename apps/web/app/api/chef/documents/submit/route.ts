@@ -4,10 +4,10 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -79,24 +79,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'chef') {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can submit documents.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedChef(request);
     const { document_ids } = await request.json();
     if (!Array.isArray(document_ids) || document_ids.length === 0) {
       return ResponseFactory.validationError('No document IDs provided.');
@@ -110,7 +98,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         if (!document) {
           throw new Error(`Document ${docId} not found`);
         }
-        if (document.userEmail !== payload.email) {
+        if (document.userEmail !== user.email) {
           throw new Error(`Document ${docId} does not belong to authenticated user`);
         }
         if (document.status !== 'uploaded') {
@@ -134,27 +122,30 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Log the submission for admin review
     await convex.mutation(api.mutations.admin.logActivity, {
       type: 'document_submission',
-      userId: payload.user_id,
+      userId: userId,
       description: `Chef submitted ${document_ids.length} documents for review`,
       metadata: {
         entityType: 'document_submission',
         details: {
           documentIds: document_ids,
-          chefEmail: payload.email,
+          chefEmail: user.email,
           submissionTime: new Date().toISOString()
         }
       }
     });
 
-    console.log(`Chef ${payload.user_id} submitted documents for review:`, document_ids);
+    console.log(`Chef ${userId} submitted documents for review:`, document_ids);
     
     return ResponseFactory.success({ 
       success: true, 
       message: `${document_ids.length} documents submitted for review successfully`,
       documentCount: document_ids.length
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to submit documents.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

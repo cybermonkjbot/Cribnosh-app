@@ -5,6 +5,9 @@ import { EmailService } from '@/lib/email/email.service';
 import { OptimisticEmailService } from '@/lib/email/optimistic-email.service';
 import { EmailPayload } from '@/lib/email/types';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Fallback for RESEND_API_KEY
 const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN';

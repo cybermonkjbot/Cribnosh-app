@@ -4,10 +4,6 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
 interface PrepareOrderRequest {
   orderId: string;
   prepNotes?: string;
@@ -131,26 +127,14 @@ interface PrepareOrderRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to prepare orders
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to prepare orders
+    if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -170,7 +154,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to prepare this specific order
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only prepare your own orders.');
     }
 
@@ -182,11 +166,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Start preparing order
     const preparedOrder = await convex.mutation(api.mutations.orders.prepareOrder, {
       orderId: order._id,
-      preparedBy: payload.user_id || '',
+      preparedBy: userId || '',
       prepNotes: prepNotes || order.chef_notes,
       updatedPrepTime: updatedPrepTime || order.estimated_prep_time_minutes,
       metadata: {
-        preparedByRole: payload.roles?.[0] || 'unknown',
+        preparedByRole: user.roles?.[0] || 'unknown',
         ...metadata
       }
     });
@@ -195,7 +179,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.internalError('Failed to prepare order');
     }
 
-    console.log(`Order ${orderId} preparation started by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    console.log(`Order ${orderId} preparation started by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: preparedOrder._id,

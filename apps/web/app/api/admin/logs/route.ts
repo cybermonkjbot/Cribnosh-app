@@ -4,8 +4,10 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -117,36 +119,17 @@ import { NextResponse } from 'next/server';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    interface JWTPayload {
-      role?: string;
-      userId?: string;
-      user_id?: string;
-      email?: string;
-      [key: string]: unknown;
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access logs.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
     const convex = getConvexClient();
     // Pagination
     const { searchParams } = new URL(request.url);
@@ -163,7 +146,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const paginated = allLogs.slice(offset, offset + limit);
     return ResponseFactory.success({ logs: paginated, total: allLogs.length, limit, offset });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(error instanceof Error ? error.message : 'Failed to fetch logs.' );
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
   }
 }
 

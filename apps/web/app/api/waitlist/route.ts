@@ -3,12 +3,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 interface JWTPayload {
   user_id: string;
@@ -156,22 +156,12 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
     }
     const convex = getConvexClient();
@@ -216,18 +206,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can delete waitlist entries.');
     }
     const { waitlist_id } = await request.json();
@@ -243,7 +223,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_waitlist_entry',
       details: { waitlist_id },
-      adminId: payload.user_id as Id<'users'>,
+      adminId: userId as Id<'users'>,
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -254,18 +234,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
 
 async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can bulk delete waitlist entries.');
     }
     const { waitlist_ids } = await request.json();
@@ -284,7 +254,7 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'bulk_delete_waitlist_entries',
       details: { waitlist_ids, count: waitlist_ids.length },
-      adminId: payload.user_id as Id<'users'>,
+      adminId: userId as Id<'users'>,
     });
     return ResponseFactory.success({ success: true, deletedCount: waitlist_ids.length });
   } catch (error: unknown) {
@@ -295,18 +265,8 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
 
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can export waitlist.');
     }
     const convex = getConvexClient();
@@ -315,7 +275,7 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_waitlist',
       details: {},
-      adminId: payload.user_id as Id<'users'>,
+      adminId: userId as Id<'users'>,
     });
     return ResponseFactory.jsonDownload(allWaitlist, 'waitlist-export.json');
   } catch (error: unknown) {

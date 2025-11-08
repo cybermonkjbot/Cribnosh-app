@@ -6,6 +6,9 @@ import { apiMonitoring, APIMetrics } from '../../../lib/api/monitoring';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { securityMiddleware } from '@/lib/api/security';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 // import { checkAPIHealth } from '@/lib/api/client'; // Unused for now
 
 const monitoring = MonitoringService.getInstance();

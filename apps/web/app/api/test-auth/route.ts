@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import jwt from 'jsonwebtoken';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /test-auth:
@@ -88,36 +89,31 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     
     return ResponseFactory.success({ 
       success: true, 
-      payload,
-      hasRoles: !!payload.roles,
-      rolesType: typeof payload.roles,
-      rolesLength: Array.isArray(payload.roles) ? payload.roles.length : 'not an array',
-      hasChefRole: Array.isArray(payload.roles) ? payload.roles.includes('chef') : false
+      payload: {
+        user_id: userId,
+        email: user.email,
+        roles: user.roles,
+      },
+      hasRoles: !!user.roles,
+      rolesType: typeof user.roles,
+      rolesLength: Array.isArray(user.roles) ? user.roles.length : 'not an array',
+      hasChefRole: Array.isArray(user.roles) ? user.roles.includes('chef') : false
     });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Test failed.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
