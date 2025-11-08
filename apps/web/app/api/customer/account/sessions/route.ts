@@ -7,6 +7,7 @@ import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -130,7 +131,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
       return ResponseFactory.unauthorized(error.message);
     }
-    console.error('[GET_SESSIONS] Error:', error);
+    logger.error('[GET_SESSIONS] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch sessions.'));
   }
 }

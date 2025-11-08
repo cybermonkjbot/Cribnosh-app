@@ -6,6 +6,8 @@ import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/utils/logger';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
 
 interface CancelOrderRequest {
   orderId: string;
@@ -117,7 +119,8 @@ async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to cancel orders
+    const { userId, user } = await getAuthenticatedUser(request);
+    // Check if user has permission to cancel orders
     if (!user.roles?.some(role => ['admin', 'staff', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
@@ -229,10 +232,10 @@ const refund = await stripe.refunds.create(refundData);
           created: refund.created
         };
 
-        console.log(`Automatic refund processed: ${refund.id} for cancelled order ${orderId}`);
+        logger.log(`Automatic refund processed: ${refund.id} for cancelled order ${orderId}`);
 
       } catch (stripeError: unknown) {
-        console.error('Automatic refund failed:', stripeError);
+        logger.error('Automatic refund failed:', stripeError);
         // Don't fail the cancellation if refund fails
         refundResult = {
           error: 'Refund processing failed',
@@ -241,11 +244,11 @@ const refund = await stripe.refunds.create(refundData);
       }
     }
 
-    console.log(`Order cancelled: ${orderId} by ${userId} (${user.roles?.join(',') || 'unknown'}), reason: ${reason}`);
+    logger.log(`Order cancelled: ${orderId} by ${userId} (${user.roles?.join(',') || 'unknown'}), reason: ${reason}`);
 
     return ResponseFactory.success({});
   } catch (error: unknown) {
-    console.error('Error cancelling order:', error);
+    logger.error('Error cancelling order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to cancel order'));
   }
 }

@@ -5,6 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -103,7 +104,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Collection created successfully', 201);
 
   } catch (error: any) {
-    console.error('Collection creation error:', error);
+    logger.error('Collection creation error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to create collection');
   }
 }
@@ -175,7 +176,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success(collections, 'Collections retrieved successfully');
 
   } catch (error: any) {
-    console.error('Collections retrieval error:', error);
+    logger.error('Collections retrieval error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to retrieve collections');
   }
 }

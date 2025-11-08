@@ -35,6 +35,7 @@ import path from 'path';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -91,7 +92,7 @@ export async function GET() {
       });
     } else {
       // Fallback: Generate basic spec if static file doesn't exist
-      console.warn('Static swagger.json not found, generating basic spec');
+      logger.warn('Static swagger.json not found, generating basic spec');
       const basicSpec = {
         openapi: '3.0.0',
         info: {
@@ -145,7 +146,6 @@ export async function GET() {
           },
         },
         security: [
-          { - cookieAuth: [] },
           { cookieAuth: [] },
         ],
       };
@@ -161,7 +161,7 @@ export async function GET() {
       });
     }
   } catch (error) {
-    console.error('Error serving Swagger spec:', error);
+    logger.error('Error serving Swagger spec:', error);
     return ResponseFactory.error('Failed to load API documentation', 'SWAGGER_LOAD_ERROR', 500);
   }
 }

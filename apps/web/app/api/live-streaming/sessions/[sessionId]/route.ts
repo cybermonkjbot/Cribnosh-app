@@ -7,6 +7,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -206,7 +207,7 @@ export const GET = withErrorHandling(async (
     });
 
   } catch (error) {
-    console.error('Error getting live session:', error);
+    logger.error('Error getting live session:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to retrieve live session',

@@ -2,6 +2,7 @@ import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -61,7 +62,7 @@ export async function POST() {
     
     return response;
   } catch (e) {
-    console.error('[ADMIN LOGOUT] Internal Server Error:', e);
+    logger.error('[ADMIN LOGOUT] Internal Server Error:', e);
     return ResponseFactory.internalError('Logout failed');
   }
 } 

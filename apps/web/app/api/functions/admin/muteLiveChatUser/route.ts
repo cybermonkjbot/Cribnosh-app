@@ -7,6 +7,7 @@ import { withAdminAuth } from '@/lib/api/admin-middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -150,7 +151,7 @@ async function handlePOST(req: NextRequest) {
       result
     });
   } catch (error) {
-    console.error('Error moderating live chat user:', error);
+    logger.error('Error moderating live chat user:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

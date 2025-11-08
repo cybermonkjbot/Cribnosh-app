@@ -8,6 +8,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface AssignDeliveryRequest {
   orderId: string;
   driverId?: string; // Optional - if not provided, auto-assign
@@ -243,11 +244,11 @@ async function handlePOST(request: NextRequest) {
       return ResponseFactory.error('Failed to create delivery assignment.', 'CUSTOM_ERROR', 500);
     }
 
-    console.log(`Delivery assigned for order ${orderId} to driver ${selectedDriverId} by ${userId}`);
+    logger.log(`Delivery assigned for order ${orderId} to driver ${selectedDriverId} by ${userId}`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error assigning delivery:', error);
+    logger.error('Error assigning delivery:', error);
     return ResponseFactory.internalError('Failed to assign delivery');
   }
 }

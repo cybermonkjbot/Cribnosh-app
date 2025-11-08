@@ -94,8 +94,6 @@ async function handlePUT(
         allergy_ids: preferences.allergy_ids ?? undefined,
         dietary_preference_id: preferences.dietary_preference_id ?? undefined,
         parent_controlled: preferences.parent_controlled ?? undefined,
-        allergies: preferences.allergies ?? undefined,
-        dietary_preferences: preferences.dietary_preferences ?? undefined,
       });
     }
 

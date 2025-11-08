@@ -33,7 +33,7 @@ describe('Payments Integration - Payment Intent', () => {
       status: 'requires_payment_method',
     })
 
-    const request = buildAuthedRequest('http://localhost:3000/api/payments/create-payment-intent', {
+    const request = await buildAuthedRequest('http://localhost:3000/api/payments/create-payment-intent', {
       method: 'POST',
       user,
       headers: { 'Content-Type': 'application/json' },

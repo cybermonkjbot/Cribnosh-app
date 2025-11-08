@@ -5,6 +5,8 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -123,7 +125,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to mark orders as reviewed
+    const { userId, user } = await getAuthenticatedUser(request);
+    // Check if user has permission to mark orders as reviewed
     if (!user.roles?.some(role => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
@@ -164,7 +167,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       }
     });
 
-    console.log(`Order ${orderId} marked as reviewed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${orderId} marked as reviewed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -176,7 +179,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Order review error:', error);
+    logger.error('Order review error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark order as reviewed.'));
   }
 }

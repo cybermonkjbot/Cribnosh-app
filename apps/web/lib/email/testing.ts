@@ -1,6 +1,7 @@
 // Email Template Testing and Validation Utilities
 import { render } from '@react-email/render';
 import { validateEmailTemplate, renderEmailTemplate } from './preview';
+import { logger } from '@/lib/utils/logger';
 
 export interface EmailTestResult {
   templateName: string;
@@ -342,7 +343,7 @@ export const runPerformanceTests = async (templateName: string, iterations: numb
     try {
       await renderEmailTemplate(templateName, sampleData);
     } catch (error) {
-      console.warn(`Render failed on iteration ${i}:`, error);
+      logger.warn(`Render failed on iteration ${i}:`, error);
     }
     const endTime = performance.now();
     renderTimes.push(endTime - startTime);
@@ -477,7 +478,7 @@ export const runComprehensiveEmailTests = async (): Promise<{
     totalWarnings: number;
   };
 }> => {
-  console.log('🧪 Running comprehensive email template tests...');
+  logger.log('🧪 Running comprehensive email template tests...');
   
   const results = await runEmailValidationTests();
   const report = generateTestReport(results);
@@ -490,9 +491,9 @@ export const runComprehensiveEmailTests = async (): Promise<{
     totalWarnings: results.reduce((sum, r) => sum + r.warnings.length, 0),
   };
   
-  console.log('✅ Email tests completed!');
-  console.log(`📊 Results: ${summary.passedTemplates}/${summary.totalTemplates} templates passed`);
-  console.log(`📈 Average score: ${summary.averageScore}%`);
+  logger.log('✅ Email tests completed!');
+  logger.log(`📊 Results: ${summary.passedTemplates}/${summary.totalTemplates} templates passed`);
+  logger.log(`📈 Average score: ${summary.averageScore}%`);
   
   return {
     results,

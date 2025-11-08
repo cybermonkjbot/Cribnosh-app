@@ -1,13 +1,11 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -145,9 +143,7 @@ import { getErrorMessage } from '@/types/errors';
 async function handlePOST(request: NextRequest) {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);if (user.roles?.[0] !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can broadcast real-time events.');
-    }
+    const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
     const { event, data } = await request.json();
     if (!event) {

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -187,7 +188,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
             ended_at: session.endedAt ? new Date(session.endedAt).toISOString() : undefined,
           };
         } catch (error) {
-          console.error(`Error fetching chef data for session ${session._id}:`, error);
+          logger.error(`Error fetching chef data for session ${session._id}:`, error);
           // Return session with fallback data
           const chefName = `Chef ${String(session.chef_id).slice(-4)}`;
           return {
@@ -237,7 +238,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     });
 
   } catch (error) {
-    console.error('Error in live streaming customer:', error);
+    logger.error('Error in live streaming customer:', error);
     return ResponseFactory.error(
       'Failed to retrieve live streaming sessions',
       'LIVE_STREAMING_CUSTOMER_ERROR',

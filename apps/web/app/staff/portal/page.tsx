@@ -61,7 +61,16 @@ export default function StaffPortal() {
           const res = await staffFetch('/api/staff/data');
           if (res.ok) {
             const data = await res.json();
-            setStaffMember(data.data); // Extract the actual data from the API response
+            // Transform API response to match expected format (id -> _id)
+            const staffData = data.data;
+            if (staffData) {
+              setStaffMember({
+                ...staffData,
+                _id: staffData.id || staffData._id, // Ensure _id is set for Convex queries
+              });
+            } else {
+              setStaffMember(null);
+            }
           } else {
             setStaffMember(null);
           }

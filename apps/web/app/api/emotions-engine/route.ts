@@ -7,6 +7,7 @@ import { runInference } from '@/lib/emotions-engine/core/inferenceEngine';
 import { withRetry } from '@/lib/api/retry';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { api, getConvexClient } from '@/lib/conxed-client';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
     // Get emotions engine context - this consolidates nearby chefs, user data, and preferences
     const convex = getConvexClient();
     const emotionsContext = await convex.action(api.actions.emotionsEngine.getEmotionsEngineContext, {
-      userId: userId as Id<'users'> | undefined,
+      userId: userId as any,
       location: body.location ? {
         latitude: body.location.latitude,
         longitude: body.location.longitude,
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest) {
     const result = await runInference({ ...context, ...body });
     return ResponseFactory.success(result.data);
   } catch (err: unknown) {
-    console.error('Emotions engine error:', err);
+    logger.error('Emotions engine error:', err);
     return ResponseFactory.internalError(
       err instanceof Error ? err.message : 'Emotions engine processing failed'
     );

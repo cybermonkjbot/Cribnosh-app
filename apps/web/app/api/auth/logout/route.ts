@@ -7,6 +7,7 @@ import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 // Endpoint: /v1/auth/logout
 // Group: auth
 
@@ -86,7 +87,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   } catch (error: unknown) {
     // Even if there's an error, return success to allow client-side cleanup
     // Mobile apps rely on client-side token deletion
-    console.error('[LOGOUT] Error:', getErrorMessage(error, 'Logout error'));
+    logger.error('[LOGOUT] Error:', getErrorMessage(error, 'Logout error'));
     const response = ResponseFactory.success({ message: 'Logged out successfully.' });
     const cookieToken = request.cookies.get('convex-auth-token')?.value;
     if (cookieToken) {

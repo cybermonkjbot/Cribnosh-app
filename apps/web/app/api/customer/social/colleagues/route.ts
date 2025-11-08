@@ -79,7 +79,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Access userFollows queries through api.queries (may need type assertion)
     let following: { following: Array<{ isFollowingBack: boolean; following: { _id: string; name: string; avatar?: string } }> };
     try {
-      following = await convex.query((api as { queries: { userFollows: { getUserFollowing: unknown } } }).queries.userFollows.getUserFollowing as never, {
+      following = await convex.query(api.queries.userFollows.getUserFollowing as any, {
         userId: userId as Id<'users'>,
         limit: 1000,
       }) as { following: Array<{ isFollowingBack: boolean; following: { _id: string; name: string; avatar?: string } }> };

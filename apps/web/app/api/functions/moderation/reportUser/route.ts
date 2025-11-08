@@ -73,6 +73,7 @@ import { withModerationRateLimit } from '../../../../../lib/api/sensitive-middle
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 async function handlePOST(req: NextRequest) {
   try {
@@ -96,7 +97,7 @@ async function handlePOST(req: NextRequest) {
 
     return ResponseFactory.success(result);
   } catch (error) {
-    console.error('Error reporting user:', error);
+    logger.error('Error reporting user:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

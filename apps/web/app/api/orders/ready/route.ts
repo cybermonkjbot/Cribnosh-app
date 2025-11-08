@@ -4,6 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface ReadyOrderRequest {
   orderId: string;
   readyNotes?: string;
@@ -140,7 +143,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to mark orders as ready
+    const { userId, user } = await getAuthenticatedUser(request);
+    // Check if user has permission to mark orders as ready
     if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
@@ -186,7 +190,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.internalError('Failed to mark order as ready');
     }
 
-    console.log(`Order ${orderId} marked as ready by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${orderId} marked as ready by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: readyOrder._id,
@@ -194,7 +198,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       readyNotes: readyOrder.chef_notes
     });
   } catch (error: unknown) {
-    console.error('Error marking order as ready:', error);
+    logger.error('Error marking order as ready:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark order as ready'));
   }
 }

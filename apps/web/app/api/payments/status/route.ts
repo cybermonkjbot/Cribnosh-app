@@ -8,6 +8,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
  * /payments/status:
@@ -157,7 +158,7 @@ import { getErrorMessage } from '@/types/errors';
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
-    await getAuthenticatedUser(request);
+    const { userId, user } = await getAuthenticatedUser(request);
 
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
@@ -194,7 +195,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
       } catch (stripeError: any) {
-        console.error('Failed to retrieve payment intent:', stripeError);
+        logger.error('Failed to retrieve payment intent:', stripeError);
         return ResponseFactory.internalError('Failed to retrieve payment information.');
       }
     }
@@ -217,7 +218,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
           description: refund.description
         }));
       } catch (stripeError: any) {
-        console.error('Failed to retrieve refunds:', stripeError);
+        logger.error('Failed to retrieve refunds:', stripeError);
         // Don't fail the request if refund retrieval fails
       }
     }
@@ -248,7 +249,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }, 'Payment status retrieved successfully');
 
   } catch (error: any) {
-    console.error('Payment status check error:', error);
+    logger.error('Payment status check error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to check payment status.');
   }
 }

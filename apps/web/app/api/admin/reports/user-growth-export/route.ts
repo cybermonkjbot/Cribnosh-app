@@ -27,17 +27,13 @@
  *           example: "Success"
  */
 
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { getConvexClient } from '@/lib/conxed-client';
-import { NextResponse } from 'next/server';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 function toCSV(data: Record<string, unknown>[]): string {
   if (!data.length) return '';
@@ -95,7 +91,7 @@ function toCSV(data: Record<string, unknown>[]): string {
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);
+    const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
@@ -124,7 +120,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_user_growth',
       details: { format, start, end },
-      adminId: (userId || payload.userId) as Id<"users">,
+      adminId: userId,
     });
     // Trigger webhook and real-time broadcast (non-blocking)
     const eventPayload = { type: 'user_growth_export', user: userId, format, filters: { start, end }, count: rows.length };

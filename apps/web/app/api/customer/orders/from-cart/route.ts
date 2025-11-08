@@ -8,6 +8,7 @@ import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 // Type definitions for data structures
 interface RegionAvailabilityArgs extends Record<string, unknown> {
@@ -184,7 +185,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     try {
       paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
     } catch (error: unknown) {
-      console.error('Error retrieving payment intent:', error);
+      logger.error('Error retrieving payment intent:', error);
       return ResponseFactory.notFound('Payment intent not found or invalid.');
     }
 
@@ -295,7 +296,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const paymentAmount = paymentIntent.amount / 100; // Convert from cents
     const amountDifference = Math.abs(paymentAmount - totalAmount);
     if (amountDifference > 0.01) { // Allow 1p difference for rounding
-      console.warn(
+      logger.warn(
         `Payment amount mismatch: payment=${paymentAmount}, cart=${totalAmount}, diff=${amountDifference}`
       );
       // Continue anyway but log the warning
@@ -338,7 +339,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           }
         );
       } catch (error) {
-        console.warn('Could not link payment intent to order:', error);
+        logger.warn('Could not link payment intent to order:', error);
         // Continue - order is created, just payment link failed
       }
     }
@@ -351,7 +352,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         { userId }
       );
     } catch (error) {
-      console.warn('Could not clear cart after order creation:', error);
+      logger.warn('Could not clear cart after order creation:', error);
       // Continue - order is created, cart clearing can be retried
     }
 
@@ -384,7 +385,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
       return ResponseFactory.unauthorized(error.message);
     }
-    console.error('Error creating order from cart:', error);
+    logger.error('Error creating order from cart:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create order from cart.'));
   }
 }

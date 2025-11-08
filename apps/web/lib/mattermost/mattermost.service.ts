@@ -1,4 +1,5 @@
 import { env } from '@/lib/config/env';
+import { logger } from '@/lib/utils/logger';
 
 export interface MattermostMessage {
   text: string;
@@ -67,7 +68,7 @@ export class MattermostService {
    */
   async sendAPIMessage(post: MattermostPost): Promise<boolean> {
     if (!this.botToken || !this.serverUrl) {
-      console.warn('Mattermost API credentials not configured');
+      logger.warn('Mattermost API credentials not configured');
       return false;
     }
 
@@ -87,7 +88,7 @@ export class MattermostService {
 
       return true;
     } catch (error) {
-      console.error('Failed to send Mattermost API message:', error);
+      logger.error('Failed to send Mattermost API message:', error);
       return false;
     }
   }
@@ -344,7 +345,7 @@ export class MattermostService {
     last_name?: string;
   }): Promise<any | null> {
     if (!this.botToken || !this.serverUrl) {
-      console.warn('Mattermost API credentials not configured');
+      logger.warn('Mattermost API credentials not configured');
       return null;
     }
     try {
@@ -358,12 +359,12 @@ export class MattermostService {
       });
       if (!response.ok) {
         const error = await response.text();
-        console.error('Mattermost user creation failed:', error);
+        logger.error('Mattermost user creation failed:', error);
         return null;
       }
       return await response.json();
     } catch (error) {
-      console.error('Failed to create Mattermost user:', error);
+      logger.error('Failed to create Mattermost user:', error);
       return null;
     }
   }
@@ -376,12 +377,12 @@ export class MattermostService {
    */
   async addUserToTeam(userId: string, teamId?: string): Promise<boolean> {
     if (!this.botToken || !this.serverUrl) {
-      console.warn('Mattermost API credentials not configured');
+      logger.warn('Mattermost API credentials not configured');
       return false;
     }
     const team = teamId || this.defaultTeam;
     if (!team) {
-      console.error('No Mattermost team ID provided or configured.');
+      logger.error('No Mattermost team ID provided or configured.');
       return false;
     }
     try {
@@ -395,12 +396,12 @@ export class MattermostService {
       });
       if (!response.ok) {
         const error = await response.text();
-        console.error('Failed to add user to Mattermost team:', error);
+        logger.error('Failed to add user to Mattermost team:', error);
         return false;
       }
       return true;
     } catch (error) {
-      console.error('Error adding user to Mattermost team:', error);
+      logger.error('Error adding user to Mattermost team:', error);
       return false;
     }
   }
@@ -413,12 +414,12 @@ export class MattermostService {
    */
   async addUserToChannel(userId: string, channelId?: string): Promise<boolean> {
     if (!this.botToken || !this.serverUrl) {
-      console.warn('Mattermost API credentials not configured');
+      logger.warn('Mattermost API credentials not configured');
       return false;
     }
     const channel = channelId || this.defaultChannel;
     if (!channel) {
-      console.error('No Mattermost channel ID provided or configured.');
+      logger.error('No Mattermost channel ID provided or configured.');
       return false;
     }
     try {
@@ -432,12 +433,12 @@ export class MattermostService {
       });
       if (!response.ok) {
         const error = await response.text();
-        console.error('Failed to add user to Mattermost channel:', error);
+        logger.error('Failed to add user to Mattermost channel:', error);
         return false;
       }
       return true;
     } catch (error) {
-      console.error('Error adding user to Mattermost channel:', error);
+      logger.error('Error adding user to Mattermost channel:', error);
       return false;
     }
   }
@@ -451,7 +452,7 @@ export class MattermostService {
    */
   async setUserTheme(userId: string, theme: object | string, teamId: string = ""): Promise<boolean> {
     if (!this.botToken || !this.serverUrl) {
-      console.warn('Mattermost API credentials not configured');
+      logger.warn('Mattermost API credentials not configured');
       return false;
     }
     try {
@@ -465,7 +466,7 @@ export class MattermostService {
         },
       ];
       const url = `${this.serverUrl}/api/v4/users/${userId}/preferences`;
-      console.log('Setting theme at URL:', url); // Debug log
+      logger.log('Setting theme at URL:', url); // Debug log
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -476,12 +477,12 @@ export class MattermostService {
       });
       if (!response.ok) {
         const error = await response.text();
-        console.error('Failed to set Mattermost user theme:', error);
+        logger.error('Failed to set Mattermost user theme:', error);
         return false;
       }
       return true;
     } catch (error) {
-      console.error('Error setting Mattermost user theme:', error);
+      logger.error('Error setting Mattermost user theme:', error);
       return false;
     }
   }

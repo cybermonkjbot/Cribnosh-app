@@ -2,6 +2,7 @@ import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -97,7 +98,7 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error('Error in live streaming admin:', error);
+    logger.error('Error in live streaming admin:', error);
     return ResponseFactory.error('Failed to retrieve admin live streaming', 'LIVE_STREAMING_ADMIN_ERROR', 500);
   }
 }

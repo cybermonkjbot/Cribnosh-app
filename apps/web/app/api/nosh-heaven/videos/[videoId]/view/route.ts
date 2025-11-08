@@ -8,6 +8,7 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -130,7 +131,7 @@ async function handlePOST(
     return ResponseFactory.success(null, 'View recorded successfully');
 
   } catch (error: any) {
-    console.error('Video view recording error:', error);
+    logger.error('Video view recording error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to record view');
   }
 }

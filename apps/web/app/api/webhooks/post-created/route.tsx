@@ -3,6 +3,7 @@ import { getConvexClient } from "@/lib/conxed-client";
 import { api } from '@/convex/_generated/api';
 import crypto from 'crypto';
 import { Id } from '@/convex/_generated/dataModel';
+import { logger } from '@/lib/utils/logger';
 
 // Webhook event type definitions
 interface PostEventData {
@@ -212,7 +213,7 @@ export async function POST(request: Request) {
       return ResponseFactory.internalError(result.error || 'Failed to process webhook');
     }
     
-    console.log("Webhook processed successfully:", { eventType: body.type, result });
+    logger.log("Webhook processed successfully:", { eventType: body.type, result });
     
     return ResponseFactory.success({ 
       success: true, 
@@ -220,7 +221,7 @@ export async function POST(request: Request) {
       processedAt: new Date().toISOString()
     });
   } catch (error) {
-    console.error("Webhook processing error:", error);
+    logger.error("Webhook processing error:", error);
     return ResponseFactory.internalError("Failed to process webhook");
   }
 }
@@ -242,11 +243,11 @@ async function processWebhookEvent(eventData: WebhookEvent): Promise<{ success: 
       case 'user.updated':
         return await handleUserUpdated(eventData);
       default:
-        console.log(`Unhandled webhook event type: ${eventData.type}`);
+        logger.log(`Unhandled webhook event type: ${eventData.type}`);
         return { success: true };
     }
   } catch (error) {
-    console.error('Error processing webhook event:', error);
+    logger.error('Error processing webhook event:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -263,7 +264,7 @@ async function handlePostCreated(eventData: WebhookEvent): Promise<{ success: bo
     }
     
     // Log the post creation for analytics
-    console.log('New post created:', {
+    logger.log('New post created:', {
       id: post.id,
       title: post.title,
       author: post.author,
@@ -323,7 +324,7 @@ async function handlePostCreated(eventData: WebhookEvent): Promise<{ success: bo
       });
       
     } catch (error) {
-      console.error('Failed to process post creation webhook:', error);
+      logger.error('Failed to process post creation webhook:', error);
     }
     
     return { success: true };
@@ -343,7 +344,7 @@ async function handlePostUpdated(eventData: WebhookEvent): Promise<{ success: bo
       return { success: false, error: 'Post data is required for post.updated event' };
     }
     
-    console.log('Post updated:', {
+    logger.log('Post updated:', {
       id: post.id,
       title: post.title,
       updatedAt: post.updatedAt
@@ -391,7 +392,7 @@ async function handlePostUpdated(eventData: WebhookEvent): Promise<{ success: bo
       });
       
     } catch (error) {
-      console.error('Failed to process post update webhook:', error);
+      logger.error('Failed to process post update webhook:', error);
     }
     
     return { success: true };
@@ -411,7 +412,7 @@ async function handlePostDeleted(eventData: WebhookEvent): Promise<{ success: bo
       return { success: false, error: 'Post data is required for post.deleted event' };
     }
     
-    console.log('Post deleted:', {
+    logger.log('Post deleted:', {
       id: post.id,
       deletedAt: new Date().toISOString()
     });
@@ -450,7 +451,7 @@ async function handlePostDeleted(eventData: WebhookEvent): Promise<{ success: bo
       });
       
     } catch (error) {
-      console.error('Failed to process post deletion webhook:', error);
+      logger.error('Failed to process post deletion webhook:', error);
     }
     
     return { success: true };
@@ -470,7 +471,7 @@ async function handleUserCreated(eventData: WebhookEvent): Promise<{ success: bo
       return { success: false, error: 'User data is required for user.created event' };
     }
     
-    console.log('New user created:', {
+    logger.log('New user created:', {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -509,7 +510,7 @@ async function handleUserCreated(eventData: WebhookEvent): Promise<{ success: bo
       });
       
     } catch (error) {
-      console.error('Failed to process user creation webhook:', error);
+      logger.error('Failed to process user creation webhook:', error);
     }
     
     return { success: true };
@@ -529,7 +530,7 @@ async function handleUserUpdated(eventData: WebhookEvent): Promise<{ success: bo
       return { success: false, error: 'User data is required for user.updated event' };
     }
     
-    console.log('User updated:', {
+    logger.log('User updated:', {
       id: user.id,
       updatedAt: user.updatedAt,
       changes: eventData.data.changes
@@ -575,7 +576,7 @@ async function handleUserUpdated(eventData: WebhookEvent): Promise<{ success: bo
       });
       
     } catch (error) {
-      console.error('Failed to process user update webhook:', error);
+      logger.error('Failed to process user update webhook:', error);
     }
     
     return { success: true };
@@ -592,7 +593,7 @@ function verifyWebhookSignature(payload: unknown, signature: string): boolean {
   const webhookSecret = process.env.WEBHOOK_SECRET;
   
   if (!webhookSecret) {
-    console.warn('No webhook secret configured, skipping signature verification');
+    logger.warn('No webhook secret configured, skipping signature verification');
     return true; // Allow in development
   }
   
@@ -602,7 +603,7 @@ function verifyWebhookSignature(payload: unknown, signature: string): boolean {
     const [algorithm, hash] = signature.split('=');
     
     if (algorithm !== 'sha256') {
-      console.error('Unsupported signature algorithm:', algorithm);
+      logger.error('Unsupported signature algorithm:', algorithm);
       return false;
     }
     
@@ -624,7 +625,7 @@ function verifyWebhookSignature(payload: unknown, signature: string): boolean {
     return crypto.timingSafeEqual(providedHash, expectedHashBuffer);
     
   } catch (error) {
-    console.error('Webhook signature verification failed:', error);
+    logger.error('Webhook signature verification failed:', error);
     return false;
   }
 }

@@ -1,4 +1,5 @@
 // Internationalization system for CribNosh emails
+import { logger } from '@/lib/utils/logger';
 export interface EmailTranslations {
   welcome: {
     subject: string;
@@ -408,7 +409,7 @@ export const translate = (lang: SupportedLanguage, key: string, variables: Recor
   }
   
   if (typeof value !== 'string') {
-    console.warn(`Translation key "${key}" not found for language "${lang}"`);
+    logger.warn(`Translation key "${key}" not found for language "${lang}"`);
     return key;
   }
   

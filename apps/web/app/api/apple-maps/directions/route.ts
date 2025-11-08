@@ -5,6 +5,7 @@ import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -248,7 +249,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Apple Maps directions error:', errorText);
+      logger.error('Apple Maps directions error:', errorText);
       throw ErrorFactory.custom(ErrorCode.EXTERNAL_SERVICE_ERROR, `Apple Maps directions failed: ${response.status}`);
     }
 
@@ -295,7 +296,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Directions retrieved successfully');
 
   } catch (error) {
-    console.error('Directions error:', error);
+    logger.error('Directions error:', error);
     return errorHandler.handleError(error);
   }
 }

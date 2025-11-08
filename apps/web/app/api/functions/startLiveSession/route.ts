@@ -1,6 +1,6 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { LiveSession } from '@/convex/types/livestream';
+import type { LiveSession } from '../../../../../../packages/convex/types/livestream';
 import { withSensitiveRateLimit } from '@/lib/api/sensitive-middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
@@ -9,6 +9,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // Define the interface to match the mutation's expected arguments
 interface StartLiveSessionRequest {
@@ -172,7 +173,7 @@ async function handlePOST(req: NextRequest) {
 
     return ResponseFactory.success(result);
   } catch (error) {
-    console.error('Error starting live session:', error);
+    logger.error('Error starting live session:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

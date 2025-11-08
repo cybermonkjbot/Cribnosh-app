@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -134,7 +135,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       }
     });
 
-    console.log(`Chef ${userId} submitted documents for review:`, document_ids);
+    logger.log(`Chef ${userId} submitted documents for review:`, document_ids);
     
     return ResponseFactory.success({ 
       success: true, 
@@ -145,7 +146,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

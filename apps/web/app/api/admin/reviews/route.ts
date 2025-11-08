@@ -5,6 +5,8 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 /**
  * @swagger
  * /admin/reviews:
@@ -120,7 +122,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

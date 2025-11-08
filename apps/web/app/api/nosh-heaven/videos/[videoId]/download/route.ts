@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -61,7 +62,7 @@ async function handleGET(
     const convex = getConvexClient();
     
     // Get video post to retrieve storage ID
-    const getVideoById = getApiFunction('queries/videoPosts', 'getVideoById');
+    const getVideoById = getApiFunction('queries/videoPosts', 'getVideoById') as any;
     const video = await convex.query(getVideoById, { videoId: videoId as any });
 
     if (!video) {
@@ -82,7 +83,7 @@ async function handleGET(
     }, 'Video download URL retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Error in video download:', error);
+    logger.error('Error in video download:', error);
     const message = error instanceof Error ? error.message : 'Failed to retrieve video download URL';
     
     if (message.includes('not found')) {

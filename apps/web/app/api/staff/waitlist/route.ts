@@ -7,6 +7,7 @@ import { withStaffAuth } from '@/lib/api/staff-middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -143,7 +144,7 @@ async function handlePOST(request: NextRequest, user: any): Promise<NextResponse
     }, 'Lead successfully added to waitlist');
 
   } catch (error: unknown) {
-    console.error('[STAFF WAITLIST] Error:', error);
+    logger.error('[STAFF WAITLIST] Error:', error);
     return ResponseFactory.internalError(
       error instanceof Error ? error.message : 'Failed to add lead to waitlist.'
     );

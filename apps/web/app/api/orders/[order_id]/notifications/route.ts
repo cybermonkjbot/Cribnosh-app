@@ -7,6 +7,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -186,7 +187,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Get order notifications error:', error);
+    logger.error('Get order notifications error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order notifications.') 
     );
   }

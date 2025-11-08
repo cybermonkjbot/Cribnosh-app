@@ -7,6 +7,7 @@ import { withAdminAuth } from '../../../../../lib/api/admin-middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -167,7 +168,7 @@ async function handlePOST(req: NextRequest) {
 
     return ResponseFactory.success(result);
   } catch (error) {
-    console.error('Error force ending live session:', error);
+    logger.error('Error force ending live session:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

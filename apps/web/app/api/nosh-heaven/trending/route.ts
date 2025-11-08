@@ -7,6 +7,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -70,7 +71,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success(trendingVideos, 'Trending videos retrieved successfully');
 
   } catch (error: any) {
-    console.error('Trending videos retrieval error:', error);
+    logger.error('Trending videos retrieval error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to retrieve trending videos');
   }
 }

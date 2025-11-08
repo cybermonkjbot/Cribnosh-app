@@ -3,6 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -152,7 +153,7 @@ export async function GET(request: NextRequest) {
       data: []
     });
   } catch (error) {
-    console.error('Error in live streaming chat:', error);
+    logger.error('Error in live streaming chat:', error);
     return ResponseFactory.error('Failed to retrieve live chat', 'LIVE_STREAMING_CHAT_ERROR', 500);
   }
 }

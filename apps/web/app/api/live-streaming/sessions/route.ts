@@ -6,6 +6,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -153,7 +154,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       }
     });
   } catch (error) {
-    console.error('Error in live streaming sessions:', error);
+    logger.error('Error in live streaming sessions:', error);
     return ResponseFactory.error('Failed to retrieve live sessions', 'LIVE_STREAMING_SESSIONS_ERROR', 500);
   }
 });

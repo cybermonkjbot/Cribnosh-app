@@ -6,6 +6,9 @@ import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { logger } from '@/lib/utils/logger';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -199,7 +202,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
                   analyzedAt: Date.now()
                 });
               } catch (error) {
-                console.error(`Failed to update review ${review._id}:`, error);
+                logger.error(`Failed to update review ${review._id}:`, error);
               }
             }
           })
@@ -215,13 +218,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

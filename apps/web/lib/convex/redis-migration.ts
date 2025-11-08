@@ -1,5 +1,6 @@
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { logger } from '@/lib/utils/logger';
 
 // Convex-based Redis replacement service (excluding rate limiting)
 export class ConvexRedisService {
@@ -27,7 +28,7 @@ export class ConvexRedisService {
         })
       });
     } catch (error) {
-      console.error('Failed to set cache:', error);
+      logger.error('Failed to set cache:', error);
       throw error;
     }
   }
@@ -46,7 +47,7 @@ export class ConvexRedisService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Failed to get cache:', error);
+      logger.error('Failed to get cache:', error);
       return null;
     }
   }
@@ -65,7 +66,7 @@ export class ConvexRedisService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Failed to delete cache:', error);
+      logger.error('Failed to delete cache:', error);
       return false;
     }
   }
@@ -82,7 +83,7 @@ export class ConvexRedisService {
         })
       });
     } catch (error) {
-      console.error('Failed to set session:', error);
+      logger.error('Failed to set session:', error);
       throw error;
     }
   }
@@ -101,7 +102,7 @@ export class ConvexRedisService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Failed to get session:', error);
+      logger.error('Failed to get session:', error);
       return null;
     }
   }
@@ -120,7 +121,7 @@ export class ConvexRedisService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Failed to delete session:', error);
+      logger.error('Failed to delete session:', error);
       return false;
     }
   }
@@ -148,7 +149,7 @@ export class ConvexRedisService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Failed to enqueue job:', error);
+      logger.error('Failed to enqueue job:', error);
       throw error;
     }
   }
@@ -168,7 +169,7 @@ export class ConvexRedisService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Failed to join session:', error);
+      logger.error('Failed to join session:', error);
       throw error;
     }
   }
@@ -187,7 +188,7 @@ export class ConvexRedisService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Failed to leave session:', error);
+      logger.error('Failed to leave session:', error);
       return null;
     }
   }

@@ -8,7 +8,6 @@ import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 /**
  * @swagger
  * /admin/chef/cuisines/{cuisine_id}:
@@ -257,7 +256,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
@@ -282,7 +281,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
@@ -303,7 +302,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

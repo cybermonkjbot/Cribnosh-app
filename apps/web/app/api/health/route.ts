@@ -9,6 +9,8 @@ import { securityMiddleware } from '@/lib/api/security';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
+import Stripe from 'stripe';
 // import { checkAPIHealth } from '@/lib/api/client'; // Unused for now
 
 const monitoring = MonitoringService.getInstance();
@@ -193,6 +195,7 @@ export async function GET(request: NextRequest) {
       monitoring: { status: 'unknown', details: '' },
       convex: { status: 'unknown', details: '' },
       network: { status: 'unknown', details: '' },
+      stripe: { status: 'unknown', details: '' },
     },
     api: {
       status: 'unknown',
@@ -259,6 +262,28 @@ export async function GET(request: NextRequest) {
       healthChecks.services.network = {
         status: 'unhealthy',
         details: `Network test failed: ${error}`,
+      };
+    }
+
+    // Check Stripe connectivity
+    try {
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (stripeSecretKey) {
+        healthChecks.services.stripe = await checkServiceWithTimeout(async () => {
+          const stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-08-27.basil' as any });
+          await stripe.balance.retrieve();
+          return { status: 'healthy', details: 'Stripe API connection successful' };
+        }, 2000);
+      } else {
+        healthChecks.services.stripe = {
+          status: 'unknown',
+          details: 'Stripe not configured',
+        };
+      }
+    } catch (error) {
+      healthChecks.services.stripe = {
+        status: 'degraded',
+        details: `Stripe error: ${error}`,
       };
     }
 

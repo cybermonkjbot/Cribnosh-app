@@ -5,6 +5,7 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { logger } from '@/lib/utils/logger';
 
 // Endpoint: /v1/auth/google-signin
 // Group: auth
@@ -243,7 +244,7 @@ async function verifyGoogleIdToken(idToken: string) {
       email_verified: data.email_verified === 'true',
     };
   } catch (error) {
-    console.error('Google ID token verification failed:', error);
+    logger.error('Google ID token verification failed:', error);
     return null;
   }
 }
@@ -281,7 +282,7 @@ async function getGoogleUserInfo(accessToken: string) {
       email_verified: data.verified_email || false,
     };
   } catch (error) {
-    console.error('Google user info fetch failed:', error);
+    logger.error('Google user info fetch failed:', error);
     return null;
   }
 }

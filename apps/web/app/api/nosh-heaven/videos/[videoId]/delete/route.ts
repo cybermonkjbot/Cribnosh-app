@@ -4,6 +4,7 @@ import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -52,7 +53,7 @@ async function handleDELETE(
     }
 
     // Delete video post (soft delete - sets status to 'removed')
-    const deleteVideoPost = getApiFunction('mutations/videoPosts', 'deleteVideoPost');
+    const deleteVideoPost = getApiFunction('mutations/videoPosts', 'deleteVideoPost') as any;
     await convex.mutation(deleteVideoPost, {
       videoId: videoId as any,
     });
@@ -60,7 +61,7 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'Video deleted successfully');
 
   } catch (error: unknown) {
-    console.error('Error in video delete:', error);
+    logger.error('Error in video delete:', error);
     const message = error instanceof Error ? error.message : 'Failed to delete video';
     
     // Handle specific error cases

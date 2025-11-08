@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -93,7 +92,7 @@ import { getErrorMessage } from '@/types/errors';
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated chef from session token
-    const { userId } = await getAuthenticatedChef(request);
+    const { userId, user } = await getAuthenticatedChef(request);
     const { name, document_type, storageId } = await request.json();
     if (!name || !document_type || !storageId) {
       return ResponseFactory.validationError('Missing required fields.');
@@ -112,7 +111,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

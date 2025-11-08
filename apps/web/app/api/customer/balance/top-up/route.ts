@@ -86,10 +86,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-<<<<<<< Current (Your changes)
-    // Fetch user from database to get email
+    // Fetch user from database to get email (user already captured from auth)
     const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getById, { userId: payload.user_id });
     if (!user) {
       return createSpecErrorResponse(
         'User not found',
@@ -98,8 +96,6 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-=======
->>>>>>> Incoming (Background Agent changes)
     const email = user.email;
     if (!email) {
       return createSpecErrorResponse(

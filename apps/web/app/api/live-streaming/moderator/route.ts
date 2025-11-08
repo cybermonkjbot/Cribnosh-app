@@ -3,6 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -257,7 +258,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error in live streaming moderator:', error);
+    logger.error('Error in live streaming moderator:', error);
     return ResponseFactory.error('Failed to retrieve moderator live streaming', 'LIVE_STREAMING_MODERATOR_ERROR', 500);
   }
 }

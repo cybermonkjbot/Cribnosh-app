@@ -8,6 +8,7 @@ import { calculateDistanceKm, formatDistanceMiles } from '@/lib/apple-maps/servi
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -290,7 +291,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Chefs retrieved successfully');
 
   } catch (error) {
-    console.error('Error getting chefs by location:', error);
+    logger.error('Error getting chefs by location:', error);
     return errorHandler.handleError(error);
   }
 }

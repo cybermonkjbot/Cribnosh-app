@@ -5,6 +5,7 @@ import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -196,7 +197,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Apple Maps places search error:', errorText);
+      logger.error('Apple Maps places search error:', errorText);
       throw ErrorFactory.custom(ErrorCode.EXTERNAL_SERVICE_ERROR, `Apple Maps places search failed: ${response.status}`);
     }
 
@@ -243,7 +244,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Places search successful');
 
   } catch (error) {
-    console.error('Places search error:', error);
+    logger.error('Places search error:', error);
     return errorHandler.handleError(error);
   }
 }

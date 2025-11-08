@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -113,7 +113,7 @@ async function handleGET(
     return ResponseFactory.success({ meals, query }, 'Search results retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Search meals error:', error);
+    logger.error('Search meals error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to search meals')
     );

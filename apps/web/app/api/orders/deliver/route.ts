@@ -7,6 +7,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 interface DeliverOrderRequest {
   orderId: string;
@@ -171,11 +172,11 @@ async function handlePOST(request: NextRequest) {
 
     const refundEligibleUntil = new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString();
 
-    console.log(`Order ${orderId} marked as delivered by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${orderId} marked as delivered by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({});
   } catch (error: unknown) {
-    console.error('Error delivering order:', error);
+    logger.error('Error delivering order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to deliver order'));
   }
 }

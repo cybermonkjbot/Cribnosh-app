@@ -9,7 +9,7 @@ import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -60,17 +60,17 @@ async function handleGET(
     const convex = getConvexClient();
     
     // Get similar meals with user preferences
-    const similarMeals = await convex.query((api as { queries: { mealRecommendations: { getSimilar: unknown } } }).queries.mealRecommendations.getSimilar as never, {
+    const similarMeals = await convex.query(api.queries.mealRecommendations.getSimilar, {
       mealId: meal_id as Id<'meals'>,
-      userId: userId || undefined,
+      userId: userId ? (userId as any) : undefined,
       limit,
-    });
+    }) as unknown[];
 
     if (similarMeals.length === 0) {
       // Check if the meal exists
-      const meal = await convex.query((api as { queries: { meals: { getById: unknown } } }).queries.meals.getById as never, { 
+      const meal = await convex.query(api.queries.meals.getById, { 
         mealId: meal_id as Id<'meals'> 
-      });
+      }) as unknown;
       
       if (!meal) {
         return ResponseFactory.notFound('Meal not found');
@@ -78,7 +78,7 @@ async function handleGET(
     }
 
     // Transform similar meals to match mobile app expected format
-    const dishes = similarMeals.map((meal: { _id?: string; id?: string; name: string; description?: string; price?: number; images?: string[]; image_url?: string; cuisine?: string[]; dietary?: string[]; averageRating?: number; rating?: number; reviewCount?: number; chefId?: string; chef?: { _id: string } | null }) => ({
+    const dishes = (similarMeals as any[]).map((meal: { _id?: string; id?: string; name: string; description?: string; price?: number; images?: string[]; image_url?: string; cuisine?: string[]; dietary?: string[]; averageRating?: number; rating?: number; reviewCount?: number; chefId?: string; chef?: { _id: string } | null }) => ({
       id: meal._id || meal.id,
       name: meal.name,
       description: meal.description || '',
@@ -98,7 +98,7 @@ async function handleGET(
     }, 'Similar meals retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get similar meals error:', error);
+    logger.error('Get similar meals error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve similar meals')
     );

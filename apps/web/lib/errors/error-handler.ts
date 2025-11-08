@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CribNoshError, ErrorFactory } from './standard-errors';
 import { ErrorCode, ErrorSeverity, StandardError, APIResponse, ErrorContext } from './types';
 import { ResponseFactory } from '../api/response-factory';
+import { logger } from '@/lib/utils/logger';
 // import { monitoring } from '@/lib/monitoring';
 
 export class ErrorHandler {
@@ -141,14 +142,14 @@ export class ErrorHandler {
     if (error instanceof CribNoshError) {
       switch (error.severity) {
         case ErrorSeverity.LOW:
-          console.warn('Low severity error:', errorDetails);
+          logger.warn('Low severity error:', errorDetails);
           break;
         case ErrorSeverity.MEDIUM:
-          console.error('Medium severity error:', errorDetails);
+          logger.error('Medium severity error:', errorDetails);
           break;
         case ErrorSeverity.HIGH:
         case ErrorSeverity.CRITICAL:
-          console.error('High/Critical severity error:', errorDetails);
+          logger.error('High/Critical severity error:', errorDetails);
           // Send to monitoring service for critical errors
           // monitoring.logError(error, {
           //   context: 'error_handler',
@@ -158,7 +159,7 @@ export class ErrorHandler {
           break;
       }
     } else {
-      console.error('Unhandled error:', errorDetails);
+      logger.error('Unhandled error:', errorDetails);
       // Send to monitoring service for unhandled errors
       // monitoring.logError(error as Error, {
       //   context: 'error_handler',

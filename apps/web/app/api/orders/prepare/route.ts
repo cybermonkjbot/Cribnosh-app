@@ -4,6 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface PrepareOrderRequest {
   orderId: string;
   prepNotes?: string;
@@ -133,7 +136,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to prepare orders
+    const { userId, user } = await getAuthenticatedUser(request);
+    // Check if user has permission to prepare orders
     if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
@@ -179,7 +183,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.internalError('Failed to prepare order');
     }
 
-    console.log(`Order ${orderId} preparation started by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${orderId} preparation started by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: preparedOrder._id,
@@ -187,7 +191,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       prepNotes: preparedOrder.chef_notes
     });
   } catch (error: unknown) {
-    console.error('Error preparing order:', error);
+    logger.error('Error preparing order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to prepare order'));
   }
 }

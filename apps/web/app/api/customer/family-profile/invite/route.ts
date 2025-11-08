@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/types/errors';
 import type { InviteFamilyMemberRequest } from '@/types/family-profile';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -116,7 +117,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         invitationToken
       );
     } catch (error) {
-      console.error(`Failed to send invitation email to ${member.email}:`, error);
+      logger.error(`Failed to send invitation email to ${member.email}:`, error);
       // Don't fail the request if email fails
     }
 

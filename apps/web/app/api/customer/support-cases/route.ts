@@ -8,6 +8,7 @@ import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendSupportCaseNotification } from '@/lib/services/email-service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
@@ -294,7 +295,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (!category || !['order', 'payment', 'account', 'technical', 'other'].includes(category)) {
+    if (!category || typeof category !== 'string' || !['order', 'payment', 'account', 'technical', 'other'].includes(category)) {
       return createSpecErrorResponse(
         'category is required and must be one of: order, payment, account, technical, other',
         'BAD_REQUEST',
@@ -302,7 +303,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (!['low', 'medium', 'high'].includes(priority)) {
+    if (typeof priority !== 'string' || !['low', 'medium', 'high'].includes(priority)) {
       return createSpecErrorResponse(
         'priority must be one of: low, medium, high',
         'BAD_REQUEST',
@@ -365,7 +366,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         customerEmail,
         formattedCase.subject
       ).catch((error) => {
-        console.error('Failed to send support case notifications:', error);
+        logger.error('Failed to send support case notifications:', error);
       });
     }
 

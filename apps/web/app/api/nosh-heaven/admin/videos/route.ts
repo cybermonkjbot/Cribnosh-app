@@ -6,6 +6,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAdminAuth } from '@/lib/api/admin-middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -92,7 +93,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success(videos, 'Videos retrieved successfully');
 
   } catch (error: any) {
-    console.error('Admin videos retrieval error:', error);
+    logger.error('Admin videos retrieval error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to retrieve videos');
   }
 }

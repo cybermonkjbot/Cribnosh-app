@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -47,10 +47,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
     
     // Get personalized recommendations
-    const recommendations = await convex.query((api as { queries: { mealRecommendations: { getRecommended: unknown } } }).queries.mealRecommendations.getRecommended as never, {
-      userId,
+    const recommendations = await convex.query(api.queries.mealRecommendations.getRecommended, {
+      userId: userId as any,
       limit,
-    });
+    }) as unknown[];
 
     return ResponseFactory.success({ 
       recommendations,
@@ -59,7 +59,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }, 'Recommendations retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get recommendations error:', error);
+    logger.error('Get recommendations error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve recommendations')
     );

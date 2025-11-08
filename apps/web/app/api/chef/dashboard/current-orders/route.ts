@@ -200,9 +200,7 @@ interface JWTPayload {
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated chef from session token
-    const { userId } = await getAuthenticatedChef(request);if (payload.role !== 'chef') {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can access current orders.');
-    }
+    const { userId } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
     const orders = await convex.query(api.queries.orders.listByChef, { chef_id: userId });
     const currentOrders = orders.filter((o: { order_status: string }) => !['DELIVERED', 'CANCELLED', 'DECLINED'].includes(o.order_status));

@@ -9,6 +9,7 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { notifyStaffOnboardingComplete, notifyOnboardingError } from '@/lib/mattermost/utils';
 import { getUserFromRequest } from "@/lib/auth/session";
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -221,7 +222,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error) {
-    console.error('Onboarding submission error:', error);
+    logger.error('Onboarding submission error:', error);
     
     await notifyOnboardingError({
       email: undefined,

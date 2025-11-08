@@ -9,6 +9,7 @@ import { addToBroadcastList } from '@/lib/email/addToBroadcastList';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
@@ -24,7 +25,7 @@ function getEmailService(): EmailService | null {
         },
       });
     } catch (error) {
-      console.error('Failed to initialize EmailService:', error);
+      logger.error('Failed to initialize EmailService:', error);
       return null;
     }
   }

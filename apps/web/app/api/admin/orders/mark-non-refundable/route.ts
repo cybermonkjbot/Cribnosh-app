@@ -1,13 +1,11 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest } from 'next/server';
 /**
  * @swagger
  * /admin/orders/mark-non-refundable:
@@ -135,8 +133,7 @@ async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);// Check if user has admin permissions
-    
+    const { userId } = await getAuthenticatedAdmin(request);
 
     const body: MarkNonRefundableRequest = await request.json();
     const { orderId, reason, description, effectiveImmediately = false, metadata } = body;
@@ -172,7 +169,7 @@ async function handlePOST(request: NextRequest) {
     // Update refund eligibility
     const updatedOrder = await convex.mutation(api.mutations.orders.updateRefundEligibility, {
       orderId: order._id,
-      updatedBy: (userId || payload.userId) as Id<"users">,
+      updatedBy: userId,
       reason: `Admin override: ${description}`,
       metadata: {
         adminReason: reason,
@@ -186,7 +183,7 @@ async function handlePOST(request: NextRequest) {
       }
     });
 
-    console.log(`Order ${orderId} marked as non-refundable by admin ${userId}: ${reason} - ${description}`);
+    logger.log(`Order ${orderId} marked as non-refundable by admin ${userId}: ${reason} - ${description}`);
 
     return ResponseFactory.success({
       success: true,
@@ -197,7 +194,7 @@ async function handlePOST(request: NextRequest) {
       description: description
     }, 'Order marked as non-refundable successfully');
   } catch (error: unknown) {
-    console.error('Error marking order as non-refundable:', error);
+    logger.error('Error marking order as non-refundable:', error);
     return ResponseFactory.internalError('Failed to mark order as non-refundable');
   }
 }

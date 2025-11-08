@@ -8,6 +8,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 interface DataSharingPreferencesBody {
   analytics_enabled?: boolean;
@@ -193,7 +194,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         marketing_enabled,
       });
     } catch (mutationError: unknown) {
-      console.error('Error in updateByUserId mutation:', mutationError);
+      logger.error('Error in updateByUserId mutation:', mutationError);
       const mutationErrorMessage = mutationError instanceof Error ? mutationError.message : 'Unknown mutation error';
       throw new Error(`Failed to update data sharing preferences: ${mutationErrorMessage}`);
     }
@@ -205,7 +206,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         userId,
       });
     } catch (queryError: unknown) {
-      console.error('Error in getByUserId query:', queryError);
+      logger.error('Error in getByUserId query:', queryError);
       const queryErrorMessage = queryError instanceof Error ? queryError.message : 'Unknown query error';
       throw new Error(`Failed to retrieve updated preferences: ${queryErrorMessage}`);
     }
@@ -218,7 +219,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
       return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
     }
-    console.error('Error updating data sharing preferences:', error);
+    logger.error('Error updating data sharing preferences:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to update data sharing preferences';
     return createSpecErrorResponse(
       errorMessage,

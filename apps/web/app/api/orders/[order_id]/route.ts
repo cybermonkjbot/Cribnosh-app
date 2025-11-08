@@ -7,6 +7,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 interface UpdateOrderRequest {
   deliveryAddress?: {
@@ -199,11 +200,11 @@ async function handlePATCH(request: NextRequest) {
       }
     });
 
-    console.log(`Order ${order_id} updated by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${order_id} updated by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({});
   } catch (error: unknown) {
-    console.error('Error updating order:', error);
+    logger.error('Error updating order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update order'));
   }
 }
@@ -449,7 +450,7 @@ async function handleGET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Order get error:', error);
+    logger.error('Order get error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order.'));
   }
 }

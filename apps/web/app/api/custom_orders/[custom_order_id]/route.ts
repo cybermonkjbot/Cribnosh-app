@@ -5,6 +5,7 @@ import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
 interface JWTPayload {
   user_id: string;
   role: string;
@@ -356,12 +357,13 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Missing custom_order_id');
   }
   // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+  const { userId, user } = await getAuthenticatedUser(request);
+  const convex = getConvexClient();
   const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
   if (!order) {
     return ResponseFactory.notFound('Custom order not found');
   }
-  if (order.userId !== userId && payload.role !== 'admin') {
+  if (order.userId !== userId && !user.roles?.includes('admin')) {
     return ResponseFactory.forbidden('Forbidden: Not your order.');
   }
   const { details } = await request.json();
@@ -383,12 +385,13 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Missing custom_order_id');
   }
   // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+  const { userId, user } = await getAuthenticatedUser(request);
+  const convex = getConvexClient();
   const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
   if (!order) {
     return ResponseFactory.notFound('Custom order not found');
   }
-  if (order.userId !== userId && payload.role !== 'admin') {
+  if (order.userId !== userId && !user.roles?.includes('admin')) {
     return ResponseFactory.forbidden('Forbidden: Not your order.');
   }
   await convex.mutation(api.mutations.customOrders.deleteOrder, { orderId: custom_order_id as Id<'custom_orders'> });

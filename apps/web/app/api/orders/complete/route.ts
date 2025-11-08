@@ -7,6 +7,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 interface CompleteOrderRequest {
   orderId: string;
@@ -153,11 +154,11 @@ async function handlePOST(request: NextRequest) {
       }
     });
 
-    console.log(`Order ${orderId} marked as completed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${orderId} marked as completed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({});
   } catch (error: unknown) {
-    console.error('Error completing order:', error);
+    logger.error('Error completing order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to complete order'));
   }
 }

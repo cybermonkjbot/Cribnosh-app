@@ -6,11 +6,9 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextResponse } from 'next/server';
-import { generateOTPCode } from '@/lib/utils/otp';
-import { sendOTPEmail } from '@/lib/email/send-otp-email';
+import { generateOTPCode, sendOTPEmail } from '@/lib/email/send-otp-email';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 
 const TEST_OTP = '123456'; // Test OTP for development
 
@@ -102,7 +100,6 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClient();
-    const userId = userId;
 
     if (action === 'send') {
       if (type === 'phone') {
@@ -224,7 +221,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

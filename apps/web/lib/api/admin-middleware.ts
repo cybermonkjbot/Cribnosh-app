@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Middleware helper for admin API routes
@@ -25,7 +26,7 @@ export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<
       if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
         return ResponseFactory.unauthorized(error.message);
       }
-      console.error('Admin auth middleware error:', error);
+      logger.error('Admin auth middleware error:', error);
       return ResponseFactory.internalError('Authentication failed');
     }
   };

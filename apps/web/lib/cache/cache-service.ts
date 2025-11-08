@@ -1,5 +1,6 @@
 import { env } from '../config/env';
 import { ErrorFactory, ErrorCode } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface CacheInvalidationOptions {
   paths?: string[];
@@ -49,7 +50,7 @@ export class CacheService {
     try {
       await Promise.all(promises);
     } catch (error) {
-      console.error('Cache invalidation failed:', error);
+      logger.error('Cache invalidation failed:', error);
       throw error;
     }
   }

@@ -8,6 +8,7 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -73,7 +74,6 @@ async function handlePOST(request: NextRequest, { params }: { params: { videoId:
       return ResponseFactory.error('Reason is required', 'VALIDATION_ERROR', 400);
     }
     
-    // Get user from JWT token
     // Get authenticated user from session token
     const { userId } = await getAuthenticatedUser(request);
     
@@ -94,7 +94,7 @@ async function handlePOST(request: NextRequest, { params }: { params: { videoId:
       }
     });
   } catch (error) {
-    console.error('Error in video report:', error);
+    logger.error('Error in video report:', error);
     return ResponseFactory.error('Failed to report video', 'VIDEO_REPORT_ERROR', 500);
   }
 }

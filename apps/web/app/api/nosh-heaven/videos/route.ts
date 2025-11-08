@@ -4,6 +4,7 @@ import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -146,7 +147,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Create video post with storage IDs
-    const createVideoPost = getApiFunction('mutations/videoPosts', 'createVideoPost');
+    const createVideoPost = getApiFunction('mutations/videoPosts', 'createVideoPost') as any;
     const videoId = await convex.mutation(createVideoPost, {
       title: body.title,
       description: body.description,
@@ -169,7 +170,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Video post created successfully', 201);
 
   } catch (error: unknown) {
-    console.error('Video creation error:', error);
+    logger.error('Video creation error:', error);
     const message = error instanceof Error ? error.message : 'Failed to create video post';
     return ResponseFactory.internalError(message);
   }
@@ -226,7 +227,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const cursor = searchParams.get('cursor') || undefined;
 
     const convex = getConvexClient();
-    const getVideoFeed = getApiFunction('queries/videoPosts', 'getVideoFeed');
+    const getVideoFeed = getApiFunction('queries/videoPosts', 'getVideoFeed') as any;
     const feed = await convex.query(getVideoFeed, {
       limit,
       cursor,
@@ -235,7 +236,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success(feed, 'Video feed retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Video feed retrieval error:', error);
+    logger.error('Video feed retrieval error:', error);
     const message = error instanceof Error ? error.message : 'Failed to retrieve video feed';
     return ResponseFactory.internalError(message);
   }

@@ -1,7 +1,6 @@
 // store/authApi.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
-import { isTokenExpired } from "@/utils/jwtUtils";
 import {
   PhoneLoginData,
   PhoneLoginResponse,
@@ -15,18 +14,12 @@ import { API_CONFIG } from '@/constants/api';
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseUrlNoTrailing,
   prepareHeaders: async (headers) => {
-    const token = await SecureStore.getItemAsync("cribnosh_token");
-    if (token) {
-      // Check if token is expired before adding to headers
-      if (isTokenExpired(token)) {
-        // Clear expired token
-        await SecureStore.deleteItemAsync("cribnosh_token");
-        await SecureStore.deleteItemAsync("cribnosh_user");
-        // Don't add the expired token to headers
-        console.log("Token expired, cleared from storage");
-      } else {
-        headers.set("authorization", `Bearer ${token}`);
-      }
+    // Get sessionToken from SecureStore
+    const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+    if (sessionToken) {
+      // Send sessionToken in X-Session-Token header (preferred) or as Bearer token
+      headers.set("X-Session-Token", sessionToken);
+      // Alternative: headers.set("authorization", `Bearer ${sessionToken}`);
     }
     headers.set("accept", "application/json");
     return headers;
@@ -77,8 +70,8 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
     const is401 = errorStatus === 401 || errorStatus === "401" || errorCode === 401 || errorCode === "401";
     
     if (is401) {
-      // Clear expired/invalid tokens
-      await SecureStore.deleteItemAsync("cribnosh_token");
+      // Clear expired/invalid sessionToken
+      await SecureStore.deleteItemAsync("cribnosh_session_token");
       await SecureStore.deleteItemAsync("cribnosh_user");
       
       // Check if this is an authentication endpoint (login, phone-signin, apple-signin)
@@ -149,6 +142,13 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      transformResponse: async (response: any) => {
+        // Store sessionToken if present in response
+        if (response?.data?.sessionToken) {
+          await SecureStore.setItemAsync("cribnosh_session_token", response.data.sessionToken);
+        }
+        return response;
+      },
     }),
     appleSignIn: builder.mutation<
       {
@@ -157,6 +157,7 @@ export const authApi = createApi({
           success: boolean;
           message: string;
           token?: string;
+          sessionToken?: string;
           user?: {
             user_id: string;
             email: string;
@@ -178,6 +179,13 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      transformResponse: async (response: any) => {
+        // Store sessionToken if present in response
+        if (response?.data?.sessionToken) {
+          await SecureStore.setItemAsync("cribnosh_session_token", response.data.sessionToken);
+        }
+        return response;
+      },
     }),
     verify2FA: builder.mutation<Verify2FAResponse, Verify2FARequest>({
       query: (data) => ({
@@ -185,6 +193,13 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      transformResponse: async (response: any) => {
+        // Store sessionToken if present in response (after 2FA verification)
+        if (response?.data?.sessionToken) {
+          await SecureStore.setItemAsync("cribnosh_session_token", response.data.sessionToken);
+        }
+        return response;
+      },
     }),
     emailLogin: builder.mutation<PhoneLoginResponse, { email: string; password: string }>({
       query: (data) => ({
@@ -192,6 +207,13 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      transformResponse: async (response: any) => {
+        // Store sessionToken if present in response
+        if (response?.data?.sessionToken) {
+          await SecureStore.setItemAsync("cribnosh_session_token", response.data.sessionToken);
+        }
+        return response;
+      },
     }),
     logout: builder.mutation<
       {
@@ -207,6 +229,12 @@ export const authApi = createApi({
         url: "/auth/logout",
         method: "POST",
       }),
+      transformResponse: async () => {
+        // Clear sessionToken on logout
+        await SecureStore.deleteItemAsync("cribnosh_session_token");
+        await SecureStore.deleteItemAsync("cribnosh_user");
+        return { success: true, data: { message: "Logged out successfully" }, message: "Logged out" };
+      },
     }),
   }),
 });

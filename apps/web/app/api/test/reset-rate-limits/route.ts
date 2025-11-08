@@ -5,6 +5,7 @@ import { apiRateLimiter, authRateLimiter as middlewareAuthRateLimiter, webhookRa
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       })
     });
   } catch (error) {
-    console.error('Error resetting rate limits:', error);
+    logger.error('Error resetting rate limits:', error);
     return NextResponse.json(
       { 
         error: 'Failed to reset rate limits',

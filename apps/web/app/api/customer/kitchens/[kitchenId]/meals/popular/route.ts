@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -62,9 +62,9 @@ async function handleGET(
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
-      (api as { queries: { kitchens: { getChefByKitchenId: unknown } } }).queries.kitchens.getChefByKitchenId as never,
+      api.queries.kitchens.getChefByKitchenId as any,
       { kitchenId }
-    );
+    ) as string | undefined;
 
     if (!chefId) {
       return ResponseFactory.notFound('Chef not found for this kitchen');
@@ -72,18 +72,18 @@ async function handleGET(
 
     // Get popular meals by chef with user preferences
     const meals = await convex.query(
-      (api as { queries: { meals: { getPopularByChefId: unknown } } }).queries.meals.getPopularByChefId as never,
+      api.queries.meals.getPopularByChefId as any,
       {
         chefId,
-        userId,
+        userId: userId as any,
         limit,
       }
-    );
+    ) as unknown[];
 
     return ResponseFactory.success({ meals }, 'Popular meals retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get popular meals error:', error);
+    logger.error('Get popular meals error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve popular meals')
     );

@@ -8,6 +8,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
  * /payments/manage:
@@ -152,7 +153,7 @@ interface PaymentMethodUpdateRequest {
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
-    const { user } = await getAuthenticatedUser(request);
+    const { userId, user } = await getAuthenticatedUser(request);
 
     // Check if user has permission to manage payments
     if (!user.roles || !['admin', 'staff'].some(role => user.roles?.includes(role))) {
@@ -170,23 +171,23 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     switch (action) {
       case 'capture':
-        return await handleCapture(request, payload, convex);
+        return await handleCapture(request, userId, user, convex);
       case 'void':
-        return await handleVoid(request, payload, convex);
+        return await handleVoid(request, userId, user, convex);
       case 'update-payment-method':
-        return await handleUpdatePaymentMethod(request, payload, convex);
+        return await handleUpdatePaymentMethod(request, userId, user, convex);
       default:
         return ResponseFactory.validationError('Invalid action specified.');
     }
 
   } catch (error: any) {
-    console.error('Payment management error:', error);
+    logger.error('Payment management error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to process payment management request.' 
     );
   }
 }
 
-async function handleCapture(request: NextRequest, payload: any, convex: any): Promise<NextResponse> {
+async function handleCapture(request: NextRequest, userId: string, user: any, convex: any): Promise<NextResponse> {
   if (!stripe) {
     return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
   }
@@ -246,16 +247,16 @@ async function handleCapture(request: NextRequest, payload: any, convex: any): P
       });
     }
 
-    console.log(`Payment captured: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
+    logger.log(`Payment captured: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error capturing payment:', error);
+    logger.error('Error capturing payment:', error);
     return ResponseFactory.internalError('Failed to capture payment');
   }
 }
 
-async function handleVoid(request: NextRequest, payload: any, convex: any) {
+async function handleVoid(request: NextRequest, userId: string, user: any, convex: any) {
   if (!stripe) {
     return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
   }
@@ -294,16 +295,16 @@ async function handleVoid(request: NextRequest, payload: any, convex: any) {
       });
     }
 
-    console.log(`Payment voided: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
+    logger.log(`Payment voided: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error voiding payment:', error);
+    logger.error('Error voiding payment:', error);
     return ResponseFactory.internalError('Failed to void payment');
   }
 }
 
-async function handleUpdatePaymentMethod(request: NextRequest, payload: any, convex: any) {
+async function handleUpdatePaymentMethod(request: NextRequest, userId: string, user: any, convex: any) {
   if (!stripe) {
     return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
   }
@@ -326,11 +327,11 @@ async function handleUpdatePaymentMethod(request: NextRequest, payload: any, con
       }
     });
 
-    console.log(`Payment method updated: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
+    logger.log(`Payment method updated: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error updating payment method:', error);
+    logger.error('Error updating payment method:', error);
     return ResponseFactory.internalError('Failed to update payment method');
   }
 }

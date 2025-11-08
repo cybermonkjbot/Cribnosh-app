@@ -8,6 +8,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface UpdateDriverLocationRequest {
   driverId: string;
   location: {
@@ -245,7 +246,7 @@ async function handleGET(request: NextRequest) {
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error getting drivers:', error);
+    logger.error('Error getting drivers:', error);
     return ResponseFactory.internalError('Failed to get drivers');
   }
 }
@@ -417,7 +418,7 @@ async function handlePOST(request: NextRequest) {
       }
     });
 
-    console.log(`Driver location updated for ${driverId} by ${userId}`);
+    logger.log(`Driver location updated for ${driverId} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,
@@ -429,7 +430,7 @@ async function handlePOST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Update driver location error:', error);
+    logger.error('Update driver location error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update driver location.' 
     );
   }
@@ -465,7 +466,7 @@ async function handlePATCH(request: NextRequest) {
       }
     });
 
-    console.log(`Driver status updated for ${driverId} to ${status} by ${userId}`);
+    logger.log(`Driver status updated for ${driverId} to ${status} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,
@@ -477,7 +478,7 @@ async function handlePATCH(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Update driver status error:', error);
+    logger.error('Update driver status error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update driver status.' 
     );
   }

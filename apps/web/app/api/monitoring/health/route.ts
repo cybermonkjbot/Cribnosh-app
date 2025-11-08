@@ -5,6 +5,7 @@ import { monitoringService } from '@/lib/monitoring/monitor';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -152,7 +153,7 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('Health check failed:', error);
+    logger.error('Health check failed:', error);
     
     return ResponseFactory.error(
       'Health check failed',
@@ -267,7 +268,7 @@ export async function POST(request: NextRequest) {
         return ResponseFactory.error('Invalid action', 'INVALID_ACTION', 400);
     }
   } catch (error) {
-    console.error('Health check action failed:', error);
+    logger.error('Health check action failed:', error);
     
     return ResponseFactory.internalError('Health check action failed');
   }

@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface Order {
   _id: Id<'orders'>;
@@ -155,7 +156,7 @@ async function handlePATCH(
     const updated = await convex.mutation(api.mutations.orders.updateStatus, { order_id, status });
     return ResponseFactory.success({ order: updated });
   } catch (error: any) {
-    console.error('Error updating order status:', error);
+    logger.error('Error updating order status:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update order status.' );
   }
 }

@@ -7,6 +7,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 interface AddNoteRequest {
   note: string;
@@ -189,7 +190,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       }
     });
 
-    console.log(`Note added to order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Note added to order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -207,7 +208,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Add order note error:', error);
+    logger.error('Add order note error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to add note to order.') 
     );
   }
@@ -274,7 +275,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Get order notes error:', error);
+    logger.error('Get order notes error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order notes.') 
     );
   }

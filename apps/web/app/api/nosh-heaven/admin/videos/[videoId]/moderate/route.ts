@@ -6,6 +6,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAdminAuth } from '@/lib/api/admin-middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -131,7 +132,7 @@ async function handlePOST(
     return ResponseFactory.success(null, 'Video moderated successfully');
 
   } catch (error: any) {
-    console.error('Video moderation error:', error);
+    logger.error('Video moderation error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to moderate video');
   }
 }

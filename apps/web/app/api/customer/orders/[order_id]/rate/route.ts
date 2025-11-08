@@ -8,6 +8,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendReviewNotification } from '@/lib/services/email-service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -259,7 +260,7 @@ async function handlePOST(
             rating,
             review || undefined
           ).catch((error) => {
-            console.error('Failed to send review notification:', error);
+            logger.error('Failed to send review notification:', error);
           });
         }
       }

@@ -7,6 +7,8 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -340,14 +342,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);
+    const { userId } = await getAuthenticatedAdmin(request);
     const user_id = extractUserIdFromUrl(request);
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
@@ -362,21 +364,21 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'update_user',
       details: { user_id, updates },
-      adminId: userId as Id<'users'>,
+      adminId: userId,
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);
+    const { userId } = await getAuthenticatedAdmin(request);
     const user_id = extractUserIdFromUrl(request);
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
@@ -387,21 +389,21 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_user',
       details: { user_id },
-      adminId: userId as Id<'users'>,
+      adminId: userId,
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);
+    const { userId } = await getAuthenticatedAdmin(request);
     const user_id = extractUserIdFromUrl(request);
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
@@ -421,14 +423,14 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'replace_user',
       details: { user_id, newUserData },
-      adminId: userId as Id<'users'>,
+      adminId: userId,
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

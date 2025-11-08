@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -363,12 +364,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       intensity: intensity || 'medium',
       metadata: {
         sentByRole: user.roles?.[0],
-        userDisplayName: payload.displayName || payload.username,
+        userDisplayName: user.name || user.email || 'User',
         ...metadata
       }
     });
 
-    console.log(`Live reaction sent for session ${sessionId} by ${userId} (${user.roles?.[0]})`);
+    logger.log(`Live reaction sent for session ${sessionId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({
       success: true,
@@ -386,7 +387,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
-    console.error('Send live reaction error:', error);
+    logger.error('Send live reaction error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to send live reaction.' 
     );
   }
@@ -444,7 +445,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
-    console.error('Get live reactions error:', error);
+    logger.error('Get live reactions error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to get live reactions.' 
     );
   }

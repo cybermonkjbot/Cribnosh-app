@@ -6,6 +6,7 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { mattermostService } from '@/lib/mattermost';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -184,10 +185,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         };
         // await mattermostService.setUserTheme(mattermostUser.id, sampleTheme);
       } else {
-        console.error('Failed to create or find Mattermost user for complete:', data.email);
+        logger.error('Failed to create or find Mattermost user for complete:', data.email);
       }
     } catch (err) {
-      console.error('Mattermost user setup error:', data.email, err);
+      logger.error('Mattermost user setup error:', data.email, err);
     }
     // --- END MATTERMOST USER SETUP ---
 
@@ -263,7 +264,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error) {
-    console.error('Mattermost completion error:', error);
+    logger.error('Mattermost completion error:', error);
     
     throw ErrorFactory.custom(
       ErrorCode.INTERNAL_ERROR,

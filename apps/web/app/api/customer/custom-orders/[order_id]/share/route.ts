@@ -8,6 +8,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { getErrorMessage } from '@/types/errors';
 import crypto from 'crypto';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -124,7 +125,7 @@ async function handlePOST(
       'Share link generated successfully'
     );
   } catch (error: unknown) {
-    console.error('Error generating share link:', error);
+    logger.error('Error generating share link:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to generate share link')
     );

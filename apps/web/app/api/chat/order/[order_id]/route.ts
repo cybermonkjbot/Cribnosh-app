@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface Chat {
   _id: Id<'chats'>;
@@ -123,9 +124,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   if (!order_id) {
     return ResponseFactory.validationError('Missing order_id');
   }
-  // Auth: get user from JWT
   // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+  const { userId, user } = await getAuthenticatedUser(request);
+  const convex = getConvexClient();
   // Use the proper Convex query to get chats for the current user
   const chats = await convex.query(api.queries.chats.listConversationsForUser, { 
     userId: userId as Id<'users'> 
@@ -160,9 +161,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     if (!order_id) {
       return ResponseFactory.validationError('Missing order_id');
     }
-    // Auth: get user from JWT
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClient();
     
     // First, try to find an existing chat for this order
     const chatsResponse = await convex.query(api.queries.chats.listConversationsForUser, { 
@@ -178,9 +179,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       }
       
       // Ensure we have valid participant IDs
-      const userId = userId as Id<'users'>;
-      const otherUserId = order.customer_id === userId ? order.chef_id : order.customer_id;
-      const participants = [userId, otherUserId].filter(Boolean) as Id<'users'>[];
+      const authenticatedUserId = userId as Id<'users'>;
+      const otherUserId = order.customer_id === authenticatedUserId ? order.chef_id : order.customer_id;
+      const participants = [authenticatedUserId, otherUserId].filter(Boolean) as Id<'users'>[];
       
       if (participants.length < 2) {
         return ResponseFactory.validationError('Could not determine chat participants');
@@ -205,7 +206,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
           return ResponseFactory.error('Failed to create chat', 'CUSTOM_ERROR', 500);
         }
       } catch (error: any) {
-        console.error('Error creating chat:', error);
+        logger.error('Error creating chat:', error);
         return ResponseFactory.internalError('Failed to create chat');
       }
     }
@@ -214,6 +215,6 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }));

@@ -5,6 +5,7 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { ErrorCode, ErrorFactory, withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 // Endpoint: /v1/auth/apple-signin
 // Group: auth
@@ -229,7 +230,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return response;
 
   } catch (error: unknown) {
-    console.error('Apple sign-in error:', error);
+    logger.error('Apple sign-in error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Apple sign-in failed'));
   }
 }
@@ -258,9 +259,9 @@ async function verifyAppleIdentityToken(identityToken: string) {
       email_verified: payload.email_verified || false,
     };
   } catch (error) {
-    console.error('Apple identity sessionResult.sessionToken verification failed:', error);
+    logger.error('Apple identity sessionResult.sessionToken verification failed:', error);
     if (error instanceof Error) {
-      console.error('Error details:', error.message, error.stack);
+      logger.error('Error details:', error.message, error.stack);
     }
     return null;
   }
@@ -272,7 +273,7 @@ async function verifyAppleIdentityToken(identityToken: string) {
 async function exchangeAppleAuthorizationCode(authorizationCode: string, userData?: { email?: string; sub?: string; name?: string }) {
   try {
     if (!APPLE_CLIENT_ID || !APPLE_TEAM_ID || !APPLE_KEY_ID) {
-      console.error('Apple OAuth configuration missing');
+      logger.error('Apple OAuth configuration missing');
       return null;
     }
 
@@ -292,14 +293,14 @@ async function exchangeAppleAuthorizationCode(authorizationCode: string, userDat
     });
 
     if (!tokenResponse.ok) {
-      console.error('Apple sessionResult.sessionToken exchange failed:', await tokenResponse.text());
+      logger.error('Apple sessionResult.sessionToken exchange failed:', await tokenResponse.text());
       return null;
     }
 
     const tokenData = await tokenResponse.json();
     
     if (!tokenData.id_token) {
-      console.error('No ID sessionResult.sessionToken received from Apple');
+      logger.error('No ID sessionResult.sessionToken received from Apple');
       return null;
     }
 
@@ -307,13 +308,13 @@ async function exchangeAppleAuthorizationCode(authorizationCode: string, userDat
     const appleUserInfo = await verifyAppleIdentityToken(tokenData.id_token);
     
     if (!appleUserInfo) {
-      console.error('Failed to verify Apple ID sessionResult.sessionToken');
+      logger.error('Failed to verify Apple ID sessionResult.sessionToken');
       return null;
     }
 
     return appleUserInfo;
   } catch (error) {
-    console.error('Apple authorization code exchange failed:', error);
+    logger.error('Apple authorization code exchange failed:', error);
     return null;
   }
 }
@@ -368,11 +369,11 @@ async function generateAppleClientSecret() {
       }
     });
     
-    console.log('Apple client secret generated successfully with ES256 signing');
+    logger.log('Apple client secret generated successfully with ES256 signing');
     return clientSecret;
     
   } catch (error) {
-    console.error('Failed to generate Apple client secret:', error);
+    logger.error('Failed to generate Apple client secret:', error);
     
     // Fallback to unsigned JWT structure if private key is not available
     try {
@@ -393,11 +394,11 @@ async function generateAppleClientSecret() {
       const headerBase64 = Buffer.from(JSON.stringify(header)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
       const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
       
-      console.warn('Using unsigned JWT structure - Apple private key required for production');
+      logger.warn('Using unsigned JWT structure - Apple private key required for production');
       return `${headerBase64}.${payloadBase64}.unsigned`;
       
     } catch (fallbackError) {
-      console.error('Fallback JWT generation failed:', fallbackError);
+      logger.error('Fallback JWT generation failed:', fallbackError);
       // Return properly structured unsigned JWT as fallback
       const now = Math.floor(Date.now() / 1000);
       const header = {
@@ -431,9 +432,9 @@ function decodeJWT(token: string) {
     const jsonPayload = Buffer.from(base64, 'base64').toString('utf-8');
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error('JWT decode failed:', error);
+    logger.error('JWT decode failed:', error);
     if (error instanceof Error) {
-      console.error('Error details:', error.message, error.stack);
+      logger.error('Error details:', error.message, error.stack);
     }
     return null;
   }

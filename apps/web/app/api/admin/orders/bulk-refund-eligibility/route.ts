@@ -1,14 +1,11 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { NextResponse } from 'next/server';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface BulkRefundEligibilityRequest {
   orders: Array<{
@@ -198,8 +195,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);// Check if user has admin permissions
-    
+    const { userId } = await getAuthenticatedAdmin(request);
 
     const body: BulkRefundEligibilityRequest = await request.json();
     const { orders, globalReason, globalDescription } = body;
@@ -293,7 +289,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
             await convex.mutation(api.mutations.orders.updateRefundEligibility, {
               orderId: order._id,
-              updatedBy: (userId || payload.userId) as Id<"users">,
+              updatedBy: userId,
               reason: `Bulk admin override: ${finalDescription}`,
               metadata: {
                 adminReason: finalReason,
@@ -323,7 +319,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
             await convex.mutation(api.mutations.orders.updateRefundEligibility, {
               orderId: order._id,
-              updatedBy: (userId || payload.userId) as Id<"users">,
+              updatedBy: userId,
               reason: `Bulk admin override: ${finalDescription}`,
               metadata: {
                 adminReason: finalReason,
@@ -352,7 +348,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
             const newRefundEligibleUntil = now + (newWindowHours * 60 * 60 * 1000);
             await convex.mutation(api.mutations.orders.updateRefundWindow, {
               orderId: order._id,
-              updatedBy: (userId || payload.userId) as Id<"users">,
+              updatedBy: userId,
               newRefundEligibleUntil,
               reason: `Bulk admin window extension: ${finalDescription}`,
               metadata: {
@@ -399,7 +395,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     results.summary.successful = results.successful.length;
     results.summary.failed = results.failed.length;
 
-    console.log(`Bulk refund eligibility operation completed by admin ${userId}: ${results.summary.successful} successful, ${results.summary.failed} failed`);
+    logger.log(`Bulk refund eligibility operation completed by admin ${userId}: ${results.summary.successful} successful, ${results.summary.failed} failed`);
 
     return ResponseFactory.success({
       success: true,
@@ -408,7 +404,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Bulk refund eligibility error:', error);
+    logger.error('Bulk refund eligibility error:', error);
     return ResponseFactory.internalError(error instanceof Error ? error.message : 'Failed to process bulk refund eligibility operation.' 
     );
   }

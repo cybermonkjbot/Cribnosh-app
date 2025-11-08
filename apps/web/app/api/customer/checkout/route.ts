@@ -1,13 +1,14 @@
 import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
+import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { Id } from '@/convex/_generated/dataModel';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -122,9 +123,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         currency: 'gbp',
       });
 
-      if (!budgetCheck.allowed) {
+      if (!budgetCheck || !budgetCheck.allowed) {
         return ResponseFactory.validationError(
-          budgetCheck.reason || 'Order exceeds budget limits'
+          budgetCheck?.reason || 'Order exceeds budget limits'
         );
       }
 
@@ -165,7 +166,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         }).then(customer => customer.id),
       });
       
-      console.log(
+      logger.log(
         `Created payment intent ${paymentIntent.id} for user ${userId}${isFamilyMember ? ' (family member, using parent payment)' : ''}, amount: ${total} GBP`
       );
       
@@ -189,7 +190,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           : {}),
       });
     } catch (stripeError: unknown) {
-      console.error('Stripe payment intent creation failed:', stripeError);
+      logger.error('Stripe payment intent creation failed:', stripeError);
       return ResponseFactory.error('Payment processing failed. Please try again.', 'CUSTOM_ERROR', 500);
     }
   } catch (error: unknown) {

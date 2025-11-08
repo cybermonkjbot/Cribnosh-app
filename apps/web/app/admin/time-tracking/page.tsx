@@ -20,6 +20,7 @@ import {
   Pause,
   CheckCircle,
   AlertTriangle,
+  AlertCircle,
   Edit,
   Trash,
   ChevronLeft,

@@ -9,7 +9,7 @@ import { scryptSync, timingSafeEqual } from 'crypto';
 import { authenticator } from 'otplib';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -109,7 +109,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     try {
       isValid = authenticator.check(code, user.twoFactorSecret);
     } catch (error) {
-      console.error('[2FA] TOTP verification error:', error);
+      logger.error('[2FA] TOTP verification error:', error);
     }
     
     // If TOTP verification failed, try backup codes
@@ -128,7 +128,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
             break;
           }
         } catch (error) {
-          console.error('[2FA] Backup code verification error:', error);
+          logger.error('[2FA] Backup code verification error:', error);
           continue;
         }
       }
@@ -217,7 +217,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

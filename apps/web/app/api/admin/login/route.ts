@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { retryCritical } from '@/lib/api/retry';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     try {
       requestBody = await request.json();
     } catch (error) {
-      console.error('[ADMIN LOGIN] Invalid JSON in request body');
+      logger.error('[ADMIN LOGIN] Invalid JSON in request body');
       return ResponseFactory.validationError('Invalid request body. Expected JSON.');
     }
 
@@ -114,10 +115,10 @@ export async function POST(request: NextRequest) {
     
     // Validate required fields
     if (!email || !password) {
-      console.error('[ADMIN LOGIN] Missing required fields');
+      logger.error('[ADMIN LOGIN] Missing required fields');
       return ResponseFactory.validationError('Email and password are required');
     }
-    console.log('[ADMIN LOGIN] Attempting login for:', email);
+    logger.log('[ADMIN LOGIN] Attempting login for:', email);
     const convex = getConvexClient();
     // Call Convex action to validate credentials and create session
     let result;
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
         return await convex.action(api.actions.users.loginAndCreateSession, { email, password });
       });
     } catch (convexErr) {
-      console.error('[ADMIN LOGIN] Convex connection error:', convexErr);
+      logger.error('[ADMIN LOGIN] Convex connection error:', convexErr);
       // Type guard for error object
       const errObj = convexErr as Record<string, any>;
       if (errObj && typeof errObj === 'object' && 'code' in errObj && String(errObj.code).includes('CONNECT_TIMEOUT')) {
@@ -135,9 +136,9 @@ export async function POST(request: NextRequest) {
       }
       return ResponseFactory.error('Authentication service unavailable. Please try again later.', 'CUSTOM_ERROR', 503);
     }
-    console.log('[ADMIN LOGIN] Convex result:', result);
+    logger.log('[ADMIN LOGIN] Convex result:', result);
     if (!result || !result.sessionToken) {
-      console.log('[ADMIN LOGIN] Login failed for:', email, 'Reason:', result?.error);
+      logger.log('[ADMIN LOGIN] Login failed for:', email, 'Reason:', result?.error);
       return ResponseFactory.unauthorized(result?.error || 'Invalid credentials' );
     }
     // Now, fetch the user to check their role
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
       return await convex.query(api.queries.users.getUserByEmail, { email });
     });
     if (!user || !user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
-      console.log('[ADMIN LOGIN] Not an admin:', email);
+      logger.log('[ADMIN LOGIN] Not an admin:', email);
       return ResponseFactory.unauthorized('Not an admin');
     }
     
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest) {
     
     return response;
   } catch (e) {
-    console.error('[ADMIN LOGIN] Internal Server Error:', e);
+    logger.error('[ADMIN LOGIN] Internal Server Error:', e);
     return ResponseFactory.internalError('Login failed');
   }
 } 

@@ -43,6 +43,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 const EMOTIONS_ENGINE_URL = process.env.EMOTIONS_ENGINE_URL || 'http://localhost:3000/api/emotions-engine';
 
@@ -120,7 +121,7 @@ async function handleGET(
       summary: data.summary || '',
     });
   } catch (error: any) {
-    console.error('Error in emotion-tags API:', error);
+    logger.error('Error in emotion-tags API:', error);
     return ResponseFactory.internalError(error.message || 'Emotion tagging failed.' );
   }
 }

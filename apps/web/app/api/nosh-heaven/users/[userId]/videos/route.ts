@@ -7,6 +7,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -84,7 +85,7 @@ async function handleGET(
     return ResponseFactory.success(videos, 'User videos retrieved successfully');
 
   } catch (error: any) {
-    console.error('User videos retrieval error:', error);
+    logger.error('User videos retrieval error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to retrieve user videos');
   }
 }

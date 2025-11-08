@@ -7,6 +7,7 @@ import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -100,7 +101,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         }
       } catch (error) {
         // If case not found or invalid, fall through to get active chat
-        console.error('Error loading case chat:', error);
+        logger.error('Error loading case chat:', error);
       }
     }
 

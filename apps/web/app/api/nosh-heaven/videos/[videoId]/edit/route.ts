@@ -7,6 +7,7 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -81,7 +82,7 @@ async function handlePUT(
     }
 
     // Update video post
-    const updateVideoPost = getApiFunction('mutations/videoPosts', 'updateVideoPost');
+    const updateVideoPost = getApiFunction('mutations/videoPosts', 'updateVideoPost') as any;
     await convex.mutation(updateVideoPost, {
       videoId: videoId as any,
       title: body.title,
@@ -95,7 +96,7 @@ async function handlePUT(
     return ResponseFactory.success(null, 'Video edited successfully');
 
   } catch (error: unknown) {
-    console.error('Error in video edit:', error);
+    logger.error('Error in video edit:', error);
     const message = error instanceof Error ? error.message : 'Failed to edit video';
     
     // Handle specific error cases

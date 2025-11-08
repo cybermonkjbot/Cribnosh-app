@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/types/errors';
 import type { FamilyProfileSettings, SetupFamilyProfileRequest } from '@/types/family-profile';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -61,22 +62,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(formattedProfile, 'Family profile retrieved successfully');
   } catch (error: unknown) {
-<<<<<<< Current (Your changes)
-    const errorMessage = getErrorMessage(error);
-    console.error('Family profile GET error:', errorMessage, error);
-    
-    // Check for authentication errors
-    if (
-      errorMessage === 'Invalid or missing token' || 
-      errorMessage === 'Invalid or expired token' ||
-      errorMessage.includes('token') ||
-      errorMessage.includes('authorization')
-    ) {
-      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
-=======
     if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
       return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
->>>>>>> Incoming (Background Agent changes)
     }
     const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
@@ -244,7 +231,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       if (member.status === 'pending_invitation' && member.email && member.invitation_token) {
         sendFamilyInvitationEmail(member.email, inviterName, familyProfileId, member.invitation_token).catch(
           (error) => {
-            console.error(`Failed to send invitation to ${member.email}:`, error);
+            logger.error(`Failed to send invitation to ${member.email}:`, error);
           }
         );
       }

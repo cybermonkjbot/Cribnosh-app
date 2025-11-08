@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -54,7 +55,7 @@ async function handleGET(
     }
 
     const convex = getConvexClient();
-    const getFeaturedVideo = getApiFunction('queries/kitchens', 'getFeaturedVideo');
+    const getFeaturedVideo = getApiFunction('queries/kitchens', 'getFeaturedVideo') as any;
     const featuredVideo = await convex.query(getFeaturedVideo, { kitchenId });
 
     if (!featuredVideo) {
@@ -67,7 +68,7 @@ async function handleGET(
     );
 
   } catch (error: unknown) {
-    console.error('Featured video retrieval error:', error);
+    logger.error('Featured video retrieval error:', error);
     const message = error instanceof Error ? error.message : 'Failed to retrieve featured video';
     return ResponseFactory.internalError(message);
   }

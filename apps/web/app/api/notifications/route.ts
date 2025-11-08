@@ -5,6 +5,7 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -130,7 +131,8 @@ const MAX_LIMIT = 100;
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClient();
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -138,8 +140,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch notifications for this user
     const allNotifications = await convex.query(api.queries.notifications.getAll, {});
-    const userId = userId || payload.userId;
-    const userRole = payload.role;
+    const userRole = user.roles?.[0];
     type Notification = { userId?: string; global?: boolean; role?: string; createdAt?: number; [key: string]: unknown };
     const userNotifications = allNotifications.filter((n: Notification) => 
       n.userId === userId || n.global || n.role === userRole
@@ -157,9 +158,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const convex = getConvexClient();
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClient();
     // Mark all notifications as read for this user
-    const userId = userId || payload.userId;
     if (!userId) {
       return ResponseFactory.unauthorized('Missing user ID in token.');
     }
@@ -176,7 +177,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
 async function handleBulkMarkRead(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);const { notification_ids } = await request.json();
+    const { userId, user } = await getAuthenticatedUser(request);
+    const { notification_ids } = await request.json();
     if (!Array.isArray(notification_ids) || notification_ids.length === 0) {
       return ResponseFactory.error('notification_ids array is required.', 'CUSTOM_ERROR', 422);
     }
@@ -194,7 +196,8 @@ async function handleBulkMarkRead(request: NextRequest): Promise<NextResponse> {
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
+    const { userId, user } = await getAuthenticatedUser(request);
+    if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can send notifications.');
     }
     const convex = getConvexClient();

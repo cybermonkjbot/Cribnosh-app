@@ -6,6 +6,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -67,7 +68,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       }
     });
   } catch (error) {
-    console.error('Error in moderation functions:', error);
+    logger.error('Error in moderation functions:', error);
     return ResponseFactory.error('Failed to retrieve moderation functions', 'MODERATION_FUNCTIONS_ERROR', 500);
   }
 });

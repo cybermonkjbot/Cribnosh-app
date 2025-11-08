@@ -7,6 +7,7 @@ import { jwtVerify } from 'jose';
 import { getUserFromRequest } from "@/lib/auth/session";
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
     
     return ResponseFactory.success({ fileUrl, fileName });
   } catch (e) {
-    console.error('Convex upload error:', e);
+    logger.error('Convex upload error:', e);
     return ResponseFactory.internalError('Failed to upload document');
   }
 } 

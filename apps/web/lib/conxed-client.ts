@@ -6,7 +6,13 @@ let convex: ConvexHttpClient | null = null;
 
 export function getConvexClient() {
   if (!convex) {
-    convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      throw new Error(
+        "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
+      );
+    }
+    convex = new ConvexHttpClient(convexUrl);
   }
   return convex;
 }

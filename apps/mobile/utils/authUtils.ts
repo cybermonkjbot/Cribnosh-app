@@ -22,14 +22,14 @@ export interface AuthState {
  */
 export const checkAuthState = async (): Promise<AuthState> => {
   try {
-    // Get stored token and user data
-    const [token, userData] = await Promise.all([
-      SecureStore.getItemAsync("cribnosh_token"),
+    // Get stored sessionToken and user data
+    const [sessionToken, userData] = await Promise.all([
+      SecureStore.getItemAsync("cribnosh_session_token"),
       SecureStore.getItemAsync("cribnosh_user"),
     ]);
 
-    // If no token or user data, user is not authenticated
-    if (!token || !userData) {
+    // If no sessionToken or user data, user is not authenticated
+    if (!sessionToken || !userData) {
       return {
         isAuthenticated: false,
         token: null,
@@ -53,7 +53,7 @@ export const checkAuthState = async (): Promise<AuthState> => {
 
     return {
       isAuthenticated: true,
-      token,
+      token: sessionToken, // Return as token for backward compatibility
       user,
     };
   } catch (error) {
@@ -74,7 +74,7 @@ export const checkAuthState = async (): Promise<AuthState> => {
 export const clearAuthData = async (): Promise<void> => {
   try {
     await Promise.all([
-      SecureStore.deleteItemAsync("cribnosh_token"),
+      SecureStore.deleteItemAsync("cribnosh_session_token"),
       SecureStore.deleteItemAsync("cribnosh_user"),
     ]);
   } catch (error) {
@@ -84,16 +84,16 @@ export const clearAuthData = async (): Promise<void> => {
 
 /**
  * Stores authentication data securely
- * @param token - JWT token
+ * @param sessionToken - Session token (preferred) or JWT token (fallback)
  * @param user - User data object
  */
 export const storeAuthData = async (
-  token: string,
+  sessionToken: string,
   user: StoredUser
 ): Promise<void> => {
   try {
     await Promise.all([
-      SecureStore.setItemAsync("cribnosh_token", token),
+      SecureStore.setItemAsync("cribnosh_session_token", sessionToken),
       SecureStore.setItemAsync("cribnosh_user", JSON.stringify(user)),
     ]);
   } catch (error) {
@@ -103,14 +103,14 @@ export const storeAuthData = async (
 };
 
 /**
- * Gets only the stored token
- * @returns Promise<string | null> - Stored token or null
+ * Gets only the stored sessionToken
+ * @returns Promise<string | null> - Stored sessionToken or null
  */
 export const getStoredToken = async (): Promise<string | null> => {
   try {
-    return await SecureStore.getItemAsync("cribnosh_token");
+    return await SecureStore.getItemAsync("cribnosh_session_token");
   } catch (error) {
-    console.error("Error getting stored token:", error);
+    console.error("Error getting stored sessionToken:", error);
     return null;
   }
 };

@@ -7,7 +7,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -89,7 +89,7 @@ async function handleGET(
     return ResponseFactory.success({ categories }, 'Categories retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get categories error:', error);
+    logger.error('Get categories error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve categories')
     );

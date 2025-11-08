@@ -118,6 +118,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface GenerateReportRequest {
   reportType: 'sales' | 'performance' | 'trends' | 'customers' | 'chefs' | 'delivery';
@@ -178,8 +179,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    await getAuthenticatedUser(request);// Check if user has permission to generate reports
-    if (!['admin', 'staff'].includes(payload.role)) {
+    const { user } = await getAuthenticatedUser(request);
+    // Check if user has permission to generate reports
+    if (!user.roles || (!user.roles.includes('admin') && !user.roles.includes('staff'))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -228,7 +230,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.fileDownload(responseData, filename, contentType);
 
   } catch (error: any) {
-    console.error('Generate order report error:', error);
+    logger.error('Generate order report error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to generate order report.' 
     );
   }
@@ -327,7 +329,7 @@ async function convertToPDF(report: any, requestBody: GenerateReportRequest): Pr
     
     return JSON.stringify(reportData);
   } catch (error) {
-    console.error('Failed to generate analytics report:', error);
+    logger.error('Failed to generate analytics report:', error);
     return JSON.stringify({ error: 'Failed to generate report' });
   }
 }

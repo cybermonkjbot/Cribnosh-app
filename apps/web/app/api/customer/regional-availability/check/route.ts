@@ -5,7 +5,6 @@ import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -65,11 +64,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     const convex = getConvexClient();
     
-    const isSupported = await convex.query((api as { queries: { admin: { checkRegionAvailability: unknown } } }).queries.admin.checkRegionAvailability as never, {
+    const isSupported = await convex.query(api.queries.admin.checkRegionAvailability as any, {
       city,
       country,
       address,
-    });
+    }) as unknown;
     
     return ResponseFactory.success({
       isSupported,
@@ -78,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

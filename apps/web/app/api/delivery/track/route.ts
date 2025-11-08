@@ -7,6 +7,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface UpdateDeliveryStatusRequest {
   assignmentId: string;
   status: 'accepted' | 'picked_up' | 'in_transit' | 'delivered' | 'failed';
@@ -191,7 +192,7 @@ async function handlePOST(request: NextRequest) {
       }
     });
 
-    console.log(`Delivery status updated for assignment ${assignmentId} to ${status} by ${userId}`);
+    logger.log(`Delivery status updated for assignment ${assignmentId} to ${status} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,
@@ -203,7 +204,7 @@ async function handlePOST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Update delivery status error:', error);
+    logger.error('Update delivery status error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update delivery status.' 
     );
   }
@@ -251,7 +252,7 @@ async function handleGET(request: NextRequest) {
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error tracking delivery:', error);
+    logger.error('Error tracking delivery:', error);
     return ResponseFactory.internalError('Failed to track delivery');
   }
 }

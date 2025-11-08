@@ -7,6 +7,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -83,7 +84,7 @@ async function handleGET(
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    console.error('Favorite status retrieval error:', error);
+    logger.error('Favorite status retrieval error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve favorite status')
     );
@@ -152,7 +153,7 @@ async function handlePOST(
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    console.error('Add favorite error:', error);
+    logger.error('Add favorite error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to add kitchen to favorites')
     );
@@ -221,7 +222,7 @@ async function handleDELETE(
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    console.error('Remove favorite error:', error);
+    logger.error('Remove favorite error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to remove kitchen from favorites')
     );

@@ -81,7 +81,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get all group orders where user is participant (completed games)
     let deliveredGroupOrders: Array<Record<string, unknown>> = [];
     try {
-      deliveredGroupOrders = await convex.query((api as { queries: { groupOrders: { getByStatus: unknown } } }).queries.groupOrders.getByStatus as never, {
+      deliveredGroupOrders = await convex.query(api.queries.groupOrders.getByStatus as any, {
         status: 'delivered',
         user_id: userId,
       }) as Array<Record<string, unknown>>;
@@ -92,7 +92,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Also get active group orders where user is participant
     let activeGroupOrders: Array<Record<string, unknown>> = [];
     try {
-      activeGroupOrders = await convex.query((api as { queries: { groupOrders: { getActiveByUser: unknown } } }).queries.groupOrders.getActiveByUser as never, {
+      activeGroupOrders = await convex.query(api.queries.groupOrders.getActiveByUser as any, {
         user_id: userId,
       }) as Array<Record<string, unknown>>;
     } catch {

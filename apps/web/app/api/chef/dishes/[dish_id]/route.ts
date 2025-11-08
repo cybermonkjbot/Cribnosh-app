@@ -10,6 +10,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 type MealId = Id<'meals'>;
 
@@ -196,9 +197,7 @@ async function getMealById(convex: ConvexHttpClient, mealId: MealId) {
 async function handlePATCH(request: NextRequest, { params }: { params: { dish_id: string } }): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedChef(request);if (payload.role !== 'chef') {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can update dishes.');
-    }
+    const { userId, user } = await getAuthenticatedChef(request);
     const updates = await request.json();
     const convex = getConvexClient();
     // Fetch dish and check ownership
@@ -218,7 +217,7 @@ async function handlePATCH(request: NextRequest, { params }: { params: { dish_id
       });
       return ResponseFactory.success({ success: true, message: 'Dish updated successfully' });
     } catch (error) {
-      console.error('Error updating dish:', error);
+      logger.error('Error updating dish:', error);
       return ResponseFactory.error('Failed to update dish', 'CUSTOM_ERROR', 500);
     }
   } catch (error: unknown) {
@@ -230,9 +229,7 @@ async function handlePATCH(request: NextRequest, { params }: { params: { dish_id
 async function handleDELETE(request: NextRequest, { params }: { params: { dish_id: string } }): Promise<NextResponse> {
   try {
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedChef(request);if (payload.role !== 'chef') {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can delete dishes.');
-    }
+    const { userId, user } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
     // Fetch dish and check ownership
     const dish = await getMealById(convex, params.dish_id as MealId);
@@ -250,7 +247,7 @@ async function handleDELETE(request: NextRequest, { params }: { params: { dish_i
       });
       return ResponseFactory.success({ success: true, message: 'Dish deleted successfully' });
     } catch (error) {
-      console.error('Error deleting dish:', error);
+      logger.error('Error deleting dish:', error);
       return ResponseFactory.error('Failed to delete dish', 'CUSTOM_ERROR', 500);
     }
   } catch (error: unknown) {

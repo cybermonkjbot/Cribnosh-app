@@ -5,6 +5,7 @@ import { getConvexClient, getApiFunction } from '@/lib/conxed-client';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface AnalyticsEvent {
   type: string;
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
   try {
     const { events } = await req.json();
     const convex = getConvexClient();
-    const saveAnalyticsEvent = getApiFunction('mutations/analytics', 'saveAnalyticsEvent');
+    const saveAnalyticsEvent = getApiFunction('mutations/analytics', 'saveAnalyticsEvent') as any;
 
     // Process events in parallel with a concurrency limit
     const BATCH_SIZE = 5;
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
 
     return ResponseFactory.success({ success: true });
   } catch (error) {
-    console.error('Analytics event error:', error);
+    logger.error('Analytics event error:', error);
     return ResponseFactory.error(
       (error as Error).message,
       'ANALYTICS_ERROR',

@@ -5,6 +5,8 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
 
 interface SendMessageRequest {
   message: string;
@@ -133,7 +135,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);// Extract order_id from URL
+    const { userId, user } = await getAuthenticatedUser(request);
+    // Extract order_id from URL
     const url = new URL(request.url);
     const match = url.pathname.match(/\/orders\/([^\/]+)\/messages/);
     const order_id = match ? match[1] : undefined;
@@ -182,7 +185,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       }
     });
 
-    console.log(`Message sent for order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Message sent for order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -200,7 +203,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Send message error:', error);
+    logger.error('Send message error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message.') 
     );
   }
@@ -210,7 +213,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);// Extract order_id from URL
+    const { userId, user } = await getAuthenticatedUser(request);
+    // Extract order_id from URL
     const url = new URL(request.url);
     const match = url.pathname.match(/\/orders\/([^\/]+)\/messages/);
     const order_id = match ? match[1] : undefined;
@@ -256,7 +260,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Get order messages error:', error);
+    logger.error('Get order messages error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order messages.') 
     );
   }

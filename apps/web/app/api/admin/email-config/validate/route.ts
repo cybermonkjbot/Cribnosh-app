@@ -70,6 +70,7 @@ import { emailAdminConfigManager } from '@/lib/email/admin-config';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // POST /api/admin/email-config/validate - Validate email configuration
 export async function POST(request: NextRequest) {
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       score: validation.valid ? 100 : Math.max(0, 100 - (validation.errors.length * 20)),
     });
   } catch (error) {
-    console.error('Error validating email configuration:', error);
+    logger.error('Error validating email configuration:', error);
     return ResponseFactory.error('Failed to validate email configuration', 'CUSTOM_ERROR', 500);
   }
 }

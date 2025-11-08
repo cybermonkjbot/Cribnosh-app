@@ -5,6 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -82,7 +83,7 @@ async function handleGET(
     return ResponseFactory.success(comments, 'Comments retrieved successfully');
 
   } catch (error: any) {
-    console.error('Comments retrieval error:', error);
+    logger.error('Comments retrieval error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to retrieve comments');
   }
 }
@@ -183,7 +184,7 @@ async function handlePOST(
     }, 'Comment added successfully', 201);
 
   } catch (error: any) {
-    console.error('Comment creation error:', error);
+    logger.error('Comment creation error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to add comment');
   }
 }

@@ -6,12 +6,8 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-<<<<<<< Current (Your changes)
-import { getErrorMessage } from '@/types/errors';
-
-=======
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
->>>>>>> Incoming (Background Agent changes)
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -101,7 +97,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
           userId,
         });
       } catch (mutationError) {
-        console.error('Failed to create default ForkPrint score:', mutationError);
+        logger.error('Failed to create default ForkPrint score:', mutationError);
         // If mutation fails, return default values
         forkPrintData = null;
       }

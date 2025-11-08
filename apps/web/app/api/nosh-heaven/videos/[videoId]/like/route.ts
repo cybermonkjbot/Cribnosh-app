@@ -5,6 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -69,7 +70,7 @@ async function handlePOST(
     return ResponseFactory.success(null, 'Video liked successfully');
 
   } catch (error: any) {
-    console.error('Video like error:', error);
+    logger.error('Video like error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to like video');
   }
 }
@@ -126,7 +127,7 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'Video unliked successfully');
 
   } catch (error: any) {
-    console.error('Video unlike error:', error);
+    logger.error('Video unlike error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to unlike video');
   }
 }

@@ -7,6 +7,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 interface SendNotificationRequest {
   notificationType: 'order_confirmed' | 'order_preparing' | 'order_ready' | 'order_delivered' | 'order_completed' | 'order_cancelled' | 'order_updated' | 'custom';
@@ -217,7 +218,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       }
     });
 
-    console.log(`Notification sent for order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Notification sent for order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -237,7 +238,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Send notification error:', error);
+    logger.error('Send notification error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send notification.') 
     );
   }

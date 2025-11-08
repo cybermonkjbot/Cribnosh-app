@@ -1,5 +1,9 @@
 /**
  * JWT Token utilities for handling token expiration and validation
+ * 
+ * @deprecated This file is deprecated. Use sessionToken instead of JWT.
+ * SessionToken is validated server-side and doesn't require client-side expiration checks.
+ * This file is kept for backward compatibility during migration.
  */
 
 export interface JWTPayload {

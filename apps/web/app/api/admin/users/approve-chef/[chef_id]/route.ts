@@ -6,6 +6,8 @@ import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -87,7 +89,7 @@ import { ResponseFactory } from '@/lib/api';
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);
+    const { userId } = await getAuthenticatedAdmin(request);
     const url = new URL(request.url);
     const match = url.pathname.match(/approve-chef\/([^/]+)/);
     const chef_id = match ? match[1] as Id<'chefs'> : undefined;
@@ -116,7 +118,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

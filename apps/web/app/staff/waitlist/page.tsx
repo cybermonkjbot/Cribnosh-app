@@ -62,7 +62,7 @@ export default function StaffWaitlistPage() {
       // Fallback to admin user if available
       setStaffMember({
         email: adminUser.email,
-        roles: adminUser.roles || [],
+        roles: adminUser.role ? [adminUser.role] : [],
         status: adminUser.status || 'active',
       });
       setLocalStaffLoading(false);

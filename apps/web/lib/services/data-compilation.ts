@@ -3,6 +3,7 @@ import { api } from '@/convex/_generated/api';
 import { sendDataDownloadEmail } from './email-service';
 
 import { Id } from '@/convex/_generated/dataModel';
+import { logger } from '@/lib/utils/logger';
 
 export async function compileUserData(userId: Id<'users'>): Promise<{
   user: unknown;

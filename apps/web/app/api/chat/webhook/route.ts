@@ -6,6 +6,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface WebhookEventData {
   type: string;
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    logger.error('Webhook processing error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -172,7 +173,7 @@ async function processWebhookEvent(eventData: WebhookEventData) {
       await handleUserCreated(convex, eventData);
       break;
     default:
-      console.log('Unknown event type:', eventData.type);
+      logger.log('Unknown event type:', eventData.type);
   }
 }
 
@@ -198,7 +199,7 @@ async function handleMessageCreated(convex: ConvexHttpClient, eventData: Webhook
       });
     }
   } catch (error) {
-    console.error('Error handling message created:', error);
+    logger.error('Error handling message created:', error);
   }
 }
 
@@ -223,7 +224,7 @@ async function handleChannelCreated(convex: ConvexHttpClient, eventData: Webhook
       createdAt: Date.now(),
     });
   } catch (error) {
-    console.error('Error handling channel created:', error);
+    logger.error('Error handling channel created:', error);
   }
 }
 
@@ -248,6 +249,6 @@ async function handleUserCreated(convex: ConvexHttpClient, eventData: WebhookEve
       createdAt: Date.now(),
     });
   } catch (error) {
-    console.error('Error handling user created:', error);
+    logger.error('Error handling user created:', error);
   }
 }

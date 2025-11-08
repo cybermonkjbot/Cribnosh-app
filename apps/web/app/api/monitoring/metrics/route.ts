@@ -5,6 +5,7 @@ import { monitoringService, MetricData } from '@/lib/monitoring/monitor';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -279,7 +280,7 @@ export async function GET(request: NextRequest) {
     
     return ResponseFactory.success({});
   } catch (error) {
-    console.error('Failed to get metrics:', error);
+    logger.error('Failed to get metrics:', error);
     return ResponseFactory.internalError('Failed to get metrics');
   }
 }
@@ -333,7 +334,7 @@ export async function POST(request: NextRequest) {
         return ResponseFactory.validationError('Invalid action');
     }
   } catch (error) {
-    console.error('Failed to record metrics:', error);
+    logger.error('Failed to record metrics:', error);
     return ResponseFactory.internalError('Failed to record metrics');
   }
 } 

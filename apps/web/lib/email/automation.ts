@@ -4,6 +4,7 @@
 import { renderTemplate, EmailTemplateFactory } from './templates';
 import { addTrackingToEmail, generateTrackingPixel } from './analytics';
 import { translate, detectLanguage, getLocalizedSubject } from './i18n';
+import { logger } from '@/lib/utils/logger';
 
 export interface EmailTrigger {
   id: string;
@@ -307,9 +308,9 @@ export class EmailAutomationEngine {
         trackingId: email.id,
       });
 
-      console.log(`Email sent successfully: ${email.id}`);
+      logger.log(`Email sent successfully: ${email.id}`);
     } catch (error) {
-      console.error(`Failed to send email ${email.id}:`, error);
+      logger.error(`Failed to send email ${email.id}:`, error);
       throw error;
     }
   }
@@ -322,7 +323,7 @@ export class EmailAutomationEngine {
     trackingId: string;
   }): Promise<void> {
     // Implement with your email service (Resend, SendGrid, etc.)
-    console.log('Sending email:', emailData);
+    logger.log('Sending email:', emailData);
   }
 
   // Get queue status

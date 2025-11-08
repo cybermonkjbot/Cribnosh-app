@@ -7,6 +7,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -160,7 +161,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       action: entry.action,
       description: entry.description,
       performedBy: entry.performed_by,
-      performedAt: new Date(entry.performed_at).toISOString(),
+      performedAt: entry.performed_at ? new Date(entry.performed_at).toISOString() : new Date().toISOString(),
       metadata: entry.metadata || {},
       reason: entry.reason
     }));
@@ -173,7 +174,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Order history error:', error);
+    logger.error('Order history error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order history.'));
   }
 }

@@ -1,6 +1,7 @@
 /**
  * Enhanced monitoring service for network errors and system health
- */
+ */import { logger } from '@/lib/utils/logger';
+
 
 export interface NetworkErrorMetrics {
   totalErrors: number;
@@ -52,7 +53,7 @@ export class NetworkMonitoringService {
     this.errorCounts.set(errorKey, currentCount + 1);
 
     // Log error details
-    console.error(`[NETWORK_MONITOR] ${errorType}:`, {
+    logger.error(`[NETWORK_MONITOR] ${errorType}:`, {
       message: error.message,
       stack: error.stack,
       timestamp,
@@ -172,7 +173,7 @@ export class NetworkMonitoringService {
       message: `High ${errorType} rate detected: ${count} errors (threshold: ${threshold})`
     };
 
-    console.warn(`[ALERT] ${alert.message}`);
+    logger.warn(`[ALERT] ${alert.message}`);
     
     // In production, you would send this to your alerting system
     // e.g., Slack, PagerDuty, email, etc.
@@ -185,7 +186,7 @@ export class NetworkMonitoringService {
   private sendToAlertingSystem(alert: any): void {
     // This would integrate with your alerting system
     // For now, just log it
-    console.error('[ALERTING]', alert);
+    logger.error('[ALERTING]', alert);
   }
 
   /**
@@ -217,7 +218,7 @@ export class NetworkMonitoringService {
       
       this.lastHealthCheck = Date.now();
     } catch (error) {
-      console.error('[HEALTH_CHECK] Failed:', error);
+      logger.error('[HEALTH_CHECK] Failed:', error);
     }
   }
 

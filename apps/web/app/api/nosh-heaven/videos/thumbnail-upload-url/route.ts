@@ -6,6 +6,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -124,7 +125,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Thumbnail upload URL generated successfully');
 
   } catch (error: any) {
-    console.error('Thumbnail upload URL generation error:', error);
+    logger.error('Thumbnail upload URL generation error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to generate thumbnail upload URL');
   }
 }

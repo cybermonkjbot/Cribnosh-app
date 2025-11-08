@@ -7,7 +7,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
  * /api/customer/dishes/{dishId}/favorite:
@@ -63,13 +63,12 @@ async function handleGET(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from JWT token
     // Get authenticated customer from session token
-    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
+    const { userId } = await getAuthenticatedCustomer(request);
+    if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const userId = userId;
     const convex = getConvexClient();
 
     // Verify the meal exists
@@ -88,7 +87,7 @@ async function handleGET(
     return ResponseFactory.success(favoriteStatus, 'Favorite status retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Favorite status retrieval error:', error);
+    logger.error('Favorite status retrieval error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve favorite status')
     );
@@ -130,13 +129,12 @@ async function handlePOST(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from JWT token
     // Get authenticated customer from session token
-    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
+    const { userId } = await getAuthenticatedCustomer(request);
+    if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const userId = userId;
     const convex = getConvexClient();
 
     // Verify the meal exists
@@ -155,7 +153,7 @@ async function handlePOST(
     return ResponseFactory.success(null, 'Dish added to favorites successfully');
 
   } catch (error: unknown) {
-    console.error('Add favorite error:', error);
+    logger.error('Add favorite error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to add dish to favorites')
     );
@@ -197,13 +195,12 @@ async function handleDELETE(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from JWT token
     // Get authenticated customer from session token
-    const { userId } = await getAuthenticatedCustomer(request);if (!userId) {
+    const { userId } = await getAuthenticatedCustomer(request);
+    if (!userId) {
       return ResponseFactory.unauthorized('Invalid token: missing user_id.');
     }
 
-    const userId = userId;
     const convex = getConvexClient();
 
     // Verify the meal exists
@@ -222,7 +219,7 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'Dish removed from favorites successfully');
 
   } catch (error: unknown) {
-    console.error('Remove favorite error:', error);
+    logger.error('Remove favorite error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to remove dish from favorites')
     );

@@ -5,6 +5,8 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/utils/logger';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
 
 interface ConfirmOrderRequest {
   orderId: string;
@@ -115,7 +117,8 @@ async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to confirm orders
+    const { userId, user } = await getAuthenticatedUser(request);
+    // Check if user has permission to confirm orders
     if (!user.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
@@ -164,7 +167,7 @@ async function handlePOST(request: NextRequest) {
       return ResponseFactory.internalError('Failed to confirm order');
     }
 
-    console.log(`Order ${orderId} confirmed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${orderId} confirmed by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: confirmedOrder._id,
@@ -172,7 +175,7 @@ async function handlePOST(request: NextRequest) {
       estimatedReadyTime: confirmedOrder.estimated_prep_time_minutes
     });
   } catch (error: unknown) {
-    console.error('Error confirming order:', error);
+    logger.error('Error confirming order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to confirm order'));
   }
 }

@@ -86,6 +86,7 @@ export default function TaxDocumentsPage() {
   const [yearFilter, setYearFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);

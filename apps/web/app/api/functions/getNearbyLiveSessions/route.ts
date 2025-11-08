@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // Define the interface for location request
 interface NearbySessionsRequest {
@@ -159,7 +160,7 @@ async function handlePOST(req: NextRequest) {
       searchRadius: maxDistanceKm || 50,
     }, 'Nearby live sessions retrieved successfully');
   } catch (error) {
-    console.error('Error getting nearby live sessions:', error);
+    logger.error('Error getting nearby live sessions:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

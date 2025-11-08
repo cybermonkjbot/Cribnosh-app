@@ -5,6 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -68,7 +69,7 @@ async function handleGET(
     return ResponseFactory.success(comment, 'Comment retrieved successfully');
 
   } catch (error: any) {
-    console.error('Comment retrieval error:', error);
+    logger.error('Comment retrieval error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to retrieve comment');
   }
 }
@@ -152,7 +153,7 @@ async function handlePUT(
     return ResponseFactory.success(null, 'Comment updated successfully');
 
   } catch (error: any) {
-    console.error('Comment update error:', error);
+    logger.error('Comment update error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update comment');
   }
 }
@@ -215,7 +216,7 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'Comment deleted successfully');
 
   } catch (error: any) {
-    console.error('Comment deletion error:', error);
+    logger.error('Comment deletion error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to delete comment');
   }
 }

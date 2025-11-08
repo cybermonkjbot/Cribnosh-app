@@ -5,6 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -69,7 +70,7 @@ async function handlePOST(
     return ResponseFactory.success(null, 'User followed successfully');
 
   } catch (error: any) {
-    console.error('User follow error:', error);
+    logger.error('User follow error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to follow user');
   }
 }
@@ -126,7 +127,7 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'User unfollowed successfully');
 
   } catch (error: any) {
-    console.error('User unfollow error:', error);
+    logger.error('User unfollow error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to unfollow user');
   }
 }

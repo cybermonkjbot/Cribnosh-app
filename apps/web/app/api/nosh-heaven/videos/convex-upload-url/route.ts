@@ -4,6 +4,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -56,7 +57,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Generate Convex upload URL using the videoPosts mutation
-    const generateVideoUploadUrl = getApiFunction('mutations/videoPosts', 'generateVideoUploadUrl');
+    const generateVideoUploadUrl = getApiFunction('mutations/videoPosts', 'generateVideoUploadUrl') as any;
     const uploadUrl = await convex.mutation(generateVideoUploadUrl, {});
 
     return ResponseFactory.success({
@@ -64,7 +65,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Upload URL generated successfully');
 
   } catch (error: any) {
-    console.error('Convex upload URL generation error:', error);
+    logger.error('Convex upload URL generation error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to generate upload URL');
   }
 }

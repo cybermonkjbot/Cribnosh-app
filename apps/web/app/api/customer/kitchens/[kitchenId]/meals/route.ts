@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -107,7 +107,7 @@ async function handleGET(
     return ResponseFactory.success({ meals }, 'Meals retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get meals error:', error);
+    logger.error('Get meals error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve meals')
     );

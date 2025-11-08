@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // Define the interface for location update request
 interface UpdateLocationRequest {
@@ -183,7 +184,7 @@ async function handlePUT(req: NextRequest) {
     }, 'Session location updated successfully');
 
   } catch (error) {
-    console.error('Error updating live session location:', error);
+    logger.error('Error updating live session location:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

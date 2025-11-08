@@ -8,6 +8,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
  * /admin/orders/refund-eligibility-status:
@@ -245,7 +246,7 @@ async function handleGET(request: NextRequest) {
     }, 'Refund eligibility status retrieved successfully');
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to get refund eligibility status';
-    console.error('Error getting refund eligibility status:', error);
+    logger.error('Error getting refund eligibility status:', error);
     return ResponseFactory.internalError(errorMessage);
   }
 }

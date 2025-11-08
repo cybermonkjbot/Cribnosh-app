@@ -7,6 +7,7 @@ import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -90,7 +91,7 @@ async function handleDELETE(
     if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
       return ResponseFactory.unauthorized(error.message);
     }
-    console.error('[REVOKE_SESSION] Error:', error);
+    logger.error('[REVOKE_SESSION] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to revoke session.'));
   }
 }

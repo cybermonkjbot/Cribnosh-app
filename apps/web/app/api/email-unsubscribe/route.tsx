@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ResponseFactory } from '@/lib/api';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     }
     
     // Log the unsubscribe event
-    console.log(`Email unsubscribed: ${email}`, {
+    logger.log(`Email unsubscribed: ${email}`, {
       timestamp: new Date().toISOString(),
       token: token ? 'provided' : 'none'
     });
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
       unsubscribedAt: new Date().toISOString()
     });
   } catch (error) {
-    console.error("Unsubscribe error:", error);
+    logger.error("Unsubscribe error:", error);
     return ResponseFactory.internalError("Failed to process unsubscribe request");
   }
 }
@@ -66,7 +67,7 @@ async function unsubscribeFromNewsletter(email: string): Promise<{ success: bool
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Resend unsubscribe error:', errorData);
+        logger.error('Resend unsubscribe error:', errorData);
         return { success: false, error: 'Failed to unsubscribe via email service' };
       }
     }
@@ -75,11 +76,11 @@ async function unsubscribeFromNewsletter(email: string): Promise<{ success: bool
     // This would require importing Convex client and calling a mutation
     // await convex.mutation(api.mutations.email.unsubscribeEmail, { email });
     
-    console.log(`Successfully unsubscribed ${email} from newsletter`);
+    logger.log(`Successfully unsubscribed ${email} from newsletter`);
     return { success: true };
     
   } catch (error) {
-    console.error('Newsletter unsubscribe error:', error);
+    logger.error('Newsletter unsubscribe error:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error occurred' 
@@ -127,12 +128,12 @@ function verifyUnsubscribeToken(email: string, token: string): boolean {
       return tokenPayload.email === email;
       
     } catch (error) {
-      console.error('Token validation failed:', error);
+      logger.error('Token validation failed:', error);
       return false;
     }
     
   } catch (error) {
-    console.error('Token verification error:', error);
+    logger.error('Token verification error:', error);
     return false;
   }
 }
@@ -160,7 +161,7 @@ function generateUnsubscribeToken(email: string): string {
     
     return token;
   } catch (error) {
-    console.error('Failed to generate unsubscribe token:', error);
+    logger.error('Failed to generate unsubscribe token:', error);
     // Fallback to simple token
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2);

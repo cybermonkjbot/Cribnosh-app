@@ -8,6 +8,7 @@ import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -95,7 +96,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       // Check password (scrypt + salt)
       const [salt, storedHash] = user.password.split(':');
       if (!salt || !storedHash) {
-        console.error('[PASSWORD_CHANGE] Invalid password format for user:', user.email);
+        logger.error('[PASSWORD_CHANGE] Invalid password format for user:', user.email);
         return ResponseFactory.unauthorized('Invalid current password.');
       }
       const hash = scryptSync(current_password, salt, 64).toString('hex');
@@ -103,7 +104,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         return ResponseFactory.unauthorized('Invalid current password.');
       }
     } catch (error) {
-      console.error('[PASSWORD_CHANGE] Password verification error for user:', user.email, error);
+      logger.error('[PASSWORD_CHANGE] Password verification error for user:', user.email, error);
       return ResponseFactory.unauthorized('Invalid current password.');
     }
 
@@ -125,7 +126,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
       return ResponseFactory.unauthorized(error.message);
     }
-    console.error('[PASSWORD_CHANGE] Error:', error);
+    logger.error('[PASSWORD_CHANGE] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to change password.'));
   }
 }

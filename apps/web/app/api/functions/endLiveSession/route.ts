@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest) {
 
     return ResponseFactory.success(result);
   } catch (error) {
-    console.error('Error ending live session:', error);
+    logger.error('Error ending live session:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

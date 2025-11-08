@@ -88,9 +88,7 @@ export default function AdminCareers() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-
-  
-  
+  const [isCreating, setIsCreating] = useState(false);
 
   const jobPostings = useQuery(api.queries.careers.getJobPostings) as JobPosting[] | undefined;
 

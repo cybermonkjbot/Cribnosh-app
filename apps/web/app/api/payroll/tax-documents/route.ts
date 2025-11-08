@@ -54,6 +54,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface GenerateTaxDocumentRequest {
   documentType: 'p60' | 'p45' | 'p11d' | 'self_assessment' | 'payslip' | 'payslip_ng' | 'tax_clearance' | 'nhf_certificate' | 'nhis_certificate' | 'pension_certificate';
   employeeId: string;
@@ -242,7 +243,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.fileDownload(responseData, filename, contentType);
 
   } catch (error: any) {
-    console.error('Generate tax document error:', error);
+    logger.error('Generate tax document error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to generate tax document.' 
     );
   }
@@ -281,7 +282,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
-    console.error('Get tax documents error:', error);
+    logger.error('Get tax documents error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to get tax documents.' 
     );
   }
@@ -445,7 +446,7 @@ async function convertTaxDocumentToPDF(taxDocument: any, requestBody: any): Prom
     
     return htmlContent;
   } catch (error) {
-    console.error('Failed to generate payroll report:', error);
+    logger.error('Failed to generate payroll report:', error);
     return JSON.stringify({ error: 'Failed to generate payroll report' });
   }
 }

@@ -4,6 +4,7 @@ import { MonitoringService } from '../monitoring/monitoring.service';
 import { EmailTemplateRenderer } from './template-renderer';
 import { sanitizeEmailHtml } from './utils/image-validator';
 import { migrateEmailImagesToConvex } from './utils/convex-image-manager';
+import { logger } from '@/lib/utils/logger';
 
 export class EmailServiceError extends Error {
   constructor(
@@ -60,7 +61,7 @@ export class EmailService {
         });
         
         if (sanitized.brokenImages.length > 0) {
-          console.warn(`Removed ${sanitized.brokenImages.length} broken image(s) from email`);
+          logger.warn(`Removed ${sanitized.brokenImages.length} broken image(s) from email`);
           // Track broken images removed
           for (let i = 0; i < sanitized.brokenImages.length; i++) {
             this.monitoring.incrementMetric('email_broken_images_removed');
@@ -69,7 +70,7 @@ export class EmailService {
         
         payload.html = sanitized.html;
       } catch (error) {
-        console.error('Error processing images in email:', error);
+        logger.error('Error processing images in email:', error);
         // Continue with sending even if processing fails
       }
     }

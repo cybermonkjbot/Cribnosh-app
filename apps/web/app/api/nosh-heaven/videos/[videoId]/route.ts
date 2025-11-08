@@ -5,6 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getUserFromRequest } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -62,7 +63,7 @@ async function handleGET(
     return ResponseFactory.success(video, 'Video retrieved successfully');
 
   } catch (error: any) {
-    console.error('Video retrieval error:', error);
+    logger.error('Video retrieval error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to retrieve video');
   }
 }
@@ -158,7 +159,7 @@ async function handlePUT(
     return ResponseFactory.success(null, 'Video updated successfully');
 
   } catch (error: any) {
-    console.error('Video update error:', error);
+    logger.error('Video update error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update video');
   }
 }
@@ -216,7 +217,7 @@ async function handleDELETE(
     return ResponseFactory.success(null, 'Video deleted successfully');
 
   } catch (error: any) {
-    console.error('Video deletion error:', error);
+    logger.error('Video deletion error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to delete video');
   }
 }

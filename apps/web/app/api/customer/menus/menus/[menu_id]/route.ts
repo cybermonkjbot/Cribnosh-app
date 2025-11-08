@@ -26,6 +26,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // Endpoint: /v1/customer/menus/menus/{menu_id}
 // Group: customer
@@ -82,7 +83,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     return ResponseFactory.success(menu);
   } catch (error) {
-    console.error('Error fetching menu:', error);
+    logger.error('Error fetching menu:', error);
     return ResponseFactory.validationError('Invalid menu_id');
   }
 }

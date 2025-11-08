@@ -9,6 +9,7 @@ import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { generateDataDownload } from '@/lib/services/data-compilation';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 const MAX_DOWNLOAD_REQUESTS_PER_24H = 1;
 const DOWNLOAD_EXPIRY_HOURS = 48; // Data download link expires in 48 hours
 
@@ -103,7 +104,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Trigger async job to compile user data and send email when ready
     generateDataDownload(userId as Id<'users'>, downloadToken, expiresAt).catch((error) => {
-      console.error('Failed to generate data download:', error);
+      logger.error('Failed to generate data download:', error);
     });
 
     return ResponseFactory.success(

@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -132,7 +133,7 @@ async function handleGET(req: NextRequest) {
 
     return ResponseFactory.success(result, 'Live session retrieved successfully');
   } catch (error) {
-    console.error('Error getting live session:', error);
+    logger.error('Error getting live session:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

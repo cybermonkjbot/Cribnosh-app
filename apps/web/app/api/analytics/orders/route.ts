@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -188,8 +189,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
     // Get authenticated user from session token
-    await getAuthenticatedUser(request);// Check if user has permission to access analytics
-    if (!['admin', 'staff'].includes(payload.role)) {
+    const { user } = await getAuthenticatedUser(request);
+    // Check if user has permission to access analytics
+    if (!user.roles || (!user.roles.includes('admin') && !user.roles.includes('staff'))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -231,7 +233,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
-    console.error('Get order analytics error:', error);
+    logger.error('Get order analytics error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to get order analytics.' 
     );
   }

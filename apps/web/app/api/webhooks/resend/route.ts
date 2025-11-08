@@ -7,6 +7,7 @@ import { api } from '@/convex/_generated/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
     // Verify webhook signature
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      console.error('RESEND_WEBHOOK_SECRET not configured');
+      logger.error('RESEND_WEBHOOK_SECRET not configured');
       return ResponseFactory.error('Webhook secret not configured', 'CUSTOM_ERROR', 500);
     }
 
@@ -105,14 +106,14 @@ export async function POST(request: NextRequest) {
     try {
       payload = wh.verify(body, headers);
     } catch (err) {
-      console.error('Webhook verification failed:', err);
+      logger.error('Webhook verification failed:', err);
       return ResponseFactory.unauthorized('Invalid signature');
     }
 
     // Process the webhook event
     const { type, data } = payload;
     
-    console.log('Received Resend webhook:', { type, data });
+    logger.log('Received Resend webhook:', { type, data });
 
     // Map Resend event types to our analytics event types
     const eventTypeMap: Record<string, string> = {
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     const analyticsEventType = eventTypeMap[type];
     if (!analyticsEventType) {
-      console.log('Unhandled event type:', type);
+      logger.log('Unhandled event type:', type);
       return ResponseFactory.success({});
     }
 
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
     return ResponseFactory.success({});
 
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    logger.error('Webhook processing error:', error);
     return ResponseFactory.error('Internal server error', 'CUSTOM_ERROR', 500);
   }
 }

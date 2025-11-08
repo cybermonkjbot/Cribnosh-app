@@ -8,6 +8,7 @@ import { calculateDistanceKm } from '@/lib/apple-maps/service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -227,7 +228,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success(chefDetails, 'Chef details retrieved successfully');
 
   } catch (error) {
-    console.error('Error getting chef details:', error);
+    logger.error('Error getting chef details:', error);
     return errorHandler.handleError(error);
   }
 }

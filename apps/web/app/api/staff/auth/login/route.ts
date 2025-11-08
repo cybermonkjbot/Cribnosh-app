@@ -136,11 +136,11 @@ export async function POST(request: NextRequest) {
       try {
         const body = await clonedRequest.json();
         const email = body?.email || '';
-        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || req.ip || 'unknown';
+        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || 'unknown';
         // Rate limit by both email and IP for extra security
         return `staff-login:${email}:${ip}`;
       } catch {
-        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || req.ip || 'unknown';
+        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || 'unknown';
         return `staff-login:${ip}`;
       }
     }

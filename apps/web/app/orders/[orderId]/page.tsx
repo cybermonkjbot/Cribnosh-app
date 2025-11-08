@@ -48,7 +48,7 @@ export default function OrderDetailsPage() {
     );
   }
 
-  const status = orderStatus?.order_status || order.orderStatus || 'pending';
+  const status = (orderStatus as any)?.order_status || (orderStatus as any)?.status || order.orderStatus || 'pending';
   const statusInfo = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
   const StatusIcon = statusInfo.icon;
 

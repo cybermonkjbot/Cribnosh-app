@@ -7,6 +7,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
     event = stripe.webhooks.constructEvent(body, sig!, STRIPE_WEBHOOK_SECRET!);
   } catch (err: any) {
-    console.error('Stripe webhook signature verification failed:', err.message);
+    logger.error('Stripe webhook signature verification failed:', err.message);
     return ResponseFactory.validationError('Webhook signature verification failed');
   }
 
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
       break;
     }
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      logger.log(`Unhandled event type ${event.type}`);
   }
 
   return ResponseFactory.success({ received: true });

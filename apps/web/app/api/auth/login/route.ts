@@ -6,6 +6,7 @@ import { getErrorMessage } from '@/types/errors';
 import { scryptSync, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { logger } from '@/lib/utils/logger';
 
 // Endpoint: /v1/auth/login
 // Group: auth
@@ -114,7 +115,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     try {
       const [salt, storedHash] = user.password.split(':');
       if (!salt || !storedHash) {
-        console.error('[LOGIN] Invalid password format for user:', email);
+        logger.error('[LOGIN] Invalid password format for user:', email);
         return ResponseFactory.unauthorized('Invalid credentials.');
       }
       const hash = scryptSync(password, salt, 64).toString('hex');
@@ -122,7 +123,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         return ResponseFactory.unauthorized('Invalid credentials.');
       }
     } catch (error) {
-      console.error('[LOGIN] Password verification error for user:', email, error);
+      logger.error('[LOGIN] Password verification error for user:', email, error);
       return ResponseFactory.unauthorized('Invalid credentials.');
     }
     

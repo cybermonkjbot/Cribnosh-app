@@ -6,6 +6,7 @@ import { ErrorFactory, ErrorCode } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -127,12 +128,12 @@ export async function POST(request: NextRequest) {
       const fileUrl = `/api/files/${storageId}`;
       return ResponseFactory.success({ url: fileUrl, storageId });
     } catch (e) {
-      console.error('Convex upload error:', e);
+      logger.error('Convex upload error:', e);
       const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
       return ResponseFactory.error(`Failed to upload image: ${errorMessage}`, 'CUSTOM_ERROR', 500);
     }
   } catch (error) {
-    console.error('Error processing upload:', error);
+    logger.error('Error processing upload:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return ResponseFactory.error(`Error processing file upload: ${errorMessage}`, 'CUSTOM_ERROR', 500);
   }

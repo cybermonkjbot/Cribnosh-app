@@ -1,8 +1,12 @@
 /**
  * Unified session authentication utility for all endpoints
  * 
- * Replaces JWT Bearer token authentication with session token authentication
- * from cookies. Validates session tokens and ensures users have required roles.
+ * Supports session token authentication from:
+ * - Cookies: `convex-auth-token` (web app)
+ * - Headers: `X-Session-Token` or `Authorization: Bearer <sessionToken>` (mobile app)
+ * 
+ * Also supports JWT fallback for backward compatibility during migration.
+ * Validates session tokens and ensures users have required roles.
  */
 
 import { NextRequest } from 'next/server';
@@ -10,6 +14,17 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { Id } from '@/convex/_generated/dataModel';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+
+interface JWTPayload {
+  user_id: string;
+  role?: string;
+  email?: string;
+  iat?: number;
+  exp?: number;
+}
 
 /**
  * Result type for authenticated user
@@ -25,10 +40,95 @@ export interface AuthenticatedUser {
 export interface AuthenticatedCustomer extends AuthenticatedUser {}
 
 /**
- * Base function to get authenticated user from session token
+ * Extract session token from request (cookie or header)
+ * Supports multiple sources for backward compatibility
+ */
+function extractSessionToken(request: NextRequest): string | null {
+  // Priority 1: Cookie (web app)
+  const cookieToken = request.cookies.get('convex-auth-token')?.value;
+  if (cookieToken) {
+    return cookieToken;
+  }
+
+  // Priority 2: X-Session-Token header (mobile app)
+  const headerToken = request.headers.get('X-Session-Token');
+  if (headerToken) {
+    return headerToken;
+  }
+
+  // Priority 3: Authorization header (mobile app - sessionToken format)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.replace('Bearer ', '');
+    // SessionToken is typically 43 chars (base64url of 32 bytes)
+    // JWT is typically longer (3 parts separated by dots)
+    // If it looks like a sessionToken (no dots, ~43 chars), use it
+    if (!token.includes('.') && token.length >= 40 && token.length <= 50) {
+      return token;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validate session token using Convex query
+ */
+async function validateSessionToken(sessionToken: string): Promise<AuthenticatedUser | null> {
+  const convex = getConvexClient();
+  const user = await convex.query(api.queries.users.getUserBySessionToken, { 
+    sessionToken 
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  // Check session expiry
+  if (user.sessionExpiry && user.sessionExpiry < Date.now()) {
+    return null;
+  }
+
+  return {
+    userId: user._id,
+    user,
+  };
+}
+
+/**
+ * Validate JWT token (fallback for backward compatibility)
+ */
+async function validateJWTToken(jwtToken: string): Promise<AuthenticatedUser | null> {
+  try {
+    const payload = jwt.verify(jwtToken, JWT_SECRET) as JWTPayload;
+    if (!payload.user_id) {
+      return null;
+    }
+
+    const convex = getConvexClient();
+    const user = await convex.query(api.queries.users.getUserById, {
+      userId: payload.user_id as Id<'users'>,
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      userId: user._id,
+      user,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Base function to get authenticated user from session token or JWT (fallback)
  * 
- * Extracts session token from `convex-auth-token` cookie, validates it,
- * and checks session expiry. Does not enforce any role requirements.
+ * Extracts session token from cookie or headers, validates it,
+ * and checks session expiry. Falls back to JWT if sessionToken not found.
+ * Does not enforce any role requirements.
  * 
  * @param request - Next.js request object
  * @returns Promise resolving to authenticated user info
@@ -37,32 +137,30 @@ export interface AuthenticatedCustomer extends AuthenticatedUser {}
 async function getAuthenticatedUserBase(
   request: NextRequest
 ): Promise<AuthenticatedUser> {
-  // Extract session token from cookie
-  const sessionToken = request.cookies.get('convex-auth-token')?.value;
+  // Try sessionToken first (preferred)
+  const sessionToken = extractSessionToken(request);
   
-  if (!sessionToken) {
-    throw new AuthenticationError('Missing session token');
+  if (sessionToken) {
+    const user = await validateSessionToken(sessionToken);
+    if (user) {
+      return user;
+    }
   }
 
-  // Validate session token using Convex query
-  const convex = getConvexClient();
-  const user = await convex.query(api.queries.users.getUserBySessionToken, { 
-    sessionToken 
-  });
-
-  if (!user) {
-    throw new AuthenticationError('Invalid or expired session token');
+  // Fallback to JWT (for backward compatibility during migration)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const jwtToken = authHeader.replace('Bearer ', '');
+    // Only try JWT if it looks like a JWT (has dots)
+    if (jwtToken.includes('.')) {
+      const user = await validateJWTToken(jwtToken);
+      if (user) {
+        return user;
+      }
+    }
   }
 
-  // Check session expiry (query already checks this, but double-check for safety)
-  if (user.sessionExpiry && user.sessionExpiry < Date.now()) {
-    throw new AuthenticationError('Session token has expired');
-  }
-
-  return {
-    userId: user._id,
-    user,
-  };
+  throw new AuthenticationError('Missing or invalid authentication token');
 }
 
 /**
@@ -79,9 +177,9 @@ export async function getAuthenticatedUser(
 }
 
 /**
- * Get authenticated customer from session token in cookies
+ * Get authenticated customer from session token (cookie or header)
  * 
- * Extracts session token from `convex-auth-token` cookie, validates it,
+ * Extracts session token from cookie or headers, validates it,
  * checks session expiry, and ensures the user has the `customer` role.
  * Automatically adds the `customer` role if missing.
  * 
@@ -105,9 +203,14 @@ export async function getAuthenticatedCustomer(
       roles: updatedRoles,
     });
 
-    // Fetch updated user
+    // Fetch updated user using the same token source
+    const sessionToken = extractSessionToken(request);
+    if (!sessionToken) {
+      throw new AuthenticationError('Failed to extract session token for role update');
+    }
+
     const updatedUser = await convex.query(api.queries.users.getUserBySessionToken, { 
-      sessionToken: request.cookies.get('convex-auth-token')?.value!
+      sessionToken
     });
 
     if (!updatedUser || !updatedUser.roles?.includes('customer')) {
@@ -127,9 +230,9 @@ export async function getAuthenticatedCustomer(
 }
 
 /**
- * Get authenticated chef from session token in cookies
+ * Get authenticated chef from session token (cookie or header)
  * 
- * Extracts session token from `convex-auth-token` cookie, validates it,
+ * Extracts session token from cookie or headers, validates it,
  * checks session expiry, and ensures the user has the `chef` role.
  * 
  * @param request - Next.js request object
@@ -154,9 +257,9 @@ export async function getAuthenticatedChef(
 }
 
 /**
- * Get authenticated admin from session token in cookies
+ * Get authenticated admin from session token (cookie or header)
  * 
- * Extracts session token from `convex-auth-token` cookie, validates it,
+ * Extracts session token from cookie or headers, validates it,
  * checks session expiry, and ensures the user has the `admin` role.
  * 
  * @param request - Next.js request object

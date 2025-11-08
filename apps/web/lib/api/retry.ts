@@ -1,7 +1,8 @@
 /**
  * Robust retry mechanism with exponential backoff for network requests
  * Handles NetworkError, timeout, and other transient failures
- */
+ */import { logger } from '@/lib/utils/logger';
+
 
 export interface RetryOptions {
   maxAttempts?: number;
@@ -109,7 +110,7 @@ export async function withRetry<T>(
         opts.jitter
       );
       
-      console.warn(`[RETRY] Attempt ${attempt} failed, retrying in ${delay}ms:`, lastError.message);
+      logger.warn(`[RETRY] Attempt ${attempt} failed, retrying in ${delay}ms:`, lastError.message);
       await sleep(delay, opts.jitter);
     }
   }

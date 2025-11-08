@@ -267,7 +267,7 @@ export default function WaitlistDetailsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Locations</SelectItem>
-            {uniqueLocations.map((location: string) => (
+            {(uniqueLocations as string[]).map((location: string) => (
               <SelectItem key={location} value={location}>{location}</SelectItem>
             ))}
           </SelectContent>

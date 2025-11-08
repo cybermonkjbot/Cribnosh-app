@@ -185,12 +185,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const fileUrl = `/api/files/${storageId}`;
     // Update user profile with Convex file URL
     await convex.mutation(api.mutations.users.updateUser, { userId: userId, avatar: fileUrl });
-    const user = await convex.query(api.queries.users.getUserById, { userId: userId as any });
-    if (!user) {
+    // Fetch updated user to get latest data
+    const updatedUser = await convex.query(api.queries.users.getUserById, { userId: userId as any });
+    if (!updatedUser) {
       return ResponseFactory.notFound('User not found.');
     }
     // Compose CustomerProfileResponse
-    const [first_name, ...rest] = (user.name || '').split(' ');
+    const [first_name, ...rest] = (updatedUser.name || '').split(' ');
     const last_name = rest.join(' ');
     return ResponseFactory.success({
       first_name: first_name || '',
@@ -209,7 +210,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

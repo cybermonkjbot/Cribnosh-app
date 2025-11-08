@@ -6,6 +6,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
  * /api/messaging/send:
@@ -68,7 +69,6 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       return ResponseFactory.error('Content and chatId are required', 'VALIDATION_ERROR', 400);
     }
     
-    // Get user from JWT token
     // Get authenticated user from session token
     const { userId } = await getAuthenticatedUser(request);
     
@@ -93,7 +93,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       }
     });
   } catch (error) {
-    console.error('Error in messaging send:', error);
+    logger.error('Error in messaging send:', error);
     return ResponseFactory.error('Failed to send message', 'MESSAGING_SEND_ERROR', 500);
   }
 });

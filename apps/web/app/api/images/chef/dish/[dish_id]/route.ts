@@ -7,6 +7,7 @@ import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 // Endpoint: /v1/images/chef/dish/{dish_id}
 // Group: images
@@ -171,7 +172,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ url: uploadUrl, objectKey });
   } catch (error) {
-    console.error('Failed to generate upload URL:', error);
+    logger.error('Failed to generate upload URL:', error);
     return ResponseFactory.internalError('Failed to generate upload URL');
   }
 }

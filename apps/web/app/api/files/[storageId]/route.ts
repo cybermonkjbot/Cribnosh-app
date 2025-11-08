@@ -5,6 +5,7 @@ import { api } from '@/convex/_generated/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * GET /api/files/[storageId]
@@ -50,7 +51,7 @@ export async function GET(
     
     return response;
   } catch (error) {
-    console.error('Error serving file:', error);
+    logger.error('Error serving file:', error);
     return new NextResponse('Internal server error', { status: 500 });
   }
 }

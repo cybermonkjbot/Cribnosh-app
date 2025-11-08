@@ -222,7 +222,7 @@ export default function StaffBlogPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {uniqueCategories.map((category: string) => (
+            {(uniqueCategories as string[]).map((category: string) => (
               <SelectItem key={category} value={category}>{category}</SelectItem>
             ))}
           </SelectContent>

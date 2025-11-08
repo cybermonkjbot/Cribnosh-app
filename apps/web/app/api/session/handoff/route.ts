@@ -34,6 +34,7 @@ import { verifySessionTransferToken } from '@/lib/auth/session-transfer';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(req: NextRequest) {
   const xfer = req.nextUrl.searchParams.get('xfer');
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
   
   // Ensure we're redirecting to the correct domain based on country
   // This prevents redirect loops by ensuring the handoff completes the domain switch
-  console.log('Session handoff redirecting to:', url.toString());
+  logger.log('Session handoff redirecting to:', url.toString());
   
   return NextResponse.redirect(url, { status: 302 });
 }

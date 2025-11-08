@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -283,7 +282,7 @@ function extractDishIdFromUrl(request: NextRequest): Id<'meals'> | undefined {
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);
+    const { userId } = await getAuthenticatedAdmin(request);
     const dish_id = extractDishIdFromUrl(request);
     if (!dish_id) {
       return ResponseFactory.validationError('Missing dish_id');
@@ -309,7 +308,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);
     }
-    return ResponseFactory.internalError(getErrorMessage(error, \'Failed to process request.\'));
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

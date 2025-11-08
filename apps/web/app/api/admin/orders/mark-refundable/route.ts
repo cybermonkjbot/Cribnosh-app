@@ -1,13 +1,11 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest } from 'next/server';
 /**
  * @swagger
  * /admin/orders/mark-refundable:
@@ -143,8 +141,7 @@ async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
     // Get authenticated admin from session token
-    await getAuthenticatedAdmin(request);// Check if user has admin permissions
-    
+    const { userId } = await getAuthenticatedAdmin(request);
 
     const body: MarkRefundableRequest = await request.json();
     const { orderId, reason, description, extendWindow = false, newWindowHours = 24, metadata } = body;
@@ -191,7 +188,7 @@ async function handlePOST(request: NextRequest) {
     // Update order directly to set refund eligibility
     await convex.mutation(api.mutations.orders.updateRefundEligibility, {
       orderId: order._id,
-      updatedBy: (userId || payload.userId) as Id<"users">,
+      updatedBy: userId,
       reason: `Admin override: ${description}`,
       metadata: {
         adminReason: reason,
@@ -211,7 +208,7 @@ async function handlePOST(request: NextRequest) {
     if (extendWindow && newRefundEligibleUntil !== undefined) {
       await convex.mutation(api.mutations.orders.updateRefundWindow, {
         orderId: order._id,
-        updatedBy: (userId || payload.userId) as Id<"users">,
+        updatedBy: userId,
         newRefundEligibleUntil,
         reason: `Admin extended refund window: ${description}`,
         metadata: {
@@ -226,7 +223,7 @@ async function handlePOST(request: NextRequest) {
       });
     }
 
-    console.log(`Order ${orderId} marked as refundable by admin ${userId}: ${reason} - ${description}`);
+    logger.log(`Order ${orderId} marked as refundable by admin ${userId}: ${reason} - ${description}`);
 
     return ResponseFactory.success({
       success: true,
@@ -237,7 +234,7 @@ async function handlePOST(request: NextRequest) {
       description: description
     }, 'Order marked as refundable successfully');
   } catch (error: unknown) {
-    console.error('Error marking order as refundable:', error);
+    logger.error('Error marking order as refundable:', error);
     return ResponseFactory.internalError('Failed to mark order as refundable');
   }
 }

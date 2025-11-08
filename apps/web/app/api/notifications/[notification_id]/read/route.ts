@@ -78,7 +78,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (!notification) {
       return ResponseFactory.notFound('Notification not found.');
     }
-    const userHasRole = notification.roles?.some((role: string) => (payload.role === role)) || false;
+    const userHasRole = notification.roles?.some((role: string) => user.roles?.includes(role)) || false;
     if (notification.userId !== userId && !notification.global && !userHasRole) {
       return ResponseFactory.forbidden('Forbidden: Not your notification.');
     }

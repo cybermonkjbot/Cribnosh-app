@@ -4,6 +4,7 @@ import React from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 
 export default function Error({
   error,
@@ -13,8 +14,17 @@ export default function Error({
   reset: () => void;
 }) {
   React.useEffect(() => {
-    // Log the error to an error reporting service
-    console.error(error);
+    // Log the error to Sentry
+    Sentry.captureException(error, {
+      tags: {
+        errorBoundary: 'error',
+        errorDigest: error.digest,
+      },
+      extra: {
+        errorMessage: error.message,
+        errorStack: error.stack,
+      },
+    });
   }, [error]);
 
   return (

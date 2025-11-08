@@ -6,6 +6,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -80,7 +81,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       }
     });
   } catch (error) {
-    console.error('Error in admin functions:', error);
+    logger.error('Error in admin functions:', error);
     return ResponseFactory.error('Failed to retrieve admin functions', 'ADMIN_FUNCTIONS_ERROR', 500);
   }
 });

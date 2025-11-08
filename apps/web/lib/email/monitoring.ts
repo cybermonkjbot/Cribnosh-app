@@ -1,5 +1,6 @@
 // CribNosh Email Performance Monitoring System
 // Real-time monitoring, alerting, and performance optimization
+import { logger } from '@/lib/utils/logger';
 
 export interface EmailMetrics {
   templateId: string;
@@ -270,7 +271,7 @@ export class EmailPerformanceMonitor {
   // Notify alert
   private notifyAlert(alert: EmailPerformanceAlert): void {
     // Implement alert notification (email, Slack, etc.)
-    console.log(`🚨 Email Performance Alert: ${alert.title} - ${alert.description}`);
+    logger.log(`🚨 Email Performance Alert: ${alert.title} - ${alert.description}`);
   }
 
   // Update quality scores

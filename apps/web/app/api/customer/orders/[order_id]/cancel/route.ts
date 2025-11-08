@@ -8,6 +8,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { processRefund } from '@/lib/services/payment-service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -195,7 +196,7 @@ async function handlePOST(
           }
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error('Refund processing failed:', errorMessage);
+          logger.error('Refund processing failed:', errorMessage);
           // Continue with cancellation even if refund fails
           // Customer can contact support for manual refund
         }

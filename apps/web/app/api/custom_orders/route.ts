@@ -8,6 +8,7 @@ import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser, getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface CustomOrder {
   _id: Id<'custom_orders'>;
@@ -378,7 +379,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       } catch (error) {
         // If we can't get user profile, continue without regional check
         // Regional check will happen when address is provided later
-        console.warn('Could not check regional availability for custom order:', error);
+        logger.warn('Could not check regional availability for custom order:', error);
       }
     }
     const customOrderId = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
@@ -677,7 +678,7 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     const filename = `custom-orders-${new Date().toISOString().split('T')[0]}.csv`;
     return ResponseFactory.csvDownload(csvContent, filename);
   } catch (error: unknown) {
-    console.error('Export failed:', error);
+    logger.error('Export failed:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to export custom orders.';
     return ResponseFactory.internalError(errorMessage);
   }

@@ -8,6 +8,7 @@ import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendAccountDeletionEmail } from '@/lib/services/email-service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -96,7 +97,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
         user.email,
         new Date(deletionWillCompleteAt).toISOString()
       ).catch((error) => {
-        console.error('Failed to send account deletion email:', error);
+        logger.error('Failed to send account deletion email:', error);
       });
     }
 
