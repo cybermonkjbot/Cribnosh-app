@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -79,7 +80,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('New password must be at least 8 characters long.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get user to verify current password
     const user = await convex.query(api.queries.users.getById, { userId });
@@ -123,8 +124,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       message: 'Password changed successfully',
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     logger.error('[PASSWORD_CHANGE] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to change password.'));

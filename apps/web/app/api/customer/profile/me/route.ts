@@ -3,10 +3,11 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -100,7 +101,7 @@ import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const user = await convex.query(api.queries.users.getById, { userId });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
@@ -118,8 +119,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ user: safeUser });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch user.'));
   }
@@ -224,7 +225,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { name, email, phone, picture, preferences, address } = body;
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Build update object
     const updates: any = {};
@@ -277,8 +278,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       message: "Profile updated successfully"
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update profile.'));
   }
