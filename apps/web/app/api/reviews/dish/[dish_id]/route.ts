@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Endpoint: /v1/reviews/dish/{dish_id}
 // Group: reviews
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest, { params }: { params: { dish_id:
   if (!dish_id) {
     return ResponseFactory.validationError('Missing dish_id');
   }
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   const allReviews = await convex.query(api.queries.reviews.getAll);
   // Filter reviews for this dish
   const dishReviews = allReviews.filter((r: any) => r.meal_id === dish_id);

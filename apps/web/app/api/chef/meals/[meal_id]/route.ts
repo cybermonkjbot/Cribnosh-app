@@ -3,11 +3,11 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -210,7 +210,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { name, description, price, category, ingredients, allergens, image, preparationTime, servings, status } = body;
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get chef profile first
     const chef = await convex.query(api.queries.chefs.getByUserId, { userId: userId });
@@ -244,8 +244,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -265,7 +265,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     // Get authenticated chef from session token
     const { userId } = await getAuthenticatedChef(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get chef profile first
     const chef = await convex.query(api.queries.chefs.getByUserId, { userId: userId });
@@ -290,8 +290,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

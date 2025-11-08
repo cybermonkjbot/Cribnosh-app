@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MonitoringService } from '../monitoring/monitoring.service';
+import { AuthenticationError, AuthorizationError } from '../errors/standard-errors';
+import { errorHandler } from '../errors/error-handler';
 
 const monitoring = MonitoringService.getInstance();
 
@@ -233,6 +235,42 @@ export class APIErrorHandler {
 
 // Export singleton instance
 export const apiErrorHandler = APIErrorHandler.getInstance();
+
+/**
+ * Check if error is an AuthenticationError
+ */
+export function isAuthenticationError(error: unknown): boolean {
+  return error instanceof AuthenticationError || 
+         (error instanceof Error && (
+           error.message.includes('unauthorized') || 
+           error.message.includes('Unauthorized') ||
+           error.message.includes('Invalid or missing token') ||
+           error.message.includes('Invalid or expired token') ||
+           error.message.includes('Missing or invalid authentication token')
+         ));
+}
+
+/**
+ * Check if error is an AuthorizationError
+ */
+export function isAuthorizationError(error: unknown): boolean {
+  return error instanceof AuthorizationError || 
+         (error instanceof Error && (
+           error.message.includes('forbidden') || 
+           error.message.includes('Forbidden') ||
+           error.message.includes('insufficient permissions') ||
+           error.message.includes('Insufficient permissions')
+         ));
+}
+
+/**
+ * Handle Convex errors and return appropriate NextResponse
+ * This is a wrapper around the error handler that works with NextRequest
+ */
+export function handleConvexError(error: unknown, request: NextRequest): NextResponse {
+  // Use the centralized error handler
+  return errorHandler.handleError(error, request);
+}
 
 /**
  * Higher-order function to wrap API handlers with error handling

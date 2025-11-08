@@ -2,11 +2,11 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin, getAuthenticatedUser } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -123,7 +123,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     await getAuthenticatedUser(request);
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -137,8 +137,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const paginated = allReviews.slice(offset, offset + limit);
     return ResponseFactory.success({ reviews: paginated, total: allReviews.length, limit, offset });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -238,7 +238,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (rating < 1 || rating > 5) {
       return ResponseFactory.error('Rating must be between 1 and 5.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Check meal ownership (user must have ordered this meal)
     const bookings = await convex.query(api.queries.bookings.getAll, {});
     const userBooking = bookings.find((b: any) => b.user_id === userId && b.meal_id === meal_id);
@@ -256,8 +256,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true, reviewId });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -271,7 +271,7 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     if (!review_id) {
       return ResponseFactory.error('review_id is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const allReviews = (await convex.query(api.queries.reviews.getAll, {})) as any[];
     const review = allReviews.find((r: any) => r._id === review_id);
     if (!review) {
@@ -290,8 +290,8 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -305,7 +305,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     if (!review_id) {
       return ResponseFactory.error('review_id is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const allReviews = (await convex.query(api.queries.reviews.getAll, {})) as any[];
     const review = allReviews.find((r: any) => r._id === review_id);
     if (!review) {
@@ -321,8 +321,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.reviews.deleteReview, { reviewId: review_id });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -339,7 +339,7 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     if (!Array.isArray(review_ids) || review_ids.length === 0) {
       return ResponseFactory.error('review_ids array is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     for (const reviewId of review_ids) {
       await convex.mutation(api.mutations.reviews.deleteReview, { reviewId });
     }
@@ -351,8 +351,8 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ success: true, deleted: review_ids.length });
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
@@ -365,12 +365,12 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can export reviews.');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const allReviews = (await convex.query(api.queries.reviews.getAll, {})) as any[];
     return ResponseFactory.jsonDownload(allReviews, 'reviews-export.json');
   } catch (error: unknown) {
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }

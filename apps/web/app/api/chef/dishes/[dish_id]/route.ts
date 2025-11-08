@@ -1,16 +1,16 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 type MealId = Id<'meals'>;
 
@@ -199,7 +199,7 @@ async function handlePATCH(request: NextRequest, { params }: { params: { dish_id
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedChef(request);
     const updates = await request.json();
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Fetch dish and check ownership
     const dish = await getMealById(convex, params.dish_id as MealId);
     if (!dish) {
@@ -221,6 +221,9 @@ async function handlePATCH(request: NextRequest, { params }: { params: { dish_id
       return ResponseFactory.error('Failed to update dish', 'CUSTOM_ERROR', 500);
     }
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to update dish.';
     return ResponseFactory.internalError(errorMessage);
   }
@@ -230,7 +233,7 @@ async function handleDELETE(request: NextRequest, { params }: { params: { dish_i
   try {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedChef(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Fetch dish and check ownership
     const dish = await getMealById(convex, params.dish_id as MealId);
     if (!dish) {
@@ -251,6 +254,9 @@ async function handleDELETE(request: NextRequest, { params }: { params: { dish_i
       return ResponseFactory.error('Failed to delete dish', 'CUSTOM_ERROR', 500);
     }
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to delete dish.';
     return ResponseFactory.internalError(errorMessage);
   }

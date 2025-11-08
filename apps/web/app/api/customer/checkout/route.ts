@@ -3,12 +3,13 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -83,7 +84,7 @@ import { NextRequest, NextResponse } from 'next/server';
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId, user } = await getAuthenticatedCustomer(request);
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get user's cart
     const cart = await convex.query(api.queries.orders.getUserCart, { userId });
@@ -194,8 +195,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('Payment processing failed. Please try again.', 'CUSTOM_ERROR', 500);
     }
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create payment intent.'));
   }

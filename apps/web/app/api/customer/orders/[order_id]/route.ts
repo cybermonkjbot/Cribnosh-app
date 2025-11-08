@@ -1,4 +1,4 @@
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -6,6 +6,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Endpoint: /v1/customer/orders/{order_id}
 // Group: customer
@@ -152,7 +153,7 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
   try {
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     const order = await convex.query(api.queries.orders.getById, { order_id: order_id });
     
     if (!order || order.customer_id !== userId) {
@@ -176,8 +177,8 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
 
     return ResponseFactory.success(orderData, 'Order retrieved successfully');
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch order.'));
   }
