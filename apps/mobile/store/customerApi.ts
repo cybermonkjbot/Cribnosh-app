@@ -164,20 +164,39 @@ import * as SecureStore from "expo-secure-store";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseUrlNoTrailing,
-  prepareHeaders: async (headers) => {
-    const token = await SecureStore.getItemAsync("cribnosh_token");
-    if (token) {
-      // Check if token is expired before adding to headers
-      if (isTokenExpired(token)) {
-        // Clear expired token
-        await SecureStore.deleteItemAsync("cribnosh_token");
-        await SecureStore.deleteItemAsync("cribnosh_user");
-        // Don't add the expired token to headers
-        console.log("Token expired, cleared from storage");
+  prepareHeaders: async (headers, api) => {
+    // Extract endpoint info for logging
+    const endpoint = (api as any)?.endpoint || (api as any)?.type || 'unknown';
+    console.log("[Customer API] prepareHeaders called for endpoint:", endpoint);
+    
+    try {
+      const token = await SecureStore.getItemAsync("cribnosh_token");
+      console.log("[Customer API] Token exists:", !!token);
+      console.log("[Customer API] Token length:", token?.length || 0);
+      
+      if (token) {
+        // Check if token is expired before adding to headers
+        const expired = isTokenExpired(token);
+        console.log("[Customer API] Token expired check:", expired);
+        
+        if (expired) {
+          // Clear expired token
+          await SecureStore.deleteItemAsync("cribnosh_token");
+          await SecureStore.deleteItemAsync("cribnosh_user");
+          // Don't add the expired token to headers
+          console.log("[Customer API] Token expired, cleared from storage");
+        } else {
+          headers.set("authorization", `Bearer ${token}`);
+          console.log("[Customer API] Authorization header set for endpoint:", endpoint);
+        }
       } else {
-        headers.set("authorization", `Bearer ${token}`);
+        console.log("[Customer API] No token found in SecureStore for endpoint:", endpoint);
       }
+    } catch (error) {
+      console.error("[Customer API] Error accessing SecureStore for endpoint:", endpoint, error);
+      // Continue without token - will result in 401 which is handled by error handler
     }
+    
     headers.set("accept", "application/json");
     headers.set("content-type", "application/json");
     return headers;

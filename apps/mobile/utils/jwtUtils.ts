@@ -41,15 +41,28 @@ export const isTokenExpired = (
   bufferSeconds: number = 30
 ): boolean => {
   const payload = decodeJWT(token);
+  console.log("[JWT Utils] Token decoded:", !!payload);
+  console.log("[JWT Utils] Token has exp field:", !!payload?.exp);
+  
   if (!payload || !payload.exp) {
+    console.log("[JWT Utils] Token invalid or missing exp field, treating as expired");
     return true; // Consider invalid tokens as expired
   }
 
   const currentTime = Math.floor(Date.now() / 1000);
   const expirationTime = payload.exp;
+  const timeUntilExpiration = expirationTime - currentTime;
+
+  console.log("[JWT Utils] Current time:", currentTime);
+  console.log("[JWT Utils] Expiration time:", expirationTime);
+  console.log("[JWT Utils] Time until expiration:", timeUntilExpiration, "seconds");
+  console.log("[JWT Utils] Buffer seconds:", bufferSeconds);
 
   // Add buffer time to prevent edge cases where token expires during request
-  return currentTime >= expirationTime - bufferSeconds;
+  const isExpired = currentTime >= expirationTime - bufferSeconds;
+  console.log("[JWT Utils] Token expired:", isExpired);
+  
+  return isExpired;
 };
 
 /**

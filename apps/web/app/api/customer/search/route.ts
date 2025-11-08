@@ -1,5 +1,6 @@
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/proxy';
+import { withCaching } from '@/lib/api/cache';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -306,7 +307,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       body: JSON.stringify(body),
     });
     const data = await res.json();
-    return ResponseFactory.success(data);
+    const response = ResponseFactory.success(data);
+    
+    // Add cache headers - search results can vary, cache for 2 minutes
+    // Cache key includes query params automatically via withCaching
+    response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=120');
+    
+    return response;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Search failed.';
     return ResponseFactory.internalError(errorMessage);
@@ -314,4 +322,4 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 }
 
 export const POST = withAPIMiddleware(withErrorHandling(handlePOST));
-export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 
+export const GET = withAPIMiddleware(withErrorHandling(withCaching(handleGET, { ttl: 120 }))); 

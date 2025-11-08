@@ -5,6 +5,10 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
+import type { JWTPayload } from '@/types/convex-contexts';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 /**
  * @swagger
@@ -61,19 +65,26 @@ async function handleGET(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from token
+    // Get user from JWT token
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header');
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query((api as any).queries.users.getUserByToken, { token });
-
-    if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+    let payload: JWTPayload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    } catch {
+      return ResponseFactory.unauthorized('Invalid or expired token.');
     }
+
+    if (!payload.user_id) {
+      return ResponseFactory.unauthorized('Invalid token: missing user_id.');
+    }
+
+    const userId = payload.user_id;
+    const convex = getConvexClient();
 
     // Verify the meal exists
     const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
@@ -85,7 +96,7 @@ async function handleGET(
     // Check favorite status
     const favoriteStatus = await convex.query(
       (api as any).queries.userFavorites.isMealFavorited,
-      { userId: user._id, mealId: dishId as any }
+      { userId: userId as any, mealId: dishId as any }
     );
 
     return ResponseFactory.success(favoriteStatus, 'Favorite status retrieved successfully');
@@ -133,19 +144,26 @@ async function handlePOST(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from token
+    // Get user from JWT token
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header');
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query((api as any).queries.users.getUserByToken, { token });
-
-    if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+    let payload: JWTPayload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    } catch {
+      return ResponseFactory.unauthorized('Invalid or expired token.');
     }
+
+    if (!payload.user_id) {
+      return ResponseFactory.unauthorized('Invalid token: missing user_id.');
+    }
+
+    const userId = payload.user_id;
+    const convex = getConvexClient();
 
     // Verify the meal exists
     const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
@@ -156,7 +174,7 @@ async function handlePOST(
 
     // Add to favorites
     await convex.mutation((api as any).mutations.userFavorites.addMealFavorite, {
-      userId: user._id,
+      userId: userId as any,
       mealId: dishId as any,
     });
 
@@ -205,19 +223,26 @@ async function handleDELETE(
       return ResponseFactory.validationError('Dish ID is required');
     }
 
-    // Get user from token
+    // Get user from JWT token
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return ResponseFactory.unauthorized('Missing or invalid Authorization header');
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query((api as any).queries.users.getUserByToken, { token });
-
-    if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+    let payload: JWTPayload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    } catch {
+      return ResponseFactory.unauthorized('Invalid or expired token.');
     }
+
+    if (!payload.user_id) {
+      return ResponseFactory.unauthorized('Invalid token: missing user_id.');
+    }
+
+    const userId = payload.user_id;
+    const convex = getConvexClient();
 
     // Verify the meal exists
     const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
@@ -228,7 +253,7 @@ async function handleDELETE(
 
     // Remove from favorites
     await convex.mutation((api as any).mutations.userFavorites.removeMealFavorite, {
-      userId: user._id,
+      userId: userId as any,
       mealId: dishId as any,
     });
 

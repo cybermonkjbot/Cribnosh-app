@@ -33,39 +33,59 @@ export const getAll = query({
   handler: async (ctx: QueryCtx, args: { userId?: Id<'users'> }) => {
     const meals = await ctx.db.query('meals').collect();
     
-    // Get chef information for each meal
-    const mealsWithChefData = await Promise.all(
-      meals.map(async (meal: MealDoc) => {
-        const chef = await ctx.db.get(meal.chefId);
-        const reviews = await ctx.db
-          .query('reviews')
-          .filter((q) => q.eq(q.field('mealId'), meal._id))
-          .collect();
-        
-        return {
-          ...meal,
-          chef: chef ? {
-            _id: (chef as ChefDoc)._id,
-            name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
-            bio: (chef as ChefDoc).bio,
-            specialties: (chef as ChefDoc).specialties || [],
-            rating: (chef as ChefDoc).rating || 0,
-            profileImage: (chef as ChefDoc).profileImage
-          } : {
-            _id: meal.chefId,
-            name: `Chef ${meal.chefId}`,
-            bio: '',
-            specialties: [],
-            rating: 0,
-            profileImage: null
-          },
-          reviewCount: reviews.length,
-          averageRating: reviews.length > 0 
-            ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
-            : meal.rating || 0
-        };
-      })
+    // Batch fetch all chefs and reviews to avoid N+1 queries
+    const chefIds = new Set(meals.map((meal: MealDoc) => meal.chefId));
+    const chefs = await Promise.all(
+      Array.from(chefIds).map(id => ctx.db.get(id))
     );
+    const chefMap = new Map<Id<'chefs'>, ChefDoc>();
+    for (const chef of chefs) {
+      if (chef) {
+        chefMap.set(chef._id, chef as ChefDoc);
+      }
+    }
+    
+    // Get all reviews in one query and group by mealId
+    const allReviews = await ctx.db.query('reviews').collect();
+    const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
+    for (const review of allReviews) {
+      const mealId = (review as any).mealId || (review as any).meal_id;
+      if (mealId) {
+        if (!reviewMap.has(mealId)) {
+          reviewMap.set(mealId, []);
+        }
+        reviewMap.get(mealId)!.push(review as ReviewDoc);
+      }
+    }
+    
+    // Build meals with chef and review data
+    const mealsWithChefData = meals.map((meal: MealDoc) => {
+      const chef = chefMap.get(meal.chefId);
+      const reviews = reviewMap.get(meal._id) || [];
+      
+      return {
+        ...meal,
+        chef: chef ? {
+          _id: (chef as ChefDoc)._id,
+          name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
+          bio: (chef as ChefDoc).bio,
+          specialties: (chef as ChefDoc).specialties || [],
+          rating: (chef as ChefDoc).rating || 0,
+          profileImage: (chef as ChefDoc).profileImage
+        } : {
+          _id: meal.chefId,
+          name: `Chef ${meal.chefId}`,
+          bio: '',
+          specialties: [],
+          rating: 0,
+          profileImage: null
+        },
+        reviewCount: reviews.length,
+        averageRating: reviews.length > 0 
+          ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
+          : meal.rating || 0
+      };
+    });
 
     // Apply user preference filtering if userId provided
     if (args.userId) {
@@ -580,39 +600,59 @@ export const searchMeals = query({
         .sort((a: MealDoc, b: MealDoc) => ((b as { rating?: number }).rating || 0) - ((a as { rating?: number }).rating || 0))
         .slice(0, 20);
 
-      // Get chef information for each meal
-      const mealsWithChefData = await Promise.all(
-        filteredMeals.map(async (meal: MealDoc) => {
-          const chef = await ctx.db.get(meal.chefId);
-          const reviews = await ctx.db
-            .query('reviews')
-            .filter((q) => q.eq(q.field('mealId'), meal._id))
-            .collect();
-          
-          return {
-            ...meal,
-            chef: chef ? {
-              _id: (chef as ChefDoc)._id,
-              name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
-              bio: (chef as ChefDoc).bio,
-              specialties: (chef as ChefDoc).specialties || [],
-              rating: (chef as ChefDoc).rating || 0,
-              profileImage: (chef as ChefDoc).profileImage
-            } : {
-              _id: meal.chefId,
-              name: `Chef ${meal.chefId}`,
-              bio: '',
-              specialties: [],
-              rating: 0,
-              profileImage: null
-            },
-            reviewCount: reviews.length,
-            averageRating: reviews.length > 0 
-              ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
-              : meal.rating || 0
-          };
-        })
+      // Batch fetch all chefs and reviews to avoid N+1 queries
+      const chefIds = new Set(filteredMeals.map((meal: MealDoc) => meal.chefId));
+      const chefs = await Promise.all(
+        Array.from(chefIds).map(id => ctx.db.get(id))
       );
+      const chefMap = new Map<Id<'chefs'>, ChefDoc>();
+      for (const chef of chefs) {
+        if (chef) {
+          chefMap.set(chef._id, chef as ChefDoc);
+        }
+      }
+      
+      // Get all reviews in one query and group by mealId
+      const allReviews = await ctx.db.query('reviews').collect();
+      const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
+      for (const review of allReviews) {
+        const mealId = (review as any).mealId || (review as any).meal_id;
+        if (mealId) {
+          if (!reviewMap.has(mealId)) {
+            reviewMap.set(mealId, []);
+          }
+          reviewMap.get(mealId)!.push(review as ReviewDoc);
+        }
+      }
+
+      // Build meals with chef and review data
+      const mealsWithChefData = filteredMeals.map((meal: MealDoc) => {
+        const chef = chefMap.get(meal.chefId);
+        const reviews = reviewMap.get(meal._id) || [];
+        
+        return {
+          ...meal,
+          chef: chef ? {
+            _id: (chef as ChefDoc)._id,
+            name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
+            bio: (chef as ChefDoc).bio,
+            specialties: (chef as ChefDoc).specialties || [],
+            rating: (chef as ChefDoc).rating || 0,
+            profileImage: (chef as ChefDoc).profileImage
+          } : {
+            _id: meal.chefId,
+            name: `Chef ${meal.chefId}`,
+            bio: '',
+            specialties: [],
+            rating: 0,
+            profileImage: null
+          },
+          reviewCount: reviews.length,
+          averageRating: reviews.length > 0 
+            ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
+            : meal.rating || 0
+        };
+      });
 
       let results: Array<MealDoc & { chef: ChefDoc; reviewCount: number; averageRating: number }> = mealsWithChefData;
 
@@ -698,6 +738,29 @@ export const getSearchSuggestions = query({
       return [];
     }
   }
+});
+
+// Get unique cuisines from meals (optimized - doesn't load all meal data)
+export const getCuisines = query({
+  args: {},
+  returns: v.array(v.string()),
+  handler: async (ctx: QueryCtx) => {
+    const meals = await ctx.db.query('meals').collect();
+    const cuisines = new Set<string>();
+    
+    for (const meal of meals) {
+      const mealAny = meal as { cuisine?: string[]; [key: string]: unknown };
+      if (mealAny.cuisine && Array.isArray(mealAny.cuisine)) {
+        mealAny.cuisine.forEach((c: string) => {
+          if (c && typeof c === 'string') {
+            cuisines.add(c);
+          }
+        });
+      }
+    }
+    
+    return Array.from(cuisines).sort();
+  },
 });
 
 // Get user's previous meals

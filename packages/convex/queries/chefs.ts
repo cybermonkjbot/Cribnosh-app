@@ -1,6 +1,6 @@
-import { query } from '../_generated/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
+import { query } from '../_generated/server';
 
 // Chef document validator based on schema
 const chefDocValidator = v.object({
@@ -244,7 +244,13 @@ export const findNearbyChefs = query({
     const { latitude, longitude, maxDistanceKm = 10 } = args;
     const toRad = (deg: number) => deg * Math.PI / 180;
     const earthRadiusKm = 6371;
-    const chefs = await ctx.db.query('chefs').collect();
+    
+    // Filter by status first to reduce dataset size
+    const chefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect();
+    
     const withDistance = chefs
       .filter(chef => {
         // Filter out chefs without location data
@@ -287,8 +293,11 @@ export const getChefsByLocation = query({
     const toRad = (deg: number) => deg * Math.PI / 180;
     const earthRadiusKm = 6371;
     
-    // Get all chefs
-    const allChefs = await ctx.db.query('chefs').collect();
+    // Filter by status first to reduce dataset size
+    const allChefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect();
     
     // Calculate distances and filter by radius
     const chefsWithDistance = allChefs.map(chef => {
@@ -340,8 +349,11 @@ export const searchChefsByQuery = query({
     const toRad = (deg: number) => deg * Math.PI / 180;
     const earthRadiusKm = 6371;
     
-    // Get all chefs
-    let chefs = await ctx.db.query('chefs').collect();
+    // Filter by status first to reduce dataset size
+    let chefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect();
     
     // Filter by cuisine if specified
     if (cuisine) {

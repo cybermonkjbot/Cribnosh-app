@@ -1433,6 +1433,13 @@ export function MainScreen() {
     setIsMealDetailsVisible(true);
   }, []);
 
+  const handleSimilarMealPress = useCallback((mealId: string) => {
+    // Update selected meal with new mealId - MealItemDetails will automatically fetch the data
+    setSelectedMeal({ id: mealId, data: undefined });
+    // Ensure modal is visible (in case it was closed)
+    setIsMealDetailsVisible(true);
+  }, []);
+
   const handleOfferPress = useCallback((offer: any) => {
     // In a real app, this would navigate to offer details
   }, []);
@@ -2127,6 +2134,7 @@ export function MainScreen() {
       >
         {selectedMeal && (
           <MealItemDetails
+            key={selectedMeal.id}
             mealId={selectedMeal.id}
             mealData={selectedMeal.data}
             onBack={() => setIsMealDetailsVisible(false)}
@@ -2135,6 +2143,7 @@ export function MainScreen() {
               setIsMealDetailsVisible(false);
             }}
             onKitchenNamePress={handleKitchenNamePressFromMeal}
+            onSimilarMealPress={handleSimilarMealPress}
           />
         )}
       </Modal>

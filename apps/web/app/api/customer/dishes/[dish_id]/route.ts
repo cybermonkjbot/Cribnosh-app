@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Get detailed information about a specific dish by ID
  *     tags: [Customer]
  *     parameters:
- *       - in: query
+ *       - in: path
  *         name: dish_id
  *         required: true
  *         schema:
@@ -128,10 +128,16 @@ import { NextRequest, NextResponse } from 'next/server';
  *               $ref: '#/components/schemas/Error'
  *     security: []
  */
-async function handleGET(request: NextRequest): Promise<NextResponse> {
+async function handleGET(
+  request: NextRequest,
+  { params }: { params: { dish_id: string } }
+): Promise<NextResponse> {
   try {
-    const { searchParams } = new URL(request.url);
-    const dish_id = searchParams.get('dish_id');
+    // Extract dish_id from URL path parameter
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const dishIdIndex = pathParts.indexOf('dishes') + 1;
+    const dish_id = pathParts[dishIdIndex] || params?.dish_id;
     
     if (!dish_id) {
       return ResponseFactory.validationError('Missing dish_id parameter');
@@ -157,7 +163,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-// Wrap the handler with middleware
+// Wrap the handler with middleware to extract params from URL
 export const GET = withAPIMiddleware(
-  withErrorHandling(handleGET)
+  withErrorHandling(async (request: NextRequest) => {
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const dishIdIndex = pathParts.indexOf('dishes') + 1;
+    const dishId = pathParts[dishIdIndex];
+    return handleGET(request, { params: { dish_id: dishId } });
+  })
 );

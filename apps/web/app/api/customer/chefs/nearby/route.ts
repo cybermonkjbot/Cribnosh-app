@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { withCaching } from '@/lib/api/cache';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 
@@ -165,7 +166,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   const total = nearbyChefs.length;
   const totalPages = Math.ceil(total / limit);
 
-  return ResponseFactory.success({
+  const response = ResponseFactory.success({
     chefs,
     pagination: {
       page,
@@ -174,6 +175,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       totalPages,
     },
   });
+  
+  // Add cache headers - location-based queries change more frequently, cache for 5 minutes
+  // Cache key includes location params so different locations get different cache entries
+  response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+  response.headers.set('CDN-Cache-Control', 'public, s-maxage=300');
+  
+  return response;
 }
 
-export const GET = withAPIMiddleware(withErrorHandling(handleGET));
+// Use caching - the default key generation includes query params, so different locations get different cache entries
+export const GET = withAPIMiddleware(withErrorHandling(withCaching(handleGET, {
+  ttl: 300, // 5 minutes
+})));

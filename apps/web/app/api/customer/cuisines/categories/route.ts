@@ -1,6 +1,7 @@
 import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { withCaching } from '@/lib/api/cache';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
@@ -151,14 +152,20 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       })
       .sort((a, b) => b.kitchen_count - a.kitchen_count); // Sort by kitchen count descending
     
-    return ResponseFactory.success({
+    const response = ResponseFactory.success({
       categories,
       total: categories.length,
     });
+    
+    // Add cache headers - categories don't change frequently, cache for 1 hour
+    response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=3600');
+    
+    return response;
   } catch (error: unknown) {
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch cuisine categories.'));
   }
 }
 
-export const GET = withAPIMiddleware(withErrorHandling(handleGET));
+export const GET = withAPIMiddleware(withErrorHandling(withCaching(handleGET, { ttl: 3600 })));
 
