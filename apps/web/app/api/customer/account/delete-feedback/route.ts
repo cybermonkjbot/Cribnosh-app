@@ -4,10 +4,9 @@ import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import jwt from 'jsonwebtoken';
+import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 const FEEDBACK_OPTIONS = [
   "I'm not using the app.",
@@ -62,39 +61,12 @@ const FEEDBACK_OPTIONS = [
  *       400:
  *         description: Invalid feedback_options format
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can submit deletion feedback',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     // Parse and validate request body
     let body: Record<string, unknown>;
@@ -142,7 +114,6 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id;
 
     // Store feedback in account deletion record
     await convex.mutation(api.mutations.accountDeletions.updateFeedback, {
@@ -155,6 +126,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'Feedback submitted successfully'
     );
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(
+        error.message,
+        'UNAUTHORIZED',
+        401
+      );
+    }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to submit feedback'),
       'INTERNAL_ERROR',

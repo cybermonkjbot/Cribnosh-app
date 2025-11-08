@@ -3,10 +3,8 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
@@ -91,26 +89,11 @@ const MAX_LIMIT = 50;
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClient();
     
@@ -121,7 +104,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     // Get customer's past orders
     const orders = await convex.query(api.queries.orders.listByCustomer, {
-      customer_id: payload.user_id,
+      customer_id: userId,
       status: 'past',
       order_type: 'all',
     });
@@ -208,6 +191,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       limit,
     });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch recent dishes.'));
   }
 }

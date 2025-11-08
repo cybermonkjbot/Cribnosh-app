@@ -5,11 +5,9 @@ import { ResponseFactory } from '@/lib/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendReviewNotification } from '@/lib/services/email-service';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -111,7 +109,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       404:
  *         description: Order not found
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(
   request: NextRequest,
@@ -121,34 +119,7 @@ async function handlePOST(
     const { order_id } = params;
     
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { user_id?: string; roles?: string[] };
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { user_id?: string; roles?: string[] };
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can rate orders',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     if (!order_id) {
       return createSpecErrorResponse(
@@ -203,7 +174,6 @@ async function handlePOST(
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
 
     // Query order and verify ownership
     const order = await convex.query(api.queries.orders.getById, { order_id });
@@ -309,6 +279,13 @@ async function handlePOST(
       'Thank you for your rating!'
     );
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(
+        error.message,
+        'UNAUTHORIZED',
+        401
+      );
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to submit rating';
     return createSpecErrorResponse(
       errorMessage,

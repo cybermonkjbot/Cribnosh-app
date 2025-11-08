@@ -5,16 +5,9 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import jwt from 'jsonwebtoken';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
-interface JWTPayload {
-  user_id?: string | Id<'users'>;
-  roles?: string[];
-  [key: string]: unknown;
-}
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 interface DataSharingPreferencesBody {
   analytics_enabled?: boolean;
@@ -59,42 +52,14 @@ interface DataSharingPreferencesBody {
  *       401:
  *         description: Unauthorized - invalid or missing token
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can access data sharing preferences',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
 
     // Query data sharing preferences from database
     const preferences = await convex.query(api.queries.dataSharingPreferences.getByUserId, {
@@ -103,6 +68,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(preferences);
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch data sharing preferences';
     return createSpecErrorResponse(
       errorMessage,
@@ -170,39 +138,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
  *       401:
  *         description: Unauthorized - invalid or missing token
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can update data sharing preferences',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     // Parse and validate request body
     let body: DataSharingPreferencesBody;
@@ -242,7 +183,6 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
 
     // Update data sharing preferences in database
     try {
@@ -275,6 +215,9 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       'Data sharing preferences updated successfully'
     );
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(error.message, 'UNAUTHORIZED', 401);
+    }
     console.error('Error updating data sharing preferences:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to update data sharing preferences';
     return createSpecErrorResponse(

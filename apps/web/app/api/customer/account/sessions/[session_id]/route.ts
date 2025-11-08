@@ -4,10 +4,9 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import jwt from 'jsonwebtoken';
+import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -46,7 +45,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleDELETE(
   request: NextRequest,
@@ -54,25 +53,9 @@ async function handleDELETE(
 ): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
     const sessionId = params.session_id as Id<'sessions'>;
 
     // Get session to verify ownership
@@ -104,6 +87,9 @@ async function handleDELETE(
       message: 'Session revoked successfully',
     });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     console.error('[REVOKE_SESSION] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to revoke session.'));
   }

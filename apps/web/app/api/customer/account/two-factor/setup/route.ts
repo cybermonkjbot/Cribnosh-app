@@ -4,14 +4,11 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { scryptSync, randomBytes } from 'crypto';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -51,23 +48,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     
     const convex = getConvexClient();
-    const userId = payload.user_id;
     
     // Get user to get email for QR code label
     const user = await convex.query(api.queries.users.getById, { userId });
@@ -118,6 +101,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       qrCode: qrCodeDataUrl, // Return base64 QR code image
     });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to setup 2FA.'));
   }
 }
