@@ -35,10 +35,7 @@ export default function StaffLayout({
   const queryArgs = staffUser && staffUser._id 
     ? { userId: staffUser._id, roles: staffUser.roles }
     : "skip";
-  // Type assertion to avoid deep instantiation issues with Convex type inference
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const queryFn = api.queries.users.getUserNotifications as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const staffNotifications = useQuery(queryFn, queryArgs as any);
   const markNotificationRead = useMutation(api.mutations.users.markNotificationRead);
   const unreadCount = staffNotifications?.filter((n: any) => !n.read).length || 0;
@@ -68,8 +65,6 @@ export default function StaffLayout({
   if (isLoginPage) {
     return <>{children}</>;
   }
-
-  // No client-side session check needed; middleware handles auth
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">

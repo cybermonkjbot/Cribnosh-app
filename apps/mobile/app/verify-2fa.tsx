@@ -115,8 +115,12 @@ export default function Verify2FAScreen() {
           duration: 3000,
         });
         
-        // Navigate to home/app
+        // Navigate to onboarding for new users, otherwise to main app
+        if (result.data.user.isNewUser === true) {
+          router.replace('/onboarding' as any);
+        } else {
           router.replace('/(tabs)' as any);
+        }
       } else {
         throw new Error('Invalid response from server');
       }

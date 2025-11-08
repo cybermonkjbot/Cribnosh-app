@@ -3,12 +3,9 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -72,28 +69,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Authenticate user
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClient();
-    const userId = payload.user_id;
 
     // Get all group orders where user is participant (completed games)
     let deliveredGroupOrders: Array<Record<string, unknown>> = [];
@@ -170,6 +153,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       recentGames,
     });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch Play to Win history.'));
   }
 }

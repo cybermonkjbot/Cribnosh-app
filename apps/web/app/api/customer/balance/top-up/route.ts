@@ -5,12 +5,9 @@ import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 const MIN_TOP_UP_AMOUNT = 100; // £1.00 minimum in pence
 
 /**
@@ -71,39 +68,12 @@ const MIN_TOP_UP_AMOUNT = 100; // £1.00 minimum in pence
  *       500:
  *         description: Internal server error or Stripe configuration error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can top up balance',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId, user } = await getAuthenticatedCustomer(request);
 
     const { amount, payment_method_id } = await request.json();
 
@@ -116,6 +86,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+<<<<<<< Current (Your changes)
     // Fetch user from database to get email
     const convex = getConvexClient();
     const user = await convex.query(api.queries.users.getById, { userId: payload.user_id });
@@ -127,6 +98,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+=======
+>>>>>>> Incoming (Background Agent changes)
     const email = user.email;
     if (!email) {
       return createSpecErrorResponse(
@@ -145,7 +118,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get or create Stripe customer
-    const customer = await getOrCreateCustomer({ userId: payload.user_id, email });
+    const customer = await getOrCreateCustomer({ userId, email });
 
     // If payment method is provided, verify it's attached to the customer
     if (payment_method_id) {
@@ -176,7 +149,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       customer: customer.id,
       metadata: {
         type: 'balance_topup',
-        user_id: payload.user_id,
+        user_id: userId,
         source: 'mobile_app',
       },
       setup_future_usage: 'off_session',
@@ -196,6 +169,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       paymentIntentId: paymentIntent.id,
     });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return createSpecErrorResponse(
+        error.message,
+        'UNAUTHORIZED',
+        401
+      );
+    }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to create top-up payment intent'),
       'INTERNAL_ERROR',

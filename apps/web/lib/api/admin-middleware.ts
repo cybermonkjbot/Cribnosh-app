@@ -1,39 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
-import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
-export function withAdminAuth(handler: (req: NextRequest) => Promise<NextResponse>) {
+/**
+ * Middleware helper for admin API routes
+ * Validates:
+ * - User authentication (via session token from cookies)
+ * - Admin role (must have 'admin' role)
+ * - Session expiry
+ */
+export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<NextResponse>) {
   return async (req: NextRequest): Promise<NextResponse> => {
     try {
-      // Get the authorization header
-      const authHeader = req.headers.get('authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 });
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      
-      // Verify the token and get user info
-      const convex = getConvexClient();
-      const user = await convex.query(api.queries.users.getUserByToken, { token });
-      
-      if (!user) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-      }
-
-      // Check if user has admin role
-      if (!user.roles || !user.roles.includes('admin')) {
-        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-      }
+      // Authenticate user from session token
+      const { user } = await getAuthenticatedAdmin(req);
 
       // Add user info to request context
       const reqWithUser = req as NextRequest & { user: typeof user };
       reqWithUser.user = user;
 
-      return handler(reqWithUser);
+      return handler(reqWithUser, user);
     } catch (error) {
+      if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+        return ResponseFactory.unauthorized(error.message);
+      }
       console.error('Admin auth middleware error:', error);
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
+      return ResponseFactory.internalError('Authentication failed');
     }
   };
 } 

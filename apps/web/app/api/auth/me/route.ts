@@ -1,18 +1,15 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
+import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getUserFromRequest } from '@/lib/auth/session';
 
 // Endpoint: /v1/auth/me
 // Group: auth
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 /**
  * @swagger
@@ -81,43 +78,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
  *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    const sessionToken = request.cookies.get('sessionToken')?.value;
-    let userId: string | undefined;
-    let payload: JWTPayload | undefined;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      try {
-        payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-        userId = payload.user_id;
-      } catch {
-        return ResponseFactory.unauthorized('Invalid or expired token.');
-      }
-    } else if (sessionToken) {
-      // Validate sessionToken (assume it's the user's sessionToken field)
-      const convex = getConvexClient();
-      const user = await convex.query(api.queries.users.getUserBySessionToken, { sessionToken });
-      if (!user) {
-        return ResponseFactory.unauthorized('Invalid or expired session.');
-      }
-      userId = user._id;
-    } else {
-      return ResponseFactory.unauthorized('Missing authentication.');
-    }
-    if (!userId) {
-      return ResponseFactory.unauthorized('Invalid authentication: missing user_id.');
-    }
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getById, { userId: userId as Id<"users"> });
+    // Get user from session token in cookies
+    const user = await getUserFromRequest(request);
+    
     if (!user) {
-      return ResponseFactory.notFound('User not found.');
+      return ResponseFactory.unauthorized('Missing or invalid session token.');
     }
-    const { password, sessionToken: st, sessionExpiry, ...safeUser } = user;
+
+    // Exclude sensitive fields
+    const { password, sessionToken, sessionExpiry, ...safeUser } = user;
     return ResponseFactory.success({ user: safeUser });
   } catch (error: unknown) {
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch user.'));

@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -78,32 +80,8 @@ import { api, getConvexClient } from '@/lib/conxed-client';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Get the session token from cookies
-    const sessionToken = request.cookies.get('convex-auth-token')?.value;
-    
-    if (!sessionToken) {
-      console.log('[ADMIN ME] No session token found');
-      return ResponseFactory.unauthorized('No session token');
-    }
-
-    console.log('[ADMIN ME] Session token found, validating...');
-    
-    // Use Convex to get user by session token
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserBySessionToken, { sessionToken });
-    
-    if (!user) {
-      console.log('[ADMIN ME] No user found for session token');
-      return ResponseFactory.unauthorized('Invalid session token');
-    }
-
-    // Check if user has admin role
-    if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
-      console.log('[ADMIN ME] User is not an admin:', user.roles);
-      return ResponseFactory.forbidden('Not an admin user');
-    }
-
-    console.log('[ADMIN ME] Admin user found:', user.email);
+    // Get authenticated admin user from session token
+    const { user } = await getAuthenticatedAdmin(request);
 
     // Return user data
     return ResponseFactory.success({
@@ -117,7 +95,9 @@ export async function GET(request: NextRequest) {
       }
     }, 'Admin user data retrieved successfully');
   } catch (error: unknown) {
-    console.error('[ADMIN ME] Error:', error);
-    return ResponseFactory.internalError('Failed to retrieve admin user data');
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve admin user data'));
   }
 }

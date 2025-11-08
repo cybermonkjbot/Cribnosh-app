@@ -436,8 +436,12 @@ export const useCribNoshAuth = () => {
           duration: 3000,
         });
 
-        // Navigate to onboarding or main app
-        router.replace("/(tabs)");
+        // Navigate to onboarding for new users, otherwise to main app
+        if (response.user?.isNewUser === true) {
+          router.replace("/onboarding");
+        } else {
+          router.replace("/(tabs)");
+        }
 
         return response.user;
       } catch (error) {

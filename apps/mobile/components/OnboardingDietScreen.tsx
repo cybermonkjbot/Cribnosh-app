@@ -1,3 +1,4 @@
+import { Apple, Flame, Wheat } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,9 +20,9 @@ export const OnboardingDietScreen: React.FC<OnboardingDietScreenProps> = ({
   const [selectedPreference, setSelectedPreference] = useState('Vegan');
 
   const preferences = [
-    { id: 'Vegan', label: 'Vegan', icon: '🍎', color: '#EF4444' },
-    { id: 'GlutenFree', label: 'Gluten Free', icon: '🌾', color: '#6B7280' },
-    { id: 'Spicy', label: 'Spicy', icon: '🔥', color: '#6B7280' },
+    { id: 'Vegan', label: 'Vegan', icon: Apple, color: '#EF4444' },
+    { id: 'GlutenFree', label: 'Gluten Free', icon: Wheat, color: '#6B7280' },
+    { id: 'Spicy', label: 'Spicy', icon: Flame, color: '#6B7280' },
   ];
 
   const handlePreferenceSelect = (preferenceId: string) => {
@@ -78,21 +79,33 @@ export const OnboardingDietScreen: React.FC<OnboardingDietScreenProps> = ({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Which of these do you love more ?</Text>
               <View style={styles.preferencesContainer}>
-                {preferences.map((preference) => (
-                  <TouchableOpacity
-                    key={preference.id}
-                    style={[
-                      styles.preferenceButton,
-                      {
-                        backgroundColor: selectedPreference === preference.id ? preference.color : '#E5E7EB',
-                      },
-                    ]}
-                    onPress={() => handlePreferenceSelect(preference.id)}
-                  >
-                    <Text style={styles.preferenceIcon}>{preference.icon}</Text>
-                    <Text style={styles.preferenceText}>{preference.label}</Text>
-                  </TouchableOpacity>
-                ))}
+                {preferences.map((preference) => {
+                  const IconComponent = preference.icon;
+                  const isSelected = selectedPreference === preference.id;
+                  return (
+                    <TouchableOpacity
+                      key={preference.id}
+                      style={[
+                        styles.preferenceButton,
+                        {
+                          backgroundColor: isSelected ? preference.color : '#E5E7EB',
+                        },
+                      ]}
+                      onPress={() => handlePreferenceSelect(preference.id)}
+                    >
+                      <IconComponent 
+                        color={isSelected ? '#FFFFFF' : '#6B7280'} 
+                        size={20} 
+                      />
+                      <Text style={[
+                        styles.preferenceText,
+                        { color: isSelected ? '#FFFFFF' : '#6B7280' }
+                      ]}>
+                        {preference.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
             
@@ -228,16 +241,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  preferenceIcon: {
-    fontSize: 20,
-  },
   preferenceText: {
     fontFamily: 'Inter',
     fontStyle: 'normal',
     fontWeight: '600',
     fontSize: 14,
     lineHeight: 18,
-    color: '#FFFFFF',
   },
   continueButton: {
     backgroundColor: '#064E3B',

@@ -7,7 +7,7 @@ import { markSignInAsVisible, markSignInAsHidden } from '@/utils/signInNavigatio
 
 export default function SignInModal() {
   const router = useRouter();
-  const { isAuthenticated, login } = useAuthContext();
+  const { isAuthenticated, login, user } = useAuthContext();
   const { handleAppleSignIn: appleSignInApi } = useAuth();
   const params = useLocalSearchParams<{ 
     returnPath?: string; 
@@ -34,7 +34,10 @@ export default function SignInModal() {
       // Mark as hidden before navigating away
       markSignInAsHidden();
       
-      // If there's a return path, navigate there with params
+      // Check if user needs onboarding
+      const needsOnboarding = user?.isNewUser === true;
+      
+      // If there's a return path, navigate there with params (skip onboarding)
       if (params.returnPath) {
         try {
           const returnParams = params.returnParams 
@@ -50,11 +53,14 @@ export default function SignInModal() {
           // Fallback to just the return path
           router.replace(params.returnPath as any);
         }
+      } else if (needsOnboarding) {
+        // Navigate to onboarding for new users
+        router.replace('/onboarding');
       } else {
         router.replace('/(tabs)');
       }
     }
-  }, [isAuthenticated, router, params.returnPath, params.returnParams]);
+  }, [isAuthenticated, user, router, params.returnPath, params.returnParams]);
 
   const handleClose = () => {
     // If notDismissable is true, don't allow closing

@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -18,16 +18,15 @@ import { ThemedText } from '../../components/ThemedText';
 import { CalorieCompareCard, CuisineScoreCard, MealsLoggedCard } from '../../components/ui';
 import { Avatar } from '../../components/ui/Avatar';
 import { CaloriesNoshPointsCards } from '../../components/ui/CaloriesNoshPointsCards';
-import { EmptyState } from '../../components/ui/EmptyState';
 import { KPICards } from '../../components/ui/KPICards';
 import { ProfileScreenBackground } from '../../components/ui/ProfileScreenBackground';
-import { QueryStateWrapper } from '../../components/ui/QueryStateWrapper';
 import {
   BraggingCardsSkeleton,
   CaloriesNoshPointsSkeleton,
   ForkPrintScoreSkeleton,
   KPICardsSkeleton,
 } from '../../components/ui/ProfileScreenSkeletons';
+import { QueryStateWrapper } from '../../components/ui/QueryStateWrapper';
 import { useAuthContext } from '../../contexts/AuthContext';
 import {
   useGetCaloriesProgressQuery,
@@ -37,8 +36,8 @@ import {
   useGetNoshPointsQuery,
   useGetWeeklySummaryQuery,
 } from '../../store/customerApi';
-import { navigateToSignIn } from '../../utils/signInNavigationGuard';
 import { getAbsoluteImageUrl } from '../../utils/imageUrl';
+import { navigateToSignIn } from '../../utils/signInNavigationGuard';
 
 // Constants moved outside component to prevent recreation
 const SHEET_SNAP_POINT = 200; // Distance to pull up to open sheet
@@ -379,21 +378,23 @@ export default function ProfileScreen() {
                   style={styles.headerLogo}
                   contentFit="contain"
                 />
-                <TouchableOpacity onPress={() => router.push('/account-details')}>
-                  {(() => {
-                    console.log('Profile Screen - Rendering Avatar with:', {
-                      profilePictureUrl,
-                      hasUrl: !!profilePictureUrl,
-                      source: profilePictureUrl ? { uri: profilePictureUrl } : undefined,
-                    });
-                    return (
-                      <Avatar 
-                        size="md"
-                        source={profilePictureUrl ? { uri: profilePictureUrl } : undefined}
-                      />
-                    );
-                  })()}
-                </TouchableOpacity>
+                {isAuthenticated && (
+                  <TouchableOpacity onPress={() => router.push('/account-details')}>
+                    {(() => {
+                      console.log('Profile Screen - Rendering Avatar with:', {
+                        profilePictureUrl,
+                        hasUrl: !!profilePictureUrl,
+                        source: profilePictureUrl ? { uri: profilePictureUrl } : undefined,
+                      });
+                      return (
+                        <Avatar 
+                          size="md"
+                          source={profilePictureUrl ? { uri: profilePictureUrl } : undefined}
+                        />
+                      );
+                    })()}
+                  </TouchableOpacity>
+                )}
               </View>
             </Animated.View>
 
