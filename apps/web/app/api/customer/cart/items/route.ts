@@ -2,13 +2,10 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -109,24 +106,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can add cart items.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     const { dish_id, quantity } = await request.json();
     if (!dish_id || !quantity) {
       return ResponseFactory.validationError('Missing dish_id or quantity.');
@@ -134,7 +118,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
     // Using orders mutation to add item to cart
     const item = await convex.mutation(api.mutations.orders.addToCart, { 
-      userId: payload.user_id, 
+      userId, 
       item: {
         id: dish_id,
         quantity,
@@ -144,6 +128,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
     return ResponseFactory.success({ item });
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to add cart item.'));
   }
 }

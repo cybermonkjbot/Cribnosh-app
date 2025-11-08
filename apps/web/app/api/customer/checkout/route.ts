@@ -4,13 +4,10 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { Id } from '@/convex/_generated/dataModel';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -80,28 +77,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can checkout.');
-    }
+    const { userId, user } = await getAuthenticatedCustomer(request);
     const convex = getConvexClient();
     
     // Get user's cart
-    const cart = await convex.query(api.queries.orders.getUserCart, { userId: payload.user_id });
+    const cart = await convex.query(api.queries.orders.getUserCart, { userId });
     if (!cart || cart.items.length === 0) {
       return ResponseFactory.validationError('Cart is empty.');
     }
@@ -115,25 +99,25 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Check if user is a family member
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
-      userId: payload.user_id as Id<'users'>,
+      userId: userId as Id<'users'>,
     });
 
-    let paymentUserId = payload.user_id;
+    let paymentUserId = userId;
     let isFamilyMember = false;
     let familyProfileId: Id<'familyProfiles'> | null = null;
     let memberUserId: string | null = null;
     let budgetCheck: { allowed: boolean; reason?: string; remaining?: number } | null = null;
 
-    if (familyProfile && familyProfile.member_user_ids.includes(payload.user_id as Id<'users'>)) {
+    if (familyProfile && familyProfile.member_user_ids.includes(userId as Id<'users'>)) {
       // User is a family member - check if they can use family payment
       isFamilyMember = true;
       familyProfileId = familyProfile._id;
-      memberUserId = payload.user_id;
+      memberUserId = userId;
 
       // Check budget limits
       budgetCheck = await convex.query(api.queries.familyProfiles.checkBudgetAllowance, {
         family_profile_id: familyProfile._id,
-        member_user_id: payload.user_id as Id<'users'>,
+        member_user_id: userId as Id<'users'>,
         order_amount: total,
         currency: 'gbp',
       });
@@ -161,7 +145,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         currency: 'gbp', // Using GBP as per CribNosh UK focus
         metadata: {
           userId: paymentUserId,
-          orderUserId: payload.user_id, // Original user who placed the order
+          orderUserId: userId, // Original user who placed the order
           orderType: isFamilyMember ? 'family_member_checkout' : 'customer_checkout',
           cartId: (cart as { _id?: string })._id || 'unknown',
           ...(isFamilyMember && familyProfileId
@@ -177,12 +161,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         // Add customer if they have a Stripe customer ID (use parent's if family member)
         customer: await getOrCreateCustomer({ 
           userId: paymentUserId, 
-          email: payload.email || 'customer@cribnosh.com' 
+          email: user.email || 'customer@cribnosh.com' 
         }).then(customer => customer.id),
       });
       
       console.log(
-        `Created payment intent ${paymentIntent.id} for user ${payload.user_id}${isFamilyMember ? ' (family member, using parent payment)' : ''}, amount: ${total} GBP`
+        `Created payment intent ${paymentIntent.id} for user ${userId}${isFamilyMember ? ' (family member, using parent payment)' : ''}, amount: ${total} GBP`
       );
       
       return ResponseFactory.success({ 
@@ -209,6 +193,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('Payment processing failed. Please try again.', 'CUSTOM_ERROR', 500);
     }
   } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create payment intent.'));
   }
 }
