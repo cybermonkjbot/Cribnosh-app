@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -136,7 +136,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing order_id parameter.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details first to verify permissions
     const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
@@ -175,6 +175,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
   } catch (error: unknown) {
     logger.error('Order history error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order history.'));
   }
 }

@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendAccountDeletionEmail } from '@/lib/services/email-service';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -56,7 +57,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     // Authentication
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Check if user exists
     const user = await convex.query(api.queries.users.getById, { userId });
@@ -112,12 +113,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       'Account deletion request has been submitted. You will receive an email confirmation shortly.'
     );
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return createSpecErrorResponse(
-        error.message,
-        'UNAUTHORIZED',
-        401
-      );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to process account deletion request'),

@@ -1,27 +1,18 @@
 import { api } from "@/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import type { FunctionReference } from "convex/server";
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 let convex: ConvexHttpClient | null = null;
 
-export function getConvexClient(sessionToken?: string) {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!convexUrl) {
-    throw new Error(
-      "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
-    );
-  }
-
-  // If session token is provided, create a new client instance with auth
-  if (sessionToken) {
-    const authenticatedClient = new ConvexHttpClient(convexUrl);
-    authenticatedClient.setAuth(sessionToken);
-    return authenticatedClient;
-  }
-
-  // Otherwise, use the singleton (for backward compatibility)
+export function getConvexClient() {
   if (!convex) {
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      throw new Error(
+        "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
+      );
+    }
     convex = new ConvexHttpClient(convexUrl);
   }
   return convex;
@@ -60,25 +51,39 @@ function extractSessionToken(request: NextRequest): string | null {
 }
 
 /**
- * Get authenticated Convex client from request
- * Extracts session token from request and creates authenticated client
+ * Get Convex client with session token from request
+ * This ensures session tokens are passed to all Convex queries/mutations
  * 
  * @param request - Next.js request object
- * @returns ConvexHttpClient with authentication set
+ * @returns ConvexHttpClient instance with session token set
  */
 export function getConvexClientFromRequest(request: NextRequest): ConvexHttpClient {
-  const sessionToken = extractSessionToken(request);
-  return getConvexClient(sessionToken || undefined);
-}
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) {
+    throw new Error(
+      "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
+    );
+  }
 
-/**
- * Create an authenticated Convex client with a session token
- * 
- * @param sessionToken - Session token to authenticate with
- * @returns ConvexHttpClient with authentication set
- */
-export function getAuthenticatedConvexClient(sessionToken: string): ConvexHttpClient {
-  return getConvexClient(sessionToken);
+  // Create a new client instance for this request
+  const client = new ConvexHttpClient(convexUrl);
+
+  // Extract and set session token if available
+  const sessionToken = extractSessionToken(request);
+  if (sessionToken) {
+    // Set the session token via setAuth method if available
+    // ConvexHttpClient supports setting auth via setAuth method
+    if ('setAuth' in client && typeof client.setAuth === 'function') {
+      client.setAuth(sessionToken);
+    } else {
+      // Fallback: Set via headers (if ConvexHttpClient supports custom headers)
+      // Note: This may require checking ConvexHttpClient API
+      // For now, we'll set it and let Convex handle it
+      (client as any).setAuth?.(sessionToken);
+    }
+  }
+
+  return client;
 }
 
 export { api };

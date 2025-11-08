@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MonitoringService } from '../monitoring/monitoring.service';
 import { AuthenticationError, AuthorizationError } from '../errors/standard-errors';
-import { ResponseFactory } from './response-factory';
+import { errorHandler } from '../errors/error-handler';
 
 const monitoring = MonitoringService.getInstance();
 
@@ -237,6 +237,42 @@ export class APIErrorHandler {
 export const apiErrorHandler = APIErrorHandler.getInstance();
 
 /**
+ * Check if error is an AuthenticationError
+ */
+export function isAuthenticationError(error: unknown): boolean {
+  return error instanceof AuthenticationError || 
+         (error instanceof Error && (
+           error.message.includes('unauthorized') || 
+           error.message.includes('Unauthorized') ||
+           error.message.includes('Invalid or missing token') ||
+           error.message.includes('Invalid or expired token') ||
+           error.message.includes('Missing or invalid authentication token')
+         ));
+}
+
+/**
+ * Check if error is an AuthorizationError
+ */
+export function isAuthorizationError(error: unknown): boolean {
+  return error instanceof AuthorizationError || 
+         (error instanceof Error && (
+           error.message.includes('forbidden') || 
+           error.message.includes('Forbidden') ||
+           error.message.includes('insufficient permissions') ||
+           error.message.includes('Insufficient permissions')
+         ));
+}
+
+/**
+ * Handle Convex errors and return appropriate NextResponse
+ * This is a wrapper around the error handler that works with NextRequest
+ */
+export function handleConvexError(error: unknown, request: NextRequest): NextResponse {
+  // Use the centralized error handler
+  return errorHandler.handleError(error, request);
+}
+
+/**
  * Higher-order function to wrap API handlers with error handling
  */
 export function withErrorHandling<T extends any[]>(
@@ -249,91 +285,4 @@ export function withErrorHandling<T extends any[]>(
       return apiErrorHandler.handleError(error, request);
     }
   };
-}
-
-/**
- * Check if an error is authentication-related
- * @param error - Error to check
- * @returns true if error is authentication-related
- */
-export function isAuthenticationError(error: unknown): boolean {
-  if (error instanceof AuthenticationError) {
-    return true;
-  }
-
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    return (
-      message.includes('not authenticated') ||
-      message.includes('missing or invalid token') ||
-      message.includes('invalid or expired token') ||
-      message.includes('session expired') ||
-      message.includes('authentication required') ||
-      message.includes('access denied') && message.includes('not authenticated')
-    );
-  }
-
-  return false;
-}
-
-/**
- * Check if an error is authorization-related
- * @param error - Error to check
- * @returns true if error is authorization-related
- */
-export function isAuthorizationError(error: unknown): boolean {
-  if (error instanceof AuthorizationError) {
-    return true;
-  }
-
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    return (
-      message.includes('access denied') ||
-      message.includes('forbidden') ||
-      message.includes('not authorized') ||
-      message.includes('insufficient permissions') ||
-      message.includes('unauthorized access') ||
-      message.includes('only') && (message.includes('can access') || message.includes('can modify'))
-    );
-  }
-
-  return false;
-}
-
-/**
- * Handle Convex errors and convert them to appropriate HTTP responses
- * @param error - Error from Convex
- * @param request - Next.js request object
- * @returns NextResponse with appropriate status code
- */
-export function handleConvexError(error: unknown, request: NextRequest): NextResponse {
-  // Check for authentication errors
-  if (isAuthenticationError(error)) {
-    return ResponseFactory.unauthorized(
-      error instanceof Error ? error.message : 'Authentication required'
-    );
-  }
-
-  // Check for authorization errors
-  if (isAuthorizationError(error)) {
-    return ResponseFactory.forbidden(
-      error instanceof Error ? error.message : 'Access denied'
-    );
-  }
-
-  // Handle other Convex errors
-  if (error instanceof Error) {
-    // Check for common Convex error patterns
-    if (error.message.includes('not found') || error.message.includes('Not found')) {
-      return ResponseFactory.notFound(error.message);
-    }
-
-    if (error.message.includes('validation') || error.message.includes('invalid')) {
-      return ResponseFactory.validationError(error.message);
-    }
-  }
-
-  // Fall back to generic error handling
-  return apiErrorHandler.handleError(error, request);
 } 

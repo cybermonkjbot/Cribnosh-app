@@ -1,12 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 interface SendMessageRequest {
   message: string;
@@ -151,7 +152,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required fields: message, messageType');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details first to verify permissions
     const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
@@ -204,8 +205,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
   } catch (error: unknown) {
     logger.error('Send message error:', error);
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message.') 
-    );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message.'));
   }
 }
 
@@ -223,7 +226,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing order_id parameter.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get order details first to verify permissions
     const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
@@ -261,8 +264,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
   } catch (error: unknown) {
     logger.error('Get order messages error:', error);
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order messages.') 
-    );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order messages.'));
   }
 }
 

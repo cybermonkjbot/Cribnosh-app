@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -69,7 +70,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Authentication
     const { userId } = await getAuthenticatedCustomer(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get sessions from the sessions table
     const sessions = (await convex.query(api.queries.sessions.getSessionsByUserId, {
@@ -128,8 +129,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       sessions: formattedSessions,
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     logger.error('[GET_SESSIONS] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch sessions.'));

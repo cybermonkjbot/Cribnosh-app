@@ -1,11 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Endpoint: /v1/customer/orders/{order_id}/status
 // Group: customer
@@ -121,7 +122,7 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
   if (!order_id) {
     return ResponseFactory.validationError('Missing order_id');
   }
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   const order = await convex.query(api.queries.orders.getById, { order_id });
   if (!order) {
     return ResponseFactory.notFound('Order not found');
@@ -244,7 +245,7 @@ async function handlePATCH(
     if (!status) {
       return ResponseFactory.validationError('Missing status');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     // Fetch order and check customer_id
     const order = await convex.query(api.queries.orders.getById, { order_id });
     if (!order || order.customer_id !== userId) {
@@ -253,8 +254,8 @@ async function handlePATCH(
     const updated = await convex.mutation(api.mutations.orders.updateStatus, { order_id, status });
     return ResponseFactory.success({ order: updated });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update order status.'));
   }

@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { scryptSync, timingSafeEqual } from 'crypto';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -40,7 +41,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     const body = await request.json().catch(() => ({}));
     const { password } = body;
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get user to verify password if provided
     const user = await convex.query(api.queries.users.getById, { userId });
@@ -68,8 +69,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       message: '2FA disabled successfully',
     });
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')) {
-      return ResponseFactory.unauthorized(error.message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to disable 2FA.'));
   }
