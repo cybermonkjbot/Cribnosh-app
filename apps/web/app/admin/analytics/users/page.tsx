@@ -87,7 +87,7 @@ export default function UserAnalyticsPage() {
         <Button
           variant={viewMode === 'overview' ? 'default' : 'outline'}
           onClick={() => setViewMode('overview')}
-          className={viewMode === 'overview' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'overview' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <BarChart2 className="w-4 h-4 mr-2" />
           Overview
@@ -95,7 +95,7 @@ export default function UserAnalyticsPage() {
         <Button
           variant={viewMode === 'growth' ? 'default' : 'outline'}
           onClick={() => setViewMode('growth')}
-          className={viewMode === 'growth' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'growth' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <TrendingUp className="w-4 h-4 mr-2" />
           Growth
@@ -103,7 +103,7 @@ export default function UserAnalyticsPage() {
         <Button
           variant={viewMode === 'segments' ? 'default' : 'outline'}
           onClick={() => setViewMode('segments')}
-          className={viewMode === 'segments' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'segments' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <PieChart className="w-4 h-4 mr-2" />
           Segments
@@ -111,7 +111,7 @@ export default function UserAnalyticsPage() {
         <Button
           variant={viewMode === 'locations' ? 'default' : 'outline'}
           onClick={() => setViewMode('locations')}
-          className={viewMode === 'locations' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'locations' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <MapPin className="w-4 h-4 mr-2" />
           Locations

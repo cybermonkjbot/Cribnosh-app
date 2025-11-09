@@ -1,5 +1,5 @@
 ﻿"use client";
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+// Auth is handled by layout, no need for AuthWrapper
 import { GlassCard } from '@/components/ui/glass-card';
 import { useState } from 'react';
 
@@ -76,7 +76,7 @@ export default function AdminStaffWorkIdsPage() {
 
   
   return (
-    <AuthWrapper role="admin">
+    <div>
           <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <GlassCard className="p-8">
@@ -206,6 +206,6 @@ export default function AdminStaffWorkIdsPage() {
         </GlassCard>
       </div>
     </div>
-    </AuthWrapper>
+    </div>
   );
 } 

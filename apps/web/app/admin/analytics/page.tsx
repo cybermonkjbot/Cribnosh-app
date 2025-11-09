@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useState } from 'react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AnalyticsPageSkeleton } from '@/components/admin/skeletons';
 import { useQuery } from '@tanstack/react-query';
 import { useConvex } from 'convex/react';
@@ -40,6 +40,8 @@ interface AnalyticsData {
 }
 
 export default function AdminAnalyticsPage() {
+  // Auth is handled by layout, no client-side checks needed
+  const { user } = useAdminUser();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const convex = useConvex();
 
@@ -114,18 +116,15 @@ export default function AdminAnalyticsPage() {
 
   if (isLoading && !analyticsData) {
     return (
-      <AuthWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <AnalyticsPageSkeleton />
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <AnalyticsPageSkeleton />
         </div>
-      </AuthWrapper>
+      </div>
     );
   }
 
   return (
-    <AuthWrapper>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
@@ -337,7 +336,6 @@ export default function AdminAnalyticsPage() {
           </div>
         </div>
     </div>
-  </AuthWrapper>
   );
 }
 

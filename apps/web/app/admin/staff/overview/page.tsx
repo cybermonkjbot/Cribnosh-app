@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+// Auth is handled by layout, no need for AuthWrapper
 import { AdminPageSkeleton, StaffStatsSkeleton, StaffActivitySkeleton } from '@/components/admin/skeletons';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from '@/convex/_generated/api';
@@ -26,9 +26,9 @@ export default function AdminStaffOverviewPage() {
 
   if (!stats || !dashboard) {
     return (
-      <AuthWrapper role="admin">
+      <div>
         <AdminPageSkeleton title="Loading Staff Overview" description="Preparing your staff overview..." />
-      </AuthWrapper>
+      </div>
     );
   }
 
@@ -39,7 +39,7 @@ export default function AdminStaffOverviewPage() {
   }
 
   return (
-    <AuthWrapper role="admin">
+    <div>
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
         <div className="max-w-5xl mx-auto px-4 py-8">
           <GlassCard className="p-8 mb-8">
@@ -178,6 +178,6 @@ export default function AdminStaffOverviewPage() {
           </GlassCard>
         </div>
       </div>
-    </AuthWrapper>
+    </div>
   );
 } 

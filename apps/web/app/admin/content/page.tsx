@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import React, { useState } from 'react';
 
 
@@ -48,7 +48,8 @@ interface ContentFormData {
 }
 
 export default function AdminContentPage() {
-  // Auth is handled by middleware, no client-side checks needed
+  // Auth is handled by layout, no client-side checks needed
+  const { user } = useAdminUser();
   const { toast } = useToast();
 
   const [selectedType, setSelectedType] = useState<ContentItem['type'] | 'all'>('all');
@@ -246,7 +247,7 @@ export default function AdminContentPage() {
   };
 
   return (
-    <AuthWrapper role="admin">
+    <div>
           <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-asgard text-gray-900">
@@ -596,7 +597,7 @@ export default function AdminContentPage() {
         type="error"
       />
     </div>
-    </AuthWrapper>
+    </div>
   );
 }
 

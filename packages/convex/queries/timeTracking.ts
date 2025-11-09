@@ -78,19 +78,12 @@ export const getDepartments = query({
       }
     });
     
-    // Default departments if none exist
-    const defaultDepartments = [
-      "Engineering",
-      "Design", 
-      "Marketing",
-      "Sales",
-      "Support"
-    ];
+    // Return empty array if no departments exist - no fallback demo data
+    if (departmentNames.size === 0) {
+      return [];
+    }
     
-    // Use default departments if no users have departments set
-    const departmentList = departmentNames.size > 0 
-      ? Array.from(departmentNames)
-      : defaultDepartments;
+    const departmentList = Array.from(departmentNames);
     
     // Calculate stats for each department
     const departmentsWithStats = await Promise.all(
@@ -100,9 +93,19 @@ export const getDepartments = query({
           .filter((q) => q.eq(q.field("department"), deptName))
           .collect();
         
-        // Calculate total hours for this department - timelogs don't have department field directly
-        // This would need to be calculated from workSessions or user department assignments
-        const totalHours = 0; // TODO: Calculate from actual time tracking data
+        // Calculate total hours for this department from actual time tracking data
+        // Get work sessions for users in this department
+        const userIds = new Set(users.map(u => u._id));
+        const allWorkSessions = await ctx.db.query("workSessions").collect();
+        
+        // Filter work sessions to only those for users in this department
+        const workSessions = allWorkSessions.filter(session => 
+          userIds.has(session.staffId)
+        );
+        
+        const totalHours = workSessions.reduce((sum, session) => {
+          return sum + (session.duration || 0) / (1000 * 60 * 60); // Convert milliseconds to hours
+        }, 0);
         
         return {
           id: deptName.toLowerCase().replace(/\s+/g, "-"),

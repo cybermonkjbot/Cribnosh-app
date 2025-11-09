@@ -1,32 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { Download, BarChart as BarChartIcon, List, FileText, DollarSign, Users, Clock, CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { DateRange } from 'react-day-picker';
+import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Bar, BarChart as RechartsBarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
+import { useQuery } from 'convex/react';
+import { format } from 'date-fns';
+import { BarChart as BarChartIcon, CalendarIcon, Clock, DollarSign, Download, FileText, List, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { DateRange } from 'react-day-picker';
+import { Bar, CartesianGrid, BarChart as RechartsBarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
-import { PayrollReportsSummarySkeleton, PayrollReportsChartSkeleton, PayrollReportsTableSkeleton } from '@/components/admin/skeletons';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { DataTable } from '@/components/admin/payroll/payroll-data-table';
 import { columns } from '@/components/admin/payroll/reports/columns';
+import { PayrollReportsChartSkeleton, PayrollReportsSummarySkeleton, PayrollReportsTableSkeleton } from '@/components/admin/skeletons';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function PayrollReportsPage() {
   const { toast } = useToast();
@@ -110,20 +108,21 @@ export default function PayrollReportsPage() {
   const isLoadingSummary = summary === undefined;
   const isLoadingDetails = details === undefined;
   
-  // Load departments
+  // Fetch departments from database
+  const departmentsQuery = useQuery(api.queries.timeTracking.getDepartments);
+  
   useEffect(() => {
-    // In a real app, you would fetch this from your API
-    const depts = [
-      { value: 'all', label: 'All Departments' },
-      { value: 'sales', label: 'Sales' },
-      { value: 'marketing', label: 'Marketing' },
-      { value: 'engineering', label: 'Engineering' },
-      { value: 'hr', label: 'Human Resources' },
-      { value: 'operations', label: 'Operations' },
-    ];
-    
-    setDepartments(depts);
-  }, []);
+    if (departmentsQuery) {
+          const depts = [
+            { value: 'all', label: 'All Departments' },
+            ...departmentsQuery.map((dept: { id: string; name: string }) => ({
+          value: dept.id,
+          label: dept.name
+        }))
+      ];
+      setDepartments(depts);
+    }
+  }, [departmentsQuery]);
   
   // Format data for charts with proper typing
   interface DepartmentData {
@@ -161,26 +160,48 @@ export default function PayrollReportsPage() {
     : [];
   
   // Handle export
-  const handleExport = (format: 'csv' | 'pdf') => {
-    // In a real app, this would call your export API
-    
-    // For demo purposes, we'll just show a toast
-    toast({
-      title: "Export Started",
-      description: `Exporting ${format.toUpperCase()} report for ${dateRange?.from?.toLocaleDateString()} to ${dateRange?.to?.toLocaleDateString()}`,
-      variant: "default"
-    });
-    
-    // In a real app, you would do something like:
-    // const exportData = await fetch(`/api/export-payroll?format=${format}&start=${dateRange?.from?.toISOString()}&end=${dateRange?.to?.toISOString()}`);
-    // const blob = await exportData.blob();
-    // const url = window.URL.createObjectURL(blob);
-    // const a = document.createElement('a');
-    // a.href = url;
-    // a.download = `payroll-report-${new Date().toISOString().split('T')[0]}.${format}`;
-    // document.body.appendChild(a);
-    // a.click();
-    // document.body.removeChild(a);
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    if (!dateRange?.from || !dateRange?.to) {
+      toast({
+        title: "Error",
+        description: "Please select a date range",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/payroll/export?format=${format}&start=${dateRange.from.toISOString()}&end=${dateRange.to.toISOString()}${department !== 'all' ? `&department=${department}` : ''}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payroll-report-${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: `Payroll report exported as ${format.toUpperCase()}`,
+        variant: "success"
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export payroll report",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

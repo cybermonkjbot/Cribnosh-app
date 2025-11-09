@@ -1,8 +1,8 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { ChefFilterBar } from '@/components/admin/chef-filter-bar';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,6 +71,7 @@ interface Chef {
 }
 
 export default function ChefManagementPage() {
+  const { user, sessionToken, loading } = useAdminUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -81,9 +82,11 @@ export default function ChefManagementPage() {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showPerformanceModal, setShowPerformanceModal] = useState(false);
 
-  // Fetch data
-  const chefs = useQuery(api.queries.admin.getChefsWithPerformance, {}) as Chef[] | undefined;
-  const chefStats = useQuery(api.queries.admin.getChefStats);
+  // Fetch data - authentication is handled by layout, so user is guaranteed to be authenticated here
+  // These queries don't accept sessionToken, so we just pass an empty object when user is authenticated
+  const queryArgs = user ? {} : "skip";
+  const chefs = useQuery(api.queries.admin.getChefsWithPerformance, queryArgs) as Chef[] | undefined;
+  const chefStats = useQuery(api.queries.admin.getChefStats, queryArgs);
 
   // Mutations
   const updateChefStatus = useMutation(api.mutations.chefs.updateChef);
@@ -191,8 +194,7 @@ export default function ChefManagementPage() {
   // Loading state
   if (chefs === undefined) {
     return (
-      <AuthWrapper role="admin">
-        <div className="space-y-6">
+      <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold font-asgard text-gray-900">Chef Management</h1>
@@ -218,7 +220,6 @@ export default function ChefManagementPage() {
             ))}
           </div>
         </div>
-      </AuthWrapper>
     );
   }
 
@@ -226,8 +227,7 @@ export default function ChefManagementPage() {
   const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || verificationFilter !== "all";
 
   return (
-    <AuthWrapper role="admin">
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -244,7 +244,7 @@ export default function ChefManagementPage() {
             </Button>
             <Button
               onClick={() => setShowVerificationModal(true)}
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Verify Chef
@@ -621,7 +621,7 @@ export default function ChefManagementPage() {
                   <div className="flex gap-2">
                     <Button
                       onClick={() => {/* Open bulk message modal */}}
-                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Send Bulk Message
@@ -646,7 +646,6 @@ export default function ChefManagementPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </AuthWrapper>
+    </div>
   );
 }

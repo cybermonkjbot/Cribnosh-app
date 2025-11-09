@@ -556,7 +556,7 @@ export default function RecipeManagementPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreateRecipe} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleCreateRecipe} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Create Recipe
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>

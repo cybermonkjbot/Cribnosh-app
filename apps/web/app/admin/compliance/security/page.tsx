@@ -263,7 +263,7 @@ export default function SecurityCompliancePage() {
           </Button>
           <Button
             onClick={() => {/* Open security settings */}}
-            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
           >
             <Settings className="w-4 h-4 mr-2" />
             Settings

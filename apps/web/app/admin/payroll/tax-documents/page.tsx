@@ -468,7 +468,7 @@ export default function TaxDocumentsPage() {
             <Button 
               onClick={handleGenerateDocument} 
               disabled={isGenerating}
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               {isGenerating ? 'Generating...' : 'Generate Document'}
             </Button>

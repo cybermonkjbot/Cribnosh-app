@@ -4,7 +4,6 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { useSessionToken } from '@/hooks/useSessionToken';
 import { Settings, Loader2, User, UploadCloud } from 'lucide-react';
 import { Id } from '@/convex/_generated/dataModel';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AccountSettingsSkeleton } from '@/components/admin/skeletons';
 
@@ -181,7 +180,7 @@ export default function AdminAccountSettings() {
 
 
   return (
-    <AuthWrapper role="admin">
+    <div>
           <div className="min-h-screen flex items-center justify-center bg-primary-50 p-4">
       <GlassCard className="max-w-lg w-full p-8 flex flex-col items-center gap-6 border-primary-200">
         <div className="flex items-center gap-3 mb-2">
@@ -337,6 +336,6 @@ export default function AdminAccountSettings() {
         )}
       </GlassCard>
     </div>
-    </AuthWrapper>
+    </div>
   );
 } 

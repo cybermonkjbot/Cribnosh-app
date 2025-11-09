@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import React, { useState } from 'react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -295,7 +295,7 @@ export default function AdminCareers() {
   };
 
   return (
-    <AuthWrapper role="admin">
+    <div>
           <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold font-asgard text-gray-900">
@@ -827,6 +827,6 @@ export default function AdminCareers() {
         )}
       </AnimatePresence>
     </div>
-    </AuthWrapper>
+    </div>
   );
 } 

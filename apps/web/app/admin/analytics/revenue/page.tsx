@@ -89,7 +89,7 @@ export default function RevenueAnalyticsPage() {
         <Button
           variant={viewMode === 'overview' ? 'default' : 'outline'}
           onClick={() => setViewMode('overview')}
-          className={viewMode === 'overview' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'overview' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <BarChart2 className="w-4 h-4 mr-2" />
           Overview
@@ -97,7 +97,7 @@ export default function RevenueAnalyticsPage() {
         <Button
           variant={viewMode === 'trends' ? 'default' : 'outline'}
           onClick={() => setViewMode('trends')}
-          className={viewMode === 'trends' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'trends' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <TrendingUp className="w-4 h-4 mr-2" />
           Trends
@@ -105,7 +105,7 @@ export default function RevenueAnalyticsPage() {
         <Button
           variant={viewMode === 'sources' ? 'default' : 'outline'}
           onClick={() => setViewMode('sources')}
-          className={viewMode === 'sources' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'sources' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <PieChart className="w-4 h-4 mr-2" />
           Sources
@@ -113,7 +113,7 @@ export default function RevenueAnalyticsPage() {
         <Button
           variant={viewMode === 'products' ? 'default' : 'outline'}
           onClick={() => setViewMode('products')}
-          className={viewMode === 'products' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'products' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <Target className="w-4 h-4 mr-2" />
           Products

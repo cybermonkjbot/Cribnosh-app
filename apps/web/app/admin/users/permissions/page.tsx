@@ -251,7 +251,7 @@ export default function UserPermissionsPage() {
                 <div className="pt-4 border-t">
                   <Button
                     onClick={() => handleBulkUpdate(selectedUser)}
-                    className="w-full bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+                    className="w-full bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     Save Changes

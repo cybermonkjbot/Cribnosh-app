@@ -274,8 +274,8 @@ export const sendTaxDocument = mutation({
         
       } catch (error) {
         console.error('File upload failed:', error);
-        // Fallback to placeholder storage ID
-        storageId = uploadUrl.split('/').pop() as Id<'_storage'>;
+        // If upload fails, throw error instead of using placeholder
+        throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       fileUrl = `/api/storage/${storageId}`;
       

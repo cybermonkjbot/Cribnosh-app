@@ -34,7 +34,7 @@ import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { useToast } from '@/hooks/use-toast';
 import { StatusBadge, PriorityBadge } from '@/components/ui/glass-badges';
 import { formatDistanceToNow } from 'date-fns';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+// Auth is handled by layout, no need for AuthWrapper
 import { WaitlistCardSkeleton } from '@/components/admin/skeletons';
 
 type WaitlistEntry = Doc<"waitlist">;
@@ -225,17 +225,17 @@ export default function WaitlistDetail() {
 
   if (!entryId) {
     return (
-      <AuthWrapper role="admin">
+      <div>
         <div className="p-6">
           <p className="text-red-600">Invalid entry ID</p>
         </div>
-      </AuthWrapper>
+      </div>
     );
   }
 
   if (entry === undefined) {
     return (
-      <AuthWrapper role="admin">
+      <div>
         <div className="p-6">
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
@@ -243,13 +243,13 @@ export default function WaitlistDetail() {
             ))}
           </div>
         </div>
-      </AuthWrapper>
+      </div>
     );
   }
 
   if (entry === null) {
     return (
-      <AuthWrapper role="admin">
+      <div>
         <div className="p-6">
           <div className="text-center py-12">
             <ClipboardList className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -261,7 +261,7 @@ export default function WaitlistDetail() {
             </Button>
           </div>
         </div>
-      </AuthWrapper>
+      </div>
     );
   }
 

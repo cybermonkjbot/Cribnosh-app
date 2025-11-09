@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import React, { useEffect, useState } from 'react';
 
 import { api } from '@/convex/_generated/api';
@@ -328,7 +328,7 @@ export default function AdminSystem() {
   };
 
   return (
-    <AuthWrapper role="admin">
+    <div>
           <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -470,7 +470,7 @@ export default function AdminSystem() {
         </div>
       </motion.div>
     </div>
-    </AuthWrapper>
+    </div>
   );
 }
 

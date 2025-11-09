@@ -357,7 +357,7 @@ export default function AnalyticsReportsPage() {
             )}
 
             <div className="flex gap-2">
-              <Button onClick={handleGenerateReport} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleGenerateReport} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Generate Report
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -462,7 +462,7 @@ export default function AnalyticsReportsPage() {
                     <Button
                       size="sm"
                       onClick={() => handleDownloadReport(report._id)}
-                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                     >
                       <Download className="w-4 h-4 mr-1" />
                       Download

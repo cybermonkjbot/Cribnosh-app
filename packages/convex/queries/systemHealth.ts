@@ -179,32 +179,14 @@ export const getSystemMetrics = query({
       .filter(m => m.type === "throughput")
       .map(m => ({ timestamp: m.timestamp, value: m.value }));
 
-    // If no real data, generate mock data for demonstration
+    // Return empty arrays if no real data - no mock data
     if (cpuUsage.length === 0) {
-      const interval = (hours * 60 * 60 * 1000) / 60; // 60 data points
-      const now = Date.now();
-      
       return {
-        cpuUsage: Array.from({ length: 60 }, (_, i) => ({
-          timestamp: now - (60 - i) * interval,
-          value: 45 + Math.random() * 20,
-        })),
-        memoryUsage: Array.from({ length: 60 }, (_, i) => ({
-          timestamp: now - (60 - i) * interval,
-          value: 60 + Math.random() * 15,
-        })),
-        responseTime: Array.from({ length: 60 }, (_, i) => ({
-          timestamp: now - (60 - i) * interval,
-          value: 120 + Math.random() * 50,
-        })),
-        errorRate: Array.from({ length: 60 }, (_, i) => ({
-          timestamp: now - (60 - i) * interval,
-          value: Math.random() * 2,
-        })),
-        throughput: Array.from({ length: 60 }, (_, i) => ({
-          timestamp: now - (60 - i) * interval,
-          value: 1000 + Math.random() * 500,
-        })),
+        cpuUsage: [],
+        memoryUsage: [],
+        responseTime: [],
+        errorRate: [],
+        throughput: [],
       };
     }
 

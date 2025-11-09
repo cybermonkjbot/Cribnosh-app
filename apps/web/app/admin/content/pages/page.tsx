@@ -462,7 +462,7 @@ export default function StaticPagesManagementPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreatePage} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleCreatePage} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Create Page
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>

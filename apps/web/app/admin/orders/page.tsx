@@ -1,8 +1,8 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { OrderFilterBar } from '@/components/admin/order-filter-bar';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,6 +84,7 @@ interface Order {
 }
 
 export default function OrderManagementPage() {
+  const { user, sessionToken, loading } = useAdminUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -94,9 +95,22 @@ export default function OrderManagementPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
-  // Fetch data
-  const orders = useQuery(api.queries.admin.getAllOrdersWithDetails, {}) as Order[] | undefined;
-  const orderStats = useQuery(api.queries.admin.getOrderStats);
+  // Fetch data - authentication is handled by layout, so user is guaranteed to be authenticated here
+  // These queries don't accept sessionToken, so we just pass an empty object when user is authenticated
+  const shouldSkip = !user;
+      // Use orderStats from backend query instead of calculating client-side
+      const ordersQueryResult = useQuery(api.queries.admin.getAllOrdersWithDetails, shouldSkip ? "skip" : {});
+  const orders = ordersQueryResult as Order[] | undefined;
+  const orderStatsQueryResult = useQuery(api.queries.admin.getOrderStats, shouldSkip ? "skip" : {});
+  const orderStats = orderStatsQueryResult as {
+    totalOrders: number;
+    activeOrders: number;
+    todayRevenue: number;
+    averageOrderValue: number;
+    completedOrders: number;
+    cancelledOrders: number;
+    completionRate: number;
+  } | undefined;
 
   // Mutations
   const updateOrderStatus = useMutation((api as any)["mutations/orderAdmin"].updateOrderStatus);
@@ -243,7 +257,6 @@ export default function OrderManagementPage() {
   // Loading state
   if (orders === undefined) {
     return (
-      <AuthWrapper role="admin">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -270,7 +283,6 @@ export default function OrderManagementPage() {
             ))}
           </div>
         </div>
-      </AuthWrapper>
     );
   }
 
@@ -278,8 +290,7 @@ export default function OrderManagementPage() {
   const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || paymentFilter !== "all" || timeFilter !== "today";
 
   return (
-    <AuthWrapper role="admin">
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -295,7 +306,7 @@ export default function OrderManagementPage() {
               Export Orders
             </Button>
             <Button
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Data
@@ -315,7 +326,7 @@ export default function OrderManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">{orders?.length || 0}</p>
+                    <p className="text-2xl font-bold text-gray-900">{orderStats?.totalOrders || 0}</p>
                   </div>
                   <ShoppingCart className="w-8 h-8 text-[#F23E2E]" />
                 </div>
@@ -334,7 +345,7 @@ export default function OrderManagementPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Active Orders</p>
                     <p className="text-2xl font-bold text-blue-600">
-                      {orders?.filter(o => !['delivered', 'cancelled', 'refunded'].includes(o.order_status)).length || 0}
+                      {orderStats?.activeOrders || 0}
                     </p>
                   </div>
                   <Clock className="w-8 h-8 text-blue-600" />
@@ -354,11 +365,7 @@ export default function OrderManagementPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
                     <p className="text-2xl font-bold text-green-600">
-                      ${orders?.filter(o => {
-                        const today = new Date();
-                        const orderDate = new Date(o.createdAt);
-                        return orderDate.toDateString() === today.toDateString();
-                      }).reduce((sum, o) => sum + o.total_amount, 0).toLocaleString() || '0'}
+                      ${orderStats?.todayRevenue.toLocaleString() || '0'}
                     </p>
                   </div>
                   <DollarSign className="w-8 h-8 text-green-600" />
@@ -378,7 +385,7 @@ export default function OrderManagementPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
                     <p className="text-2xl font-bold text-purple-600">
-                      ${orders?.length ? Math.round(orders.reduce((sum, o) => sum + o.total_amount, 0) / orders.length) : '0'}
+                      ${orderStats?.averageOrderValue.toLocaleString() || '0'}
                     </p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-purple-600" />
@@ -764,6 +771,5 @@ export default function OrderManagementPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </AuthWrapper>
   );
 }

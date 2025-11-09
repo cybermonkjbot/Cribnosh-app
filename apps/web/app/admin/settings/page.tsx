@@ -1,8 +1,7 @@
 "use client";
 
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
-import { AdminTabs, AdminTabsMobile } from '@/components/admin/admin-tabs';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { AdminTabs, AdminTabsMobile } from '@/components/admin/admin-tabs';
 import { AdminPageSkeleton } from '@/components/admin/skeletons';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
@@ -591,7 +590,7 @@ export default function AdminSettings() {
   }
 
   return (
-    <AuthWrapper role="admin">
+    <div>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -711,6 +710,6 @@ export default function AdminSettings() {
           </div>
         </motion.div>
       </div>
-    </AuthWrapper>
+    </div>
   );
 }

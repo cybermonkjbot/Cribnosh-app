@@ -43,7 +43,7 @@ import {
   Globe
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 
 interface Driver {
   _id: Id<"drivers">;
@@ -118,6 +118,8 @@ interface Delivery {
 }
 
 export default function DeliveryManagementPage() {
+  // Auth is handled by layout, no client-side checks needed
+  const { user } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [driverFilter, setDriverFilter] = useState<string>('all');
@@ -129,10 +131,12 @@ export default function DeliveryManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Fetch data
-  const deliveries = useQuery(api.queries.admin.getAllDeliveriesWithDetails, {}) as Delivery[] | undefined;
-  const drivers = useQuery(api.queries.drivers.getAll) as Driver[] | undefined;
-  const deliveryStats = useQuery(api.queries.admin.getDeliveryStats);
+  // Fetch data - authentication is handled by layout
+  const shouldSkip = !user;
+  const queryArgs = shouldSkip ? "skip" : {};
+  const deliveries = useQuery(api.queries.admin.getAllDeliveriesWithDetails, queryArgs) as Delivery[] | undefined;
+  const drivers = useQuery(api.queries.drivers.getAll, queryArgs) as Driver[] | undefined;
+  const deliveryStats = useQuery(api.queries.admin.getDeliveryStats, queryArgs);
 
   // Mutations
   const updateDeliveryStatus = useMutation((api as any)["mutations/deliveryAdmin"].updateDeliveryStatus);
@@ -284,7 +288,7 @@ export default function DeliveryManagementPage() {
   };
 
   return (
-    <AuthWrapper role="admin">
+    <div>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -301,7 +305,7 @@ export default function DeliveryManagementPage() {
               Export Data
             </Button>
             <Button
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Data
@@ -771,6 +775,6 @@ export default function DeliveryManagementPage() {
           </Alert>
         )}
       </div>
-    </AuthWrapper>
+    </div>
   );
 }
