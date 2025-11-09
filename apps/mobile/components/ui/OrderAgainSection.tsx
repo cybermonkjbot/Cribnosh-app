@@ -14,7 +14,6 @@ import { useGetRecentDishesQuery } from "@/store/customerApi";
 
 // Global toast imports
 import { showError } from "../../lib/GlobalToastManager";
-import { OrderAgainSectionEmpty } from "./OrderAgainSectionEmpty";
 import { OrderAgainSectionSkeleton } from "./OrderAgainSectionSkeleton";
 
 interface OrderItem {
@@ -134,40 +133,9 @@ export function OrderAgainSection({
     return <OrderAgainSectionSkeleton itemCount={3} />;
   }
 
-  // Show empty state if no orders
-  if (orderItems.length === 0 && isAuthenticated) {
-    return (
-      <Animated.View
-        style={{
-          marginBottom: 24,
-          paddingTop: 28,
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-            paddingHorizontal: 10,
-          }}
-        >
-          <Text
-            style={{
-              color: "#1a1a1a",
-              fontSize: 20,
-              fontWeight: "700",
-              lineHeight: 24,
-            }}
-          >
-            Order again
-          </Text>
-        </View>
-        <OrderAgainSectionEmpty />
-      </Animated.View>
-    );
+  // Hide section completely if no orders (after all hooks are called)
+  if (orderItems.length === 0) {
+    return null;
   }
 
   return (
