@@ -180,8 +180,8 @@ export default function AdminAccountSettings() {
 
 
   return (
-    <div>
-          <div className="min-h-screen flex items-center justify-center bg-primary-50 p-4">
+    <div className="container mx-auto py-6 space-y-[18px]">
+      <div className="flex items-center justify-center">
       <GlassCard className="max-w-lg w-full p-8 flex flex-col items-center gap-6 border-primary-200">
         <div className="flex items-center gap-3 mb-2">
           <Settings className="w-8 h-8 text-primary-600" />
@@ -335,7 +335,7 @@ export default function AdminAccountSettings() {
           </form>
         )}
       </GlassCard>
-    </div>
+      </div>
     </div>
   );
 } 

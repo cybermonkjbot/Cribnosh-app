@@ -58,15 +58,15 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-red-100 px-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white/95 backdrop-blur-lg rounded-2xl p-4 sm:p-6 sm:p-8 border border-red-300 shadow-xl max-w-md w-full mx-auto"
+          className="bg-white/95 backdrop-blur-lg rounded-2xl p-4 sm:p-6 sm:p-8 border border-gray-300 shadow-xl max-w-md w-full mx-auto"
         >
           <div className="text-center">
-            <AlertTriangle className="w-12 h-12 sm:w-16 sm:h-16 text-red-600 mx-auto mb-4" />
-            <h1 className="text-xl sm:text-2xl font-bold font-asgard text-red-700 mb-4">Dashboard Error</h1>
+            <AlertTriangle className="w-12 h-12 sm:w-16 sm:h-16 text-gray-900 mx-auto mb-4" />
+            <h1 className="text-xl sm:text-2xl font-bold font-asgard text-gray-900 mb-4">Dashboard Error</h1>
             <p className="text-gray-700 mb-6 font-satoshi text-sm sm:text-base">{error}</p>
             <Button
               onClick={() => { setError(null); }}
@@ -202,12 +202,12 @@ export default function AdminDashboard() {
                     key={notification._id}
                     className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl border font-satoshi gap-3 ${
                       notification.type === 'success'
-                        ? 'bg-green-100 border-green-300 text-green-800'
+                        ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
                         : notification.type === 'warning'
-                        ? 'bg-amber-100 border-amber-300 text-amber-800'
+                        ? 'bg-gray-100 border-gray-300 text-gray-800'
                         : notification.type === 'error'
-                        ? 'bg-red-100 border-red-300 text-red-800'
-                        : 'bg-blue-100 border-blue-300 text-blue-800'
+                        ? 'bg-gray-100 border-gray-300 text-gray-800'
+                        : 'bg-gray-100 border-gray-300 text-gray-800'
                     }`}
                   >
                     <div className="flex-1 min-w-0">

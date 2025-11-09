@@ -1,29 +1,25 @@
 ﻿"use client";
 
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { 
-  Shield, 
-  Lock, 
-  FileText, 
-  CheckCircle, 
-  AlertTriangle, 
-  Download, 
-  Upload,
-  Eye,
-  EyeOff,
-  Settings,
-  Users,
-  Database,
-  Globe,
-  Calendar,
-  Clock
+import { useQuery } from 'convex/react';
+import {
+    AlertTriangle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Database,
+    Download,
+    Eye,
+    FileText,
+    Globe,
+    Lock,
+    Shield,
+    Users
 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useState } from 'react';
 
 
-import Link from 'next/link';
 
 interface ComplianceItem {
   id: string;
@@ -78,7 +74,7 @@ export default function AdminCompliancePage() {
 
   
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-asgard text-gray-900">

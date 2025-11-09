@@ -466,8 +466,8 @@ export default function AdminWaitlistPage() {
   // Only show loading if data hasn't loaded yet
   if (waitlist === undefined) {
     return (
-      <div className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+      <div className="container mx-auto py-6 space-y-[18px]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold font-asgard text-gray-900">Waitlist</h1>
         </div>
         <div className="space-y-4">
@@ -483,7 +483,7 @@ export default function AdminWaitlistPage() {
 
   if (waitlistData.length === 0) {
     return (
-      <div className="p-4 sm:p-6 flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="container mx-auto py-6 space-y-[18px] flex flex-col items-center justify-center min-h-[60vh]">
         <EmptyState
           icon={Users}
           title="No one on the waitlist yet!"
@@ -496,7 +496,7 @@ export default function AdminWaitlistPage() {
   }
 
   return (
-      <div className="space-y-6">
+      <div className="container mx-auto py-6 space-y-[18px]">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

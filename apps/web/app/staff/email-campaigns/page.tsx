@@ -128,9 +128,9 @@ export default function StaffEmailCampaignsPage() {
   const getStatusBadge = (status: StaffEmailCampaign['status']) => {
     switch (status) {
       case 'draft': return <Badge variant="outline" className="bg-gray-100 text-gray-800">Draft</Badge>;
-      case 'sending': return <Badge variant="secondary" className="bg-blue-100 text-blue-800 animate-pulse">Sending...</Badge>;
-      case 'sent': return <Badge variant="default" className="bg-green-100 text-green-800">Sent</Badge>;
-      case 'failed': return <Badge variant="destructive" className="bg-red-100 text-red-800">Failed</Badge>;
+      case 'sending': return <Badge variant="secondary" className="bg-gray-100 text-gray-800 animate-pulse">Sending...</Badge>;
+      case 'sent': return <Badge variant="default" className="bg-gray-100 text-gray-800">Sent</Badge>;
+      case 'failed': return <Badge variant="destructive" className="bg-gray-100 text-gray-800">Failed</Badge>;
       default: return <Badge variant="secondary">{status}</Badge>;
     }
   };
@@ -155,7 +155,7 @@ export default function StaffEmailCampaignsPage() {
         </div>
         <Button 
           onClick={() => setIsCreating(true)}
-          className="bg-red-600 hover:bg-red-700 text-white"
+          className="bg-[#F23E2E] hover:bg-[#ed1d12] text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Campaign
@@ -214,7 +214,7 @@ export default function StaffEmailCampaignsPage() {
         </Alert>
       )}
       {success && (
-        <Alert className="bg-green-50 border-green-200 text-green-800">
+        <Alert className="bg-gray-50 border-gray-200 text-gray-800">
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>{success}</AlertDescription>
         </Alert>
@@ -274,12 +274,12 @@ export default function StaffEmailCampaignsPage() {
                 value={newCampaign.content}
                 onChange={(e) => setNewCampaign(prev => ({ ...prev, content: e.target.value }))}
                 rows={8}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F23E2E] focus:border-transparent"
               />
             </div>
             
             <div className="flex space-x-2">
-              <Button onClick={handleCreateCampaign} className="bg-red-600 hover:bg-red-700">
+              <Button onClick={handleCreateCampaign} className="bg-[#F23E2E] hover:bg-[#ed1d12]">
                 Create Campaign
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -367,7 +367,7 @@ export default function StaffEmailCampaignsPage() {
                       size="sm"
                       onClick={() => handleSendCampaign(campaign._id)}
                       disabled={isSending}
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      className="bg-[#F23E2E] hover:bg-[#ed1d12] text-white"
                     >
                       <Send className="w-4 h-4 mr-1" />
                       Send

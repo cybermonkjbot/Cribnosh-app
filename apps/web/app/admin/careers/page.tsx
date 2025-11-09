@@ -295,8 +295,7 @@ export default function AdminCareers() {
   };
 
   return (
-    <div>
-          <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold font-asgard text-gray-900">
           Careers Management
@@ -826,7 +825,6 @@ export default function AdminCareers() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
     </div>
   );
 } 

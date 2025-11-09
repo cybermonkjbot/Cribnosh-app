@@ -216,7 +216,7 @@ export default function BlogManagementPage() {
   const uniqueCategories = Array.from(new Set(blogPosts?.map((post: any) => post.category) || []));
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

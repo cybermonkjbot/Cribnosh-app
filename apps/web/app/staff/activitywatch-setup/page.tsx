@@ -50,15 +50,15 @@ export default function ActivityWatchSetupPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-green-50 border border-green-200 rounded-xl p-4 sm:p-6 text-center w-full"
+          className="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6 text-center w-full"
         >
-          <h3 className="text-base sm:text-lg font-asgard text-green-900 mb-1 sm:mb-2">Setup Complete!</h3>
-          <p className="text-green-700 mb-3 sm:mb-4 text-sm sm:text-base">
+          <h3 className="text-base sm:text-lg font-asgard text-[#F23E2E] mb-1 sm:mb-2">Setup Complete!</h3>
+          <p className="text-gray-700 mb-3 sm:mb-4 text-sm sm:text-base">
             ActivityWatch is now configured. You can return to time tracking to see your automatic data.
           </p>
           <Link
             href="/staff/time-tracking"
-            className="inline-flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
+            className="inline-flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-2 bg-[#F23E2E] text-white rounded-lg hover:bg-[#ed1d12] transition-colors text-sm sm:text-base"
           >
             <span>Go to Time Tracking</span>
           </Link>

@@ -88,9 +88,9 @@ export default function StaffBlogPage() {
       case 'draft':
         return <Badge className="bg-gray-100 text-gray-800 border-gray-200 transition-all duration-200 hover:shadow-sm"><Clock className="w-3 h-3 mr-1" />Draft</Badge>;
       case 'published':
-        return <Badge className="bg-green-100 text-green-800 border-green-200 transition-all duration-200 hover:shadow-sm"><CheckCircle className="w-3 h-3 mr-1" />Published</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200 transition-all duration-200 hover:shadow-sm"><CheckCircle className="w-3 h-3 mr-1" />Published</Badge>;
       case 'archived':
-        return <Badge className="bg-red-100 text-red-800 border-red-200 transition-all duration-200 hover:shadow-sm"><XCircle className="w-3 h-3 mr-1" />Archived</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200 transition-all duration-200 hover:shadow-sm"><XCircle className="w-3 h-3 mr-1" />Archived</Badge>;
       default:
         return <Badge variant="secondary" className="transition-all duration-200 hover:shadow-sm">{status}</Badge>;
     }
@@ -127,11 +127,11 @@ export default function StaffBlogPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-default">
+        <Card className="hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-default">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg transition-transform duration-200 group-hover:scale-110">
-                <FileText className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-gray-100 rounded-lg transition-transform duration-200 group-hover:scale-110">
+                <FileText className="w-5 h-5 text-gray-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Posts</p>
@@ -141,11 +141,11 @@ export default function StaffBlogPage() {
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-md hover:border-green-300 transition-all duration-200 cursor-default">
+        <Card className="hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-default">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg transition-transform duration-200 group-hover:scale-110">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="p-2 bg-gray-100 rounded-lg transition-transform duration-200 group-hover:scale-110">
+                <CheckCircle className="w-5 h-5 text-[#F23E2E]" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Published</p>
@@ -157,11 +157,11 @@ export default function StaffBlogPage() {
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-md hover:border-yellow-300 transition-all duration-200 cursor-default">
+        <Card className="hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-default">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg transition-transform duration-200 group-hover:scale-110">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="p-2 bg-gray-100 rounded-lg transition-transform duration-200 group-hover:scale-110">
+                <Clock className="w-5 h-5 text-gray-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Drafts</p>
@@ -173,11 +173,11 @@ export default function StaffBlogPage() {
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-md hover:border-purple-300 transition-all duration-200 cursor-default">
+        <Card className="hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-default">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg transition-transform duration-200 group-hover:scale-110">
-                <Eye className="w-5 h-5 text-purple-600" />
+              <div className="p-2 bg-gray-100 rounded-lg transition-transform duration-200 group-hover:scale-110">
+                <Eye className="w-5 h-5 text-gray-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Views</p>
@@ -271,7 +271,7 @@ export default function StaffBlogPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => router.push(`/by-us/${post.slug}`)}
-                    className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-all duration-200"
+                    className="hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 transition-all duration-200"
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
@@ -287,7 +287,7 @@ export default function StaffBlogPage() {
                     <Button
                       size="sm"
                       onClick={() => handlePublishPost(post._id)}
-                      className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 hover:shadow-sm"
+                      className="bg-[#F23E2E] hover:bg-[#ed1d12] text-white transition-all duration-200 hover:shadow-sm"
                     >
                       Publish
                     </Button>
@@ -296,7 +296,7 @@ export default function StaffBlogPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleDeletePost(post._id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300 transition-all duration-200"
+                    className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

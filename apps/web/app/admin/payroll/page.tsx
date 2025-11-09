@@ -149,7 +149,7 @@ export default function PayrollAdminPage() {
   }, [payPeriods]);
 
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Enhanced Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

@@ -271,7 +271,7 @@ export default function OnboardingPage() {
     return (
       <div className="min-h-screen bg-white/95 backdrop-blur-sm flex items-center justify-center">
         <GlassCard className="p-8 text-center max-w-md">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <CheckCircle className="w-16 h-16 text-[#F23E2E] mx-auto mb-4" />
           <h1 className="text-2xl font-asgard text-white mb-4">Onboarding Complete!</h1>
           <p className="text-white/80 mb-6">
             Thank you for completing your onboarding. HR will review your information and contact you soon.
@@ -316,7 +316,7 @@ export default function OnboardingPage() {
                 placeholder="000000"
                 aria-label="Onboarding code"
               />
-              {codeError && <div className="text-red-500 mb-2 font-satoshi">{codeError}</div>}
+              {codeError && <div className="text-gray-900 mb-2 font-satoshi">{codeError}</div>}
               <button
                 className="w-full py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg font-satoshi text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#F23E2E] disabled:opacity-50"
                 onClick={validateCode}
@@ -374,7 +374,7 @@ export default function OnboardingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                          First Name <span className="text-red-500">*</span>
+                          First Name <span className="text-[#F23E2E]">*</span>
                         </label>
                         <input
                           type="text"
@@ -389,7 +389,7 @@ export default function OnboardingPage() {
 
                       <div>
                         <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                          Last Name <span className="text-red-500">*</span>
+                          Last Name <span className="text-[#F23E2E]">*</span>
                         </label>
                         <input
                           type="text"
@@ -405,7 +405,7 @@ export default function OnboardingPage() {
 
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                        Email Address <span className="text-red-500">*</span>
+                        Email Address <span className="text-[#F23E2E]">*</span>
                       </label>
                       <input
                         type="email"
@@ -421,7 +421,7 @@ export default function OnboardingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                          Phone Number <span className="text-red-500">*</span>
+                          Phone Number <span className="text-[#F23E2E]">*</span>
                         </label>
                         <input
                           type="tel"
@@ -436,7 +436,7 @@ export default function OnboardingPage() {
 
                       <div>
                         <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">
-                          Date of Birth <span className="text-red-500">*</span>
+                          Date of Birth <span className="text-[#F23E2E]">*</span>
                         </label>
                         <input
                           type="date"
@@ -820,7 +820,7 @@ export default function OnboardingPage() {
                           </label>
                         </div>
                         {formData.documents.idDocument && (
-                          <p className="mt-2 text-sm text-green-600">
+                          <p className="mt-2 text-sm text-[#F23E2E]">
                             ✓ {formData.documents.idDocument.name}
                           </p>
                         )}
@@ -851,7 +851,7 @@ export default function OnboardingPage() {
                           </label>
                         </div>
                         {formData.documents.taxForm && (
-                          <p className="mt-2 text-sm text-green-600">
+                          <p className="mt-2 text-sm text-[#F23E2E]">
                             ✓ {formData.documents.taxForm.name}
                           </p>
                         )}
@@ -882,7 +882,7 @@ export default function OnboardingPage() {
                           </label>
                         </div>
                         {formData.documents.directDepositForm && (
-                          <p className="mt-2 text-sm text-green-600">
+                          <p className="mt-2 text-sm text-[#F23E2E]">
                             ✓ {formData.documents.directDepositForm.name}
                           </p>
                         )}
@@ -918,7 +918,7 @@ export default function OnboardingPage() {
                       <button
                         onClick={handleSubmit}
                         disabled={submitting}
-                        className="flex items-center px-6 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                        className="flex items-center px-6 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] disabled:opacity-50 text-white rounded-lg transition-colors"
                       >
                         {submitting ? 'Submitting...' : 'Submit Onboarding'}
                       </button>

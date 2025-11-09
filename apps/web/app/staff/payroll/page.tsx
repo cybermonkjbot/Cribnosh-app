@@ -1,56 +1,53 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import type { Id } from '@/convex/_generated/dataModel';
-import { format } from 'date-fns';
-import { 
-  Calendar, 
-  Download, 
-  FileText, 
-  DollarSign, 
-  Clock, 
-  TrendingUp, 
-  Receipt,
-  CreditCard,
-  PieChart,
-  BarChart3,
-  CalendarDays,
-  User,
-  Building2,
-  Activity,
-  Settings,
-  AlertCircle,
-  CheckCircle,
-  Info,
-  Eye,
-  Filter,
-  Search,
-  RefreshCw,
-  Share2,
-  Printer,
-  Mail,
-  ArrowLeft
-} from 'lucide-react';
-import { motion } from 'motion/react';
-import { Button } from '@/components/ui/button';
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
+import AlertDialog from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import AlertDialog from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { api } from '@/convex/_generated/api';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { useQuery } from 'convex/react';
+import { format } from 'date-fns';
+import {
+  Activity,
+  AlertCircle,
+  ArrowLeft,
+  BarChart3,
+  Building2,
+  Calendar,
+  CalendarDays,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  DollarSign,
+  Download,
+  Eye,
+  FileText,
+  Filter,
+  Info,
+  Mail,
+  PieChart,
+  Receipt,
+  RefreshCw,
+  Search,
+  Settings,
+  Share2,
+  TrendingUp,
+  User
+} from 'lucide-react';
+import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
+import { useState } from 'react';
 
 
 // Custom components
-import { DataTable } from '@/components/staff/payroll/data-table';
 import { columns } from '@/components/staff/payroll/columns';
+import { DataTable } from '@/components/staff/payroll/data-table';
 import { formatCurrency } from '@/lib/utils/number-format';
 
 // Currency formatter for Naira (using utility)
@@ -449,7 +446,7 @@ Document ID: ${doc._id}`;
           <div className="flex items-center gap-2 mt-2">
             <Info className="w-4 h-4 text-primary-600" />
             <span className="text-sm text-primary-600 font-satoshi">All amounts are displayed in Nigerian Naira (₦)</span>
-            <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
+            <Badge variant="outline" className="ml-2 bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/30">
               <CheckCircle className="w-3 h-3 mr-1" />
               Live Data
             </Badge>
@@ -622,18 +619,18 @@ Document ID: ${doc._id}`;
                       <div 
                         key={monthName}
                         className={`p-4 text-center border-r border-b border-gray-200 last:border-r-0 ${
-                          isCurrentMonth ? 'bg-blue-50 border-l-4 border-l-blue-500' : 
+                          isCurrentMonth ? 'bg-[#F23E2E]/10 border-l-4 border-l-[#F23E2E]' : 
                           isPastMonth ? 'bg-gray-50' : 'bg-white'
                         }`}
                       >
                         <div className={`font-semibold text-sm uppercase tracking-wide mb-3 ${
-                          isCurrentMonth ? 'text-blue-700' : 'text-gray-700'
+                          isCurrentMonth ? 'text-[#F23E2E]' : 'text-gray-700'
                         }`}>
                           {monthName}
                         </div>
                         
                         <div className={`inline-block px-3 py-2 rounded-lg text-white font-bold ${
-                          isCurrentMonth ? 'bg-blue-600' : 'bg-gray-600'
+                          isCurrentMonth ? 'bg-[#F23E2E]' : 'bg-gray-600'
                         }`}>
                           <div className="text-lg">{monthData.day}</div>
                           <div className="text-xs opacity-90 uppercase tracking-wide">Last Friday</div>
@@ -679,10 +676,10 @@ Document ID: ${doc._id}`;
                 if (nextPayDate) {
                   const daysUntil = Math.ceil((new Date(nextPayDate.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                   return (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h3 className="font-semibold text-green-800 mb-2">Next Pay Date</h3>
-                      <div className="text-lg font-bold text-green-900 mb-1">{nextPayDate.fullDate}</div>
-                      <div className="text-sm text-green-700">{daysUntil} day{daysUntil !== 1 ? 's' : ''} from now</div>
+                    <div className="bg-[#F23E2E]/10 border border-[#F23E2E]/30 rounded-lg p-4">
+                      <h3 className="font-semibold text-[#F23E2E] mb-2">Next Pay Date</h3>
+                      <div className="text-lg font-bold text-gray-900 mb-1">{nextPayDate.fullDate}</div>
+                      <div className="text-sm text-gray-700">{daysUntil} day{daysUntil !== 1 ? 's' : ''} from now</div>
                     </div>
                   );
                 }
@@ -690,15 +687,15 @@ Document ID: ${doc._id}`;
               })()}
               
               {/* Payment Schedule */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-800 mb-2">Payment Schedule</h3>
-                <p className="text-sm text-blue-700">Monthly payments on the last Friday of each month</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-2">Payment Schedule</h3>
+                <p className="text-sm text-gray-700">Monthly payments on the last Friday of each month</p>
               </div>
               
               {/* Payment Method */}
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <h3 className="font-semibold text-purple-800 mb-2">Payment Method</h3>
-                <p className="text-sm text-purple-700">Direct bank transfer to registered account</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-2">Payment Method</h3>
+                <p className="text-sm text-gray-700">Direct bank transfer to registered account</p>
               </div>
               
               {/* Processing Time */}
@@ -743,48 +740,48 @@ Document ID: ${doc._id}`;
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="p-3 bg-gray-100 rounded-xl">
+                <DollarSign className="w-6 h-6 text-gray-900" />
               </div>
-              <TrendingUp className="w-5 h-5 text-green-500" />
+              <TrendingUp className="w-5 h-5 text-gray-900" />
             </div>
             <div className="text-3xl font-bold font-asgard text-gray-900 mb-2">
               {formatNaira(summaryStats.totalEarnings)}
             </div>
             <p className="text-gray-600 font-satoshi">Total Earnings (YTD - {yearFilter})</p>
-            <div className="mt-3 text-sm text-green-600 font-medium">
+            <div className="mt-3 text-sm text-[#F23E2E] font-medium">
               +12% from last year
             </div>
           </div>
 
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <Clock className="w-6 h-6 text-blue-600" />
+              <div className="p-3 bg-gray-100 rounded-xl">
+                <Clock className="w-6 h-6 text-gray-900" />
               </div>
-              <BarChart3 className="w-5 h-5 text-blue-500" />
+              <BarChart3 className="w-5 h-5 text-gray-900" />
             </div>
             <div className="text-3xl font-bold font-asgard text-gray-900 mb-2">
               {summaryStats.totalHours.toLocaleString()}
             </div>
             <p className="text-gray-600 font-satoshi">Total Hours (YTD - {yearFilter})</p>
-            <div className="mt-3 text-sm text-blue-600 font-medium">
+            <div className="mt-3 text-sm text-gray-900 font-medium">
               {summaryStats.averagePay > 0 ? `${formatNaira(summaryStats.averagePay)}/hr avg` : 'Calculating...'}
             </div>
           </div>
 
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <Receipt className="w-6 h-6 text-purple-600" />
+              <div className="p-3 bg-gray-100 rounded-xl">
+                <Receipt className="w-6 h-6 text-gray-900" />
               </div>
-              <PieChart className="w-5 h-5 text-purple-500" />
+              <PieChart className="w-5 h-5 text-gray-900" />
             </div>
             <div className="text-3xl font-bold font-asgard text-gray-900 mb-2">
               {summaryStats.payslipsCount}
             </div>
             <p className="text-gray-600 font-satoshi">Payslips Available</p>
-            <div className="mt-3 text-sm text-purple-600 font-medium">
+            <div className="mt-3 text-sm text-gray-900 font-medium">
               {summaryStats.processedPayslips} processed, {summaryStats.pendingPayslips} pending
             </div>
           </div>
@@ -866,11 +863,11 @@ Document ID: ${doc._id}`;
                   <p className="text-xs text-gray-600 font-satoshi">Total Earnings</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50/80 rounded-lg">
-                  <p className="text-2xl font-bold font-asgard text-blue-600">{summaryStats.totalHours}</p>
+                  <p className="text-2xl font-bold font-asgard text-gray-900">{summaryStats.totalHours}</p>
                   <p className="text-xs text-gray-600 font-satoshi">Total Hours</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50/80 rounded-lg">
-                  <p className="text-2xl font-bold font-asgard text-green-600">{summaryStats.totalOvertimeHours}</p>
+                  <p className="text-2xl font-bold font-asgard text-gray-900">{summaryStats.totalOvertimeHours}</p>
                   <p className="text-xs text-gray-600 font-satoshi">Overtime Hours</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50/80 rounded-lg">
@@ -883,29 +880,29 @@ Document ID: ${doc._id}`;
             {/* YTD Hours Breakdown */}
             <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
               <h3 className="text-lg font-bold font-asgard text-gray-900 mb-4 flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-blue-600" />
+                <Clock className="w-5 h-5 mr-2 text-gray-900" />
                 Year-to-Date Hours Breakdown ({yearFilter})
               </h3>
               {ytdHours ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold font-asgard text-blue-600">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold font-asgard text-gray-900">
                         {ytdHours.totalHours.toFixed(1)}
                       </div>
-                      <div className="text-sm text-blue-700 font-satoshi">Total Hours</div>
+                      <div className="text-sm text-gray-700 font-satoshi">Total Hours</div>
                     </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold font-asgard text-green-600">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold font-asgard text-gray-900">
                         {ytdHours.totalMinutes.toFixed(0)}
                       </div>
-                      <div className="text-sm text-green-700 font-satoshi">Total Minutes</div>
+                      <div className="text-sm text-gray-700 font-satoshi">Total Minutes</div>
                     </div>
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <div className="text-2xl font-bold font-asgard text-purple-600">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold font-asgard text-gray-900">
                         {ytdHours.sessions}
                       </div>
-                      <div className="text-sm text-purple-700 font-satoshi">Work Sessions</div>
+                      <div className="text-sm text-gray-700 font-satoshi">Work Sessions</div>
                     </div>
                     <div className="text-center p-4 bg-[#F23E2E]/10 rounded-lg">
                       <div className="text-2xl font-bold font-asgard text-[#F23E2E]">
@@ -972,8 +969,8 @@ Document ID: ${doc._id}`;
                           {formatNaira((payslip.netPay || 0) / 100)}
                         </p>
                         <Badge className={`text-xs ${
-                          payslip.status === 'processed' ? 'bg-green-100 text-green-800 border-green-200' :
-                          payslip.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                          payslip.status === 'processed' ? 'bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/30' :
+                          payslip.status === 'pending' ? 'bg-gray-100 text-gray-800 border-gray-200' :
                           'bg-gray-100 text-gray-800 border-gray-200'
                         }`}>
                           {payslip.status || 'Processed'}
@@ -993,7 +990,7 @@ Document ID: ${doc._id}`;
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
                   {/* Download Latest Payslip */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4 border border-blue-200/60 hover:border-blue-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       const latestPayslip = payslips?.items?.[0];
                       if (latestPayslip) {
@@ -1007,49 +1004,49 @@ Document ID: ${doc._id}`;
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500 rounded-lg group-hover:bg-blue-600 transition-colors duration-300">
+                      <div className="p-2 bg-[#F23E2E] rounded-lg group-hover:bg-[#F23E2E]/90 transition-colors duration-300">
                         <Download className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold font-asgard text-blue-900 group-hover:text-blue-800 transition-colors duration-300">
+                        <h4 className="font-semibold font-asgard text-gray-900 group-hover:text-gray-800 transition-colors duration-300">
                           Download Latest Payslip
                         </h4>
-                        <p className="text-sm text-blue-700 font-satoshi opacity-80">
+                        <p className="text-sm text-gray-700 font-satoshi opacity-80">
                           Get your most recent payslip
                         </p>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                       </div>
                     </div>
                   </div>
 
                   {/* View Tax Summary */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-4 border border-green-200/60 hover:border-green-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => setActiveTab('tax')}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-500 rounded-lg group-hover:bg-green-600 transition-colors duration-300">
+                      <div className="p-2 bg-[#F23E2E] rounded-lg group-hover:bg-[#F23E2E]/90 transition-colors duration-300">
                         <FileText className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold font-asgard text-green-900 group-hover:text-green-800 transition-colors duration-300">
+                        <h4 className="font-semibold font-asgard text-gray-900 group-hover:text-gray-800 transition-colors duration-300">
                           View Tax Summary
                         </h4>
-                        <p className="text-sm text-green-700 font-satoshi opacity-80">
+                        <p className="text-sm text-gray-700 font-satoshi opacity-80">
                           Review your tax documents
                         </p>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                       </div>
                     </div>
                   </div>
 
                   {/* Pay Schedule */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-4 border border-purple-200/60 hover:border-purple-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       try {
                         // Create pay calendar data for monthly payments on last Friday
@@ -1450,7 +1447,7 @@ Document ID: ${doc._id}`;
 
                   {/* Contact HR */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-4 border border-red-200/60 hover:border-red-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       const subject = encodeURIComponent('Payroll Support Request');
                       const body = encodeURIComponent(`Hello HR Team,\n\nI need assistance with my payroll.\n\nEmployee: ${staffUser?.name || 'Unknown'}\nEmployee ID: ${staffUser?._id || 'Unknown'}\n\nPlease provide details about your inquiry:\n\n\n\nThank you.`);
@@ -1458,19 +1455,19 @@ Document ID: ${doc._id}`;
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-red-500 rounded-lg group-hover:bg-red-600 transition-colors duration-300">
+                      <div className="p-2 bg-gray-600 rounded-lg group-hover:bg-gray-700 transition-colors duration-300">
                         <Mail className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold font-asgard text-red-900 group-hover:text-red-800 transition-colors duration-300">
+                        <h4 className="font-semibold font-asgard text-gray-900 group-hover:text-gray-800 transition-colors duration-300">
                           Contact HR
                         </h4>
-                        <p className="text-sm text-red-700 font-satoshi opacity-80">
+                        <p className="text-sm text-gray-700 font-satoshi opacity-80">
                           Get help and support
                         </p>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                       </div>
                     </div>
                   </div>
@@ -1615,12 +1612,12 @@ Document ID: ${doc._id}`;
                     
                     {!searchQuery && statusFilter === 'all' && (
                       <div className="space-y-4">
-                        <div className="p-4 bg-blue-50/80 rounded-xl border border-blue-200/60">
+                        <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                           <div className="flex items-start gap-3">
-                            <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <Info className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
                             <div className="text-left">
-                              <h4 className="font-semibold font-asgard text-blue-900 mb-1">When to Expect Payslips</h4>
-                              <p className="text-sm text-blue-700 font-satoshi leading-relaxed">
+                              <h4 className="font-semibold font-asgard text-gray-900 mb-1">When to Expect Payslips</h4>
+                              <p className="text-sm text-gray-700 font-satoshi leading-relaxed">
                                 Payslips are typically generated on the last Friday of each month and become available within 2-3 business days. 
                                 If you believe you should have a payslip, please contact HR for assistance.
                               </p>
@@ -1719,24 +1716,24 @@ Document ID: ${doc._id}`;
                     </p>
                     
                     <div className="space-y-4">
-                      <div className="p-4 bg-green-50/80 rounded-xl border border-green-200/60">
+                      <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                         <div className="flex items-start gap-3">
-                          <Info className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <Info className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
                           <div className="text-left">
-                            <h4 className="font-semibold font-asgard text-green-900 mb-1">Tax Document Timeline</h4>
-                            <p className="text-sm text-green-700 font-satoshi leading-relaxed">
+                            <h4 className="font-semibold font-asgard text-gray-900 mb-1">Tax Document Timeline</h4>
+                            <p className="text-sm text-gray-700 font-satoshi leading-relaxed">
                               Tax documents are processed after the fiscal year ends. You'll receive a notification when they're ready for download.
                             </p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="p-4 bg-purple-50/80 rounded-xl border border-purple-200/60">
+                      <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                         <div className="flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                          <AlertCircle className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
                           <div className="text-left">
-                            <h4 className="font-semibold font-asgard text-purple-900 mb-1">Previous Years</h4>
-                            <p className="text-sm text-purple-700 font-satoshi leading-relaxed">
+                            <h4 className="font-semibold font-asgard text-gray-900 mb-1">Previous Years</h4>
+                            <p className="text-sm text-gray-700 font-satoshi leading-relaxed">
                               Check other years using the year selector above to view available tax documents from previous periods.
                             </p>
                           </div>
@@ -1773,7 +1770,7 @@ Document ID: ${doc._id}`;
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                       <span className="text-sm font-satoshi text-gray-600">Change</span>
-                      <span className="font-bold font-asgard text-green-600">
+                      <span className="font-bold font-asgard text-[#F23E2E]">
                         {ytdSummary?.grossEarnings ? '+12%' : 'Calculating...'}
                       </span>
                     </div>
@@ -1878,19 +1875,19 @@ Document ID: ${doc._id}`;
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-satoshi text-gray-600">Efficiency</span>
-                      <span className="font-bold font-asgard text-green-600">
+                      <span className="font-bold font-asgard text-[#F23E2E]">
                         {ytdHours?.totalHours ? '92%' : 'Calculating...'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-satoshi text-gray-600">Attendance</span>
-                      <span className="font-bold font-asgard text-green-600">
+                      <span className="font-bold font-asgard text-[#F23E2E]">
                         {payslips?.items?.length ? '96%' : 'Calculating...'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-satoshi text-gray-600">Rating</span>
-                      <span className="font-bold font-asgard text-blue-600">
+                      <span className="font-bold font-asgard text-gray-900">
                         {ytdSummary?.grossEarnings ? '4.7/5' : 'Calculating...'}
                       </span>
                     </div>

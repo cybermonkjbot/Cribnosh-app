@@ -224,23 +224,19 @@ export default function WaitlistDetail() {
 
   if (!entryId) {
     return (
-      <div>
-        <div className="p-6">
-          <p className="text-gray-900">Invalid entry ID</p>
-        </div>
+      <div className="container mx-auto py-6 space-y-[18px]">
+        <p className="text-gray-900">Invalid entry ID</p>
       </div>
     );
   }
 
   if (entry === undefined) {
     return (
-      <div>
-        <div className="p-6">
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <WaitlistCardSkeleton key={i} />
-            ))}
-          </div>
+      <div className="container mx-auto py-6 space-y-[18px]">
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <WaitlistCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     );
@@ -248,9 +244,8 @@ export default function WaitlistDetail() {
 
   if (entry === null) {
     return (
-      <div>
-        <div className="p-6">
-          <div className="text-center py-12">
+      <div className="container mx-auto py-6 space-y-[18px]">
+        <div className="text-center py-12">
             <ClipboardList className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Entry Not Found</h2>
             <p className="text-gray-600 mb-4">The waitlist entry you're looking for doesn't exist.</p>
@@ -267,8 +262,7 @@ export default function WaitlistDetail() {
   const locationString = getLocationString(entry);
 
   return (
-    <AuthWrapper role="admin">
-      <div className="space-y-6">
+      <div className="container mx-auto py-6 space-y-[18px]">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -642,6 +636,5 @@ export default function WaitlistDetail() {
           isLoading={isRejecting}
         />
       </div>
-    </AuthWrapper>
   );
 }

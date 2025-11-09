@@ -229,7 +229,7 @@ export default function ChefManagementPage() {
   const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || verificationFilter !== "all";
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

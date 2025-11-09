@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { useQuery } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { useQuery } from 'convex/react';
+import { useParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
 type Session = {
   _id: Id<'workSessions'>;
@@ -58,7 +58,7 @@ export default function AdminStaffDetailPage() {
   }, [sessions, rangeStart, rangeEnd]);
 
   return (
-    <main className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <h1 className="text-2xl font-asgard">Staff Details</h1>
       <div className="border-b">
         <nav className="flex gap-4 text-sm">

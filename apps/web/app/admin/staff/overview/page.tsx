@@ -2,13 +2,13 @@
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 // Auth is handled by layout, no need for AuthWrapper
-import { AdminPageSkeleton, StaffStatsSkeleton, StaffActivitySkeleton } from '@/components/admin/skeletons';
+import { EmptyState } from '@/components/admin/empty-state';
+import { AdminPageSkeleton, StaffActivitySkeleton, StaffStatsSkeleton } from '@/components/admin/skeletons';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
-import { Calendar, Loader2, Mail, Users, Shield, FileText } from 'lucide-react';
+import { Calendar, FileText, Mail, Shield, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { EmptyState } from '@/components/admin/empty-state';
 
 const ClientDate = dynamic(() => import('@/components/ui/client-date'), { ssr: false });
 
@@ -39,9 +39,7 @@ export default function AdminStaffOverviewPage() {
   }
 
   return (
-    <div>
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
-        <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
           <GlassCard className="p-8 mb-8">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h1 className="text-2xl font-asgard text-gray-900 flex items-center gap-2">

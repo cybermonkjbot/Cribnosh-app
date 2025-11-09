@@ -1,26 +1,26 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Users, 
-  TrendingUp,
-  TrendingDown,
-  MapPin,
-  Clock,
-  BarChart2,
-  PieChart,
-  Activity,
-  UserPlus,
-  UserCheck,
-  UserX
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from '@/convex/_generated/api';
 import { formatCurrency } from '@/lib/utils/number-format';
+import { useQuery } from 'convex/react';
+import {
+  Activity,
+  BarChart2,
+  Clock,
+  MapPin,
+  PieChart,
+  TrendingDown,
+  TrendingUp,
+  UserCheck,
+  UserPlus,
+  UserX,
+  Users
+} from 'lucide-react';
+import { useState } from 'react';
 
 interface UserData {
   totalUsers: number;
@@ -60,7 +60,7 @@ export default function UserAnalyticsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

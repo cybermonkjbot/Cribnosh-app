@@ -280,7 +280,7 @@ export default function TaxDocumentsPage() {
   const uniqueYears = Array.from(new Set(taxDocuments?.map((doc: any) => doc.taxYear) || []));
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -595,7 +595,7 @@ export default function TaxDocumentsPage() {
                     <Button
                       size="sm"
                       onClick={() => handleSendDocument(document._id)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                     >
                       Send
                     </Button>

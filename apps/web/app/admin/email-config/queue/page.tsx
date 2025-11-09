@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function EmailQueuePage() {
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <EmailQueueDashboard />
     </div>
   );

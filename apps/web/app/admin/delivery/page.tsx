@@ -1,49 +1,39 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Truck, 
-  Search, 
-  Filter,
-  Eye,
-  Clock,
-  CheckCircle,
-  XCircle,
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import {
   AlertTriangle,
-  TrendingUp,
-  Users,
-  MapPin,
-  Phone,
-  MessageSquare,
   BarChart3,
+  CheckCircle,
+  Clock,
   Download,
-  RefreshCw,
-  MoreHorizontal,
-  Calendar,
-  ChefHat,
-  Package,
-  Star,
+  Eye,
   Flag,
-  Zap,
-  Navigation,
-  Route,
+  MessageSquare,
+  MoreHorizontal,
+  Package,
+  RefreshCw,
+  Search,
+  Star,
   Timer,
-  Shield,
-  Activity,
-  Globe
+  TrendingUp,
+  Truck,
+  Users,
+  XCircle,
+  Zap
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { useMemo, useState } from 'react';
 
 interface Driver {
   _id: Id<"drivers">;
@@ -291,8 +281,7 @@ export default function DeliveryManagementPage() {
   };
 
   return (
-    <div>
-      <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

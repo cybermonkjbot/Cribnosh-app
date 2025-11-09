@@ -163,7 +163,7 @@ export default function StaffPortal() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-satoshi bg-[#F23E2E]/10 text-[#F23E2E]">
                           {safeStaffMember.position || 'Job title not set'}
                         </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-satoshi bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-satoshi bg-gray-100 text-gray-800">
                           {safeStaffMember.department || 'Department not set'}
                         </span>
                       </div>
@@ -180,7 +180,7 @@ export default function StaffPortal() {
                 {isMobile && (
                   <Link
                     href="/staff/time-tracking"
-                    className="mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-satoshi font-semibold text-base shadow-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-400"
+                    className="mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white font-satoshi font-semibold text-base shadow-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#F23E2E]/50"
                     aria-label="Go to Time Tracking"
                   >
                     <Clock className="w-5 h-5" />
@@ -189,16 +189,16 @@ export default function StaffPortal() {
                 )}
                 <GlassCard className="p-6">
                   <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${Boolean(safeStaffMember.onboarding) ? 'bg-green-100' : 'bg-[#F23E2E]/10'}`}>
+                    <div className={`p-2 rounded-lg ${Boolean(safeStaffMember.onboarding) ? 'bg-[#F23E2E]/10' : 'bg-gray-100'}`}>
                       {Boolean(safeStaffMember.onboarding) ? (
-                        <CheckCircle className="w-6 h-6 text-green-600" />
+                        <CheckCircle className="w-6 h-6 text-[#F23E2E]" />
                       ) : (
-                        <Clock className="w-6 h-6 text-[#F23E2E]" />
+                        <Clock className="w-6 h-6 text-gray-900" />
                       )}
                     </div>
                     <div>
                       <p className="text-sm font-satoshi text-gray-800">Onboarding Status</p>
-                      <p className={`font-medium font-satoshi ${Boolean(safeStaffMember.onboarding) ? 'text-green-700' : 'text-[#F23E2E]'}`}>
+                      <p className={`font-medium font-satoshi ${Boolean(safeStaffMember.onboarding) ? 'text-[#F23E2E]' : 'text-gray-900'}`}>
                         {Boolean(safeStaffMember.onboarding) ? 'Complete' : 'In Progress'}
                       </p>
                     </div>
@@ -207,12 +207,12 @@ export default function StaffPortal() {
 
                 <GlassCard className="p-6">
                   <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${safeStaffMember.mattermostActive ? 'bg-green-100' : 'bg-gray-100'}`}>
-                      <MessageSquare className={`w-6 h-6 ${safeStaffMember.mattermostActive ? 'text-green-600' : 'text-gray-600'}`} />
+                    <div className={`p-2 rounded-lg ${safeStaffMember.mattermostActive ? 'bg-[#F23E2E]/10' : 'bg-gray-100'}`}>
+                      <MessageSquare className={`w-6 h-6 ${safeStaffMember.mattermostActive ? 'text-[#F23E2E]' : 'text-gray-600'}`} />
                     </div>
                     <div>
                       <p className="text-sm font-satoshi text-gray-800">Huly Status</p>
-                      <p className={`font-medium font-satoshi ${safeStaffMember.mattermostActive ? 'text-green-700' : 'text-gray-700'}`}>
+                      <p className={`font-medium font-satoshi ${safeStaffMember.mattermostActive ? 'text-[#F23E2E]' : 'text-gray-700'}`}>
                         {safeStaffMember.mattermostActive ? 'Active' : 'Inactive'}
                       </p>
                     </div>
@@ -237,7 +237,7 @@ export default function StaffPortal() {
                   <Link href="/staff/mattermost" className="block focus:outline-none focus:ring-2 focus:ring-[#F23E2E] rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
-                        <MessageSquare className="w-8 h-8 text-green-600 mx-auto mb-3" />
+                        <MessageSquare className="w-8 h-8 text-gray-900 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Connect Huly</h3>
                         <p className="text-sm font-satoshi text-gray-700">Join the team workspace</p>
                       </div>
@@ -247,7 +247,7 @@ export default function StaffPortal() {
                   <Link href="/staff/documents" className="block focus:outline-none focus:ring-2 focus:ring-[#F23E2E] rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
-                        <FileText className="w-8 h-8 text-purple-600 mx-auto mb-3" />
+                        <FileText className="w-8 h-8 text-gray-900 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">View Documents</h3>
                         <p className="text-sm font-satoshi text-gray-700">Access your HR documents</p>
                       </div>
@@ -267,7 +267,7 @@ export default function StaffPortal() {
                   <Link href="/staff/work-id" className="block focus:outline-none focus:ring-2 focus:ring-[#F23E2E] rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
-                        <Badge className="w-8 h-8 text-indigo-600 mx-auto mb-3" />
+                        <Badge className="w-8 h-8 text-gray-900 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Work ID</h3>
                         <p className="text-sm font-satoshi text-gray-700">Request your Work ID</p>
                       </div>
@@ -277,7 +277,7 @@ export default function StaffPortal() {
                   <Link href="/staff/work-email-request" className="block focus:outline-none focus:ring-2 focus:ring-[#F23E2E] rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
-                        <Mail className="w-8 h-8 text-purple-600 mx-auto mb-3" />
+                        <Mail className="w-8 h-8 text-gray-900 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Work Email Request</h3>
                         <p className="text-sm font-satoshi text-gray-700">Request password reset</p>
                       </div>
@@ -287,7 +287,7 @@ export default function StaffPortal() {
                   <Link href="/staff/email-campaigns" className="block focus:outline-none focus:ring-2 focus:ring-[#F23E2E] rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
-                        <Mail className="w-8 h-8 text-red-600 mx-auto mb-3" />
+                        <Mail className="w-8 h-8 text-gray-900 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Email Campaigns</h3>
                         <p className="text-sm font-satoshi text-gray-700">Send emails to customers and waitlist</p>
                       </div>
@@ -297,7 +297,7 @@ export default function StaffPortal() {
                   <Link href="/staff/blog" className="block focus:outline-none focus:ring-2 focus:ring-[#F23E2E] rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
-                        <FileText className="w-8 h-8 text-orange-600 mx-auto mb-3" />
+                        <FileText className="w-8 h-8 text-gray-900 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Blog Posts</h3>
                         <p className="text-sm font-satoshi text-gray-700">Create and manage blog posts</p>
                       </div>
@@ -307,7 +307,7 @@ export default function StaffPortal() {
                   <Link href="/staff/leave-request" className="block focus:outline-none focus:ring-2 focus:ring-[#F23E2E] rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
-                        <Calendar className="w-8 h-8 text-red-600 mx-auto mb-3" />
+                        <Calendar className="w-8 h-8 text-gray-900 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Leave Request</h3>
                         <p className="text-sm font-satoshi text-gray-700">Submit a leave request</p>
                       </div>
@@ -317,7 +317,7 @@ export default function StaffPortal() {
                   <Link href="/staff/waitlist" className="block focus:outline-none focus:ring-2 focus:ring-[#F23E2E] rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
-                        <UserPlus className="w-8 h-8 text-indigo-600 mx-auto mb-3" />
+                        <UserPlus className="w-8 h-8 text-gray-900 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Waitlist Management</h3>
                         <p className="text-sm font-satoshi text-gray-700">Add leads to waitlist</p>
                       </div>
@@ -339,8 +339,8 @@ export default function StaffPortal() {
                     </div>
                   ) : staffNotices.length === 0 ? (
                     <div className="text-center py-8">
-                      <div className="mx-auto w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                        <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                       </div>
@@ -386,12 +386,12 @@ export default function StaffPortal() {
                           key={notification._id}
                           className={`flex items-center justify-between p-4 rounded-xl border font-satoshi ${
                             notification.type === 'success'
-                              ? 'bg-green-100 border-green-300 text-green-800'
-                              : notification.type === 'warning'
                               ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
+                              : notification.type === 'warning'
+                              ? 'bg-gray-100 border-gray-300 text-gray-800'
                               : notification.type === 'error'
-                              ? 'bg-red-100 border-red-300 text-red-800'
-                              : 'bg-blue-100 border-blue-300 text-blue-800'
+                              ? 'bg-gray-100 border-gray-300 text-gray-800'
+                              : 'bg-gray-100 border-gray-300 text-gray-800'
                           }`}
                         >
                           <div className="flex-1">

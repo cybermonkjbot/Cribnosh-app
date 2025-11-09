@@ -8,10 +8,10 @@ import { Id } from '@/convex/_generated/dataModel';
 import { Badge, Loader2, RefreshCw, XCircle } from 'lucide-react';
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { WorkIdListSkeleton } from '@/components/admin/skeletons';
-import { useMutation, useQuery } from 'convex/react';
 import { EmptyState } from '@/components/admin/empty-state';
+import { WorkIdListSkeleton } from '@/components/admin/skeletons';
 import { useSessionToken } from '@/hooks/useSessionToken';
+import { useMutation, useQuery } from 'convex/react';
 
 export default function AdminStaffWorkIdsPage() {
   const sessionToken = useSessionToken();
@@ -76,9 +76,7 @@ export default function AdminStaffWorkIdsPage() {
 
   
   return (
-    <div>
-          <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-      <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
         <GlassCard className="p-8">
           <h1 className="text-2xl font-asgard text-gray-900 mb-6 flex items-center gap-2">
             <Badge className="w-6 h-6 text-amber-600" /> Staff Work IDs

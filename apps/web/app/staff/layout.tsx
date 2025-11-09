@@ -155,12 +155,12 @@ function StaffLayoutContent({
                     key={notification._id}
                     className={`flex items-center justify-between p-4 rounded-xl border font-satoshi ${
                       notification.type === 'success'
-                        ? 'bg-green-100 border-green-300 text-green-800'
-                        : notification.type === 'warning'
                         ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
+                        : notification.type === 'warning'
+                        ? 'bg-gray-100 border-gray-300 text-gray-800'
                         : notification.type === 'error'
-                        ? 'bg-red-100 border-red-300 text-red-800'
-                        : 'bg-blue-100 border-blue-300 text-blue-800'
+                        ? 'bg-gray-100 border-gray-300 text-gray-800'
+                        : 'bg-gray-100 border-gray-300 text-gray-800'
                     }`}
                   >
                     <div className="flex-1">

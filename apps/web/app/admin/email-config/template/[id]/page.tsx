@@ -1,6 +1,5 @@
-import React from 'react';
-import { Metadata } from 'next';
 import { EmailTemplateEditor } from '@/components/admin/email-template-editor';
+import { Metadata } from 'next';
 
 interface TemplateEditPageProps {
   params: {
@@ -17,7 +16,7 @@ export async function generateMetadata({ params }: TemplateEditPageProps): Promi
 
 export default function TemplateEditPage({ params }: TemplateEditPageProps) {
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <EmailTemplateEditor 
         templateId={params.id}
         onCancel={() => window.history.back()}

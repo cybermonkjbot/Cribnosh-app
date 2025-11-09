@@ -1,42 +1,42 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import type { Id } from '@/convex/_generated/dataModel';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
+import { TimeTrackingTableSkeleton } from '@/components/admin/skeletons';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Clock, 
-  Users, 
-  Calendar, 
-  Filter, 
-  Play,
-  Pause,
-  CheckCircle,
+import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Activity,
   AlertTriangle,
-  Edit,
-  Trash,
+  BarChart3,
+  Calendar,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
-  BarChart3,
+  Clock,
   Download,
-  User,
+  Edit,
+  Filter,
+  Pause,
+  PieChart,
+  Play,
   Target,
-  Activity,
-  PieChart
+  Trash,
+  TrendingUp,
+  User,
+  Users
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
 import { motion } from 'motion/react';
-import { TimeTrackingTableSkeleton } from '@/components/admin/skeletons';
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { useEffect, useMemo, useState } from 'react';
 
 type Session = {
   _id: Id<'workSessions'>;
@@ -193,7 +193,7 @@ export default function AdminTimeTrackingPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Error and Success Messages */}
       {error && (
         <Alert variant="destructive" className="bg-gray-50 border-gray-200">

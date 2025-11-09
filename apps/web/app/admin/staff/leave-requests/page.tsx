@@ -1,17 +1,16 @@
 ﻿"use client";
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 // Auth is handled by layout, no need for AuthWrapper
 import { GlassCard } from '@/components/ui/glass-card';
 
 
-import { api } from '@/convex/_generated/api';
-import { CheckCircle, XCircle, Calendar, Loader2 } from 'lucide-react';
-import Link from 'next/link';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { AdminPageSkeleton } from '@/components/admin/skeletons';
 import { EmptyState } from '@/components/admin/empty-state';
+import { AdminPageSkeleton } from '@/components/admin/skeletons';
+import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { useQuery, useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
+import { Calendar, CheckCircle, Loader2, XCircle } from 'lucide-react';
 
 export default function AdminStaffLeaveRequestsPage() {
   
@@ -79,9 +78,7 @@ export default function AdminStaffLeaveRequestsPage() {
   }
 
   return (
-    <div>
-          <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
-      <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
         <GlassCard className="p-8">
           <h1 className="text-2xl font-asgard text-gray-900 mb-6 flex items-center gap-2">
             <Calendar className="w-6 h-6 text-[#F23E2E]" /> Leave Requests

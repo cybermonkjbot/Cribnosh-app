@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
 
 export default function AdminDebugPage() {
   const { user, loading } = useAdminUser();
@@ -19,7 +19,7 @@ export default function AdminDebugPage() {
   }, []);
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <h1 className="text-2xl font-bold">Admin Debug Page</h1>
       
       <div className="space-y-4">

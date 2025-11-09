@@ -1,34 +1,33 @@
 "use client";
 
-import { useState } from 'react';
-import { useSessionToken } from '@/hooks/useSessionToken';
-import { useQuery, useMutation } from 'convex/react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  MapPin, 
-  Search, 
-  Filter,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Users,
-  ChefHat,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Globe,
-  Building,
-  Navigation
-} from 'lucide-react';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { formatCurrency } from '@/lib/utils/number-format';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Building,
+  CheckCircle,
+  ChefHat,
+  Edit,
+  Eye,
+  Filter,
+  Globe,
+  MapPin,
+  Navigation,
+  Plus,
+  Search,
+  Trash2,
+  Users,
+  XCircle
+} from 'lucide-react';
+import { useState } from 'react';
 
 interface City {
   _id: Id<"cities">;
@@ -255,7 +254,7 @@ export default function CitiesManagementPage() {
   const uniqueCountries = Array.from(new Set(cities?.map((city: any) => city.country) || []));
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

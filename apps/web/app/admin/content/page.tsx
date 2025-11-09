@@ -247,8 +247,7 @@ export default function AdminContentPage() {
   };
 
   return (
-    <div>
-          <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-asgard text-gray-900">
           Content Management
