@@ -251,13 +251,13 @@ export default function OnboardingPage() {
 
   if (!staffUser) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white/95 backdrop-blur-sm flex items-center justify-center">
         <GlassCard className="p-8 text-center max-w-md">
           <h1 className="text-2xl font-asgard text-white mb-4">Authentication Required</h1>
           <p className="text-white/80 mb-6">Please sign in to access the onboarding portal.</p>
           <button 
             type="button"
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg transition-colors"
           >
             Sign in
           </button>
@@ -269,7 +269,7 @@ export default function OnboardingPage() {
   // If onboarding is complete
   if (submitted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white/95 backdrop-blur-sm flex items-center justify-center">
         <GlassCard className="p-8 text-center max-w-md">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-2xl font-asgard text-white mb-4">Onboarding Complete!</h1>
@@ -278,7 +278,7 @@ export default function OnboardingPage() {
           </p>
           <Link 
             href="/staff/portal" 
-            className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg transition-colors"
           >
             Return to Portal
           </Link>
@@ -288,7 +288,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-amber-50 to-orange-100 pb-24 sm:pb-8">
+    <div className="min-h-screen bg-white/95 backdrop-blur-sm pb-24 sm:pb-8">
       <div className="w-full mx-auto max-w-4xl px-3 pt-8 pb-4 sm:px-4 sm:pt-8 sm:pb-6 md:px-6 lg:px-8">
         <Link
           href="/staff/portal"
@@ -312,13 +312,13 @@ export default function OnboardingPage() {
                 pattern="[0-9]{6}"
                 value={onboardingCode}
                 onChange={e => setOnboardingCode(e.target.value.replace(/[^0-9]/g, ''))}
-                className="w-full px-4 py-2 rounded-lg border border-amber-300 focus:ring-2 focus:ring-amber-500 font-satoshi text-lg tracking-widest text-center mb-4 bg-white text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-2 rounded-lg border border-gray-200/60 focus:ring-2 focus:ring-[#F23E2E] font-satoshi text-lg tracking-widest text-center mb-4 bg-white text-gray-900 placeholder-gray-500"
                 placeholder="000000"
                 aria-label="Onboarding code"
               />
               {codeError && <div className="text-red-500 mb-2 font-satoshi">{codeError}</div>}
               <button
-                className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-satoshi text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                className="w-full py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg font-satoshi text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#F23E2E] disabled:opacity-50"
                 onClick={validateCode}
                 disabled={onboardingCode.length !== 6}
                 type="button"
@@ -338,7 +338,7 @@ export default function OnboardingPage() {
                     <div key={step.id} className="flex flex-col items-center shrink-0" style={{ minWidth: '60px' }}>
                       <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 ${
                         currentStep >= step.id 
-                          ? 'bg-amber-600 border-amber-600 text-white' 
+                          ? 'bg-[#F23E2E] border-[#F23E2E] text-white' 
                           : 'bg-white border-gray-300 text-gray-500'
                       }`}>
                         {currentStep > step.id ? (
@@ -352,7 +352,7 @@ export default function OnboardingPage() {
                       </span>
                       {index < steps.length - 1 && (
                         <div className={`hidden sm:block w-8 sm:w-12 h-0.5 mx-1 ${
-                          currentStep > step.id ? 'bg-amber-600' : 'bg-gray-300'
+                          currentStep > step.id ? 'bg-[#F23E2E]' : 'bg-gray-300'
                         }`} />
                       )}
                     </div>
@@ -381,7 +381,7 @@ export default function OnboardingPage() {
                           id="firstName"
                           value={formData.firstName}
                           onChange={(e) => updateFormData('firstName', e.target.value)}
-                          className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                          className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#F23E2E] focus:border-[#F23E2E] sm:text-sm"
                           required
                           autoComplete="given-name"
                         />
@@ -396,7 +396,7 @@ export default function OnboardingPage() {
                           id="lastName"
                           value={formData.lastName}
                           onChange={(e) => updateFormData('lastName', e.target.value)}
-                          className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                          className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#F23E2E] focus:border-[#F23E2E] sm:text-sm"
                           required
                           autoComplete="family-name"
                         />
@@ -412,7 +412,7 @@ export default function OnboardingPage() {
                         id="email"
                         value={formData.email}
                         onChange={(e) => updateFormData('email', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                        className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#F23E2E] focus:border-[#F23E2E] sm:text-sm"
                         required
                         autoComplete="email"
                       />
@@ -428,7 +428,7 @@ export default function OnboardingPage() {
                           id="phone"
                           value={formData.phone}
                           onChange={(e) => updateFormData('phone', e.target.value)}
-                          className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                          className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#F23E2E] focus:border-[#F23E2E] sm:text-sm"
                           required
                           autoComplete="tel"
                         />
@@ -443,7 +443,7 @@ export default function OnboardingPage() {
                           id="dateOfBirth"
                           value={formData.dateOfBirth}
                           onChange={(e) => updateFormData('dateOfBirth', e.target.value)}
-                          className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                          className="mt-1 block w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#F23E2E] focus:border-[#F23E2E] sm:text-sm"
                           required
                           autoComplete="bday"
                         />
@@ -459,7 +459,7 @@ export default function OnboardingPage() {
                             type="text"
                             value={formData.address.street}
                             onChange={(e) => updateFormData('address.street', e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                             placeholder="Enter street address"
                           />
                         </div>
@@ -470,7 +470,7 @@ export default function OnboardingPage() {
                             type="text"
                             value={formData.address.city}
                             onChange={(e) => updateFormData('address.city', e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                             placeholder="Enter city"
                           />
                         </div>
@@ -481,7 +481,7 @@ export default function OnboardingPage() {
                             type="text"
                             value={formData.address.state}
                             onChange={(e) => updateFormData('address.state', e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                             placeholder="Enter state"
                           />
                         </div>
@@ -492,7 +492,7 @@ export default function OnboardingPage() {
                             type="text"
                             value={formData.address.zipCode}
                             onChange={(e) => updateFormData('address.zipCode', e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                             placeholder="Enter ZIP code"
                           />
                         </div>
@@ -503,7 +503,7 @@ export default function OnboardingPage() {
                             type="text"
                             value={formData.address.country}
                             onChange={(e) => updateFormData('address.country', e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                             placeholder="Enter country"
                           />
                         </div>
@@ -528,7 +528,7 @@ export default function OnboardingPage() {
                         type="text"
                         value={formData.position}
                         onChange={(e) => updateFormData('position', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="Enter your position"
                       />
                     </div>
@@ -538,7 +538,7 @@ export default function OnboardingPage() {
                       <select
                         value={formData.employmentType}
                         onChange={(e) => updateFormData('employmentType', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                       >
                         <option value="full-time">Full Time</option>
                         <option value="part-time">Part Time</option>
@@ -565,7 +565,7 @@ export default function OnboardingPage() {
                         type="text"
                         value={formData.emergencyContact.name}
                         onChange={(e) => updateFormData('emergencyContact.name', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="Enter contact name"
                       />
                     </div>
@@ -576,7 +576,7 @@ export default function OnboardingPage() {
                         type="text"
                         value={formData.emergencyContact.relationship}
                         onChange={(e) => updateFormData('emergencyContact.relationship', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="e.g., Spouse, Parent, Sibling"
                       />
                     </div>
@@ -587,7 +587,7 @@ export default function OnboardingPage() {
                         type="tel"
                         value={formData.emergencyContact.phone}
                         onChange={(e) => updateFormData('emergencyContact.phone', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="Enter phone number"
                       />
                     </div>
@@ -598,7 +598,7 @@ export default function OnboardingPage() {
                         type="email"
                         value={formData.emergencyContact.email}
                         onChange={(e) => updateFormData('emergencyContact.email', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="Enter email address"
                       />
                     </div>
@@ -621,7 +621,7 @@ export default function OnboardingPage() {
                         type="text"
                         value={formData.taxInfo.ssn}
                         onChange={(e) => updateFormData('taxInfo.ssn', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="XXX-XX-XXXX"
                       />
                     </div>
@@ -631,7 +631,7 @@ export default function OnboardingPage() {
                       <select
                         value={formData.taxInfo.filingStatus}
                         onChange={(e) => updateFormData('taxInfo.filingStatus', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                       >
                         <option value="single">Single</option>
                         <option value="married">Married</option>
@@ -645,7 +645,7 @@ export default function OnboardingPage() {
                         type="number"
                         value={formData.taxInfo.allowances}
                         onChange={(e) => updateFormData('taxInfo.allowances', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         min="0"
                       />
                     </div>
@@ -668,7 +668,7 @@ export default function OnboardingPage() {
                         type="text"
                         value={formData.bankingInfo.bankName}
                         onChange={(e) => updateFormData('bankingInfo.bankName', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="Enter bank name"
                       />
                     </div>
@@ -678,7 +678,7 @@ export default function OnboardingPage() {
                       <select
                         value={formData.bankingInfo.accountType}
                         onChange={(e) => updateFormData('bankingInfo.accountType', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                       >
                         <option value="checking">Checking</option>
                         <option value="savings">Savings</option>
@@ -691,7 +691,7 @@ export default function OnboardingPage() {
                         type="text"
                         value={formData.bankingInfo.accountNumber}
                         onChange={(e) => updateFormData('bankingInfo.accountNumber', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="Enter account number"
                       />
                     </div>
@@ -702,7 +702,7 @@ export default function OnboardingPage() {
                         type="text"
                         value={formData.bankingInfo.routingNumber}
                         onChange={(e) => updateFormData('bankingInfo.routingNumber', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                         placeholder="Enter routing number"
                       />
                     </div>
@@ -725,7 +725,7 @@ export default function OnboardingPage() {
                         id="healthInsurance"
                         checked={formData.benefits.healthInsurance}
                         onChange={(e) => updateFormData('benefits.healthInsurance', e.target.checked)}
-                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-[#F23E2E] focus:ring-[#F23E2E] border-gray-300 rounded"
                       />
                       <label htmlFor="healthInsurance" className="ml-2 block text-sm text-gray-700">
                         Health Insurance
@@ -738,7 +738,7 @@ export default function OnboardingPage() {
                         id="dentalInsurance"
                         checked={formData.benefits.dentalInsurance}
                         onChange={(e) => updateFormData('benefits.dentalInsurance', e.target.checked)}
-                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-[#F23E2E] focus:ring-[#F23E2E] border-gray-300 rounded"
                       />
                       <label htmlFor="dentalInsurance" className="ml-2 block text-sm text-gray-700">
                         Dental Insurance
@@ -751,7 +751,7 @@ export default function OnboardingPage() {
                         id="visionInsurance"
                         checked={formData.benefits.visionInsurance}
                         onChange={(e) => updateFormData('benefits.visionInsurance', e.target.checked)}
-                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-[#F23E2E] focus:ring-[#F23E2E] border-gray-300 rounded"
                       />
                       <label htmlFor="visionInsurance" className="ml-2 block text-sm text-gray-700">
                         Vision Insurance
@@ -764,7 +764,7 @@ export default function OnboardingPage() {
                         id="retirementPlan"
                         checked={formData.benefits.retirementPlan}
                         onChange={(e) => updateFormData('benefits.retirementPlan', e.target.checked)}
-                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-[#F23E2E] focus:ring-[#F23E2E] border-gray-300 rounded"
                       />
                       <label htmlFor="retirementPlan" className="ml-2 block text-sm text-gray-700">
                         401(k) Retirement Plan
@@ -777,7 +777,7 @@ export default function OnboardingPage() {
                         id="lifeInsurance"
                         checked={formData.benefits.lifeInsurance}
                         onChange={(e) => updateFormData('benefits.lifeInsurance', e.target.checked)}
-                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-[#F23E2E] focus:ring-[#F23E2E] border-gray-300 rounded"
                       />
                       <label htmlFor="lifeInsurance" className="ml-2 block text-sm text-gray-700">
                         Life Insurance
@@ -800,7 +800,7 @@ export default function OnboardingPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         ID Document (Driver's License, Passport, etc.)
                       </label>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-400 transition-colors">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#F23E2E] transition-colors">
                         <Upload className="mx-auto h-12 w-12 text-gray-400" />
                         <div className="mt-4">
                           <label htmlFor="idDocument" className="cursor-pointer">
@@ -831,7 +831,7 @@ export default function OnboardingPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Tax Form (W-4)
                       </label>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-400 transition-colors">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#F23E2E] transition-colors">
                         <Upload className="mx-auto h-12 w-12 text-gray-400" />
                         <div className="mt-4">
                           <label htmlFor="taxForm" className="cursor-pointer">
@@ -862,7 +862,7 @@ export default function OnboardingPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Direct Deposit Form
                       </label>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-400 transition-colors">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#F23E2E] transition-colors">
                         <Upload className="mx-auto h-12 w-12 text-gray-400" />
                         <div className="mt-4">
                           <label htmlFor="directDepositForm" className="cursor-pointer">
@@ -909,7 +909,7 @@ export default function OnboardingPage() {
                       <button
                         onClick={nextStep}
                         disabled={submitting}
-                        className="flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                        className="flex items-center px-4 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] disabled:opacity-50 text-white rounded-lg transition-colors"
                       >
                         Next
                         <ArrowRight className="w-4 h-4 ml-2" />

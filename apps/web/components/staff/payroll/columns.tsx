@@ -4,6 +4,7 @@ import { ArrowUpDown, Download, FileText } from 'lucide-react'
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { formatCurrency } from "@/lib/utils/number-format"
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -103,11 +104,11 @@ export const columns: ColumnDef<PaySlip>[] = [
       return (
         <div className="text-right">
           <div className="font-medium">
-            ${net.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatCurrency(net, { currency: 'USD' })}
           </div>
           {gross !== net && (
             <div className="text-sm text-muted-foreground">
-              ${gross.toLocaleString('en-US', { minimumFractionDigits: 2 })} gross
+              {formatCurrency(gross, { currency: 'USD' })} gross
             </div>
           )}
         </div>

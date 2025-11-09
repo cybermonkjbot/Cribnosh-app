@@ -28,6 +28,7 @@ import {
   Receipt
 } from 'lucide-react';
 import { EmptyState } from '@/components/admin/empty-state';
+import { formatCurrency } from '@/lib/utils/number-format';
 
 interface TaxDocument {
   _id: Id<"taxDocuments">;
@@ -244,12 +245,7 @@ export default function TaxDocumentsPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(amount);
-  };
+  // formatCurrency is imported from utils
 
   const uniqueYears = Array.from(new Set(taxDocuments?.map((doc: any) => doc.taxYear) || []));
 

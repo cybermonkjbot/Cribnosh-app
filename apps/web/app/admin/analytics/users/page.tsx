@@ -20,6 +20,7 @@ import {
   UserCheck,
   UserX
 } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils/number-format';
 
 interface UserData {
   totalUsers: number;
@@ -212,7 +213,7 @@ export default function UserAnalyticsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Lifetime Value</span>
-                  <span className="text-sm font-medium">£{userAnalytics?.userLifetimeValue || 0}</span>
+                  <span className="text-sm font-medium">{formatCurrency(userAnalytics?.userLifetimeValue || 0, { currency: 'GBP' })}</span>
                 </div>
               </CardContent>
             </Card>

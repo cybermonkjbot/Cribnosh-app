@@ -472,7 +472,7 @@ export default function StaffWaitlistPage() {
                                     disabled={isLoadingEntries}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-satoshi transition-colors ${
                                       currentPage === pageNum
-                                        ? 'bg-amber-600 text-white'
+                                        ? 'bg-[#F23E2E] text-white'
                                         : 'bg-white/70 hover:bg-white/90 text-gray-700'
                                     } ${isLoadingEntries ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                   >

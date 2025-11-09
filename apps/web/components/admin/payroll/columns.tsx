@@ -4,6 +4,7 @@ import { ArrowUpDown, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HTMLAttributes } from "react"
+import { formatCurrency } from "@/lib/utils/number-format"
 
 // Define the shape of our data
 type PayrollPeriod = {
@@ -91,10 +92,7 @@ export const columns: ColumnDef<PayrollPeriod>[] = [
     header: () => <div className="text-right">Total Pay</div>,
     cell: ({ row }: { row: Row<PayrollPeriod> }) => {
       const amount = parseFloat(row.getValue("totalPay"))
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
+      const formatted = formatCurrency(amount, { currency: 'USD' })
  
       return <div className="text-right font-medium">{formatted}</div>
     },

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import Link from 'next/link';
+import { formatCurrency } from '@/lib/utils/number-format';
 
 interface AnalyticsData {
   totalUsers: number;
@@ -101,7 +102,7 @@ export default function AdminAnalyticsPage() {
     },
     {
       title: 'Revenue',
-      value: `£${currentData.totalRevenue.toLocaleString()}`,
+      value: formatCurrency(currentData.totalRevenue, { currency: 'GBP' }),
       change: `${currentData.revenueGrowth >= 0 ? '+' : ''}${currentData.revenueGrowth.toFixed(1)}%`,
       changeType: currentData.revenueGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: DollarSign,
@@ -301,7 +302,7 @@ export default function AdminAnalyticsPage() {
                   <td className="py-3 px-4 text-sm font-satoshi text-gray-900">{metric.date}</td>
                   <td className="py-3 px-4 text-sm font-satoshi text-gray-600">{metric.users}</td>
                   <td className="py-3 px-4 text-sm font-satoshi text-gray-600">{metric.orders}</td>
-                  <td className="py-3 px-4 text-sm font-satoshi text-gray-600">£{metric.revenue}</td>
+                  <td className="py-3 px-4 text-sm font-satoshi text-gray-600">{formatCurrency(metric.revenue, { currency: 'GBP' })}</td>
                 </tr>
               ))}
             </tbody>

@@ -4,6 +4,7 @@ import { useAdminUser } from "@/app/admin/AdminUserProvider";
 import { api } from '@/convex/_generated/api';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useQuery } from 'convex/react';
+import { formatNumber } from '@/lib/utils/number-format';
 import {
   AlertTriangle,
   Badge,
@@ -47,7 +48,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
   const pathname = usePathname();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
-  const { user, loading } = useAdminUser();
+  const { user, loading, sessionToken } = useAdminUser();
   const [isClient, setIsClient] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   
@@ -65,21 +66,14 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
   }, [pathname]);
 
   // Fetch real data for sidebar badges
-  const totalUsers = useQuery(api.queries.users.getTotalUserCount);
-  const waitlistCount = useQuery(api.queries.waitlist.getWaitlistCount);
+  const totalUsers = useQuery(api.queries.users.getTotalUserCount, sessionToken ? { sessionToken } : "skip");
+  const waitlistCount = useQuery(api.queries.waitlist.getWaitlistCount, sessionToken ? { sessionToken } : "skip");
   const newChefApplications = useQuery(api.queries.careers.getNewChefApplicationsCount);
   
   // Don't render if not in admin section or on login page
   if (!pathname.startsWith('/admin') || pathname === '/admin/login') {
     return null;
   }
-
-  // Helper function to format numbers
-  const formatNumber = (num: number | undefined) => {
-    if (num === undefined) return '...';
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
-  };
 
   const navItems = [  
     { 

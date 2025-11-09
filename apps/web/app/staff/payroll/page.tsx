@@ -51,23 +51,11 @@ import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 // Custom components
 import { DataTable } from '@/components/staff/payroll/data-table';
 import { columns } from '@/components/staff/payroll/columns';
+import { formatCurrency } from '@/lib/utils/number-format';
 
-// Currency formatter for Naira
+// Currency formatter for Naira (using utility)
 const formatNaira = (amount: number) => {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
-// Format large numbers with K, M, B suffixes
-const formatLargeNumber = (num: number) => {
-  if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B';
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num.toString();
+  return formatCurrency(amount, { currency: 'NGN' });
 };
 
 export default function StaffPayrollPage() {
@@ -466,7 +454,7 @@ Document ID: ${doc._id}`;
               Live Data
             </Badge>
             {summaryStats.pendingPayslips > 0 && (
-              <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
+              <Badge variant="outline" className="ml-2 bg-[#F23E2E]/10 text-[#F23E2E] border-gray-200/60">
                 <AlertCircle className="w-3 h-3 mr-1" />
                 {summaryStats.pendingPayslips} Pending
               </Badge>
@@ -714,9 +702,9 @@ Document ID: ${doc._id}`;
               </div>
               
               {/* Processing Time */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h3 className="font-semibold text-amber-800 mb-2">Processing Time</h3>
-                <p className="text-sm text-amber-700">2-3 business days before pay date</p>
+              <div className="bg-[#F23E2E]/10 border border-gray-200/60 rounded-lg p-4">
+                <h3 className="font-semibold text-[#F23E2E] mb-2">Processing Time</h3>
+                <p className="text-sm text-[#F23E2E]">2-3 business days before pay date</p>
               </div>
             </div>
           </div>
@@ -803,16 +791,16 @@ Document ID: ${doc._id}`;
 
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-amber-100 rounded-xl">
-                <User className="w-6 h-6 text-amber-600" />
+              <div className="p-3 bg-[#F23E2E]/10 rounded-xl">
+                <User className="w-6 h-6 text-[#F23E2E]" />
               </div>
-              <CalendarDays className="w-5 h-5 text-amber-500" />
+              <CalendarDays className="w-5 h-5 text-[#F23E2E]" />
             </div>
             <div className="text-3xl font-bold font-asgard text-gray-900 mb-2">
               {staffUser?.name || 'Staff'}
             </div>
             <p className="text-gray-600 font-satoshi">Current Employee</p>
-            <div className="mt-3 text-sm text-amber-600 font-medium">
+            <div className="mt-3 text-sm text-[#F23E2E] font-medium">
               {payrollData ? 'Active' : 'Pending'} Status
             </div>
           </div>
@@ -886,7 +874,7 @@ Document ID: ${doc._id}`;
                   <p className="text-xs text-gray-600 font-satoshi">Overtime Hours</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50/80 rounded-lg">
-                  <p className="text-2xl font-bold font-asgard text-amber-600">{summaryStats.pendingPayslips}</p>
+                  <p className="text-2xl font-bold font-asgard text-[#F23E2E]">{summaryStats.pendingPayslips}</p>
                   <p className="text-xs text-gray-600 font-satoshi">Pending</p>
                 </div>
               </div>
@@ -919,11 +907,11 @@ Document ID: ${doc._id}`;
                       </div>
                       <div className="text-sm text-purple-700 font-satoshi">Work Sessions</div>
                     </div>
-                    <div className="text-center p-4 bg-amber-50 rounded-lg">
-                      <div className="text-2xl font-bold font-asgard text-amber-600">
+                    <div className="text-center p-4 bg-[#F23E2E]/10 rounded-lg">
+                      <div className="text-2xl font-bold font-asgard text-[#F23E2E]">
                         {ytdHours.totalHours > 0 ? (ytdHours.totalHours / ytdHours.sessions).toFixed(1) : '0'}
                       </div>
-                      <div className="text-sm text-amber-700 font-satoshi">Avg per Session</div>
+                      <div className="text-sm text-[#F23E2E] font-satoshi">Avg per Session</div>
                     </div>
                   </div>
                   
@@ -1436,26 +1424,26 @@ Document ID: ${doc._id}`;
 
                   {/* Banking Info */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4 border border-amber-200/60 hover:border-amber-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-[#F23E2E]/10 to-[#F23E2E]/5 p-4 border border-gray-200/60/60 hover:border-gray-200/60 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => showInfo(
                       'Banking Information',
                       'The banking information update feature is coming soon! You will be able to update your payment details, add new bank accounts, and manage your payment preferences directly from this dashboard.'
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-amber-500 rounded-lg group-hover:bg-amber-600 transition-colors duration-300">
+                      <div className="p-2 bg-[#F23E2E]/100 rounded-lg group-hover:bg-[#F23E2E] transition-colors duration-300">
                         <CreditCard className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold font-asgard text-amber-900 group-hover:text-amber-800 transition-colors duration-300">
+                        <h4 className="font-semibold font-asgard text-[#F23E2E] group-hover:text-[#F23E2E] transition-colors duration-300">
                           Banking Info
                         </h4>
-                        <p className="text-sm text-amber-700 font-satoshi opacity-80">
+                        <p className="text-sm text-[#F23E2E] font-satoshi opacity-80">
                           Update payment details
                         </p>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#F23E2E] rounded-full"></div>
                       </div>
                     </div>
                   </div>
@@ -1640,14 +1628,14 @@ Document ID: ${doc._id}`;
                           </div>
                         </div>
                         
-                        <div className="p-4 bg-amber-50/80 rounded-xl border border-amber-200/60">
+                        <div className="p-4 bg-[#F23E2E]/10/80 rounded-xl border border-gray-200/60/60">
                           <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                            <AlertCircle className="w-5 h-5 text-[#F23E2E] mt-0.5 flex-shrink-0" />
                             <div className="text-left">
-                              <h4 className="font-semibold font-asgard text-amber-900 mb-1">Need Help?</h4>
-                              <p className="text-sm text-amber-700 font-satoshi leading-relaxed">
+                              <h4 className="font-semibold font-asgard text-[#F23E2E] mb-1">Need Help?</h4>
+                              <p className="text-sm text-[#F23E2E] font-satoshi leading-relaxed">
                                 For questions about your payslips or payroll, contact the HR team at{' '}
-                                <a href="mailto:hr@cribnosh.com" className="underline hover:text-amber-800">
+                                <a href="mailto:hr@cribnosh.com" className="underline hover:text-[#F23E2E]">
                                   hr@cribnosh.com
                                 </a>
                               </p>

@@ -2,13 +2,13 @@
 
 import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { ActivityWatchSetupStatus } from '@/components/staff/ActivityWatchSetupStatus';
+import { BackButton } from '@/components/staff/BackButton';
 import { ClockInCard } from '@/components/staff/ClockInCard';
+import { PageContainer } from '@/components/staff/PageContainer';
 import { WeeklyHoursCard } from '@/components/staff/WeeklyHoursCard';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
-import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -65,23 +65,25 @@ export default function TimeTrackingPage() {
   // Enforce ActivityWatch setup
   if (!isActivityWatchSetup) {
     return (
-      <div className="max-w-2xl mx-auto min-h-screen flex flex-col justify-center items-center space-y-8 p-4">
-        <ActivityWatchSetupStatus isSetup={false} />
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-          <h2 className="text-xl font-asgard text-amber-900 mb-2">ActivityWatch Setup Required</h2>
-          <p className="text-amber-800 mb-4 font-satoshi">
-            You must complete ActivityWatch setup before you can use time tracking features. This is required for all employees to ensure accurate and secure work hour logging.
-          </p>
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={handleMarkSetupComplete}
-              className="inline-flex items-center px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-satoshi text-base font-medium"
-            >
-              [DEV ONLY] Bypass ActivityWatch Setup
-            </button>
-          )}
+      <PageContainer maxWidth="2xl">
+        <div className="min-h-screen flex flex-col justify-center items-center space-y-8">
+          <ActivityWatchSetupStatus isSetup={false} />
+          <div className="bg-[#F23E2E]/10 border border-[#F23E2E]/20 rounded-xl p-6 text-center">
+            <h2 className="text-xl font-asgard text-[#F23E2E] mb-2">ActivityWatch Setup Required</h2>
+            <p className="text-[#F23E2E] mb-4 font-satoshi">
+              You must complete ActivityWatch setup before you can use time tracking features. This is required for all employees to ensure accurate and secure work hour logging.
+            </p>
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={handleMarkSetupComplete}
+                className="inline-flex items-center px-6 py-3 bg-[#F23E2E] text-white rounded-lg hover:bg-[#ed1d12] transition-colors font-satoshi text-base font-medium"
+              >
+                [DEV ONLY] Bypass ActivityWatch Setup
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -102,15 +104,8 @@ export default function TimeTrackingPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 px-4 pt-8">
-      {/* Back Button */}
-      <Link
-        href="/staff/portal"
-        className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-8"
-        aria-label="Back to Staff Portal"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </Link>
+    <PageContainer maxWidth="6xl">
+      <BackButton href="/staff/portal" className="mb-8" />
 
       {/* ActivityWatch Setup Status */}
       <ActivityWatchSetupStatus isSetup={true} errorMessage={awError || undefined} />
@@ -139,8 +134,6 @@ export default function TimeTrackingPage() {
           <WeeklyHoursCard staffId={profile._id} sessionToken={sessionToken} />
         </motion.div>
       </div>
-
-      {/* Removed Time Tracking Guidelines section */}
-    </div>
+    </PageContainer>
   );
 } 

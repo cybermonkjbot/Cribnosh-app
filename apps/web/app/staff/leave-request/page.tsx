@@ -1,11 +1,13 @@
 ﻿"use client";
 import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
+import { BackButton } from '@/components/staff/BackButton';
+import { PageContainer } from '@/components/staff/PageContainer';
 import { GlassCard } from '@/components/ui/glass-card';
 import { RequestHistory } from '@/components/ui/request-history';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
-import { ArrowLeft, Calendar, CheckCircle, Info } from 'lucide-react';
+import { Calendar, CheckCircle, Info } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
@@ -116,10 +118,10 @@ export default function LeaveRequestPage() {
     <div className="flex items-center justify-center gap-2 mb-6">
       {steps.map((s, idx) => (
         <div key={s.id} className="flex flex-col items-center flex-1">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200 ${step >= s.id ? 'bg-amber-600 border-amber-600 text-white' : 'bg-white border-gray-300 text-gray-400'}`}> 
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200 ${step >= s.id ? 'bg-[#F23E2E] border-[#F23E2E] text-white' : 'bg-white border-gray-300 text-gray-400'}`}> 
             <s.icon className="w-5 h-5" />
           </div>
-          <span className={`mt-1 text-xs font-satoshi ${step === s.id ? 'text-amber-700 font-bold' : 'text-gray-500'}`}>{s.label}</span>
+          <span className={`mt-1 text-xs font-satoshi ${step === s.id ? 'text-[#F23E2E] font-bold' : 'text-gray-500'}`}>{s.label}</span>
         </div>
       ))}
     </div>
@@ -133,14 +135,9 @@ export default function LeaveRequestPage() {
 
   if (!staffUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-        {/* Back Button */}
-        <div className="w-full mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-        </div>
+      <div className="min-h-screen bg-white/95 backdrop-blur-sm">
+        <PageContainer>
+          <BackButton href="/staff/portal" className="mb-4" />
 
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 shadow-xl max-w-md w-full">
@@ -151,7 +148,7 @@ export default function LeaveRequestPage() {
             <p className="text-gray-700 font-satoshi mb-6">You need to be signed in to request leave.</p>
             <div className="space-y-3">
               <Link href="/staff/login">
-                <button className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-satoshi font-medium transition-colors">
+                <button className="w-full px-4 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg font-satoshi font-medium transition-colors">
                   Sign In
                 </button>
               </Link>
@@ -163,46 +160,36 @@ export default function LeaveRequestPage() {
             </div>
           </div>
         </div>
+        </PageContainer>
       </div>
     );
   }
   
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-        {/* Back Button */}
-        <div className="w-full mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 shadow-xl max-w-md w-full">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+      <div className="min-h-screen bg-white/95 backdrop-blur-sm">
+        <PageContainer>
+          <BackButton href="/staff/portal" className="mb-4" />
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 shadow-xl max-w-md w-full">
+              <div className="w-16 h-16 bg-[#F23E2E]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F23E2E]"></div>
+              </div>
+              <h2 className="text-2xl font-bold font-asgard text-gray-900 mb-4">Loading Profile</h2>
+              <p className="text-gray-700 font-satoshi">Please wait while we retrieve your profile information...</p>
             </div>
-            <h2 className="text-2xl font-bold font-asgard text-gray-900 mb-4">Loading Profile</h2>
-            <p className="text-gray-700 font-satoshi">Please wait while we retrieve your profile information...</p>
           </div>
-        </div>
+        </PageContainer>
       </div>
     );
   }
   
   if (profile === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-        {/* Back Button */}
-        <div className="w-full mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+      <div className="min-h-screen bg-white/95 backdrop-blur-sm">
+        <PageContainer>
+          <BackButton href="/staff/portal" className="mb-4" />
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 shadow-xl max-w-md w-full">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-red-400" />
@@ -211,7 +198,7 @@ export default function LeaveRequestPage() {
             <p className="text-gray-700 font-satoshi mb-6">We couldn't find your profile information. This might be due to a system error or your account may need to be set up.</p>
             <div className="space-y-3">
               <Link href="/staff/portal">
-                <button className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-satoshi font-medium transition-colors">
+                <button className="w-full px-4 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg font-satoshi font-medium transition-colors">
                   Return to Portal
                 </button>
               </Link>
@@ -221,16 +208,15 @@ export default function LeaveRequestPage() {
             </div>
           </div>
         </div>
+        </PageContainer>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-      <div className="max-w-2xl mx-auto px-2 sm:px-4 pt-8 pb-4 sm:pb-8">
-        <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-4">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
+    <div className="min-h-screen bg-white/95 backdrop-blur-sm">
+      <PageContainer maxWidth="2xl">
+        <BackButton href="/staff/portal" className="mb-4" />
         <GlassCard className="p-4 sm:p-8">
           <Progress />
           <AnimatePresence mode="wait">
@@ -251,7 +237,7 @@ export default function LeaveRequestPage() {
                     name="leaveType"
                     value={form.leaveType}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border border-amber-200 focus:ring-2 focus:ring-amber-400 font-satoshi bg-white/80 text-sm sm:text-base"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border border-gray-200/60 focus:ring-2 focus:ring-[#F23E2E] font-satoshi bg-white/80 text-sm sm:text-base"
                     required
                   >
                     <option value="">Select leave type</option>
@@ -270,13 +256,13 @@ export default function LeaveRequestPage() {
                         type="date"
                         value={form.startDate}
                         onChange={handleDateChange}
-                        className={`w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border font-satoshi bg-white/80 text-sm sm:text-base appearance-none pr-10 focus:ring-2 focus:ring-amber-400 ${form.startDate && form.endDate && form.endDate < form.startDate ? 'border-red-400' : 'border-amber-200'}`}
+                        className={`w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border font-satoshi bg-white/80 text-sm sm:text-base appearance-none pr-10 focus:ring-2 focus:ring-[#F23E2E] ${form.startDate && form.endDate && form.endDate < form.startDate ? 'border-red-400' : 'border-gray-200/60'}`}
                         required
                         aria-describedby="startDateHelp"
                         onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
                         style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
                       />
-                      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400 pointer-events-none" />
+                      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#F23E2E] pointer-events-none" />
                     </div>
                     <div id="startDateHelp" className="text-xs text-gray-400 mt-1">Tap to select start date</div>
                   </div>
@@ -289,7 +275,7 @@ export default function LeaveRequestPage() {
                         type="date"
                         value={form.endDate}
                         onChange={handleDateChange}
-                        className={`w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border font-satoshi bg-white/80 text-sm sm:text-base appearance-none pr-10 focus:ring-2 focus:ring-amber-400 ${form.startDate && form.endDate && form.endDate < form.startDate ? 'border-red-400' : 'border-amber-200'}`}
+                        className={`w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border font-satoshi bg-white/80 text-sm sm:text-base appearance-none pr-10 focus:ring-2 focus:ring-[#F23E2E] ${form.startDate && form.endDate && form.endDate < form.startDate ? 'border-red-400' : 'border-gray-200/60'}`}
                         required
                         aria-describedby="endDateHelp"
                         min={form.startDate || undefined}
@@ -297,7 +283,7 @@ export default function LeaveRequestPage() {
                         onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
                         style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
                       />
-                      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400 pointer-events-none" />
+                      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#F23E2E] pointer-events-none" />
                     </div>
                     <div id="endDateHelp" className="text-xs text-gray-400 mt-1">Tap to select end date</div>
                     {form.startDate && form.endDate && form.endDate < form.startDate && (
@@ -313,13 +299,13 @@ export default function LeaveRequestPage() {
                     type="number"
                     value={form.totalDays}
                     readOnly
-                    className="w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border border-amber-200 font-satoshi bg-gray-100 cursor-not-allowed text-sm sm:text-base"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border border-gray-200/60 font-satoshi bg-gray-100 cursor-not-allowed text-sm sm:text-base"
                   />
                 </div>
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="px-6 py-2 rounded-lg bg-amber-600 text-white font-asgard text-base shadow hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="px-6 py-2 rounded-lg bg-[#F23E2E] text-white font-asgard text-base shadow hover:bg-[#ed1d12] transition-colors focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                   >
                     Next
                   </button>
@@ -343,7 +329,7 @@ export default function LeaveRequestPage() {
                     name="reason"
                     value={form.reason}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border border-amber-200 focus:ring-2 focus:ring-amber-400 font-satoshi bg-white/80 text-sm sm:text-base"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border border-gray-200/60 focus:ring-2 focus:ring-[#F23E2E] font-satoshi bg-white/80 text-sm sm:text-base"
                     rows={3}
                     required
                   />
@@ -356,7 +342,7 @@ export default function LeaveRequestPage() {
                     type="text"
                     value={form.emergencyContact}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border border-amber-200 focus:ring-2 focus:ring-amber-400 font-satoshi bg-white/80 text-sm sm:text-base"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-2 rounded-lg border border-gray-200/60 focus:ring-2 focus:ring-[#F23E2E] font-satoshi bg-white/80 text-sm sm:text-base"
                   />
                 </div>
                 <div className="flex items-center">
@@ -366,7 +352,7 @@ export default function LeaveRequestPage() {
                     type="checkbox"
                     checked={form.isHalfDay}
                     onChange={handleChange}
-                    className="mr-2 rounded border-amber-200 focus:ring-amber-400"
+                    className="mr-2 rounded border-gray-200/60 focus:ring-[#F23E2E]"
                   />
                   <label htmlFor="isHalfDay" className="text-sm font-satoshi text-gray-700">Half-day leave</label>
                 </div>
@@ -380,7 +366,7 @@ export default function LeaveRequestPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 rounded-lg bg-amber-600 text-white font-asgard text-base shadow hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="px-6 py-2 rounded-lg bg-[#F23E2E] text-white font-asgard text-base shadow hover:bg-[#ed1d12] transition-colors focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                   >
                     Next
                   </button>
@@ -397,28 +383,28 @@ export default function LeaveRequestPage() {
                 onSubmit={handleSubmit}
                 className="space-y-4 sm:space-y-6"
               >
-                <div className="bg-amber-50 rounded-lg p-4 flex flex-col gap-2">
+                <div className="bg-[#F23E2E]/10 rounded-lg p-4 flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-amber-600" />
+                    <Calendar className="w-5 h-5 text-[#F23E2E]" />
                     <span className="font-satoshi text-sm text-gray-800">{leaveTypes.find(t => t.value === form.leaveType)?.label || ', '}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Info className="w-5 h-5 text-amber-400" />
-                    <span className="font-satoshi text-sm text-gray-800">{form.startDate} â†’ {form.endDate} ({form.totalDays} days)</span>
+                    <Info className="w-5 h-5 text-[#F23E2E]" />
+                    <span className="font-satoshi text-sm text-gray-800">{form.startDate} → {form.endDate} ({form.totalDays} days)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Info className="w-5 h-5 text-amber-400" />
+                    <Info className="w-5 h-5 text-[#F23E2E]" />
                     <span className="font-satoshi text-sm text-gray-800">Reason: {form.reason}</span>
                   </div>
                   {form.emergencyContact && (
                     <div className="flex items-center gap-2">
-                      <Info className="w-5 h-5 text-amber-400" />
+                      <Info className="w-5 h-5 text-[#F23E2E]" />
                       <span className="font-satoshi text-sm text-gray-800">Emergency: {form.emergencyContact}</span>
                     </div>
                   )}
                   {form.isHalfDay && (
                     <div className="flex items-center gap-2">
-                      <Info className="w-5 h-5 text-amber-400" />
+                      <Info className="w-5 h-5 text-[#F23E2E]" />
                       <span className="font-satoshi text-sm text-gray-800">Half-day leave</span>
                     </div>
                   )}
@@ -435,7 +421,7 @@ export default function LeaveRequestPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 rounded-lg bg-amber-600 text-white font-asgard text-base shadow hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="px-6 py-2 rounded-lg bg-[#F23E2E] text-white font-asgard text-base shadow hover:bg-[#ed1d12] transition-colors focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                   >
                     Submit Request
                   </button>
@@ -446,11 +432,11 @@ export default function LeaveRequestPage() {
         </GlassCard>
         <div className="mt-6 sm:mt-8">
           <h2 className="text-lg font-asgard text-gray-900 mb-2">Your Previous Leave Requests</h2>
-          <div className="rounded-lg border border-amber-100 bg-white/70 overflow-x-auto">
+          <div className="rounded-lg border border-gray-200/60 bg-white/70 overflow-x-auto">
             <RequestHistory type="leave" requests={requests || []} />
           </div>
         </div>
-      </div>
+      </PageContainer>
     </div>
   );
 } 

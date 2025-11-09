@@ -105,7 +105,7 @@ export default function MattermostPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white/95 backdrop-blur-sm flex items-center justify-center">
         <GlassCard className="p-8 text-center max-w-md">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-2xl font-asgard text-gray-900 mb-4">Huly Connected!</h1>
@@ -124,7 +124,7 @@ export default function MattermostPage() {
             </a>
             <Link 
               href="/staff/portal" 
-              className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg transition-colors"
             >
               Return to Portal
             </Link>
@@ -135,7 +135,7 @@ export default function MattermostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-100 to-amber-200 flex flex-col">
+    <div className="min-h-screen bg-white/95 backdrop-blur-sm flex flex-col">
       {/* Header */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-2">
         <div className="flex items-center justify-between mb-6">
@@ -148,7 +148,7 @@ export default function MattermostPage() {
 
       {/* Main Card */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-1 flex items-center justify-center">
-        <GlassCard className="p-8 w-full shadow-2xl backdrop-blur-xl bg-white/70 border border-amber-100">
+        <GlassCard className="p-8 w-full shadow-2xl backdrop-blur-xl bg-white/70 border border-gray-200/60">
           <AnimatePresence mode='wait'>
             {error && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">

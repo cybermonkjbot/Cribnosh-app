@@ -20,6 +20,7 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils/number-format';
 
 interface RevenueData {
   totalRevenue: number;
@@ -58,13 +59,6 @@ export default function RevenueAnalyticsPage() {
     if (growth > 0) return 'text-green-600';
     if (growth < 0) return 'text-red-600';
     return 'text-gray-600';
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(amount);
   };
 
   return (

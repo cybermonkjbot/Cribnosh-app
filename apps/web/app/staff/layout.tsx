@@ -70,12 +70,6 @@ function StaffLayoutContent({
     }
   };
 
-  // Determine environment for indicator
-  const isProduction = process.env.NODE_ENV === 'production';
-  const envLabel = isProduction ? 'Production' : 'Development';
-  const envColor = isProduction ? 'bg-green-500' : 'bg-yellow-400';
-  const envText = isProduction ? 'text-green-700' : 'text-yellow-700';
-
   // Early return for login page (after all hooks are called)
   if (isLoginPage) {
     return <>{children}</>;
@@ -89,9 +83,9 @@ function StaffLayoutContent({
   // Show loading state while fetching user data
   if (staffAuthLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
+      <div className="min-h-screen flex items-center justify-center bg-white/95 backdrop-blur-sm">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F23E2E] mx-auto mb-4"></div>
           <p className="text-gray-600 font-satoshi">Loading...</p>
         </div>
       </div>
@@ -109,7 +103,7 @@ function StaffLayoutContent({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
+    <div className="min-h-screen bg-white/95 backdrop-blur-sm">
       {/* Enhanced Navbar */}
       <motion.div
         initial={{ y: -100 }}
@@ -141,7 +135,7 @@ function StaffLayoutContent({
       {/* Notifications Modal */}
       {showNotifications && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-amber-200 relative">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-200/60 relative">
             <button
               onClick={() => setShowNotifications(false)}
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-2xl font-bold"
@@ -150,7 +144,7 @@ function StaffLayoutContent({
               ×
             </button>
             <h2 className="text-xl font-bold font-asgard text-gray-900 mb-4 flex items-center gap-2">
-              <Bell className="w-6 h-6 text-amber-600" /> Notifications
+              <Bell className="w-6 h-6 text-[#F23E2E]" /> Notifications
             </h2>
             {(!staffNotifications || staffNotifications.length === 0) ? (
               <p className="text-gray-700 font-satoshi">No notifications.</p>
@@ -163,7 +157,7 @@ function StaffLayoutContent({
                       notification.type === 'success'
                         ? 'bg-green-100 border-green-300 text-green-800'
                         : notification.type === 'warning'
-                        ? 'bg-amber-100 border-amber-300 text-amber-800'
+                        ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
                         : notification.type === 'error'
                         ? 'bg-red-100 border-red-300 text-red-800'
                         : 'bg-blue-100 border-blue-300 text-blue-800'
@@ -176,7 +170,7 @@ function StaffLayoutContent({
                     {!notification.read && (
                       <button
                         onClick={async () => await handleMarkNotificationRead(notification._id)}
-                        className="ml-4 text-xs text-amber-700 hover:text-amber-900 underline"
+                        className="ml-4 text-xs text-[#F23E2E] hover:text-[#ed1d12] underline"
                         aria-label="Mark as read"
                       >
                         Mark as read
@@ -188,23 +182,6 @@ function StaffLayoutContent({
             )}
           </div>
         </div>
-      )}
-
-      {/* Staff Status Indicator - Glassmorphism for key component */}
-      {!isMobile && (
-        <motion.div
-          initial={{ opacity: 0, x: 100 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="fixed top-20 right-4 z-40"
-        >
-          <div className="bg-white/80 backdrop-blur-lg rounded-xl p-3 border border-white/20 shadow-lg">
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full animate-pulse ${envColor}`}></div>
-              <span className={`text-xs font-medium font-satoshi ${envText}`}>{envLabel} Mode</span>
-            </div>
-          </div>
-        </motion.div>
       )}
     </div>
   );

@@ -28,6 +28,7 @@ import {
   Building,
   Navigation
 } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils/number-format';
 
 interface City {
   _id: Id<"cities">;
@@ -623,7 +624,7 @@ export default function CitiesManagementPage() {
                   <p className="text-xs text-gray-600">Orders</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-medium">£{city.stats.averageOrderValue.toFixed(2)}</p>
+                  <p className="font-medium">{formatCurrency(city.stats.averageOrderValue, { currency: 'GBP' })}</p>
                   <p className="text-xs text-gray-600">Avg Order</p>
                 </div>
               </div>
@@ -632,11 +633,11 @@ export default function CitiesManagementPage() {
               <div className="text-sm text-gray-600 space-y-1">
                 <div className="flex justify-between">
                   <span>Min Order:</span>
-                  <span>£{city.settings.minOrderValue.toFixed(2)}</span>
+                  <span>{formatCurrency(city.settings.minOrderValue, { currency: 'GBP' })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee:</span>
-                  <span>£{city.settings.deliveryFee.toFixed(2)}</span>
+                  <span>{formatCurrency(city.settings.deliveryFee, { currency: 'GBP' })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Est. Time:</span>

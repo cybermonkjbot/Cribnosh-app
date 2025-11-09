@@ -17,6 +17,7 @@ import {
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { formatCurrency } from "@/lib/utils/number-format";
 
 interface AnalyticsData {
   totalUsers: number;
@@ -100,7 +101,7 @@ export function AnalyticsOverview() {
     },
     {
       title: 'Revenue',
-      value: `£${currentData.totalRevenue.toLocaleString()}`,
+      value: formatCurrency(currentData.totalRevenue, { currency: 'GBP' }),
       change: `${currentData.revenueGrowth >= 0 ? '+' : ''}${currentData.revenueGrowth.toFixed(1)}%`,
       trend: currentData.revenueGrowth >= 0 ? 'up' as const : 'down' as const,
       icon: DollarSign,

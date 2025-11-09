@@ -18,6 +18,7 @@ import {
 import { GlassCard, GlassCardGrid } from './glass-card';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { formatCurrency } from '@/lib/utils/number-format';
 
 interface StatCardProps {
   title: string;
@@ -95,7 +96,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
   const stats = analyticsData ? {
     totalUsers: analyticsData.totalUsers.toLocaleString(),
     activeUsers: realtimeMetrics?.activeUsers?.toLocaleString() || '0',
-    totalRevenue: `£${analyticsData.totalRevenue.toLocaleString()}`,
+    totalRevenue: formatCurrency(analyticsData.totalRevenue, { currency: 'GBP' }),
     monthlyGrowth: `${analyticsData.userGrowth >= 0 ? '+' : ''}${analyticsData.userGrowth.toFixed(1)}%`,
     chefApplications: analyticsData.activeChefs.toLocaleString(),
     citiesCovered: analyticsData.citiesServed.toString(),
@@ -108,7 +109,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
   } : {
     totalUsers: '0',
     activeUsers: '0',
-    totalRevenue: '£0',
+    totalRevenue: formatCurrency(0, { currency: 'GBP' }),
     monthlyGrowth: '0%',
     chefApplications: '0',
     citiesCovered: '0',
