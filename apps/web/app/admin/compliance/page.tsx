@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
 import {
@@ -31,13 +32,16 @@ interface ComplianceItem {
 }
 
 export default function AdminCompliancePage() {
-  
+  const { sessionToken } = useAdminUser();
   
   const [activeTab, setActiveTab] = useState<'overview' | 'gdpr' | 'security' | 'audit'>('overview');
   const [showExportModal, setShowExportModal] = useState(false);
 
   // Get compliance items from Convex
-  const complianceItems = useQuery(api.queries.admin.getAdminStats) as ComplianceItem[] | undefined;
+  const complianceItems = useQuery(
+    api.queries.admin.getAdminStats,
+    sessionToken ? { sessionToken } : "skip"
+  ) as ComplianceItem[] | undefined;
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -49,7 +49,7 @@ interface ContentFormData {
 
 export default function AdminContentPage() {
   // Auth is handled by layout, no client-side checks needed
-  const { user } = useAdminUser();
+  const { user, sessionToken } = useAdminUser();
   const { toast } = useToast();
 
   const [selectedType, setSelectedType] = useState<ContentItem['type'] | 'all'>('all');
@@ -75,7 +75,10 @@ export default function AdminContentPage() {
     },
   });
 
-  const contentItems = useQuery(api.queries.admin.getContentItems) as ContentItem[] | undefined;
+  const contentItems = useQuery(
+    api.queries.admin.getContentItems,
+    sessionToken ? { sessionToken } : "skip"
+  ) as ContentItem[] | undefined;
   const createContent = useMutation(api.mutations.admin.createContent);
   const updateContent = useMutation(api.mutations.admin.updateContent);
   const deleteContent = useMutation(api.mutations.admin.deleteContent);

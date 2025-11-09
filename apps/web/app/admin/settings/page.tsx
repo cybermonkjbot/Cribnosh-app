@@ -38,13 +38,16 @@ interface SystemSetting {
 }
 
 export default function AdminSettings() {
-  const { user: adminUser, loading: adminLoading } = useAdminUser();
+  const { user: adminUser, loading: adminLoading, sessionToken } = useAdminUser();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState('general');
   
-  const systemSettings = useQuery(api.queries.admin.getSystemSettings);
+  const systemSettings = useQuery(
+    api.queries.admin.getSystemSettings,
+    sessionToken ? { sessionToken } : "skip"
+  );
   const updateSystemSetting = useMutation(api.mutations.admin.createSystemSetting);
   const logActivity = useMutation(api.mutations.admin.logActivity);
 

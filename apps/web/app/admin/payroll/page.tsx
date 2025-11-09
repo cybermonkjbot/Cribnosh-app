@@ -1,5 +1,6 @@
 'use client';
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { columns } from '@/components/admin/payroll/columns';
 import { DataTable } from '@/components/admin/payroll/data-table';
@@ -48,17 +49,27 @@ interface PayPeriod {
 
 export default function PayrollAdminPage() {
   const { toast } = useToast();
+  const { sessionToken } = useAdminUser();
   const [isPayPeriodDialogOpen, setIsPayPeriodDialogOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   
   // Fetch payroll data with proper typing
   const payPeriodsRaw = useQuery(api.payroll.periods.getPayPeriods, { limit: 5 });
-  const staffProfilesRaw = useQuery(api.payroll.admin.getStaffPayrollProfiles, {});
+  const staffProfilesRaw = useQuery(
+    api.payroll.admin.getStaffPayrollProfiles, 
+    sessionToken ? { sessionToken } : "skip"
+  );
   
   const payPeriods = useMemo(() => payPeriodsRaw || [], [payPeriodsRaw]);
   const staffProfiles = useMemo(() => staffProfilesRaw || [], [staffProfilesRaw]);
-  const ytdHoursSummary = useQuery(api.payroll.admin.getYearToDateHoursSummary, { year: selectedYear }) || null;
-  const settings = useQuery(api.payroll.admin.getPayrollSettings) as {
+  const ytdHoursSummary = useQuery(
+    api.payroll.admin.getYearToDateHoursSummary, 
+    sessionToken ? { year: selectedYear, sessionToken } : "skip"
+  ) || null;
+  const settings = useQuery(
+    api.payroll.admin.getPayrollSettings,
+    sessionToken ? { sessionToken } : "skip"
+  ) as {
     payFrequency?: string;
     standardWorkWeek?: number;
     overtimeMultiplier?: number;

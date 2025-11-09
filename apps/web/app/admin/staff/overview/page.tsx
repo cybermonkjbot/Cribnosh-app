@@ -174,8 +174,6 @@ export default function AdminStaffOverviewPage() {
               </div>
             )}
           </GlassCard>
-        </div>
-      </div>
     </div>
   );
 } 

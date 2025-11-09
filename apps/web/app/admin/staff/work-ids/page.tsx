@@ -1,5 +1,6 @@
 ﻿"use client";
 // Auth is handled by layout, no need for AuthWrapper
+import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useState } from 'react';
 
@@ -202,8 +203,6 @@ export default function AdminStaffWorkIdsPage() {
             </div>
           )}
         </GlassCard>
-      </div>
-    </div>
     </div>
   );
 } 

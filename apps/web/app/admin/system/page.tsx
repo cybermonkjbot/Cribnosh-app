@@ -31,13 +31,16 @@ interface SystemSetting {
 }
 
 export default function AdminSystem() {
-  const { user: adminUser, loading: adminLoading } = useAdminUser();
+  const { user: adminUser, loading: adminLoading, sessionToken } = useAdminUser();
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   
   if (isLoading || adminLoading) return null;
   
-  const systemSettings = useQuery(api.queries.admin.getSystemSettings);
+  const systemSettings = useQuery(
+    api.queries.admin.getSystemSettings,
+    sessionToken ? { sessionToken } : "skip"
+  );
   const updateSystemSetting = useMutation(api.mutations.admin.createSystemSetting);
   const logActivity = useMutation(api.mutations.admin.logActivity);
 

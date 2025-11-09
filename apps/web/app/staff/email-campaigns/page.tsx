@@ -1,5 +1,6 @@
 "use client";
 
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,8 +45,15 @@ export default function StaffEmailCampaignsPage() {
   });
 
   // Fetch data
-  const campaigns = useQuery(api.queries.staff.getStaffEmailCampaigns);
-  const staffStats = useQuery(api.queries.staff.getStaffStats);
+  const { sessionToken } = useStaffAuthContext();
+  const campaigns = useQuery(
+    api.queries.staff.getStaffEmailCampaigns,
+    sessionToken ? { sessionToken } : "skip"
+  );
+  const staffStats = useQuery(
+    api.queries.staff.getStaffStats,
+    sessionToken ? { sessionToken } : "skip"
+  );
 
   // Mutations
   const createCampaign = useMutation(api.mutations.staff.createStaffEmailCampaign);

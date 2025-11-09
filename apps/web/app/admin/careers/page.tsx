@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Button } from '@/components/ui/button';
 import { api } from '@/convex/_generated/api';
@@ -69,6 +70,7 @@ interface JobFormData {
 
 export default function AdminCareers() {
   const { toast } = useToast();
+  const { sessionToken } = useAdminUser();
   const [activeTab, setActiveTab] = useState<'jobs' | 'applications'>('jobs');
   const [showJobModal, setShowJobModal] = useState(false);
   const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
@@ -90,9 +92,15 @@ export default function AdminCareers() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [isCreating, setIsCreating] = useState(false);
 
-  const jobPostings = useQuery(api.queries.careers.getJobPostings) as JobPosting[] | undefined;
+  const jobPostings = useQuery(
+    api.queries.careers.getJobPostings,
+    sessionToken ? { sessionToken } : "skip"
+  ) as JobPosting[] | undefined;
 
-  const applications = useQuery(api.queries.careers.getJobApplications) as JobApplication[] | undefined;
+  const applications = useQuery(
+    api.queries.careers.getJobApplications,
+    sessionToken ? { sessionToken } : "skip"
+  ) as JobApplication[] | undefined;
   
   const createJob = useMutation(api.mutations.careers.createJobPosting);
   const updateJob = useMutation(api.mutations.careers.updateJobPosting);

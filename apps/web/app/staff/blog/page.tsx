@@ -1,5 +1,6 @@
 "use client";
 
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ import { useState } from 'react';
 
 export default function StaffBlogPage() {
   const router = useRouter();
+  const { sessionToken } = useStaffAuthContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -38,10 +40,17 @@ export default function StaffBlogPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch data
-  const blogPosts = useQuery(api.queries.blog.getBlogPosts, {
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  });
-  const categories = useQuery(api.queries.blog.getBlogCategories);
+  const blogPosts = useQuery(
+    api.queries.blog.getBlogPosts,
+    sessionToken ? {
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      sessionToken,
+    } : "skip"
+  );
+  const categories = useQuery(
+    api.queries.blog.getBlogCategories,
+    sessionToken ? { sessionToken } : "skip"
+  );
 
   // Mutations
   const deletePost = useMutation(api.mutations.blog.deleteBlogPost);

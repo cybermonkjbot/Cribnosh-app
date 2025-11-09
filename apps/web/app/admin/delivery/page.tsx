@@ -109,7 +109,7 @@ interface Delivery {
 
 export default function DeliveryManagementPage() {
   // Auth is handled by layout, no client-side checks needed
-  const { user } = useAdminUser();
+  const { user, sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [driverFilter, setDriverFilter] = useState<string>('all');
@@ -122,8 +122,7 @@ export default function DeliveryManagementPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch data - authentication is handled by layout
-  const shouldSkip = !user;
-  const queryArgs = shouldSkip ? "skip" : {};
+  const queryArgs = user && sessionToken ? { sessionToken } : "skip";
   const deliveries = useQuery(api.queries.admin.getAllDeliveriesWithDetails, queryArgs) as Delivery[] | undefined;
   const drivers = useQuery(api.queries.drivers.getAll, queryArgs) as Driver[] | undefined;
   const deliveryStats = useQuery(api.queries.admin.getDeliveryStats, queryArgs);
