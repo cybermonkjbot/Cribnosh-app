@@ -200,8 +200,20 @@ export default function TimeTrackingReportsPage() {
     try {
       setError(null);
       setIsDownloading(reportId);
-      await downloadReport({ reportId });
-      setSuccess('Report download started');
+      const result = await downloadReport({ reportId });
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        link.download = `time-tracking-report-${reportId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Report downloaded successfully');
+      } else {
+        setSuccess('Report download started');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to download report');
     } finally {

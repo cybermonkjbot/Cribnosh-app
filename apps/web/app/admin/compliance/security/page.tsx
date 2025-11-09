@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import {
   Shield,
   UserCheck
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 interface SecurityCompliance {
   authentication: {
@@ -106,6 +107,9 @@ export default function SecurityCompliancePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
+  // Get session token from admin auth provider
+  const { sessionToken } = useAdminUser();
+  
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
@@ -157,8 +161,28 @@ export default function SecurityCompliancePage() {
 
   const handleGenerateReport = async () => {
     try {
-      await generateSecurityReport();
-      setSuccess('Security report generated successfully');
+      const result = await generateSecurityReport({
+        reportType: 'security',
+        dateRange: {
+          start: Date.now() - (30 * 24 * 60 * 60 * 1000), // 30 days ago
+          end: Date.now(),
+        },
+        format: 'pdf',
+        sessionToken: sessionToken || undefined,
+      });
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        link.download = `security-compliance-report-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Security report downloaded successfully');
+      } else {
+        setSuccess('Security report generated successfully');
+      }
       setError(null);
     } catch (err) {
       setError('Failed to generate report');

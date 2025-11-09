@@ -108,10 +108,26 @@ export default function AnalyticsReportsPage() {
 
   const handleDownloadReport = async (reportId: string) => {
     try {
-      await downloadReport({ 
+      const result = await downloadReport({ 
         reportId: reportId as unknown as Id<"reports">
       });
-      setSuccess('Report download started');
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        const report = reports?.find((r: Report) => r._id === reportId);
+        const fileName = report?.name 
+          ? `${report.name.replace(/[^a-z0-9]/gi, '_')}.${report.parameters?.format || 'pdf'}`
+          : `report-${reportId}.pdf`;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Report downloaded successfully');
+      } else {
+        setSuccess('Report download started');
+      }
       setError(null);
     } catch {
       setError('Failed to download report');

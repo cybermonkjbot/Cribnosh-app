@@ -177,8 +177,24 @@ export default function TaxDocumentsPage() {
     try {
       setError(null);
       setIsDownloading(documentId);
-      await downloadDocument({ documentId });
-      setSuccess('Document download started');
+      const result = await downloadDocument({ documentId });
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        const document = taxDocuments?.find((d: any) => d._id === documentId);
+        const fileName = document 
+          ? `${document.documentType}-${document.taxYear}-${document.metadata?.employeeName || 'employee'}.pdf`
+          : `tax-document-${documentId}.pdf`;
+        link.download = fileName.replace(/[^a-z0-9.-]/gi, '_');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Document downloaded successfully');
+      } else {
+        setSuccess('Document download started');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to download document');
     } finally {
