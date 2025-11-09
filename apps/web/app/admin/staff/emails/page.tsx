@@ -47,7 +47,6 @@ export default function StaffEmailsPage() {
   });
 
   // Fetch data
-  const { sessionToken } = useAdminUser();
   const campaigns = useQuery(
     api.queries.staff.getStaffEmailCampaigns,
     sessionToken ? { sessionToken } : "skip"

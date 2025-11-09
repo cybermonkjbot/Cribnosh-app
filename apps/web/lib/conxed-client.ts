@@ -9,11 +9,23 @@ export function getConvexClient() {
   if (!convex) {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
     if (!convexUrl) {
-      throw new Error(
-        "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
-      );
+      // In development, use a fallback URL if available
+      // In production, this should be set
+      const fallbackUrl = process.env.NODE_ENV === 'development' 
+        ? 'https://wandering-finch-293.convex.cloud'
+        : null;
+      
+      if (!fallbackUrl) {
+        throw new Error(
+          "NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables."
+        );
+      }
+      
+      console.warn('[getConvexClient] Using fallback Convex URL. Please set NEXT_PUBLIC_CONVEX_URL in your environment variables.');
+      convex = new ConvexHttpClient(fallbackUrl);
+    } else {
+      convex = new ConvexHttpClient(convexUrl);
     }
-    convex = new ConvexHttpClient(convexUrl);
   }
   return convex;
 }

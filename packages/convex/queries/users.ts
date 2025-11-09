@@ -157,7 +157,13 @@ export const getAllStaff = query({
     await requireStaff(ctx, args.sessionToken);
     
     const users = await ctx.db.query('users').collect();
-    return users.filter(u => Array.isArray(u.roles) && u.roles.includes('staff')).map(u => ({ _id: u._id, name: u.name, email: u.email }));
+    return users.filter(u => Array.isArray(u.roles) && u.roles.includes('staff')).map(u => ({ 
+      _id: u._id, 
+      name: u.name, 
+      email: u.email,
+      role: u.roles?.find((r: string) => ['staff', 'admin', 'moderator'].includes(r)) || u.roles?.[0] || 'staff',
+      status: u.status || 'active'
+    }));
   },
 });
 

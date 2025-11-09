@@ -1,14 +1,16 @@
 "use client";
 
+import { EmptyState } from '@/components/admin/empty-state';
 import { OrderFilterBar } from '@/components/admin/order-filter-bar';
 import { AuthWrapper } from '@/components/layout/AuthWrapper';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from 'convex/react';
 import {
   AlertTriangle,
@@ -82,6 +84,7 @@ interface Order {
 }
 
 export default function OrderManagementPage() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
@@ -90,8 +93,6 @@ export default function OrderManagementPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch data
   const orders = useQuery(api.queries.admin.getAllOrdersWithDetails, {}) as Order[] | undefined;
@@ -152,10 +153,17 @@ export default function OrderManagementPage() {
   const handleStatusUpdate = async (orderId: Id<"orders">, newStatus: string) => {
     try {
       await updateOrderStatus({ orderId, status: newStatus as any });
-      setSuccess('Order status updated successfully');
-      setError(null);
+      toast({
+        title: "Order status updated",
+        description: "The order status has been updated successfully.",
+        variant: "success",
+      });
     } catch (err) {
-      setError('Failed to update order status');
+      toast({
+        title: "Failed to update order status",
+        description: "An error occurred while updating the order status. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -231,6 +239,43 @@ export default function OrderManagementPage() {
       </Badge>
     );
   };
+
+  // Loading state
+  if (orders === undefined) {
+    return (
+      <AuthWrapper role="admin">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold font-asgard text-gray-900">Order Management</h1>
+              <p className="text-gray-600 font-satoshi mt-2">Monitor and oversee order fulfillment across the platform</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-20 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </AuthWrapper>
+    );
+  }
+
+  // Check for active filters
+  const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || paymentFilter !== "all" || timeFilter !== "today";
 
   return (
     <AuthWrapper role="admin">
@@ -382,8 +427,28 @@ export default function OrderManagementPage() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="space-y-4">
-              {filteredOrders.map((order, index) => {
+            {filteredOrders.length === 0 ? (
+              <EmptyState
+                icon={ShoppingCart}
+                title={hasActiveFilters ? "No orders found" : "No orders yet"}
+                description={hasActiveFilters 
+                  ? "Try adjusting your search or filter criteria to see more results."
+                  : "Orders will appear here once they are placed."}
+                action={hasActiveFilters ? {
+                  label: "Clear filters",
+                  onClick: () => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setPaymentFilter("all");
+                    setTimeFilter("today");
+                  },
+                  variant: "secondary"
+                } : undefined}
+                variant={hasActiveFilters ? "filtered" : "no-data"}
+              />
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders.map((order, index) => {
                 const urgency = getUrgencyLevel(order);
                 return (
                   <motion.div
@@ -450,16 +515,37 @@ export default function OrderManagementPage() {
                     </Card>
                   </motion.div>
                 );
-              })}
-            </div>
+                })}
+              </div>
+            )}
           </TabsContent>
 
           {/* Active Orders Tab */}
           <TabsContent value="active" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredOrders
-                .filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status))
-                .map((order, index) => {
+            {filteredOrders.filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status)).length === 0 ? (
+              <EmptyState
+                icon={Clock}
+                title={hasActiveFilters ? "No active orders found" : "No active orders"}
+                description={hasActiveFilters 
+                  ? "Try adjusting your search or filter criteria to see more results."
+                  : "There are currently no active orders."}
+                action={hasActiveFilters ? {
+                  label: "Clear filters",
+                  onClick: () => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setPaymentFilter("all");
+                    setTimeFilter("today");
+                  },
+                  variant: "secondary"
+                } : undefined}
+                variant={hasActiveFilters ? "filtered" : "no-data"}
+              />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {filteredOrders
+                  .filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status))
+                  .map((order, index) => {
                   const urgency = getUrgencyLevel(order);
                   return (
                     <motion.div
@@ -533,21 +619,35 @@ export default function OrderManagementPage() {
                       </Card>
                     </motion.div>
                   );
-                })}
-            </div>
+                  })}
+              </div>
+            )}
           </TabsContent>
 
           {/* Issues Tab */}
           <TabsContent value="issues" className="space-y-6">
-            <div className="space-y-4">
-              {filteredOrders
-                .filter(order => {
-                  const urgency = getUrgencyLevel(order);
-                  return urgency === 'critical' || urgency === 'warning' || 
-                         order.payment_status === 'failed' || 
-                         order.order_status === 'cancelled';
-                })
-                .map((order, index) => {
+            {filteredOrders.filter(order => {
+              const urgency = getUrgencyLevel(order);
+              return urgency === 'critical' || urgency === 'warning' || 
+                     order.payment_status === 'failed' || 
+                     order.order_status === 'cancelled';
+            }).length === 0 ? (
+              <EmptyState
+                icon={CheckCircle}
+                title="No issues found"
+                description="All orders are processing normally. Great job!"
+                variant="no-data"
+              />
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders
+                  .filter(order => {
+                    const urgency = getUrgencyLevel(order);
+                    return urgency === 'critical' || urgency === 'warning' || 
+                           order.payment_status === 'failed' || 
+                           order.order_status === 'cancelled';
+                  })
+                  .map((order, index) => {
                   const urgency = getUrgencyLevel(order);
                   return (
                     <motion.div
@@ -602,8 +702,9 @@ export default function OrderManagementPage() {
                       </Card>
                     </motion.div>
                   );
-                })}
-            </div>
+                  })}
+              </div>
+            )}
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -662,21 +763,6 @@ export default function OrderManagementPage() {
             </div>
           </TabsContent>
         </Tabs>
-
-        {/* Error/Success Messages */}
-        {error && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {success && (
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
-          </Alert>
-        )}
       </div>
     </AuthWrapper>
   );

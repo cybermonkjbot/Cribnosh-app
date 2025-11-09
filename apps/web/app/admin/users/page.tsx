@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
 import { UsersTableSkeleton } from '@/components/admin/skeletons';
 import { UserFilterBar } from '@/components/admin/user-filter-bar';
 import { Badge } from '@/components/ui/badge';
@@ -59,12 +60,18 @@ export default function AdminUsers() {
   // Middleware (proxy.ts) validates session token server-side, no client-side checks needed
   const router = useRouter();
   const { toast } = useToast();
-  const { sessionToken } = useAdminUser();
+  const { user, sessionToken } = useAdminUser();
 
-  const users = useQuery(
-    api.queries.users.getAllUsers,
-    sessionToken ? { sessionToken } : "skip"
-  ) as User[] | undefined;
+  // Authentication is handled by layout, so user is guaranteed to be authenticated here
+  // Pass sessionToken if available (for development debug cookie), otherwise rely on httpOnly cookie
+  const queryArgs = user ? (sessionToken ? { sessionToken } : {}) : "skip";
+  const usersQuery = useQuery(api.queries.users.getAllUsers, queryArgs);
+  
+  // Transform users data: map roles array to role string for display
+  const users = usersQuery ? (usersQuery as any[]).map((u: any) => ({
+    ...u,
+    role: u.roles?.find((r: string) => ['admin', 'moderator', 'chef', 'staff'].includes(r)) || u.roles?.[0] || 'user'
+  })) as User[] : undefined;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin' | 'moderator' | 'chef'>('all');
@@ -370,20 +377,24 @@ export default function AdminUsers() {
         className="bg-white/90 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl overflow-hidden"
       >
         {filteredUsers?.length === 0 && users ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <Users className="w-12 h-12 text-gray-500 mb-3" />
-            <p className="text-gray-700 font-satoshi mb-3">No users found matching your filters.</p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery('');
-                setStatusFilter('all');
-                setRoleFilter('all');
-              }}
-              className="text-primary-600 hover:text-primary-700"
-            >
-              Clear filters
-            </Button>
+          <div className="flex flex-col items-center justify-center h-64 p-12">
+            <EmptyState
+              icon={Users}
+              title={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' ? "No users found" : "No users yet"}
+              description={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' 
+                ? "Try adjusting your search or filter criteria to see more results."
+                : "Users will appear here once they are added to the system."}
+              action={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' ? {
+                label: "Clear filters",
+                onClick: () => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setRoleFilter('all');
+                },
+                variant: "secondary"
+              } : undefined}
+              variant={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' ? "filtered" : "no-data"}
+            />
           </div>
         ) : (
           <div className="overflow-x-auto">

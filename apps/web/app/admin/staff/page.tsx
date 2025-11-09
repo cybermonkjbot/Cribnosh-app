@@ -3,17 +3,18 @@ import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { StaffTableSkeleton } from '@/components/admin/skeletons';
 import { UserFilterBar } from '@/components/admin/user-filter-bar';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+// Authentication is handled by layout, no need for AuthWrapper
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from "convex/react";
 import { Download, Edit, Eye, FileText, Plus, Shield, Upload, Users } from "lucide-react";
 import { motion } from 'motion/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 interface StaffUser {
   _id: string;
@@ -34,20 +35,22 @@ interface Document {
 }
 
 export default function AdminStaffPage() {
-  const { sessionToken } = useAdminUser();
+  const { user, sessionToken } = useAdminUser();
+  const { toast } = useToast();
+  // Authentication is handled by layout, so user is guaranteed to be authenticated here
+  // Pass sessionToken if available (for development debug cookie), otherwise rely on httpOnly cookie
   const staff = useQuery(
     api.queries.users.getAllStaff,
-    sessionToken ? { sessionToken } : "skip"
+    user ? (sessionToken ? { sessionToken } : {}) : "skip"
   ) as StaffUser[] | undefined;
   const documents = useQuery(
     api.queries.users.getAllDocuments,
-    sessionToken ? { sessionToken } : "skip"
+    user ? (sessionToken ? { sessionToken } : {}) : "skip"
   ) as Document[] | undefined;
   const uploadDocument = useMutation(api.mutations.documents.uploadDocument);
   const updateDocumentStatus = useMutation(api.mutations.documents.updateDocumentStatus);
   const [search, setSearch] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [type, setType] = useState('contract');
   const [description, setDescription] = useState('');
@@ -76,7 +79,6 @@ export default function AdminStaffPage() {
     e.preventDefault();
     if (!file || !selectedStaff) return;
     setUploading(true);
-    setUploadError(null);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -98,8 +100,17 @@ export default function AdminStaffPage() {
       });
       setFile(null);
       setDescription('');
+      toast({
+        title: "Document uploaded",
+        description: "The document has been uploaded successfully.",
+        variant: "success",
+      });
     } catch (err: unknown) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : 'An error occurred while uploading the document. Please try again.',
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -132,17 +143,8 @@ export default function AdminStaffPage() {
     return variants[status as keyof typeof variants] || variants.active;
   };
 
-  // Auto-dismiss upload error after 5 seconds
-  useEffect(() => {
-    if (uploadError) {
-      const timer = setTimeout(() => setUploadError(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [uploadError]);
-
   return (
-    <AuthWrapper role="admin">
-      <div className="space-y-8">
+    <div className="space-y-8">
         {/* Enhanced Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -373,10 +375,6 @@ export default function AdminStaffPage() {
                 <Upload className="w-4 h-4 mr-2" />
                 {uploading ? 'Uploading...' : 'Upload Document'}
               </Button>
-              
-              {uploadError && (
-                <p className="text-red-600 text-sm font-satoshi">{uploadError}</p>
-              )}
             </div>
           </form>
         </motion.div>
@@ -437,6 +435,5 @@ export default function AdminStaffPage() {
           </motion.div>
         )}
       </div>
-    </AuthWrapper>
   );
 } 

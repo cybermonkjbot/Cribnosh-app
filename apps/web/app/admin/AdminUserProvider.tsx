@@ -27,10 +27,14 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
 
-  // Authentication is session-based: check for session token in cookies (client only)
-  // The session token (convex-auth-token) is set during login and validated server-side
+  // Authentication is session-based: the session token (convex-auth-token) is httpOnly
+  // so we cannot read it from JavaScript. Instead, we rely on the API call to /api/admin/me
+  // which will have access to the cookie server-side. The sessionToken will be determined
+  // from the API response or passed as needed for Convex queries.
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Check for debug cookie in development (non-httpOnly)
+      // In production, we rely on the API call to determine auth status
       const getCookie = (name: string) => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -38,16 +42,24 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
         return null;
       };
       
-      const token = getCookie('convex-auth-token');
-      setSessionToken(token || null);
-      console.log('[AdminUserProvider] Session token found:', !!token);
+      // Try to get debug cookie in development, or check if we have a user
+      const debugToken = process.env.NODE_ENV !== 'production' 
+        ? getCookie('convex-auth-token-debug')
+        : null;
+      
+      // If we have a debug token, use it; otherwise, we'll rely on the API call
+      // The sessionToken will be passed to Convex queries, but since the cookie is httpOnly,
+      // it will be sent automatically with requests
+      setSessionToken(debugToken || null);
+      console.log('[AdminUserProvider] Session token found (debug):', !!debugToken);
       setHasCheckedStorage(true);
     }
   }, []);
 
-  // Listen for cookie changes (refresh when cookie is set)
+  // Listen for cookie changes (refresh when cookie is set) - only in development
+  // In production, httpOnly cookies cannot be read from JavaScript
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
       const checkCookie = () => {
         const getCookie = (name: string) => {
           const value = `; ${document.cookie}`;
@@ -56,10 +68,11 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
           return null;
         };
         
-        const token = getCookie('convex-auth-token');
-        setSessionToken(token || null);
-        if (token && !user) {
-          console.log('[AdminUserProvider] Cookie detected, refreshing user data');
+        // Only check debug cookie in development
+        const debugToken = getCookie('convex-auth-token-debug');
+        setSessionToken(debugToken || null);
+        if (debugToken && !user) {
+          console.log('[AdminUserProvider] Debug cookie detected, refreshing user data');
           setHasCheckedStorage(true);
         }
       };

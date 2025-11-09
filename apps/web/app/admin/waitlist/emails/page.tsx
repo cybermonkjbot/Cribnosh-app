@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Mail, 
   Search, 
@@ -56,14 +56,13 @@ interface EmailTemplate {
 }
 
 export default function WaitlistEmailsPage() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isCreating, setIsCreating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<EmailCampaign | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   // New campaign form
   const [newCampaign, setNewCampaign] = useState({
@@ -88,7 +87,11 @@ export default function WaitlistEmailsPage() {
 
   const handleCreateCampaign = async () => {
     if (!newCampaign.name.trim() || !newCampaign.subject.trim() || !newCampaign.content.trim()) {
-      setError('Please fill in all required fields');
+      toast({
+        title: "Validation error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -110,37 +113,35 @@ export default function WaitlistEmailsPage() {
         templateId: ''
       });
       setIsCreating(false);
-      setSuccess('Campaign created successfully');
-      setError(null);
+      toast({
+        title: "Campaign created",
+        description: "The email campaign has been created successfully.",
+        variant: "success",
+      });
     } catch (err) {
-      setError('Failed to create campaign');
+      toast({
+        title: "Failed to create campaign",
+        description: "An error occurred while creating the campaign. Please try again.",
+        variant: "destructive",
+      });
     }
   };
-
-  // Auto-dismiss success messages after 5 seconds
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
-
-  // Auto-dismiss error messages after 5 seconds
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
 
   const handleSendCampaign = async (campaignId: Id<"emailCampaigns">) => {
     setIsSending(true);
     try {
       await sendCampaign({ campaignId });
-      setSuccess('Campaign sent successfully');
-      setError(null);
+      toast({
+        title: "Campaign sent",
+        description: "The email campaign has been sent successfully.",
+        variant: "success",
+      });
     } catch (err) {
-      setError('Failed to send campaign');
+      toast({
+        title: "Failed to send campaign",
+        description: "An error occurred while sending the campaign. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSending(false);
     }
@@ -150,10 +151,17 @@ export default function WaitlistEmailsPage() {
     if (confirm('Are you sure you want to delete this campaign?')) {
       try {
         await deleteCampaign({ campaignId });
-        setSuccess('Campaign deleted successfully');
-        setError(null);
+        toast({
+          title: "Campaign deleted",
+          description: "The email campaign has been deleted successfully.",
+          variant: "success",
+        });
       } catch (err) {
-        setError('Failed to delete campaign');
+        toast({
+          title: "Failed to delete campaign",
+          description: "An error occurred while deleting the campaign. Please try again.",
+          variant: "destructive",
+        });
       }
     }
   };
@@ -292,18 +300,6 @@ export default function WaitlistEmailsPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Alerts */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {success && (
-        <Alert>
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
 
       {/* Create Campaign Form */}
       {isCreating && (

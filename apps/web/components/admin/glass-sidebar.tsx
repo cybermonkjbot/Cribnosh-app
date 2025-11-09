@@ -150,7 +150,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
         {
           name: 'Waitlist Details',
-          href: '/admin/waitlist/details',
+          href: '/admin/waitlist?tab=details',
           icon: Eye,
           description: 'Detailed waitlist view',
         },
