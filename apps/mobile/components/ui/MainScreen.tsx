@@ -74,6 +74,7 @@ import { TopKebabs } from "./TopKebabs";
 // Customer API imports
 import {
   useAddToCartMutation,
+  useGetActiveOffersQuery,
   useGetCartQuery,
   useGetCuisinesQuery,
   useGetPopularChefsQuery,
@@ -90,352 +91,6 @@ import {
   showWarning,
 } from "../../lib/GlobalToastManager";
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
-
-// Mock data for new sections
-const mockCuisines = [
-  {
-    id: "1",
-    name: "Nigerian",
-    image: {
-      uri: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=400&fit=crop",
-    },
-    restaurantCount: 24,
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Italian",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop",
-    },
-    restaurantCount: 18,
-    isActive: false,
-  },
-  {
-    id: "3",
-    name: "Chinese",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop",
-    },
-    restaurantCount: 15,
-    isActive: false,
-  },
-  {
-    id: "4",
-    name: "Indian",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=400&fit=crop",
-    },
-    restaurantCount: 12,
-    isActive: false,
-  },
-];
-
-const mockKitchens: {
-  id: string;
-  name: string;
-  cuisine: string;
-  sentiment:
-    | "bussing"
-    | "mid"
-    | "notIt"
-    | "fire"
-    | "slaps"
-    | "decent"
-    | "meh"
-    | "trash"
-    | "elite"
-    | "solid"
-    | "average"
-    | "skip";
-  deliveryTime: string;
-  distance: string;
-  image: any;
-  isLive?: boolean;
-  liveViewers?: number;
-}[] = [
-  {
-    id: "1",
-    name: "Amara's Kitchen",
-    cuisine: "Nigerian",
-    sentiment: "elite",
-    deliveryTime: "25 min",
-    distance: "0.8 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
-    },
-    isLive: true,
-    liveViewers: 156,
-  },
-  {
-    id: "2",
-    name: "Bangkok Bites",
-    cuisine: "Thai",
-    sentiment: "fire",
-    deliveryTime: "30 min",
-    distance: "1.2 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: false,
-  },
-  {
-    id: "3",
-    name: "Marrakech Delights",
-    cuisine: "Moroccan",
-    sentiment: "slaps",
-    deliveryTime: "35 min",
-    distance: "1.5 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: true,
-    liveViewers: 89,
-  },
-  {
-    id: "4",
-    name: "Seoul Street",
-    cuisine: "Korean",
-    sentiment: "solid",
-    deliveryTime: "28 min",
-    distance: "1.0 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    isLive: false,
-  },
-  {
-    id: "5",
-    name: "Nonna's Table",
-    cuisine: "Italian",
-    sentiment: "bussing",
-    deliveryTime: "32 min",
-    distance: "1.3 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: false,
-  },
-  {
-    id: "6",
-    name: "Tokyo Dreams",
-    cuisine: "Japanese",
-    sentiment: "decent",
-    deliveryTime: "22 min",
-    distance: "0.6 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: true,
-    liveViewers: 234,
-  },
-  {
-    id: "7",
-    name: "Mumbai Spice",
-    cuisine: "Indian",
-    sentiment: "average",
-    deliveryTime: "40 min",
-    distance: "1.8 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    isLive: false,
-  },
-  {
-    id: "8",
-    name: "Parisian Bistro",
-    cuisine: "French",
-    sentiment: "mid",
-    deliveryTime: "45 min",
-    distance: "2.1 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: true,
-    liveViewers: 67,
-  },
-];
-
-const mockMeals: {
-  id: string;
-  name: string;
-  kitchen: string;
-  price: string;
-  originalPrice?: string;
-  image: any;
-  isPopular?: boolean;
-  isNew?: boolean;
-  sentiment:
-    | "bussing"
-    | "mid"
-    | "notIt"
-    | "fire"
-    | "slaps"
-    | "decent"
-    | "meh"
-    | "trash"
-    | "elite"
-    | "solid"
-    | "average"
-    | "skip";
-  deliveryTime: string;
-}[] = [
-  {
-    id: "1",
-    name: "Jollof Rice",
-    kitchen: "Amara's Kitchen",
-    price: "£12",
-    originalPrice: "£15",
-    image: {
-      uri: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
-    },
-    isPopular: true,
-    sentiment: "elite",
-    deliveryTime: "25 min",
-  },
-  {
-    id: "2",
-    name: "Green Curry",
-    kitchen: "Bangkok Bites",
-    price: "£14",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isNew: true,
-    sentiment: "fire",
-    deliveryTime: "30 min",
-  },
-  {
-    id: "3",
-    name: "Lamb Tagine",
-    kitchen: "Marrakech Delights",
-    price: "£18",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isPopular: true,
-    sentiment: "slaps",
-    deliveryTime: "35 min",
-  },
-  {
-    id: "4",
-    name: "Bulgogi Bowl",
-    kitchen: "Seoul Street",
-    price: "£16",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    sentiment: "solid",
-    deliveryTime: "28 min",
-  },
-  {
-    id: "5",
-    name: "Truffle Risotto",
-    kitchen: "Nonna's Table",
-    price: "£22",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isPopular: true,
-    sentiment: "bussing",
-    deliveryTime: "32 min",
-  },
-  {
-    id: "6",
-    name: "Sushi Platter",
-    kitchen: "Tokyo Dreams",
-    price: "£25",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isNew: true,
-    sentiment: "decent",
-    deliveryTime: "22 min",
-  },
-  {
-    id: "7",
-    name: "Pounded Yam",
-    kitchen: "Amara's Kitchen",
-    price: "£10",
-    image: {
-      uri: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
-    },
-    sentiment: "average",
-    deliveryTime: "25 min",
-  },
-  {
-    id: "8",
-    name: "Pad Thai",
-    kitchen: "Bangkok Bites",
-    price: "£13",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    sentiment: "mid",
-    deliveryTime: "30 min",
-  },
-  {
-    id: "9",
-    name: "Butter Chicken",
-    kitchen: "Mumbai Spice",
-    price: "£15",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    isPopular: true,
-    sentiment: "meh",
-    deliveryTime: "40 min",
-  },
-  {
-    id: "10",
-    name: "Coq au Vin",
-    kitchen: "Parisian Bistro",
-    price: "£20",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    sentiment: "notIt",
-    deliveryTime: "45 min",
-  },
-];
-
-const mockOffers = [
-  {
-    id: "1",
-    title: "First Order Discount",
-    description: "Get 20% off your first order from any kitchen",
-    discount: "20%",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    validUntil: "Dec 31",
-    isLimited: true,
-    remainingTime: "2 days left",
-  },
-  {
-    id: "2",
-    title: "Weekend Special",
-    description: "Free delivery on orders over £25 this weekend",
-    discount: "Free Delivery",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    validUntil: "Dec 15",
-    remainingTime: "5 days left",
-  },
-  {
-    id: "3",
-    title: "Lunch Rush",
-    description: "15% off all lunch orders between 12-2 PM",
-    discount: "15%",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    validUntil: "Dec 20",
-    isLimited: true,
-    remainingTime: "1 day left",
-  },
-];
 
 export function MainScreen() {
   const { 
@@ -491,6 +146,17 @@ export function MainScreen() {
       limit: 50,
       userId: user?.id || user?._id || undefined,
     },
+    {
+      skip: !isAuthenticated, // Only fetch when authenticated
+    }
+  );
+
+  const {
+    data: offersData,
+    isLoading: offersLoading,
+    error: offersError,
+  } = useGetActiveOffersQuery(
+    { target: "all" },
     {
       skip: !isAuthenticated, // Only fetch when authenticated
     }
@@ -611,6 +277,73 @@ export function MainScreen() {
     }
     return []; // Return empty array instead of mock data
   }, [chefsData, transformChefsData]);
+
+  // Transform API offer data to component format
+  const transformOfferData = useCallback((apiOffer: any) => {
+    if (!apiOffer) return null;
+
+    // Format discount value
+    let discountText = "";
+    if (apiOffer.discount_type === "percentage") {
+      discountText = `${apiOffer.discount_value}%`;
+    } else if (apiOffer.discount_type === "fixed_amount") {
+      discountText = `£${(apiOffer.discount_value / 100).toFixed(2)}`;
+    } else if (apiOffer.discount_type === "free_delivery") {
+      discountText = "Free Delivery";
+    }
+
+    // Format valid until date
+    const formatDateWithoutYear = (dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    const calculateRemainingTime = (dateString: string) => {
+      const now = new Date();
+      const end = new Date(dateString);
+      const diff = end.getTime() - now.getTime();
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      if (days > 0) return `${days} day${days > 1 ? 's' : ''} left`;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} left`;
+      return 'Expiring soon';
+    };
+
+    const validUntil = formatDateWithoutYear(apiOffer.ends_at);
+    const remainingTime = calculateRemainingTime(apiOffer.ends_at);
+
+    return {
+      id: apiOffer.offer_id || apiOffer._id || "",
+      title: apiOffer.title || "Special Offer",
+      description: apiOffer.description || "",
+      discount: discountText,
+      image: {
+        uri: apiOffer.background_image_url || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
+      },
+      validUntil,
+      isLimited: apiOffer.offer_type === "limited_time",
+      remainingTime,
+    };
+  }, []);
+
+  // Process offers from API
+  const offers = useMemo(() => {
+    // Check if offersData has the expected structure
+    if (offersData?.success && offersData.data) {
+      // Handle both array and object with offers property
+      const offersArray = Array.isArray(offersData.data) 
+        ? offersData.data 
+        : offersData.data.offers || [];
+      
+      if (Array.isArray(offersArray)) {
+        const transformedOffers = offersArray
+          .map(transformOfferData)
+          .filter((offer): offer is NonNullable<ReturnType<typeof transformOfferData>> => offer !== null);
+        return transformedOffers;
+      }
+    }
+    return []; // Return empty array instead of mockOffers
+  }, [offersData, transformOfferData]);
 
   // Helper function to normalize cuisine names for filtering
   const normalizeCuisineForFilter = useCallback((cuisineName: string): string => {
@@ -1516,8 +1249,12 @@ export function MainScreen() {
 
   // Handle kitchen name press from meal details
   const handleKitchenNamePressFromMeal = useCallback((kitchenName: string, kitchenId?: string, foodcreatorId?: string) => {
-    // Try to find kitchen in mockKitchens by name
-    const foundKitchen = mockKitchens.find(k => k.name === kitchenName || k.name === `${kitchenName}'s Kitchen`);
+    // Try to find kitchen in kitchens data by name or ID
+    const foundKitchen = kitchens.find(k => 
+      k.name === kitchenName || 
+      k.name === `${kitchenName}'s Kitchen` ||
+      k.id === kitchenId
+    );
     
     // Create kitchen object with all necessary properties
     const kitchen: any = foundKitchen 
@@ -1546,7 +1283,7 @@ export function MainScreen() {
     setIsKitchenMainScreenVisible(true);
     // Close meal details modal
     setIsMealDetailsVisible(false);
-  }, []);
+  }, [kitchens]);
 
   const handleDrawerAddToCart = useCallback(
     async (id: string) => {
@@ -2086,7 +1823,7 @@ export function MainScreen() {
         {activeDrawer === "popularMeals" && (
           <PopularMealsDrawer
             onBack={handleCloseDrawer}
-            meals={mockMeals}
+            meals={meals}
             onMealPress={handleMealPress}
           />
         )}
@@ -2096,7 +1833,7 @@ export function MainScreen() {
         {activeDrawer === "specialOffers" && (
           <SpecialOffersDrawer
             onBack={handleCloseDrawer}
-            offers={mockOffers}
+            offers={offers}
             onOfferPress={handleOfferPress}
           />
         )}

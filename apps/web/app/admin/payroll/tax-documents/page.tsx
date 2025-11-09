@@ -698,8 +698,8 @@ export default function TaxDocumentsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {templates.map((template: any) => (
-                <div key={template._id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+              {templates.map((template: any, index: number) => (
+                <div key={template._id || `template-${index}`} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="p-2 bg-[#F23E2E]/10 rounded-lg">
                       <Receipt className="w-4 h-4 text-[#F23E2E]" />

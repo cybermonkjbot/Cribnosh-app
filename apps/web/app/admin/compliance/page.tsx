@@ -4,18 +4,18 @@ import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
 import {
-    AlertTriangle,
-    Calendar,
-    CheckCircle,
-    Clock,
-    Database,
-    Download,
-    Eye,
-    FileText,
-    Globe,
-    Lock,
-    Shield,
-    Users
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Database,
+  Download,
+  Eye,
+  FileText,
+  Globe,
+  Lock,
+  Shield,
+  Users
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
@@ -93,7 +93,7 @@ export default function AdminCompliancePage() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleExportCompliance}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-satoshi"
+          className="flex items-center gap-2 px-4 py-2 bg-[#F23E2E] text-white rounded-lg hover:bg-[#F23E2E]/90 transition-colors font-satoshi"
         >
           <Download className="w-4 h-4" />
           Export Report
@@ -383,7 +383,7 @@ export default function AdminCompliancePage() {
                   // Handle export logic here
                   setShowExportModal(false);
                 }}
-                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-satoshi"
+                className="px-6 py-2 bg-[#F23E2E] text-white rounded-lg hover:bg-[#F23E2E]/90 transition-colors font-satoshi"
               >
                 Export Report
               </button>

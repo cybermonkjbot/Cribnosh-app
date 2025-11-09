@@ -326,7 +326,7 @@ export default function AdminAccountSettings() {
             {error && <div className="text-gray-900 font-satoshi text-center">{error}</div>}
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-primary-600 text-white font-bold text-lg shadow hover:bg-primary-700 transition-colors font-satoshi disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-[#F23E2E] text-white font-bold text-lg shadow hover:bg-[#F23E2E]/90 transition-colors font-satoshi disabled:opacity-50"
               disabled={saving}
             >
               {saving ? <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> : null}

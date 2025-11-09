@@ -356,7 +356,7 @@ Document ID: ${doc._id}`;
             <p className="text-gray-700 font-satoshi mb-6">You need to be signed in to access your payroll information.</p>
             <div className="space-y-3">
               <Link href="/staff/login">
-                <Button className="w-full bg-primary-600 hover:bg-primary-700">
+                <Button className="w-full bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                   Sign In
                 </Button>
               </Link>
@@ -403,7 +403,7 @@ Document ID: ${doc._id}`;
             <p className="text-gray-700 font-satoshi mb-6">Your session has expired. Please sign in again to continue.</p>
             <div className="space-y-3">
               <Link href="/staff/login">
-                <Button className="w-full bg-primary-600 hover:bg-primary-700">
+                <Button className="w-full bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                   Sign In Again
                 </Button>
               </Link>

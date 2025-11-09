@@ -1,11 +1,13 @@
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useGetUserConnectionsQuery } from "@/store/customerApi";
 import { Entypo } from "@expo/vector-icons";
 import { SearchIcon, X } from "lucide-react-native";
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Avatar } from "./Avatar";
+import { useAuthContext } from "../../contexts/AuthContext";
 import GroupOrderMember from "../GroupOrderMember";
+import { Avatar } from "./Avatar";
 import { Input } from "./Input";
 import LinkModal from "./LinkModal";
 
@@ -13,21 +15,6 @@ interface ChooseFriend {
   isVisible: boolean;
   onClose: () => void;
 }
-
-// Mock data for friends that can be selected
-const availableFriends = [
-  { id: '1', name: 'Alice Johnson', avatarUri: require('@/assets/images/demo/avatar-1.png'), mutualFriends: 3 },
-  { id: '2', name: 'Bob Smith', avatarUri: require('@/assets/images/demo/avatar-2.png'), mutualFriends: 5 },
-  { id: '3', name: 'Carol Davis', avatarUri: require('@/assets/images/demo/avatar-3.png'), mutualFriends: 2 },
-  { id: '4', name: 'David Wilson', avatarUri: require('@/assets/images/demo/avatar-4.png'), mutualFriends: 7 },
-  { id: '5', name: 'Eva Brown', avatarUri: require('@/assets/images/demo/avatar-5.png'), mutualFriends: 4 },
-  { id: '6', name: 'Frank Miller', avatarUri: require('@/assets/images/demo/avatar-1.png'), mutualFriends: 1 },
-  { id: '7', name: 'Grace Lee', avatarUri: require('@/assets/images/demo/avatar-2.png'), mutualFriends: 6 },
-  { id: '8', name: 'Henry Taylor', avatarUri: require('@/assets/images/demo/avatar-3.png'), mutualFriends: 3 },
-];
-
-// Default display items for normal state (first 5 items in grid layout)
-const defaultItems = availableFriends.slice(0, 5);
 
 interface Item {
   items: any;
@@ -39,31 +26,64 @@ interface Box {
   name: string;
 }
 
-const rows: Item[] = [];
-let i = 0;
-
-while (i < defaultItems.length) {
-  // Odd row (3 items)
-  rows.push({ items: defaultItems.slice(i, i + 3).map(f => ({ avatarUri: f.avatarUri, name: f.name })), type: "odd" });
-  i += 3;
-
-  // Even row (2 items)
-  if (i < defaultItems.length) {
-    rows.push({ items: defaultItems.slice(i, i + 2).map(f => ({ avatarUri: f.avatarUri, name: f.name })), type: "even" });
-    i += 2;
-  }
-}
-
 interface Modal {
   isOpen: boolean;
   onClick: () => void;
 }
 
 export default function ChooseFriend({ isOpen, onClick }: Modal) {
+  const { isAuthenticated } = useAuthContext();
   const [linkModal, setLinkModal] = useState(false);
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  
+  // Fetch real connections/friends from API
+  const {
+    data: connectionsData,
+    isLoading: isLoadingConnections,
+  } = useGetUserConnectionsQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  // Transform API connections to friend format
+  const availableFriends = useMemo(() => {
+    if (connectionsData?.success && connectionsData.data && Array.isArray(connectionsData.data)) {
+      return connectionsData.data.map((connection: any) => ({
+        id: connection.user_id || connection._id || '',
+        name: connection.user_name || connection.name || 'Unknown User',
+        avatarUri: connection.avatar_url || connection.picture || require('@/assets/images/demo/avatar-1.png'),
+        mutualFriends: connection.mutual_connections || 0,
+      }));
+    }
+    return []; // Return empty array if no connections
+  }, [connectionsData]);
+
+  // Default display items for normal state (first 5 items in grid layout)
+  const defaultItems = useMemo(() => availableFriends.slice(0, 5), [availableFriends]);
+
+  // Generate rows for grid layout
+  const rows: Item[] = useMemo(() => {
+    const generatedRows: Item[] = [];
+    let i = 0;
+    while (i < defaultItems.length) {
+      // Odd row (3 items)
+      generatedRows.push({ 
+        items: defaultItems.slice(i, i + 3).map(f => ({ avatarUri: f.avatarUri, name: f.name })), 
+        type: "odd" 
+      });
+      i += 3;
+      // Even row (2 items)
+      if (i < defaultItems.length) {
+        generatedRows.push({ 
+          items: defaultItems.slice(i, i + 2).map(f => ({ avatarUri: f.avatarUri, name: f.name })), 
+          type: "even" 
+        });
+        i += 2;
+      }
+    }
+    return generatedRows;
+  }, [defaultItems]);
   
   if (!isOpen) return null;
 

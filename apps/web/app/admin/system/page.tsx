@@ -347,7 +347,7 @@ export default function AdminSystem() {
             whileTap={{ scale: 0.98 }}
             onClick={handleSaveSettings}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-satoshi disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#F23E2E] text-white rounded-lg hover:bg-[#F23E2E]/90 transition-colors font-satoshi disabled:opacity-50"
           >
             {isLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />

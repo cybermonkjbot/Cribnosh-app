@@ -183,8 +183,6 @@ export default function AdminStaffLeaveRequestsPage() {
             </div>
           )}
         </GlassCard>
-      </div>
-    </div>
     </div>
   );
 } 

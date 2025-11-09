@@ -370,7 +370,7 @@ export default function AdminStaffPage() {
               <Button 
                 type="submit" 
                 disabled={!file || !selectedStaff || uploading}
-                className="bg-primary-600 hover:bg-primary-700"
+                className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 {uploading ? 'Uploading...' : 'Upload Document'}
