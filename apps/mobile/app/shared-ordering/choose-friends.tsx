@@ -19,12 +19,10 @@ export default function ChooseFriends() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-  const [buttonPressed, setButtonPressed] = useState(false);
 
   // Fetch real connections/friends from API
   const {
     data: connectionsData,
-    isLoading: isLoadingConnections,
   } = useGetUserConnectionsQuery(undefined, {
     skip: !isAuthenticated,
   });
@@ -66,7 +64,6 @@ export default function ChooseFriends() {
   
   const handleNavigate = () => {
     console.log('Share button pressed - attempting navigation...');
-    setButtonPressed(true);
     // Close any active modals before navigating
     setShowShareModal(false);
     setIsGeneratingLink(false);

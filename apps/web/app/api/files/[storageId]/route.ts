@@ -35,9 +35,15 @@ export async function GET(
 
     // Get the file URL from Convex storage using the getVideoUrl query
     // (it works for any storage ID, not just videos)
-    const fileUrl = await convex.query(api.queries.videoPosts.getVideoUrl, {
-      storageId: storageId as Id<'_storage'>
-    });
+    const storageIdTyped = storageId as Id<'_storage'>;
+    // Type assertion to avoid deep type instantiation issue
+    const fileUrl = (await convex.query(
+      // @ts-ignore - TypeScript has issues with deep type instantiation for Convex queries
+      api.queries.videoPosts.getVideoUrl,
+      {
+        storageId: storageIdTyped
+      }
+    )) as string | null;
 
     if (!fileUrl) {
       logger.warn(`File not found for storage ID: ${storageId}`);
