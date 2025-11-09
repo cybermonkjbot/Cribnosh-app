@@ -35,7 +35,7 @@ export default function ChooseFriends() {
       return connectionsData.data.map((connection: any) => ({
         id: connection.user_id || connection._id || '',
         name: connection.user_name || connection.name || 'Unknown User',
-        avatar: connection.avatar_url || connection.picture || require('../../assets/images/demo/avatar-1.png'),
+        avatar: connection.avatar_url || connection.picture || undefined, // No fallback - use default avatar component
       }));
     }
     return []; // Return empty array if no connections

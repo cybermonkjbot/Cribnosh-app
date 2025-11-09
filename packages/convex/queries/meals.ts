@@ -3,6 +3,7 @@ import type { Id } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
 import { filterAndRankMealsByPreferences, getUserPreferences } from '../utils/userPreferencesFilter';
 import { requireStaff } from '../utils/auth';
+import { calculateEcoImpact } from '../utils/ecoImpact';
 
 interface MealDoc {
   _id: Id<'meals'>;
@@ -832,4 +833,101 @@ export const getPreviousMeals = query({
       return [];
     }
   }
+});
+
+/**
+ * Get random meals for shake-to-eat feature
+ * Returns a random selection of available meals
+ */
+export const getRandomMeals = query({
+  args: {
+    userId: v.optional(v.id('users')),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number }) => {
+    const limit = args.limit || 20;
+    
+    try {
+      // Get all available meals
+      const allMeals = await ctx.db
+        .query('meals')
+        .filter((q) => {
+          const mealAny = q as { status?: string };
+          return q.or(
+            q.eq(q.field('status'), 'available'),
+            q.eq(q.field('status'), 'active')
+          );
+        })
+        .collect();
+      
+      if (allMeals.length === 0) {
+        return [];
+      }
+      
+      // Apply user preference filtering if userId provided
+      let meals = allMeals;
+      if (args.userId) {
+        try {
+          const preferences = await getUserPreferences(ctx, args.userId);
+          const scoredMeals = filterAndRankMealsByPreferences(
+            allMeals.map((meal: MealDoc) => ({ ...meal })),
+            preferences,
+            () => 0 // Base score doesn't matter for random selection
+          );
+          meals = scoredMeals.map((s: { meal: MealDoc }) => s.meal);
+        } catch (error) {
+          // If preference fetching fails, use all meals
+          console.error('Error fetching user preferences:', error);
+          meals = allMeals;
+        }
+      }
+      
+      // Shuffle array using Fisher-Yates algorithm
+      const shuffled = [...meals];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      
+      // Get chef data for selected meals
+      const selectedMeals = shuffled.slice(0, limit);
+      const chefIds = new Set(selectedMeals.map((meal: MealDoc) => meal.chefId));
+      const chefs = await Promise.all(
+        Array.from(chefIds).map(id => ctx.db.get(id))
+      );
+      const chefMap = new Map<Id<'chefs'>, ChefDoc>();
+      for (const chef of chefs) {
+        if (chef) {
+          chefMap.set(chef._id, chef as ChefDoc);
+        }
+      }
+      
+      // Build meals with chef data
+      return selectedMeals.map((meal: MealDoc) => {
+        const chef = chefMap.get(meal.chefId);
+        return {
+          ...meal,
+          chef: chef ? {
+            _id: (chef as ChefDoc)._id,
+            name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
+            bio: (chef as ChefDoc).bio,
+            specialties: (chef as ChefDoc).specialties || [],
+            rating: (chef as ChefDoc).rating || 0,
+            profileImage: (chef as ChefDoc).profileImage
+          } : {
+            _id: meal.chefId,
+            name: `Chef ${meal.chefId}`,
+            bio: '',
+            specialties: [],
+            rating: 0,
+            profileImage: null
+          },
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching random meals:', error);
+      return [];
+    }
+  },
 }); 

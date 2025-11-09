@@ -91,7 +91,6 @@ export const getDashboardFooterStats = query({
       : 0;
 
     // Get revenue data
-    const now = Date.now();
     const todayStart = new Date().setHours(0, 0, 0, 0);
     const weekStart = now - (7 * 24 * 60 * 60 * 1000);
     const monthStart = now - (30 * 24 * 60 * 60 * 1000);

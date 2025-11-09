@@ -38,6 +38,7 @@ export interface DishRecommendation {
   dietary_tags: string[];
   rating: number;
   review_count: number;
+  eco_impact?: string; // CO2 savings for "too-fresh" items
 }
 
 export interface EmotionsEngineResponse {

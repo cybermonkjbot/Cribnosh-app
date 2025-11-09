@@ -1,5 +1,9 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
+import { showError } from '@/lib/GlobalToastManager';
+import { useGetCuisinesQuery } from '@/store/customerApi';
 import { Image } from 'expo-image';
+import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
@@ -20,50 +24,48 @@ export function CuisinesDrawer({
   cuisines = [],
   onCuisinePress
 }: CuisinesDrawerProps) {
-  const defaultCuisines: Cuisine[] = [
-    {
-      id: '1',
-      name: 'Italian',
-      image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop',
-    },
-    {
-      id: '2',
-      name: 'Mexican',
-      image: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=80&h=80&fit=crop',
-    },
-    {
-      id: '3',
-      name: 'French',
-      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=80&h=80&fit=crop',
-    },
-    {
-      id: '4',
-      name: 'Japanese',
-      image: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=80&h=80&fit=crop',
-    },
-    {
-      id: '5',
-      name: 'Indian',
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=80&h=80&fit=crop',
-    },
-    {
-      id: '6',
-      name: 'Thai',
-      image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=80&h=80&fit=crop',
-    },
-    {
-      id: '7',
-      name: 'Chinese',
-      image: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=80&h=80&fit=crop',
-    },
-    {
-      id: '8',
-      name: 'Mediterranean',
-      image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop',
-    },
-  ];
+  const { isAuthenticated } = useAuthContext();
 
-  const baseCuisines = cuisines.length > 0 ? cuisines : defaultCuisines;
+  // Fetch cuisines from API if not provided via props
+  const {
+    data: cuisinesData,
+    error: cuisinesError,
+  } = useGetCuisinesQuery(
+    { page: 1, limit: 50 },
+    {
+      skip: !isAuthenticated || cuisines.length > 0, // Skip if props provided
+    }
+  );
+
+  // Transform API data to Cuisine format
+  const apiCuisines: Cuisine[] = useMemo(() => {
+    if (cuisinesData?.success && cuisinesData.data && Array.isArray(cuisinesData.data)) {
+      return cuisinesData.data.map((cuisine: any) => ({
+        id: cuisine.id || cuisine._id || '',
+        name: cuisine.name || 'Unknown Cuisine',
+        image: cuisine.image_url || cuisine.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop',
+      }));
+    }
+    return [];
+  }, [cuisinesData]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (cuisinesError && isAuthenticated) {
+      showError('Failed to load cuisines', 'Please try again');
+    }
+  }, [cuisinesError, isAuthenticated]);
+
+  // Use props if provided, otherwise use API data, otherwise empty array
+  const baseCuisines = useMemo(() => {
+    if (cuisines.length > 0) {
+      return cuisines;
+    }
+    if (apiCuisines.length > 0) {
+      return apiCuisines;
+    }
+    return []; // Return empty array instead of mock data
+  }, [cuisines, apiCuisines]);
 
   // Search functionality with debouncing
   const { setSearchQuery, filteredItems: displayCuisines } = useCategoryDrawerSearch({

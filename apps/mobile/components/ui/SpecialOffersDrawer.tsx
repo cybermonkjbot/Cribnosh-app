@@ -1,6 +1,6 @@
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
 interface SpecialOffer {
@@ -40,38 +40,9 @@ export function SpecialOffersDrawer({
   offers = [],
   onOfferPress
 }: SpecialOffersDrawerProps) {
-  const defaultOffers: SpecialOffer[] = [
-    {
-      id: '1',
-      title: 'Weekend Special',
-      description: 'Get 20% off on all orders this weekend',
-      discount: '20%',
-      image: { uri: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop' },
-      validUntil: 'Dec 31, 2024',
-      isLimited: true,
-      remainingTime: '2 days left',
-    },
-    {
-      id: '2',
-      title: 'New User Bonus',
-      description: 'First order gets 15% discount',
-      discount: '15%',
-      image: { uri: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=400&h=300&fit=crop' },
-      validUntil: 'Jan 15, 2025',
-      isLimited: false,
-    },
-    {
-      id: '3',
-      title: 'Happy Hour Deal',
-      description: 'Special prices from 3PM to 6PM',
-      discount: '25%',
-      image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
-      validUntil: 'Ongoing',
-      isLimited: false,
-    },
-  ];
-
-  const baseOffers = offers.length > 0 ? offers : defaultOffers;
+  // Use offers from props (which come from API in MainScreen)
+  // Return empty array if no offers provided instead of mock data
+  const baseOffers = offers.length > 0 ? offers : [];
 
   // Search functionality with debouncing
   const { setSearchQuery, filteredItems: displayOffers } = useCategoryDrawerSearch({

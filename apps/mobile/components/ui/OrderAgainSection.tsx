@@ -32,32 +32,6 @@ interface OrderAgainSectionProps {
   onItemPress?: (item: OrderItem) => void;
 }
 
-const mockOrderItems: OrderItem[] = [
-  {
-    id: "1",
-    name: "Hosomaki roll",
-    price: "£19",
-    image:
-      "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=120&h=120&fit=crop",
-    hasBussinBadge: true,
-  },
-  {
-    id: "2",
-    name: "Hosomaki roll",
-    price: "£19",
-    image:
-      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=120&h=120&fit=crop",
-  },
-  {
-    id: "3",
-    name: "Hosomaki roll",
-    price: "£19",
-    image:
-      "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=120&h=120&fit=crop",
-    hasBussinBadge: true,
-  },
-];
-
 export function OrderAgainSection({
   isHeaderSticky = false,
   isAuthenticated = false,
@@ -91,7 +65,7 @@ export function OrderAgainSection({
     }));
   }, []);
 
-  // Process dishes data from API or fallback to mock data
+  // Process dishes data from API - return empty array if no data
   const orderItems = useMemo(() => {
     if (recentDishesData?.success && recentDishesData.data?.dishes && isAuthenticated) {
       const dishes = recentDishesData.data.dishes;
@@ -99,8 +73,8 @@ export function OrderAgainSection({
       return transformedData;
     }
 
-    // Fallback to mock data when not authenticated or no API results
-    return mockOrderItems;
+    // Return empty array instead of mock data when not authenticated or no API results
+    return [];
   }, [recentDishesData, isAuthenticated, transformDishesData]);
 
   // Handle dishes API errors

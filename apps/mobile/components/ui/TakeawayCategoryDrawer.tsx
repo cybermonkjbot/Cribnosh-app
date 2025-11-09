@@ -1,6 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useGetTakeawayItemsQuery } from '@/store/customerApi';
+import { showError } from '@/lib/GlobalToastManager';
 import { CategoryFoodItemsGrid } from './CategoryFoodItemsGrid';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
@@ -36,81 +39,88 @@ export function TakeawayCategoryDrawer({
   onAddToCart,
   onItemPress
 }: TakeawayCategoryDrawerProps) {
+  const { isAuthenticated } = useAuthContext();
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
-  // Enhanced default items with more realistic data
-  const defaultItems: FoodItem[] = useMemo(() => [
+  // Fetch takeaway items from API
+  const {
+    data: takeawayData,
+    error: takeawayError,
+  } = useGetTakeawayItemsQuery(
+    { limit: 50, page: 1 },
     {
-      id: '1',
-      title: 'Classic Chicken Burger',
-      description: 'Grilled chicken breast, fresh lettuce, tomato, and special sauce',
-      price: 12.99,
-      sentiment: 'bussing',
-      prepTime: '15-20 min',
-      isPopular: true,
-      isQuick: true,
-      isHealthy: false,
-      isSpicy: false,
-      isVegan: false,
-      imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&h=200&fit=crop'
-    },
-    {
-      id: '2',
-      title: 'Veggie Delight Wrap',
-      description: 'Fresh vegetables, hummus, and tahini in whole wheat wrap',
-      price: 9.99,
-      sentiment: 'mid',
-      prepTime: '10-15 min',
-      isPopular: false,
-      isQuick: true,
-      isHealthy: true,
-      isSpicy: false,
-      isVegan: true,
-      imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop'
-    },
-    {
-      id: '3',
-      title: 'Spicy Beef Tacos',
-      description: 'Seasoned beef, salsa, guacamole, and fresh cilantro',
-      price: 14.99,
-      sentiment: 'bussing',
-      prepTime: '20-25 min',
-      isPopular: true,
-      isQuick: false,
-      isHealthy: false,
-      isSpicy: true,
-      isVegan: false,
-      imageUrl: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=200&h=200&fit=crop'
-    },
-    {
-      id: '4',
-      title: 'Mediterranean Salad',
-      description: 'Mixed greens, olives, feta, cucumber, and balsamic dressing',
-      price: 11.99,
-      sentiment: 'mid',
-      prepTime: '8-12 min',
-      isPopular: false,
-      isQuick: true,
-      isHealthy: true,
-      isSpicy: false,
-      isVegan: false,
-      imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200&h=200&fit=crop'
-    },
-    {
-      id: '5',
-      title: 'Teriyaki Salmon Bowl',
-      description: 'Grilled salmon, steamed rice, vegetables, and teriyaki glaze',
-      price: 18.99,
-      sentiment: 'bussing',
-      prepTime: '25-30 min',
-      isPopular: true,
-      isQuick: false,
-      isHealthy: true,
-      isSpicy: false,
-      isVegan: false,
-      imageUrl: 'https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f?w=200&h=200&fit=crop'
-    },
-  ], []);
+      skip: !isAuthenticated,
+    }
+  );
+
+  // Transform API data to FoodItem format
+  const transformTakeawayItem = useCallback((apiItem: any): FoodItem | null => {
+    if (!apiItem) return null;
+
+    // Handle different response structures
+    const item = apiItem.dish || apiItem.meal || apiItem;
+    
+    // Extract price (API returns in cents/pence, convert to pounds/dollars)
+    const priceInCents = item.price || 0;
+    const price = priceInCents / 100;
+
+    // Extract sentiment from item or default
+    const sentiment = item.sentiment || 'mid';
+
+    // Determine boolean flags from item properties
+    const tags = item.tags || item.dietary_tags || [];
+    const isVegan = tags.includes('vegan') || tags.includes('plant-based');
+    const isSpicy = tags.includes('spicy') || tags.includes('hot');
+    const isHealthy = tags.includes('healthy') || tags.includes('low-calorie');
+    const isQuick = item.delivery_time ? parseInt(item.delivery_time) <= 20 : false;
+    const isPopular = item.rating && item.rating >= 4.5;
+
+    return {
+      id: item._id || item.id || '',
+      title: item.name || item.title || 'Unknown Item',
+      description: item.description || '',
+      price: price,
+      sentiment: sentiment as 'bussing' | 'mid' | 'notIt',
+      prepTime: item.delivery_time || item.prep_time || '20-30 min',
+      isPopular: isPopular,
+      isQuick: isQuick,
+      isHealthy: isHealthy,
+      isSpicy: isSpicy,
+      isVegan: isVegan,
+      imageUrl: item.image_url || item.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=200&fit=crop',
+    };
+  }, []);
+
+  // Process takeaway items from API
+  const apiTakeawayItems: FoodItem[] = useMemo(() => {
+    if (!isAuthenticated || !takeawayData?.success || !takeawayData.data) {
+      return [];
+    }
+
+    // SearchResponse.data is an array of SearchResult
+    const items = Array.isArray(takeawayData.data) ? takeawayData.data : [];
+    
+    const transformedItems = items
+      .map((item: any) => transformTakeawayItem(item))
+      .filter((item): item is FoodItem => item !== null);
+    
+    return transformedItems;
+  }, [takeawayData, isAuthenticated, transformTakeawayItem]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (takeawayError && isAuthenticated) {
+      showError('Failed to load takeaway items', 'Please try again');
+    }
+  }, [takeawayError, isAuthenticated]);
+
+  // Use API data if available, otherwise use props, otherwise empty array
+  const defaultItems: FoodItem[] = useMemo(() => {
+    if (apiTakeawayItems.length > 0) {
+      return apiTakeawayItems;
+    }
+    return []; // Return empty array instead of mock data
+  }, [apiTakeawayItems]);
 
   // Filter handler
   const handleFilterChange = (filterId: string) => {
@@ -178,8 +188,13 @@ export function TakeawayCategoryDrawer({
   });
 
   const displayAllAvailable = searchFilteredItems;
+  // Best rated items - use props if provided, otherwise use top-rated from API data
   const displayBestRated = useMemo(() => {
-    const base = bestRatedItems.length > 0 ? bestRatedItems : defaultItems.slice(0, 3);
+    const base = bestRatedItems.length > 0 
+      ? bestRatedItems 
+      : defaultItems
+          .filter(item => item.isPopular || (item.sentiment === 'bussing'))
+          .slice(0, 3);
     const filtered = applyFilters(base);
     // Apply search to best rated if search is active
     if (searchQuery.trim()) {
@@ -191,8 +206,10 @@ export function TakeawayCategoryDrawer({
     }
     return filtered;
   }, [bestRatedItems, defaultItems, applyFilters, searchQuery]);
+
+  // Order again - use recent items from API data
   const displayOrderAgain = useMemo(() => {
-    const filtered = applyFilters(defaultItems.slice(2, 5));
+    const filtered = applyFilters(defaultItems.slice(0, 3));
     // Apply search to order again if search is active
     if (searchQuery.trim()) {
       return filtered.filter((item) => {

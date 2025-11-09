@@ -1344,12 +1344,16 @@ export function MainScreen() {
       const context: OrderingContext = {
         timeContext,
         userBehavior,
-        currentLocation: { latitude: 51.5074, longitude: -0.1278 }, // Mock location
-        weather: { condition: "sunny", temperature: 22 }, // Mock weather
+        currentLocation: locationState.location ? {
+          latitude: locationState.location.latitude,
+          longitude: locationState.location.longitude,
+        } : undefined, // Use real location from locationState
+        // Weather API not available yet - can be added later
+        // weather: { condition: "sunny", temperature: 22 },
         appState: "active",
       };
     return getOrderedSectionsWithHidden(context);
-  }, [userBehavior]);
+  }, [userBehavior, locationState.location]);
 
   // Update ordered sections state only when memoized value changes
   useEffect(() => {
@@ -1360,8 +1364,12 @@ export function MainScreen() {
       const context: OrderingContext = {
         timeContext,
         userBehavior,
-        currentLocation: { latitude: 51.5074, longitude: -0.1278 },
-        weather: { condition: "sunny", temperature: 22 },
+        currentLocation: locationState.location ? {
+          latitude: locationState.location.latitude,
+          longitude: locationState.location.longitude,
+        } : undefined, // Use real location from locationState
+        // Weather API not available yet - can be added later
+        // weather: { condition: "sunny", temperature: 22 },
         appState: "active",
       };
       const sections = getOrderedSectionsWithHidden(context);
@@ -1369,7 +1377,7 @@ export function MainScreen() {
     }, 10 * 60 * 1000); // Update every 10 minutes
 
     return () => clearInterval(interval);
-  }, [orderedSectionsMemoized, userBehavior]);
+  }, [orderedSectionsMemoized, userBehavior, locationState.location]);
 
   // Update performance config periodically (reduced frequency for better performance)
   useEffect(() => {

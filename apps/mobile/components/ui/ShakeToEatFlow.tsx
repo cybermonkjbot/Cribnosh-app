@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   Modal,
@@ -11,20 +11,21 @@ import {
   View
 } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useAnimatedReaction,
-  useDerivedValue,
-  interpolate,
-  withTiming,
-  withSpring,
-  withRepeat,
-  withDelay,
   Easing,
+  interpolate,
   runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useShakeDetection } from '@/hooks/useShakeDetection';
+import { useGetPopularMealsQuery } from '@/store/customerApi';
 import { CONFIG } from '../../constants/config';
 import { Mascot } from '../Mascot';
 
@@ -54,14 +55,23 @@ const MOODS = [
 { id: 'quick', emoji: '⏰', label: 'Quick', gradient: ['#094327', '#FF3B30'], description: 'Fast & easy' },
 ];
 
-// Enhanced meals with more personality
-const SAMPLE_MEALS = [
-{ name: 'Jollof Supreme', emoji: '👑', origin: 'Nigerian Classic', vibe: 'Royal feast' },
-{ name: 'Spiced Shawarma', emoji: '🌪️', origin: 'Middle Eastern', vibe: 'Street magic' },
-{ name: 'Suya Fire', icon: 'flame', origin: 'Nigerian Street', vibe: 'Bold & spicy' },
-{ name: 'Truffle Pasta', emoji: '🍝', origin: 'Italian Luxe', vibe: 'Sophisticated' },
-{ name: 'Curry Storm', emoji: '🌶️', origin: 'Indian Fusion', vibe: 'Flavor explosion' },
-{ name: 'Taco Fiesta', emoji: '🎉', origin: 'Mexican Street', vibe: 'Party vibes' },
+// Meal type for ShakeToEat flow
+type ShakeMeal = {
+  name: string;
+  emoji?: string;
+  icon?: string;
+  origin: string;
+  vibe: string;
+};
+
+// Fallback meals if API fails (minimal set for random selection)
+const FALLBACK_MEALS: ShakeMeal[] = [
+  { name: 'Jollof Supreme', emoji: '👑', origin: 'Nigerian Classic', vibe: 'Royal feast' },
+  { name: 'Spiced Shawarma', emoji: '🌪️', origin: 'Middle Eastern', vibe: 'Street magic' },
+  { name: 'Suya Fire', icon: 'flame', origin: 'Nigerian Street', vibe: 'Bold & spicy' },
+  { name: 'Truffle Pasta', emoji: '🍝', origin: 'Italian Luxe', vibe: 'Sophisticated' },
+  { name: 'Curry Storm', emoji: '🌶️', origin: 'Indian Fusion', vibe: 'Flavor explosion' },
+  { name: 'Taco Fiesta', emoji: '🎉', origin: 'Mexican Street', vibe: 'Party vibes' },
 ];
 
 interface ShakeToEatFlowProps {
@@ -72,11 +82,79 @@ onStart?: () => void;
 }
 
 export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: ShakeToEatFlowProps) {
+  const { isAuthenticated } = useAuthContext();
   const [currentStep, setCurrentStep] = useState<FlowStep>('idle');
   const [selectedMood, setSelectedMood] = useState<typeof MOODS[0] | null>(null);
-  const [selectedMeal, setSelectedMeal] = useState<typeof SAMPLE_MEALS[0] | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<ShakeMeal | null>(null);
   const [isInCooldown, setIsInCooldown] = useState(false);
   const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const availableMealsRef = useRef<ShakeMeal[]>(FALLBACK_MEALS);
+
+  // Fetch popular meals from API for random selection
+  const {
+    data: popularMealsData,
+  } = useGetPopularMealsQuery(
+    {
+      limit: 20,
+      userId: undefined,
+    },
+    {
+      skip: !isAuthenticated,
+    }
+  );
+
+  // Transform API meals to ShakeMeal format
+  const transformMealToShakeFormat = useCallback((apiMeal: any): ShakeMeal | null => {
+    if (!apiMeal?.meal) return null;
+    
+    const meal = apiMeal.meal;
+    const chef = apiMeal.chef;
+    
+    // Determine emoji/icon based on cuisine or sentiment
+    const getMealEmoji = (cuisine: string, sentiment: string) => {
+      const cuisineEmojis: Record<string, string> = {
+        'Nigerian': '👑',
+        'Italian': '🍝',
+        'Indian': '🌶️',
+        'Mexican': '🎉',
+        'Middle Eastern': '🌪️',
+        'Japanese': '🍣',
+        'Thai': '🍜',
+      };
+      return cuisineEmojis[cuisine] || '🍽️';
+    };
+
+    const cuisine = chef?.cuisine || meal?.cuisine || 'Various';
+    const sentiment = meal?.sentiment || chef?.sentiment || 'solid';
+    
+    return {
+      name: meal.name || 'Delicious Meal',
+      emoji: getMealEmoji(cuisine, sentiment),
+      origin: cuisine,
+      vibe: sentiment === 'elite' ? 'Royal feast' : 
+            sentiment === 'fire' ? 'Bold & spicy' :
+            sentiment === 'bussing' ? 'Flavor explosion' :
+            'Delicious',
+    };
+  }, []);
+
+  // Get available meals from API or fallback
+  useMemo(() => {
+    if (popularMealsData?.success && popularMealsData.data?.popular && Array.isArray(popularMealsData.data.popular)) {
+      const transformedMeals = popularMealsData.data.popular
+        .map(transformMealToShakeFormat)
+        .filter((meal): meal is ShakeMeal => meal !== null);
+      
+      // Update ref with transformed meals if available, otherwise fallback
+      const meals = transformedMeals.length > 0 ? transformedMeals : FALLBACK_MEALS;
+      availableMealsRef.current = meals; // Update ref for worklet access
+      return meals;
+    }
+    
+    // Use fallback meals if API not available or not authenticated
+    availableMealsRef.current = FALLBACK_MEALS;
+    return FALLBACK_MEALS;
+  }, [popularMealsData, transformMealToShakeFormat]);
 
   // Enhanced animation system with more states
   const masterOpacity = useSharedValue(0);
@@ -333,9 +411,13 @@ const startFoodDiscoveryAnimation = () => {
   }, (finished) => {
     'worklet';
     if (finished) {
-      // Select meal after spin
-      const randomMeal = SAMPLE_MEALS[Math.floor(Math.random() * SAMPLE_MEALS.length)];
-      runOnJS(setSelectedMeal)(randomMeal);
+      // Select random meal from available meals (API or fallback)
+      // Use ref to access meals in worklet context
+      const meals = availableMealsRef.current;
+      if (meals && meals.length > 0) {
+        const randomMeal = meals[Math.floor(Math.random() * meals.length)];
+        runOnJS(setSelectedMeal)(randomMeal);
+      }
       
       setTimeout(() => {
         runOnJS(setCurrentStep)('magic-moment');

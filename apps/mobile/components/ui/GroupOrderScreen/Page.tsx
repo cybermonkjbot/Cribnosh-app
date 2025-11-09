@@ -57,7 +57,7 @@ export default function GroupOrderBottomSheet({
     if (connectionsData?.success && connectionsData.data && Array.isArray(connectionsData.data)) {
       return connectionsData.data.slice(0, 6).map((connection: any, index: number) => ({
         name: connection.user_name || connection.name || 'Unknown User',
-        avatarUri: connection.avatar_url || connection.picture || require('@/assets/images/demo/avatar-1.png'),
+        avatarUri: connection.avatar_url || connection.picture || undefined, // No fallback - use default avatar component
         top: (index % 3) * 50,
         left: (index % 2) * 50,
       }));

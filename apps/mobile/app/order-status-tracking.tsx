@@ -48,37 +48,8 @@ export default function OrderStatusTrackingScreen() {
     skip: !orderId,
   });
 
-  // Mock data fallback
-  const mockOrderStatus = {
-    order_id: orderId || "mock_order_fallback",
-    current_status: "preparing",
-    status_updates: [
-      {
-        status: "pending",
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-        message: "Order received and confirmed",
-      },
-      {
-        status: "preparing",
-        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
-        message: "Kitchen started preparing your order",
-      },
-    ],
-    estimated_delivery_time: new Date(
-      Date.now() + 30 * 60 * 1000
-    ).toISOString(), // 30 minutes from now
-    delivery_person: {
-      name: "David Morel",
-      phone: "+44 7700 900123",
-      vehicle_type: "Motorcycle",
-      vehicle_number: "ABC123",
-    },
-  };
-
-  // Only use mock data if API explicitly fails (error), not if data is just empty
-  const orderStatus =
-    apiData?.data ||
-    (apiLoading === false && !apiData && !orderId ? mockOrderStatus : undefined);
+  // Use API data only - return undefined if no data available (don't use mock fallback)
+  const orderStatus = apiData?.data || undefined;
 
   // Track previous status to detect changes
   const previousStatusRef = useRef<string | undefined>(undefined);

@@ -1,3 +1,7 @@
+// DEPRECATED: This is a demo component for testing tab and filter functionality.
+// It uses mock data and should not be used in production.
+// For production, use real API data from MainScreen components.
+
 import { useAppContext } from '@/utils/AppContext';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -5,6 +9,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 export function TabFilterDemo() {
   const { activeHeaderTab, activeCategoryFilter } = useAppContext();
 
+  // Mock content for demo purposes only
   const mockContent = [
     { id: 1, title: 'Nigerian Jollof', category: 'nigerian', type: 'for-you' },
     { id: 2, title: 'Live Sushi Making', category: 'sushi', type: 'live' },

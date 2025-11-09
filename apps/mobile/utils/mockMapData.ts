@@ -1,3 +1,7 @@
+// DEPRECATED: This file contains mock data that is no longer used in production.
+// The app now uses real API calls via getNearbyChefs in appleMapsService.ts
+// This file is kept for reference only and should not be imported in production code.
+
 // Mock chef location data for development and testing
 import { ChefMarker } from '@/types/maps';
 

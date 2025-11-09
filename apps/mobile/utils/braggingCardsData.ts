@@ -118,7 +118,11 @@ export const getCaloriesForDay = (mealLogs: MealLog[], daysAgo: number): number 
     .reduce((sum, meal) => sum + meal.calories, 0);
 };
 
-// Mock backend query structure (replace with actual API calls)
+// DEPRECATED: mockConvexQueries is not used in production code.
+// The app now uses real API calls:
+// - useGetWeeklySummaryQuery from @/store/customerApi for weekly stats
+// - useGetCaloriesProgressQuery from @/store/customerApi for calorie data
+// This mock is kept for reference only and should not be called in production.
 export const mockConvexQueries = {
   // This would be replaced with actual backend API calls
   getUserWeeklyStats: async (userId: string): Promise<WeeklySummaryData> => {

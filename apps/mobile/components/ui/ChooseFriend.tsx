@@ -52,7 +52,7 @@ export default function ChooseFriend({ isOpen, onClick }: Modal) {
       return connectionsData.data.map((connection: any) => ({
         id: connection.user_id || connection._id || '',
         name: connection.user_name || connection.name || 'Unknown User',
-        avatarUri: connection.avatar_url || connection.picture || require('@/assets/images/demo/avatar-1.png'),
+        avatarUri: connection.avatar_url || connection.picture || undefined, // No fallback - use default avatar component
         mutualFriends: connection.mutual_connections || 0,
       }));
     }

@@ -148,6 +148,19 @@ async function lookupDishes(
           badge = 'BUSSIN';
         }
         
+        // Calculate eco impact if filters include "too-fresh" tag
+        let ecoImpact: string | undefined;
+        if (filters?.tag === 'too-fresh') {
+          try {
+            const { calculateEcoImpact } = require('@/../../packages/convex/utils/ecoImpact');
+            const category = meal.category || meal.tags?.[0] || 'Other';
+            const impact = calculateEcoImpact(category, 1);
+            ecoImpact = impact.formatted;
+          } catch (error) {
+            console.error('Error calculating eco impact:', error);
+          }
+        }
+        
         dishRecommendations.push({
           dish_id: meal._id,
           name: meal.name || rec.item_name,
@@ -161,6 +174,7 @@ async function lookupDishes(
           dietary_tags: meal.dietary || [],
           rating: meal.averageRating || meal.rating || 0,
           review_count: meal.reviewCount || 0,
+          eco_impact: ecoImpact,
         });
       }
     }
@@ -272,21 +286,39 @@ export async function runInference(
         return true;
       });
       
-      // Convert to DishRecommendation format
-      const dishes: DishRecommendation[] = matchingMeals.slice(0, 20).map((meal: any) => ({
-        dish_id: meal._id,
-        name: meal.name || '',
-        price: Math.round((meal.price || 0) * 100),
-        image_url: meal.images?.[0] ? `/api/files/${meal.images[0]}` : '/default-dish.jpg',
-        description: meal.description || '',
-        chef_name: meal.chef?.name || `Chef ${meal.chefId}`,
-        chef_id: meal.chefId,
-        badge: meal.rating >= 4.5 ? 'BUSSIN' : undefined,
-        relevance_score: 1.0,
-        dietary_tags: meal.dietary || [],
-        rating: meal.averageRating || meal.rating || 0,
-        review_count: meal.reviewCount || 0,
-      }));
+      // Convert to DishRecommendation format with eco impact calculation for too-fresh items
+      const dishes: DishRecommendation[] = matchingMeals.slice(0, 20).map((meal: any) => {
+        // Calculate eco impact if this is a "too-fresh" item
+        let ecoImpact: string | undefined;
+        if (filters.tag === 'too-fresh') {
+          try {
+            // Import eco impact calculation utility
+            const { calculateEcoImpact } = require('@/../../packages/convex/utils/ecoImpact');
+            const category = meal.category || meal.tags?.[0] || 'Other';
+            const impact = calculateEcoImpact(category, 1);
+            ecoImpact = impact.formatted;
+          } catch (error) {
+            // If calculation fails, don't include eco impact
+            console.error('Error calculating eco impact:', error);
+          }
+        }
+        
+        return {
+          dish_id: meal._id,
+          name: meal.name || '',
+          price: Math.round((meal.price || 0) * 100),
+          image_url: meal.images?.[0] ? `/api/files/${meal.images[0]}` : '/default-dish.jpg',
+          description: meal.description || '',
+          chef_name: meal.chef?.name || `Chef ${meal.chefId}`,
+          chef_id: meal.chefId,
+          badge: meal.rating >= 4.5 ? 'BUSSIN' : undefined,
+          relevance_score: 1.0,
+          dietary_tags: meal.dietary || [],
+          rating: meal.averageRating || meal.rating || 0,
+          review_count: meal.reviewCount || 0,
+          eco_impact: ecoImpact,
+        };
+      });
       
       if (dishes.length > 0) {
         return {

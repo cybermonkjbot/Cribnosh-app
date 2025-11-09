@@ -1,7 +1,11 @@
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
+import { showError } from '@/lib/GlobalToastManager';
+import { useGetTooFreshItemsQuery } from '@/store/customerApi';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
 interface TooFreshItem {
@@ -29,65 +33,95 @@ export function TooFreshToWasteDrawer({
   onAddToCart,
   onItemPress
 }: TooFreshToWasteDrawerProps) {
-  const defaultItems: TooFreshItem[] = [
-    {
-      id: '1',
-      name: 'Fresh Salmon Fillet',
-      origin: 'Scottish Highlands',
-      price: 12.99,
-      originalPrice: 24.99,
-      category: 'Seafood',
-      discount: 48,
-      ecoImpact: 'Saves 2.3kg CO2',
-      imageUrl: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=200&h=200&fit=crop'
-    },
-    {
-      id: '2',
-      name: 'Organic Parsley Bunch',
-      origin: 'Local Farm',
-      price: 2.49,
-      originalPrice: 4.99,
-      category: 'Herbs',
-      discount: 50,
-      ecoImpact: 'Saves 0.8kg CO2',
-      imageUrl: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=200&h=200&fit=crop'
-    },
-    {
-      id: '3',
-      name: 'Premium Beef Cut',
-      origin: 'Grass-fed Farm',
-      price: 15.99,
-      originalPrice: 32.99,
-      category: 'Meat',
-      discount: 52,
-      ecoImpact: 'Saves 3.1kg CO2',
-      imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=200&fit=crop'
-    },
-    {
-      id: '4',
-      name: 'Artisan Bread Loaf',
-      origin: 'Local Bakery',
-      price: 3.99,
-      originalPrice: 7.99,
-      category: 'Bakery',
-      discount: 50,
-      ecoImpact: 'Saves 1.2kg CO2',
-      imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&h=200&fit=crop'
-    },
-    {
-      id: '5',
-      name: 'Fresh Berries Mix',
-      origin: 'Organic Farm',
-      price: 4.99,
-      originalPrice: 12.99,
-      category: 'Fruits',
-      discount: 62,
-      ecoImpact: 'Saves 1.8kg CO2',
-      imageUrl: 'https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=200&h=200&fit=crop'
-    },
-  ];
+  const { isAuthenticated } = useAuthContext();
 
-  const baseItems = items.length > 0 ? items : defaultItems;
+  // Fetch too fresh items from API
+  const {
+    data: tooFreshData,
+    error: tooFreshError,
+  } = useGetTooFreshItemsQuery(
+    { limit: 50, page: 1 },
+    {
+      skip: !isAuthenticated,
+    }
+  );
+
+  // Transform API data to TooFreshItem format
+  const transformTooFreshItem = useCallback((apiItem: any): TooFreshItem | null => {
+    if (!apiItem) return null;
+
+    // Handle different response structures
+    const item = apiItem.dish || apiItem.meal || apiItem;
+    
+    // Extract price (API returns in cents/pence, convert to pounds/dollars)
+    const priceInCents = item.price || 0;
+    const price = priceInCents / 100;
+    const originalPriceInCents = item.original_price || item.originalPrice || 0;
+    const originalPrice = originalPriceInCents > 0 ? originalPriceInCents / 100 : undefined;
+
+    // Calculate discount percentage if original price exists
+    const discount = originalPrice && originalPrice > price
+      ? Math.round(((originalPrice - price) / originalPrice) * 100)
+      : undefined;
+
+    // Extract category from tags or category field
+    const tags = item.tags || item.dietary_tags || [];
+    const category = item.category || tags.find((tag: string) => 
+      ['Seafood', 'Herbs', 'Meat', 'Bakery', 'Fruits', 'Vegetables'].includes(tag)
+    ) || 'Other';
+
+    // Extract origin from metadata or default
+    const origin = item.origin || item.source || item.kitchen_name || 'Local Source';
+
+    // Get eco impact from API or return undefined (don't generate random data)
+    const ecoImpact = item.eco_impact || item.ecoImpact || undefined;
+
+    return {
+      id: item._id || item.id || '',
+      name: item.name || item.title || 'Unknown Item',
+      origin: origin,
+      price: price,
+      originalPrice: originalPrice,
+      category: category,
+      discount: discount,
+      ecoImpact: ecoImpact,
+      imageUrl: item.image_url || item.image || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=200&h=200&fit=crop',
+    };
+  }, []);
+
+  // Process too fresh items from API
+  const apiTooFreshItems: TooFreshItem[] = useMemo(() => {
+    if (!isAuthenticated || !tooFreshData?.success || !tooFreshData.data) {
+      return [];
+    }
+
+    // SearchResponse.data is an array of SearchResult
+    const items = Array.isArray(tooFreshData.data) ? tooFreshData.data : [];
+    
+    const transformedItems = items
+      .map((item: any) => transformTooFreshItem(item))
+      .filter((item): item is TooFreshItem => item !== null);
+    
+    return transformedItems;
+  }, [tooFreshData, isAuthenticated, transformTooFreshItem]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (tooFreshError && isAuthenticated) {
+      showError('Failed to load eco-friendly items', 'Please try again');
+    }
+  }, [tooFreshError, isAuthenticated]);
+
+  // Use props if provided, otherwise use API data, otherwise empty array
+  const baseItems = useMemo(() => {
+    if (items.length > 0) {
+      return items;
+    }
+    if (apiTooFreshItems.length > 0) {
+      return apiTooFreshItems;
+    }
+    return []; // Return empty array instead of mock data
+  }, [items, apiTooFreshItems]);
 
   // Search functionality with debouncing
   const { setSearchQuery, filteredItems: displayItems } = useCategoryDrawerSearch({
