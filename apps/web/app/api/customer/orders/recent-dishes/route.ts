@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -99,6 +99,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get pagination parameters
     const { searchParams } = new URL(request.url);
@@ -110,6 +111,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       customer_id: userId,
       status: 'past',
       order_type: 'all',
+      sessionToken: sessionToken || undefined
     });
 
     // Extract unique dishes from orders with metadata
@@ -148,7 +150,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get all dish details in one batch query
     const dishIds = Array.from(dishIdSet) as Id<'meals'>[];
     const dishesWithDetails = dishIds.length > 0
-      ? await convex.query(api.queries.meals.getDishesWithDetails, { dishIds })
+      ? await convex.query(api.queries.meals.getDishesWithDetails, {
+        dishIds,
+        sessionToken: sessionToken || undefined
+      })
       : [];
     
     // Create a map of dish details for quick lookup

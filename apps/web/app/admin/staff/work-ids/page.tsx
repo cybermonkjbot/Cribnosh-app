@@ -11,11 +11,11 @@ import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { WorkIdListSkeleton } from '@/components/admin/skeletons';
 import { useMutation, useQuery } from 'convex/react';
 import { EmptyState } from '@/components/admin/empty-state';
+import { useSessionToken } from '@/hooks/useSessionToken';
 
 export default function AdminStaffWorkIdsPage() {
-  
-  
-  const workIds = useQuery(api.queries.staff.getAllWorkIds, {});
+  const sessionToken = useSessionToken();
+  const workIds = useQuery(api.queries.staff.getAllWorkIds, sessionToken ? { sessionToken } : "skip");
   const revokeWorkId = useMutation(api.mutations.staff.revokeWorkId);
   const renewWorkId = useMutation(api.mutations.staff.renewWorkId);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -36,7 +36,9 @@ export default function AdminStaffWorkIdsPage() {
     setActionLoading(id._id);
     setError('');
     try {
-      await revokeWorkId({ workId: id._id, revokedBy: adminUser._id as Id<'users'>, revocationReason });
+      await revokeWorkId({workId: id._id, revokedBy: adminUser._id as Id<'users'>, revocationReason,
+    sessionToken: sessionToken || undefined
+  });
       setRevokingId(null);
       setRevocationReason('');
     } catch (err: any) {
@@ -57,7 +59,9 @@ export default function AdminStaffWorkIdsPage() {
     setActionLoading(id._id);
     setError('');
     try {
-      await renewWorkId({ workId: id._id, renewedBy: adminUser._id as Id<'users'>, expiresInDays: renewDays });
+      await renewWorkId({workId: id._id, renewedBy: adminUser._id as Id<'users'>, expiresInDays: renewDays,
+    sessionToken: sessionToken || undefined
+  });
       setRenewingId(null);
       setRenewDays(365);
     } catch (err: any) {

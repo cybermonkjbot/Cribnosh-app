@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -103,8 +104,9 @@ export default function CitiesManagementPage() {
   });
 
   // Fetch data
-  const cities = useQuery(api.queries.cities.getCities);
-  const countries = useQuery(api.queries.cities.getCountries);
+  const sessionToken = useSessionToken();
+  const cities = useQuery(api.queries.cities.getCities, sessionToken ? { sessionToken } : "skip");
+  const countries = useQuery(api.queries.cities.getCountries, sessionToken ? { sessionToken } : "skip");
 
   // Mutations
   const createCity = useMutation(api.mutations.cities.createCity);
@@ -119,8 +121,7 @@ export default function CitiesManagementPage() {
     }
 
     try {
-      await createCity({
-        ...newCity,
+      await createCity({...newCity,
         slug: newCity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         coordinates: {
           latitude: newCity.latitude,
@@ -138,7 +139,8 @@ export default function CitiesManagementPage() {
           deliveryFee: newCity.deliveryFee,
           estimatedDeliveryTime: newCity.estimatedDeliveryTime,
           operatingHours: newCity.operatingHours
-        }
+        },
+        sessionToken: sessionToken || undefined
       });
       
       setNewCity({
@@ -171,7 +173,9 @@ export default function CitiesManagementPage() {
 
   const handleUpdateCity = async (cityId: Id<"cities">, updates: Partial<City>) => {
     try {
-      await updateCity({ cityId, ...updates });
+      await updateCity({cityId, ...updates,
+    sessionToken: sessionToken || undefined
+  });
       setSuccess('City updated successfully');
       setError(null);
       setIsEditing(null);
@@ -183,7 +187,9 @@ export default function CitiesManagementPage() {
   const handleDeleteCity = async (cityId: Id<"cities">) => {
     if (confirm('Are you sure you want to delete this city?')) {
       try {
-        await deleteCity({ cityId });
+        await deleteCity({cityId,
+    sessionToken: sessionToken || undefined
+  });
         setSuccess('City deleted successfully');
         setError(null);
       } catch (err) {
@@ -194,7 +200,9 @@ export default function CitiesManagementPage() {
 
   const handleToggleStatus = async (cityId: Id<"cities">) => {
     try {
-      await toggleCityStatus({ cityId });
+      await toggleCityStatus({cityId,
+    sessionToken: sessionToken || undefined
+  });
       setSuccess('City status updated successfully');
       setError(null);
     } catch (err) {

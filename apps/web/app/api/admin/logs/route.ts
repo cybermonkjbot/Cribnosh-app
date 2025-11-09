@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -131,6 +131,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await getAuthenticatedAdmin(request);
     
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -141,7 +142,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       timestamp?: number;
       [key: string]: unknown;
     }
-    const allLogs = await convex.query(api.queries.adminLogs.getAll, {}) as AdminLog[];
+    const allLogs = await convex.query(api.queries.adminLogs.getAll, {
+      sessionToken: sessionToken || undefined
+    }) as AdminLog[];
     allLogs.sort((a: AdminLog, b: AdminLog) => (b.timestamp || 0) - (a.timestamp || 0));
     const paginated = allLogs.slice(offset, offset + limit);
     return ResponseFactory.success({ logs: paginated, total: allLogs.length, limit, offset });

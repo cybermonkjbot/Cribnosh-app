@@ -57,7 +57,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
@@ -85,7 +85,10 @@ export async function POST(request: NextRequest, { params }: { params: { review_
       return ResponseFactory.validationError('is_approved must be a boolean');
     }
     const convex = getConvexClientFromRequest(request);
-    const allReviews = await convex.query(api.queries.reviews.getAll, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allReviews = await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     const review = allReviews.find((r: any) => r._id === review_id);
     if (!review) {
       return ResponseFactory.notFound('Review not found');
@@ -98,10 +101,13 @@ export async function POST(request: NextRequest, { params }: { params: { review_
     await convex.mutation(api.mutations.reviews.updateReview, {
       reviewId: review_id as Id<'reviews'>,
       ...(is_approved ? { status: 'approved' } : { status: 'pending' }),
-      // approval_date is not in schema, so do not store it in DB
+      // approval_date is not in schema, so do not store it in DB,
+      sessionToken: sessionToken || undefined
     });
     // Return the updated review
-    const updatedAll = await convex.query(api.queries.reviews.getAll, {});
+    const updatedAll = await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     const updated = updatedAll.find((r: any) => r._id === review_id);
     if (!updated) {
       return ResponseFactory.notFound('Review not found after update');

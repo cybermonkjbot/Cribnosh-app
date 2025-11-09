@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { randomBytes, scryptSync } from 'crypto';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -131,8 +131,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Role must be customer');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   // Duplicate email check
-  const existing = await convex.query(api.queries.users.getUserByEmail, { email });
+  const existing = await convex.query(api.queries.users.getUserByEmail, {
+    email,
+    sessionToken: sessionToken || undefined
+  });
   if (existing) {
     return ResponseFactory.error('A user with this email already exists.', 'CUSTOM_ERROR', 409);
   }
@@ -147,8 +151,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       password: passwordHash,
       roles: ['user'],
       status: 'active',
+      sessionToken: sessionToken || undefined
     });
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.internalError('User creation failed.');
     }

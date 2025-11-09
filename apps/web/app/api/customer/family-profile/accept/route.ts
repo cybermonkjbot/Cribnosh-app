@@ -4,7 +4,7 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -49,11 +49,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Accept invitation
     const result = await convex.mutation(api.mutations.familyProfiles.acceptInvitation, {
       invitation_token,
       user_id: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(

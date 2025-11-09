@@ -43,7 +43,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -74,15 +74,23 @@ import { getErrorMessage } from '@/types/errors';
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
   
   // Get all reviews, meals, and chefs using the correct query references
   // Apply user preferences to meals
-  const reviews = await convex.query((api as any).queries.reviews.getAll, {});
-  const meals = await convex.query((api as any).queries.meals.getAll, { userId });
-  const chefs = await convex.query((api as any).queries.chefs.getAll, {});
+  const reviews = await convex.query((api as any).queries.reviews.getAll, {
+    sessionToken: sessionToken || undefined
+  });
+  const meals = await convex.query((api as any).queries.meals.getAll, {
+    userId,
+    sessionToken: sessionToken || undefined
+  });
+  const chefs = await convex.query((api as any).queries.chefs.getAll, {
+    sessionToken: sessionToken || undefined
+  });
 
   // Aggregate reviews by meal_id
   const mealReviewMap: Record<string, { total: number; count: number; meal: any }> = {};

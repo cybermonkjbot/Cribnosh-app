@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -72,8 +72,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);// notification_id is already extracted from searchParams
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Get all notifications and find the one we want
-    const notifications = await convex.query(api.queries.notifications.getAll, {});
+    const notifications = await convex.query(api.queries.notifications.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     const notification = notifications.find((n: { _id: string }) => n._id === notification_id);
     if (!notification) {
       return ResponseFactory.notFound('Notification not found.');
@@ -82,7 +85,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (notification.userId !== userId && !notification.global && !userHasRole) {
       return ResponseFactory.forbidden('Forbidden: Not your notification.');
     }
-    await convex.mutation(api.mutations.notifications.markAsRead, { notificationId: notification_id as Id<'notifications'> });
+    await convex.mutation(api.mutations.notifications.markAsRead, {
+      notificationId: notification_id as Id<'notifications'>,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

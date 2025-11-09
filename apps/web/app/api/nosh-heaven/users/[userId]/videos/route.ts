@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -76,10 +76,12 @@ async function handleGET(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const videos = await convex.query((api as any).queries.videoPosts.getVideosByCreator, {
       creatorId: userId,
       limit,
       cursor,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(videos, 'User videos retrieved successfully');

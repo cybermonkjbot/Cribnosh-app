@@ -106,7 +106,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
@@ -159,13 +159,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch all delivery applications (assuming a 'drivers' table)
-    const allApplications = await convex.query(api.queries.drivers.getAll, {});
+    const allApplications = await convex.query(api.queries.drivers.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Consistent ordering (createdAt DESC)
     allApplications.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     const paginated = allApplications.slice(offset, offset + limit);
@@ -220,6 +223,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('Invalid email format.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const applicationId = await convex.mutation(api.mutations.drivers.createDriver, {
       name,
       email,
@@ -227,6 +231,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       vehicleType: 'car', // Default to car, could be made configurable
       experience: experience || '',
       createdAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, applicationId });
   } catch (error: unknown) {
@@ -281,11 +286,13 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('application_id and status are required.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Update the driver application status
     await convex.mutation(api.mutations.drivers.updateDriver, {
       id: application_id as Id<'drivers'>,
       status,
       updatedAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -340,9 +347,13 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('application_id is required.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Delete the driver application
     try {
-      await convex.mutation(api.mutations.drivers.deleteDriver, { id: application_id as Id<'drivers'> });
+      await convex.mutation(api.mutations.drivers.deleteDriver, {
+        id: application_id as Id<'drivers'>,
+        sessionToken: sessionToken || undefined
+      });
     } catch (error) {
       logger.error('Error deleting driver application:', error);
       return ResponseFactory.error('Failed to delete driver application', 'CUSTOM_ERROR', 500);
@@ -352,7 +363,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       action: 'delete_delivery_application',
       details: { application_id },
       adminId: userId,
-      // Timestamp is added automatically by the mutation
+      // Timestamp is added automatically by the mutation,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -372,15 +384,20 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('application_ids array is required.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     for (const applicationId of application_ids) {
-      await convex.mutation(api.mutations.drivers.deleteDriver, { id: applicationId as Id<'drivers'> });
+      await convex.mutation(api.mutations.drivers.deleteDriver, {
+        id: applicationId as Id<'drivers'>,
+        sessionToken: sessionToken || undefined
+      });
     }
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'bulk_delete_delivery_applications',
       details: { application_ids },
       adminId: userId,
-      // Timestamp is added automatically by the mutation
+      // Timestamp is added automatically by the mutation,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, deleted: application_ids.length });
   } catch (error: unknown) {
@@ -396,13 +413,17 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClientFromRequest(request);
-    const allApplications = await convex.query(api.queries.drivers.getAll, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allApplications = await convex.query(api.queries.drivers.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_delivery_applications',
       details: {},
       adminId: userId,
-      // Timestamp is added automatically by the mutation
+      // Timestamp is added automatically by the mutation,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.jsonDownload(allApplications, 'delivery-applications-export.json');
   } catch (error: unknown) {

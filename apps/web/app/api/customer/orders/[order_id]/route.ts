@@ -1,4 +1,4 @@
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -154,7 +154,11 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
-    const order = await convex.query(api.queries.orders.getById, { order_id: order_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const order = await convex.query(api.queries.orders.getById, {
+      order_id: order_id,
+      sessionToken: sessionToken || undefined
+    });
     
     if (!order || order.customer_id !== userId) {
       return ResponseFactory.notFound('Order not found or not owned by customer');

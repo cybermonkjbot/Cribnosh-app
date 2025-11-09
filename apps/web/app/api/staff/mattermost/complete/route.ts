@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode, ErrorSeverity } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from "@/lib/auth/session";
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { mattermostService } from '@/lib/mattermost';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -195,12 +195,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Save Mattermost completion to database
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.staff.updateMattermostSetup, {
       userId: data.userId,
       mattermostUsername: data.username,
       mattermostEmail: data.email,
       setupCompleted: true,
       setupCompletedAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
 
     // Send welcome message to the employee

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
@@ -44,10 +44,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get active support chat
     const activeChat = await convex.query(api.queries.supportCases.getActiveSupportChat, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!activeChat || !activeChat.chat) {
@@ -67,6 +69,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       chatId: activeChat.chat._id,
       limit,
       offset,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({
@@ -124,10 +127,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get active support chat
     const activeChat = await convex.query(api.queries.supportCases.getActiveSupportChat, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!activeChat || !activeChat.chat || !activeChat.supportCase) {
@@ -143,12 +148,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       chatId: activeChat.chat._id,
       senderId: userId,
       content: content.trim(),
+      sessionToken: sessionToken || undefined
     });
 
     // Update support case last message
     await convex.mutation(api.mutations.supportCases.addMessageToCase, {
       caseId: activeChat.supportCase._id,
       message: content.trim(),
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({

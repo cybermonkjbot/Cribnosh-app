@@ -4,7 +4,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { ErrorCode, ErrorFactory, withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
@@ -150,6 +150,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('model, start_date, and end_date are required.');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Type assertion to avoid deep type inference issue
     const queryResult = await convex.query(api.queries.reviews.getAll);
     const allReviews = queryResult as unknown as Review[];
@@ -201,7 +202,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
                 await convex.mutation(api.mutations.reviews.updateReview, { 
                   reviewId: review._id, 
                   sentiment: data.results[index],
-                  analyzedAt: Date.now()
+                  analyzedAt: Date.now(),
+                  sessionToken: sessionToken || undefined
                 });
               } catch (error) {
                 logger.error(`Failed to update review ${review._id}:`, error);

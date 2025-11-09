@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
@@ -102,11 +102,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
     const convex = getConvexClientFromRequest(request);
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }
-    const { password, sessionToken, sessionExpiry, ...safeUser } = user;
+    const { password, sessionExpiry, ...safeUser } = user;
     
     // Transform address from backend format (zipCode) to frontend format (postal_code)
     if (safeUser.address && safeUser.address.zipCode) {
@@ -250,19 +254,25 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       };
     }
     
+    const sessionToken = getSessionTokenFromRequest(request);
+    
     // Update user via Convex mutation
     await convex.mutation(api.mutations.users.updateUser, {
       userId: userId as any,
       ...updates,
+      sessionToken: sessionToken || undefined
     });
     
     // Fetch updated user
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }
     
-    const { password, sessionToken, sessionExpiry, ...safeUser } = user;
+    const { password, sessionExpiry, ...safeUser } = user;
     
     // Transform address from backend format (zipCode) to frontend format (postal_code)
     if (safeUser.address && safeUser.address.zipCode) {

@@ -45,7 +45,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -56,7 +56,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
-    const reviews = await convex.query(api.queries.reviews.getByChef, { chef_id: userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const reviews = await convex.query(api.queries.reviews.getByChef, {
+      chef_id: userId,
+      sessionToken: sessionToken || undefined
+    });
     const total_ratings = reviews.length;
     const average_rating = total_ratings > 0 ? reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / total_ratings : 0;
     return ResponseFactory.success({ average_rating, total_ratings });

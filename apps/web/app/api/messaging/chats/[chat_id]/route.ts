@@ -21,7 +21,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
@@ -75,7 +75,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Invalid chat_id');
   }
   const convex = getConvexClientFromRequest(request);
-  const chat = await convex.query(api.queries.chats.getConversationById, { chatId });
+  const sessionToken = getSessionTokenFromRequest(request);
+  const chat = await convex.query(api.queries.chats.getConversationById, {
+    chatId,
+    sessionToken: sessionToken || undefined
+  });
   if (!chat) {
     return ResponseFactory.notFound('Chat not found');
   }

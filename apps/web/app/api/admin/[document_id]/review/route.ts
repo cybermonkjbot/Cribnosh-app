@@ -4,7 +4,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { ResponseFactory } from '@/lib/api';
@@ -110,10 +110,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Invalid status');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.documents.updateDocumentStatus, {
       documentId: document_id,
       status,
-      // notes: notes || '', // Add this if your mutation supports notes in the future
+      // notes: notes || '', // Add this if your mutation supports notes in the future,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {

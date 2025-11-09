@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { scryptSync, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
@@ -107,7 +107,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Email and password are required.');
     }
     const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByEmail, { email });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await convex.query(api.queries.users.getUserByEmail, {
+      email,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.unauthorized('Invalid credentials.');
     }
@@ -135,6 +139,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       await convex.mutation(api.mutations.users.updateUserRoles, {
         userId: user._id,
         roles: userRoles,
+        sessionToken: sessionToken || undefined
       });
     }
     
@@ -143,6 +148,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // Create verification session for 2FA
       const verificationToken = await convex.mutation(api.mutations.verificationSessions.createVerificationSession, {
         userId: user._id,
+        sessionToken: sessionToken || undefined
       });
       
       // Return verification token instead of JWT
@@ -157,7 +163,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // No 2FA required - create session token using Convex mutation
     const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
       userId: user._id,
-      expiresInDays: 30, // 30 days expiry
+      expiresInDays: 30, // 30 days expiry,
+      sessionToken: sessionToken || undefined
     });
     
     // Set session token cookie

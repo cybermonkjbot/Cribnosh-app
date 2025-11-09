@@ -4,7 +4,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
 
@@ -152,10 +152,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Missing newAdminId');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   const result = await convex.mutation(api.mutations.chats.transferAdmin, {
     chatId,
     userId: user._id,
-    newAdminId
+    newAdminId,
+    sessionToken: sessionToken || undefined
   });
   return ResponseFactory.success(result);
 }

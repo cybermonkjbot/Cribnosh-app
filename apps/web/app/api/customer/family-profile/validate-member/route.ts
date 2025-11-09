@@ -4,7 +4,7 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -66,10 +66,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Check if user exists by email
     const existingUser = await convex.query(api.queries.users.getUserByEmail, {
       email: email.toLowerCase().trim(),
+      sessionToken: sessionToken || undefined
     });
 
     if (existingUser) {

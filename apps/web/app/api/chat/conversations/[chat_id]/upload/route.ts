@@ -5,7 +5,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { logger } from '@/lib/utils/logger';
 

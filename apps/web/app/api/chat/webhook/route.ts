@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient, api } from '@/lib/conxed-client';
+import { getConvexClient, api, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import crypto from 'crypto';
 import { ConvexHttpClient } from 'convex/browser';
 import { Id } from '@/convex/_generated/dataModel';
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Process the webhook event
-    await processWebhookEvent(body);
+    await processWebhookEvent(body, request);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -159,25 +159,26 @@ async function verifyWebhookSignature(
   );
 }
 
-async function processWebhookEvent(eventData: WebhookEventData) {
+async function processWebhookEvent(eventData: WebhookEventData, request: NextRequest) {
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   
   switch (eventData.type) {
     case 'message.created':
-      await handleMessageCreated(convex, eventData);
+      await handleMessageCreated(convex, eventData, sessionToken);
       break;
     case 'channel.created':
-      await handleChannelCreated(convex, eventData);
+      await handleChannelCreated(convex, eventData, sessionToken);
       break;
     case 'user.created':
-      await handleUserCreated(convex, eventData);
+      await handleUserCreated(convex, eventData, sessionToken);
       break;
     default:
       logger.log('Unknown event type:', eventData.type);
   }
 }
 
-async function handleMessageCreated(convex: ConvexHttpClient, eventData: WebhookEventData) {
+async function handleMessageCreated(convex: ConvexHttpClient, eventData: WebhookEventData, sessionToken: string | null) {
   try {
     // Track message creation in analytics
     await convex.mutation(api.mutations.analytics.trackEvent, {
@@ -187,6 +188,7 @@ async function handleMessageCreated(convex: ConvexHttpClient, eventData: Webhook
         channelId: eventData.channelId,
         messageType: eventData.messageType,
       },
+      sessionToken: sessionToken || undefined
     });
 
     // Create notification if needed
@@ -196,6 +198,7 @@ async function handleMessageCreated(convex: ConvexHttpClient, eventData: Webhook
         message: 'The AI has responded to your message',
         userId: eventData.userId as Id<'users'>,
         createdAt: Date.now(),
+        sessionToken: sessionToken || undefined
       });
     }
   } catch (error) {
@@ -203,7 +206,7 @@ async function handleMessageCreated(convex: ConvexHttpClient, eventData: Webhook
   }
 }
 
-async function handleChannelCreated(convex: ConvexHttpClient, eventData: WebhookEventData) {
+async function handleChannelCreated(convex: ConvexHttpClient, eventData: WebhookEventData, sessionToken: string | null) {
   try {
     // Track channel creation in analytics
     await convex.mutation(api.mutations.analytics.trackEvent, {
@@ -214,6 +217,7 @@ async function handleChannelCreated(convex: ConvexHttpClient, eventData: Webhook
         channelName: eventData.name,
         createdBy: eventData.createdBy,
       },
+      sessionToken: sessionToken || undefined
     });
 
     // Create system notification
@@ -222,13 +226,14 @@ async function handleChannelCreated(convex: ConvexHttpClient, eventData: Webhook
       message: `Channel "${eventData.name}" has been created`,
       userId: eventData.createdBy as Id<'users'>,
       createdAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
   } catch (error) {
     logger.error('Error handling channel created:', error);
   }
 }
 
-async function handleUserCreated(convex: ConvexHttpClient, eventData: WebhookEventData) {
+async function handleUserCreated(convex: ConvexHttpClient, eventData: WebhookEventData, sessionToken: string | null) {
   try {
     // Track user creation in analytics
     await convex.mutation(api.mutations.analytics.trackEvent, {
@@ -239,6 +244,7 @@ async function handleUserCreated(convex: ConvexHttpClient, eventData: WebhookEve
         userName: eventData.name,
         userEmail: eventData.email,
       },
+      sessionToken: sessionToken || undefined
     });
 
     // Send welcome notification
@@ -247,6 +253,7 @@ async function handleUserCreated(convex: ConvexHttpClient, eventData: WebhookEve
       message: 'Welcome to CribNosh Chat! Start a conversation!',
       userId: eventData.userId as Id<'users'>,
       createdAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
   } catch (error) {
     logger.error('Error handling user created:', error);

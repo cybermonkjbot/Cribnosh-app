@@ -25,7 +25,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -58,7 +58,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated chef from session token
     const { userId } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
-    const documents = await convex.query(api.queries.documents.getByChefId, { chef_id: userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const documents = await convex.query(api.queries.documents.getByChefId, {
+      chef_id: userId,
+      sessionToken: sessionToken || undefined
+    });
     let status = 'pending';
     if (documents.length > 0) {
       if (documents.every((d: { status?: string }) => d.status === 'approved')) status = 'approved';

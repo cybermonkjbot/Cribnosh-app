@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
@@ -131,10 +131,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await getAuthenticatedAdmin(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start') ? Number(searchParams.get('start')) : undefined;
     const end = searchParams.get('end') ? Number(searchParams.get('end')) : undefined;
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     // Calculate stats
     const total_users = users.length;
     const customers = users.filter((u: any) => u.roles?.includes('customer')).length;

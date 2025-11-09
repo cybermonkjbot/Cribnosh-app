@@ -111,7 +111,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -193,6 +193,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Generate report based on type
     const report = await convex.query(api.queries.analytics.generateOrderReport, {
@@ -200,7 +201,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       startDate: new Date(startDate).getTime(),
       endDate: new Date(endDate).getTime(),
       filters: filters || {},
-      includeDetails
+      includeDetails,
+      sessionToken: sessionToken || undefined
     });
 
     // Format response based on requested format
@@ -302,6 +304,7 @@ async function convertToPDF(report: any, requestBody: GenerateReportRequest, req
   // Generate real report data
   try {
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get real order data - using the analytics query that exists
     const orders = await convex.query(api.queries.analytics.generateOrderReport, {
@@ -313,7 +316,8 @@ async function convertToPDF(report: any, requestBody: GenerateReportRequest, req
         chefId: requestBody.filters?.chefId,
         customerId: requestBody.filters?.customerId
       },
-      includeDetails: true
+      includeDetails: true,
+      sessionToken: sessionToken || undefined
     });
     
     // Generate comprehensive report

@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -153,9 +153,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -183,7 +187,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         sentByRole: user.roles?.[0] || 'unknown',
         orderStatus: order.order_status,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     logger.log(`Message sent for order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
@@ -227,9 +232,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -243,7 +252,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get order messages
-    const messages = await convex.query(api.queries.orders.getOrderMessages, { orderId: order_id });
+    const messages = await convex.query(api.queries.orders.getOrderMessages, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
 
     // Format messages
     const formattedMessages = messages.map((msg: { _id: string; message?: string; messageType?: string; sent_by?: string; sent_at?: number; metadata?: Record<string, unknown> }) => ({

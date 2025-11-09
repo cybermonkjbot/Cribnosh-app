@@ -1,21 +1,14 @@
 ﻿"use client";
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { GlassCard } from '@/components/ui/glass-card';
 import { RequestHistory } from '@/components/ui/request-history';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useMutation, useQuery } from 'convex/react';
 import { ArrowLeft, Calendar, CheckCircle, Info } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
-
-// Utility to get a cookie value by name (client-side only)
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : undefined;
-}
+import { useRef, useState } from 'react';
 
 const leaveTypes = [
   { value: 'annual', label: 'Annual Leave' },
@@ -47,14 +40,7 @@ export default function LeaveRequestPage() {
   const [success, setSuccess] = useState(false);
   const [step, setStep] = useState(1);
   const endDateRef = useRef<HTMLInputElement>(null);
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  
-  // Get session token from cookies
-  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    const token = getCookie('convex-auth-token');
-    setSessionToken(token);
-  }, []);
+  const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   
   const profile = useQuery(
     api.queries.users.getById,
@@ -241,17 +227,10 @@ export default function LeaveRequestPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-      <div className="bg-white/80 backdrop-blur-sm border-b border-amber-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-4">
-            <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-xl font-asgard text-gray-900">Request Leave</h1>
-          </div>
-        </div>
-      </div>
-      <div className="max-w-2xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      <div className="max-w-2xl mx-auto px-2 sm:px-4 pt-8 pb-4 sm:pb-8">
+        <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-4">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
         <GlassCard className="p-4 sm:p-8">
           <Progress />
           <AnimatePresence mode="wait">

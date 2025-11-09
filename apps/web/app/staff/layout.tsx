@@ -3,25 +3,15 @@
 import { GlassNavbar } from "@/components/admin/glass-navbar";
 import { api } from '@/convex/_generated/api';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { useSessionToken } from '@/hooks/useSessionToken';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useMutation, useQuery } from 'convex/react';
 import { Bell } from "lucide-react";
 import { motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { StaffAuthProvider, useStaffAuthContext } from './staff-auth-context';
 
-// Add useHasMounted hook
-function useHasMounted() {
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  return hasMounted;
-}
-
-export default function StaffLayout({
+function StaffLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -30,12 +20,9 @@ export default function StaffLayout({
   const pathname = usePathname();
   const isLoginPage = pathname === "/staff/login";
   const [showNotifications, setShowNotifications] = useState(false);
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   const userId = staffUser?._id;
   const userRoles = staffUser?.roles;
-  
-  // Get session token using hook
-  const sessionToken = useSessionToken();
   
   const queryArgs = staffUser && staffUser._id && sessionToken
     ? { userId: staffUser._id, roles: staffUser.roles, sessionToken }
@@ -54,7 +41,6 @@ export default function StaffLayout({
   };
   const unreadCount = staffNotifications?.filter((n: any) => !n.read).length || 0;
   const { isMobile } = useMobileDevice();
-  const hasMounted = useHasMounted();
 
   // All hooks must be called before any conditional returns (Rules of Hooks)
   // If user data is not available after loading, redirect to login
@@ -71,9 +57,6 @@ export default function StaffLayout({
       router.replace('/staff/login');
     }
   }, [isLoginPage, staffUser, router]);
-
-  // Early return after all hooks are called
-  if (!hasMounted) return null;
 
   const handleLogout = async () => {
     try {
@@ -224,5 +207,17 @@ export default function StaffLayout({
         </motion.div>
       )}
     </div>
+  );
+}
+
+export default function StaffLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <StaffAuthProvider>
+      <StaffLayoutContent>{children}</StaffLayoutContent>
+    </StaffAuthProvider>
   );
 } 

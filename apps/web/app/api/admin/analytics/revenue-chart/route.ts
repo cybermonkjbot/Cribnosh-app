@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -102,8 +102,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await getAuthenticatedAdmin(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Replace api.orders with api.queries.custom_orders.getAllOrders
-    const orders = await convex.query(api.queries.custom_orders.getAllOrders, {});
+    const orders = await convex.query(api.queries.custom_orders.getAllOrders, {
+      sessionToken: sessionToken || undefined
+    });
     const { searchParams } = new URL(request.url);
     const range = (searchParams.get('range') as 'day' | 'week' | 'month') || 'day';
     const grouped = groupByDate(orders, 'createdAt', range);

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { scryptSync, timingSafeEqual } from 'crypto';
@@ -42,9 +42,13 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     const { password } = body;
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get user to verify password if provided
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }
@@ -63,6 +67,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     // Disable 2FA
     await convex.mutation(api.mutations.users.disableTwoFactor, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({

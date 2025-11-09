@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '../../../lib/api/middleware';
-import { getConvexClientFromRequest, api } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, api, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { getErrorMessage } from '@/types/errors';
@@ -116,8 +116,12 @@ async function postHandler(req: NextRequest) {
     if (!validateTimelogRequest(data)) {
       return ResponseFactory.badRequest("Validation error");
     }
-    const convex = getConvexClientFromRequest(req);
-    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, { identifier: data.user });
+    const convex = getConvexClientFromRequest(req)
+    const sessionToken = getSessionTokenFromRequest(req);;
+    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, {
+      identifier: data.user,
+      sessionToken: sessionToken || undefined
+    });
     if (!staff) {
       return ResponseFactory.notFound("Resource not found");
     }
@@ -127,6 +131,7 @@ async function postHandler(req: NextRequest) {
       bucket: data.bucket,
       logs: data.logs,
       timestamp: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({});
   } catch (error: unknown) {
@@ -207,6 +212,7 @@ export function OPTIONS() {
 export async function GET(req: NextRequest) {
   try {
     const convex = getConvexClientFromRequest(req);
+    const sessionToken = getSessionTokenFromRequest(req);
     const { searchParams } = new URL(req.url);
     const staffIdParam = searchParams.get('staffId');
     const staffId = staffIdParam ? staffIdParam as Id<'users'> : undefined;
@@ -222,6 +228,7 @@ export async function GET(req: NextRequest) {
       end,
       skip,
       limit,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({});
   } catch (error: unknown) {
@@ -247,7 +254,11 @@ async function putHandler(req: NextRequest) {
     }
     
     const convex = getConvexClientFromRequest(req);
-    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, { identifier: data.user });
+    const sessionToken = getSessionTokenFromRequest(req);
+    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, {
+      identifier: data.user,
+      sessionToken: sessionToken || undefined
+    });
     if (!staff) {
       return ResponseFactory.notFound("Resource not found");
     }
@@ -259,6 +270,7 @@ async function putHandler(req: NextRequest) {
       bucket: data.bucket,
       logs: data.logs,
       timestamp: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({});
@@ -280,8 +292,10 @@ async function deleteHandler(req: NextRequest) {
     }
     
     const convex = getConvexClientFromRequest(req);
+    const sessionToken = getSessionTokenFromRequest(req);
     const result = await convex.mutation(api.mutations.timelogs.deleteTimelog, {
       timelogId: timelogId as Id<'timelogs'>,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({});
@@ -304,9 +318,11 @@ async function patchHandler(req: NextRequest) {
     }
     
     const convex = getConvexClientFromRequest(req);
+    const sessionToken = getSessionTokenFromRequest(req);
     const result = await convex.mutation(api.mutations.timelogs.patchTimelog, {
       timelogId: timelogId as Id<'timelogs'>,
       updates: data,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({});

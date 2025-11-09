@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
@@ -55,10 +55,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query balance from database
     const balance = await convex.query(api.queries.customerBalance.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(balance);

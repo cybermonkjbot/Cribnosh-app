@@ -74,7 +74,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextRequestWithParams } from '@/types/next';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
@@ -161,7 +161,13 @@ async function handleGET(request: NextRequestWithParams<{ chat_id: string }>): P
   const limit = parseInt(searchParams.get('limit') || '20', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
   const convex = getConvexClientFromRequest(request);
-  const result = await convex.query(api.queries.chats.listMessagesForChat, { chatId, limit, offset });
+  const sessionToken = getSessionTokenFromRequest(request);
+  const result = await convex.query(api.queries.chats.listMessagesForChat, {
+    chatId,
+    limit,
+    offset,
+    sessionToken: sessionToken || undefined
+  });
   return ResponseFactory.success(result);
 }
 
@@ -225,6 +231,7 @@ async function handlePOST(request: NextRequestWithParams<{ chat_id: string }>): 
       return ResponseFactory.validationError('Message content or file required');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const message = await convex.mutation(api.mutations.chats.sendMessage, {
       chatId: chat_id as Id<'chats'>,
       senderId: userId,
@@ -234,6 +241,7 @@ async function handlePOST(request: NextRequestWithParams<{ chat_id: string }>): 
       fileName,
       fileSize,
       metadata,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(message);
   } catch (error: unknown) {

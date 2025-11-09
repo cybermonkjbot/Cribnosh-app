@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -147,7 +147,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
-    const orders = await convex.query(api.queries.orders.listByChef, { chef_id: userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const orders = await convex.query(api.queries.orders.listByChef, {
+      chef_id: userId,
+      sessionToken: sessionToken || undefined
+    });
     const total_revenue = orders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
     const order_count = orders.length;
     return ResponseFactory.success({ total_revenue, order_count });

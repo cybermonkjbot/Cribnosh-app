@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
@@ -80,7 +80,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     const convex = getConvexClientFromRequest(request);
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     // Group by signup date (_creationTime)
     const now = new Date();
     const days = 7;

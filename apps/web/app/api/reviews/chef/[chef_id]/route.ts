@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -118,13 +118,18 @@ export async function GET(request: NextRequest, { params }: { params: { chef_id:
       return ResponseFactory.validationError('Missing chef_id');
     }
     const convex = getConvexClientFromRequest(request);
-    const allReviews = await convex.query(api.queries.reviews.getAll, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allReviews = await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Filter reviews for this chef
     const chefReviews = allReviews.filter((r: any) => r.chef_id === chef_id);
     const total_reviews = chefReviews.length;
     const avg_rating = total_reviews > 0 ? chefReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / total_reviews : 0;
     // Fetch all users for customer info join
-    const allUsers = await convex.query(api.queries.users.getAll, {});
+    const allUsers = await convex.query(api.queries.users.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     const reviews = chefReviews.map((r: any) => {
       const customer = allUsers.find((u: any) => u._id === r.user_id) || {};
       return {

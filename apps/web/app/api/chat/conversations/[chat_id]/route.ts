@@ -4,7 +4,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
@@ -207,9 +207,11 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing chat_id');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const result = await convex.mutation(api.mutations.chats.deleteConversation, {
       chatId,
-      userId: user._id
+      userId: user._id,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(result);
   } catch (error: unknown) {
@@ -244,10 +246,12 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing metadata');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const result = await convex.mutation(api.mutations.chats.editConversation, {
       chatId,
       userId: user._id,
-      metadata
+      metadata,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(result);
   } catch (error: unknown) {

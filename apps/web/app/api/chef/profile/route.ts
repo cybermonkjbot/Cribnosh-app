@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
@@ -108,9 +108,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedChef(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile by userId
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
@@ -234,9 +238,13 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     const { name, bio, specialties, location, image, rating } = body;
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile by userId
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
@@ -249,7 +257,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       ...(specialties && { specialties }),
       ...(location && { location }),
       ...(image !== undefined && { image }),
-      ...(rating !== undefined && { rating })
+      ...(rating !== undefined && { rating }),
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ success: true });

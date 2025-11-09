@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -167,10 +167,18 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     const convex = getConvexClientFromRequest(request);
-    const pendingUsers = await convex.query(api.queries.users.getUsersByStatus, { status: 'pending' });
-    const allChefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const pendingUsers = await convex.query(api.queries.users.getUsersByStatus, {
+      status: 'pending',
+      sessionToken: sessionToken || undefined
+    });
+    const allChefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+      sessionToken: sessionToken || undefined
+    });
     const pendingChefs = allChefs.filter((c: { status?: string }) => c.status === 'pending');
-    const pendingDishes = await convex.query(api.queries.meals.getPending, {});
+    const pendingDishes = await convex.query(api.queries.meals.getPending, {
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({
       pendingUsers,
       pendingChefs,

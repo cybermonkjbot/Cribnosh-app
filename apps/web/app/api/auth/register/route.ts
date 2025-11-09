@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { randomBytes, scryptSync } from 'crypto';
@@ -119,8 +119,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Invalid email format.');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Check for existing user
-    const existing = await convex.query(api.queries.users.getUserByEmail, { email });
+    const existing = await convex.query(api.queries.users.getUserByEmail, {
+      email,
+      sessionToken: sessionToken || undefined
+    });
     if (existing) {
       return ResponseFactory.error('A user with this email already exists.', 'CUSTOM_ERROR', 409);
     }
@@ -135,6 +139,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       password: passwordHash,
       roles: [role || 'customer'],
       status: 'active',
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, userId, email, name, roles: [role || 'customer'] });
   } catch (error: unknown) {

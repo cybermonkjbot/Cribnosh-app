@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
@@ -58,11 +58,13 @@ async function handleDELETE(
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const sessionId = params.session_id as Id<'sessions'>;
 
     // Get session to verify ownership
     const session = await convex.query(api.queries.sessions.getSessionsByUserId, {
       userId: userId,
+      sessionToken: sessionToken || undefined
     });
 
     const sessionToRevoke = (session || []).find((s: any) => s._id === sessionId);
@@ -79,6 +81,7 @@ async function handleDELETE(
     // Delete session via mutation
     const deleted = await convex.mutation(api.mutations.sessions.deleteUserSession, {
       sessionId: sessionId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!deleted) {

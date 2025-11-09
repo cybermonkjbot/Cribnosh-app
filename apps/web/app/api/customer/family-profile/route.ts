@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { sendFamilyInvitationEmail } from '@/lib/services/email-service';
@@ -30,9 +30,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     if (!familyProfile) {
@@ -172,10 +174,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Check if family profile already exists
     const existingProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
     if (existingProfile) {
       return createSpecErrorResponse('Family profile already exists', 'CONFLICT', 409);
@@ -194,11 +198,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
             spending_notifications: settings.spending_notifications ?? true,
           } as FamilyProfileSettings)
         : undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Get the created profile
     const familyProfileData = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     if (!familyProfileData) {
@@ -225,7 +231,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     };
 
     // Send invitation emails to family members
-    const inviterUser = await convex.query(api.queries.users.getById, { userId: userId as any });
+    const inviterUser = await convex.query(api.queries.users.getById, {
+      userId: userId as any,
+      sessionToken: sessionToken || undefined
+    });
     const inviterName = inviterUser?.name || 'A family member';
 
     for (const member of familyProfileData.family_members) {

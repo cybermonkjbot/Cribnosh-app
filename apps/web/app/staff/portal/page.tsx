@@ -1,11 +1,10 @@
 'use client';
 
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { GlassCard } from '@/components/ui/glass-card';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
 import { api } from "@/convex/_generated/api";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { useSessionToken } from '@/hooks/useSessionToken';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useConvex, useMutation, useQuery } from "convex/react";
 import {
@@ -23,31 +22,20 @@ import {
   UserPlus
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 // NOTE: This page is accessible to both staff (role: 'staff') and admin (role: 'admin') users.
 // All admins are staff, but not all staff are admins.
 
-// Add useHasMounted hook
-function useHasMounted() {
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  return hasMounted;
-}
-
 export default function StaffPortal() {
-  const hasMounted = useHasMounted();
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const router = useRouter();
+  const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   const [staffMember, setStaffMember] = useState<any>(null);
   const convex = useConvex();
   const [showNotifications, setShowNotifications] = useState(false);
   const [staffNotices, setStaffNotices] = useState<any[]>([]);
   const [noticesLoading, setNoticesLoading] = useState(true);
-  
-  // Get session token using hook
-  const sessionToken = useSessionToken();
   
   const sessions = useQuery(api.queries.sessions.getSessionsByUserId, staffMember && staffMember._id ? { userId: staffMember._id } : "skip");
   const notifications = useQuery(
@@ -128,10 +116,10 @@ export default function StaffPortal() {
       await staffFetch('/api/staff/auth/logout', {
         method: 'POST',
       });
-      window.location.href = '/staff/login';
+      router.push('/staff/login');
     } catch (error) {
       // Silently handle logout errors
-      window.location.href = '/staff/login';
+      router.push('/staff/login');
     }
   };
 
@@ -140,7 +128,14 @@ export default function StaffPortal() {
   // No page-level auth checks needed - layout validates session token server-side
   // Wait for staff member data to load
   if (staffAuthLoading) {
-    return null; // Layout handles loading state
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-satoshi">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   // Use staffUser directly if available, otherwise use staffMember (from API fallback)
@@ -283,22 +278,12 @@ export default function StaffPortal() {
                     </GlassCard>
                   </Link>
 
-                  <Link href="/staff/huly" className="block focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-xl">
+                  <Link href="/staff/mattermost" className="block focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-xl">
                     <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
                         <MessageSquare className="w-8 h-8 text-green-600 mx-auto mb-3" />
                         <h3 className="font-medium font-satoshi text-gray-900 mb-1">Connect Huly</h3>
                         <p className="text-sm font-satoshi text-gray-700">Join the team workspace</p>
-                      </div>
-                    </GlassCard>
-                  </Link>
-
-                  <Link href="/staff/profile" className="block focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-xl">
-                    <GlassCard className="p-6 hover:bg-white/20 transition-colors cursor-pointer">
-                      <div className="text-center">
-                        <User className="w-8 h-8 text-blue-600 mx-auto mb-3" />
-                        <h3 className="font-medium font-satoshi text-gray-900 mb-1">Update Profile</h3>
-                        <p className="text-sm font-satoshi text-gray-700">Manage your personal information</p>
                       </div>
                     </GlassCard>
                   </Link>
@@ -462,7 +447,7 @@ export default function StaffPortal() {
                           if (window.confirm('Are you sure you want to revoke all sessions? This will log you out of all devices.')) {
                             // The original code had revokeAllSessions({ userId: safeStaffMember._id });
                             // This line was removed as per the edit hint.
-                            window.location.reload();
+                            router.refresh();
                           }
                         }}
                       >

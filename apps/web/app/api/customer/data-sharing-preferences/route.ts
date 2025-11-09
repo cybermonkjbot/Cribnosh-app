@@ -3,7 +3,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -62,10 +62,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query data sharing preferences from database
     const preferences = await convex.query(api.queries.dataSharingPreferences.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(preferences);
@@ -186,6 +188,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
 
     const convex = getConvexClientFromRequest(request);
 
+    const sessionToken = getSessionTokenFromRequest(request);
+    
     // Update data sharing preferences in database
     try {
       await convex.mutation(api.mutations.dataSharingPreferences.updateByUserId, {
@@ -193,6 +197,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         analytics_enabled,
         personalization_enabled,
         marketing_enabled,
+        sessionToken: sessionToken || undefined
       });
     } catch (mutationError: unknown) {
       logger.error('Error in updateByUserId mutation:', mutationError);
@@ -205,6 +210,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     try {
       updatedPreferences = await convex.query(api.queries.dataSharingPreferences.getByUserId, {
         userId,
+        sessionToken: sessionToken || undefined
       });
     } catch (queryError: unknown) {
       logger.error('Error in getByUserId query:', queryError);

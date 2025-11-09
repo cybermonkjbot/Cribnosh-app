@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
@@ -346,7 +346,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing custom_order_id');
     }
     const convex = getConvexClientFromRequest(request);
-    const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const order = await convex.query(api.queries.custom_orders.getCustomOrderById, {
+      customOrderId: custom_order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Custom order not found');
     }
@@ -368,7 +372,11 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClientFromRequest(request);
-  const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+  const order = await convex.query(api.queries.custom_orders.getCustomOrderById, {
+    customOrderId: custom_order_id,
+    sessionToken: sessionToken || undefined
+  });
   if (!order) {
     return ResponseFactory.notFound('Custom order not found');
   }
@@ -384,6 +392,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       updates: {
         requirements: JSON.stringify(details),
       },
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -403,14 +412,21 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClientFromRequest(request);
-  const order = await convex.query(api.queries.custom_orders.getCustomOrderById, { customOrderId: custom_order_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+  const order = await convex.query(api.queries.custom_orders.getCustomOrderById, {
+    customOrderId: custom_order_id,
+    sessionToken: sessionToken || undefined
+  });
   if (!order) {
     return ResponseFactory.notFound('Custom order not found');
   }
   if (order.userId !== userId && !user.roles?.includes('admin')) {
     return ResponseFactory.forbidden('Forbidden: Not your order.');
   }
-    await convex.mutation(api.mutations.customOrders.deleteOrder, { orderId: custom_order_id as Id<'custom_orders'> });
+    await convex.mutation(api.mutations.customOrders.deleteOrder, {
+      orderId: custom_order_id as Id<'custom_orders'>,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

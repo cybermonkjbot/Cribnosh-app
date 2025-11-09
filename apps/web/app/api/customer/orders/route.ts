@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
@@ -151,6 +151,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination and filtering
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -168,6 +169,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       order_type: orderTypeParam || 'all',
       limit,
       offset,
+      sessionToken: sessionToken || undefined
     });
     
     // Get total count for pagination (without pagination limit)
@@ -175,6 +177,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       customer_id: userId,
       status: statusParam || 'all',
       order_type: orderTypeParam || 'all',
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ 
@@ -323,6 +326,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       return ResponseFactory.validationError('chef_id (or kitchen_id) and items (or order_items) are required.');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Check regional availability if delivery address is provided
     if (delivery_address) {
@@ -332,6 +336,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
           country: delivery_address.country,
           coordinates: delivery_address.coordinates,
         },
+        sessionToken: sessionToken || undefined
       });
       
       if (!isRegionSupported) {
@@ -346,7 +351,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       if (!item.dish_id || typeof item.quantity !== 'number') {
         return ResponseFactory.validationError('Each order item must have dish_id and quantity.');
       }
-      const meals = await convex.query(api.queries.meals.getAll, {});
+      const meals = await convex.query(api.queries.meals.getAll, {
+        sessionToken: sessionToken || undefined
+      });
       const dish = Array.isArray(meals) ? meals.find((m: any) => m._id === item.dish_id) : null;
       if (!dish) {
         return ResponseFactory.notFound('Dish not found: ${item.dish_id}');
@@ -356,7 +363,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     // Prepare order items with dish details
     const orderItems = [];
     for (const item of order_items) {
-      const meals = await convex.query(api.queries.meals.getAll, {});
+      const meals = await convex.query(api.queries.meals.getAll, {
+        sessionToken: sessionToken || undefined
+      });
       const dish = Array.isArray(meals) ? meals.find((m: any) => m._id === item.dish_id) : null;
       if (!dish) {
         return ResponseFactory.notFound('Dish not found: ${item.dish_id}');
@@ -379,12 +388,14 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       special_instructions: special_instructions,
       delivery_time: delivery_time,
       delivery_address: delivery_address,
+      sessionToken: sessionToken || undefined
     });
 
     // Get the order by document ID using a query that fetches all customer orders
     // and finds the one we just created (since orderId is the document _id)
     const allOrders = await convex.query(api.queries.orders.listByCustomer, {
       customer_id: userId,
+      sessionToken: sessionToken || undefined
     });
     const order = allOrders.find((o: any) => o._id === orderId);
     

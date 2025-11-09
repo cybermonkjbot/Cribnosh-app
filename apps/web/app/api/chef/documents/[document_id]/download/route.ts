@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
@@ -90,12 +90,19 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing document_id');
     }
     const convex = getConvexClient();
-    const document = await convex.query(api.queries.documents.getById, { documentId: document_id as any });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const document = await convex.query(api.queries.documents.getById, {
+      documentId: document_id as any,
+      sessionToken: sessionToken || undefined
+    });
     if (!document || document.userEmail !== user.email) {
       return ResponseFactory.notFound('Document not found or not owned by chef.');
     }
     // Use document_id for download URL
-    const urlResult = await convex.query(api.queries.documents.getPresignedDownloadUrl, { document_id: document_id as any });
+    const urlResult = await convex.query(api.queries.documents.getPresignedDownloadUrl, {
+      document_id: document_id as any,
+      sessionToken: sessionToken || undefined
+    });
     if (!urlResult) {
       return ResponseFactory.notFound('Presigned URL not found.');
     }

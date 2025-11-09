@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,8 +25,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const connections = await convex.query(api.queries.userConnections.getAllUserConnections, {
       user_id: userId as Id<'users'>,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success(connections, 'Connections retrieved successfully');
@@ -79,11 +81,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.userConnections.createConnection, {
       user_id: userId as Id<'users'>,
       connected_user_id: connected_user_id as Id<'users'>,
       connection_type: connection_type as 'colleague' | 'friend',
       company: company || undefined,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ success: true }, 'Connection created successfully');

@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -130,10 +130,12 @@ export const PUT = withAPIMiddleware(
         }
         
         const convex = getConvexClientFromRequest(request);
+        const sessionToken = getSessionTokenFromRequest(request);
         const item = await convex.mutation(api.mutations.orders.updateCartItem, {
           userId,
           itemId: cart_item_id,
           quantity,
+          sessionToken: sessionToken || undefined
         });
         
         return ResponseFactory.success({ item });
@@ -210,9 +212,11 @@ export const DELETE = withAPIMiddleware(
         const { userId } = await getAuthenticatedCustomer(request);
         
         const convex = getConvexClientFromRequest(request);
+        const sessionToken = getSessionTokenFromRequest(request);
         const success = await convex.mutation(api.mutations.orders.removeFromCart, {
           userId,
           itemId: cart_item_id,
+          sessionToken: sessionToken || undefined
         });
         
         return ResponseFactory.success({ success });

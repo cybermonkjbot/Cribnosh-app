@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -60,8 +60,10 @@ async function handleGET(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const comment = await convex.query((api as any).queries.videoComments.getCommentById, {
       commentId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!comment) {
@@ -149,10 +151,13 @@ async function handlePUT(
       return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
+    const sessionToken = getSessionTokenFromRequest(request);
+    
     // Update comment
     await convex.mutation((api as any).mutations.videoComments.updateComment, {
       commentId,
       content: body.content.trim(),
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Comment updated successfully');
@@ -211,6 +216,7 @@ async function handleDELETE(
 
     // Get user from session token
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -219,6 +225,7 @@ async function handleDELETE(
     // Delete comment
     await convex.mutation((api as any).mutations.videoComments.deleteComment, {
       commentId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Comment deleted successfully');

@@ -35,7 +35,7 @@
 
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest, api } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, api, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
@@ -93,7 +93,11 @@ async function handleGET(
     }
     
     const convex = getConvexClientFromRequest(request);
-    const review = await convex.query(api.queries.reviews.get, { id: review_id as Id<'reviews'> });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const review = await convex.query(api.queries.reviews.get, {
+      id: review_id as Id<'reviews'>,
+      sessionToken: sessionToken || undefined
+    });
     
     if (!review) {
       return ResponseFactory.notFound('Review not found.');

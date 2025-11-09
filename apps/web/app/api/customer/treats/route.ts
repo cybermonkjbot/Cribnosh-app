@@ -4,7 +4,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,12 +32,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const type = searchParams.get('type') || 'all';
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     let treats: Array<Record<string, unknown>> = [];
     
     if (type === 'given' || type === 'all') {
       const given = await convex.query(api.queries.treats.getTreatsByTreater, {
         treater_id: userId,
+        sessionToken: sessionToken || undefined
       });
       treats = [...treats, ...given.map((t: any) => ({ ...t, direction: 'given' }))];
     }
@@ -45,6 +47,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (type === 'received' || type === 'all') {
       const received = await convex.query(api.queries.treats.getTreatsByRecipient, {
         treated_user_id: userId,
+        sessionToken: sessionToken || undefined
       });
       treats = [...treats, ...received.map((t: any) => ({ ...t, direction: 'received' }))];
     }
@@ -89,12 +92,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const { treated_user_id, order_id, expires_in_hours, metadata } = body;
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const result = await convex.mutation(api.mutations.treats.createTreat, {
       treater_id: userId as Id<'users'>,
       treated_user_id: treated_user_id ? (treated_user_id as Id<'users'>) : undefined,
       order_id: order_id ? (order_id as Id<'orders'>) : undefined,
       expires_in_hours,
       metadata,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success(result, 'Treat created successfully');

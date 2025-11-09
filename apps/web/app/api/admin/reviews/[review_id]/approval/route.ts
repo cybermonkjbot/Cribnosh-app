@@ -4,7 +4,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -186,15 +186,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing status');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.reviews.updateReview, {
       reviewId: review_id,
       status,
-      approvalNotes: approvalNotes || ''
+      approvalNotes: approvalNotes || '',
+      sessionToken: sessionToken || undefined
     });
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'review_approval',
       details: { review_id, status, notes: approvalNotes },
-      adminId: userId
+      adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {

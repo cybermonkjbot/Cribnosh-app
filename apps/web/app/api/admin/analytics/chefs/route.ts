@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -134,10 +134,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start') ? Number(searchParams.get('start')) : undefined;
     const end = searchParams.get('end') ? Number(searchParams.get('end')) : undefined;
-    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
+    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+      sessionToken: sessionToken || undefined
+    });
     // Calculate stats
     const total_chefs = chefs.length;
     const approved_chefs = chefs.filter((c: { status?: string; is_approved?: boolean }) => c.status === 'approved' || c.is_approved).length;

@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
@@ -97,13 +97,21 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await getAuthenticatedAdmin(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Use correct queries for orders and chefs
-    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+      sessionToken: sessionToken || undefined
+    });
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     // Aggregate orders per chef
     const chefStats: Record<string, { orders: number; revenue: number; rating: number }> = {};
     for (const chef of chefs) {
-      const orders = await convex.query(api.queries.orders.listByChef, { chef_id: chef.chefId });
+      const orders = await convex.query(api.queries.orders.listByChef, {
+        chef_id: chef.chefId,
+        sessionToken: sessionToken || undefined
+      });
       chefStats[chef.chefId] = { orders: 0, revenue: 0, rating: chef.rating || 0 };
       orders.forEach((o: any) => {
         chefStats[chef.chefId].orders += 1;

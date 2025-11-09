@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
@@ -78,10 +78,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get ForkPrint score from Convex
     let forkPrintData = await convex.query(api.queries.forkPrint.getScoreByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     // If no score exists, create a default one
@@ -90,12 +92,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         // Initialize with 0 score (Starter level)
         await convex.mutation(api.mutations.forkPrint.updateScore, {
           userId,
-          pointsDelta: 0, // This will create the record with score 0
+          pointsDelta: 0, // This will create the record with score 0,
+          sessionToken: sessionToken || undefined
         });
 
         // Fetch the newly created score
         forkPrintData = await convex.query(api.queries.forkPrint.getScoreByUserId, {
           userId,
+          sessionToken: sessionToken || undefined
         });
       } catch (mutationError) {
         logger.error('Failed to create default ForkPrint score:', mutationError);

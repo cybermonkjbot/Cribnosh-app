@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
@@ -74,10 +74,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query payment methods from database
     const paymentMethods = await convex.query(api.queries.paymentMethods.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(paymentMethods);
@@ -212,6 +214,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Validate payment method with payment provider (Stripe)
     let validatedPaymentMethod: { valid: boolean; type: string; card: { last4: string; brand: string; exp_month: number; exp_year: number; } | null };
@@ -256,12 +259,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       brand: type === 'card' ? (brand || undefined) : undefined,
       exp_month: type === 'card' ? (exp_month || undefined) : undefined,
       exp_year: type === 'card' ? (exp_year || undefined) : undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Get the created payment method
     const createdPaymentMethod = await convex.query(api.queries.paymentMethods.getById, {
       paymentMethodId,
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!createdPaymentMethod) {

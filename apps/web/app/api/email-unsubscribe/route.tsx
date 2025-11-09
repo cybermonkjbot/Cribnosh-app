@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { ResponseFactory } from '@/lib/api';
 import { logger } from '@/lib/utils/logger';
 

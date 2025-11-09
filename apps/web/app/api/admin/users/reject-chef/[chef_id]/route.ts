@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -139,12 +139,21 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Missing chef_id');
   }
   const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
   try {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     const userId = chef_id as Id<'users'>;
-    await convex.mutation(api.mutations.users.updateUser, { userId, status: 'inactive', roles: ['chef'] });
-    const chef = await convex.query(api.queries.users.getById, { userId });
+    await convex.mutation(api.mutations.users.updateUser, {
+      userId,
+      status: 'inactive',
+      roles: ['chef'],
+      sessionToken: sessionToken || undefined
+    });
+    const chef = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef not found');
     }
@@ -153,6 +162,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       action: 'reject_chef',
       details: { chef_id },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     // Compose ChefProfileResponse (minimal)
     const [first_name, ...rest] = (chef.name || '').split(' ');

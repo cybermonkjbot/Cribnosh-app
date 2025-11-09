@@ -65,14 +65,20 @@ export default function TimelogsViewer() {
   }, []);
 
   // Get timelogs from Convex
-  const timelogsData = useQuery(api.queries.timelogs.getTimelogs, {
-    staffId: staff ? staff as Id<"users"> : undefined,
-    bucket: bucket || undefined,
-    start: start ? new Date(start).getTime() : undefined,
-    end: end ? new Date(end).getTime() : undefined,
-    skip: page * limit,
-    limit
-  });
+  const timelogsData = useQuery(
+    api.queries.timelogs.getTimelogs, 
+    sessionToken
+      ? {
+          staffId: staff ? staff as Id<"users"> : undefined,
+          bucket: bucket || undefined,
+          start: start ? new Date(start).getTime() : undefined,
+          end: end ? new Date(end).getTime() : undefined,
+          skip: page * limit,
+          limit,
+          sessionToken
+        }
+      : 'skip'
+  );
 
   // Get staff list from Convex - using admin dashboard query
   const adminStaffData = useQuery(

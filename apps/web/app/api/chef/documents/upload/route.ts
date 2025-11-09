@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -98,6 +98,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required fields.');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const document_id = await convex.mutation(api.mutations.documents.uploadDocument, {
       userEmail: user.email || '',
       name,
@@ -105,6 +106,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       description: `Document uploaded by chef: ${name}`,
       size: '0', // Size will be determined by the file
       storageId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, document_id });
   } catch (error: unknown) {

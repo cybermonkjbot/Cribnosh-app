@@ -6,7 +6,7 @@ import { useMobileMenu } from '@/context';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { useStaffAuth, StaffUser } from '@/hooks/useStaffAuth';
+import { StaffUser, useStaffAuth } from '@/hooks/useStaffAuth';
 import { useConvex, useQuery } from 'convex/react';
 import { Bell, BookOpen, Clock, Home, LayoutGrid, LogOut, Menu, Search, Settings, User, Users, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -82,7 +82,6 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
     { label: 'Blog', href: '/staff/blog' },
     { label: 'Waitlist', href: '/staff/waitlist' },
     { label: 'Time Tracking', href: '/staff/time-tracking' },
-    { label: 'Profile', href: '/staff/profile' },
     { label: 'Documents', href: '/staff/documents' },
     { label: 'Leave Request', href: '/staff/leave-request' },
     { label: 'Work Email', href: '/staff/work-email-request' },
@@ -206,7 +205,12 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
   }
 
   // Check if user is clocked in (staff/admin)
-  const activeSession = useQuery(api.queries.workSessions.getActiveSession, adminUser && adminUser._id ? { staffId: adminUser._id as Id<'users'> } : "skip");
+  const activeSession = useQuery(
+    api.queries.workSessions.getActiveSession, 
+    adminUser && adminUser._id && sessionToken
+      ? { staffId: adminUser._id as Id<'users'>, sessionToken }
+      : "skip"
+  );
 
   return (
     <div className="w-full h-16 fixed top-0 left-0 right-0 p-4 backdrop-blur-xl bg-white/95 border-b border-gray-200/60 shadow-lg flex items-center justify-between z-50">
@@ -366,7 +370,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
                 
                 <div className="p-1 bg-white">
                   <Link
-                    href={isStaffPage ? "/staff/profile" : "/admin/account"}
+                    href="/admin/account"
                     className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-gray-800 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 font-satoshi mb-1 bg-white"
                     aria-label="Account Settings"
                     onClick={() => setShowUserMenu(false)}

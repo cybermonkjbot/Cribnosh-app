@@ -3,7 +3,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -462,6 +462,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing dish_id');
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     const dishes = await convex.query(api.queries.meals.getAll);
     const dish = dishes.find((d: { _id: Id<'meals'> }) => d._id === dish_id);
     if (!dish) {
@@ -487,9 +488,11 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     }
     const updates = await request.json();
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.meals.updateMeal, {
       mealId: dish_id,
       ...updates,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -511,9 +514,11 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
     const updates = await request.json();
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.meals.updateMeal, {
       mealId: dish_id,
       ...updates,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -534,7 +539,11 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing dish_id');
     }
     const convex = getConvexClient();
-    await convex.mutation(api.mutations.meals.deleteMeal, { mealId: dish_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    await convex.mutation(api.mutations.meals.deleteMeal, {
+      mealId: dish_id,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {

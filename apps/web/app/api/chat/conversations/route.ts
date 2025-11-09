@@ -4,7 +4,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextResponse } from 'next/server';
@@ -134,6 +134,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Unauthorized');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '') || 20;
@@ -142,7 +143,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const result = await convex.query(api.queries.chats.listConversationsForUser, {
       userId: user._id,
       limit,
-      offset
+      offset,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(result);
   } catch (error: unknown) {
@@ -174,9 +176,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       participants.push(user._id);
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const result = await convex.mutation(api.mutations.chats.createConversation, {
       participants,
-      metadata
+      metadata,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(result);
   } catch (error: unknown) {

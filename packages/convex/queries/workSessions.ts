@@ -1,7 +1,7 @@
-import { query } from '../_generated/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
-import { requireAuth, requireStaff, isAdmin, isStaff } from '../utils/auth';
+import { query } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 
 // Get current active session for a staff member
 export const getActiveSession = query({
@@ -26,7 +26,7 @@ export const getActiveSession = query({
   }), v.null()),
   handler: async (ctx, args) => {
     // Require authentication
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
     
     const { staffId } = args;
     

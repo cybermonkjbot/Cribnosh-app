@@ -32,7 +32,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getApiQueries, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -111,6 +111,7 @@ async function handleGET(
   }
 
   const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
   
   try {
     // Extract userId from request (optional for public endpoints)
@@ -124,10 +125,14 @@ async function handleGET(
     
     const [chef, reviews, allMeals] = await Promise.all([
       convex.query((apiQueries.chefs.getChefById as unknown as ChefByIdQuery), { 
-        chefId: chef_id as Id<'chefs'> 
+        chefId: chef_id as Id<'chefs'>
       }) as Promise<ChefData | null>,
-      convex.query((apiQueries.reviews.getByChef as unknown as ReviewsByChefQuery), { chef_id }) as Promise<ReviewData[]>,
-      convex.query((apiQueries.meals.getAll as unknown as MealsQuery), { userId }) as Promise<MealData[]>
+      convex.query((apiQueries.reviews.getByChef as unknown as ReviewsByChefQuery), {
+        chef_id
+      }) as Promise<ReviewData[]>,
+      convex.query((apiQueries.meals.getAll as unknown as MealsQuery), {
+        userId
+      }) as Promise<MealData[]>
     ]);
     
     if (!chef) {

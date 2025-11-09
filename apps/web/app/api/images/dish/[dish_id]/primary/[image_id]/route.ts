@@ -25,7 +25,7 @@
  */
 
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -86,12 +86,17 @@ export async function POST(request: NextRequest, { params }: { params: { dish_id
     return ResponseFactory.forbidden('Forbidden: Only chefs or admins can set primary image.');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   try {
     await convex.mutation(api.mutations.meals.setPrimaryMealImage, { 
       mealId: dish_id as Id<"meals">, 
-      imageId: image_id 
+      imageId: image_id,
+      sessionToken: sessionToken || undefined
     });
-    const meal = await convex.query(api.queries.meals.get, { mealId: dish_id as Id<'meals'> });
+    const meal = await convex.query(api.queries.meals.get, {
+      mealId: dish_id as Id<'meals'>,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ status: 'ok', images: meal?.images || [] });
   } catch (e: any) {
     return ResponseFactory.internalError(e.message || 'Failed to set primary image' );

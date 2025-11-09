@@ -1,6 +1,7 @@
 "use client";
 
 import { EnhancedActivity } from '@/components/admin/enhanced-activity';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { EnhancedStats } from '@/components/admin/enhanced-stats';
 import { EnhancedSystemHealth } from '@/components/admin/enhanced-system-health';
 import { GlassNavbar } from "@/components/admin/glass-navbar";
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
   ];
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const sessionToken = useSessionToken();
   const { user: adminUser, loading: adminLoading } = useAdminUser();
   
   const dashboardStats = useConvexQuery(api.queries.dashboardStats.getDashboardFooterStats);

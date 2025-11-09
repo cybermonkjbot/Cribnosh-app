@@ -1,21 +1,22 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
 import { GlassCard } from '@/components/ui/glass-card';
+import { api } from '@/convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { useEffect, useState } from 'react';
 
-import { Clock, Play, Square, Timer, MapPin, Calendar } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Calendar, Clock, MapPin, Play, Square, Timer } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 
 import { Id } from '@/convex/_generated/dataModel';
 
 interface ClockInCardProps {
   staffId: Id<"users">;
   staffName: string;
+  sessionToken: string | null;
 }
 
-export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
+export function ClockInCard({ staffId, staffName, sessionToken }: ClockInCardProps) {
   const [notes, setNotes] = useState('');
   const [endOfDayNotes, setEndOfDayNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,9 +28,12 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
 
   const clockIn = useMutation(api.mutations.workSessions.clockIn);
   const clockOut = useMutation(api.mutations.workSessions.clockOut);
-  const activeSession = useQuery(api.queries.workSessions.getActiveSession, { 
-    staffId 
-  });
+  const activeSession = useQuery(
+    api.queries.workSessions.getActiveSession, 
+    staffId && sessionToken
+      ? { staffId, sessionToken }
+      : 'skip'
+  );
 
   // Update current time every second
   useEffect(() => {
@@ -48,6 +52,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
         staffId,
         notes: notes.trim(),
         location: 'Office', // Could be made configurable
+        sessionToken: sessionToken || undefined,
       });
 
       if (result.status === 'success') {
@@ -71,6 +76,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
       const result = await clockOut({
         staffId,
         notes: notes.trim(),
+        sessionToken: sessionToken || undefined,
       });
 
       if (result.status === 'success') {

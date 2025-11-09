@@ -31,7 +31,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { withErrorHandling } from '@/lib/errors';
@@ -95,11 +95,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
     const start = searchParams.get('start');
     const end = searchParams.get('end');
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     // Filtering by date range
     let filtered = users;
     if (start) {
@@ -123,6 +126,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       action: 'export_user_growth',
       details: { format, start, end },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     // Trigger webhook and real-time broadcast (non-blocking)
     const eventPayload = { type: 'user_growth_export', user: userId, format, filters: { start, end }, count: rows.length };

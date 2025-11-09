@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -91,11 +91,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('No document IDs provided.');
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Validate that all documents belong to the authenticated chef
     const documents = await Promise.all(
       document_ids.map(async (docId) => {
-        const document = await convex.query(api.queries.documents.getById, { documentId: docId });
+        const document = await convex.query(api.queries.documents.getById, {
+          documentId: docId,
+          sessionToken: sessionToken || undefined
+        });
         if (!document) {
           throw new Error(`Document ${docId} not found`);
         }
@@ -115,7 +119,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         await convex.mutation(api.mutations.documents.updateDocumentStatus, {
           documentId: docId,
           status: 'pending_review',
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          sessionToken: sessionToken || undefined
         });
       })
     );
@@ -132,7 +137,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           chefEmail: user.email,
           submissionTime: new Date().toISOString()
         }
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     logger.log(`Chef ${userId} submitted documents for review:`, document_ids);

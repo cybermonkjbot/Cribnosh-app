@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
@@ -56,7 +56,11 @@ async function handleGET(
     }
 
     const convex = getConvexClientFromRequest(request);
-    const video = await convex.query((api as any).queries.videoPosts.getVideoById, { videoId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const video = await convex.query((api as any).queries.videoPosts.getVideoById, {
+      videoId,
+      sessionToken: sessionToken || undefined
+    });
 
     if (!video) {
       return ResponseFactory.notFound('Video not found');
@@ -144,6 +148,7 @@ async function handlePUT(
 
     // Get user from session token
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const user = await getUserFromRequest(request);
 
     if (!user) {
@@ -159,6 +164,7 @@ async function handlePUT(
       cuisine: body.cuisine,
       difficulty: body.difficulty,
       visibility: body.visibility,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Video updated successfully');
@@ -211,6 +217,7 @@ async function handleDELETE(
 
     // Get user from session token
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const user = await getUserFromRequest(request);
 
     if (!user) {
@@ -220,6 +227,7 @@ async function handleDELETE(
     // Delete video post
     await convex.mutation((api as any).mutations.videoPosts.deleteVideoPost, {
       videoId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Video deleted successfully');

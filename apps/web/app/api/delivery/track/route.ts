@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
@@ -166,9 +166,13 @@ async function handlePOST(request: NextRequest) {
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get delivery assignment details
-    const assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentById, { assignmentId: assignmentId as any });
+    const assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentById, {
+      assignmentId: assignmentId as any,
+      sessionToken: sessionToken || undefined
+    });
     if (!assignment) {
       return ResponseFactory.notFound('Delivery assignment not found.');
     }
@@ -189,7 +193,8 @@ async function handlePOST(request: NextRequest) {
         updatedByRole: user.roles?.[0],
         updatedBy: userId,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     logger.log(`Delivery status updated for assignment ${assignmentId} to ${status} by ${userId}`);
@@ -224,12 +229,19 @@ async function handleGET(request: NextRequest) {
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     let assignment;
     if (assignmentId) {
-      assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentById, { assignmentId: assignmentId as any });
+      assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentById, {
+        assignmentId: assignmentId as any,
+        sessionToken: sessionToken || undefined
+      });
     } else if (orderId) {
-      assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentByOrder, { orderId });
+      assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentByOrder, {
+        orderId,
+        sessionToken: sessionToken || undefined
+      });
     }
 
     if (!assignment) {
@@ -244,11 +256,15 @@ async function handleGET(request: NextRequest) {
     // Get delivery tracking history
     const trackingHistory = await convex.query(api.queries.delivery.getDeliveryTrackingHistory, {
       assignmentId: assignment._id,
-      limit
+      limit,
+      sessionToken: sessionToken || undefined
     });
 
     // Get driver details
-    const driver = await convex.query(api.queries.delivery.getDriverById, { driverId: assignment.driver_id });
+    const driver = await convex.query(api.queries.delivery.getDriverById, {
+      driverId: assignment.driver_id,
+      sessionToken: sessionToken || undefined
+    });
 
     return ResponseFactory.success({});
   } catch (error: any) {

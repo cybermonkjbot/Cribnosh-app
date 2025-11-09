@@ -104,7 +104,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
@@ -121,13 +121,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedUser(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch all chats for this user (assuming a 'chats' table with userId or participants)
-    const allChats = await convex.query(api.queries.chats.getAll, {});
+    const allChats = await convex.query(api.queries.chats.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     const userChats = allChats.filter((c: any) => c.userId === userId || (Array.isArray(c.participants) && c.participants.includes(userId)));
     // Consistent ordering (createdAt DESC)
     userChats.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -158,9 +161,11 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       participants.push(userId);
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const chat = await convex.mutation(api.mutations.chats.createConversation, {
       participants,
       metadata: metadata || {},
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(chat);
   } catch (error: unknown) {

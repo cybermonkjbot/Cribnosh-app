@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -209,8 +209,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated chef from session token
     const { userId } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Find chef profile by userId
-    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
+    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+      sessionToken: sessionToken || undefined
+    });
     const chef = chefs.find((c: { userId?: string }) => c.userId === userId);
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
@@ -221,7 +224,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch meals for this chef
-    const chefDishes = await convex.query(api.queries.chefs.getMenusByChefId, { chefId: chef.chefId });
+    const chefDishes = await convex.query(api.queries.chefs.getMenusByChefId, {
+      chefId: chef.chefId,
+      sessionToken: sessionToken || undefined
+    });
     // Consistent ordering (createdAt DESC)
     chefDishes.sort((a: { createdAt?: number }, b: { createdAt?: number }) => (b.createdAt || 0) - (a.createdAt || 0));
     const paginated = chefDishes.slice(offset, offset + limit);

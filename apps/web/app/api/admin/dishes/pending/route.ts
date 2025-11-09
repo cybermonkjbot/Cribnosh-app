@@ -29,7 +29,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
@@ -79,7 +79,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
-    const pendingMeals = await convex.query(api.queries.meals.getPending, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const pendingMeals = await convex.query(api.queries.meals.getPending, {
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ meals: pendingMeals });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch pending dishes.';

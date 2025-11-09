@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
@@ -249,7 +249,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
-    const meals = await convex.query(api.queries.meals.getAll, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const meals = await convex.query(api.queries.meals.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ meals });
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
@@ -270,6 +273,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required fields.');
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     const mealId = await convex.mutation(api.mutations.meals.createMeal, {
       name,
       description: description || '',
@@ -279,6 +283,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       cuisine: cuisine || [],
       dietary: dietary || [],
       status: 'available',
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, mealId });
   } catch (error: unknown) {

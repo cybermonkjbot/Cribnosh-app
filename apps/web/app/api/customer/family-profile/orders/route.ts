@@ -4,7 +4,7 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -34,10 +34,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     if (!familyProfile) {
@@ -54,6 +56,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       family_profile_id: familyProfile._id,
       member_user_id: memberUserId ? (memberUserId as any) : undefined,
       limit,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(orders, 'Family orders retrieved successfully');

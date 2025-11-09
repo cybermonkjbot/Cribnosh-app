@@ -3,7 +3,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -132,7 +132,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing chef_id');
     }
     const convex = getConvexClientFromRequest(request);
-    const documents = await convex.query(api.queries.documents.getByChefId, { chef_id: chef_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const documents = await convex.query(api.queries.documents.getByChefId, {
+      chef_id: chef_id,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ documents });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

@@ -3,10 +3,9 @@
 
 'use client';
 
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from "@/convex/_generated/api";
-import { useSessionToken } from '@/hooks/useSessionToken';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -148,10 +147,7 @@ export default function OnboardingPage() {
   const [codeValidated, setCodeValidated] = useState(false);
   const [onboardingEmail, setOnboardingEmail] = useState<string | null>(null);
 
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  
-  // Get session token using hook
-  const sessionToken = useSessionToken();
+  const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   
   const user = useQuery(
     api.queries.users.getById,
@@ -293,31 +289,17 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-amber-50 to-orange-100 pb-24 sm:pb-8">
-      {/* Back Button */}
-      <div className="w-full mx-auto max-w-4xl px-3 py-4 sm:px-4 sm:py-3">
+      <div className="w-full mx-auto max-w-4xl px-3 pt-8 pb-4 sm:px-4 sm:pt-8 sm:pb-6 md:px-6 lg:px-8">
         <Link
           href="/staff/portal"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm"
+          className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-4"
           aria-label="Back to Staff Portal"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back
+          <ArrowLeft className="w-5 h-5" />
         </Link>
-      </div>
-
-      {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm border-b border-amber-200 sticky top-0 z-20 px-3 py-2 sm:px-4 sm:py-3">
-        <div className="w-full mx-auto max-w-4xl flex items-center justify-between">
-          <div>
-            <h1 className="text-base sm:text-lg font-asgard text-gray-900">Onboarding</h1>
-            {codeValidated && (
-              <p className="text-xs text-gray-700">Step {currentStep} of {steps.length}</p>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="w-full mx-auto max-w-4xl px-3 py-4 sm:px-4 sm:py-6 md:px-6 lg:px-8">
+        {codeValidated && (
+          <p className="text-xs text-gray-700 mb-4">Step {currentStep} of {steps.length}</p>
+        )}
         {!codeValidated ? (
           // Code validation screen
           <div className="max-w-md mx-auto">

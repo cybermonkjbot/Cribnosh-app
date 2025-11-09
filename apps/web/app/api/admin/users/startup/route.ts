@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -89,7 +89,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     const convex = getConvexClientFromRequest(request);
-    const users = await convex.query(api.queries.users.getRecentUsers, { limit: 20 });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const users = await convex.query(api.queries.users.getRecentUsers, {
+      limit: 20,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success(users);
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -339,9 +339,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get live session details first to verify it exists and is active
-    const session = await convex.query(api.queries.liveSessions.getLiveSessionById, { sessionId });
+    const session = await convex.query(api.queries.liveSessions.getLiveSessionById, {
+      sessionId,
+      sessionToken: sessionToken || undefined
+    });
     if (!session) {
       return ResponseFactory.notFound('Live session not found.');
     }
@@ -366,7 +370,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         sentByRole: user.roles?.[0],
         userDisplayName: user.name || user.email || 'User',
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     logger.log(`Live reaction sent for session ${sessionId} by ${userId} (${user.roles?.[0]})`);
@@ -411,9 +416,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get live session details first to verify it exists
-    const session = await convex.query(api.queries.liveSessions.getLiveSessionById, { sessionId });
+    const session = await convex.query(api.queries.liveSessions.getLiveSessionById, {
+      sessionId,
+      sessionToken: sessionToken || undefined
+    });
     if (!session) {
       return ResponseFactory.notFound('Live session not found.');
     }
@@ -423,7 +432,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       sessionId: session._id,
       limit,
       offset,
-      reactionType: (reactionType === 'like' || reactionType === 'love' || reactionType === 'laugh' || reactionType === 'wow' || reactionType === 'sad' || reactionType === 'angry' || reactionType === 'fire' || reactionType === 'clap' || reactionType === 'heart' || reactionType === 'star') ? reactionType : undefined
+      reactionType: (reactionType === 'like' || reactionType === 'love' || reactionType === 'laugh' || reactionType === 'wow' || reactionType === 'sad' || reactionType === 'angry' || reactionType === 'fire' || reactionType === 'clap' || reactionType === 'heart' || reactionType === 'star') ? reactionType : undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Format reactions

@@ -4,7 +4,7 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -78,10 +78,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get Nosh Points from Convex
     const pointsData = await convex.query(api.queries.noshPoints.getPointsByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     // Calculate milestone progress (next 100-point milestone)

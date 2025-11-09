@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { generateThumbnailUploadUrl, validateThumbnailFile } from '@/lib/s3-config';
 import { logger } from '@/lib/utils/logger';
@@ -96,6 +96,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Get user from session token
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -108,7 +109,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify video ownership
-    const video = await convex.query((api as any).queries.videoPosts.getVideoById, { videoId });
+    const video = await convex.query((api as any).queries.videoPosts.getVideoById, {
+      videoId,
+      sessionToken: sessionToken || undefined
+    });
     if (!video) {
       return ResponseFactory.notFound('Video not found');
     }

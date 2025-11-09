@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -126,15 +126,22 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedChef(request);
     
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile first
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
     
     // Get chef availability
-    const availability = await convex.query(api.queries.chefs.getAvailability, { chefId: chef._id });
+    const availability = await convex.query(api.queries.chefs.getAvailability, {
+      chefId: chef._id,
+      sessionToken: sessionToken || undefined
+    });
     
     return ResponseFactory.success({ availability });
   } catch (error: unknown) {
@@ -302,9 +309,13 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
     
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile first
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
@@ -319,7 +330,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         maxOrdersPerDay: maxOrdersPerDay || 10,
         advanceBookingDays: advanceBookingDays || 7,
         specialInstructions: specialInstructions || ''
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ success: true });

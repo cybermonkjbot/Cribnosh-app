@@ -1,10 +1,10 @@
 "use client";
 
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { ActivityWatchSetupStatus } from '@/components/staff/ActivityWatchSetupStatus';
 import { ClockInCard } from '@/components/staff/ClockInCard';
 import { WeeklyHoursCard } from '@/components/staff/WeeklyHoursCard';
 import { api } from '@/convex/_generated/api';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useQuery } from 'convex/react';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -12,26 +12,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-// Utility to get a cookie value by name (client-side only)
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : undefined;
-}
-
 export default function TimeTrackingPage() {
-  // All hooks at the top!
+  // Auth is handled by layout via session-based authentication (session token in cookies)
+  // Middleware validates session token server-side, no client-side checks needed
   const router = useRouter();
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const { staff: staffUser, sessionToken } = useStaffAuthContext();
   const [isActivityWatchSetup, setIsActivityWatchSetup] = useState<boolean>(false);
   const [awError, setAwError] = useState<string | null>(null);
-  
-  // Get session token from cookies
-  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    const token = getCookie('convex-auth-token');
-    setSessionToken(token);
-  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -60,7 +47,7 @@ export default function TimeTrackingPage() {
     if (process.env.NODE_ENV === 'development') {
       if (typeof window !== 'undefined') {
         localStorage.setItem('activityWatchSetupComplete', 'true');
-        window.location.reload();
+        router.refresh();
       }
     }
   };
@@ -74,15 +61,6 @@ export default function TimeTrackingPage() {
       ? { userId: staffUser._id, sessionToken }
       : 'skip'
   );
-  
-  // Handle authentication errors
-  useEffect(() => {
-    if (profile === null && staffUser?._id) {
-      // Profile query returned null - could be authentication error
-      // The layout should handle redirect, but we can show a message
-      console.warn('Failed to load profile - authentication may be required');
-    }
-  }, [profile, staffUser]);
 
   // Enforce ActivityWatch setup
   if (!isActivityWatchSetup) {
@@ -124,28 +102,15 @@ export default function TimeTrackingPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header with Back Button */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8 relative"
+    <div className="max-w-6xl mx-auto space-y-6 px-4 pt-8">
+      {/* Back Button */}
+      <Link
+        href="/staff/portal"
+        className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-8"
+        aria-label="Back to Staff Portal"
       >
-        {/* Back Button */}
-        <Link
-          href="/staff/portal"
-          className="absolute left-0 top-1/2 transform -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm"
-          aria-label="Back to Staff Portal"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
-        
-        <h1 className="text-3xl font-asgard text-gray-900 mb-2">Time Tracking</h1>
-        <p className="text-gray-600">
-          Track your work hours and view your weekly summary
-        </p>
-      </motion.div>
+        <ArrowLeft className="w-5 h-5" />
+      </Link>
 
       {/* ActivityWatch Setup Status */}
       <ActivityWatchSetupStatus isSetup={true} errorMessage={awError || undefined} />
@@ -160,7 +125,8 @@ export default function TimeTrackingPage() {
         >
           <ClockInCard 
             staffId={profile._id} 
-            staffName={profile.name || profile.email || 'Staff Member'} 
+            staffName={profile.name || profile.email || 'Staff Member'}
+            sessionToken={sessionToken}
           />
         </motion.div>
 
@@ -170,7 +136,7 @@ export default function TimeTrackingPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <WeeklyHoursCard staffId={profile._id} />
+          <WeeklyHoursCard staffId={profile._id} sessionToken={sessionToken} />
         </motion.div>
       </div>
 

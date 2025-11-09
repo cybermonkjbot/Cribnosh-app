@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
@@ -60,10 +60,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query dietary preferences from database
     const preferences = await convex.query(api.queries.dietaryPreferences.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(preferences);
@@ -181,17 +183,21 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
 
     const convex = getConvexClientFromRequest(request);
 
+    const sessionToken = getSessionTokenFromRequest(request);
+    
     // Update dietary preferences in database
     await convex.mutation(api.mutations.dietaryPreferences.updateByUserId, {
       userId,
       preferences,
       religious_requirements,
       health_driven,
+      sessionToken: sessionToken || undefined
     });
 
     // Get updated preferences
     const updatedPreferences = await convex.query(api.queries.dietaryPreferences.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(

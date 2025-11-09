@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
@@ -148,12 +148,20 @@ async function handlePATCH(
       return ResponseFactory.validationError('Missing status');
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Fetch order and check chef_id
-    const order = await convex.query(api.queries.orders.getById, { order_id }) as Order | null;
+    const order = await convex.query(api.queries.orders.getById, {
+      order_id,
+      sessionToken: sessionToken || undefined
+    }) as Order | null;
     if (!order || order.chef_id !== userId) {
       return ResponseFactory.notFound('Order not found or not owned by chef.');
     }
-    const updated = await convex.mutation(api.mutations.orders.updateStatus, { order_id, status });
+    const updated = await convex.mutation(api.mutations.orders.updateStatus, {
+      order_id,
+      status,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ order: updated });
   } catch (error: any) {
     logger.error('Error updating order status:', error);

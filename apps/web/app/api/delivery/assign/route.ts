@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { Id } from '@/convex/_generated/dataModel';
@@ -173,9 +173,13 @@ async function handlePOST(request: NextRequest) {
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -186,7 +190,10 @@ async function handlePOST(request: NextRequest) {
     }
 
     // Check if order already has a delivery assignment
-    const existingAssignment = await convex.query(api.queries.delivery.getDeliveryAssignmentByOrder, { orderId });
+    const existingAssignment = await convex.query(api.queries.delivery.getDeliveryAssignmentByOrder, {
+      orderId,
+      sessionToken: sessionToken || undefined
+    });
     if (existingAssignment) {
       return ResponseFactory.validationError('Order already has a delivery assignment.');
     }
@@ -204,7 +211,8 @@ async function handlePOST(request: NextRequest) {
         : { latitude: 0, longitude: 0 };
 
       const availableDrivers = await convex.query(api.queries.delivery.getAvailableDrivers, {
-        orderLocation
+        orderLocation,
+        sessionToken: sessionToken || undefined
       });
       
       if (availableDrivers.length === 0) {
@@ -215,7 +223,10 @@ async function handlePOST(request: NextRequest) {
       selectedDriverId = availableDrivers[0]._id;
     } else {
       // Verify the specified driver exists and is available
-      const driver = await convex.query(api.queries.delivery.getDriverById, { driverId: selectedDriverId as Id<'drivers'> });
+      const driver = await convex.query(api.queries.delivery.getDriverById, {
+        driverId: selectedDriverId as Id<'drivers'>,
+        sessionToken: sessionToken || undefined
+      });
       if (!driver) {
         return ResponseFactory.notFound('Driver not found.');
       }
@@ -237,7 +248,8 @@ async function handlePOST(request: NextRequest) {
         assignedByRole: user.roles?.[0],
         orderStatus: order.order_status,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     if (!assignmentResult) {

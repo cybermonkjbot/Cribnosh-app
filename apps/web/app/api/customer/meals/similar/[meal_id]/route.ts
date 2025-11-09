@@ -3,7 +3,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -58,18 +58,21 @@ async function handleGET(
     const userId = extractUserIdFromRequest(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get similar meals with user preferences
     const similarMeals = await convex.query(api.queries.mealRecommendations.getSimilar, {
       mealId: meal_id as Id<'meals'>,
       userId: userId ? (userId as any) : undefined,
       limit,
+      sessionToken: sessionToken || undefined
     }) as unknown[];
 
     if (similarMeals.length === 0) {
       // Check if the meal exists
       const meal = await convex.query(api.queries.meals.getById, { 
-        mealId: meal_id as Id<'meals'> 
+        mealId: meal_id as Id<'meals'>,
+        sessionToken: sessionToken || undefined
       }) as unknown;
       
       if (!meal) {

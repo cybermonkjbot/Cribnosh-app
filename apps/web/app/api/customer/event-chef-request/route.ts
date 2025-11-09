@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { EmailService } from '@/lib/email/email.service';
 import { withErrorHandling } from '@/lib/errors';
@@ -132,11 +132,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get customer profile to get name
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
     const customerProfile: any = await convex.query(api.queries.customers.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
     
     const customerName = customerProfile?.name || email.split('@')[0];
@@ -154,6 +156,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       dietary_requirements: dietary_requirements || undefined,
       additional_notes: additional_notes || undefined,
       status: 'pending',
+      sessionToken: sessionToken || undefined
     });
     
     // Send email to admin

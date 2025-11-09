@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 import { env } from '@/lib/config/env';
 import { jwtVerify } from 'jose';
 import { getUserFromRequest } from "@/lib/auth/session";
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Generate an upload URL from Convex
     const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
       },
-      body: buffer,
+      body: buffer
     });
     
     if (!uploadRes.ok) {

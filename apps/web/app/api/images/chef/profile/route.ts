@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
@@ -111,6 +111,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Store file in Convex file storage
     const buffer = Buffer.from(await file.arrayBuffer());
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // First, generate an upload URL
     const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
@@ -121,7 +122,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
       },
-      body: buffer,
+      body: buffer
     });
     
     if (!uploadRes.ok) {
@@ -136,7 +137,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const fileUrl = `/api/files/${storageId}`;
     
     // Update chef profile with the storage ID
-    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
+    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+      sessionToken: sessionToken || undefined
+    });
     const chef = chefs.find((c: any) => c.userId === userId);
     
     if (!chef) {
@@ -148,7 +151,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       chefId: chef.chefId, 
       updates: { 
         image: fileUrl
-      } 
+      },
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, fileUrl });
   } catch (error: unknown) {

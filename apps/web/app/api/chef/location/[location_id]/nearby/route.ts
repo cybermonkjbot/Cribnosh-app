@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -139,7 +139,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('latitude and longitude are required and must be numbers');
   }
   const convex = getConvexClient();
-  const chefs = await convex.query(api.queries.chefs.findNearbyChefs, { latitude, longitude, maxDistanceKm });
+  const sessionToken = getSessionTokenFromRequest(request);
+  const chefs = await convex.query(api.queries.chefs.findNearbyChefs, {
+    latitude,
+    longitude,
+    maxDistanceKm,
+    sessionToken: sessionToken || undefined
+  });
   return ResponseFactory.success(chefs);
 }
 

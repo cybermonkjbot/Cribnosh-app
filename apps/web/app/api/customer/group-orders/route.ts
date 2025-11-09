@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
@@ -61,6 +61,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const result = await convex.mutation(api.mutations.groupOrders.create, {
       created_by: userId as any,
       chef_id: chef_id as any,
@@ -70,6 +71,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       delivery_address,
       delivery_time,
       expires_in_hours,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({

@@ -15,7 +15,7 @@ export interface AdminUser {
   };
 }
 
-const AdminUserContext = createContext<{ user: AdminUser | null, loading: boolean, refreshUser: () => Promise<void> }>({ user: null, loading: true, refreshUser: async () => {} });
+const AdminUserContext = createContext<{ user: AdminUser | null, loading: boolean, sessionToken: string | null, refreshUser: () => Promise<void> }>({ user: null, loading: true, sessionToken: null, refreshUser: async () => {} });
 
 export function useAdminUser() {
   return useContext(AdminUserContext);
@@ -24,6 +24,7 @@ export function useAdminUser() {
 export function AdminUserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
 
   // Authentication is session-based: check for session token in cookies (client only)
@@ -37,8 +38,9 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
         return null;
       };
       
-      const sessionToken = getCookie('convex-auth-token');
-      console.log('[AdminUserProvider] Session token found:', !!sessionToken);
+      const token = getCookie('convex-auth-token');
+      setSessionToken(token || null);
+      console.log('[AdminUserProvider] Session token found:', !!token);
       setHasCheckedStorage(true);
     }
   }, []);
@@ -54,8 +56,9 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
           return null;
         };
         
-        const sessionToken = getCookie('convex-auth-token');
-        if (sessionToken && !user) {
+        const token = getCookie('convex-auth-token');
+        setSessionToken(token || null);
+        if (token && !user) {
           console.log('[AdminUserProvider] Cookie detected, refreshing user data');
           setHasCheckedStorage(true);
         }
@@ -156,8 +159,9 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
   const contextValue = useMemo(() => ({
     user,
     loading,
+    sessionToken,
     refreshUser
-  }), [user, loading, refreshUser]);
+  }), [user, loading, sessionToken, refreshUser]);
 
   return (
     <AdminUserContext.Provider value={contextValue}>

@@ -80,6 +80,7 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getSessionTokenFromRequest } from '@/lib/conxed-client';
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
@@ -94,8 +95,9 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get('to') ? Number(searchParams.get('to')) : undefined;
   const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 50;
   const offset = searchParams.get('offset') ? Number(searchParams.get('offset')) : 0;
-  const { getConvexClient } = await import('@/lib/conxed-client');
+  const { getConvexClient, getSessionTokenFromRequest } = await import('@/lib/conxed-client');
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(req);
   // Use the correct query for logs
   interface EmotionsEngineLog {
     userId?: string;
@@ -107,7 +109,9 @@ export async function GET(req: NextRequest) {
     };
     [key: string]: unknown;
   }
-  const all = await convex.query(api.queries.emotionsEngine.getAllLogs, {}) as EmotionsEngineLog[];
+  const all = await convex.query(api.queries.emotionsEngine.getAllLogs, {
+    sessionToken: sessionToken || undefined
+  }) as EmotionsEngineLog[];
   // Apply filtering in JS if needed
   let results = all;
   if (userId) results = results.filter((log: EmotionsEngineLog) => log.userId === userId);

@@ -1,5 +1,5 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
@@ -120,6 +120,7 @@ export async function GET(request: NextRequest, { params }: { params: { dish_id:
       return ResponseFactory.validationError('Missing dish_id');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const allReviews = await convex.query(api.queries.reviews.getAll);
     // Filter reviews for this dish
     const dishReviews = allReviews.filter((r: any) => r.meal_id === dish_id);
@@ -139,6 +140,7 @@ export async function GET(request: NextRequest, { params }: { params: { dish_id:
         first_name: userMap[r.user_id]?.name?.split(' ')[0] ?? null,
         last_name: userMap[r.user_id]?.name?.split(' ').slice(1).join(' ') || null,
       },
+      sessionToken: sessionToken || undefined
     }));
     return ResponseFactory.success({
       dish_id,

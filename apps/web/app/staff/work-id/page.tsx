@@ -1,7 +1,7 @@
 "use client";
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from '@/convex/_generated/api';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useQuery } from 'convex/react';
 import { ArrowLeft, Badge, Download, Printer, QrCode } from 'lucide-react';
 import Link from 'next/link';
@@ -10,10 +10,10 @@ import { useEffect, useRef, useState } from 'react';
 declare module 'qrcode';
 
 export default function WorkIdPage() {
-  const { staff, loading } = useStaffAuth();
-  const staffId = staff?.email || null;
+  const { staff, loading, sessionToken } = useStaffAuthContext();
+  const staffId = staff?._id || null;
   const workId = useQuery(api.queries.staff.getWorkIdByUser, 
-    staffId ? { userId: staffId as any } : "skip"
+    staffId ? { userId: staffId, sessionToken: sessionToken || undefined } : "skip"
   );
   const [printMode, setPrintMode] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -83,17 +83,10 @@ export default function WorkIdPage() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 ${printMode ? 'print:bg-white' : ''}`}> 
-      <div className="bg-white/80 backdrop-blur-sm border-b border-amber-200 print:hidden">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-4">
-            <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-xl font-asgard text-gray-900">Your Work ID</h1>
-          </div>
-        </div>
-      </div>
-      <div className="max-w-xl mx-auto px-4 py-8">
+      <div className="max-w-xl mx-auto px-4 pt-8 pb-8">
+        <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-4 print:hidden">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
         {workId ? (
           <GlassCard className="p-8 relative">
             <div className="flex flex-col items-center">

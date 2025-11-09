@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -154,7 +154,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated chef from session token
     const { userId } = await getAuthenticatedChef(request);
     const convex = getConvexClientFromRequest(request);
-    const documents = await convex.query(api.queries.documents.getByChefId, { chef_id: userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const documents = await convex.query(api.queries.documents.getByChefId, {
+      chef_id: userId,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ documents });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

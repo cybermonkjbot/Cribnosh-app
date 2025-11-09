@@ -3,7 +3,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -161,7 +161,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   }
   try {
     const convex = getConvexClientFromRequest(request);
-    const meals = await convex.query(api.queries.chefs.getMenusByChefId, { chefId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const meals = await convex.query(api.queries.chefs.getMenusByChefId, {
+      chefId,
+      sessionToken: sessionToken || undefined
+    });
     // Return the meals array as-is, since each meal is not a menu with items
     return ResponseFactory.success(Array.isArray(meals) ? meals : []);
   } catch (error: unknown) {

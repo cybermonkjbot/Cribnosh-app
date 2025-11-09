@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -147,12 +147,16 @@ async function handleGET(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
     
     // Get all meals with user preferences and filter by ID
-    const meals = await convex.query((api as any).queries.meals.getAll, { userId });
+    const meals = await convex.query((api as any).queries.meals.getAll, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     const dish = meals.find((m: any) => m._id === dish_id);
     
     if (!dish) {

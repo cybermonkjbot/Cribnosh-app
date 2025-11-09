@@ -8,6 +8,7 @@ import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { getSessionTokenFromRequest } from '@/lib/conxed-client';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -115,6 +116,8 @@ export async function POST(request: NextRequest) {
     
     logger.log('Received Resend webhook:', { type, data });
 
+    const sessionToken = getSessionTokenFromRequest(request);
+    
     // Map Resend event types to our analytics event types
     const eventTypeMap: Record<string, string> = {
       // Email events
@@ -173,6 +176,7 @@ export async function POST(request: NextRequest) {
         recipientEmail,
         eventType: analyticsEventType as any,
         metadata,
+        sessionToken: sessionToken || undefined
       });
     } else if (type.startsWith('contact.') || type.startsWith('domain.')) {
       // Contact/Domain events - handle differently
@@ -191,6 +195,7 @@ export async function POST(request: NextRequest) {
         recipientEmail: 'system@resend.com',
         eventType: analyticsEventType as any,
         metadata,
+        sessionToken: sessionToken || undefined
       });
     }
 

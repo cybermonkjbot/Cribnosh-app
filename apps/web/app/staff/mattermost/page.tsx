@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { AnimatePresence, motion } from 'motion/react';
 import { env } from '@/lib/config/env';
 
@@ -60,19 +60,7 @@ export default function MattermostPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  
-  // Get session token from cookies
-  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    const getCookie = (name: string): string | undefined => {
-      if (typeof document === 'undefined') return undefined;
-      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-      return match ? decodeURIComponent(match[2]) : undefined;
-    };
-    const token = getCookie('convex-auth-token');
-    setSessionToken(token);
-  }, []);
+  const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   
   const user = useQuery(
     api.queries.users.getById,

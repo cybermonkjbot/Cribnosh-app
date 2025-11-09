@@ -1,6 +1,6 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -63,11 +63,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { city, country, address } = body;
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     const isSupported = await convex.query(api.queries.admin.checkRegionAvailability as any, {
       city,
       country,
       address,
+      sessionToken: sessionToken || undefined
     }) as unknown;
     
     return ResponseFactory.success({

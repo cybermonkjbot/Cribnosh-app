@@ -1,4 +1,5 @@
 import { ResponseFactory } from '@/lib/api';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { getConvexClient } from "@/lib/conxed-client";
 import { api } from '@/convex/_generated/api';
 import crypto from 'crypto';

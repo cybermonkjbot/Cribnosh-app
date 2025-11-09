@@ -4,7 +4,7 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import type { UpdateMemberBudgetRequest } from '@/types/family-profile';
@@ -66,10 +66,12 @@ async function handlePUT(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     if (!familyProfile) {
@@ -83,6 +85,7 @@ async function handlePUT(
         member_id: memberId,
         userId: userId as any,
         budget_settings,
+        sessionToken: sessionToken || undefined
       });
     }
 
@@ -95,6 +98,7 @@ async function handlePUT(
         allergy_ids: preferences.allergy_ids ?? undefined,
         dietary_preference_id: preferences.dietary_preference_id ?? undefined,
         parent_controlled: preferences.parent_controlled ?? undefined,
+        sessionToken: sessionToken || undefined
       });
     }
 
@@ -140,10 +144,12 @@ async function handleDELETE(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     if (!familyProfile) {
@@ -155,6 +161,7 @@ async function handleDELETE(
       family_profile_id: familyProfile._id,
       member_id: memberId,
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({ success: true }, 'Member removed successfully');

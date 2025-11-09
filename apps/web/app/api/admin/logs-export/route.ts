@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -128,13 +128,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
     const action = searchParams.get('action');
     const user = searchParams.get('user');
     const start = searchParams.get('start');
     const end = searchParams.get('end');
-    let logs = await convex.query(api.queries.adminLogs.getAll, {});
+    let logs = await convex.query(api.queries.adminLogs.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Filtering
     if (action) logs = logs.filter((l: { action?: string }) => l.action === action);
     if (user) logs = logs.filter((l: { adminId?: string }) => l.adminId === user);
@@ -145,6 +148,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       action: 'export_logs',
       details: { format, action, user, start, end },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     // Trigger webhook and real-time broadcast (non-blocking)
     const eventPayload = { type: 'logs_export', user: userId, format, filters: { action, user, start, end }, count: logs.length };

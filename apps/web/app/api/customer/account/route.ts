@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
@@ -58,9 +58,13 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Check if user exists
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return createSpecErrorResponse(
         'Account not found',
@@ -90,6 +94,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.accountDeletions.create, {
       userId,
       deletion_will_complete_at: deletionWillCompleteAt,
+      sessionToken: sessionToken || undefined
     });
 
     // Send email confirmation about account deletion (async)

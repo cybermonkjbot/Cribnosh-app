@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -49,10 +49,12 @@ async function handlePOST(
     }
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Mark notification as read
     await convex.mutation(api.mutations.notifications.markAsRead, {
       notificationId: notificationId as any,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ success: true }, 'Notification marked as read');

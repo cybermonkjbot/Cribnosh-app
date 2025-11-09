@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
@@ -239,7 +239,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing cuisine_id');
     }
     const convex = getConvexClientFromRequest(request);
-    const cuisine = await convex.query(api.queries.chefs.getCuisineById, { cuisineId: cuisine_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const cuisine = await convex.query(api.queries.chefs.getCuisineById, {
+      cuisineId: cuisine_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!cuisine) {
       return ResponseFactory.notFound('Cuisine not found');
     }
@@ -272,9 +276,11 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
     const updates = await request.json();
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.chefs.updateCuisine, {
       cuisineId: cuisine_id,
       ...updates,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -296,7 +302,11 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing cuisine_id');
     }
     const convex = getConvexClientFromRequest(request);
-    await convex.mutation(api.mutations.chefs.deleteCuisine, { cuisineId: cuisine_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    await convex.mutation(api.mutations.chefs.deleteCuisine, {
+      cuisineId: cuisine_id,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

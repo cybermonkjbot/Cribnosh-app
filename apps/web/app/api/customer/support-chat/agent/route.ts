@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
@@ -53,10 +53,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get active support chat
     const activeChat = await convex.query(api.queries.supportCases.getActiveSupportChat, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!activeChat || !activeChat.supportCase || !activeChat.supportCase.assigned_agent_id) {
@@ -69,6 +71,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get agent info
     const agentInfo = await convex.query(api.queries.supportAgents.getAgentInfo, {
       agentId: activeChat.supportCase.assigned_agent_id,
+      sessionToken: sessionToken || undefined
     });
 
     if (!agentInfo) {

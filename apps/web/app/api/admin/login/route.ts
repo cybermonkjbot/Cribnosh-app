@@ -1,5 +1,5 @@
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
     }
     logger.log('[ADMIN LOGIN] Attempting login for:', email);
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Call Convex action to validate credentials and create session
     let result;
     try {
@@ -143,7 +144,10 @@ export async function POST(request: NextRequest) {
     }
     // Now, fetch the user to check their role
     const user = await retryCritical(async () => {
-      return await convex.query(api.queries.users.getUserByEmail, { email });
+      return await convex.query(api.queries.users.getUserByEmail, {
+        email,
+        sessionToken: sessionToken || undefined
+      });
     });
     if (!user || !user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       logger.log('[ADMIN LOGIN] Not an admin:', email);

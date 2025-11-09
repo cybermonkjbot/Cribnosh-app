@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest } from 'next/server';
@@ -144,9 +144,13 @@ async function handlePOST(request: NextRequest) {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -181,7 +185,8 @@ async function handlePOST(request: NextRequest) {
         originalRefundEligibleUntil: order.refund_eligible_until,
         originalIsRefundable: order.is_refundable,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     logger.log(`Order ${orderId} marked as non-refundable by admin ${userId}: ${reason} - ${description}`);

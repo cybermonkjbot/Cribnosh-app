@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -210,6 +210,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     interface RefundOperationResult {
       orderId: string;
       success: boolean;
@@ -237,7 +238,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         const finalDescription = description || globalDescription || 'Bulk admin operation';
 
         // Get order details
-        const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+        const order = await convex.query(api.queries.orders.getOrderById, {
+          orderId,
+          sessionToken: sessionToken || undefined
+        });
         if (!order) {
           results.failed.push({
             orderId,
@@ -302,7 +306,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
                 originalRefundEligibleUntil: order.refund_eligible_until,
                 originalIsRefundable: order.is_refundable,
                 ...metadata
-              }
+              },
+              sessionToken: sessionToken || undefined
             });
             break;
 
@@ -331,7 +336,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
                 originalRefundEligibleUntil: order.refund_eligible_until,
                 originalIsRefundable: order.is_refundable,
                 ...metadata
-              }
+              },
+              sessionToken: sessionToken || undefined
             });
             break;
 
@@ -361,7 +367,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
                 bulkOperation: true,
                 originalRefundEligibleUntil: order.refund_eligible_until,
                 ...metadata
-              }
+              },
+              sessionToken: sessionToken || undefined
             });
             break;
 

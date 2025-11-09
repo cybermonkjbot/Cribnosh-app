@@ -2,7 +2,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { getApiFunction, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getApiFunction, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
@@ -49,6 +49,7 @@ async function handleDELETE(
 
     // Get user from session token
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -58,6 +59,7 @@ async function handleDELETE(
     const deleteVideoPost = getApiFunction('mutations/videoPosts', 'deleteVideoPost') as any;
     await convex.mutation(deleteVideoPost, {
       videoId: videoId as any,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Video deleted successfully');

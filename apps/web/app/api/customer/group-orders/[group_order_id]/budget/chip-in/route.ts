@@ -4,7 +4,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -37,10 +37,12 @@ async function handlePOST(
     }
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get group order to get the document ID
     const groupOrder = await convex.query(api.queries.groupOrders.getById, {
       group_order_id,
+      sessionToken: sessionToken || undefined
     });
     
     if (!groupOrder) {
@@ -51,6 +53,7 @@ async function handlePOST(
       group_order_id: groupOrder._id as Id<'group_orders'>,
       user_id: userId as Id<'users'>,
       amount: amount as number,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success(result, 'Budget contribution added successfully');

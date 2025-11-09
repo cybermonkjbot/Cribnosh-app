@@ -40,7 +40,7 @@
 
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -56,10 +56,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Get all meals for this chef
-    const meals = await convex.query(api.queries.meals.getAll, {}).then((meals: any[]) => meals.filter(m => m.chefId === userId));
+    const meals = await convex.query(api.queries.meals.getAll, {
+      sessionToken: sessionToken || undefined
+    }).then((meals: any[]) => meals.filter(m => m.chefId === userId));
     // Get all reviews for these meals
-    const reviews = await convex.query(api.queries.reviews.getAll, {}).then((reviews: any[]) => reviews.filter(r => meals.some(m => m._id === r.meal_id)));
+    const reviews = await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    }).then((reviews: any[]) => reviews.filter(r => meals.some(m => m._id === r.meal_id)));
     // Aggregate review texts
     const reviewTexts = reviews.map(r => r.comment || r.text).filter(Boolean);
     const res = await fetch(EMOTIONS_ENGINE_URL, {

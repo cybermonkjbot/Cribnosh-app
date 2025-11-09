@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
@@ -52,7 +52,11 @@ import { getErrorMessage } from '@/types/errors';
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   const convex = getConvexClient();
-  const cuisines = await convex.query(api.queries.chefs.listCuisinesByStatus, { status: 'approved' });
+  const sessionToken = getSessionTokenFromRequest(request);
+  const cuisines = await convex.query(api.queries.chefs.listCuisinesByStatus, {
+    status: 'approved',
+    sessionToken: sessionToken || undefined
+  });
   return ResponseFactory.success({ cuisines });
 }
 

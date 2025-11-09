@@ -1,6 +1,6 @@
 import { api } from '@/convex/_generated/api';
 import { getUserFromCookies } from '@/lib/auth/session';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { cookies } from 'next/headers';
 import { withErrorHandling } from '@/lib/errors';
@@ -47,6 +47,7 @@ async function handlePOST(request: NextRequest) {
     const isProd = process.env.NODE_ENV === 'production';
     if (user) {
       const convex = getConvexClientFromRequest(request);
+      const sessionToken = getSessionTokenFromRequest(request);
       await convex.mutation(api.mutations.users.setSessionToken, { userId: user._id, sessionToken: '', sessionExpiry: 0 });
     }
     const response = ResponseFactory.success({ success: true });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -63,9 +63,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const timeRange = searchParams.get('timeRange') as '24h' | '7d' | '30d' | 'all' | undefined;
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const trendingVideos = await convex.query((api as any).queries.videoPosts.getTrendingVideos, {
       limit,
       timeRange,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(trendingVideos, 'Trending videos retrieved successfully');

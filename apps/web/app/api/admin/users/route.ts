@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -191,13 +191,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await getAuthenticatedAdmin(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch all users
-    const allUsers = await convex.query(api.queries.users.getAllUsers, {});
+    const allUsers = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     // Consistent ordering (createdAt DESC)
     allUsers.sort((a: any, b: any) => ((b._creationTime ?? 0) - (a._creationTime ?? 0)));
     const paginated = allUsers.slice(offset, offset + limit);
@@ -219,14 +222,19 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('user_ids array is required.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     for (const userId of user_ids) {
-      await convex.mutation(api.mutations.users.deleteUser, { userId });
+      await convex.mutation(api.mutations.users.deleteUser, {
+        userId,
+        sessionToken: sessionToken || undefined
+      });
     }
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'bulk_delete_users',
       details: { user_ids },
       adminId: adminUserId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, deleted: user_ids.length });
   } catch (error: unknown) {
@@ -245,7 +253,10 @@ async function handleSearch(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get('q') || '').toLowerCase();
     const convex = getConvexClientFromRequest(request);
-    const allUsers = await convex.query(api.queries.users.getAllUsers, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allUsers = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     const results = allUsers.filter((u: any) =>
       (typeof u.name === 'string' && u.name.toLowerCase().includes(q)) ||
       (typeof u.email === 'string' && u.email.toLowerCase().includes(q)) ||

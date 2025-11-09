@@ -2,7 +2,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -165,13 +165,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch all waitlist entries
-    const allWaitlist = await convex.query(api.queries.waitlist.getAll, {});
+    const allWaitlist = await convex.query(api.queries.waitlist.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Consistent ordering (joinedAt DESC)
     allWaitlist.sort((a: { joinedAt?: number }, b: { joinedAt?: number }) => (b.joinedAt || 0) - (a.joinedAt || 0));
     const paginated = allWaitlist.slice(offset, offset + limit);
@@ -192,10 +195,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('Invalid email format.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     const waitlistId = await convex.mutation(api.mutations.waitlist.addToWaitlist, {
       email,
       source: source || '',
       location: location || null,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, waitlistId });
   } catch (error: unknown) {
@@ -215,15 +220,20 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('waitlist_id is required.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Use the existing deleteWaitlistEntry mutation
-    await convex.mutation(api.mutations.waitlist.deleteWaitlistEntry, { entryId: waitlist_id as Id<'waitlist'> });
+    await convex.mutation(api.mutations.waitlist.deleteWaitlistEntry, {
+      entryId: waitlist_id as Id<'waitlist'>,
+      sessionToken: sessionToken || undefined
+    });
     
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_waitlist_entry',
       details: { waitlist_id },
       adminId: userId as Id<'users'>,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -243,10 +253,14 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('waitlist_ids array is required and must not be empty.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Delete each waitlist entry
     const deletePromises = waitlist_ids.map((id: string) => 
-      convex.mutation(api.mutations.waitlist.deleteWaitlistEntry, { entryId: id as Id<'waitlist'> })
+      convex.mutation(api.mutations.waitlist.deleteWaitlistEntry, {
+        entryId: id as Id<'waitlist'>,
+        sessionToken: sessionToken || undefined
+      })
     );
     await Promise.all(deletePromises);
     
@@ -255,6 +269,7 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
       action: 'bulk_delete_waitlist_entries',
       details: { waitlist_ids, count: waitlist_ids.length },
       adminId: userId as Id<'users'>,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, deletedCount: waitlist_ids.length });
   } catch (error: unknown) {
@@ -270,12 +285,16 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.forbidden('Forbidden: Only admins can export waitlist.');
     }
     const convex = getConvexClient();
-    const allWaitlist = await convex.query(api.queries.waitlist.getAll, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allWaitlist = await convex.query(api.queries.waitlist.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_waitlist',
       details: {},
       adminId: userId as Id<'users'>,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.jsonDownload(allWaitlist, 'waitlist-export.json');
   } catch (error: unknown) {

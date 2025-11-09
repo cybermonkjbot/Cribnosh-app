@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -87,6 +87,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Get user from session token
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -99,6 +100,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       isPublic: body.isPublic !== false, // Default to true
       videoIds: body.videoIds,
       coverImageUrl: body.coverImageUrl,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({
@@ -172,10 +174,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const publicOnly = searchParams.get('publicOnly') !== 'false';
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const collections = await convex.query((api as any).queries.videoCollections.getCollections, {
       limit,
       cursor,
       publicOnly,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(collections, 'Collections retrieved successfully');

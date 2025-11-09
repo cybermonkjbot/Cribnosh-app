@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -24,9 +24,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const targetParam = searchParams.get('target') as 'all' | 'new_users' | 'existing_users' | 'group_orders' | null;
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const offers = await convex.query(api.queries.specialOffers.getActiveOffers, {
       user_id: userId as any,
       target_audience: targetParam || 'group_orders',
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ offers }, 'Active offers retrieved successfully');

@@ -1,15 +1,16 @@
 "use client";
 
-import Link from 'next/link';
-import { motion, AnimatePresence } from 'motion/react';
 import { MasonryBackground } from '@/components/ui/masonry-background';
-import { ParallaxContent } from '@/components/ui/parallax-section';
 import { MobileBackButton } from '@/components/ui/mobile-back-button';
-import { useState } from 'react';
-import { useMutation } from 'convex/react';
+import { ParallaxContent } from '@/components/ui/parallax-section';
 import { api } from '@/convex/_generated/api';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { Car, Bike, Clock, Star, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useSessionToken } from '@/hooks/useSessionToken';
+import { useMutation } from 'convex/react';
+import { Bike, Car, ChevronLeft } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useState } from 'react';
+;
 
 const vehicleTypes = [
   {
@@ -41,6 +42,7 @@ export default function DrivingApply() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const [emailStatus, setEmailStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const sessionToken = useSessionToken();
   const [step, setStep] = useState<'vehicle' | 'details'>('vehicle');
   const createDriver = useMutation(api.mutations.drivers.createDriver);
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -85,13 +87,13 @@ export default function DrivingApply() {
       setEmailStatus('error');
     }
     try {
-      await createDriver({
-        name: form.name,
+      await createDriver({name: form.name,
         email: form.email,
         vehicle: form.vehicle,
         vehicleType: 'car', // Default to car, could be made configurable
         experience: form.experience ? parseInt(form.experience) : undefined,
         createdAt: Date.now(),
+        sessionToken: sessionToken || undefined
       });
       setIsSuccess(true);
       setForm({ name: '', email: '', vehicle: '', experience: '' });

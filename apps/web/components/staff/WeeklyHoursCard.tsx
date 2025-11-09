@@ -1,10 +1,10 @@
 "use client";
 
-import { useQuery } from 'convex/react';
+import { GlassCard } from '@/components/ui/glass-card';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { GlassCard } from '@/components/ui/glass-card';
-import { Calendar, Clock, Activity, Target, BarChart3 } from 'lucide-react';
+import { useQuery } from 'convex/react';
+import { Activity, BarChart3, Calendar, Clock, Target } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 
@@ -25,13 +25,17 @@ interface WorkSession {
 
 interface WeeklyHoursCardProps {
   staffId: Id<"users">;
+  sessionToken: string | null;
 }
 
-export function WeeklyHoursCard({ staffId }: WeeklyHoursCardProps) {
+export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps) {
   // Get this week's sessions
-  const thisWeekSessions = useQuery(api.queries.workSessions.getThisWeekSessions, { 
-    staffId 
-  }) as WorkSession[] | undefined;
+  const thisWeekSessions = useQuery(
+    api.queries.workSessions.getThisWeekSessions, 
+    staffId && sessionToken
+      ? { staffId, sessionToken }
+      : 'skip'
+  ) as WorkSession[] | undefined;
   
   // Calculate weekly hours
   const today = new Date();
@@ -43,11 +47,17 @@ export function WeeklyHoursCard({ staffId }: WeeklyHoursCardProps) {
   endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Saturday)
   endOfWeek.setHours(23, 59, 59, 999);
 
-  const weeklyHours = useQuery(api.queries.workSessions.getWeeklyHours, {
-    staffId,
-    weekStart: startOfWeek.getTime(),
-    weekEnd: endOfWeek.getTime(),
-  });
+  const weeklyHours = useQuery(
+    api.queries.workSessions.getWeeklyHours,
+    staffId && sessionToken
+      ? {
+          staffId,
+          weekStart: startOfWeek.getTime(),
+          weekEnd: endOfWeek.getTime(),
+          sessionToken,
+        }
+      : 'skip'
+  );
 
   const formatDuration = (milliseconds: number) => {
     const hours = Math.floor(milliseconds / (1000 * 60 * 60));

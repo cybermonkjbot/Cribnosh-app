@@ -105,13 +105,17 @@ export async function proxy(request: NextRequest) {
   }
   
   // Content Security Policy (adjust as needed for your app)
+  const connectSrc = isDevelopment
+    ? "'self' https: http://localhost:5600 wss://*.convex.cloud wss://wandering-finch-293.convex.cloud"
+    : "'self' https: wss://*.convex.cloud wss://wandering-finch-293.convex.cloud";
+  
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Adjust based on your needs
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https: wss://*.convex.cloud wss://wandering-finch-293.convex.cloud",
+    `connect-src ${connectSrc}`,
     "frame-ancestors 'none'",
   ].join('; ');
   

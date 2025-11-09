@@ -1,6 +1,7 @@
 "use client";
 
 import { GlassCard } from '@/components/ui/glass-card';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { Settings, Loader2, User, UploadCloud } from 'lucide-react';
 import { Id } from '@/convex/_generated/dataModel';
 import { AuthWrapper } from '@/components/layout/AuthWrapper';
@@ -17,6 +18,8 @@ const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "Kosher", "Gluten-Free"
 
 export default function AdminAccountSettings() {
   const { user, loading: adminLoading } = useAdminUser();
+  const sessionToken = useSessionToken();
+
   const updateUser = useMutation(api.mutations.users.updateUser);
   const hashPassword = useAction(api.actions.password.hashPasswordAction);
   const [loading, setLoading] = useState(true);
@@ -130,7 +133,9 @@ export default function AdminAccountSettings() {
       }
       await updateUser(updates);
       setSuccess('Account updated successfully!');
-      setForm(f => ({ ...f, password: '', passwordConfirm: '' }));
+      setForm(f => ({...f, password: '', passwordConfirm: '',
+    sessionToken: sessionToken || undefined
+  }));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to update account.');
     } finally {
@@ -161,7 +166,9 @@ export default function AdminAccountSettings() {
       if (!user) {
         throw new Error('User not found');
       }
-      await updateUser({ userId: user._id as Id<"users">, avatar: data.url });
+      await updateUser({userId: user._id as Id<"users">, avatar: data.url,
+    sessionToken: sessionToken || undefined
+  });
       // Note: setUser is not available in this context, the user will be updated via the query
       setSuccess('Profile picture updated!');
     } catch (e: unknown) {

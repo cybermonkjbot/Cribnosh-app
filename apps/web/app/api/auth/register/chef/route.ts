@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { randomBytes, scryptSync } from 'crypto';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -125,8 +125,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Missing or invalid required fields');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   // Duplicate email check
-  const existing = await convex.query(api.queries.users.getUserByEmail, { email });
+  const existing = await convex.query(api.queries.users.getUserByEmail, {
+    email,
+    sessionToken: sessionToken || undefined
+  });
   if (existing) {
     return ResponseFactory.error('A user with this email already exists.', 'CUSTOM_ERROR', 409);
   }
@@ -142,6 +146,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       password: passwordHash,
       roles: ['chef'],
       status: 'active',
+      sessionToken: sessionToken || undefined
     });
   } catch (err: any) {
     return ResponseFactory.badRequest(err.message || 'Failed to create user' );
@@ -157,6 +162,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       image,
       bio,
       status: 'active',
+      sessionToken: sessionToken || undefined
     });
   } catch (err: any) {
     return ResponseFactory.badRequest(err.message || 'Failed to create chef profile' );

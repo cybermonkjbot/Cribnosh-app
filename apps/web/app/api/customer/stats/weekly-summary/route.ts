@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
@@ -126,12 +126,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const endDateStr = endDate.toISOString().split('T')[0];
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get weekly summary from Convex
     const summaryData = await convex.query(api.queries.stats.getWeeklySummary, {
       userId,
       startDate: startDateStr,
       endDate: endDateStr,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(summaryData);

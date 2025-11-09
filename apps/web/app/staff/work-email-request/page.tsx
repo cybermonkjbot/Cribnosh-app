@@ -1,31 +1,16 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { GlassCard } from '@/components/ui/glass-card';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
-import { RequestStatus } from '@/components/ui/request-status';
 import { RequestHistory } from '@/components/ui/request-history';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
 import { ArrowLeft, Mail } from 'lucide-react';
 import Link from 'next/link';
-import { Id } from '@/convex/_generated/dataModel';
-
-// Utility to get a cookie value by name (client-side only)
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : undefined;
-}
+import { useState } from 'react';
 
 export default function WorkEmailRequestPage() {
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  
-  // Get session token from cookies
-  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    const token = getCookie('convex-auth-token');
-    setSessionToken(token);
-  }, []);
+  const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   
   const profile = useQuery(
     api.queries.users.getById,
@@ -174,17 +159,10 @@ export default function WorkEmailRequestPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-      <div className="bg-white/80 backdrop-blur-sm border-b border-amber-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-4">
-            <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-xl font-asgard text-gray-900">Request Work Email Password Reset</h1>
-          </div>
-        </div>
-      </div>
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4 pt-8 pb-8">
+        <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-4">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
         <GlassCard className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

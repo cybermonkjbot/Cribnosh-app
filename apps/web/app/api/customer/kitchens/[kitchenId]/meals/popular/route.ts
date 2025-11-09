@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -59,11 +59,15 @@ async function handleGET(
     const userId = extractUserIdFromRequest(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
       api.queries.kitchens.getChefByKitchenId as any,
-      { kitchenId }
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     ) as string | undefined;
 
     if (!chefId) {
@@ -77,6 +81,7 @@ async function handleGET(
         chefId,
         userId: userId as any,
         limit,
+        sessionToken: sessionToken || undefined
       }
     ) as unknown[];
 

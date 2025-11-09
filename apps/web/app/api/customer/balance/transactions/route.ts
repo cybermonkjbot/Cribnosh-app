@@ -4,7 +4,7 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -113,12 +113,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (limit < 1) limit = DEFAULT_LIMIT;
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query transactions from database
     const allTransactions = await convex.query(api.queries.customerBalance.getTransactions, {
       userId,
       limit: undefined,
       offset: undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Pagination

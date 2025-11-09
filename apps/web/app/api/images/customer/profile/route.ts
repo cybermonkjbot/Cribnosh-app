@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -166,6 +166,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Store file in Convex file storage
     const buffer = Buffer.from(await file.arrayBuffer());
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
     
     // Upload the file to Convex storage
@@ -174,7 +175,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
       },
-      body: buffer,
+      body: buffer
     });
     
     if (!uploadResponse.ok) {
@@ -184,9 +185,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const { storageId } = await uploadResponse.json();
     const fileUrl = `/api/files/${storageId}`;
     // Update user profile with Convex file URL
-    await convex.mutation(api.mutations.users.updateUser, { userId: userId, avatar: fileUrl });
+    await convex.mutation(api.mutations.users.updateUser, {
+      userId: userId,
+      avatar: fileUrl,
+      sessionToken: sessionToken || undefined
+    });
     // Fetch updated user to get latest data
-    const updatedUser = await convex.query(api.queries.users.getUserById, { userId: userId as any });
+    const updatedUser = await convex.query(api.queries.users.getUserById, {
+      userId: userId as any,
+      sessionToken: sessionToken || undefined
+    });
     if (!updatedUser) {
       return ResponseFactory.notFound('User not found.');
     }

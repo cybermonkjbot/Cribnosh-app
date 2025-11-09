@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
@@ -116,7 +116,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated admin from session token
     await getAuthenticatedAdmin(request);
     const convex = getConvexClientFromRequest(request);
-    const reviews = await convex.query(api.queries.reviews.getAll, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const reviews = await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ reviews });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

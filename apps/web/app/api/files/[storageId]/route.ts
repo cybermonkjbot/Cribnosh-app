@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { api } from '@/convex/_generated/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
@@ -29,11 +29,13 @@ export async function GET(
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get the file URL from Convex storage using the getVideoUrl query
     // (it works for any storage ID, not just videos)
     const fileUrl = await convex.query(api.queries.videoPosts.getVideoUrl, {
       storageId: storageId as Id<'_storage'>,
+      sessionToken: sessionToken || undefined
     });
 
     if (!fileUrl) {

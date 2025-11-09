@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
@@ -63,6 +63,7 @@ import { NextRequest } from 'next/server';
 async function handlePOST(request: NextRequest, { params }: { params: { videoId: string } }) {
   try {
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const body = await request.json();
     const { reason, description, timestamp } = body;
     
@@ -78,7 +79,8 @@ async function handlePOST(request: NextRequest, { params }: { params: { videoId:
     await convex.mutation((api as any).mutations.videoPosts.flagVideo, {
       videoId: params.videoId as any,
       reason,
-      description: description || ''
+      description: description || '',
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({

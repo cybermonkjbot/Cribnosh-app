@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
@@ -97,21 +97,27 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing chef_id');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Fetch chef by ID
-    const chef = await convex.query(api.queries.chefs.getChefById, { chefId: chef_id });
+    const chef = await convex.query(api.queries.chefs.getChefById, {
+      chefId: chef_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef not found.');
     }
     // Update chef status to 'active' using the database patch method
     await convex.mutation(api.mutations.chefs.updateChef, {
       chefId: chef._id,
-      status: 'active'
+      status: 'active',
+      sessionToken: sessionToken || undefined
     });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'approve_chef',
       details: { chef_id: chef._id },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, chefId: chef_id, status: 'active' });
   } catch (error: unknown) {

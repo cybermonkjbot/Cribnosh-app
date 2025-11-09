@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
@@ -137,9 +137,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -153,7 +157,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get order history
-    const history = await convex.query(api.queries.orders.getOrderHistory, { orderId: order_id });
+    const history = await convex.query(api.queries.orders.getOrderHistory, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
 
     // Format history entries
     const formattedHistory = history.map((entry: { _id: string; action?: string; description?: string; performed_by?: string; performed_at?: number; metadata?: Record<string, unknown>; reason?: string }) => ({

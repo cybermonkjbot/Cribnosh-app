@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 import { Id } from "../_generated/dataModel";
-import { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
+import { MutationCtx, QueryCtx } from "../_generated/server";
 
 /**
  * Authentication and Authorization Utilities
@@ -27,7 +27,7 @@ export interface AuthenticatedUser {
  * Otherwise, falls back to JWT from setAuth() (for backward compatibility)
  */
 export async function getAuthenticatedUser(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   sessionToken?: string
 ): Promise<AuthenticatedUser | null> {
   // If session token is provided, use it
@@ -51,7 +51,7 @@ export async function getAuthenticatedUser(
     // Get user from database
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q: any) => q.eq("email", email))
       .first();
 
     if (!user || user.status === "suspended" || user.status === "inactive") {
@@ -74,7 +74,7 @@ export async function getAuthenticatedUser(
  * Get authenticated user by session token (for staff portal)
  */
 export async function getAuthenticatedUserBySessionToken(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   sessionToken: string
 ): Promise<AuthenticatedUser | null> {
   try {
@@ -84,7 +84,7 @@ export async function getAuthenticatedUserBySessionToken(
 
     const user = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("sessionToken"), sessionToken))
+      .filter((q: any) => q.eq(q.field("sessionToken"), sessionToken))
       .first();
 
     if (!user) {
@@ -121,7 +121,7 @@ export async function getAuthenticatedUserBySessionToken(
  * Otherwise, falls back to JWT from setAuth() (for backward compatibility)
  */
 export async function requireAuth(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   sessionToken?: string
 ): Promise<AuthenticatedUser> {
   const user = await getAuthenticatedUser(ctx, sessionToken);
@@ -135,7 +135,7 @@ export async function requireAuth(
  * Require authentication by session token - throws if user is not authenticated
  */
 export async function requireAuthBySessionToken(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   sessionToken: string
 ): Promise<AuthenticatedUser> {
   const user = await getAuthenticatedUserBySessionToken(ctx, sessionToken);
@@ -190,7 +190,7 @@ export function isStaff(user: AuthenticatedUser | null): boolean {
  */
 export function isHROrAdmin(user: AuthenticatedUser | null): boolean {
   if (!user) return false;
-  return hasAnyRole(user, ["admin", "hr", "human_resources", "management"]);
+  return hasAnyRole(user, ["admin", "hr", "management"]);
 }
 
 /**
@@ -198,7 +198,7 @@ export function isHROrAdmin(user: AuthenticatedUser | null): boolean {
  * If sessionToken is provided, uses session token authentication
  */
 export async function requireRole(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   role: UserRole,
   sessionToken?: string
 ): Promise<AuthenticatedUser> {
@@ -214,7 +214,7 @@ export async function requireRole(
  * If sessionToken is provided, uses session token authentication
  */
 export async function requireAnyRole(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   roles: UserRole[],
   sessionToken?: string
 ): Promise<AuthenticatedUser> {
@@ -230,7 +230,7 @@ export async function requireAnyRole(
  * If sessionToken is provided, uses session token authentication
  */
 export async function requireAdmin(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   sessionToken?: string
 ): Promise<AuthenticatedUser> {
   const user = await requireAuth(ctx, sessionToken);
@@ -245,7 +245,7 @@ export async function requireAdmin(
  * If sessionToken is provided, uses session token authentication
  */
 export async function requireStaff(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   sessionToken?: string
 ): Promise<AuthenticatedUser> {
   const user = await requireAuth(ctx, sessionToken);
@@ -260,7 +260,7 @@ export async function requireStaff(
  * If sessionToken is provided, uses session token authentication
  */
 export async function canAccessResource(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   resourceUserId: Id<"users"> | string,
   requireAdmin: boolean = false,
   sessionToken?: string
@@ -284,7 +284,7 @@ export async function canAccessResource(
  * If sessionToken is provided, uses session token authentication
  */
 export async function requireResourceAccess(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   resourceUserId: Id<"users"> | string,
   requireAdmin: boolean = false,
   sessionToken?: string
@@ -302,7 +302,7 @@ export async function requireResourceAccess(
  * If sessionToken is provided, uses session token authentication
  */
 export async function canModifyResource(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   resourceUserId: Id<"users"> | string,
   sessionToken?: string
 ): Promise<boolean> {
@@ -325,7 +325,7 @@ export async function canModifyResource(
  * If sessionToken is provided, uses session token authentication
  */
 export async function requireModifyAccess(
-  ctx: QueryCtx | MutationCtx | ActionCtx,
+  ctx: QueryCtx | MutationCtx,
   resourceUserId: Id<"users"> | string,
   sessionToken?: string
 ): Promise<AuthenticatedUser> {

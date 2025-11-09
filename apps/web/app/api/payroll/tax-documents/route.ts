@@ -48,7 +48,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -197,6 +197,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     } 
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Generate tax document based on type
     const taxDocument = await convex.mutation(api.mutations.payroll.generateTaxDocument, {
@@ -211,7 +212,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         end: new Date().getTime()
       },
       amount: includeDetails ? 1000 : undefined,
-      notes: includeDetails ? `Generated tax document` : undefined
+      notes: includeDetails ? `Generated tax document` : undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Format response based on requested format
@@ -267,9 +269,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const documentType = searchParams.get('documentType');
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get available tax documents
-    const taxDocuments = await convex.query(api.queries.payroll.getTaxDocuments, {});
+    const taxDocuments = await convex.query(api.queries.payroll.getTaxDocuments, {
+      sessionToken: sessionToken || undefined
+    });
 
     return ResponseFactory.success({
       success: true,

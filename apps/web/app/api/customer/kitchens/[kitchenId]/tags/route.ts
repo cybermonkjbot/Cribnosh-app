@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -66,10 +66,14 @@ async function handleGET(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     const tags = await convex.query(
       (api as any).queries.kitchens.getKitchenTags,
-      { kitchenId }
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     return ResponseFactory.success(tags, 'Kitchen tags retrieved successfully');

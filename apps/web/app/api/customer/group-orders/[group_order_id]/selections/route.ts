@@ -4,7 +4,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -39,9 +39,11 @@ async function handleGET(
     const userId = searchParams.get('user_id');
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const selections = await convex.query(api.queries.groupOrders.getParticipantSelections, {
       group_order_id,
       participant_user_id: userId ? (userId as Id<'users'>) : undefined,
+      sessionToken: sessionToken || undefined
     });
     
     if (!selections) {
@@ -85,10 +87,12 @@ async function handlePOST(
     }
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get group order to get the document ID
     const groupOrder = await convex.query(api.queries.groupOrders.getById, {
       group_order_id,
+      sessionToken: sessionToken || undefined
     });
     
     if (!groupOrder) {
@@ -105,6 +109,7 @@ async function handlePOST(
         price: item.price,
         special_instructions: item.special_instructions,
       })),
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success(result, 'Selections updated successfully');

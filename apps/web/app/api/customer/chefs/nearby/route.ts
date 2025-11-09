@@ -4,7 +4,7 @@ import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withCaching } from '@/lib/api/cache';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { getErrorMessage } from '@/types/errors';
@@ -136,12 +136,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
   
   // Get nearby chefs using the Convex query
   const nearbyChefs = await convex.query(api.queries.chefs.findNearbyChefs, {
     latitude,
     longitude,
     maxDistanceKm: radius,
+    sessionToken: sessionToken || undefined
   });
 
   // Apply pagination

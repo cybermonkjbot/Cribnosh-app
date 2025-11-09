@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -44,6 +44,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AlertDialog from '@/components/ui/alert-dialog';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 
 
 // Custom components
@@ -69,9 +71,9 @@ const formatLargeNumber = (num: number) => {
 };
 
 export default function StaffPayrollPage() {
-
+  const router = useRouter();
+  const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   const [activeTab, setActiveTab] = useState('overview');
-  const [sessionToken, setSessionToken] = useState<string | null | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear().toString());
   const [statusFilter, setStatusFilter] = useState('all');
@@ -81,57 +83,37 @@ export default function StaffPayrollPage() {
   // Alert dialog hook
   const { alertState, hideAlert, showInfo, showWarning, showError } = useAlertDialog();
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const match = document.cookie.match(/(^| )convex-auth-token=([^;]+)/);
-      if (match && match[2]) {
-        setSessionToken(match[2]);
-      } else {
-        // fallback to API to avoid timing issues
-        fetch('/api/auth/token')
-          .then(r => r.json())
-          .then(d => setSessionToken(d.sessionToken ?? null))
-          .catch(() => setSessionToken(null));
-      }
-    }
-  }, []);
-
-  // Validate session token against Convex user query (returns null if invalid/expired)
-  const currentUser = useQuery(
-    api.queries.users.getUserBySessionToken,
-    sessionToken ? { sessionToken } : 'skip'
-  );
-
   // Get payroll profile
   const payrollData = useQuery(
     api.payroll.staff.getPayrollProfileBySession,
-    sessionToken && currentUser ? { sessionToken } : 'skip'
+    staffUser && sessionToken ? { sessionToken } : 'skip'
   );
 
   // Get payslips
   const payslips = useQuery(
     api.payroll.staff.getPayslipsBySession,
-    sessionToken && currentUser ? { sessionToken } : 'skip'
+    staffUser && sessionToken ? { sessionToken } : 'skip'
   );
 
   // Get tax documents (placeholder returns [])
   const taxDocuments = useQuery(
     api.payroll.staff.getTaxDocumentsBySession,
-    sessionToken && currentUser ? { sessionToken, year: parseInt(yearFilter) } : 'skip'
+    staffUser && sessionToken ? { sessionToken, year: parseInt(yearFilter) } : 'skip'
   );
 
   // Fetch year-to-date summary
   const ytdSummary = useQuery(
     api.payroll.staff.getYearToDateSummaryBySession,
-    sessionToken && currentUser ? { sessionToken } : 'skip'
+    staffUser && sessionToken ? { sessionToken } : 'skip'
   );
 
   // Fetch year-to-date hours from work sessions
   const ytdHours = useQuery(
     api.queries.workSessions.getYearToDateHours,
-    sessionToken && currentUser ? { 
-      staffId: currentUser._id, 
-      year: parseInt(yearFilter) 
+    staffUser && sessionToken ? { 
+      staffId: staffUser._id, 
+      year: parseInt(yearFilter),
+      sessionToken
     } : 'skip'
   );
   
@@ -340,10 +322,10 @@ Document ID: ${doc._id}`;
     return year.toString();
   });
 
-  // Loading state while resolving session token
-  if (sessionToken === undefined) {
+  // Loading state while resolving authentication
+  if (staffAuthLoading) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 px-4 pt-8">
         <div className="space-y-4">
           <Skeleton className="h-12 w-1/3" />
           <Skeleton className="h-6 w-1/2" />
@@ -359,7 +341,7 @@ Document ID: ${doc._id}`;
   }
 
   // If not logged in (no session), show login prompt
-  if (sessionToken === null) {
+  if (!staffUser || !sessionToken) {
     return (
       <div className="space-y-8">
         {/* Back Button */}
@@ -405,44 +387,8 @@ Document ID: ${doc._id}`;
     );
   }
 
-  // If we're checking the token, wait until user resolve
-  if (currentUser === undefined) {
-    return (
-      <div className="space-y-8">
-        {/* Back Button */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-start"
-        >
-          <Link
-            href="/staff/portal"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm"
-            aria-label="Back to Staff Portal"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-        </motion.div>
-
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <Skeleton className="h-12 w-1/3" />
-            <Skeleton className="h-6 w-1/2" />
-          </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-2xl" />
-            ))}
-          </div>
-          <Skeleton className="h-96 w-full rounded-2xl" />
-        </div>
-      </div>
-    );
-  }
-
-  // Invalid/expired token
-  if (currentUser === null) {
+  // Invalid/expired token - handled by layout, but keep for safety
+  if (!staffUser) {
     return (
       <div className="space-y-8">
         {/* Back Button */}
@@ -489,22 +435,15 @@ Document ID: ${doc._id}`;
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 pt-8">
       {/* Back Button */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex justify-start"
+      <Link
+        href="/staff/portal"
+        className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-8"
+        aria-label="Back to Staff Portal"
       >
-        <Link
-          href="/staff/portal"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm"
-          aria-label="Back to Staff Portal"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
-      </motion.div>
+        <ArrowLeft className="w-5 h-5" />
+      </Link>
 
       {/* Enhanced Header Section */}
       <motion.div
@@ -553,8 +492,8 @@ Document ID: ${doc._id}`;
               try {
                 const exportData = {
                   employeeInfo: {
-                    name: currentUser?.name || 'Unknown',
-                    id: currentUser?._id || 'Unknown',
+                    name: staffUser?.name || 'Unknown',
+                    id: staffUser?._id || 'Unknown',
                     year: yearFilter
                   },
                   summary: summaryStats,
@@ -581,7 +520,7 @@ Document ID: ${doc._id}`;
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `payroll-export-${currentUser?.name || 'staff'}-${yearFilter}.json`;
+                a.download = `payroll-export-${staffUser?.name || 'staff'}-${yearFilter}.json`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -602,7 +541,7 @@ Document ID: ${doc._id}`;
             onClick={async () => {
               try {
                 const reportData = {
-                  title: `Payroll Report - ${currentUser?.name || 'Staff'}`,
+                  title: `Payroll Report - ${staffUser?.name || 'Staff'}`,
                   summary: `Year-to-Date Summary for ${yearFilter}`,
                   totalEarnings: formatNaira(summaryStats.totalEarnings),
                   totalHours: summaryStats.totalHours,
@@ -870,7 +809,7 @@ Document ID: ${doc._id}`;
               <CalendarDays className="w-5 h-5 text-amber-500" />
             </div>
             <div className="text-3xl font-bold font-asgard text-gray-900 mb-2">
-              {currentUser?.name || 'Staff'}
+              {staffUser?.name || 'Staff'}
             </div>
             <p className="text-gray-600 font-satoshi">Current Employee</p>
             <div className="mt-3 text-sm text-amber-600 font-medium">
@@ -1526,7 +1465,7 @@ Document ID: ${doc._id}`;
                     className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-4 border border-red-200/60 hover:border-red-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       const subject = encodeURIComponent('Payroll Support Request');
-                      const body = encodeURIComponent(`Hello HR Team,\n\nI need assistance with my payroll.\n\nEmployee: ${currentUser?.name || 'Unknown'}\nEmployee ID: ${currentUser?._id || 'Unknown'}\n\nPlease provide details about your inquiry:\n\n\n\nThank you.`);
+                      const body = encodeURIComponent(`Hello HR Team,\n\nI need assistance with my payroll.\n\nEmployee: ${staffUser?.name || 'Unknown'}\nEmployee ID: ${staffUser?._id || 'Unknown'}\n\nPlease provide details about your inquiry:\n\n\n\nThank you.`);
                       window.open(`mailto:hr@cribnosh.com?subject=${subject}&body=${body}`);
                     }}
                   >
@@ -1574,7 +1513,7 @@ Document ID: ${doc._id}`;
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.location.reload()}
+                    onClick={() => router.refresh()}
                     className="bg-white/80 hover:bg-white"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />

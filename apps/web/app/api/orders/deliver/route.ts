@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
@@ -146,9 +146,13 @@ async function handlePOST(request: NextRequest) {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -167,7 +171,8 @@ async function handlePOST(request: NextRequest) {
       metadata: {
         deliveredByRole: user.roles?.[0] || 'unknown',
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     const refundEligibleUntil = new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString();

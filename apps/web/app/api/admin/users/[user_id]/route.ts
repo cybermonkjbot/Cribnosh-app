@@ -3,7 +3,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -332,11 +332,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing user_id');
     }
     const convex = getConvexClientFromRequest(request);
-    const user = await convex.query(api.queries.users.getById, { userId: user_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await convex.query(api.queries.users.getById, {
+      userId: user_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }
-    const { password, sessionToken, sessionExpiry, ...safeUser } = user;
+    const { password, sessionExpiry, ...safeUser } = user;
     return ResponseFactory.success({ user: safeUser });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
@@ -356,15 +360,18 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     }
     const updates = await request.json();
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.users.updateUser, {
       userId: user_id,
       ...updates,
+      sessionToken: sessionToken || undefined
     });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'update_user',
       details: { user_id, updates },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -384,12 +391,17 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing user_id');
     }
     const convex = getConvexClientFromRequest(request);
-    await convex.mutation(api.mutations.users.deleteUser, { userId: user_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    await convex.mutation(api.mutations.users.deleteUser, {
+      userId: user_id,
+      sessionToken: sessionToken || undefined
+    });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_user',
       details: { user_id },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -415,15 +427,18 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     delete newUserData.sessionToken;
     delete newUserData.sessionExpiry;
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.users.updateUser, {
       userId: user_id,
       ...newUserData,
+      sessionToken: sessionToken || undefined
     });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'replace_user',
       details: { user_id, newUserData },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {

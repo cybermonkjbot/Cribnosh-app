@@ -5,7 +5,7 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { generateDataDownload } from '@/lib/services/data-compilation';
 import { logger } from '@/lib/utils/logger';
@@ -63,9 +63,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Check if user exists
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return createSpecErrorResponse(
         'User not found',
@@ -80,6 +84,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       {
         userId,
         hours: 24,
+        sessionToken: sessionToken || undefined
       }
     );
 
@@ -101,6 +106,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       userId,
       download_token: downloadToken,
       expires_at: expiresAt,
+      sessionToken: sessionToken || undefined
     });
 
     // Trigger async job to compile user data and send email when ready

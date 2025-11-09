@@ -7,12 +7,12 @@ import { Id } from '@/convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
 import { useRef, useState } from 'react';
 
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { AuthWrapper } from "@/components/layout/AuthWrapper";
 import { Link } from '@/components/link';
-import { GlassCard } from '@/components/ui/glass-card';
 import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
+import { GlassCard } from '@/components/ui/glass-card';
 import { api } from "@/convex/_generated/api";
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import {
   AlertCircle,
@@ -40,8 +40,8 @@ export default function StaffDocumentsPage() {
   // Auth is handled by layout via session-based authentication (session token in cookies)
   // Middleware (proxy.ts) validates session token server-side, no client-side checks needed
 
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  const documents = useQuery(api.queries.users.getUserDocuments, staffUser?.email ? { email: staffUser.email } : "skip");
+  const { staff: staffUser, sessionToken } = useStaffAuthContext();
+  const documents = useQuery(api.queries.users.getUserDocuments, staffUser?.email && sessionToken ? { email: staffUser.email, sessionToken } : "skip");
   const addDocument = useMutation(api.mutations.documents.uploadDocument);
   
   // State for file upload
@@ -226,13 +226,13 @@ export default function StaffDocumentsPage() {
       
       // Save metadata in Convex
       if (data.fileUrl) {
-        await addDocument({
-          userEmail: staffUser?.email || '',
+        await addDocument({userEmail: staffUser?.email || '',
           name: file.name,
           type: type as Document['type'],
           size: `${(file.size / 1024).toFixed(2)} KB`,
           description,
           storageId: data.storageId,
+          sessionToken: sessionToken || undefined
         });
       }
       
@@ -257,28 +257,10 @@ export default function StaffDocumentsPage() {
   return (
     <AuthWrapper role="staff">
           <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-amber-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-asgard text-gray-900">HR Documents</h1>
-                <p className="text-sm text-gray-800">Access your employment documents</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-purple-600" />
-              <span className="text-sm text-gray-600">Documents</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8">
+        <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors inline-block mb-4">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
         {/* Upload Form */}
         <GlassCard className="p-6 mb-8">
           <form onSubmit={handleUpload} className="flex flex-col sm:flex-row items-center gap-4">

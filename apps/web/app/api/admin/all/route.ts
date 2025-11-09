@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -232,11 +232,18 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     await getAuthenticatedAdmin(request);
     
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Use new orders table
     const [users, chefs, orders] = await Promise.all([
-      convex.query(api.queries.users.getAllUsers, {}),
-      convex.query(api.queries.chefs.getAllChefLocations, {}),
-      convex.query(api.queries.custom_orders.getAllOrders, {}),
+      convex.query(api.queries.users.getAllUsers, {
+        sessionToken: sessionToken || undefined
+      }),
+      convex.query(api.queries.chefs.getAllChefLocations, {
+        sessionToken: sessionToken || undefined
+      }),
+      convex.query(api.queries.custom_orders.getAllOrders, {
+        sessionToken: sessionToken || undefined
+      }),
     ]);
     return ResponseFactory.success({
       usersCount: users.length,

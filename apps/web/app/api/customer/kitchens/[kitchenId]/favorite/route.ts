@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
@@ -71,11 +71,16 @@ async function handleGET(
     const { userId } = await getAuthenticatedCustomer(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Check favorite status
     const favoriteStatus = await convex.query(
       (api as any).queries.userFavorites.isKitchenFavorited,
-      { userId, kitchenId }
+      {
+      userId,
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     return ResponseFactory.success(favoriteStatus, 'Favorite status retrieved successfully');
@@ -130,11 +135,15 @@ async function handlePOST(
     const { userId } = await getAuthenticatedCustomer(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
       (api as any).queries.kitchens.getChefByKitchenId,
-      { kitchenId }
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     if (!chefId) {
@@ -145,6 +154,7 @@ async function handlePOST(
     await convex.mutation((api as any).mutations.userFavorites.addFavorite, {
       userId,
       chefId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Kitchen added to favorites successfully');
@@ -199,11 +209,15 @@ async function handleDELETE(
     const { userId } = await getAuthenticatedCustomer(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
       (api as any).queries.kitchens.getChefByKitchenId,
-      { kitchenId }
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     if (!chefId) {
@@ -214,6 +228,7 @@ async function handleDELETE(
     await convex.mutation((api as any).mutations.userFavorites.removeFavorite, {
       userId,
       chefId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Kitchen removed from favorites successfully');

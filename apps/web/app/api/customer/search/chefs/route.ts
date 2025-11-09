@@ -1,6 +1,6 @@
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { NextRequest } from 'next/server';
@@ -215,7 +215,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const url = new URL(request.url);
     const q = url.searchParams.get('q')?.toLowerCase() || '';
     const convex = getConvexClientFromRequest(request);
-    const chefs = await convex.query(api.queries.chefs.getAll, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const chefs = await convex.query(api.queries.chefs.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     const filtered = chefs.filter((chef: any) =>
       chef.name?.toLowerCase().includes(q) ||
       chef.specialties?.some((c: string) => c.toLowerCase().includes(q))

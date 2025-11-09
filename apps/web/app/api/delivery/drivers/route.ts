@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { Id } from '@/convex/_generated/dataModel';
@@ -235,13 +235,15 @@ async function handleGET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get drivers based on filters with proper type validation
     const drivers = await convex.query(api.queries.delivery.getDrivers, {
       status: isValidDriverStatus(status) ? status : undefined,
       availability: isValidDriverAvailability(availability) ? availability : undefined,
       limit,
-      offset
+      offset,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({});
@@ -405,6 +407,7 @@ async function handlePOST(request: NextRequest) {
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Update driver location and availability
     const updateResult = await convex.mutation(api.mutations.delivery.updateDriverLocation, {
@@ -415,7 +418,8 @@ async function handlePOST(request: NextRequest) {
         updatedByRole: user.roles?.[0],
         updatedBy: userId,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     logger.log(`Driver location updated for ${driverId} by ${userId}`);
@@ -453,6 +457,7 @@ async function handlePATCH(request: NextRequest) {
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Update driver status
     const updateResult = await convex.mutation(api.mutations.delivery.updateDriverStatus, {
@@ -463,7 +468,8 @@ async function handlePATCH(request: NextRequest) {
       metadata: {
         updatedByRole: user.roles?.[0],
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     logger.log(`Driver status updated for ${driverId} to ${status} by ${userId}`);

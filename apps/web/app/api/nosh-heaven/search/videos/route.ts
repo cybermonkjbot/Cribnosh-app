@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -98,6 +98,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const results = await convex.query(api.queries.videoPosts.searchVideos, {
       query: query.trim(),
       cuisine,
@@ -105,6 +106,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       tags,
       limit,
       cursor,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(results, 'Search results retrieved successfully');

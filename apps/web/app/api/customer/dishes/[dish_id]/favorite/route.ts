@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -70,9 +70,13 @@ async function handleGET(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Verify the meal exists
-    const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
+    const meal = await convex.query((api as any).queries.meals.getById, {
+      mealId: dishId as any,
+      sessionToken: sessionToken || undefined
+    });
     
     if (!meal) {
       return ResponseFactory.notFound('Meal not found');
@@ -81,7 +85,11 @@ async function handleGET(
     // Check favorite status
     const favoriteStatus = await convex.query(
       (api as any).queries.userFavorites.isMealFavorited,
-      { userId: userId as any, mealId: dishId as any }
+      {
+      userId: userId as any,
+      mealId: dishId as any,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     return ResponseFactory.success(favoriteStatus, 'Favorite status retrieved successfully');
@@ -139,9 +147,13 @@ async function handlePOST(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Verify the meal exists
-    const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
+    const meal = await convex.query((api as any).queries.meals.getById, {
+      mealId: dishId as any,
+      sessionToken: sessionToken || undefined
+    });
     
     if (!meal) {
       return ResponseFactory.notFound('Meal not found');
@@ -151,6 +163,7 @@ async function handlePOST(
     await convex.mutation((api as any).mutations.userFavorites.addMealFavorite, {
       userId: userId as any,
       mealId: dishId as any,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Dish added to favorites successfully');
@@ -208,9 +221,13 @@ async function handleDELETE(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Verify the meal exists
-    const meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
+    const meal = await convex.query((api as any).queries.meals.getById, {
+      mealId: dishId as any,
+      sessionToken: sessionToken || undefined
+    });
     
     if (!meal) {
       return ResponseFactory.notFound('Meal not found');
@@ -220,6 +237,7 @@ async function handleDELETE(
     await convex.mutation((api as any).mutations.userFavorites.removeMealFavorite, {
       userId: userId as any,
       mealId: dishId as any,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Dish removed from favorites successfully');

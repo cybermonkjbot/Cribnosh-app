@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -205,6 +205,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const limit = parseInt(searchParams.get('limit') || '100');
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order analytics based on filters
     const analytics = await convex.query(api.queries.analytics.getOrderAnalytics, {
@@ -214,7 +215,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       customerId: customerId ? (customerId as any) : undefined,
       status: status || undefined,
       groupBy: (groupBy === 'day' || groupBy === 'week' || groupBy === 'month' || groupBy === 'chef' || groupBy === 'status') ? groupBy : 'day',
-      limit
+      limit,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({

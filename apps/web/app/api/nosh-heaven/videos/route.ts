@@ -1,6 +1,6 @@
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getApiFunction, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -137,6 +137,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Get user from session token
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const user = await getUserFromRequest(request);
     if (!user) {
       return ResponseFactory.unauthorized('Missing or invalid session token');
@@ -165,6 +166,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       visibility: body.visibility || 'public',
       isLive: body.isLive || false,
       liveSessionId: body.liveSessionId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({
@@ -231,10 +233,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const cursor = searchParams.get('cursor') || undefined;
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const getVideoFeed = getApiFunction('queries/videoPosts', 'getVideoFeed') as any;
     const feed = await convex.query(getVideoFeed, {
       limit,
       cursor,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(feed, 'Video feed retrieved successfully');

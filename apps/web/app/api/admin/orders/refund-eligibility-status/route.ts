@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { Id } from '@/convex/_generated/dataModel';
@@ -184,6 +184,7 @@ async function handleGET(request: NextRequest) {
       isValidStatus(statusParam) ? statusParam : undefined;
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const now = Date.now();
 
     // Get orders based on filters
@@ -191,7 +192,10 @@ async function handleGET(request: NextRequest) {
     
     if (orderId) {
       // Single order lookup
-      const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+      const order = await convex.query(api.queries.orders.getOrderById, {
+        orderId,
+        sessionToken: sessionToken || undefined
+      });
       orders = order ? [order] : [];
     } else {
       // Get orders with refund eligibility info
@@ -199,7 +203,8 @@ async function handleGET(request: NextRequest) {
         customerId,
         status,
         limit,
-        offset
+        offset,
+        sessionToken: sessionToken || undefined
       });
     }
 
@@ -238,7 +243,8 @@ async function handleGET(request: NextRequest) {
 
     // Get summary statistics
     const summary = await convex.query(api.queries.orders.getRefundEligibilitySummary, {
-      customerId
+      customerId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({

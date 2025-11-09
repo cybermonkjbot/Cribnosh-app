@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -28,11 +28,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId, user } = await getAuthenticatedCustomer(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get notification stats
     const stats = await convex.query(api.queries.notifications.getNotificationStats, {
       userId: userId as any,
       roles: user.roles || [],
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success(stats, 'Stats retrieved successfully');

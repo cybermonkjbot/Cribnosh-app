@@ -1,7 +1,7 @@
 import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getApiFunction, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
@@ -59,10 +59,14 @@ async function handleGET(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get video post to retrieve storage ID
     const getVideoById = getApiFunction('queries/videoPosts', 'getVideoById') as any;
-    const video = await convex.query(getVideoById, { videoId: videoId as any });
+    const video = await convex.query(getVideoById, {
+      videoId: videoId as any,
+      sessionToken: sessionToken || undefined
+    });
 
     if (!video) {
       return ResponseFactory.notFound('Video not found');

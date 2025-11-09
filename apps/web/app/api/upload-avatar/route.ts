@@ -1,5 +1,5 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { ErrorFactory, ErrorCode } from '@/lib/errors';
@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
     
     try {
       const convex = getConvexClient();
+      const sessionToken = getSessionTokenFromRequest(request);
       // 1. Generate a Convex upload URL
       const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
       
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': file.type || 'application/octet-stream',
         },
-        body: buffer,
+        body: buffer
       });
       
       if (!uploadRes.ok) {

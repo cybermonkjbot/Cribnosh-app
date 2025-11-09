@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -261,13 +261,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch all contact form submissions (contacts table)
-    const allContacts = await convex.query(api.queries.contacts.getAll, {});
+    const allContacts = await convex.query(api.queries.contacts.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Consistent ordering (createdAt DESC)
     allContacts.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     const paginated = allContacts.slice(offset, offset + limit);
@@ -290,6 +293,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('Invalid email format.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     // Insert contact (generic insert)
     const contactId = await convex.mutation(api.mutations.contacts.create, {
       name,
@@ -297,6 +301,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       subject: subject || '',
       message,
       createdAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, contactId });
   } catch (error: unknown) {
@@ -316,12 +321,17 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('contact_id is required.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClient();
-    await convex.mutation(api.mutations.contacts.deleteContact, { contactId: contact_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    await convex.mutation(api.mutations.contacts.deleteContact, {
+      contactId: contact_id,
+      sessionToken: sessionToken || undefined
+    });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_contact',
       details: { contact_id },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -341,14 +351,19 @@ async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.error('contact_ids array is required.', 'CUSTOM_ERROR', 422);
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     for (const contactId of contact_ids) {
-      await convex.mutation(api.mutations.contacts.deleteContact, { contactId });
+      await convex.mutation(api.mutations.contacts.deleteContact, {
+        contactId,
+        sessionToken: sessionToken || undefined
+      });
     }
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'bulk_delete_contacts',
       details: { contact_ids },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, deleted: contact_ids.length });
   } catch (error: unknown) {
@@ -364,12 +379,16 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClient();
-    const allContacts = await convex.query(api.queries.contacts.getAll, {});
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allContacts = await convex.query(api.queries.contacts.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_contacts',
       details: {},
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.jsonDownload(allContacts, 'contacts-export.json');
   } catch (error: unknown) {

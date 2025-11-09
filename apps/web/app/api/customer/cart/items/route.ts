@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -117,6 +117,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing dish_id or quantity.');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Using orders mutation to add item to cart
     const item = await convex.mutation(api.mutations.orders.addToCart, { 
       userId, 
@@ -125,7 +126,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         quantity,
         name: '', // Will be filled by the mutation
         price: 0, // Will be filled by the mutation
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ item });
   } catch (error: unknown) {

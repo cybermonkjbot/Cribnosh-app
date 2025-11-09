@@ -1,7 +1,7 @@
 import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiQueries, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import type { FunctionReference } from 'convex/server';
@@ -180,6 +180,7 @@ interface ReviewData {
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const apiQueries = getApiQueries();
   
   type ChefsLocationsQuery = FunctionReference<"query", "public", Record<string, never>, ChefLocationData[]>;
@@ -187,9 +188,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   type ReviewsQuery = FunctionReference<"query", "public", Record<string, never>, ReviewData[]>;
   
   const [chefs, users, reviews] = await Promise.all([
-    convex.query((apiQueries.chefs.getAllChefLocations as unknown as ChefsLocationsQuery), {}) as Promise<ChefLocationData[]>,
-    convex.query((apiQueries.users.getAllUsers as unknown as UsersQuery), {}) as Promise<UserData[]>,
-    convex.query((apiQueries.reviews.getAll as unknown as ReviewsQuery), {}) as Promise<ReviewData[]>
+    convex.query((apiQueries.chefs.getAllChefLocations as unknown as ChefsLocationsQuery), {
+    }) as Promise<ChefLocationData[]>,
+    convex.query((apiQueries.users.getAllUsers as unknown as UsersQuery), {
+    }) as Promise<UserData[]>,
+    convex.query((apiQueries.reviews.getAll as unknown as ReviewsQuery), {
+    }) as Promise<ReviewData[]>
   ]);
   
   // Aggregate review counts and avg ratings per chef

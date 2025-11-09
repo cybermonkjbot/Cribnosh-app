@@ -1,7 +1,9 @@
 'use client';
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { WaitlistEntryCard } from '@/components/staff/WaitlistEntryCard';
+import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GlassButton } from '@/components/ui/glass-button';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -9,8 +11,6 @@ import { GlassInput } from '@/components/ui/glass-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WaitlistEntrySkeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { ArrowLeft, ChevronLeft, ChevronRight, Filter, Mail, Plus, RefreshCw, Search, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -39,7 +39,7 @@ interface AddLeadFormData {
 
 export default function StaffWaitlistPage() {
   const { user: adminUser, loading: adminLoading } = useAdminUser();
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuthContext();
   const [activeTab, setActiveTab] = useState('add');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);

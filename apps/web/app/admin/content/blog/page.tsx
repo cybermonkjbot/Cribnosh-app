@@ -1,33 +1,33 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { sanitizeContent, validateContent } from '@/lib/utils/content-sanitizer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileText, 
-  Search, 
-  Filter,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
+import { useMutation, useQuery } from 'convex/react';
+import {
   Calendar,
-  User,
-  Tag,
-  Globe,
-  Clock,
   CheckCircle,
-  XCircle
+  Clock,
+  Edit,
+  Eye,
+  FileText,
+  Filter,
+  Globe,
+  Plus,
+  Search,
+  Tag,
+  Trash2,
+  User
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useState } from 'react';
 
 interface BlogPost {
   _id: Id<"blogPosts">;
@@ -71,20 +71,21 @@ export default function BlogManagementPage() {
     status: 'draft' as const,
     featuredImage: '',
     seoTitle: '',
-    seoDescription: ''
+    seoDescription: '',
   });
 
-  // Fetch data
-  const blogPosts = useQuery(api.queries.content.getBlogPosts);
-  const categories = useQuery(api.queries.content.getBlogCategories);
-
+  const sessionToken = useSessionToken();
+  
+  // Queries
+  const blogPosts = useQuery(api.queries.blogPosts.getBlogPosts, sessionToken ? { sessionToken } : "skip");
+  
   // Mutations
-  const createPost = useMutation(api.mutations.content.createBlogPost);
-  const updatePost = useMutation(api.mutations.content.updateBlogPost);
-  const deletePost = useMutation(api.mutations.content.deleteBlogPost);
-  const publishPost = useMutation(api.mutations.content.publishBlogPost);
-
-  const handleCreatePost = async () => {
+  const createPost = useMutation(api.mutations.blogPosts.createBlogPost);
+  const updatePost = useMutation(api.mutations.blogPosts.updateBlogPost);
+  const deletePost = useMutation(api.mutations.blogPosts.deleteBlogPost);
+  const publishPost = useMutation(api.mutations.blogPosts.publishBlogPost);
+  
+  const handleSavePost = async () => {
     if (!newPost.title.trim() || !newPost.content.trim()) {
       setError('Title and content are required');
       return;
@@ -111,10 +112,10 @@ export default function BlogManagementPage() {
     }
 
     try {
-      await createPost({
-        ...sanitizedPost,
+      await createPost({...sanitizedPost,
         slug: sanitizedPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        readTime: Math.ceil(sanitizedPost.content.split(' ').length / 200)
+        readTime: Math.ceil(sanitizedPost.content.split(' ').length / 200),
+        sessionToken: sessionToken || undefined
       });
       
       setNewPost({
@@ -138,7 +139,9 @@ export default function BlogManagementPage() {
 
   const handleUpdatePost = async (postId: Id<"blogPosts">, updates: Partial<BlogPost>) => {
     try {
-      await updatePost({ postId, ...updates });
+      await updatePost({postId, ...updates,
+    sessionToken: sessionToken || undefined
+  });
       setSuccess('Blog post updated successfully');
       setError(null);
       setIsEditing(null);
@@ -150,7 +153,9 @@ export default function BlogManagementPage() {
   const handleDeletePost = async (postId: Id<"blogPosts">) => {
     if (confirm('Are you sure you want to delete this blog post?')) {
       try {
-        await deletePost({ postId });
+        await deletePost({postId,
+    sessionToken: sessionToken || undefined
+  });
         setSuccess('Blog post deleted successfully');
         setError(null);
       } catch (err) {
@@ -161,7 +166,9 @@ export default function BlogManagementPage() {
 
   const handlePublishPost = async (postId: Id<"blogPosts">) => {
     try {
-      await publishPost({ postId });
+      await publishPost({postId,
+    sessionToken: sessionToken || undefined
+  });
       setSuccess('Blog post published successfully');
       setError(null);
     } catch (err) {
@@ -414,7 +421,7 @@ export default function BlogManagementPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreatePost} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleSavePost} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
                 Create Post
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>

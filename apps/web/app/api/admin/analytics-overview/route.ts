@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest } from 'next/server';
 function groupByDate<T extends Record<string, unknown>>(
@@ -125,15 +125,20 @@ async function handleGET(request: NextRequest) {
     // Get authenticated admin from session token
     const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start') ? Number(searchParams.get('start')) : undefined;
     const end = searchParams.get('end') ? Number(searchParams.get('end')) : undefined;
     // Fetch data
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     type Order = { createdAt?: number | string; total_amount?: number; [key: string]: unknown };
     let orders: Order[] = [];
     try {
-      orders = await convex.query(api.queries.custom_orders.getAllOrders, {}) as Order[];
+      orders = await convex.query(api.queries.custom_orders.getAllOrders, {
+        sessionToken: sessionToken || undefined
+      }) as Order[];
     } catch { orders = []; }
     // Filter by date range helper
     const filterByDateRange = <T extends { [key: string]: unknown }>(
@@ -189,6 +194,7 @@ async function handleGET(request: NextRequest) {
       action: 'view_analytics_overview',
       details: { start, end },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({
       total_revenue,

@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -15,8 +15,10 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 type MealId = Id<'meals'>;
 
 // Helper function to get a meal by ID since we don't have a direct query for it
-async function getMealById(convex: ConvexHttpClient, mealId: MealId) {
-  const meals = await convex.query(api.queries.meals.getAll, {});
+async function getMealById(convex: ConvexHttpClient, mealId: MealId, sessionToken: string | null) {
+  const meals = await convex.query(api.queries.meals.getAll, {
+    sessionToken: sessionToken || undefined
+  });
   return meals.find((meal: any) => meal._id === mealId);
 }
 
@@ -200,8 +202,9 @@ async function handlePATCH(request: NextRequest, { params }: { params: { dish_id
     const { userId, user } = await getAuthenticatedChef(request);
     const updates = await request.json();
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Fetch dish and check ownership
-    const dish = await getMealById(convex, params.dish_id as MealId);
+    const dish = await getMealById(convex, params.dish_id as MealId, sessionToken);
     if (!dish) {
       return ResponseFactory.notFound('Dish not found');
     }
@@ -213,7 +216,8 @@ async function handlePATCH(request: NextRequest, { params }: { params: { dish_id
     try {
       await convex.mutation(api.mutations.meals.updateMeal, { 
         mealId: params.dish_id as MealId, 
-        ...updates 
+        ...updates,
+        sessionToken: sessionToken || undefined
       });
       return ResponseFactory.success({ success: true, message: 'Dish updated successfully' });
     } catch (error) {
@@ -234,8 +238,9 @@ async function handleDELETE(request: NextRequest, { params }: { params: { dish_i
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedChef(request);
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Fetch dish and check ownership
-    const dish = await getMealById(convex, params.dish_id as MealId);
+    const dish = await getMealById(convex, params.dish_id as MealId, sessionToken);
     if (!dish) {
       return ResponseFactory.notFound('Dish not found');
     }
@@ -246,7 +251,8 @@ async function handleDELETE(request: NextRequest, { params }: { params: { dish_i
     // Delete the dish
     try {
       await convex.mutation(api.mutations.meals.deleteMeal, { 
-        mealId: params.dish_id as MealId 
+        mealId: params.dish_id as MealId,
+        sessionToken: sessionToken || undefined
       });
       return ResponseFactory.success({ success: true, message: 'Dish deleted successfully' });
     } catch (error) {

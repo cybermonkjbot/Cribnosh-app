@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
@@ -168,12 +168,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     switch (action) {
       case 'capture':
-        return await handleCapture(request, userId, user, convex);
+        return await handleCapture(request, userId, user, convex, sessionToken);
       case 'void':
-        return await handleVoid(request, userId, user, convex);
+        return await handleVoid(request, userId, user, convex, sessionToken);
       case 'update-payment-method':
         return await handleUpdatePaymentMethod(request, userId, user, convex);
       default:
@@ -190,7 +191,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-async function handleCapture(request: NextRequest, userId: string, user: any, convex: any): Promise<NextResponse> {
+async function handleCapture(request: NextRequest, userId: string, user: any, convex: any, sessionToken: string | null): Promise<NextResponse> {
   if (!stripe) {
     return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
   }
@@ -236,7 +237,8 @@ async function handleCapture(request: NextRequest, userId: string, user: any, co
 
     // Update order status in database
     const orders = await convex.query(api.queries.orders.listByCustomer, { 
-      customer_id: paymentIntent.metadata?.userId || 'unknown' 
+      customer_id: paymentIntent.metadata?.userId || 'unknown',
+      sessionToken: sessionToken || undefined
     });
     
     const order = orders.find((o: any) => o.payment_id === paymentIntentId);
@@ -246,7 +248,8 @@ async function handleCapture(request: NextRequest, userId: string, user: any, co
         paymentIntentId,
         status: 'confirmed',
         amount: capturedPayment.amount / 100,
-        currency: capturedPayment.currency
+        currency: capturedPayment.currency,
+        sessionToken: sessionToken || undefined
       });
     }
 
@@ -259,7 +262,7 @@ async function handleCapture(request: NextRequest, userId: string, user: any, co
   }
 }
 
-async function handleVoid(request: NextRequest, userId: string, user: any, convex: any) {
+async function handleVoid(request: NextRequest, userId: string, user: any, convex: any, sessionToken: string | null) {
   if (!stripe) {
     return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
   }
@@ -284,7 +287,8 @@ async function handleVoid(request: NextRequest, userId: string, user: any, conve
 
     // Update order status in database
     const orders = await convex.query(api.queries.orders.listByCustomer, { 
-      customer_id: paymentIntent.metadata?.userId || 'unknown' 
+      customer_id: paymentIntent.metadata?.userId || 'unknown',
+      sessionToken: sessionToken || undefined
     });
     
     const order = orders.find((o: any) => o.payment_id === paymentIntentId);
@@ -294,7 +298,8 @@ async function handleVoid(request: NextRequest, userId: string, user: any, conve
         paymentIntentId,
         status: 'canceled',
         amount: voidedPayment.amount / 100,
-        currency: voidedPayment.currency
+        currency: voidedPayment.currency,
+        sessionToken: sessionToken || undefined
       });
     }
 

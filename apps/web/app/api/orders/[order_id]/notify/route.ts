@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getErrorMessage } from '@/types/errors';
@@ -191,9 +191,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -215,7 +219,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         sentByRole: user.roles?.[0] || 'unknown',
         orderStatus: order.order_status,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     logger.log(`Notification sent for order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);

@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { getErrorMessage } from '@/types/errors';
@@ -202,7 +202,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     // Get authenticated chef from session token
     const { userId } = await getAuthenticatedChef(request);
     const convex = getConvexClientFromRequest(request);
-    const orders = await convex.query(api.queries.orders.listByChef, { chef_id: userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const orders = await convex.query(api.queries.orders.listByChef, {
+      chef_id: userId,
+      sessionToken: sessionToken || undefined
+    });
     const currentOrders = orders.filter((o: { order_status: string }) => !['DELIVERED', 'CANCELLED', 'DECLINED'].includes(o.order_status));
     return ResponseFactory.success({ current_orders: currentOrders });
   } catch (error: unknown) {

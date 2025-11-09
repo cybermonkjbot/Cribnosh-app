@@ -9,24 +9,11 @@ import { useQuery } from 'convex/react';
 import { Calendar, Loader2, Mail, Users, Shield, FileText } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { EmptyState } from '@/components/admin/empty-state';
-import { useEffect, useState } from 'react';
 
 const ClientDate = dynamic(() => import('@/components/ui/client-date'), { ssr: false });
 
-// Utility to get a cookie value by name (client-side only)
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : undefined;
-}
-
 export default function AdminStaffOverviewPage() {
-  // Get session token from cookies
-  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    const token = getCookie('convex-auth-token');
-    setSessionToken(token);
-  }, []);
+  const { user: adminUser, loading: adminLoading, sessionToken } = useAdminUser();
   
   const stats = useQuery(
     api.queries.staff.getStaffOverviewStats,
@@ -36,7 +23,6 @@ export default function AdminStaffOverviewPage() {
     api.queries.staff.getAdminStaffDashboard,
     sessionToken ? { sessionToken } : 'skip'
   );
-  const { user: adminUser, loading: adminLoading } = useAdminUser();
 
   if (!stats || !dashboard) {
     return (

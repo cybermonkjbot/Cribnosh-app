@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler, ErrorSeverity } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { mattermostService } from '@/lib/mattermost';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { getErrorMessage } from '@/types/errors';
@@ -202,12 +202,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Save Mattermost setup to database
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.staff.updateMattermostSetup, {
       userId: data.userId,
       mattermostUsername: data.username,
       mattermostEmail: data.email,
       setupCompleted: true,
       setupCompletedAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
 
     return errorHandler.createSuccessResponse({

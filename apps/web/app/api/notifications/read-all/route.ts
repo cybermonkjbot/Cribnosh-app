@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
@@ -68,7 +68,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedUser(request);
     
     const convex = getConvexClientFromRequest(request);
-    await convex.mutation(api.mutations.notifications.markAllAsRead, { userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    await convex.mutation(api.mutations.notifications.markAllAsRead, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

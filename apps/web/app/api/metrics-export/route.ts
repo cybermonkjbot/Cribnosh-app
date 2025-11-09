@@ -1,5 +1,5 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
@@ -115,15 +115,26 @@ export async function GET(request: NextRequest) {
       return ResponseFactory.forbidden('Forbidden: Only admins can export metrics.');
     }
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
     // Fetch metrics from Convex
     const [users, reviews, customOrders, waitlist, drivers] = await Promise.all([
-      convex.query(api.queries.users.getAllUsers, {}),
-      convex.query(api.queries.reviews.getAll, {}).catch(() => []),
-      convex.query(api.queries.custom_orders?.getAll || api.queries.custom_orders?.getAllOrders || (() => []), {}).catch(() => []),
-      convex.query(api.queries.waitlist.getAll, {}),
-      convex.query(api.queries.drivers.getAll, {}).catch(() => []),
+      convex.query(api.queries.users.getAllUsers, {
+        sessionToken: sessionToken || undefined
+      }),
+      convex.query(api.queries.reviews.getAll, {
+        sessionToken: sessionToken || undefined
+      }).catch(() => []),
+      convex.query(api.queries.custom_orders?.getAll || api.queries.custom_orders?.getAllOrders || (() => []), {
+        sessionToken: sessionToken || undefined
+      }).catch(() => []),
+      convex.query(api.queries.waitlist.getAll, {
+        sessionToken: sessionToken || undefined
+      }),
+      convex.query(api.queries.drivers.getAll, {
+        sessionToken: sessionToken || undefined
+      }).catch(() => []),
     ]);
     const metrics = {
       totalUsers: users.length,
@@ -140,6 +151,7 @@ export async function GET(request: NextRequest) {
       details: { format },
       adminId: userId,
       timestamp: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     // Trigger webhook and real-time broadcast (non-blocking)
     const eventPayload = { type: 'metrics_export', user: userId, format, count: Object.keys(metrics).length };

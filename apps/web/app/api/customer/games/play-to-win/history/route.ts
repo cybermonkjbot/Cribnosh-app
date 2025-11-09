@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
@@ -78,6 +78,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get all group orders where user is participant (completed games)
     let deliveredGroupOrders: Array<Record<string, unknown>> = [];
@@ -85,6 +86,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       deliveredGroupOrders = await convex.query(api.queries.groupOrders.getByStatus as any, {
         status: 'delivered',
         user_id: userId,
+        sessionToken: sessionToken || undefined
       }) as Array<Record<string, unknown>>;
     } catch {
       // If query fails, use empty array
@@ -95,6 +97,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     try {
       activeGroupOrders = await convex.query(api.queries.groupOrders.getActiveByUser as any, {
         user_id: userId,
+        sessionToken: sessionToken || undefined
       }) as Array<Record<string, unknown>>;
     } catch {
       // If query fails, use empty array

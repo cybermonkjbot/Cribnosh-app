@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
@@ -119,9 +119,13 @@ async function handlePOST(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query order and verify ownership
-    const order = await convex.query(api.queries.orders.getById, { order_id });
+    const order = await convex.query(api.queries.orders.getById, {
+      order_id,
+      sessionToken: sessionToken || undefined
+    });
     
     if (!order) {
       return createSpecErrorResponse(
@@ -155,6 +159,7 @@ async function handlePOST(
     await convex.mutation(api.mutations.orders.updateStatus, {
       order_id: order_id,
       status: 'cancelled',
+      sessionToken: sessionToken || undefined
     });
 
     // Get currency from order or payment, default to GBP
@@ -182,6 +187,7 @@ async function handlePOST(
               reason: 'requested_by_customer',
               processedBy: userId,
               description: `Refund for cancelled order: ${order_id}`,
+              sessionToken: sessionToken || undefined
             });
 
             // Add refund to customer balance if credit refund
@@ -193,6 +199,7 @@ async function handlePOST(
               description: `Refund from order cancellation: ${order_id}`,
               status: 'completed',
               order_id: orderData._id,
+              sessionToken: sessionToken || undefined
             });
           }
         } catch (error: unknown) {
@@ -214,6 +221,7 @@ async function handlePOST(
           description: `Refund from order cancellation: ${order_id}`,
           status: 'pending',
           order_id: orderData._id,
+          sessionToken: sessionToken || undefined
         });
       }
     }

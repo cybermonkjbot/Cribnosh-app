@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -79,12 +79,14 @@ async function handlePUT(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const paymentMethodId: Id<'paymentMethods'> = payment_method_id as Id<'paymentMethods'>;
 
     // Query payment method from database and verify it belongs to the user
     const paymentMethod = await convex.query(api.queries.paymentMethods.getById, {
       paymentMethodId,
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!paymentMethod) {
@@ -108,6 +110,7 @@ async function handlePUT(
     await convex.mutation(api.mutations.paymentMethods.setDefault, {
       paymentMethodId,
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(

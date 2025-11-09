@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
@@ -108,10 +108,14 @@ async function handlePOST(
     // Get user from token (optional for anonymous views)
     let user = null;
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const authHeader = request.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
-      user = await convex.query(api.queries.users.getUserByToken, { token });
+      user = await convex.query(api.queries.users.getUserByToken, {
+        token,
+        sessionToken: sessionToken || undefined
+      });
     }
 
     // Record view
@@ -122,6 +126,7 @@ async function handlePOST(
       deviceInfo: body.deviceInfo,
       location: body.location,
       sessionId: body.sessionId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'View recorded successfully');

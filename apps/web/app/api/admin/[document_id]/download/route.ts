@@ -5,7 +5,7 @@ import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
@@ -109,7 +109,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing document_id');
     }
     const convex = getConvexClientFromRequest(request);
-    const url = await convex.query(api.queries.documents.getPresignedDownloadUrl, { document_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const url = await convex.query(api.queries.documents.getPresignedDownloadUrl, {
+      document_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!url) {
       return ResponseFactory.notFound('Presigned URL not found.');
     }

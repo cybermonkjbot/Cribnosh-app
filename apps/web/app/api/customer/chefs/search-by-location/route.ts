@@ -2,7 +2,7 @@ import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { calculateDistanceKm, formatDistanceMiles } from '@/lib/apple-maps/service';
@@ -231,6 +231,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get chefs with location data
     const chefsData = await convex.query(api.queries.chefs.getChefsByLocation, {
@@ -239,6 +240,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       radiusKm: radius,
       limit,
       page,
+      sessionToken: sessionToken || undefined
     });
 
     // Transform chefs data to include distance calculations

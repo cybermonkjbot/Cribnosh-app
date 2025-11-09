@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
@@ -178,6 +178,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('chatId and content are required');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   const result = await convex.mutation(api.mutations.chats.sendMessage, {
     chatId,
     senderId: user._id,
@@ -187,6 +188,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     fileName,
     fileSize,
     metadata,
+    sessionToken: sessionToken || undefined
   });
   return ResponseFactory.success(result);
 }

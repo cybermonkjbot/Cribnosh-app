@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
@@ -154,6 +154,7 @@ async function handlePOST(request: NextRequest) {
     // Get authenticated admin from session token
     const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     const { event, data, urls } = await request.json();
     if (!event || !urls || !Array.isArray(urls) || urls.length === 0) {
       return ResponseFactory.error('event and urls[] are required.', 'CUSTOM_ERROR', 422);
@@ -176,6 +177,7 @@ async function handlePOST(request: NextRequest) {
       action: 'trigger_webhook',
       details: { event, urls, payload: data },
       adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, results });
   } catch (error: unknown) {

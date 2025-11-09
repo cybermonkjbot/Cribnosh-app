@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -291,9 +291,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const offset = parseInt(searchParams.get('offset') || '0');
     
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile first
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
@@ -302,7 +306,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const meals = await convex.query(api.queries.meals.getByChefId, { 
       chefId: chef._id,
       limit,
-      offset 
+      offset,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ meals });
@@ -327,9 +332,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile first
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
@@ -344,7 +353,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       dietary: allergens || [], // Map allergens to dietary array
       status: 'available',
       images: image ? [image] : [],
-      rating: 0
+      rating: 0,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ mealId, success: true });

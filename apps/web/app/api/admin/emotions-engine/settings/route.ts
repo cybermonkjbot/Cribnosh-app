@@ -36,6 +36,7 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getSessionTokenFromRequest } from '@/lib/conxed-client';
 
 /**
  * @swagger
@@ -169,9 +170,13 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const key = searchParams.get('key') || undefined;
   // Use api.queries.emotionsEngine.getEmotionsEngineSettings directly
-  const { getConvexClient } = await import('@/lib/conxed-client');
+  const { getConvexClient } = await import('@/lib/conxed-client')
+  const sessionToken = getSessionTokenFromRequest(req);;
   const convex = getConvexClient();
-  const settings = await convex.query(api.queries.emotionsEngine.getEmotionsEngineSettings, { key });
+  const settings = await convex.query(api.queries.emotionsEngine.getEmotionsEngineSettings, {
+    key,
+    sessionToken: sessionToken || undefined
+  });
   return ResponseFactory.success({ settings });
 }
 
@@ -184,9 +189,15 @@ export async function POST(req: NextRequest) {
   const { key, value } = body;
   if (!key) return ResponseFactory.validationError('Missing key');
   // Use api.mutations.emotionsEngine.setEmotionsEngineSetting directly
-  const { getConvexClient } = await import('@/lib/conxed-client');
+  const { getConvexClient, getSessionTokenFromRequest } = await import('@/lib/conxed-client');
   const convex = getConvexClient();
-  const result = await convex.mutation(api.mutations.emotionsEngine.setEmotionsEngineSetting, { key, value, updatedBy: user._id });
+  const sessionToken = getSessionTokenFromRequest(req);
+  const result = await convex.mutation(api.mutations.emotionsEngine.setEmotionsEngineSetting, {
+    key,
+    value,
+    updatedBy: user._id,
+    sessionToken: sessionToken || undefined
+  });
   return ResponseFactory.success({ success: true, result });
 }
 
@@ -199,8 +210,12 @@ export async function DELETE(req: NextRequest) {
   const key = searchParams.get('key');
   if (!key) return ResponseFactory.validationError('Missing key');
   // Use api.mutations.emotionsEngine.deleteEmotionsEngineSetting directly
-  const { getConvexClient } = await import('@/lib/conxed-client');
+  const { getConvexClient, getSessionTokenFromRequest } = await import('@/lib/conxed-client');
   const convex = getConvexClient();
-  const result = await convex.mutation(api.mutations.emotionsEngine.deleteEmotionsEngineSetting, { key });
+  const sessionToken = getSessionTokenFromRequest(req);
+  const result = await convex.mutation(api.mutations.emotionsEngine.deleteEmotionsEngineSetting, {
+    key,
+    sessionToken: sessionToken || undefined
+  });
   return ResponseFactory.success({ success: result });
 } 

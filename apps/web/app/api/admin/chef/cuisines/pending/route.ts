@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -103,7 +103,10 @@ import { getErrorMessage } from '@/types/errors';
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   const convex = getConvexClient();
-  const pending = await convex.query(api.queries.chefs.getPendingCuisines, {});
+  const sessionToken = getSessionTokenFromRequest(request);
+  const pending = await convex.query(api.queries.chefs.getPendingCuisines, {
+    sessionToken: sessionToken || undefined
+  });
   return ResponseFactory.success({ cuisines: pending });
 }
 

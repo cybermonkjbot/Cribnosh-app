@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
@@ -71,6 +71,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     const { userId } = await getAuthenticatedUser(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Send message
     const messageId = await convex.mutation(api.mutations.chats.sendMessage, {
@@ -80,7 +81,8 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       metadata: {
         replyTo,
         attachments: attachments || []
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({

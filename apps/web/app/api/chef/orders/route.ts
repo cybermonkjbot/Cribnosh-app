@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -158,7 +158,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedChef(request);
     
     const convex = getConvexClient();
-    const orders = await convex.query(api.queries.orders.listByChef, { chef_id: userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const orders = await convex.query(api.queries.orders.listByChef, {
+      chef_id: userId,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ orders });
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {

@@ -1,5 +1,5 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -123,7 +123,11 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
     return ResponseFactory.validationError('Missing order_id');
   }
   const convex = getConvexClientFromRequest(request);
-  const order = await convex.query(api.queries.orders.getById, { order_id });
+  const sessionToken = getSessionTokenFromRequest(request);
+  const order = await convex.query(api.queries.orders.getById, {
+    order_id,
+    sessionToken: sessionToken || undefined
+  });
   if (!order) {
     return ResponseFactory.notFound('Order not found');
   }
@@ -246,12 +250,20 @@ async function handlePATCH(
       return ResponseFactory.validationError('Missing status');
     }
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Fetch order and check customer_id
-    const order = await convex.query(api.queries.orders.getById, { order_id });
+    const order = await convex.query(api.queries.orders.getById, {
+      order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order || order.customer_id !== userId) {
       return ResponseFactory.notFound('Order not found or not owned by customer.');
     }
-    const updated = await convex.mutation(api.mutations.orders.updateStatus, { order_id, status });
+    const updated = await convex.mutation(api.mutations.orders.updateStatus, {
+      order_id,
+      status,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ order: updated });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
@@ -123,11 +123,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const status = searchParams.get('status'); // optional filter
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query support cases from database
     const allCases = await convex.query(api.queries.supportCases.getByUserId, {
       userId,
       status: status as 'open' | 'closed' | 'resolved' | undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Pagination
@@ -317,6 +319,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Create support case in database
     const caseId = await convex.mutation(api.mutations.supportCases.create, {
@@ -327,11 +330,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       priority: priority as 'low' | 'medium' | 'high',
       order_id,
       attachments,
+      sessionToken: sessionToken || undefined
     });
 
     // Get created case
     const cases = await convex.query(api.queries.supportCases.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
     const supportCase = cases.find((c: { _id: string }) => c._id === caseId);
 
@@ -354,7 +359,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     };
 
     // Send notification to support team and confirmation email to customer
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     const customerEmail = user?.email || '';
 
     if (customerEmail) {

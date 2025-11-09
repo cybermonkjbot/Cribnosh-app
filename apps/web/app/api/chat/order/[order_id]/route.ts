@@ -1,7 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
@@ -127,9 +127,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   // Get authenticated user from session token
   const { userId, user } = await getAuthenticatedUser(request);
   const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
   // Use the proper Convex query to get chats for the current user
   const chats = await convex.query(api.queries.chats.listConversationsForUser, { 
-    userId: userId as Id<'users'> 
+    userId: userId as Id<'users'>,
+    sessionToken: sessionToken || undefined
   });
   // Find chat with matching order_id in metadata
   const chat = chats.chats.find((c: Chat) => c.metadata?.order_id === order_id);
@@ -164,16 +166,21 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // First, try to find an existing chat for this order
     const chatsResponse = await convex.query(api.queries.chats.listConversationsForUser, { 
-      userId: userId as Id<'users'> 
+      userId: userId as Id<'users'>,
+      sessionToken: sessionToken || undefined
     });
     let chat = chatsResponse.chats.find((c: Chat) => c.metadata?.order_id === order_id);
     
     if (!chat) {
       // Find participants: customer and chef from order
-      const order = await convex.query(api.queries.orders.getById, { order_id: order_id });
+      const order = await convex.query(api.queries.orders.getById, {
+        order_id: order_id,
+        sessionToken: sessionToken || undefined
+      });
       if (!order) {
         return ResponseFactory.notFound('Order not found');
       }
@@ -191,14 +198,16 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
         // Create a new chat using the createConversation mutation
         const result = await convex.mutation(api.mutations.chats.createConversation, {
           participants,
-          metadata: { order_id }
+          metadata: { order_id },
+          sessionToken: sessionToken || undefined
         });
         
         // Get the newly created chat using the returned chatId
         const chatResponse = await convex.query(api.queries.chats.listConversationsForUser, { 
           userId,
           limit: 1,
-          offset: 0
+          offset: 0,
+          sessionToken: sessionToken || undefined
         });
         
         chat = chatResponse.chats.find((c: any) => c._id === result.chatId);

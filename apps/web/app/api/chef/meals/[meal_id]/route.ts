@@ -3,7 +3,7 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedChef } from '@/lib/api/session-auth';
@@ -211,15 +211,22 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     const { name, description, price, category, ingredients, allergens, image, preparationTime, servings, status } = body;
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile first
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId: userId });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId: userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
     
     // Verify the meal belongs to this chef
-    const meal = await convex.query(api.queries.meals.getById, { mealId: meal_id as Id<'meals'> });
+    const meal = await convex.query(api.queries.meals.getById, {
+      mealId: meal_id as Id<'meals'>,
+      sessionToken: sessionToken || undefined
+    });
     if (!meal) {
       return ResponseFactory.notFound('Meal not found.');
     }
@@ -239,7 +246,8 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         ...(allergens && { dietary: allergens }),
         ...(image !== undefined && { images: image ? [image] : [] }),
         ...(status && { status: status === 'active' ? 'available' : 'unavailable' })
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ success: true });
@@ -266,15 +274,22 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedChef(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile first
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId: userId });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId: userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
     
     // Verify the meal belongs to this chef
-    const meal = await convex.query(api.queries.meals.getById, { mealId: meal_id as Id<'meals'> });
+    const meal = await convex.query(api.queries.meals.getById, {
+      mealId: meal_id as Id<'meals'>,
+      sessionToken: sessionToken || undefined
+    });
     if (!meal) {
       return ResponseFactory.notFound('Meal not found.');
     }
@@ -285,7 +300,8 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     
     // Delete meal
     await convex.mutation(api.mutations.meals.deleteMeal, {
-      mealId: meal_id as Id<'meals'>
+      mealId: meal_id as Id<'meals'>,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ success: true });
