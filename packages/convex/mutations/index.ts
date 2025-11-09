@@ -163,3 +163,6 @@ export * from './eventChefRequests';
 
 // Export blog mutations
 export * from './blog';
+
+// Export compliance mutations
+export * from './compliance';
