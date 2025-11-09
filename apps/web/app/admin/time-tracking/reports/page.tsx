@@ -1,37 +1,33 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Clock, 
-  Users,
-  Calendar,
-  Download,
-  Filter,
-  BarChart2,
-  PieChart,
-  TrendingUp,
-  TrendingDown,
+import { useMutation, useQuery } from 'convex/react';
+import {
   Activity,
-  FileSpreadsheet,
-  Eye,
+  BarChart2,
+  Calendar,
+  Clock,
   Clock as ClockIcon,
-  User,
-  CheckCircle,
-  AlertTriangle,
+  Download,
+  Eye,
+  FileSpreadsheet,
+  Filter,
   Search,
-  Trash2
+  Trash2,
+  TrendingUp,
+  User,
+  Users
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useState } from 'react';
+import { useAdminUser } from '../../AdminUserProvider';
 
 interface TimeTrackingReport {
   _id: string;
@@ -110,6 +106,7 @@ interface TimeTrackingStats {
 }
 
 export default function TimeTrackingReportsPage() {
+  const { sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
@@ -134,7 +131,7 @@ export default function TimeTrackingReportsPage() {
   // Fetch data - all args are optional, so empty object is fine
   const reports = useQuery(api.queries.timeTracking.getTimeTrackingReports, {});
   const stats = useQuery(api.queries.timeTracking.getTimeTrackingStats, {});
-  const users = useQuery(api.queries.users.getUsersForAdmin, {});
+  const users = useQuery(api.queries.users.getUsersForAdmin, sessionToken ? { sessionToken } : "skip");
   const departments = useQuery(api.queries.timeTracking.getDepartments, {});
 
   // Mutations

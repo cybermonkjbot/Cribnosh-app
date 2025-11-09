@@ -48,12 +48,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [sidebarOpen]);
 
-  // Determine environment for indicator
-  const isProduction = process.env.NODE_ENV === 'production';
-  const envLabel = isProduction ? 'Production' : 'Development';
-  const envColor = isProduction ? 'bg-green-500' : 'bg-yellow-400';
-  const envText = isProduction ? 'text-green-700' : 'text-yellow-700';
-
   const { isMobile } = useMobileDevice();
 
   if (isLoginPage) {
@@ -76,16 +70,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Mobile-only sticky notice (hide if sidebar open) */}
-        {!(sidebarOpen && isMobile) && (
-          <div
-            className="sm:hidden fixed top-0 left-0 w-full z-40 bg-blue-50/95 backdrop-blur border-b border-blue-200 text-blue-800 font-satoshi text-xs px-3 py-2 flex items-center justify-center shadow-sm"
-            role="alert"
-            aria-live="polite"
-          >
-            <span className="font-medium">📱 Mobile Admin View - Swipe left for menu</span>
-          </div>
-        )}
         {/* Enhanced Navbar (hide if sidebar open on mobile) */}
         {!(sidebarOpen && isMobile) && (
           <motion.div
@@ -142,23 +126,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </motion.div>
           </main>
         </div>
-
-        {/* Admin Status Indicator - Glassmorphism for key component */}
-        {!isMobile && (
-          <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="fixed top-20 right-4 z-40"
-          >
-            <div className="bg-white/80 backdrop-blur-lg rounded-xl p-3 border border-white/20 shadow-lg">
-              <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full animate-pulse ${envColor}`}></div>
-                <span className={`text-xs font-medium font-satoshi ${envText}`}>{envLabel} Mode</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
       </div>
   );
 }

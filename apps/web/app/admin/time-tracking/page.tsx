@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,6 +50,7 @@ type Session = {
 };
 
 export default function AdminTimeTrackingPage() {
+  const { sessionToken } = useAdminUser();
   const [staffId, setStaffId] = useState<string>('');
   const [status, setStatus] = useState<string>('all');
   const [start, setStart] = useState<string>('');
@@ -64,9 +66,10 @@ export default function AdminTimeTrackingPage() {
     endDate: end ? new Date(end).getTime() : undefined,
     skip: page * limit,
     limit,
-  }), [staffId, status, start, end, page, limit]);
+    sessionToken: sessionToken || undefined,
+  }), [staffId, status, start, end, page, limit, sessionToken]);
 
-  const list = useQuery(api.queries.workSessions.listSessionsAdmin, filters) as
+  const list = useQuery(api.queries.workSessions.listSessionsAdmin, sessionToken ? filters : "skip") as
     | { total: number; results: Session[] }
     | undefined;
 

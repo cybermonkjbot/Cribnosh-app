@@ -29,7 +29,6 @@ import {
   Settings,
   Shield,
   TrendingUp,
-  User,
   UserCheck,
   Users,
   X
@@ -81,12 +80,6 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       href: '/admin', 
       icon: Home,
       description: 'Overview and metrics'
-    },
-    { 
-      name: 'Account', 
-      href: '/admin/account', 
-      icon: User,
-      description: 'Account settings and profile'
     },
     { 
       name: 'Users', 

@@ -1,34 +1,34 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileText, 
-  Search, 
-  Filter,
-  Plus,
-  Download,
-  Eye,
-  Trash2,
+import { formatCurrency } from '@/lib/utils/number-format';
+import { useMutation, useQuery } from 'convex/react';
+import {
   Calendar,
-  User,
-  DollarSign,
   CheckCircle,
   Clock,
-  AlertTriangle,
+  DollarSign,
+  Download,
+  Eye,
   FileSpreadsheet,
-  Receipt
+  FileText,
+  Filter,
+  Plus,
+  Receipt,
+  Search,
+  Trash2,
+  User
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
-import { formatCurrency } from '@/lib/utils/number-format';
+import { useState } from 'react';
+import { useAdminUser } from '../../AdminUserProvider';
 
 interface TaxDocument {
   _id: Id<"taxDocuments">;
@@ -81,6 +81,7 @@ interface TaxDocumentTemplate {
 }
 
 export default function TaxDocumentsPage() {
+  const { sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -106,7 +107,7 @@ export default function TaxDocumentsPage() {
 
   // Fetch data
   const taxDocuments = useQuery((api as any).queries.payroll.getTaxDocuments);
-  const employees = useQuery((api as any).queries.users.getUsersForAdmin);
+  const employees = useQuery((api as any).queries.users.getUsersForAdmin, sessionToken ? { sessionToken } : "skip");
   const templates = useQuery((api as any).queries.payroll.getTaxDocumentTemplates);
   const payrollStats = useQuery((api as any).queries.payroll.getPayrollStats);
 

@@ -1,25 +1,25 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  UserCheck, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Shield, 
-  Users,
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Edit,
+  Filter,
+  Plus,
   Search,
-  Filter
+  Trash2,
+  UserCheck,
+  Users
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface UserRole {
   _id: Id<"userRoles">;
@@ -32,6 +32,7 @@ interface UserRole {
 }
 
 export default function UserRolesPage() {
+  const { sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -42,7 +43,7 @@ export default function UserRolesPage() {
   // Fetch roles and users
   // Note: These queries may not exist yet - using type assertions for now
   const roles = useQuery(api.queries.admin?.getUserRoles as typeof api.queries.admin.getUserRoles) as UserRole[] | undefined;
-  const users = useQuery(api.queries.users?.getUsersForAdmin as typeof api.queries.users.getAllStaff) as Array<{ _id: Id<"users">; name?: string; email?: string }> | undefined;
+  const users = useQuery(api.queries.users?.getUsersForAdmin as typeof api.queries.users.getAllStaff, sessionToken ? { sessionToken } : "skip") as Array<{ _id: Id<"users">; name?: string; email?: string }> | undefined;
   const permissions = useQuery(api.queries.admin?.getAvailablePermissions as typeof api.queries.admin.getAvailablePermissions) as string[] | undefined;
 
   // Mutations

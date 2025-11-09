@@ -1,25 +1,25 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Shield, 
-  Search, 
-  Save,
-  Users,
-  Settings,
-  Eye,
+import { useMutation, useQuery } from 'convex/react';
+import {
   Edit,
-  Trash2
+  Eye,
+  Save,
+  Search,
+  Settings,
+  Shield,
+  Users
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface Permission {
   _id: Id<"permissions">;
@@ -38,6 +38,7 @@ interface UserPermission {
 }
 
 export default function UserPermissionsPage() {
+  const { sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<Record<string, string[]>>({});
@@ -46,7 +47,7 @@ export default function UserPermissionsPage() {
 
   // Fetch data
   const permissions = useQuery(api.queries.admin.getAvailablePermissions);
-  const users = useQuery(api.queries.users.getUsersForAdmin);
+  const users = useQuery(api.queries.users.getUsersForAdmin, sessionToken ? { sessionToken } : "skip");
   const userPermissionsData = useQuery(api.queries.admin.getUserPermissions, {});
 
   // Mutations
