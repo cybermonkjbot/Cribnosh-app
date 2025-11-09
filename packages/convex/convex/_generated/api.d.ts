@@ -23,6 +23,8 @@ import type * as actions_staff from "../actions/staff.js";
 import type * as actions_users from "../actions/users.js";
 import type * as actions_waitlist from "../actions/waitlist.js";
 import type * as actions_weather from "../actions/weather.js";
+import type * as config_complianceIssues from "../config/complianceIssues.js";
+import type * as config_complianceScoring from "../config/complianceScoring.js";
 import type * as convex__generated_api from "../convex/_generated/api.js";
 import type * as convex__generated_server from "../convex/_generated/server.js";
 import type * as crons_autoRegister from "../crons/autoRegister.js";
@@ -239,6 +241,8 @@ declare const fullApi: ApiFromModules<{
   "actions/users": typeof actions_users;
   "actions/waitlist": typeof actions_waitlist;
   "actions/weather": typeof actions_weather;
+  "config/complianceIssues": typeof config_complianceIssues;
+  "config/complianceScoring": typeof config_complianceScoring;
   "convex/_generated/api": typeof convex__generated_api;
   "convex/_generated/server": typeof convex__generated_server;
   "crons/autoRegister": typeof crons_autoRegister;

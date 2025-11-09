@@ -122,7 +122,7 @@ export default function GDPRCompliancePage() {
 
   const handleGenerateReport = async () => {
     try {
-      await generateReport({ type: 'gdpr' });
+      await generateReport({ reportType: 'gdpr' });
       setSuccess('Compliance report generated successfully');
       setError(null);
     } catch (err) {
@@ -163,45 +163,55 @@ export default function GDPRCompliancePage() {
       title: 'Data Processing',
       icon: Database,
       items: [
-        { label: 'Lawful Basis Defined', value: gdprData?.dataProcessing.lawfulBasis.length || 0, max: 6 },
-        { label: 'Data Categories', value: gdprData?.dataProcessing.dataCategories.length || 0, max: 8 },
-        { label: 'Processing Purposes', value: gdprData?.dataProcessing.processingPurposes.length || 0, max: 5 },
-        { label: 'Retention Policies', value: gdprData?.dataProcessing.dataRetention.length || 0, max: 6 }
+        { label: 'Lawful Basis Defined', value: gdprData?.dataProcessing?.lawfulBasis?.length || 0, max: 6 },
+        { label: 'Data Categories', value: gdprData?.dataProcessing?.dataCategories?.length || 0, max: 8 },
+        { label: 'Processing Purposes', value: gdprData?.dataProcessing?.processingPurposes?.length || 0, max: 5 },
+        { label: 'Retention Policies', value: gdprData?.dataProcessing?.dataRetention?.length || 0, max: 6 }
       ]
     },
     {
       title: 'User Rights',
       icon: Users,
       items: [
-        { label: 'Right to Access', value: gdprData?.userRights.rightToAccess ? 1 : 0, max: 1 },
-        { label: 'Right to Rectification', value: gdprData?.userRights.rightToRectification ? 1 : 0, max: 1 },
-        { label: 'Right to Erasure', value: gdprData?.userRights.rightToErasure ? 1 : 0, max: 1 },
-        { label: 'Right to Portability', value: gdprData?.userRights.rightToPortability ? 1 : 0, max: 1 },
-        { label: 'Right to Restrict', value: gdprData?.userRights.rightToRestrictProcessing ? 1 : 0, max: 1 },
-        { label: 'Right to Object', value: gdprData?.userRights.rightToObject ? 1 : 0, max: 1 }
+        { label: 'Right to Access', value: gdprData?.userRights?.rightToAccess ? 1 : 0, max: 1 },
+        { label: 'Right to Rectification', value: gdprData?.userRights?.rightToRectification ? 1 : 0, max: 1 },
+        { label: 'Right to Erasure', value: gdprData?.userRights?.rightToErasure ? 1 : 0, max: 1 },
+        { label: 'Right to Portability', value: gdprData?.userRights?.rightToPortability ? 1 : 0, max: 1 },
+        { label: 'Right to Restrict', value: gdprData?.userRights?.rightToRestrictProcessing ? 1 : 0, max: 1 },
+        { label: 'Right to Object', value: gdprData?.userRights?.rightToObject ? 1 : 0, max: 1 }
       ]
     },
     {
       title: 'Data Protection',
       icon: Lock,
       items: [
-        { label: 'Encryption', value: gdprData?.dataProtection.encryption ? 1 : 0, max: 1 },
-        { label: 'Access Controls', value: gdprData?.dataProtection.accessControls ? 1 : 0, max: 1 },
-        { label: 'Data Minimization', value: gdprData?.dataProtection.dataMinimization ? 1 : 0, max: 1 },
-        { label: 'Purpose Limitation', value: gdprData?.dataProtection.purposeLimitation ? 1 : 0, max: 1 },
-        { label: 'Storage Limitation', value: gdprData?.dataProtection.storageLimitation ? 1 : 0, max: 1 },
-        { label: 'Accuracy', value: gdprData?.dataProtection.accuracy ? 1 : 0, max: 1 }
+        { label: 'Encryption', value: gdprData?.dataProtection?.encryption ? 1 : 0, max: 1 },
+        { label: 'Access Controls', value: gdprData?.dataProtection?.accessControls ? 1 : 0, max: 1 },
+        { label: 'Data Minimization', value: gdprData?.dataProtection?.dataMinimization ? 1 : 0, max: 1 },
+        { label: 'Purpose Limitation', value: gdprData?.dataProtection?.purposeLimitation ? 1 : 0, max: 1 },
+        { label: 'Storage Limitation', value: gdprData?.dataProtection?.storageLimitation ? 1 : 0, max: 1 },
+        { label: 'Accuracy', value: gdprData?.dataProtection?.accuracy ? 1 : 0, max: 1 }
       ]
     },
     {
       title: 'Consent Management',
       icon: FileText,
       items: [
-        { label: 'Explicit Consent', value: gdprData?.consentManagement.explicitConsent ? 1 : 0, max: 1 },
-        { label: 'Consent Withdrawal', value: gdprData?.consentManagement.consentWithdrawal ? 1 : 0, max: 1 },
-        { label: 'Consent Records', value: gdprData?.consentManagement.consentRecords ? 1 : 0, max: 1 },
-        { label: 'Age Verification', value: gdprData?.consentManagement.ageVerification ? 1 : 0, max: 1 },
-        { label: 'Parental Consent', value: gdprData?.consentManagement.parentalConsent ? 1 : 0, max: 1 }
+        { label: 'Explicit Consent', value: gdprData?.consentManagement?.explicitConsent ? 1 : 0, max: 1 },
+        { label: 'Consent Withdrawal', value: gdprData?.consentManagement?.consentWithdrawal ? 1 : 0, max: 1 },
+        { label: 'Consent Records', value: gdprData?.consentManagement?.consentRecords ? 1 : 0, max: 1 },
+        { label: 'Age Verification', value: gdprData?.consentManagement?.ageVerification ? 1 : 0, max: 1 },
+        { label: 'Parental Consent', value: gdprData?.consentManagement?.parentalConsent ? 1 : 0, max: 1 }
+      ]
+    },
+    {
+      title: 'Breach Management',
+      icon: AlertTriangle,
+      items: [
+        { label: 'Breach Detection', value: gdprData?.breachManagement?.breachDetection ? 1 : 0, max: 1 },
+        { label: 'Breach Notification', value: gdprData?.breachManagement?.breachNotification ? 1 : 0, max: 1 },
+        { label: 'Breach Records', value: gdprData?.breachManagement?.breachRecords ? 1 : 0, max: 1 },
+        { label: 'DPO Notification', value: gdprData?.breachManagement?.dpoNotification ? 1 : 0, max: 1 }
       ]
     }
   ];
@@ -307,25 +317,25 @@ export default function GDPRCompliancePage() {
             <div>
               <h4 className="font-medium text-gray-900 mb-2">DPO Status</h4>
               <div className="flex items-center gap-2 mb-4">
-                {gdprData?.dpo.appointed ? (
+                {gdprData?.dpo?.appointed ? (
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 ) : (
                   <XCircle className="w-5 h-5 text-red-600" />
                 )}
-                <span className={gdprData?.dpo.appointed ? 'text-green-600' : 'text-red-600'}>
-                  {gdprData?.dpo.appointed ? 'DPO Appointed' : 'No DPO Appointed'}
+                <span className={gdprData?.dpo?.appointed ? 'text-green-600' : 'text-red-600'}>
+                  {gdprData?.dpo?.appointed ? 'DPO Appointed' : 'No DPO Appointed'}
                 </span>
               </div>
-              {gdprData?.dpo.appointed && (
+              {gdprData?.dpo?.appointed && (
                 <div className="space-y-2">
                   <div>
                     <label className="text-sm font-medium text-gray-700">Contact Details</label>
-                    <p className="text-sm text-gray-600">{gdprData.dpo.contactDetails}</p>
+                    <p className="text-sm text-gray-600">{gdprData?.dpo?.contactDetails}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Responsibilities</label>
                     <ul className="text-sm text-gray-600 list-disc list-inside">
-                      {gdprData.dpo.responsibilities.map((responsibility: any, index: number) => (
+                      {gdprData?.dpo?.responsibilities?.map((responsibility: any, index: number) => (
                         <li key={index}>{responsibility}</li>
                       ))}
                     </ul>

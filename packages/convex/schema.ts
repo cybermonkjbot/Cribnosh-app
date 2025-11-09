@@ -2180,6 +2180,29 @@ export default defineSchema({
     .index("by_analytics_id", ["analyticsId"])
     .index("by_tracking_enabled", ["trackingEnabled"]),
 
+  // Compliance Issue Resolutions
+  complianceIssueResolutions: defineTable({
+    issueId: v.string(),
+    issueType: v.union(
+      v.literal("gdpr"),
+      v.literal("security"),
+      v.literal("data_retention"),
+      v.literal("audit_logging")
+    ),
+    status: v.union(
+      v.literal("resolved"),
+      v.literal("in_progress"),
+      v.literal("dismissed")
+    ),
+    resolution: v.optional(v.string()),
+    resolvedBy: v.id("users"),
+    resolvedAt: v.number(),
+    notes: v.optional(v.string()),
+  })
+    .index("by_issue_id", ["issueId"])
+    .index("by_status", ["status"])
+    .index("by_type", ["issueType"]),
+
   // General Compliance Settings
   complianceSettings: defineTable({
     settingId: v.string(),
