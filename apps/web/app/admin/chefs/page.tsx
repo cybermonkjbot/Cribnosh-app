@@ -1,42 +1,38 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { ChefFilterBar } from '@/components/admin/chef-filter-bar';
+import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  ChefHat, 
-  Search, 
-  Filter,
-  Plus,
-  Edit,
-  Eye,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Star,
-  MapPin,
-  DollarSign,
-  TrendingUp,
-  Users,
-  Calendar,
-  Shield,
+import { useMutation, useQuery } from 'convex/react';
+import {
   AlertTriangle,
-  MessageSquare,
   Award,
   BarChart3,
+  Calendar,
+  CheckCircle,
+  ChefHat,
+  Clock,
+  DollarSign,
   Download,
-  MoreHorizontal
+  Eye,
+  MapPin,
+  MessageSquare,
+  MoreHorizontal,
+  Plus,
+  Shield,
+  Star,
+  TrendingUp,
+  Users,
+  XCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useMemo, useState } from 'react';
 
 interface Chef {
   _id: Id<"chefs">;
@@ -286,57 +282,18 @@ export default function ChefManagementPage() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                  <Input
-                    placeholder="Search chefs by name, specialty, or location..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                  <SelectItem value="pending_verification">Pending Verification</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={verificationFilter} onValueChange={setVerificationFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Verification" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Verification</SelectItem>
-                  <SelectItem value="verified">Verified</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="rating">Highest Rating</SelectItem>
-                  <SelectItem value="earnings">Top Earners</SelectItem>
-                  <SelectItem value="orders">Most Orders</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <ChefFilterBar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          verificationFilter={verificationFilter}
+          onVerificationFilterChange={setVerificationFilter}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          totalCount={chefs?.length || 0}
+          filteredCount={filteredChefs.length}
+        />
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

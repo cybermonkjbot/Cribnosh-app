@@ -1,45 +1,38 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { OrderFilterBar } from '@/components/admin/order-filter-bar';
+import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  ShoppingCart, 
-  Search, 
-  Filter,
-  Eye,
-  Clock,
-  CheckCircle,
-  XCircle,
+import { useMutation, useQuery } from 'convex/react';
+import {
   AlertTriangle,
-  TrendingUp,
-  Users,
-  DollarSign,
-  MapPin,
-  Phone,
-  MessageSquare,
   BarChart3,
-  Download,
-  RefreshCw,
-  MoreHorizontal,
-  Calendar,
+  CheckCircle,
   ChefHat,
-  Package,
-  Truck,
-  Star,
+  Clock,
+  DollarSign,
+  Download,
+  Eye,
   Flag,
+  MessageSquare,
+  MoreHorizontal,
+  Package,
+  RefreshCw,
+  ShoppingCart,
+  Star,
+  TrendingUp,
+  Truck,
+  XCircle,
   Zap
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useMemo, useState } from 'react';
 
 interface Order {
   _id: Id<"orders">;
@@ -351,72 +344,20 @@ export default function OrderManagementPage() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                  <Input
-                    placeholder="Search orders by customer, chef, or order ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="preparing">Preparing</SelectItem>
-                  <SelectItem value="ready">Ready</SelectItem>
-                  <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payment</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={timeFilter} onValueChange={setTimeFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Time" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="all">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                  <SelectItem value="amount">Highest Amount</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <OrderFilterBar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          paymentFilter={paymentFilter}
+          onPaymentFilterChange={setPaymentFilter}
+          timeFilter={timeFilter}
+          onTimeFilterChange={setTimeFilter}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          totalCount={orders?.length || 0}
+          filteredCount={filteredOrders.length}
+        />
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

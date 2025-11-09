@@ -1,47 +1,74 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PriorityBadge, StatusBadge } from '@/components/ui/glass-badges';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { 
-  ClipboardList, 
-  Search, 
-  Filter,
-  Users,
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from '@/convex/_generated/api';
+import { Doc, Id } from '@/convex/_generated/dataModel';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  BarChart2,
   Calendar,
+  CheckCircle,
+  ClipboardList,
+  Clock,
+  Edit,
+  Eye,
+  Filter,
   MapPin,
   Phone,
-  Eye,
-  Edit,
+  Search,
   Trash2,
-  CheckCircle,
-  Clock,
   TrendingUp,
-  BarChart2
+  Users,
+  X
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type WaitlistEntry = Doc<"waitlist">;
 
 export default function WaitlistDetailsPage() {
   // Waitlist details page component
   const { sessionToken } = useAdminUser();
+  const router = useRouter();
+  const { toast } = useToast();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize] = useState<number>(10);
+  
+  // Loading states
+  const [isApproving, setIsApproving] = useState<Id<"waitlist"> | null>(null);
+  const [isRejecting, setIsRejecting] = useState<Id<"waitlist"> | null>(null);
+  const [isDeleting, setIsDeleting] = useState<Id<"waitlist"> | null>(null);
+  
+  // Confirmation dialogs
+  const [approveConfirm, setApproveConfirm] = useState<{ isOpen: boolean; entryId: Id<"waitlist"> | null }>({
+    isOpen: false,
+    entryId: null,
+  });
+  const [rejectConfirm, setRejectConfirm] = useState<{ isOpen: boolean; entryId: Id<"waitlist"> | null }>({
+    isOpen: false,
+    entryId: null,
+  });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; entryId: Id<"waitlist"> | null }>({
+    isOpen: false,
+    entryId: null,
+  });
 
   // Fetch data
   const waitlistEntries = useQuery(
@@ -57,49 +84,101 @@ export default function WaitlistDetailsPage() {
 
 
   const handleApprove = async (entryId: Id<"waitlist">) => {
+    setIsApproving(entryId);
     try {
-      await approveWaitlistEntry({ entryId });
-      setSuccess('Entry approved successfully');
-      setError(null);
-    } catch {
-      setError('Failed to approve entry');
+      await approveWaitlistEntry({ entryId, sessionToken: sessionToken || undefined });
+      toast({
+        title: "Entry approved",
+        description: "The waitlist entry has been approved successfully.",
+        variant: "success",
+      });
+      setApproveConfirm({ isOpen: false, entryId: null });
+    } catch (error) {
+      toast({
+        title: "Failed to approve entry",
+        description: "An error occurred while approving the entry. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApproving(null);
     }
   };
 
   const handleReject = async (entryId: Id<"waitlist">) => {
+    setIsRejecting(entryId);
     try {
-      await rejectWaitlistEntry({ entryId });
-      setSuccess('Entry rejected successfully');
-      setError(null);
-    } catch {
-      setError('Failed to reject entry');
+      await rejectWaitlistEntry({ entryId, sessionToken: sessionToken || undefined });
+      toast({
+        title: "Entry rejected",
+        description: "The waitlist entry has been rejected successfully.",
+        variant: "success",
+      });
+      setRejectConfirm({ isOpen: false, entryId: null });
+    } catch (error) {
+      toast({
+        title: "Failed to reject entry",
+        description: "An error occurred while rejecting the entry. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRejecting(null);
     }
   };
 
   const handleDelete = async (entryId: Id<"waitlist">) => {
-    if (confirm('Are you sure you want to delete this waitlist entry?')) {
-      try {
-        await deleteWaitlistEntry({ entryId });
-        setSuccess('Entry deleted successfully');
-        setError(null);
-      } catch {
-        setError('Failed to delete entry');
-      }
+    setIsDeleting(entryId);
+    try {
+      await deleteWaitlistEntry({ entryId, sessionToken: sessionToken || undefined });
+      toast({
+        title: "Entry deleted",
+        description: "The waitlist entry has been deleted successfully.",
+        variant: "success",
+      });
+      setDeleteConfirm({ isOpen: false, entryId: null });
+    } catch (error) {
+      toast({
+        title: "Failed to delete entry",
+        description: "An error occurred while deleting the entry. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
-  const filteredEntries = waitlistEntries?.filter((entry: WaitlistEntry) => {
-    const matchesSearch = 
-      entry.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (entry.name && entry.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (entry.location && entry.location.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Helper function to extract location string from entry
+  const getLocationString = useCallback((entry: WaitlistEntry): string => {
+    if (typeof entry.location === 'string') {
+      return entry.location;
+    }
+    if (entry.location && typeof entry.location === 'object') {
+      const loc = entry.location as any;
+      if (loc.city && loc.country) {
+        return `${loc.city}, ${loc.country}`;
+      }
+      if (loc.city) return loc.city;
+      if (loc.country) return loc.country;
+      if (loc.country_name) return loc.country_name;
+    }
+    return '';
+  }, []);
+
+  const filteredEntries = useMemo(() => {
+    if (!waitlistEntries) return [];
     
-    const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || entry.priority === priorityFilter;
-    const matchesLocation = locationFilter === 'all' || entry.location === locationFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority && matchesLocation;
-  }).sort((a: WaitlistEntry, b: WaitlistEntry) => {
+    return waitlistEntries.filter((entry: WaitlistEntry) => {
+      const locationString = getLocationString(entry);
+      const matchesSearch = 
+        entry.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (entry.name && entry.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        locationString.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || entry.priority === priorityFilter;
+      const matchesLocation = locationFilter === 'all' || locationString === locationFilter;
+      
+      return matchesSearch && matchesStatus && matchesPriority && matchesLocation;
+    }).sort((a: WaitlistEntry, b: WaitlistEntry) => {
     switch (sortBy) {
       case 'recent':
         return (b.joinedAt || 0) - (a.joinedAt || 0);
@@ -115,37 +194,45 @@ export default function WaitlistDetailsPage() {
       default:
         return 0;
     }
-  }) || [];
+    });
+  }, [waitlistEntries, searchTerm, statusFilter, priorityFilter, locationFilter, getLocationString, sortBy]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
-      case 'converted':
-        return <Badge className="bg-blue-100 text-blue-800">Converted</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
+  // Pagination
+  const totalPages = Math.ceil(filteredEntries.length / pageSize);
+  const paginatedEntries = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredEntries.slice(startIndex, endIndex);
+  }, [filteredEntries, currentPage, pageSize]);
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return <Badge className="bg-red-100 text-red-800">High</Badge>;
-      case 'medium':
-        return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-      case 'low':
-        return <Badge className="bg-gray-100 text-gray-800">Low</Badge>;
-      default:
-        return <Badge variant="secondary">{priority}</Badge>;
-    }
-  };
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, priorityFilter, locationFilter]);
 
-  const uniqueLocations = Array.from(new Set(waitlistEntries?.map((entry: WaitlistEntry) => entry.location).filter(Boolean) || []));
+  const uniqueLocations = useMemo(() => {
+    if (!waitlistEntries) return [];
+    const locations = new Set<string>();
+    waitlistEntries.forEach((entry: WaitlistEntry) => {
+      const locationString = getLocationString(entry);
+      if (locationString) {
+        locations.add(locationString);
+      }
+    });
+    return Array.from(locations).sort();
+  }, [waitlistEntries, getLocationString]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setPriorityFilter('all');
+    setLocationFilter('all');
+    setCurrentPage(1);
+  }, []);
+
+  const hasActiveFilters = useMemo(() => {
+    return searchTerm !== '' || statusFilter !== 'all' || priorityFilter !== 'all' || locationFilter !== 'all';
+  }, [searchTerm, statusFilter, priorityFilter, locationFilter]);
 
   return (
     <div className="space-y-6">
@@ -216,29 +303,33 @@ export default function WaitlistDetailsPage() {
         </Card>
       </div>
 
-      {/* Alerts */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {success && (
-        <Alert>
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
-
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-          <Input
-            placeholder="Search waitlist entries..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row gap-4 mb-4">
+          <div className="relative flex-1 min-w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+            <Input
+              placeholder="Search waitlist entries..."
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearFilters}
+              className="h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              <X className="w-4 h-4 mr-1" />
+              Clear Filters
+            </Button>
+          )}
         </div>
+        
+        <div className="flex flex-wrap gap-4">
         
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-32">
@@ -290,11 +381,28 @@ export default function WaitlistDetailsPage() {
             <SelectItem value="priority">Priority</SelectItem>
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       {/* Waitlist Entries */}
       <div className="space-y-4">
-        {filteredEntries.map((entry: WaitlistEntry) => (
+        {paginatedEntries.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="No waitlist entries found"
+            description={hasActiveFilters 
+              ? "Try adjusting your search or filter criteria"
+              : "No waitlist entries available"}
+            action={hasActiveFilters ? {
+              label: "Clear filters",
+              onClick: handleClearFilters,
+              variant: "secondary"
+            } : undefined}
+            variant={hasActiveFilters ? "filtered" : "no-data"}
+          />
+        ) : (
+          <>
+            {paginatedEntries.map((entry: WaitlistEntry) => (
           <Card key={entry._id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">
@@ -312,8 +420,8 @@ export default function WaitlistDetailsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {getStatusBadge(entry.status || 'active')}
-                  {getPriorityBadge(entry.priority || 'normal')}
+                  <StatusBadge status={entry.status || 'active'} />
+                  <PriorityBadge priority={entry.priority || 'normal'} />
                 </div>
               </div>
 
@@ -323,10 +431,10 @@ export default function WaitlistDetailsPage() {
                     <Calendar className="w-4 h-4" />
                     Joined {new Date(entry.joinedAt).toLocaleDateString()}
                   </div>
-                  {entry.location && (
+                  {getLocationString(entry) && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <MapPin className="w-4 h-4" />
-                      {entry.location}
+                      {getLocationString(entry)}
                     </div>
                   )}
                   {entry.phone && (
@@ -370,7 +478,10 @@ export default function WaitlistDetailsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {/* View details */}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/admin/waitlist/${entry._id}`);
+                    }}
                   >
                     <Eye className="w-4 h-4 mr-1" />
                     View Details
@@ -378,7 +489,10 @@ export default function WaitlistDetailsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {/* Edit entry */}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/admin/waitlist/${entry._id}?edit=true`);
+                    }}
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
@@ -390,55 +504,82 @@ export default function WaitlistDetailsPage() {
                     <>
                       <Button
                         size="sm"
-                        onClick={() => handleApprove(entry._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setApproveConfirm({ isOpen: true, entryId: entry._id });
+                        }}
+                        disabled={isApproving === entry._id}
                         className="bg-green-600 hover:bg-green-700"
                       >
                         <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
+                        {isApproving === entry._id ? 'Approving...' : 'Approve'}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleReject(entry._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRejectConfirm({ isOpen: true, entryId: entry._id });
+                        }}
+                        disabled={isRejecting === entry._id}
                         className="text-red-600 hover:text-red-700"
                       >
-                        Reject
+                        {isRejecting === entry._id ? 'Rejecting...' : 'Reject'}
                       </Button>
                     </>
                   )}
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleDelete(entry._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteConfirm({ isOpen: true, entryId: entry._id });
+                    }}
+                    disabled={isDeleting === entry._id}
                     className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="w-4 h-4" />
+                    {isDeleting === entry._id ? 'Deleting...' : ''}
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))}
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="text-sm text-gray-600 font-satoshi">
+                Page {currentPage} of {totalPages} ({filteredEntries.length} entries)
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="min-h-[36px]"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="min-h-[36px]"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+          </>
+        )}
       </div>
-
-      {filteredEntries.length === 0 && (
-        <EmptyState
-          icon={ClipboardList}
-          title="No waitlist entries found"
-          description="Try adjusting your search or filter criteria"
-          action={searchTerm || statusFilter !== 'all' || locationFilter !== 'all' || priorityFilter !== 'all' ? {
-            label: "Clear filters",
-            onClick: () => {
-              setSearchTerm('');
-              setStatusFilter('all');
-              setLocationFilter('all');
-              setPriorityFilter('all');
-            },
-            variant: "secondary"
-          } : undefined}
-          variant="filtered"
-        />
-      )}
 
       {/* Analytics Section */}
       {waitlistStats && (
@@ -488,6 +629,43 @@ export default function WaitlistDetailsPage() {
           </Card>
         </div>
       )}
+
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={approveConfirm.isOpen}
+        onClose={() => setApproveConfirm({ isOpen: false, entryId: null })}
+        onConfirm={() => approveConfirm.entryId && handleApprove(approveConfirm.entryId)}
+        title="Approve Entry"
+        message="Are you sure you want to approve this waitlist entry?"
+        confirmText="Approve"
+        cancelText="Cancel"
+        type="info"
+        isLoading={isApproving !== null}
+      />
+
+      <ConfirmationDialog
+        isOpen={rejectConfirm.isOpen}
+        onClose={() => setRejectConfirm({ isOpen: false, entryId: null })}
+        onConfirm={() => rejectConfirm.entryId && handleReject(rejectConfirm.entryId)}
+        title="Reject Entry"
+        message="Are you sure you want to reject this waitlist entry? This action cannot be undone."
+        confirmText="Reject"
+        cancelText="Cancel"
+        type="warning"
+        isLoading={isRejecting !== null}
+      />
+
+      <ConfirmationDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, entryId: null })}
+        onConfirm={() => deleteConfirm.entryId && handleDelete(deleteConfirm.entryId)}
+        title="Delete Entry"
+        message="Are you sure you want to delete this waitlist entry? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="error"
+        isLoading={isDeleting !== null}
+      />
     </div>
   );
 }

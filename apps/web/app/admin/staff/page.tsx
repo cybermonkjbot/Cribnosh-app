@@ -1,19 +1,19 @@
 ﻿"use client";
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
 import { StaffTableSkeleton } from '@/components/admin/skeletons';
+import { UserFilterBar } from '@/components/admin/user-filter-bar';
+import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Plus, Search, Shield, Users, Upload, FileText, Eye, Edit, Trash, Filter, Download } from "lucide-react";
-import React, { useMemo, useState, useEffect } from 'react';
-import { EmptyState } from '@/components/admin/empty-state';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, Edit, Eye, FileText, Plus, Shield, Upload, Users } from "lucide-react";
 import { motion } from 'motion/react';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface StaffUser {
   _id: string;
@@ -186,69 +186,24 @@ export default function AdminStaffPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl"
         >
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-primary-600" />
-            <h3 className="text-lg font-semibold font-asgard text-gray-900">Search & Filters</h3>
-          </div>
-          
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium font-satoshi text-gray-700">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <Input
-                  type="text"
-                  placeholder="Search staff by name or email..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="pl-10 bg-white/80 border-gray-200"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium font-satoshi text-gray-700">Role</label>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="bg-white/80 border-gray-200">
-                  <SelectValue placeholder="All roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="chef">Chef</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium font-satoshi text-gray-700">Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-white/80 border-gray-200">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium font-satoshi text-gray-700">Total Staff</label>
-              <div className="p-3 bg-primary-50 rounded-lg border border-primary-200">
-                <span className="text-2xl font-bold font-asgard text-primary-600">
-                  {filteredStaff.length}
-                </span>
-                <p className="text-xs text-primary-600 font-satoshi">Members</p>
-              </div>
-            </div>
-          </div>
+          <UserFilterBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            roleFilter={roleFilter}
+            onRoleFilterChange={setRoleFilter}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            totalCount={staff?.length || 0}
+            filteredCount={filteredStaff.length}
+            roleOptions={[
+              { value: 'all', label: 'All Roles' },
+              { value: 'admin', label: 'Admin' },
+              { value: 'moderator', label: 'Moderator' },
+              { value: 'chef', label: 'Chef' },
+              { value: 'employee', label: 'Employee' },
+            ]}
+          />
         </motion.div>
 
         {/* Enhanced Staff Table */}
