@@ -135,39 +135,42 @@ export const checkPaymentHealthMetrics = internalAction({
       startDate: last24Hours,
     });
     
-    // Check for alerts
+    // Check for alerts (only if there's actual payment data)
     const alerts = [];
     
-    if (healthMetrics.successRate < 95) {
-      alerts.push({
-        type: "payment_success_rate_low",
-        message: `Payment success rate is ${healthMetrics.successRate}%, below threshold of 95%`,
-        severity: "high" as const,
-      });
-    }
-    
-    if (healthMetrics.failureRate > 5) {
-      alerts.push({
-        type: "payment_failure_rate_high",
-        message: `Payment failure rate is ${healthMetrics.failureRate}%, above threshold of 5%`,
-        severity: "medium" as const,
-      });
-    }
-    
-    if (healthMetrics.disputeRate > 1) {
-      alerts.push({
-        type: "payment_dispute_rate_high",
-        message: `Payment dispute rate is ${healthMetrics.disputeRate}%, above threshold of 1%`,
-        severity: "critical" as const,
-      });
-    }
-    
-    if (healthMetrics.refundRate > 10) {
-      alerts.push({
-        type: "payment_refund_rate_high",
-        message: `Payment refund rate is ${healthMetrics.refundRate}%, above threshold of 10%`,
-        severity: "medium" as const,
-      });
+    // Only check metrics if there are actual transactions
+    if (healthMetrics.totalTransactions > 0) {
+      if (healthMetrics.successRate < 95) {
+        alerts.push({
+          type: "payment_success_rate_low",
+          message: `Payment success rate is ${healthMetrics.successRate}%, below threshold of 95%`,
+          severity: "high" as const,
+        });
+      }
+      
+      if (healthMetrics.failureRate > 5) {
+        alerts.push({
+          type: "payment_failure_rate_high",
+          message: `Payment failure rate is ${healthMetrics.failureRate}%, above threshold of 5%`,
+          severity: "medium" as const,
+        });
+      }
+      
+      if (healthMetrics.disputeRate > 1) {
+        alerts.push({
+          type: "payment_dispute_rate_high",
+          message: `Payment dispute rate is ${healthMetrics.disputeRate}%, above threshold of 1%`,
+          severity: "critical" as const,
+        });
+      }
+      
+      if (healthMetrics.refundRate > 10) {
+        alerts.push({
+          type: "payment_refund_rate_high",
+          message: `Payment refund rate is ${healthMetrics.refundRate}%, above threshold of 10%`,
+          severity: "medium" as const,
+        });
+      }
     }
     
     // Create alerts (you would need to implement createPaymentAlertInternal)

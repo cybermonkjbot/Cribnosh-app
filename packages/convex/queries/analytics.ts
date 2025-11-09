@@ -1,5 +1,5 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { query } from "../_generated/server";
 
 // Helper function to get meal name
 async function getMealName(ctx: any, mealId: any): Promise<string | null> {
@@ -486,17 +486,28 @@ export const getRevenueAnalytics = query({
       : 0;
     const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
 
-    // Calculate refunds from actual refund data
-    const refunds = orders.reduce((sum, order) => sum + (order.refund_amount || 0), 0);
+    // Get payment analytics data from backend
+    const paymentAnalyticsData = await ctx.db
+      .query("paymentAnalyticsData")
+      .withIndex("by_timestamp", (q) => q.gte("timestamp", startTime).lte("timestamp", Date.now()))
+      .collect();
 
-    // Calculate payment methods from actual order data
+    // Calculate refunds from payment analytics
+    const refundEvents = paymentAnalyticsData.filter(e => 
+      e.eventType === "charge.refunded" || e.eventType === "refund.succeeded"
+    );
+    const refunds = refundEvents.reduce((sum, e) => sum + e.amount, 0) / 100; // Convert from cents to dollars
+
+    // Calculate payment methods from backend analytics
     const paymentMethodData: Record<string, { revenue: number; count: number }> = {};
-    orders.forEach(order => {
-      const method = order.payment_method || "Unknown";
+    const successfulPayments = paymentAnalyticsData.filter(e => e.eventType === "payment_intent.succeeded");
+    
+    successfulPayments.forEach((event) => {
+      const method = event.paymentMethod || "unknown";
       if (!paymentMethodData[method]) {
         paymentMethodData[method] = { revenue: 0, count: 0 };
       }
-      paymentMethodData[method].revenue += order.total_amount || 0;
+      paymentMethodData[method].revenue += event.amount / 100; // Convert from cents to dollars
       paymentMethodData[method].count += 1;
     });
 

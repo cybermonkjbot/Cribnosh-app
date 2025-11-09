@@ -1,11 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
-import { Id } from '@/convex/_generated/dataModel';
 import { api } from '@/convex/_generated/api';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { Id } from '@/convex/_generated/dataModel';
+import { getConvexClient } from '@/lib/conxed-client';
 import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/files/[storageId]
@@ -29,16 +26,21 @@ export async function GET(
     }
 
     const convex = getConvexClient();
-    const sessionToken = getSessionTokenFromRequest(request);
+
+    // Validate storage ID format (Convex storage IDs start with 'kg' or 'j')
+    if (!storageId.match(/^(kg|j)[a-z0-9]+$/)) {
+      logger.warn(`Invalid storage ID format: ${storageId}`);
+      return new NextResponse('Invalid storage ID format', { status: 400 });
+    }
 
     // Get the file URL from Convex storage using the getVideoUrl query
     // (it works for any storage ID, not just videos)
     const fileUrl = await convex.query(api.queries.videoPosts.getVideoUrl, {
-      storageId: storageId as Id<'_storage'>,
-      sessionToken: sessionToken || undefined
+      storageId: storageId as Id<'_storage'>
     });
 
     if (!fileUrl) {
+      logger.warn(`File not found for storage ID: ${storageId}`);
       return new NextResponse('File not found', { status: 404 });
     }
 

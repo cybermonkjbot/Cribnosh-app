@@ -1221,33 +1221,37 @@ export const checkEmailHealthMetrics = internalAction({
       startDate: last24Hours,
     });
     
-    // Check for alerts
+    // Check for alerts (only if there's actual email data)
     const alerts = [];
     
-    if (healthMetrics.deliveryRate < 95) {
-      alerts.push({
-        type: "delivery_rate_low",
-        message: `Email delivery rate is ${healthMetrics.deliveryRate}%, below threshold of 95%`,
-        severity: "high" as const,
-      });
+    // Only check metrics if there are actual emails sent
+    if (healthMetrics.sentEmails > 0) {
+      if (healthMetrics.deliveryRate < 95) {
+        alerts.push({
+          type: "delivery_rate_low",
+          message: `Email delivery rate is ${healthMetrics.deliveryRate}%, below threshold of 95%`,
+          severity: "high" as const,
+        });
+      }
+      
+      if (healthMetrics.bounceRate > 5) {
+        alerts.push({
+          type: "bounce_rate_high",
+          message: `Email bounce rate is ${healthMetrics.bounceRate}%, above threshold of 5%`,
+          severity: "medium" as const,
+        });
+      }
+      
+      if (healthMetrics.bounceRate > 10) {
+        alerts.push({
+          type: "bounce_rate_critical",
+          message: `Email bounce rate is ${healthMetrics.bounceRate}%, above threshold of 10%`,
+          severity: "critical" as const,
+        });
+      }
     }
     
-    if (healthMetrics.bounceRate > 5) {
-      alerts.push({
-        type: "bounce_rate_high",
-        message: `Email bounce rate is ${healthMetrics.bounceRate}%, above threshold of 5%`,
-        severity: "medium" as const,
-      });
-    }
-    
-    if (healthMetrics.bounceRate > 10) {
-      alerts.push({
-        type: "bounce_rate_critical",
-        message: `Email bounce rate is ${healthMetrics.bounceRate}%, above threshold of 10%`,
-        severity: "critical" as const,
-      });
-    }
-    
+    // Queue size check doesn't require sent emails, so check it separately
     if (healthMetrics.queueSize > 1000) {
       alerts.push({
         type: "queue_size_large",

@@ -1,5 +1,62 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { api } from "../_generated/api";
+import { query } from "../_generated/server";
+
+// Helper function to get payment service status
+async function getPaymentServiceStatus(ctx: any): Promise<string> {
+  try {
+    const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
+      startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
+    });
+    
+    // If there are no transactions, return healthy (no data doesn't mean unhealthy)
+    if (paymentHealth.totalTransactions === 0) {
+      return "healthy";
+    }
+    
+    if (paymentHealth.successRate >= 95 && paymentHealth.disputeRate < 1) {
+      return "healthy";
+    } else if (paymentHealth.successRate >= 90 && paymentHealth.disputeRate < 2) {
+      return "warning";
+    } else {
+      return "critical";
+    }
+  } catch (error) {
+    return "unknown";
+  }
+}
+
+// Helper function to get payment uptime
+async function getPaymentUptime(ctx: any): Promise<number> {
+  try {
+    const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
+      startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
+    });
+    
+    // If there are no transactions, return 100% (no data doesn't mean downtime)
+    if (paymentHealth.totalTransactions === 0) {
+      return 100.0;
+    }
+    
+    // Calculate uptime based on success rate
+    return paymentHealth.successRate;
+  } catch (error) {
+    return 99.0;
+  }
+}
+
+// Helper function to get payment service details
+async function getPaymentServiceDetails(ctx: any): Promise<string> {
+  try {
+    const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
+      startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
+    });
+    
+    return `Success rate: ${paymentHealth.successRate.toFixed(1)}%, Failure rate: ${paymentHealth.failureRate.toFixed(1)}%, Disputes: ${paymentHealth.totalDisputes}`;
+  } catch (error) {
+    return "Payment metrics unavailable";
+  }
+}
 
 export const getSystemHealth = query({
   args: {},
@@ -38,6 +95,11 @@ export const getSystemHealth = query({
       .order("desc")
       .take(10);
 
+    // Get payment service health from backend
+    const paymentStatus = await getPaymentServiceStatus(ctx);
+    const paymentUptime = await getPaymentUptime(ctx);
+    const paymentDetails = await getPaymentServiceDetails(ctx);
+
     // Calculate service health
     const services = [
       {
@@ -66,11 +128,11 @@ export const getSystemHealth = query({
       },
       {
         name: "Payment Processing",
-        status: "warning",
+        status: paymentStatus,
         responseTime: 250,
-        uptime: 98.5,
+        uptime: paymentUptime,
         lastChecked: Date.now(),
-        details: "Slightly elevated response times"
+        details: paymentDetails,
       },
       {
         name: "File Storage",
