@@ -239,7 +239,7 @@ export default function AdminTimeTrackingPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -253,7 +253,7 @@ export default function AdminTimeTrackingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -267,7 +267,7 @@ export default function AdminTimeTrackingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -281,7 +281,7 @@ export default function AdminTimeTrackingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>

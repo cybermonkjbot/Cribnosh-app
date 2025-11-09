@@ -58,11 +58,11 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-gray-50 to-gray-100 px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white/95 backdrop-blur-lg rounded-2xl p-4 sm:p-6 sm:p-8 border border-gray-300 shadow-xl max-w-md w-full mx-auto"
+          className="bg-white/95 backdrop-blur-lg rounded-2xl p-4 sm:p-8 border border-gray-300 shadow-xl max-w-md w-full mx-auto"
         >
           <div className="text-center">
             <AlertTriangle className="w-12 h-12 sm:w-16 sm:h-16 text-gray-900 mx-auto mb-4" />
@@ -93,10 +93,10 @@ export default function AdminDashboard() {
         className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between px-2 sm:px-0 max-w-full overflow-hidden"
       >
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold font-asgard text-gray-900 mb-2 lg:mb-3 break-words">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold font-asgard text-gray-900 mb-2 lg:mb-3 wrap-break-word">
             Admin Dashboard
           </h1>
-          <p className="text-gray-700 font-satoshi text-sm sm:text-base lg:text-lg break-words">
+          <p className="text-gray-700 font-satoshi text-sm sm:text-base lg:text-lg wrap-break-word">
             Welcome back! Here's what's happening with CribNosh today.
           </p>
         </div>
@@ -119,13 +119,13 @@ export default function AdminDashboard() {
               onClick={() => setActiveSection(chip.label)}
               variant={activeSection === chip.label ? "default" : "outline"}
               size="lg"
-              className={`rounded-xl px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 font-satoshi shadow-lg transition-all duration-300 whitespace-nowrap font-medium border min-w-fit touch-manipulation min-h-[44px] flex-shrink-0 text-xs sm:text-sm ${
+              className={`rounded-xl px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 font-satoshi shadow-lg transition-all duration-300 whitespace-nowrap font-medium border min-w-fit touch-manipulation min-h-[44px] shrink-0 text-xs sm:text-sm ${
                 activeSection === chip.label
                   ? 'bg-[#F23E2E] text-white border-[#F23E2E] shadow-xl' 
                   : 'bg-white/80 backdrop-blur-sm text-gray-700 border-gray-200 hover:bg-white hover:shadow-xl'
               }`}
             >
-              <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+              <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 shrink-0" />
               <span className="hidden sm:inline">{chip.label}</span>
               <span className="sm:hidden">{chip.label.split(' ')[0]}</span>
             </Button>
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md mx-auto p-4 sm:p-6 border border-gray-200 relative max-h-[90vh] overflow-y-auto max-w-full overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full sm:max-w-md mx-auto p-4 sm:p-6 border border-gray-200 relative max-h-[90vh] overflow-y-auto overflow-hidden"
           >
             <button
               onClick={() => setShowNotifications(false)}
@@ -211,7 +211,7 @@ export default function AdminDashboard() {
                     }`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 break-words">{notification.message}</p>
+                      <p className="text-sm font-medium text-gray-900 wrap-break-word">{notification.message}</p>
                       <p className="text-xs text-gray-700">{new Date(notification.createdAt).toLocaleString()}</p>
                     </div>
                     {!notification.read && (
@@ -219,7 +219,7 @@ export default function AdminDashboard() {
                         variant="outline"
                         size="sm"
                         onClick={async () => await markNotificationRead({ notificationId: notification._id as any })}
-                        className="text-xs min-h-[44px] w-full sm:w-auto flex-shrink-0"
+                        className="text-xs min-h-[44px] w-full sm:w-auto shrink-0"
                       >
                         Mark as read
                       </Button>

@@ -990,7 +990,7 @@ Document ID: ${doc._id}`;
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
                   {/* Download Latest Payslip */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-linear-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       const latestPayslip = payslips?.items?.[0];
                       if (latestPayslip) {
@@ -1023,7 +1023,7 @@ Document ID: ${doc._id}`;
 
                   {/* View Tax Summary */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-linear-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => setActiveTab('tax')}
                   >
                     <div className="flex items-center gap-3">
@@ -1046,7 +1046,7 @@ Document ID: ${doc._id}`;
 
                   {/* Pay Schedule */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-linear-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       try {
                         // Create pay calendar data for monthly payments on last Friday
@@ -1421,14 +1421,14 @@ Document ID: ${doc._id}`;
 
                   {/* Banking Info */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-[#F23E2E]/10 to-[#F23E2E]/5 p-4 border border-gray-200/60/60 hover:border-gray-200/60 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-linear-to-br from-[#F23E2E]/10 to-[#F23E2E]/5 p-4 border border-gray-200/60/60 hover:border-gray-200/60 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => showInfo(
                       'Banking Information',
                       'The banking information update feature is coming soon! You will be able to update your payment details, add new bank accounts, and manage your payment preferences directly from this dashboard.'
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#F23E2E]/100 rounded-lg group-hover:bg-[#F23E2E] transition-colors duration-300">
+                      <div className="p-2 bg-[#F23E2E] rounded-lg group-hover:bg-[#F23E2E] transition-colors duration-300">
                         <CreditCard className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
@@ -1447,7 +1447,7 @@ Document ID: ${doc._id}`;
 
                   {/* Contact HR */}
                   <div 
-                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-linear-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       const subject = encodeURIComponent('Payroll Support Request');
                       const body = encodeURIComponent(`Hello HR Team,\n\nI need assistance with my payroll.\n\nEmployee: ${staffUser?.name || 'Unknown'}\nEmployee ID: ${staffUser?._id || 'Unknown'}\n\nPlease provide details about your inquiry:\n\n\n\nThank you.`);
@@ -1614,7 +1614,7 @@ Document ID: ${doc._id}`;
                       <div className="space-y-4">
                         <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                           <div className="flex items-start gap-3">
-                            <Info className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
+                            <Info className="w-5 h-5 text-gray-900 mt-0.5 shrink-0" />
                             <div className="text-left">
                               <h4 className="font-semibold font-asgard text-gray-900 mb-1">When to Expect Payslips</h4>
                               <p className="text-sm text-gray-700 font-satoshi leading-relaxed">
@@ -1627,7 +1627,7 @@ Document ID: ${doc._id}`;
                         
                         <div className="p-4 bg-[#F23E2E]/10/80 rounded-xl border border-gray-200/60/60">
                           <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-[#F23E2E] mt-0.5 flex-shrink-0" />
+                            <AlertCircle className="w-5 h-5 text-[#F23E2E] mt-0.5 shrink-0" />
                             <div className="text-left">
                               <h4 className="font-semibold font-asgard text-[#F23E2E] mb-1">Need Help?</h4>
                               <p className="text-sm text-[#F23E2E] font-satoshi leading-relaxed">
@@ -1718,7 +1718,7 @@ Document ID: ${doc._id}`;
                     <div className="space-y-4">
                       <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                         <div className="flex items-start gap-3">
-                          <Info className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
+                          <Info className="w-5 h-5 text-gray-900 mt-0.5 shrink-0" />
                           <div className="text-left">
                             <h4 className="font-semibold font-asgard text-gray-900 mb-1">Tax Document Timeline</h4>
                             <p className="text-sm text-gray-700 font-satoshi leading-relaxed">
@@ -1730,7 +1730,7 @@ Document ID: ${doc._id}`;
                       
                       <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                         <div className="flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
+                          <AlertCircle className="w-5 h-5 text-gray-900 mt-0.5 shrink-0" />
                           <div className="text-left">
                             <h4 className="font-semibold font-asgard text-gray-900 mb-1">Previous Years</h4>
                             <p className="text-sm text-gray-700 font-satoshi leading-relaxed">

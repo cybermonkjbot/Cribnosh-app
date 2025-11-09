@@ -135,12 +135,12 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
   return (
     <GlassCard className="p-8 relative overflow-hidden">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/40 via-transparent to-purple-50/40 pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-br from-indigo-50/40 via-transparent to-purple-50/40 pointer-events-none" />
       
       {/* Header */}
       <div className="relative z-10 flex items-start justify-between mb-8">
         <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+          <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
             <BarChart3 className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -161,7 +161,7 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-sm border border-blue-200/50"
+          className="bg-linear-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-sm border border-blue-200/50"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
@@ -179,7 +179,7 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 shadow-sm border border-green-200/50"
+          className="bg-linear-to-br from-green-50 to-green-100 rounded-2xl p-6 shadow-sm border border-green-200/50"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
@@ -197,7 +197,7 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-6 shadow-sm border border-amber-200/50"
+          className="bg-linear-to-br from-amber-50 to-amber-100 rounded-2xl p-6 shadow-sm border border-amber-200/50"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
@@ -216,7 +216,7 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
       <div className="relative z-10 space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
           <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Daily Breakdown</h3>
-          <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent"></div>
+          <div className="flex-1 h-px bg-linear-to-r from-gray-200 to-transparent"></div>
         </div>
         
         <div className="space-y-2 sm:space-y-3">
@@ -234,7 +234,7 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
                 transition={{ delay: 0.1 * index }}
                 className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${
                   isToday 
-                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 shadow-md' 
+                    ? 'bg-linear-to-r from-amber-50 to-orange-50 border-amber-200 shadow-md' 
                     : 'bg-white/50 border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -243,8 +243,8 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
                   <motion.div
                     className={`h-full ${
                       isToday 
-                        ? 'bg-gradient-to-r from-amber-100/60 to-orange-100/60' 
-                        : 'bg-gradient-to-r from-blue-50/60 to-indigo-50/60'
+                        ? 'bg-linear-to-r from-amber-100/60 to-orange-100/60'
+                        : 'bg-linear-to-r from-blue-50/60 to-indigo-50/60'
                     }`}
                     initial={{ width: 0 }}
                     animate={{ width: `${barWidth}%` }}
@@ -256,8 +256,8 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
                   <div className="flex items-center space-x-4">
                     <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-xs sm:text-sm font-bold shadow-sm ${
                       isToday 
-                        ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' 
-                        : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700'
+                        ? 'bg-linear-to-br from-amber-500 to-orange-500 text-white'
+                        : 'bg-linear-to-br from-gray-100 to-gray-200 text-gray-700'
                     }`}>
                       {day}
                     </div>
@@ -315,7 +315,7 @@ export function WeeklyHoursCard({ staffId, sessionToken }: WeeklyHoursCardProps)
                 View all
               </span>
             </Link>
-            <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent"></div>
+            <div className="flex-1 h-px bg-linear-to-r from-gray-200 to-transparent"></div>
           </div>
           
           <div className="space-y-2 sm:space-y-3">

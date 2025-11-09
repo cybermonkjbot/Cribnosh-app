@@ -469,7 +469,7 @@ export default function StaffDocumentsPage() {
                         </span>
                         <span className="text-xs text-white/60">{doc.size}</span>
                         <span className="text-xs text-white/60 flex items-center">
-                          <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
+                          <Calendar className="w-3 h-3 mr-1 shrink-0" />
                           {new Date(doc.uploadDate).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
@@ -484,7 +484,7 @@ export default function StaffDocumentsPage() {
                                 : 'text-white/60'
                             }`}
                           >
-                            <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
+                            <Calendar className="w-3 h-3 mr-1 shrink-0" />
                             Expires: {new Date(doc.expiryDate).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'short',

@@ -316,7 +316,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="absolute right-0 top-12 w-56 bg-white rounded-xl border border-gray-200 shadow-xl p-2 z-[100]"
+                className="absolute right-0 top-12 w-56 bg-white rounded-xl border border-gray-200 shadow-xl p-2 z-100"
               >
                 <div className="p-3 border-b border-gray-200 bg-white">
                   {isStaffPage ? (
@@ -406,7 +406,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
 
       {/* Search Results Modal */}
       {showSearchModal && typeof window !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl p-6 border border-[#F23E2E]/20 relative max-h-[80vh] overflow-hidden flex flex-col">
             <button
               onClick={() => setShowSearchModal(false)}
@@ -415,7 +415,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
             >
               ×
             </button>
-            <h2 className="text-xl font-bold font-asgard text-gray-900 mb-4 flex items-center gap-2 flex-shrink-0">
+            <h2 className="text-xl font-bold font-asgard text-gray-900 mb-4 flex items-center gap-2 shrink-0">
               <Search className="w-6 h-6 text-[#F23E2E]" /> Search Results
             </h2>
             <div className="flex-1 overflow-y-auto">
@@ -477,12 +477,12 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
         <>
           {/* Fullscreen loading overlay for Staff Portal navigation */}
           {staffPortalLoading && (
-            <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-white/90 backdrop-blur-lg">
+            <div className="fixed inset-0 z-2000 flex flex-col items-center justify-center bg-white/90 backdrop-blur-lg">
               <User className="w-16 h-16 text-[#F23E2E] animate-spin mb-6" />
               <span className="font-asgard text-2xl text-gray-900">Taking you to Staff Portal...</span>
             </div>
           )}
-          <div className="fixed inset-0 z-[1200] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="App selector">
+          <div className="fixed inset-0 z-1200 flex items-center justify-center" role="dialog" aria-modal="true" aria-label="App selector">
             {/* Overlay (dim) */}
             <div className={`${deviceInfo.isMobile ? 'bg-white' : 'bg-black/40'} absolute inset-0 pointer-events-none`} />
             {/* Modal Content */}
@@ -491,10 +491,10 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className={`relative z-[1300] flex items-center justify-center w-full h-full pointer-events-auto`}
+              className={`relative z-1300 flex items-center justify-center w-full h-full pointer-events-auto`}
               onClick={e => e.stopPropagation()}
             >
-              <GlassCard className={`rounded-2xl z-[1300] pointer-events-auto ${deviceInfo.isMobile ? 'w-full h-full p-6' : 'p-8'} border-[#F23E2E]/20 shadow-2xl flex flex-col items-center justify-center`}>
+              <GlassCard className={`rounded-2xl z-1300 pointer-events-auto ${deviceInfo.isMobile ? 'w-full h-full p-6' : 'p-8'} border-[#F23E2E]/20 shadow-2xl flex flex-col items-center justify-center`}>
                 <button
                   onClick={() => setShowAppSelector(false)}
                   className={`absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold`}
@@ -579,7 +579,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed inset-0 z-[100] bg-white h-screen flex flex-col overflow-y-auto"
+            className="fixed inset-0 z-100 bg-white h-screen flex flex-col overflow-y-auto"
             onTouchStart={deviceInfo.hasTouchScreen ? handleTouchStart : undefined}
             onTouchMove={deviceInfo.hasTouchScreen ? handleTouchMove : undefined}
           >
@@ -632,7 +632,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
 
       {/* Limited Functionality Notice Bar (mobile only, admin only) */}
       {isMobile && isAdminPage && (
-        <div className="fixed top-16 left-0 w-full z-[60] bg-yellow-100 text-yellow-900 text-center py-2 px-4 font-satoshi text-sm shadow-md sm:hidden">
+        <div className="fixed top-16 left-0 w-full z-60 bg-yellow-100 text-yellow-900 text-center py-2 px-4 font-satoshi text-sm shadow-md sm:hidden">
           <span className="font-bold">Notice:</span> Some admin features are limited on mobile for your security and best experience. For full access, please use a desktop device.
         </div>
       )}

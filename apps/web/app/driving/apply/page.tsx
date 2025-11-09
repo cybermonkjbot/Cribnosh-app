@@ -124,7 +124,7 @@ export default function DrivingApply() {
             whileTap={{ scale: 0.98 }}
           >
             <div className="flex flex-col h-full p-6 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100 shadow-sm">
-              <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center mb-4`}>
+              <div className={`shrink-0 w-12 h-12 rounded-xl bg-linear-to-br ${type.color} flex items-center justify-center mb-4`}>
                 {type.icon}
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">{type.label}</h3>
@@ -161,7 +161,7 @@ export default function DrivingApply() {
         </button>
       )}
       {!isMobile && form.vehicle && (
-        <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${
+        <div className={`shrink-0 w-12 h-12 rounded-xl bg-linear-to-br ${
           vehicleTypes.find(v => v.id === form.vehicle)?.color || 'from-red-50 to-red-100/50'
         } flex items-center justify-center mb-4`}>
           {vehicleTypes.find(v => v.id === form.vehicle)?.icon}
@@ -253,7 +253,7 @@ export default function DrivingApply() {
   );
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <main className="min-h-screen bg-linear-to-b from-white to-gray-50">
       <MasonryBackground className="z-0" />
       {/* Mobile Back Button - only on mobile, fixed top left */}
       <MobileBackButton />
@@ -269,7 +269,7 @@ export default function DrivingApply() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8 }}
                 >
-                  <h1 className="font-asgard text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-gray-900 mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-[#ff3b30] to-gray-900">
+                  <h1 className="font-asgard text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-2 sm:mb-4 bg-clip-text text-transparent bg-linear-to-r from-gray-900 via-[#ff3b30] to-gray-900">
                     Become a Driver
                     <span className="block text-[#ff3b30] text-base sm:text-lg md:text-xl">Deliver Joy to Doorsteps</span>
                   </h1>
@@ -293,7 +293,7 @@ export default function DrivingApply() {
               >
                 {/* Mobile-only heading and description */}
                 <div className="sm:hidden mb-4">
-                  <h1 className="font-asgard text-xl text-gray-900 mb-1 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-[#ff3b30] to-gray-900">
+                  <h1 className="font-asgard text-xl mb-1 bg-clip-text text-transparent bg-linear-to-r from-gray-900 via-[#ff3b30] to-gray-900">
                     Become a Driver
                   </h1>
                   <span className="block text-[#ff3b30] text-xs">Deliver Joy to Doorsteps</span>
