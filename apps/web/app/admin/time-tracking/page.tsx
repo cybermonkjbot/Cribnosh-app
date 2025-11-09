@@ -655,7 +655,7 @@ export default function AdminTimeTrackingPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setDeleteConfirm({ isOpen: true, sessionId: s._id })}
-                                className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-xs text-gray-900 hover:text-[#F23E2E] hover:bg-gray-50"
                                 aria-label="Delete session"
                                 tabIndex={0}
                               >

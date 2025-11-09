@@ -326,7 +326,7 @@ export default function WaitlistDetail() {
                 variant="outline"
                 onClick={() => setDeleteConfirm(true)}
                 disabled={isDeleting}
-                className="text-red-600 hover:text-red-700 min-h-[44px]"
+                className="text-gray-900 hover:text-[#F23E2E] min-h-[44px]"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? 'Deleting...' : 'Delete'}

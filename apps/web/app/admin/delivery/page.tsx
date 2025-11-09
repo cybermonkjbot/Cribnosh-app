@@ -261,11 +261,12 @@ export default function DeliveryManagementPage() {
   };
 
   const getUrgencyBadge = (urgency: string) => {
+    // Use brand color for urgent statuses, neutral dark for normal
     const config = {
-      critical: { color: 'bg-red-100 text-red-800', icon: AlertTriangle },
-      warning: { color: 'bg-orange-100 text-orange-800', icon: Clock },
-      attention: { color: 'bg-yellow-100 text-yellow-800', icon: Zap },
-      normal: { color: 'bg-green-100 text-green-800', icon: CheckCircle }
+      critical: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: AlertTriangle },
+      warning: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Clock },
+      attention: { color: 'bg-gray-100 text-gray-800', icon: Zap },
+      normal: { color: 'bg-gray-100 text-gray-800', icon: CheckCircle }
     };
     
     const { color, icon: Icon } = config[urgency as keyof typeof config];
@@ -347,11 +348,11 @@ export default function DeliveryManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">In Transit</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {deliveries?.filter(d => d.status === 'in_transit').length || 0}
                     </p>
                   </div>
-                  <Truck className="w-8 h-8 text-blue-600" />
+                  <Truck className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -367,7 +368,7 @@ export default function DeliveryManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Completed Today</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {deliveries?.filter(d => {
                         const today = new Date();
                         const deliveryDate = new Date(d.actualDeliveryTime || d.createdAt);
@@ -375,7 +376,7 @@ export default function DeliveryManagementPage() {
                       }).length || 0}
                     </p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+                  <CheckCircle className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>

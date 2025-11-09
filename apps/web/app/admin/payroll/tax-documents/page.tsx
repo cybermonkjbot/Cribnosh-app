@@ -301,8 +301,8 @@ export default function TaxDocumentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <FileText className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Documents</p>
@@ -315,8 +315,8 @@ export default function TaxDocumentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Generated</p>
@@ -331,8 +331,8 @@ export default function TaxDocumentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Clock className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
@@ -347,8 +347,8 @@ export default function TaxDocumentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-purple-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <DollarSign className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Value</p>
@@ -604,7 +604,7 @@ export default function TaxDocumentsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleDeleteDocument(document._id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-gray-900 hover:text-[#F23E2E]"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

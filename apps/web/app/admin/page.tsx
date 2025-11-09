@@ -85,7 +85,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6 lg:space-y-8 px-2 sm:px-0 mobile-viewport-constraint" style={{ minWidth: 0, maxWidth: '100vw' }}>
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Enhanced Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
