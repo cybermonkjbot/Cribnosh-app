@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
 import { scryptSync, randomBytes } from 'crypto';
@@ -52,9 +52,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const { userId } = await getAuthenticatedCustomer(request);
     
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get user to get email for QR code label
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, { 
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }

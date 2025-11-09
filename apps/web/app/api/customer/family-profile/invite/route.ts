@@ -4,7 +4,7 @@ import { handleConvexError, isAuthenticationError, isAuthorizationError } from '
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { sendFamilyInvitationEmail } from '@/lib/services/email-service';
 import { logger } from '@/lib/utils/logger';
@@ -106,7 +106,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
     // Send invitation email
-    const inviterUser = await convex.query(api.queries.users.getById, { userId: userId as any });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const inviterUser = await convex.query(api.queries.users.getById, { 
+      userId: userId as any,
+      sessionToken: sessionToken || undefined
+    });
     const inviterName = inviterUser?.name || 'A family member';
 
     try {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { getErrorMessage } from '@/types/errors';
@@ -97,7 +97,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     // Get user
-    const user = await convex.query(api.queries.users.getById, { userId: session.userId });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await convex.query(api.queries.users.getById, { 
+      userId: session.userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
       return ResponseFactory.unauthorized('2FA not enabled for this user.');
     }

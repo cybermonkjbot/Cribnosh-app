@@ -192,8 +192,91 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
+/**
+ * Check if an endpoint requires authentication
+ * Public endpoints that don't require auth should be listed here
+ */
+const requiresAuthentication = (url: string): boolean => {
+  // Public endpoints that don't require authentication
+  const publicEndpoints = [
+    '/auth/',
+    '/public/',
+    '/health',
+    '/ping',
+  ];
+  
+  // Check if URL matches any public endpoint
+  return !publicEndpoints.some(endpoint => url.includes(endpoint));
+};
+
+/**
+ * Fast check for session token existence (no async needed, just check SecureStore)
+ * This is called BEFORE making any API call to fail fast if no token exists
+ */
+const checkAuthentication = async (url: string): Promise<{ hasAuth: boolean; error?: any }> => {
+  // Check if endpoint requires authentication
+  if (!requiresAuthentication(url)) {
+    return { hasAuth: true }; // Public endpoint, no auth needed
+  }
+  
+  // Fast check: Fail immediately if no token exists (no API call)
+  try {
+    const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+    if (!sessionToken) {
+      return {
+        hasAuth: false,
+        error: {
+          status: 401,
+          data: {
+            success: false,
+            error: {
+              code: '401',
+              message: 'Authentication required. Please sign in.',
+            },
+          },
+        },
+      };
+    }
+    return { hasAuth: true };
+  } catch (error) {
+    console.error("[Customer API] Error checking authentication:", error);
+    return {
+      hasAuth: false,
+      error: {
+        status: 401,
+        data: {
+          success: false,
+          error: {
+            code: '401',
+            message: 'Authentication required. Please sign in.',
+          },
+        },
+      },
+    };
+  }
+};
+
 // Custom baseQuery wrapper to handle non-JSON responses (e.g., HTML 404 pages)
 const baseQuery = async (args: any, api: any, extraOptions: any) => {
+  // Fast authentication check BEFORE making API call
+  const url = typeof args === 'string' ? args : args?.url || '';
+  const authCheck = await checkAuthentication(url);
+  
+  if (!authCheck.hasAuth) {
+    // Return error immediately without making API call
+    // Clear expired/invalid sessionToken
+    await SecureStore.deleteItemAsync("cribnosh_session_token").catch(() => {});
+    await SecureStore.deleteItemAsync("cribnosh_user").catch(() => {});
+    
+    // Handle 401 error (dynamic import to avoid circular deps)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { handle401Error } = require("@/utils/authErrorHandler");
+    handle401Error(authCheck.error);
+    
+    // RTK Query expects { error: { status, data } } format
+    return { error: authCheck.error };
+  }
+  
   // For FormData requests, don't set content-type (let browser set it with boundary)
   if (args.body instanceof FormData) {
     // Create a custom fetchBaseQuery that doesn't set content-type

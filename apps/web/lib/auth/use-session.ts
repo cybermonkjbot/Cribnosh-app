@@ -89,7 +89,7 @@ export function useSession() {
   
   const userDataById = useQuery(
     api.queries.users.getById,
-    userId && !userDataBySessionToken ? { userId } : 'skip'
+    userId && !userDataBySessionToken ? { userId, sessionToken: sessionToken || undefined } : 'skip'
   ) as User | null;
   
   // Prefer sessionToken-based query, fallback to userId-based query (JWT legacy)

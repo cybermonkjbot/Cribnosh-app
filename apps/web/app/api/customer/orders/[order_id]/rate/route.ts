@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
@@ -176,6 +176,7 @@ async function handlePOST(
     }
 
     const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query order and verify ownership
     const order = await convex.query(api.queries.orders.getById, { order_id });
@@ -249,11 +250,17 @@ async function handlePOST(
       }).catch(() => null);
 
       if (chef) {
-        const userData = await convex.query(api.queries.users.getById, { userId });
+        const userData = await convex.query(api.queries.users.getById, { 
+          userId,
+          sessionToken: sessionToken || undefined
+        });
         const customerName = userData?.name || 'A customer';
 
         // Get chef's user email
-        const chefUser = await convex.query(api.queries.users.getById, { userId: chef.userId }).catch(() => null);
+        const chefUser = await convex.query(api.queries.users.getById, { 
+          userId: chef.userId,
+          sessionToken: sessionToken || undefined
+        }).catch(() => null);
         if (chefUser?.email) {
           sendReviewNotification(
             chefUser.email,

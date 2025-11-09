@@ -110,7 +110,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
     // Trigger async job to compile user data and send email when ready
-    generateDataDownload(userId as Id<'users'>, downloadToken, expiresAt).catch((error) => {
+    generateDataDownload(userId as Id<'users'>, downloadToken, expiresAt, sessionToken).catch((error) => {
       logger.error('Failed to generate data download:', error);
     });
 

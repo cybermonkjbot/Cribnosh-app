@@ -1,11 +1,10 @@
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/conxed-client';
 import { sendDataDownloadEmail } from './email-service';
 
 import { Id } from '@/convex/_generated/dataModel';
-import { logger } from '@/lib/utils/logger';
 
-export async function compileUserData(userId: Id<'users'>): Promise<{
+export async function compileUserData(userId: Id<'users'>, sessionToken?: string | null): Promise<{
   user: unknown;
   orders: unknown[];
   paymentMethods: unknown[];
@@ -17,7 +16,11 @@ export async function compileUserData(userId: Id<'users'>): Promise<{
   const convex = getConvexClient();
 
   // Fetch all user data
-  const user = await convex.query(api.queries.users.getById, { userId });
+  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
+  const user = await convex.query(api.queries.users.getById, { 
+    userId,
+    sessionToken: sessionToken || undefined
+  });
   const userIdString = user?._id || userId as unknown as string;
   
   const [orders, paymentMethods, preferences, allergies, reviews, supportCases] = await Promise.all([
@@ -43,9 +46,9 @@ export async function compileUserData(userId: Id<'users'>): Promise<{
   };
 }
 
-export async function generateDataDownload(userId: Id<'users'>, downloadToken: string, expiresAt: number) {
+export async function generateDataDownload(userId: Id<'users'>, downloadToken: string, expiresAt: number, sessionToken?: string | null) {
   // Compile all user data
-  const userData = await compileUserData(userId);
+  const userData = await compileUserData(userId, sessionToken);
 
   // Convert to JSON
   const jsonData = JSON.stringify(userData, null, 2);

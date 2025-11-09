@@ -169,7 +169,10 @@ async function handlePOST(request: NextRequest) {
         });
 
         // Get the updated user
-        const newUser = await convex.query(api.queries.users.getById, { userId });
+        const newUser = await convex.query(api.queries.users.getById, { 
+          userId,
+          sessionToken: undefined // No session token during sign-in
+        });
         
         if (!newUser) {
           throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Failed to create user');

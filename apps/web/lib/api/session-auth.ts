@@ -9,12 +9,12 @@
  * Validates session tokens and ensures users have required roles.
  */
 
-import { NextRequest } from 'next/server';
 import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
 import { getConvexClient } from '@/lib/conxed-client';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { Id } from '@/convex/_generated/dataModel';
 import jwt from 'jsonwebtoken';
+import { NextRequest } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
@@ -42,8 +42,11 @@ export interface AuthenticatedCustomer extends AuthenticatedUser {}
 /**
  * Extract session token from request (cookie or header)
  * Supports multiple sources for backward compatibility
+ * 
+ * This is a fast check that doesn't make any Convex calls.
+ * Use this to fail fast before making any Convex queries.
  */
-function extractSessionToken(request: NextRequest): string | null {
+export function extractSessionToken(request: NextRequest): string | null {
   // Priority 1: Cookie (web app)
   const cookieToken = request.cookies.get('convex-auth-token')?.value;
   if (cookieToken) {
@@ -76,6 +79,7 @@ function extractSessionToken(request: NextRequest): string | null {
  */
 async function validateSessionToken(sessionToken: string): Promise<AuthenticatedUser | null> {
   const convex = getConvexClient();
+  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const user = await convex.query(api.queries.users.getUserBySessionToken, { 
     sessionToken 
   });
@@ -130,6 +134,9 @@ async function validateJWTToken(jwtToken: string): Promise<AuthenticatedUser | n
  * and checks session expiry. Falls back to JWT if sessionToken not found.
  * Does not enforce any role requirements.
  * 
+ * IMPORTANT: This function makes Convex calls to validate the token.
+ * For fail-fast behavior, check extractSessionToken() first.
+ * 
  * @param request - Next.js request object
  * @returns Promise resolving to authenticated user info
  * @throws AuthenticationError if session token is missing or invalid
@@ -137,7 +144,7 @@ async function validateJWTToken(jwtToken: string): Promise<AuthenticatedUser | n
 async function getAuthenticatedUserBase(
   request: NextRequest
 ): Promise<AuthenticatedUser> {
-  // Try sessionToken first (preferred)
+  // Fast check: Fail immediately if no token exists (no Convex call)
   const sessionToken = extractSessionToken(request);
   
   if (sessionToken) {
@@ -166,6 +173,9 @@ async function getAuthenticatedUserBase(
 /**
  * Get authenticated user from session token (no role requirement)
  * 
+ * IMPORTANT: This function makes Convex calls to validate the token.
+ * For fail-fast behavior, check extractSessionToken() first.
+ * 
  * @param request - Next.js request object
  * @returns Promise resolving to authenticated user info
  * @throws AuthenticationError if session token is missing or invalid
@@ -173,6 +183,16 @@ async function getAuthenticatedUserBase(
 export async function getAuthenticatedUser(
   request: NextRequest
 ): Promise<AuthenticatedUser> {
+  // Fast check: Fail immediately if no token exists (no Convex call)
+  const sessionToken = extractSessionToken(request);
+  if (!sessionToken) {
+    // Also check for JWT in Authorization header (fallback)
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new AuthenticationError('Missing or invalid authentication token');
+    }
+  }
+  
   return getAuthenticatedUserBase(request);
 }
 
@@ -183,6 +203,9 @@ export async function getAuthenticatedUser(
  * checks session expiry, and ensures the user has the `customer` role.
  * Automatically adds the `customer` role if missing.
  * 
+ * IMPORTANT: This function makes Convex calls to validate the token.
+ * For fail-fast behavior, check extractSessionToken() first or use withCustomerAuth() middleware.
+ * 
  * @param request - Next.js request object
  * @returns Promise resolving to authenticated customer info
  * @throws AuthenticationError if session token is missing or invalid
@@ -191,6 +214,16 @@ export async function getAuthenticatedUser(
 export async function getAuthenticatedCustomer(
   request: NextRequest
 ): Promise<AuthenticatedCustomer> {
+  // Fast check: Fail immediately if no token exists (no Convex call)
+  const sessionToken = extractSessionToken(request);
+  if (!sessionToken) {
+    // Also check for JWT in Authorization header (fallback)
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new AuthenticationError('Missing or invalid authentication token');
+    }
+  }
+  
   const { user } = await getAuthenticatedUserBase(request);
   const convex = getConvexClient();
 

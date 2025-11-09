@@ -162,7 +162,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Get the user details
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-    const userDetails = await convex.query(api.queries.users.getById, { userId }) as any;
+    const userDetails = await convex.query(api.queries.users.getById, { 
+      userId,
+      sessionToken: undefined // No session token during sign-in
+    }) as any;
     
     if (!userDetails) {
       throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Failed to retrieve user after Apple OAuth authentication');
