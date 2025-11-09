@@ -1,27 +1,27 @@
 ﻿"use client";
 
-import React, { useState } from 'react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AnalyticsPageSkeleton } from '@/components/admin/skeletons';
+import { api } from '@/convex/_generated/api';
 import { useQuery } from '@tanstack/react-query';
 import { useConvex } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { motion } from 'motion/react';
-import { 
-  TrendingUp, 
-  Users, 
-  BarChart3,
+import {
   Activity,
+  BarChart3,
+  DollarSign,
   Download,
   Filter,
-  DollarSign,
+  MapPin,
   ShoppingCart,
-  MapPin
+  TrendingUp,
+  Users
 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useState } from 'react';
 
-import Link from 'next/link';
-import { formatCurrency } from '@/lib/utils/number-format';
 import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/lib/utils/number-format';
+import Link from 'next/link';
 
 interface AnalyticsData {
   totalUsers: number;
@@ -82,8 +82,8 @@ export default function AdminAnalyticsPage() {
       change: `${currentData.userGrowth >= 0 ? '+' : ''}${currentData.userGrowth.toFixed(1)}%`,
       changeType: currentData.userGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-gray-900',
+      bgColor: 'bg-gray-100',
     },
     {
       title: 'Active Chefs',
@@ -91,8 +91,8 @@ export default function AdminAnalyticsPage() {
       change: `${currentData.chefGrowth >= 0 ? '+' : ''}${currentData.chefGrowth.toFixed(1)}%`,
       changeType: currentData.chefGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: Activity,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-gray-900',
+      bgColor: 'bg-gray-100',
     },
     {
       title: 'Total Orders',
@@ -100,8 +100,8 @@ export default function AdminAnalyticsPage() {
       change: `${currentData.orderGrowth >= 0 ? '+' : ''}${currentData.orderGrowth.toFixed(1)}%`,
       changeType: currentData.orderGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: TrendingUp,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      color: 'text-gray-900',
+      bgColor: 'bg-gray-100',
     },
     {
       title: 'Revenue',
@@ -109,8 +109,8 @@ export default function AdminAnalyticsPage() {
       change: `${currentData.revenueGrowth >= 0 ? '+' : ''}${currentData.revenueGrowth.toFixed(1)}%`,
       changeType: currentData.revenueGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: DollarSign,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      color: 'text-gray-900',
+      bgColor: 'bg-gray-100',
     },
   ];
 
@@ -151,7 +151,7 @@ export default function AdminAnalyticsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-6">
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${realtimeMetrics.systemHealth.status === 'operational' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${realtimeMetrics.systemHealth.status === 'operational' ? 'bg-[#F23E2E]' : 'bg-gray-500'}`}></div>
                     <span className="text-sm font-medium text-gray-700">
                       System: {realtimeMetrics.systemHealth.status}
                     </span>
@@ -211,7 +211,7 @@ export default function AdminAnalyticsPage() {
                   <p className="text-2xl sm:text-3xl font-bold font-asgard text-gray-900 mt-1">{metric.value}</p>
                   <div className="flex items-center gap-1 mt-2">
                     <span className={`text-sm font-medium font-satoshi ${
-                      metric.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                      metric.changeType === 'positive' ? 'text-[#F23E2E]' : 'text-gray-600'
                     }`}>
                       {metric.change}
                     </span>
@@ -265,8 +265,8 @@ export default function AdminAnalyticsPage() {
           {currentData.recentActivity.slice(0, 10).map((activity, index) => (
             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Activity className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Activity className="w-4 h-4 text-gray-900" />
                 </div>
                 <span className="font-medium font-satoshi text-gray-900">{activity.type}</span>
               </div>
@@ -311,10 +311,10 @@ export default function AdminAnalyticsPage() {
           {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { title: 'View Users', icon: Users, href: '/admin/users', color: 'text-blue-600', bgColor: 'bg-blue-50' },
-              { title: 'Manage Chefs', icon: Activity, href: '/admin/chefs', color: 'text-green-600', bgColor: 'bg-green-50' },
-              { title: 'Order History', icon: ShoppingCart, href: '/admin/orders', color: 'text-purple-600', bgColor: 'bg-purple-50' },
-              { title: 'System Settings', icon: BarChart3, href: '/admin/settings', color: 'text-orange-600', bgColor: 'bg-orange-50' },
+              { title: 'View Users', icon: Users, href: '/admin/users', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+              { title: 'Manage Chefs', icon: Activity, href: '/admin/chefs', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+              { title: 'Order History', icon: ShoppingCart, href: '/admin/orders', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+              { title: 'System Settings', icon: BarChart3, href: '/admin/settings', color: 'text-gray-900', bgColor: 'bg-gray-100' },
             ].map((action, index) => {
               const Icon = action.icon;
               return (

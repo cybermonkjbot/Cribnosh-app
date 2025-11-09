@@ -182,14 +182,15 @@ export default function OrderManagementPage() {
   };
 
   const getStatusBadge = (status: string) => {
+    // Use brand color for active/positive statuses, neutral dark for others
     const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      confirmed: { color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
-      preparing: { color: 'bg-orange-100 text-orange-800', icon: ChefHat },
-      ready: { color: 'bg-purple-100 text-purple-800', icon: Package },
-      out_for_delivery: { color: 'bg-indigo-100 text-indigo-800', icon: Truck },
-      delivered: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      cancelled: { color: 'bg-red-100 text-red-800', icon: XCircle },
+      pending: { color: 'bg-gray-100 text-gray-800', icon: Clock },
+      confirmed: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      preparing: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: ChefHat },
+      ready: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Package },
+      out_for_delivery: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Truck },
+      delivered: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      cancelled: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
       refunded: { color: 'bg-gray-100 text-gray-800', icon: RefreshCw }
     };
     
@@ -205,10 +206,11 @@ export default function OrderManagementPage() {
   };
 
   const getPaymentBadge = (status: string) => {
+    // Use brand color for paid, neutral dark for others
     const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800' },
-      paid: { color: 'bg-green-100 text-green-800' },
-      failed: { color: 'bg-red-100 text-red-800' },
+      pending: { color: 'bg-gray-100 text-gray-800' },
+      paid: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]' },
+      failed: { color: 'bg-gray-100 text-gray-800' },
       refunded: { color: 'bg-gray-100 text-gray-800' }
     };
     
@@ -237,11 +239,12 @@ export default function OrderManagementPage() {
   };
 
   const getUrgencyBadge = (urgency: string) => {
+    // Use brand color for urgent statuses, neutral dark for normal
     const config = {
-      critical: { color: 'bg-red-100 text-red-800', icon: AlertTriangle },
-      warning: { color: 'bg-orange-100 text-orange-800', icon: Clock },
-      attention: { color: 'bg-yellow-100 text-yellow-800', icon: Zap },
-      normal: { color: 'bg-green-100 text-green-800', icon: CheckCircle }
+      critical: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: AlertTriangle },
+      warning: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Clock },
+      attention: { color: 'bg-gray-100 text-gray-800', icon: Zap },
+      normal: { color: 'bg-gray-100 text-gray-800', icon: CheckCircle }
     };
     
     const { color, icon: Icon } = config[urgency as keyof typeof config];
@@ -344,11 +347,11 @@ export default function OrderManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Active Orders</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {orderStats?.activeOrders || 0}
                     </p>
                   </div>
-                  <Clock className="w-8 h-8 text-blue-600" />
+                  <Clock className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -364,11 +367,11 @@ export default function OrderManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       ${orderStats?.todayRevenue.toLocaleString() || '0'}
                     </p>
                   </div>
-                  <DollarSign className="w-8 h-8 text-green-600" />
+                  <DollarSign className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -384,11 +387,11 @@ export default function OrderManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-                    <p className="text-2xl font-bold text-purple-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       ${orderStats?.averageOrderValue.toLocaleString() || '0'}
                     </p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-purple-600" />
+                  <TrendingUp className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -465,9 +468,8 @@ export default function OrderManagementPage() {
                     transition={{ delay: index * 0.05 }}
                   >
                     <Card className={`hover:shadow-lg transition-shadow ${
-                      urgency === 'critical' ? 'border-red-200 bg-red-50/30' : 
-                      urgency === 'warning' ? 'border-orange-200 bg-orange-50/30' : 
-                      urgency === 'attention' ? 'border-yellow-200 bg-yellow-50/30' : ''
+                      urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' : 
+                      urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
                     }`}>
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
@@ -561,11 +563,10 @@ export default function OrderManagementPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <Card className={`hover:shadow-lg transition-shadow ${
-                        urgency === 'critical' ? 'border-red-200 bg-red-50/30' : 
-                        urgency === 'warning' ? 'border-orange-200 bg-orange-50/30' : 
-                        urgency === 'attention' ? 'border-yellow-200 bg-yellow-50/30' : ''
-                      }`}>
+                          <Card className={`hover:shadow-lg transition-shadow ${
+                            urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' : 
+                            urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
+                          }`}>
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-lg">Order #{order._id.slice(-8)}</CardTitle>
@@ -583,7 +584,7 @@ export default function OrderManagementPage() {
                               <p className="font-medium text-gray-600">Chef</p>
                               <p>{order.chef?.bio?.substring(0, 30) || 'Unknown'}...</p>
                               <div className="flex items-center gap-1">
-                                <Star className="w-3 h-3 text-yellow-500" />
+                                <Star className="w-3 h-3 text-gray-900" />
                                 <span className="text-sm">{order.chef?.rating?.toFixed(1) || 'N/A'}</span>
                               </div>
                             </div>
@@ -663,19 +664,19 @@ export default function OrderManagementPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <Card className={`border-red-200 bg-red-50/30`}>
+                      <Card className={`border-[#F23E2E]/20 bg-[#F23E2E]/5`}>
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                                <AlertTriangle className="w-6 h-6 text-red-600" />
+                              <div className="w-12 h-12 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
+                                <AlertTriangle className="w-6 h-6 text-[#F23E2E]" />
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <h3 className="font-semibold text-red-900">Order #{order._id.slice(-8)}</h3>
+                                  <h3 className="font-semibold text-gray-900">Order #{order._id.slice(-8)}</h3>
                                   {getUrgencyBadge(urgency)}
                                 </div>
-                                <p className="text-sm text-red-700 mt-1">
+                                <p className="text-sm text-gray-700 mt-1">
                                   {urgency === 'critical' ? 'Order is significantly delayed' :
                                    urgency === 'warning' ? 'Order is running late' :
                                    order.payment_status === 'failed' ? 'Payment failed' :
@@ -687,7 +688,7 @@ export default function OrderManagementPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-red-300 text-red-600 hover:bg-red-50"
+                                    className="border-[#F23E2E]/30 text-[#F23E2E] hover:bg-[#F23E2E]/10"
                               >
                                 <Flag className="w-4 h-4 mr-1" />
                                 Flag for Review

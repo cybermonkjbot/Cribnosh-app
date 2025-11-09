@@ -171,11 +171,12 @@ export default function AdminTimeTrackingPage() {
   }, [list?.results]);
 
   const getStatusBadge = (status: Session['status']) => {
+    // Use brand color for active/completed, neutral dark for others
     const variants = {
-      active: 'bg-green-100 text-green-800 border-green-200',
-      completed: 'bg-blue-100 text-blue-800 border-blue-200',
-      paused: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      adjusted: 'bg-purple-100 text-purple-800 border-purple-200'
+      active: 'bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/20',
+      completed: 'bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/20',
+      paused: 'bg-gray-100 text-gray-800 border-gray-200',
+      adjusted: 'bg-gray-100 text-gray-800 border-gray-200'
     };
     return variants[status] || variants.completed;
   };
@@ -195,15 +196,15 @@ export default function AdminTimeTrackingPage() {
     <div className="space-y-8">
       {/* Error and Success Messages */}
       {error && (
-        <Alert variant="destructive" className="bg-red-50 border-red-200">
+        <Alert variant="destructive" className="bg-gray-50 border-gray-200">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="font-satoshi">{error}</AlertDescription>
         </Alert>
       )}
       {success && (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="font-satoshi text-green-800">{success}</AlertDescription>
+        <Alert className="bg-[#F23E2E]/10 border-[#F23E2E]/30">
+          <CheckCircle className="h-4 w-4 text-[#F23E2E]" />
+          <AlertDescription className="font-satoshi text-[#F23E2E]">{success}</AlertDescription>
         </Alert>
       )}
 
@@ -238,57 +239,57 @@ export default function AdminTimeTrackingPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 font-satoshi">Today's Hours</p>
-                  <p className="text-3xl font-bold text-blue-900 font-asgard">{analytics.todayHours}h</p>
+                  <p className="text-sm font-medium text-gray-900 font-satoshi">Today's Hours</p>
+                  <p className="text-3xl font-bold text-gray-900 font-asgard">{analytics.todayHours}h</p>
                 </div>
-                <div className="p-3 bg-blue-200 rounded-full">
-                  <Clock className="w-6 h-6 text-blue-600" />
+                <div className="p-3 bg-gray-200 rounded-full">
+                  <Clock className="w-6 h-6 text-gray-900" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600 font-satoshi">Active Sessions</p>
-                  <p className="text-3xl font-bold text-green-900 font-asgard">{analytics.activeSessions}</p>
+                  <p className="text-sm font-medium text-gray-900 font-satoshi">Active Sessions</p>
+                  <p className="text-3xl font-bold text-gray-900 font-asgard">{analytics.activeSessions}</p>
                 </div>
-                <div className="p-3 bg-green-200 rounded-full">
-                  <Activity className="w-6 h-6 text-green-600" />
+                <div className="p-3 bg-gray-200 rounded-full">
+                  <Activity className="w-6 h-6 text-gray-900" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600 font-satoshi">This Week</p>
-                  <p className="text-3xl font-bold text-purple-900 font-asgard">{analytics.weekHours}h</p>
+                  <p className="text-sm font-medium text-gray-900 font-satoshi">This Week</p>
+                  <p className="text-3xl font-bold text-gray-900 font-asgard">{analytics.weekHours}h</p>
                 </div>
-                <div className="p-3 bg-purple-200 rounded-full">
-                  <TrendingUp className="w-6 h-6 text-purple-600" />
+                <div className="p-3 bg-gray-200 rounded-full">
+                  <TrendingUp className="w-6 h-6 text-gray-900" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-600 font-satoshi">Staff Members</p>
-                  <p className="text-3xl font-bold text-orange-900 font-asgard">{analytics.staffCount}</p>
+                  <p className="text-sm font-medium text-gray-900 font-satoshi">Staff Members</p>
+                  <p className="text-3xl font-bold text-gray-900 font-asgard">{analytics.staffCount}</p>
                 </div>
-                <div className="p-3 bg-orange-200 rounded-full">
-                  <Users className="w-6 h-6 text-orange-600" />
+                <div className="p-3 bg-gray-200 rounded-full">
+                  <Users className="w-6 h-6 text-gray-900" />
                 </div>
               </div>
             </CardContent>

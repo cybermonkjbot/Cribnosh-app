@@ -1,8 +1,8 @@
 "use client";
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { EmptyState } from '@/components/admin/empty-state';
 import { ChefFilterBar } from '@/components/admin/chef-filter-bar';
+import { EmptyState } from '@/components/admin/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -155,11 +155,12 @@ export default function ChefManagementPage() {
   };
 
   const getStatusBadge = (status: string) => {
+    // Use brand color for active/positive statuses, neutral dark for others
     const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
+      active: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
       inactive: { color: 'bg-gray-100 text-gray-800', icon: Clock },
-      suspended: { color: 'bg-red-100 text-red-800', icon: XCircle },
-      pending_verification: { color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle }
+      suspended: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
+      pending_verification: { color: 'bg-gray-100 text-gray-800', icon: AlertTriangle }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.inactive;
@@ -174,10 +175,11 @@ export default function ChefManagementPage() {
   };
 
   const getVerificationBadge = (status: string) => {
+    // Use brand color for verified, neutral dark for others
     const statusConfig = {
-      verified: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      rejected: { color: 'bg-red-100 text-red-800', icon: XCircle }
+      verified: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      pending: { color: 'bg-gray-100 text-gray-800', icon: Clock },
+      rejected: { color: 'bg-gray-100 text-gray-800', icon: XCircle }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -282,11 +284,11 @@ export default function ChefManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Active Chefs</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {chefs?.filter(c => c.status === 'active').length || 0}
                     </p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+                  <CheckCircle className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -302,11 +304,11 @@ export default function ChefManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Pending Verification</p>
-                    <p className="text-2xl font-bold text-yellow-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {chefs?.filter(c => c.verificationStatus === 'pending').length || 0}
                     </p>
                   </div>
-                  <Clock className="w-8 h-8 text-yellow-600" />
+                  <Clock className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -322,11 +324,11 @@ export default function ChefManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Avg Rating</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {chefs?.length ? (chefs.reduce((sum, c) => sum + c.rating, 0) / chefs.length).toFixed(1) : '0.0'}
                     </p>
                   </div>
-                  <Star className="w-8 h-8 text-blue-600" />
+                  <Star className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -434,19 +436,19 @@ export default function ChefManagementPage() {
                       
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <Star className="w-4 h-4 text-yellow-500" />
+                          <Star className="w-4 h-4 text-gray-900" />
                           <span>{chef.rating.toFixed(1)}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-green-500" />
+                          <DollarSign className="w-4 h-4 text-gray-900" />
                           <span>${chef.performance.totalEarnings.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-blue-500" />
+                          <Users className="w-4 h-4 text-gray-900" />
                           <span>{chef.performance.totalOrders} orders</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-purple-500" />
+                          <Calendar className="w-4 h-4 text-gray-900" />
                           <span>{chef.performance.completedOrders} completed</span>
                         </div>
                       </div>
@@ -518,7 +520,7 @@ export default function ChefManagementPage() {
                           <Button
                             size="sm"
                             onClick={() => handleVerificationUpdate(chef._id, 'verified')}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                           >
                             <CheckCircle className="w-4 h-4 mr-1" />
                             Approve
@@ -527,7 +529,7 @@ export default function ChefManagementPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleVerificationUpdate(chef._id, 'rejected')}
-                            className="border-red-300 text-red-600 hover:bg-red-50"
+                            className="border-gray-300 text-gray-900 hover:bg-gray-50"
                           >
                             <XCircle className="w-4 h-4 mr-1" />
                             Reject
@@ -566,7 +568,7 @@ export default function ChefManagementPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-green-600">${chef.performance.totalEarnings.toLocaleString()}</p>
+                            <p className="font-bold text-gray-900">${chef.performance.totalEarnings.toLocaleString()}</p>
                             <p className="text-sm text-gray-600">{chef.performance.totalOrders} orders</p>
                           </div>
                         </div>
@@ -587,8 +589,8 @@ export default function ChefManagementPage() {
                       .map((chef, index) => (
                         <div key={chef._id} className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                              <Star className="w-4 h-4 text-yellow-500" />
+                            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                              <Star className="w-4 h-4 text-gray-900" />
                             </div>
                             <div>
                               <p className="font-medium">{chef.bio.substring(0, 30)}...</p>
@@ -596,7 +598,7 @@ export default function ChefManagementPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-yellow-600">{chef.rating.toFixed(1)}</p>
+                            <p className="font-bold text-gray-900">{chef.rating.toFixed(1)}</p>
                             <p className="text-sm text-gray-600">{chef.performance.totalOrders} orders</p>
                           </div>
                         </div>

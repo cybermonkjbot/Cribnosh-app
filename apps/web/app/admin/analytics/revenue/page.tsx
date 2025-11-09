@@ -1,26 +1,25 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { 
-  DollarSign, 
-  TrendingUp,
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from '@/convex/_generated/api';
+import { formatCurrency } from '@/lib/utils/number-format';
+import { useQuery } from 'convex/react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
   BarChart2,
-  PieChart,
   CreditCard,
+  DollarSign,
+  PieChart,
   Receipt,
   Target,
-  Wallet,
-  ArrowUpRight,
-  ArrowDownRight
+  TrendingUp,
+  Wallet
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils/number-format';
+import { useState } from 'react';
 
 interface RevenueData {
   totalRevenue: number;

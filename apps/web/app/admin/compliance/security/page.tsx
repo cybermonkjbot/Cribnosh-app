@@ -1,33 +1,28 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, 
-  CheckCircle,
-  XCircle,
+import { api } from '@/convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Activity,
   AlertTriangle,
-  Lock,
-  Eye,
-  Download,
   Calendar,
-  Clock,
-  Settings,
-  Key,
+  CheckCircle,
   Database,
-  Network,
-  UserCheck,
+  Download,
+  Eye,
   FileText,
-  Activity
+  Key,
+  Network,
+  Settings,
+  Shield,
+  UserCheck
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface SecurityCompliance {
   authentication: {

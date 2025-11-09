@@ -1,28 +1,27 @@
 ﻿"use client";
 
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import React, { useState } from 'react';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { motion, AnimatePresence } from 'motion/react';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  Briefcase, 
-  Users, 
-  Plus, 
-  Edit, 
-  Trash, 
-  Eye, 
-  X,
-  MapPin,
-  Building,
-  Clock,
-  Search,
-  Mail
-} from 'lucide-react';
-import { Id } from '@/convex/_generated/dataModel';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Button } from '@/components/ui/button';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Briefcase,
+  Building,
+  Clock,
+  Edit,
+  Eye,
+  Mail,
+  MapPin,
+  Plus,
+  Search,
+  Trash,
+  Users,
+  X
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import React, { useState } from 'react';
 
 
 
@@ -284,12 +283,13 @@ export default function AdminCareers() {
   };
 
   const getStatusColor = (status: string) => {
+    // Use brand color for positive statuses, neutral dark for others
     switch (status) {
-      case 'pending': return 'bg-yellow-200 text-yellow-800';
-      case 'reviewed': return 'bg-blue-200 text-blue-800';
-      case 'shortlisted': return 'bg-green-200 text-green-800';
-      case 'rejected': return 'bg-red-200 text-red-800';
-      case 'hired': return 'bg-purple-200 text-purple-800';
+      case 'pending': return 'bg-gray-200 text-gray-800';
+      case 'reviewed': return 'bg-[#F23E2E]/10 text-[#F23E2E]';
+      case 'shortlisted': return 'bg-[#F23E2E]/10 text-[#F23E2E]';
+      case 'rejected': return 'bg-gray-200 text-gray-800';
+      case 'hired': return 'bg-[#F23E2E]/10 text-[#F23E2E]';
       default: return 'bg-gray-200 text-gray-800';
     }
   };
@@ -411,7 +411,7 @@ export default function AdminCareers() {
                   <div className="flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-gray-600" />
                     <span className={`px-2 py-1 text-xs font-medium rounded-full font-satoshi ${
-                      job.isActive ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800'
+                      job.isActive ? 'bg-[#F23E2E]/10 text-[#F23E2E]' : 'bg-gray-200 text-gray-800'
                     }`}>
                       {job.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -427,7 +427,7 @@ export default function AdminCareers() {
                     <button
                       onClick={() => handleDeleteJob(job._id)}
                       disabled={isDeleting === job._id}
-                      className="p-1 text-gray-600 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1 text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Delete job"
                     >
                       {isDeleting === job._id ? (
@@ -557,7 +557,7 @@ export default function AdminCareers() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            className="text-gray-900 hover:text-[#F23E2E] transition-colors"
                             aria-label="Send email"
                           >
                             <Mail className="w-4 h-4" />
@@ -615,11 +615,11 @@ export default function AdminCareers() {
                       value={jobFormData.title}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobFormData(prev => ({ ...prev, title: e.target.value }))}
                       className={`w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-2 font-satoshi ${
-                        formErrors.title ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 focus:ring-primary-500/50'
+                        formErrors.title ? 'border-gray-500 focus:ring-gray-500/50' : 'border-gray-300 focus:ring-[#F23E2E]/50'
                       }`}
                       placeholder="Enter job title"
                     />
-                    {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
+                    {formErrors.title && <p className="text-gray-700 text-sm mt-1">{formErrors.title}</p>}
                   </div>
                   
                   <div>
@@ -631,11 +631,11 @@ export default function AdminCareers() {
                       value={jobFormData.department}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobFormData(prev => ({ ...prev, department: e.target.value }))}
                       className={`w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-2 font-satoshi ${
-                        formErrors.department ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 focus:ring-primary-500/50'
+                        formErrors.department ? 'border-gray-500 focus:ring-gray-500/50' : 'border-gray-300 focus:ring-[#F23E2E]/50'
                       }`}
                       placeholder="Enter department"
                     />
-                    {formErrors.department && <p className="text-red-500 text-sm mt-1">{formErrors.department}</p>}
+                    {formErrors.department && <p className="text-gray-700 text-sm mt-1">{formErrors.department}</p>}
                   </div>
                 </div>
                 
@@ -702,7 +702,7 @@ export default function AdminCareers() {
                         <button
                           type="button"
                           onClick={() => removeArrayItem('requirements', index)}
-                          className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-satoshi"
+                          className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-satoshi"
                         >
                           Remove
                         </button>
@@ -736,7 +736,7 @@ export default function AdminCareers() {
                         <button
                           type="button"
                           onClick={() => removeArrayItem('responsibilities', index)}
-                          className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-satoshi"
+                          className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-satoshi"
                         >
                           Remove
                         </button>
@@ -770,7 +770,7 @@ export default function AdminCareers() {
                         <button
                           type="button"
                           onClick={() => removeArrayItem('benefits', index)}
-                          className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-satoshi"
+                          className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-satoshi"
                         >
                           Remove
                         </button>

@@ -1,39 +1,38 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { 
-  ClipboardList, 
+import { PriorityBadge, StatusBadge } from '@/components/ui/glass-badges';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/convex/_generated/api';
+import { Doc, Id } from '@/convex/_generated/dataModel';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from 'convex/react';
+import { formatDistanceToNow } from 'date-fns';
+import {
   ArrowLeft,
-  Mail,
-  Phone,
-  MapPin,
   Building2,
   Calendar,
-  Tag,
-  User,
-  Edit,
-  Save,
-  X,
   CheckCircle,
-  XCircle,
+  ClipboardList,
+  Edit,
+  Loader2,
+  Mail,
+  MapPin,
+  Phone,
+  Save,
+  Tag,
   Trash2,
-  Loader2
+  User,
+  X,
+  XCircle
 } from 'lucide-react';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { useToast } from '@/hooks/use-toast';
-import { StatusBadge, PriorityBadge } from '@/components/ui/glass-badges';
-import { formatDistanceToNow } from 'date-fns';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 // Auth is handled by layout, no need for AuthWrapper
 import { WaitlistCardSkeleton } from '@/components/admin/skeletons';
 
@@ -227,7 +226,7 @@ export default function WaitlistDetail() {
     return (
       <div>
         <div className="p-6">
-          <p className="text-red-600">Invalid entry ID</p>
+          <p className="text-gray-900">Invalid entry ID</p>
         </div>
       </div>
     );
@@ -299,7 +298,7 @@ export default function WaitlistDetail() {
                   <Button
                     onClick={() => setApproveConfirm(true)}
                     disabled={isApproving}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
                     {isApproving ? 'Approving...' : 'Approve'}
@@ -308,7 +307,7 @@ export default function WaitlistDetail() {
                     variant="outline"
                     onClick={() => setRejectConfirm(true)}
                     disabled={isRejecting}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-gray-900 hover:text-[#F23E2E]"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
                     {isRejecting ? 'Rejecting...' : 'Reject'}

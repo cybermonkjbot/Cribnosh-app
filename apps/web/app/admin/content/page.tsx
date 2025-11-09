@@ -1,19 +1,19 @@
 ﻿"use client";
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 
-import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { useMutation, useQuery } from 'convex/react';
-import { AnimatePresence, motion } from 'motion/react';
-import { Edit, FileText, Globe, Image, Plus, Search, Trash, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/admin/empty-state';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from 'convex/react';
+import { Edit, FileText, Globe, Image, Plus, Search, Trash } from 'lucide-react';
+import { motion } from 'motion/react';
 
 
 interface ContentItem {
@@ -338,8 +338,8 @@ export default function AdminContentPage() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full font-satoshi ${
-                    item.status === 'published' ? 'bg-green-200 text-green-800' :
-                    item.status === 'draft' ? 'bg-yellow-200 text-yellow-800' :
+                    item.status === 'published' ? 'bg-[#F23E2E]/10 text-[#F23E2E]' :
+                    item.status === 'draft' ? 'bg-gray-200 text-gray-800' :
                     'bg-gray-200 text-gray-800'
                   }`}>
                     {item.status}
@@ -355,7 +355,7 @@ export default function AdminContentPage() {
                   </button>
                   <button
                     onClick={() => handleDelete(item._id)}
-                    className="p-1 text-gray-600 hover:text-red-600 transition-colors"
+                    className="p-1 text-gray-600 hover:text-gray-900 transition-colors"
                     aria-label="Delete content"
                   >
                     <Trash className="w-4 h-4" />
@@ -378,7 +378,7 @@ export default function AdminContentPage() {
                   <Button
                     onClick={() => handlePublish(item._id)}
                     size="sm"
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    className="flex-1 bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                   >
                     Publish
                   </Button>
@@ -535,7 +535,7 @@ export default function AdminContentPage() {
                         <button
                           type="button"
                           onClick={() => removeTag(index)}
-                          className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-satoshi"
+                          className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-satoshi"
                         >
                           Remove
                         </button>

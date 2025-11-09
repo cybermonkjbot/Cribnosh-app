@@ -240,32 +240,34 @@ export default function TaxDocumentsPage() {
   }) || [];
 
   const getStatusBadge = (status: string) => {
+    // Use brand color for positive statuses, neutral dark for others
     switch (status) {
       case 'draft':
         return <Badge className="bg-gray-100 text-gray-800">Draft</Badge>;
       case 'generated':
-        return <Badge className="bg-blue-100 text-blue-800">Generated</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Generated</Badge>;
       case 'sent':
-        return <Badge className="bg-yellow-100 text-yellow-800">Sent</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Sent</Badge>;
       case 'acknowledged':
-        return <Badge className="bg-green-100 text-green-800">Acknowledged</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Acknowledged</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
   const getTypeBadge = (type: string) => {
+    // Use brand color for all types, neutral dark for custom
     switch (type) {
       case 'p60':
-        return <Badge className="bg-red-100 text-red-800">P60</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">P60</Badge>;
       case 'p45':
-        return <Badge className="bg-orange-100 text-orange-800">P45</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">P45</Badge>;
       case 'p11d':
-        return <Badge className="bg-purple-100 text-purple-800">P11D</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">P11D</Badge>;
       case 'payslip':
-        return <Badge className="bg-green-100 text-green-800">Payslip</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Payslip</Badge>;
       case 'tax_summary':
-        return <Badge className="bg-blue-100 text-blue-800">Tax Summary</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Tax Summary</Badge>;
       case 'custom':
         return <Badge className="bg-gray-100 text-gray-800">Custom</Badge>;
       default:

@@ -1,32 +1,31 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileText, 
-  Search, 
-  Filter,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
+import { useMutation, useQuery } from 'convex/react';
+import {
   Calendar,
-  User,
-  Globe,
-  Clock,
   CheckCircle,
-  XCircle,
-  ExternalLink
+  Clock,
+  Edit,
+  ExternalLink,
+  Eye,
+  FileText,
+  Filter,
+  Globe,
+  Plus,
+  Search,
+  Trash2,
+  User
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useState } from 'react';
 
 interface StaticPage {
   _id: Id<"staticPages">;

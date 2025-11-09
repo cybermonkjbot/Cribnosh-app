@@ -203,12 +203,13 @@ export default function DeliveryManagementPage() {
   };
 
   const getStatusBadge = (status: string) => {
+    // Use brand color for active/positive statuses, neutral dark for others
     const statusConfig = {
-      assigned: { color: 'bg-blue-100 text-blue-800', icon: Clock },
-      picked_up: { color: 'bg-green-100 text-green-800', icon: Package },
-      in_transit: { color: 'bg-orange-100 text-orange-800', icon: Truck },
-      delivered: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      failed: { color: 'bg-red-100 text-red-800', icon: XCircle },
+      assigned: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Clock },
+      picked_up: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Package },
+      in_transit: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Truck },
+      delivered: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      failed: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
       cancelled: { color: 'bg-gray-100 text-gray-800', icon: XCircle }
     };
     
@@ -224,12 +225,13 @@ export default function DeliveryManagementPage() {
   };
 
   const getDriverStatusBadge = (status: string) => {
+    // Use brand color for active/busy, neutral dark for others
     const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      busy: { color: 'bg-orange-100 text-orange-800', icon: Clock },
+      active: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      busy: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Clock },
       offline: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
-      inactive: { color: 'bg-red-100 text-red-800', icon: XCircle },
-      suspended: { color: 'bg-red-100 text-red-800', icon: AlertTriangle }
+      inactive: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
+      suspended: { color: 'bg-gray-100 text-gray-800', icon: AlertTriangle }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;

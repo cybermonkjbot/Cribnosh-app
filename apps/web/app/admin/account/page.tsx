@@ -1,15 +1,15 @@
 "use client";
 
-import { GlassCard } from '@/components/ui/glass-card';
-import { useSessionToken } from '@/hooks/useSessionToken';
-import { Settings, Loader2, User, UploadCloud } from 'lucide-react';
-import { Id } from '@/convex/_generated/dataModel';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AccountSettingsSkeleton } from '@/components/admin/skeletons';
+import { GlassCard } from '@/components/ui/glass-card';
+import { Id } from '@/convex/_generated/dataModel';
+import { useSessionToken } from '@/hooks/useSessionToken';
+import { Loader2, Settings, UploadCloud, User } from 'lucide-react';
 
 import { api } from '@/convex/_generated/api';
 import { useAction, useMutation } from 'convex/react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 
 const CUISINE_OPTIONS = ["Nigerian", "Ghanaian", "Jamaican", "Indian", "Chinese", "British", "Italian", "Other"];
@@ -190,9 +190,9 @@ export default function AdminAccountSettings() {
         {loading || adminLoading ? (
           <AccountSettingsSkeleton />
         ) : error ? (
-          <div className="text-red-600 font-satoshi text-center">{error}</div>
+          <div className="text-gray-900 font-satoshi text-center">{error}</div>
         ) : !user ? (
-          <div className="text-red-600 font-satoshi text-center">Please log in to access account settings.</div>
+          <div className="text-gray-900 font-satoshi text-center">Please log in to access account settings.</div>
         ) : (
           <form className="w-full space-y-6" onSubmit={handleSubmit}>
             {/* Profile Picture Section */}
@@ -322,8 +322,8 @@ export default function AdminAccountSettings() {
                 ))}
               </div>
             </div>
-            {success && <div className="text-green-700 font-satoshi text-center">{success}</div>}
-            {error && <div className="text-red-600 font-satoshi text-center">{error}</div>}
+            {success && <div className="text-[#F23E2E] font-satoshi text-center">{success}</div>}
+            {error && <div className="text-gray-900 font-satoshi text-center">{error}</div>}
             <button
               type="submit"
               className="w-full py-3 rounded-xl bg-primary-600 text-white font-bold text-lg shadow hover:bg-primary-700 transition-colors font-satoshi disabled:opacity-50"
