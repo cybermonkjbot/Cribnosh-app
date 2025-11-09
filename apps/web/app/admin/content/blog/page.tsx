@@ -76,7 +76,10 @@ export default function BlogManagementPage() {
   const sessionToken = useSessionToken();
   
   // Queries
-  const blogPosts = useQuery(api.queries.blogPosts.getBlogPosts, sessionToken ? { sessionToken } : "skip");
+  const blogPosts = useQuery(
+    api.queries.blog.getBlogPosts, 
+    sessionToken ? {} as { search?: string; status?: string; category?: string; limit?: number } : "skip"
+  );
   
   // Mutations
   const createPost = useMutation(api.mutations.blogPosts.createBlogPost);
@@ -178,23 +181,25 @@ export default function BlogManagementPage() {
   const filteredPosts = blogPosts?.filter((post: any) => {
     const matchesSearch = 
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.tags.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.tags?.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || post.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' || 
+      (post.categories && Array.isArray(post.categories) && post.categories.includes(categoryFilter)) ||
+      (post.category === categoryFilter);
     
     return matchesSearch && matchesStatus && matchesCategory;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
       case 'recent':
-        return b.updatedAt - a.updatedAt;
+        return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
       case 'title':
         return a.title.localeCompare(b.title);
       case 'views':
-        return b.views - a.views;
+        return (b.views || b.viewCount || 0) - (a.views || a.viewCount || 0);
       case 'likes':
-        return b.likes - a.likes;
+        return (b.likes || b.likeCount || 0) - (a.likes || a.likeCount || 0);
       default:
         return 0;
     }
@@ -213,7 +218,15 @@ export default function BlogManagementPage() {
     }
   };
 
-  const uniqueCategories = Array.from(new Set(blogPosts?.map((post: any) => post.category) || []));
+  const uniqueCategories = Array.from(new Set(
+    blogPosts?.flatMap((post: any) => 
+      post.categories && Array.isArray(post.categories) 
+        ? post.categories 
+        : post.category 
+          ? [post.category] 
+          : []
+    ) || []
+  ));
 
   return (
     <div className="container mx-auto py-6 space-y-[18px]">
@@ -498,7 +511,7 @@ export default function BlogManagementPage() {
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       <User className="w-4 h-4" />
-                      {post.author}
+                      {post.author?.name || post.author || 'Unknown'}
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
@@ -506,11 +519,11 @@ export default function BlogManagementPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      {post.readTime} min read
+                      {post.readTime || Math.ceil((post.content?.split(' ').length || 0) / 200)} min read
                     </div>
                     <div className="flex items-center gap-1">
                       <Eye className="w-4 h-4" />
-                      {post.views} views
+                      {post.views || post.viewCount || 0} views
                     </div>
                   </div>
                 </div>
@@ -565,15 +578,19 @@ export default function BlogManagementPage() {
               <div className="flex items-center gap-6 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
                   <span>Category:</span>
-                  <Badge variant="outline">{post.category}</Badge>
+                  <Badge variant="outline">
+                    {post.categories && Array.isArray(post.categories) && post.categories.length > 0
+                      ? post.categories.join(', ')
+                      : post.category || 'Uncategorized'}
+                  </Badge>
                 </div>
                 <div className="flex items-center gap-1">
                   <span>Likes:</span>
-                  <span className="font-medium">{post.likes}</span>
+                  <span className="font-medium">{post.likes || post.likeCount || 0}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span>Comments:</span>
-                  <span className="font-medium">{post.comments}</span>
+                  <span className="font-medium">{post.comments || post.commentCount || 0}</span>
                 </div>
                 {post.publishedAt && (
                   <div className="flex items-center gap-1">

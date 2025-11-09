@@ -1,14 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { stripe } from '@/lib/stripe';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
 import { headers } from 'next/headers';
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { getErrorMessage } from '@/types/errors';
-import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -147,7 +146,29 @@ async function handlePOST(request: NextRequest) {
 
 async function handlePaymentSucceeded(paymentIntent: any, convex: any) {
   try {
-    const { userId, orderType, type } = paymentIntent.metadata;
+    const { userId, orderType, type, order_id } = paymentIntent.metadata;
+    
+    // Record payment analytics
+    await convex.mutation(api.mutations.paymentAnalytics.recordPaymentEvent, {
+      paymentId: paymentIntent.id,
+      orderId: order_id || paymentIntent.metadata?.order_id,
+      userId: userId ? (userId as Id<'users'>) : undefined,
+      eventType: 'payment_intent.succeeded',
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      paymentMethod: paymentIntent.payment_method_types?.[0] || 'card',
+      paymentMethodType: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.brand,
+      status: paymentIntent.status,
+      metadata: {
+        stripeEventId: paymentIntent.id,
+        orderType,
+        type,
+        customerId: paymentIntent.customer,
+        description: paymentIntent.description,
+        receiptEmail: paymentIntent.receipt_email,
+        ...paymentIntent.metadata,
+      },
+    });
     
     // Handle balance top-up payments
     if (type === 'balance_topup' && userId) {
@@ -339,7 +360,28 @@ async function createOrderFromCartBackup(paymentIntent: any, convex: any, userId
 
 async function handlePaymentFailed(paymentIntent: any, convex: any) {
   try {
-    const { userId, orderType } = paymentIntent.metadata;
+    const { userId, orderType, order_id } = paymentIntent.metadata;
+    
+    // Record payment analytics
+    await convex.mutation(api.mutations.paymentAnalytics.recordPaymentEvent, {
+      paymentId: paymentIntent.id,
+      orderId: order_id || paymentIntent.metadata?.order_id,
+      userId: userId ? (userId as Id<'users'>) : undefined,
+      eventType: 'payment_intent.payment_failed',
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      paymentMethod: paymentIntent.payment_method_types?.[0] || 'card',
+      status: paymentIntent.status,
+      failureCode: paymentIntent.last_payment_error?.code,
+      failureReason: paymentIntent.last_payment_error?.message || paymentIntent.last_payment_error?.decline_code,
+      metadata: {
+        stripeEventId: paymentIntent.id,
+        orderType,
+        customerId: paymentIntent.customer,
+        error: paymentIntent.last_payment_error,
+        ...paymentIntent.metadata,
+      },
+    });
     
     if (orderType === 'customer_checkout') {
       // Update order status to failed
@@ -360,7 +402,26 @@ async function handlePaymentFailed(paymentIntent: any, convex: any) {
 
 async function handlePaymentCanceled(paymentIntent: any, convex: any) {
   try {
-    const { userId, orderType } = paymentIntent.metadata;
+    const { userId, orderType, order_id } = paymentIntent.metadata;
+    
+    // Record payment analytics
+    await convex.mutation(api.mutations.paymentAnalytics.recordPaymentEvent, {
+      paymentId: paymentIntent.id,
+      orderId: order_id || paymentIntent.metadata?.order_id,
+      userId: userId ? (userId as Id<'users'>) : undefined,
+      eventType: 'payment_intent.canceled',
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      paymentMethod: paymentIntent.payment_method_types?.[0] || 'card',
+      status: paymentIntent.status,
+      metadata: {
+        stripeEventId: paymentIntent.id,
+        orderType,
+        customerId: paymentIntent.customer,
+        cancellationReason: paymentIntent.cancellation_reason,
+        ...paymentIntent.metadata,
+      },
+    });
     
     if (orderType === 'customer_checkout') {
       // Update order status to canceled
@@ -381,7 +442,27 @@ async function handlePaymentCanceled(paymentIntent: any, convex: any) {
 
 async function handleChargeSucceeded(charge: any, convex: any) {
   try {
-    // Handle successful charge events
+    // Record payment analytics
+    await convex.mutation(api.mutations.paymentAnalytics.recordPaymentEvent, {
+      paymentId: charge.id,
+      orderId: charge.metadata?.order_id,
+      userId: charge.metadata?.user_id ? (charge.metadata.user_id as Id<'users'>) : undefined,
+      eventType: 'charge.succeeded',
+      amount: charge.amount,
+      currency: charge.currency,
+      paymentMethod: charge.payment_method_details?.type || 'card',
+      paymentMethodType: charge.payment_method_details?.card?.brand,
+      status: charge.status,
+      metadata: {
+        stripeEventId: charge.id,
+        customerId: charge.customer,
+        paymentIntentId: charge.payment_intent,
+        receiptUrl: charge.receipt_url,
+        receiptNumber: charge.receipt_number,
+        ...charge.metadata,
+      },
+    });
+    
     logger.log(`Charge succeeded: ${charge.id}, amount: ${charge.amount / 100} ${charge.currency}`);
   } catch (error) {
     logger.error('Error handling charge succeeded:', error);
@@ -390,7 +471,27 @@ async function handleChargeSucceeded(charge: any, convex: any) {
 
 async function handleChargeFailed(charge: any, convex: any) {
   try {
-    // Handle failed charge events
+    // Record payment analytics
+    await convex.mutation(api.mutations.paymentAnalytics.recordPaymentEvent, {
+      paymentId: charge.id,
+      orderId: charge.metadata?.order_id,
+      userId: charge.metadata?.user_id ? (charge.metadata.user_id as Id<'users'>) : undefined,
+      eventType: 'charge.failed',
+      amount: charge.amount,
+      currency: charge.currency,
+      paymentMethod: charge.payment_method_details?.type || 'card',
+      paymentMethodType: charge.payment_method_details?.card?.brand,
+      status: charge.status,
+      failureCode: charge.failure_code,
+      failureReason: charge.failure_message,
+      metadata: {
+        stripeEventId: charge.id,
+        customerId: charge.customer,
+        paymentIntentId: charge.payment_intent,
+        ...charge.metadata,
+      },
+    });
+    
     logger.log(`Charge failed: ${charge.id}, amount: ${charge.amount / 100} ${charge.currency}`);
   } catch (error) {
     logger.error('Error handling charge failed:', error);

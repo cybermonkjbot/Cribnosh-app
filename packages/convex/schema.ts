@@ -3086,6 +3086,51 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_order", ["order_id"]),
 
+  // Payment Analytics Data table
+  paymentAnalyticsData: defineTable({
+    paymentId: v.string(), // Stripe payment intent ID or charge ID
+    orderId: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    eventType: v.union(
+      // Payment events
+      v.literal("payment_intent.created"),
+      v.literal("payment_intent.succeeded"),
+      v.literal("payment_intent.payment_failed"),
+      v.literal("payment_intent.canceled"),
+      v.literal("payment_intent.processing"),
+      v.literal("payment_intent.requires_action"),
+      // Charge events
+      v.literal("charge.succeeded"),
+      v.literal("charge.failed"),
+      v.literal("charge.refunded"),
+      v.literal("charge.dispute.created"),
+      v.literal("charge.dispute.closed"),
+      // Subscription events
+      v.literal("subscription.created"),
+      v.literal("subscription.updated"),
+      v.literal("subscription.deleted"),
+      // Refund events
+      v.literal("refund.created"),
+      v.literal("refund.succeeded"),
+      v.literal("refund.failed"),
+    ),
+    amount: v.number(), // Amount in smallest currency unit (cents/pence)
+    currency: v.string(),
+    paymentMethod: v.optional(v.string()), // card, apple_pay, google_pay, etc.
+    paymentMethodType: v.optional(v.string()), // visa, mastercard, etc.
+    status: v.optional(v.string()),
+    failureCode: v.optional(v.string()),
+    failureReason: v.optional(v.string()),
+    metadata: v.record(v.string(), v.any()),
+    timestamp: v.number(),
+  })
+    .index("by_payment_id", ["paymentId"])
+    .index("by_order_id", ["orderId"])
+    .index("by_user_id", ["userId"])
+    .index("by_event_type", ["eventType"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_user_timestamp", ["userId", "timestamp"]),
+
   // Family Profiles table
   familyProfiles: defineTable({
     parent_user_id: v.id("users"), // The account owner (parent)

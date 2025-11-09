@@ -143,13 +143,13 @@ import {
   UpdateCustomerProfileResponse,
   UpdateDataSharingPreferencesRequest,
   UpdateDataSharingPreferencesResponse,
-  UpdatePhoneEmailRequest,
-  UpdatePhoneEmailResponse,
   UpdateDietaryPreferencesRequest,
   UpdateDietaryPreferencesResponse,
   UpdateMemberBudgetRequest,
   UpdateMemberPreferencesRequest,
   UpdateMemberRequest,
+  UpdatePhoneEmailRequest,
+  UpdatePhoneEmailResponse,
   UploadProfileImageResponse,
   ValidateFamilyMemberEmailRequest,
   ValidateFamilyMemberEmailResponse,
@@ -1491,6 +1491,34 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Get random meals for shake-to-eat feature
+     * GET /customer/meals/random
+     */
+    getRandomMeals: builder.query<
+      {
+        success: boolean;
+        data: {
+          meals: any[];
+          count: number;
+          limit: number;
+        };
+      },
+      { limit?: number; userId?: string }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.userId) searchParams.append("userId", params.userId);
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/meals/random${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
      * Get takeaway items
      * Uses search with category filter for takeaway items
      */
@@ -1536,6 +1564,36 @@ export const customerApi = createApi({
         };
       },
       providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get weather data by location
+     * GET /weather
+     */
+    getWeather: builder.query<
+      {
+        success: boolean;
+        data: {
+          condition: string;
+          temperature: number;
+          description?: string;
+          humidity?: number;
+          windSpeed?: number;
+        };
+      },
+      { latitude: number; longitude: number }
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("latitude", params.latitude.toString());
+        searchParams.append("longitude", params.longitude.toString());
+        return {
+          url: `/weather?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      // Cache weather for 10 minutes
+      keepUnusedDataFor: 600,
     }),
 
     /**
@@ -3959,9 +4017,11 @@ export const { useGetActiveOffersQuery } = customerApi;
 // Meals
 export const {
   useGetPopularMealsQuery,
+  useGetRandomMealsQuery,
   useGetTakeawayItemsQuery,
   useGetTooFreshItemsQuery,
   useGetTopKebabsQuery,
+  useGetWeatherQuery,
 } = customerApi;
 
 // Search

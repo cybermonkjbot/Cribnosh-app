@@ -26,6 +26,22 @@ export const recordEmailEvent = mutation({
       v.literal("domain_deleted")
     ),
     metadata: v.record(v.string(), v.any()),
+    deviceInfo: v.optional(
+      v.object({
+        type: v.string(),
+        os: v.string(),
+        browser: v.string(),
+        client: v.string(),
+      })
+    ),
+    locationInfo: v.optional(
+      v.object({
+        country: v.string(),
+        region: v.string(),
+        city: v.string(),
+        ipAddress: v.string(),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const eventId = await ctx.db.insert("emailAnalyticsData", {
@@ -35,9 +51,14 @@ export const recordEmailEvent = mutation({
       eventType: args.eventType,
       timestamp: Date.now(),
       metadata: args.metadata,
+      deviceInfo: args.deviceInfo,
+      locationInfo: args.locationInfo,
     });
     
-    console.log(`Recorded email event: ${args.eventType} for ${args.recipientEmail}`);
+    console.log(`Recorded email event: ${args.eventType} for ${args.recipientEmail}`, {
+      deviceInfo: args.deviceInfo,
+      locationInfo: args.locationInfo,
+    });
     return eventId;
   },
 });

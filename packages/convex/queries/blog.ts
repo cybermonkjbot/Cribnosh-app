@@ -1,5 +1,5 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { query } from "../_generated/server";
 
 export const getBlogPosts = query({
   args: {
@@ -9,9 +9,18 @@ export const getBlogPosts = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
-    let posts = await ctx.db.query("blogPosts")
-      .withIndex("by_status", (q: any) => q.eq("status", args.status || "published"))
-      .collect();
+    // For admin views, fetch all posts if no status filter is provided
+    // Otherwise filter by the specified status
+    let posts;
+    if (args.status) {
+      posts = await ctx.db.query("blogPosts")
+        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .collect();
+    } else {
+      // Fetch all posts when no status filter is provided (for admin panel)
+      posts = await ctx.db.query("blogPosts")
+        .collect();
+    }
     
     // Filter by category if provided
     if (args.category) {

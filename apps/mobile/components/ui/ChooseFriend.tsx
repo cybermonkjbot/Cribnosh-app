@@ -11,11 +11,6 @@ import { Avatar } from "./Avatar";
 import { Input } from "./Input";
 import LinkModal from "./LinkModal";
 
-interface ChooseFriend {
-  isVisible: boolean;
-  onClose: () => void;
-}
-
 interface Item {
   items: any;
   type: string;
@@ -26,12 +21,12 @@ interface Box {
   name: string;
 }
 
-interface Modal {
+interface ChooseFriendModal {
   isOpen: boolean;
   onClick: () => void;
 }
 
-export default function ChooseFriend({ isOpen, onClick }: Modal) {
+export default function ChooseFriend({ isOpen, onClick }: ChooseFriendModal) {
   const { isAuthenticated } = useAuthContext();
   const [linkModal, setLinkModal] = useState(false);
   const [showStickySearch, setShowStickySearch] = useState(false);
@@ -41,7 +36,6 @@ export default function ChooseFriend({ isOpen, onClick }: Modal) {
   // Fetch real connections/friends from API
   const {
     data: connectionsData,
-    isLoading: isLoadingConnections,
   } = useGetUserConnectionsQuery(undefined, {
     skip: !isAuthenticated,
   });
@@ -180,7 +174,7 @@ export default function ChooseFriend({ isOpen, onClick }: Modal) {
               Choose a friend to pay
             </Text>
             <Text style={styles.subtitle}>
-              We'll send the link straight to your selection
+              We&apos;ll send the link straight to your selection
             </Text>
             
             <View style={{ marginTop: 20 }}>

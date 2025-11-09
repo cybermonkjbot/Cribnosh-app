@@ -80,6 +80,7 @@ import {
   useGetPopularChefsQuery,
   useGetPopularMealsQuery,
   useGetUserBehaviorQuery,
+  useGetWeatherQuery,
 } from "@/store/customerApi";
 import { Chef, Cuisine } from "@/types/customer";
 
@@ -153,8 +154,6 @@ export function MainScreen() {
 
   const {
     data: offersData,
-    isLoading: offersLoading,
-    error: offersError,
   } = useGetActiveOffersQuery(
     { target: "all" },
     {
@@ -171,9 +170,23 @@ export function MainScreen() {
 
   const [addToCart] = useAddToCartMutation();
 
-
   // Location hook for map functionality
   const locationState = useUserLocation();
+
+  // Fetch weather data when location is available
+  const {
+    data: weatherData,
+  } = useGetWeatherQuery(
+    locationState.location
+      ? {
+          latitude: locationState.location.latitude,
+          longitude: locationState.location.longitude,
+        }
+      : { latitude: 0, longitude: 0 }, // Dummy values to skip query
+    {
+      skip: !locationState.location, // Skip if no location
+    }
+  );
 
   // Data transformation functions
   const transformCuisinesData = useCallback((apiCuisines: Cuisine[] | undefined) => {
@@ -546,8 +559,6 @@ export function MainScreen() {
   // Fetch user behavior data from API
   const {
     data: userBehaviorData,
-    isLoading: userBehaviorLoading,
-    error: userBehaviorError,
   } = useGetUserBehaviorQuery(
     undefined,
     {
@@ -1071,7 +1082,7 @@ export function MainScreen() {
     if (isAuthenticated) {
       loadNearbyChefs();
     }
-  }, [isAuthenticated, locationState.location]);
+  }, [isAuthenticated, locationState.location, isMapVisible]);
 
   const handleMealPress = useCallback((meal: any) => {
     // Ensure we have a valid meal ID - use _id if id is missing
@@ -1348,12 +1359,16 @@ export function MainScreen() {
           latitude: locationState.location.latitude,
           longitude: locationState.location.longitude,
         } : undefined, // Use real location from locationState
-        // Weather API not available yet - can be added later
-        // weather: { condition: "sunny", temperature: 22 },
+        weather: weatherData?.success && weatherData.data
+          ? {
+              condition: weatherData.data.condition,
+              temperature: weatherData.data.temperature,
+            }
+          : undefined, // Use real weather data from API
         appState: "active",
       };
     return getOrderedSectionsWithHidden(context);
-  }, [userBehavior, locationState.location]);
+  }, [userBehavior, locationState.location, weatherData?.success, weatherData?.data]);
 
   // Update ordered sections state only when memoized value changes
   useEffect(() => {
@@ -1368,8 +1383,12 @@ export function MainScreen() {
           latitude: locationState.location.latitude,
           longitude: locationState.location.longitude,
         } : undefined, // Use real location from locationState
-        // Weather API not available yet - can be added later
-        // weather: { condition: "sunny", temperature: 22 },
+        weather: weatherData?.success && weatherData.data
+          ? {
+              condition: weatherData.data.condition,
+              temperature: weatherData.data.temperature,
+            }
+          : undefined, // Use real weather data from API
         appState: "active",
       };
       const sections = getOrderedSectionsWithHidden(context);
@@ -1377,7 +1396,7 @@ export function MainScreen() {
     }, 10 * 60 * 1000); // Update every 10 minutes
 
     return () => clearInterval(interval);
-  }, [orderedSectionsMemoized, userBehavior, locationState.location]);
+  }, [orderedSectionsMemoized, userBehavior, locationState.location, weatherData?.success, weatherData?.data]);
 
   // Update performance config periodically (reduced frequency for better performance)
   useEffect(() => {
