@@ -118,15 +118,37 @@ export async function POST(request: NextRequest) {
       logger.error('[ADMIN LOGIN] Missing required fields');
       return ResponseFactory.validationError('Email and password are required');
     }
-    logger.log('[ADMIN LOGIN] Attempting login for:', email);
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return ResponseFactory.validationError('Invalid email format');
+    }
+
+    // Sanitize email (trim whitespace and convert to lowercase)
+    const sanitizedEmail = email.trim().toLowerCase();
+
+    logger.log('[ADMIN LOGIN] Attempting login for:', sanitizedEmail);
     const convex = getConvexClient();
-    const sessionToken = getSessionTokenFromRequest(request);
+    
+    // Get user agent and IP address for session tracking
+    const userAgent = request.headers.get('user-agent') || undefined;
+    const ipAddress = request.headers.get('x-real-ip') || 
+                      request.headers.get('cf-connecting-ip') || 
+                      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      undefined;
+    
     // Call Convex action to validate credentials and create session
     let result;
     try {
       // Use retry logic for critical authentication calls
       result = await retryCritical(async () => {
-        return await convex.action(api.actions.users.loginAndCreateSession, { email, password });
+        return await convex.action(api.actions.users.loginAndCreateSession, { 
+          email: sanitizedEmail, 
+          password,
+          userAgent,
+          ipAddress,
+        });
       });
     } catch (convexErr) {
       logger.error('[ADMIN LOGIN] Convex connection error:', convexErr);
@@ -139,18 +161,20 @@ export async function POST(request: NextRequest) {
     }
     logger.log('[ADMIN LOGIN] Convex result:', result);
     if (!result || !result.sessionToken) {
-      logger.log('[ADMIN LOGIN] Login failed for:', email, 'Reason:', result?.error);
+      logger.log('[ADMIN LOGIN] Login failed for:', sanitizedEmail, 'Reason:', result?.error);
       return ResponseFactory.unauthorized(result?.error || 'Invalid credentials' );
     }
+    
     // Now, fetch the user to check their role
+    // getUserByEmail is a public query that doesn't require authentication
     const user = await retryCritical(async () => {
       return await convex.query(api.queries.users.getUserByEmail, {
-        email,
-        sessionToken: sessionToken || undefined
+        email: sanitizedEmail
       });
     });
+    
     if (!user || !user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
-      logger.log('[ADMIN LOGIN] Not an admin:', email);
+      logger.log('[ADMIN LOGIN] Not an admin:', sanitizedEmail);
       return ResponseFactory.unauthorized('Not an admin');
     }
     

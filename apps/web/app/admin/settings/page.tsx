@@ -8,6 +8,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Activity,
   AlertTriangle,
@@ -603,12 +604,11 @@ export default function AdminSettings() {
           </div>
           
           <div className="flex items-center gap-3">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <Button
               onClick={handleSaveSettings}
               disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-[#F23E2E] text-white rounded-lg hover:bg-[#F23E2E]/90 transition-colors font-satoshi disabled:opacity-50"
+              size="lg"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               {isLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -616,7 +616,7 @@ export default function AdminSettings() {
                 <Save className="w-4 h-4" />
               )}
               {saveStatus === 'saving' ? 'Saving...' : 'Save Settings'}
-            </motion.button>
+            </Button>
           </div>
         </div>
 

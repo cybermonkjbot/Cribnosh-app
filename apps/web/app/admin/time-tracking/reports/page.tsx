@@ -26,7 +26,7 @@ import {
   User,
   Users
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAdminUser } from '../../AdminUserProvider';
 
 interface TimeTrackingReport {
@@ -116,6 +116,8 @@ export default function TimeTrackingReportsPage() {
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   // New report form
   const [newReport, setNewReport] = useState({
@@ -147,6 +149,7 @@ export default function TimeTrackingReportsPage() {
 
     setIsGenerating(true);
     try {
+      setError(null);
       await generateReport({
         name: newReport.name,
         type: newReport.type,
@@ -169,9 +172,8 @@ export default function TimeTrackingReportsPage() {
         projects: []
       });
       setSuccess('Report generated successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to generate report');
+      setError(err instanceof Error ? err.message : 'Failed to generate report');
     } finally {
       setIsGenerating(false);
     }
@@ -180,26 +182,47 @@ export default function TimeTrackingReportsPage() {
   const handleDeleteReport = async (reportId: string) => {
     if (confirm('Are you sure you want to delete this report?')) {
       try {
+        setError(null);
+        setIsDeleting(reportId);
         // Type assertion needed because Convex generates types that expect Id<"reports">
         // but the reportId from the query is a string
         await deleteReport({ reportId: reportId as unknown as Id<"reports"> });
         setSuccess('Report deleted successfully');
-        setError(null);
       } catch (err) {
-        setError('Failed to delete report');
+        setError(err instanceof Error ? err.message : 'Failed to delete report');
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
 
   const handleDownloadReport = async (reportId: string) => {
     try {
+      setError(null);
+      setIsDownloading(reportId);
       await downloadReport({ reportId });
       setSuccess('Report download started');
-      setError(null);
     } catch (err) {
-      setError('Failed to download report');
+      setError(err instanceof Error ? err.message : 'Failed to download report');
+    } finally {
+      setIsDownloading(null);
     }
   };
+
+  // Auto-dismiss success/error messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const filteredReports = reports?.filter((report: any) => {
     const matchesSearch = 
@@ -385,7 +408,7 @@ export default function TimeTrackingReportsPage() {
             <Button 
               onClick={handleGenerateReport} 
               disabled={isGenerating}
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               {isGenerating ? 'Generating...' : 'Generate Report'}
             </Button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { AdminFilterBar } from '@/components/admin/admin-filter-bar';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -19,10 +20,8 @@ import {
   Edit,
   Eye,
   FileText,
-  Filter,
   Globe,
   Plus,
-  Search,
   Tag,
   Trash2,
   User
@@ -421,7 +420,7 @@ export default function BlogManagementPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleSavePost} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleSavePost} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Create Post
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -433,54 +432,56 @@ export default function BlogManagementPage() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-          <Input
-            placeholder="Search blog posts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {uniqueCategories.map((category: any) => (
-              <SelectItem key={category} value={category}>{category}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recent">Recent</SelectItem>
-            <SelectItem value="title">Title</SelectItem>
-            <SelectItem value="views">Views</SelectItem>
-            <SelectItem value="likes">Likes</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <AdminFilterBar
+        searchPlaceholder="Search blog posts..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        filters={[
+          {
+            key: 'status',
+            label: 'Status',
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: [
+              { value: 'all', label: 'All Status' },
+              { value: 'draft', label: 'Draft' },
+              { value: 'published', label: 'Published' },
+              { value: 'archived', label: 'Archived' },
+            ],
+          },
+          {
+            key: 'category',
+            label: 'Category',
+            value: categoryFilter,
+            onChange: setCategoryFilter,
+            options: [
+              { value: 'all', label: 'All Categories' },
+              ...uniqueCategories.map((category: any) => ({
+                value: category,
+                label: category,
+              })),
+            ],
+          },
+          {
+            key: 'sort',
+            label: 'Sort by',
+            value: sortBy,
+            onChange: setSortBy,
+            options: [
+              { value: 'recent', label: 'Recent' },
+              { value: 'title', label: 'Title' },
+              { value: 'views', label: 'Views' },
+              { value: 'likes', label: 'Likes' },
+            ],
+          },
+        ]}
+        onClearAll={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setCategoryFilter('all');
+          setSortBy('recent');
+        }}
+      />
 
       {/* Blog Posts List */}
       <div className="space-y-4">

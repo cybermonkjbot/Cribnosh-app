@@ -29,7 +29,7 @@ type StaffEmailCampaign = Doc<"staffEmailCampaigns">;
 type StaffEmailCampaignsArray = Array<StaffEmailCampaign> | undefined;
 
 export default function StaffEmailsPage() {
-  const { loading: adminLoading } = useAdminUser();
+  const { loading: adminLoading, sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreating, setIsCreating] = useState(false);
@@ -47,8 +47,15 @@ export default function StaffEmailsPage() {
   });
 
   // Fetch data
-  const campaigns = useQuery(api.queries.staff.getStaffEmailCampaigns) as StaffEmailCampaignsArray;
-  const staffStats = useQuery(api.queries.staff.getStaffStats) as {
+  const { sessionToken } = useAdminUser();
+  const campaigns = useQuery(
+    api.queries.staff.getStaffEmailCampaigns,
+    sessionToken ? { sessionToken } : "skip"
+  ) as StaffEmailCampaignsArray;
+  const staffStats = useQuery(
+    api.queries.staff.getStaffStats,
+    sessionToken ? { sessionToken } : "skip"
+  ) as {
     totalStaff: number;
     activeStaff: number;
     totalUsers: number;

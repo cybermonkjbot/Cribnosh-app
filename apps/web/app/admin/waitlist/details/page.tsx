@@ -28,11 +28,13 @@ import {
   BarChart2
 } from 'lucide-react';
 import { EmptyState } from '@/components/admin/empty-state';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 
 type WaitlistEntry = Doc<"waitlist">;
 
 export default function WaitlistDetailsPage() {
   // Waitlist details page component
+  const { sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -42,7 +44,10 @@ export default function WaitlistDetailsPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch data
-  const waitlistEntries = useQuery(api.queries.waitlist.getWaitlistEntries, {});
+  const waitlistEntries = useQuery(
+    api.queries.waitlist.getWaitlistEntries,
+    sessionToken ? { sessionToken } : "skip"
+  );
   const waitlistStats = useQuery(api.queries.analytics.getWaitlistStats, {});
 
   // Mutations

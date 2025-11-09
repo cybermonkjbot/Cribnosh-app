@@ -70,7 +70,7 @@ export default function AdminDashboard() {
             <p className="text-gray-700 mb-6 font-satoshi text-sm sm:text-base">{error}</p>
             <Button
               onClick={() => { setError(null); }}
-              className="bg-primary-600 hover:bg-primary-700 w-full sm:w-auto"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white w-full sm:w-auto"
             >
               Retry Dashboard
             </Button>

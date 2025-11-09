@@ -10,18 +10,17 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Clock, 
   Users, 
   Calendar, 
   Filter, 
-  Search,
   Play,
   Pause,
   CheckCircle,
   AlertTriangle,
-  AlertCircle,
   Edit,
   Trash,
   ChevronLeft,
@@ -30,7 +29,6 @@ import {
   BarChart3,
   Download,
   User,
-  Timer,
   Target,
   Activity,
   PieChart
@@ -38,6 +36,7 @@ import {
 import { EmptyState } from '@/components/admin/empty-state';
 import { motion } from 'motion/react';
 import { TimeTrackingTableSkeleton } from '@/components/admin/skeletons';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 type Session = {
   _id: Id<'workSessions'>;
@@ -58,6 +57,12 @@ export default function AdminTimeTrackingPage() {
   const [page, setPage] = useState<number>(0);
   const [limit, setLimit] = useState<number>(50);
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; sessionId: Id<'workSessions'> | null }>({
+    isOpen: false,
+    sessionId: null,
+  });
 
   const filters = useMemo(() => ({
     staffId: staffId ? (staffId as Id<'users'>) : undefined,
@@ -76,10 +81,37 @@ export default function AdminTimeTrackingPage() {
   const adjustSession = useMutation(api.mutations.workSessions.adjustSession);
   const deleteSession = useMutation(api.mutations.workSessions.deleteSession);
 
+  const confirmDelete = async () => {
+    if (!deleteConfirm.sessionId) return;
+    try {
+      setError(null);
+      await deleteSession({ sessionId: deleteConfirm.sessionId });
+      setSuccess('Session deleted successfully');
+      setDeleteConfirm({ isOpen: false, sessionId: null });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete session');
+    }
+  };
+
   useEffect(() => {
     // Reset pagination when filters change
     setPage(0);
   }, [staffId, status, start, end]);
+
+  // Auto-dismiss success/error messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   // Calculate analytics from the data
   const analytics = useMemo(() => {
@@ -161,6 +193,20 @@ export default function AdminTimeTrackingPage() {
 
   return (
     <div className="space-y-8">
+      {/* Error and Success Messages */}
+      {error && (
+        <Alert variant="destructive" className="bg-red-50 border-red-200">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="font-satoshi">{error}</AlertDescription>
+        </Alert>
+      )}
+      {success && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="font-satoshi text-green-800">{success}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Enhanced Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -550,12 +596,20 @@ export default function AdminTimeTrackingPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={async () => {
-                                  await adjustSession({ sessionId: s._id, updates: { status: 'adjusted' } });
+                                  try {
+                                    setError(null);
+                                    await adjustSession({ sessionId: s._id, updates: { status: 'adjusted' } });
+                                    setSuccess('Session status updated successfully');
+                                  } catch (err) {
+                                    setError(err instanceof Error ? err.message : 'Failed to update session');
+                                  }
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    adjustSession({ sessionId: s._id, updates: { status: 'adjusted' } });
+                                    adjustSession({ sessionId: s._id, updates: { status: 'adjusted' } })
+                                      .then(() => setSuccess('Session status updated successfully'))
+                                      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to update session'));
                                   }
                                 }}
                                 className="text-xs"
@@ -570,15 +624,23 @@ export default function AdminTimeTrackingPage() {
                                 size="sm"
                                 onClick={async () => {
                                   if (!s.clockOutTime) return;
-                                  const newOut = s.clockOutTime + 5 * 60 * 1000;
-                                  await adjustSession({ sessionId: s._id, updates: { clockOutTime: newOut } });
+                                  try {
+                                    setError(null);
+                                    const newOut = s.clockOutTime + 5 * 60 * 1000;
+                                    await adjustSession({ sessionId: s._id, updates: { clockOutTime: newOut } });
+                                    setSuccess('Session time adjusted successfully');
+                                  } catch (err) {
+                                    setError(err instanceof Error ? err.message : 'Failed to adjust session time');
+                                  }
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
                                     if (s.clockOutTime) {
                                       const newOut = s.clockOutTime + 5 * 60 * 1000;
-                                      adjustSession({ sessionId: s._id, updates: { clockOutTime: newOut } });
+                                      adjustSession({ sessionId: s._id, updates: { clockOutTime: newOut } })
+                                        .then(() => setSuccess('Session time adjusted successfully'))
+                                        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to adjust session time'));
                                     }
                                   }
                                 }}
@@ -591,19 +653,7 @@ export default function AdminTimeTrackingPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={async () => {
-                                  if (confirm('Are you sure you want to delete this session?')) {
-                                    await deleteSession({ sessionId: s._id });
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    if (confirm('Are you sure you want to delete this session?')) {
-                                      deleteSession({ sessionId: s._id });
-                                    }
-                                  }
-                                }}
+                                onClick={() => setDeleteConfirm({ isOpen: true, sessionId: s._id })}
                                 className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                                 aria-label="Delete session"
                                 tabIndex={0}
@@ -665,61 +715,6 @@ export default function AdminTimeTrackingPage() {
 
         {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white/90 backdrop-blur-lg border border-white/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-asgard">
-                  <BarChart3 className="w-5 h-5" />
-                  Time Trends
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-satoshi text-gray-600">Today vs Yesterday</span>
-                    <span className="font-semibold text-gray-900">+12%</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-satoshi text-gray-600">This Week vs Last Week</span>
-                    <span className="font-semibold text-gray-900">+8%</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-satoshi text-gray-600">This Month vs Last Month</span>
-                    <span className="font-semibold text-gray-900">+15%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/90 backdrop-blur-lg border border-white/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-asgard">
-                  <AlertCircle className="w-5 h-5" />
-                  Alerts & Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm font-satoshi text-yellow-800">
-                      <strong>Overtime Alert:</strong> 3 staff members have exceeded 40 hours this week
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm font-satoshi text-green-800">
-                      <strong>Good News:</strong> Average session length increased by 20% this month
-                    </p>
-                  </div>
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm font-satoshi text-blue-800">
-                      <strong>Insight:</strong> Peak productivity hours are 10 AM - 2 PM
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           <Card className="bg-white/90 backdrop-blur-lg border border-white/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-asgard">
@@ -746,6 +741,17 @@ export default function AdminTimeTrackingPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ConfirmationDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, sessionId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Session"
+        message="Are you sure you want to delete this session? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="error"
+      />
     </div>
   );
 }

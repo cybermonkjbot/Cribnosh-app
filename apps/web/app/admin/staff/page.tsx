@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'motion/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 
 interface StaffUser {
   _id: string;
@@ -33,8 +34,15 @@ interface Document {
 }
 
 export default function AdminStaffPage() {
-  const staff = useQuery(api.queries.users.getAllStaff) as StaffUser[] | undefined;
-  const documents = useQuery(api.queries.users.getAllDocuments, {}) as Document[] | undefined;
+  const { sessionToken } = useAdminUser();
+  const staff = useQuery(
+    api.queries.users.getAllStaff,
+    sessionToken ? { sessionToken } : "skip"
+  ) as StaffUser[] | undefined;
+  const documents = useQuery(
+    api.queries.users.getAllDocuments,
+    sessionToken ? { sessionToken } : "skip"
+  ) as Document[] | undefined;
   const uploadDocument = useMutation(api.mutations.documents.uploadDocument);
   const updateDocumentStatus = useMutation(api.mutations.documents.updateDocumentStatus);
   const [search, setSearch] = useState("");

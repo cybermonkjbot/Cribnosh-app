@@ -19,7 +19,7 @@ import {
   Shield,
   Users
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Permission {
   _id: Id<"permissions">;
@@ -44,6 +44,8 @@ export default function UserPermissionsPage() {
   const [userPermissions, setUserPermissions] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch data
   const permissions = useQuery(api.queries.admin.getAvailablePermissions);
@@ -64,16 +66,21 @@ export default function UserPermissionsPage() {
 
   const handlePermissionToggle = async (userId: string, permissionId: string, granted: boolean) => {
     try {
+      setError(null);
+      setIsUpdating(true);
       await togglePermission({ userId: userId as Id<"users">, permissionId, granted });
       setSuccess('Permission updated successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to update permission');
+      setError(err instanceof Error ? err.message : 'Failed to update permission');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const handleBulkUpdate = async (userId: string) => {
     try {
+      setError(null);
+      setIsSaving(true);
       const permStrings = userPermissions[userId] || [];
       // Convert string array to object array as expected by mutation
       const permObjects = permStrings.map((permId) => ({
@@ -85,11 +92,27 @@ export default function UserPermissionsPage() {
         permissions: permObjects
       });
       setSuccess('Permissions updated successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to update permissions');
+      setError(err instanceof Error ? err.message : 'Failed to update permissions');
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  // Auto-dismiss success/error messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const filteredUsers = users?.filter((user: any) =>
     user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

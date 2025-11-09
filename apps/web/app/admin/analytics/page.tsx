@@ -21,6 +21,7 @@ import {
 
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils/number-format';
+import { Button } from '@/components/ui/button';
 
 interface AnalyticsData {
   totalUsers: number;
@@ -134,14 +135,14 @@ export default function AdminAnalyticsPage() {
               <p className="text-gray-600 mt-1">Monitor your platform&apos;s performance and growth</p>
             </div>
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <Button variant="outline" size="lg">
                 <Download className="w-4 h-4" />
                 <span className="text-sm font-medium">Export</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              </Button>
+              <Button variant="outline" size="lg">
                 <Filter className="w-4 h-4" />
                 <span className="text-sm font-medium">Filter</span>
-              </button>
+              </Button>
             </div>
         </div>
         
@@ -184,18 +185,16 @@ export default function AdminAnalyticsPage() {
                   { key: '90d' as const, label: '90 Days' },
                   { key: '1y' as const, label: '1 Year' }
                 ].map((period) => (
-                  <button
+                  <Button
                     key={period.key}
                     onClick={() => setTimeRange(period.key)}
                     disabled={isLoading}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                      timeRange === period.key 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    variant={timeRange === period.key ? "default" : "ghost"}
+                    size="sm"
+                    className={timeRange === period.key ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
                   >
                     {period.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
         </div>

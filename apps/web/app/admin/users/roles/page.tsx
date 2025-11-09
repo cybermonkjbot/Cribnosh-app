@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
@@ -19,7 +20,7 @@ import {
   UserCheck,
   Users
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface UserRole {
   _id: Id<"userRoles">;
@@ -39,6 +40,13 @@ export default function UserRolesPage() {
   const [newRole, setNewRole] = useState({ name: '', description: '', permissions: [] as string[] });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isAssigning, setIsAssigning] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; roleId: Id<"userRoles"> | null }>({
+    isOpen: false,
+    roleId: null,
+  });
 
   // Fetch roles and users
   // Note: These queries may not exist yet - using type assertions for now
@@ -77,6 +85,7 @@ export default function UserRolesPage() {
     }
 
     try {
+      setError(null);
       await createRole({
         name: newRole.name,
         description: newRole.description,
@@ -85,43 +94,70 @@ export default function UserRolesPage() {
       setNewRole({ name: '', description: '', permissions: [] });
       setIsCreating(false);
       setSuccess('Role created successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to create role');
+      setError(err instanceof Error ? err.message : 'Failed to create role');
     }
   };
 
   const handleUpdateRole = async (roleId: Id<"userRoles">, updates: Partial<UserRole>) => {
     try {
+      setError(null);
+      setIsUpdating(true);
       await updateRole({ roleId, ...updates });
       setSuccess('Role updated successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to update role');
+      setError(err instanceof Error ? err.message : 'Failed to update role');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const handleDeleteRole = async (roleId: Id<"userRoles">) => {
-    if (confirm('Are you sure you want to delete this role?')) {
-      try {
-        await deleteRole({ roleId });
-        setSuccess('Role deleted successfully');
-        setError(null);
-      } catch (err) {
-        setError('Failed to delete role');
-      }
+    setDeleteConfirm({ isOpen: true, roleId });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.roleId) return;
+    try {
+      setError(null);
+      setIsDeleting(deleteConfirm.roleId);
+      await deleteRole({ roleId: deleteConfirm.roleId });
+      setSuccess('Role deleted successfully');
+      setDeleteConfirm({ isOpen: false, roleId: null });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete role');
+    } finally {
+      setIsDeleting(null);
     }
   };
 
   const handleAssignRole = async (userId: Id<"users">, roleId: Id<"userRoles">) => {
     try {
+      setError(null);
+      setIsAssigning(userId);
       await assignRole({ userId, roleId });
       setSuccess('Role assigned successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to assign role');
+      setError(err instanceof Error ? err.message : 'Failed to assign role');
+    } finally {
+      setIsAssigning(null);
     }
   };
+
+  // Auto-dismiss success/error messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const togglePermission = (permission: string) => {
     setNewRole(prev => ({
@@ -147,6 +183,7 @@ export default function UserRolesPage() {
         </div>
         <Button
           onClick={() => setIsCreating(true)}
+          size="lg"
           className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -238,7 +275,7 @@ export default function UserRolesPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreateRole} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleCreateRole} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Create Role
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -337,7 +374,7 @@ export default function UserRolesPage() {
                   <Button
                     size="sm"
                     onClick={() => handleAssignRole(user._id, selectedRole as Id<"userRoles">)}
-                    className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+                    className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                   >
                     Assign Role
                   </Button>
@@ -347,6 +384,18 @@ export default function UserRolesPage() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmationDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, roleId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Role"
+        message="Are you sure you want to delete this role? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="error"
+        isLoading={isDeleting !== null}
+      />
     </div>
   );
 }

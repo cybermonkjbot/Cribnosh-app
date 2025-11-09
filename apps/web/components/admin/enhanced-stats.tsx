@@ -54,7 +54,7 @@ function StatCard({ title, value, change, changeType = 'neutral', icon, color, d
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 min-w-0">
           <div className="space-y-1 min-w-0">
-            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold font-asgard text-gray-900 group-hover:text-[#F23E2E] transition-colors break-words leading-tight">{value}</p>
+            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold font-asgard text-gray-900 group-hover:text-gray-700 transition-colors break-words leading-tight">{value}</p>
             {change && (
               <div className="flex items-center gap-1">
                 {getChangeIcon()}
@@ -145,7 +145,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       change: analyticsData ? `${analyticsData.userGrowth >= 0 ? '+' : ''}${analyticsData.userGrowth.toFixed(1)}%` : '0%',
       changeType: analyticsData && analyticsData.userGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: <Users className="w-6 h-6" />,
-      color: 'text-blue-600',
+      color: 'text-gray-600',
       description: 'Registered users across all cities'
     },
     {
@@ -154,7 +154,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       change: realtimeMetrics ? `+${realtimeMetrics.activeUsers} online` : '0 online',
       changeType: 'positive' as const,
       icon: <Activity className="w-6 h-6" />,
-      color: 'text-green-600',
+      color: 'text-gray-600',
       description: 'Users currently active'
     },
     {
@@ -163,7 +163,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       change: analyticsData ? `${analyticsData.revenueGrowth >= 0 ? '+' : ''}${analyticsData.revenueGrowth.toFixed(1)}%` : '0%',
       changeType: analyticsData && analyticsData.revenueGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: <DollarSign className="w-6 h-6" />,
-      color: 'text-[#F23E2E]',
+      color: 'text-gray-600',
       description: 'Revenue generated this month'
     },
     {
@@ -172,7 +172,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       change: analyticsData ? `${analyticsData.chefGrowth >= 0 ? '+' : ''}${analyticsData.chefGrowth.toFixed(1)}%` : '0%',
       changeType: analyticsData && analyticsData.chefGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: <ChefHat className="w-6 h-6" />,
-      color: 'text-purple-600',
+      color: 'text-gray-600',
       description: 'Active food creators on platform'
     },
     {
@@ -181,7 +181,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       change: analyticsData ? `+${analyticsData.citiesServed} cities` : '0 cities',
       changeType: 'positive' as const,
       icon: <MapPin className="w-6 h-6" />,
-      color: 'text-amber-600',
+      color: 'text-gray-600',
       description: 'Cities with active service'
     },
     {
@@ -190,7 +190,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       change: analyticsData ? `${analyticsData.orderGrowth >= 0 ? '+' : ''}${analyticsData.orderGrowth.toFixed(1)}%` : '0%',
       changeType: analyticsData && analyticsData.orderGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: <CheckCircle className="w-6 h-6" />,
-      color: 'text-emerald-600',
+      color: 'text-gray-600',
       description: 'Successful order completion rate'
     }
   ];
@@ -207,7 +207,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
           whileTap={{ scale: 0.95 }}
           onClick={fetchStats}
           disabled={loading}
-          className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white rounded-xl border border-[#F23E2E]/20 shadow-sm hover:bg-[#F23E2E]/10 transition-all duration-200 disabled:opacity-50 font-satoshi text-xs sm:text-sm md:text-base w-full sm:w-auto flex-shrink-0"
+          className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white rounded-xl border border-gray-200 shadow-sm hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 font-satoshi text-xs sm:text-sm md:text-base w-full sm:w-auto flex-shrink-0"
           aria-label="Refresh statistics"
         >
           <Clock className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -266,22 +266,22 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
           </div>
           
           <div className="text-center">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 bg-blue-100 rounded-full flex items-center justify-center">
-              <Clock className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-gray-600" />
             </div>
             <h4 className="text-sm sm:text-base md:text-lg font-bold font-asgard text-gray-900 mb-0.5 sm:mb-1 break-words">Response Time</h4>
-            <p className="text-base sm:text-lg md:text-2xl font-bold text-blue-600 font-satoshi break-words">
+            <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-700 font-satoshi break-words">
               {stats.avgResponseTime}
             </p>
             <p className="text-xs sm:text-sm text-gray-500 font-satoshi break-words">Average API response</p>
           </div>
           
           <div className="text-center">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 bg-purple-100 rounded-full flex items-center justify-center">
-              <Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-purple-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+              <Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-gray-600" />
             </div>
             <h4 className="text-sm sm:text-base md:text-lg font-bold font-asgard text-gray-900 mb-0.5 sm:mb-1 break-words">Live Streams</h4>
-            <p className="text-base sm:text-lg md:text-2xl font-bold text-purple-600 font-satoshi break-words">
+            <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-700 font-satoshi break-words">
               {realtimeMetrics?.liveStreams || 0}
             </p>
             <p className="text-xs sm:text-sm text-gray-500 font-satoshi break-words">Currently streaming</p>

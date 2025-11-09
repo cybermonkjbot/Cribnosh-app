@@ -27,7 +27,7 @@ import {
   Trash2,
   User
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAdminUser } from '../../AdminUserProvider';
 
 interface TaxDocument {
@@ -92,6 +92,9 @@ export default function TaxDocumentsPage() {
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState<string | null>(null);
 
   // New document form
   const [newDocument, setNewDocument] = useState({
@@ -125,6 +128,7 @@ export default function TaxDocumentsPage() {
 
     setIsGenerating(true);
     try {
+      setError(null);
       await generateDocument({
         documentType: newDocument.documentType,
         employeeId: newDocument.employeeId as Id<"users">,
@@ -147,9 +151,8 @@ export default function TaxDocumentsPage() {
         notes: ''
       });
       setSuccess('Tax document generated successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to generate tax document');
+      setError(err instanceof Error ? err.message : 'Failed to generate tax document');
     } finally {
       setIsGenerating(false);
     }
@@ -158,34 +161,58 @@ export default function TaxDocumentsPage() {
   const handleDeleteDocument = async (documentId: Id<"taxDocuments">) => {
     if (confirm('Are you sure you want to delete this tax document?')) {
       try {
+        setError(null);
+        setIsDeleting(documentId);
         await deleteDocument({ documentId });
         setSuccess('Tax document deleted successfully');
-        setError(null);
       } catch (err) {
-        setError('Failed to delete tax document');
+        setError(err instanceof Error ? err.message : 'Failed to delete tax document');
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
 
   const handleDownloadDocument = async (documentId: Id<"taxDocuments">) => {
     try {
+      setError(null);
+      setIsDownloading(documentId);
       await downloadDocument({ documentId });
       setSuccess('Document download started');
-      setError(null);
     } catch (err) {
-      setError('Failed to download document');
+      setError(err instanceof Error ? err.message : 'Failed to download document');
+    } finally {
+      setIsDownloading(null);
     }
   };
 
   const handleSendDocument = async (documentId: Id<"taxDocuments">) => {
     try {
+      setError(null);
+      setIsSending(documentId);
       await sendDocument({ documentId });
       setSuccess('Document sent successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to send document');
+      setError(err instanceof Error ? err.message : 'Failed to send document');
+    } finally {
+      setIsSending(null);
     }
   };
+
+  // Auto-dismiss success/error messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const filteredDocuments = taxDocuments?.filter((document: any) => {
     const matchesSearch = 

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Id } from '@/convex/_generated/dataModel';
 import { EmptyState } from '@/components/admin/empty-state';
+import { Button } from '@/components/ui/button';
 
 
 
@@ -301,46 +302,47 @@ export default function AdminCareers() {
           Careers Management
         </h1>
         {activeTab === 'jobs' && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <Button
             onClick={handleCreateJob}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-satoshi w-full sm:w-auto"
+            size="lg"
+            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             New Job
-          </motion.button>
+          </Button>
         )}
       </div>
 
       {/* Tabs */}
       <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-1 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30 p-1">
-        <button
+        <Button
           onClick={() => setActiveTab('jobs')}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors font-satoshi ${
+          variant={activeTab === 'jobs' ? "default" : "ghost"}
+          className={`flex-1 ${
             activeTab === 'jobs'
-              ? 'bg-primary-500 text-white'
-              : 'text-gray-600 hover:text-gray-800'
+              ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white'
+              : ''
           }`}
         >
           <div className="flex items-center gap-2">
             <Briefcase className="w-4 h-4" />
             Job Postings
           </div>
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => setActiveTab('applications')}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors font-satoshi ${
+          variant={activeTab === 'applications' ? "default" : "ghost"}
+          className={`flex-1 ${
             activeTab === 'applications'
-              ? 'bg-primary-500 text-white'
-              : 'text-gray-600 hover:text-gray-800'
+              ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white'
+              : ''
           }`}
         >
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             Applications
           </div>
-        </button>
+        </Button>
       </div>
 
       {/* Search and Filters */}
@@ -806,10 +808,11 @@ export default function AdminCareers() {
                 >
                   Cancel
                 </button>
-                <button
+                <Button
                   onClick={handleSaveJob}
                   disabled={isSubmitting}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-satoshi disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  size="lg"
+                  className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                 >
                   {isSubmitting ? (
                     <>
@@ -817,7 +820,7 @@ export default function AdminCareers() {
                       Saving...
                     </>
                   ) : editingJob ? 'Update' : 'Create'}
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>

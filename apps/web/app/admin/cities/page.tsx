@@ -517,7 +517,7 @@ export default function CitiesManagementPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreateCity} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleCreateCity} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Add City
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>

@@ -35,7 +35,7 @@ export function RecentActivity() {
   const activities = useQuery(api.queries.admin.getRecentActivity, { limit: 10 }) || [];
 
   return (
-    <div className="bg-white/50  backdrop-blur-sm rounded-xl p-6 border border-gray-200/20 shadow-sm">
+    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
       <h2 className="text-xl font-bold font-Asgard mb-6 text-gray-900 ">
         Recent Activity
       </h2>
@@ -57,8 +57,8 @@ export function RecentActivity() {
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-4 rounded-lg hover:bg-gray-100/50 transition-colors min-h-[64px]"
             >
-              <div className={`p-2 rounded-lg flex-shrink-0 w-10 h-10 flex items-center justify-center ${isSecurityAlert ? 'bg-red-100/50' : isSystemEvent ? 'bg-blue-100/50' : 'bg-green-100/50'}`}> 
-                <Icon className={`w-6 h-6 ${isSecurityAlert ? 'text-red-600' : isSystemEvent ? 'text-blue-600' : 'text-green-600'}`} /> 
+              <div className={`p-2 rounded-lg flex-shrink-0 w-10 h-10 flex items-center justify-center ${isSecurityAlert ? 'bg-red-50 border border-red-200' : 'bg-gray-50 border border-gray-200'}`}> 
+                <Icon className={`w-6 h-6 ${isSecurityAlert ? 'text-red-600' : 'text-gray-500'}`} /> 
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">

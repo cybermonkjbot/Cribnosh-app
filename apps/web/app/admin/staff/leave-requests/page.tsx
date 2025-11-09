@@ -16,8 +16,11 @@ import { useQuery, useMutation } from 'convex/react';
 export default function AdminStaffLeaveRequestsPage() {
   
   
-  const { user: adminUser, loading: adminLoading } = useAdminUser();
-  const requests = useQuery(api.queries.staff.getAllLeaveRequests, { status: 'pending' });
+  const { user: adminUser, loading: adminLoading, sessionToken } = useAdminUser();
+  const requests = useQuery(
+    api.queries.staff.getAllLeaveRequests,
+    sessionToken ? { status: 'pending', sessionToken } : "skip"
+  );
   const approveRequest = useMutation(api.mutations.staff.updateLeaveRequestStatus);
   const rejectRequest = useMutation(api.mutations.staff.updateLeaveRequestStatus);
   const [actionLoading, setActionLoading] = useState<string | null>(null);

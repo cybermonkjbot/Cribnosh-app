@@ -122,24 +122,26 @@ export default function AdminStaffWorkIdsPage() {
                       <td className="px-4 py-2 font-satoshi text-xs text-gray-700">{new Date(id.expiresAt).toLocaleDateString()}</td>
                       <td className="px-4 py-2 font-satoshi text-sm">
                         <div className="flex gap-2">
-                          <button
+                          <Button
                             onClick={() => isAdmin ? setRenewingId(id._id) : null}
                             disabled={!isAdmin}
-                            className={`inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 ${!isAdmin ? 'cursor-not-allowed opacity-60' : ''}`}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
                             aria-label="Renew"
                             title={!isAdmin ? 'Only admins can renew Work IDs.' : ''}
                           >
                             <RefreshCw className="w-4 h-4 mr-1" /> Renew
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => isAdmin ? setRevokingId(id._id) : null}
                             disabled={!isAdmin}
-                            className={`inline-flex items-center px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 ${!isAdmin ? 'cursor-not-allowed opacity-60' : ''}`}
+                            size="sm"
+                            variant="destructive"
                             aria-label="Revoke"
                             title={!isAdmin ? 'Only admins can revoke Work IDs.' : ''}
                           >
                             <XCircle className="w-4 h-4 mr-1" /> Revoke
-                          </button>
+                          </Button>
                         </div>
                         {renewingId === id._id && (
                           <div className="mt-2 bg-blue-50 p-2 rounded">

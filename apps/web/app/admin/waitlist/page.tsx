@@ -9,6 +9,7 @@ import { countryNameToCode, countryCodeToFlagEmoji } from "@/lib/utils";
 import { AuthWrapper } from "@/components/layout/AuthWrapper";
 import { useState, useMemo } from "react";
 import { WaitlistCardSkeleton } from "@/components/admin/skeletons";
+import { useAdminUser } from "@/app/admin/AdminUserProvider";
 
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
@@ -39,8 +40,12 @@ interface WaitlistEntry {
 
 export default function AdminWaitlistPage() {
   // Auth is handled by middleware, no client-side checks needed
+  const { sessionToken } = useAdminUser();
 
-  const waitlist = useQuery(api.queries.waitlist.getAll) as WaitlistEntry[] | undefined;
+  const waitlist = useQuery(
+    api.queries.waitlist.getAll,
+    sessionToken ? { sessionToken } : "skip"
+  ) as WaitlistEntry[] | undefined;
 
   // --- Filter State ---
   const [countryFilter, setCountryFilter] = useState<string>("all");

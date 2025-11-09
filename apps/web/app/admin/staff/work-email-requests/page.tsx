@@ -27,8 +27,11 @@ export default function AdminStaffWorkEmailRequestsPage() {
     [key: string]: unknown;
   }
 
-  const { user: adminUser, loading: adminLoading } = useAdminUser();
-  const requests = useQuery(api.queries.staff.getAllWorkEmailRequests, { status: 'pending' }) as WorkEmailRequest[] | undefined;
+  const { user: adminUser, loading: adminLoading, sessionToken } = useAdminUser();
+  const requests = useQuery(
+    api.queries.staff.getAllWorkEmailRequests,
+    sessionToken ? { status: 'pending', sessionToken } : "skip"
+  ) as WorkEmailRequest[] | undefined;
   const approveRequest = useMutation(api.mutations.staff.updateWorkEmailRequestStatus);
   const rejectRequest = useMutation(api.mutations.staff.updateWorkEmailRequestStatus);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
