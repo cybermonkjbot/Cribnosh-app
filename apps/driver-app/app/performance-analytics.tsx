@@ -1,37 +1,42 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from "../lib/convexApi";
-import { useSessionAwareQuery } from '../hooks/useSessionAwareConvex';
-import { Colors } from '../constants/Colors';
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SkeletonStatCard } from '../components/SkeletonComponents';
 import { ThemedText } from '../components/ThemedText';
-import { ThemedView } from '../components/ThemedView';
+import { Colors } from '../constants/Colors';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
-import { IconName } from '../utils/Logger';
+import { useGetDriverPerformanceAnalyticsQuery } from '../store/driverApi';
+
+type IconName = keyof typeof Ionicons.glyphMap;
 
 export default function PerformanceAnalyticsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [selectedMetric, setSelectedMetric] = useState('efficiency');
   
-  const { driver, user } = useDriverAuth();
+  const { driver } = useDriverAuth();
   
   // Get driver ID from context
   const driverId = driver?._id;
 
-  // Fetch performance data from Convex
-  const efficiencyData = useSessionAwareQuery(api.driverPerformance.getDriverPerformanceAnalytics, 
-    driverId ? { driverId: driverId, metricType: "efficiency" } : "skip"
+  // Fetch performance analytics data
+  const { data: efficiencyDataResponse } = useGetDriverPerformanceAnalyticsQuery(
+    { metricType: 'efficiency', period: selectedPeriod === '7d' ? '7d' : selectedPeriod === '90d' ? '90d' : '30d' },
+    { skip: !driver }
   );
+  const efficiencyData = efficiencyDataResponse?.data || null;
 
-  const safetyData = useSessionAwareQuery(api.driverPerformance.getDriverPerformanceAnalytics, 
-    driverId ? { driverId: driverId, metricType: "safety" } : "skip"
+  const { data: safetyDataResponse } = useGetDriverPerformanceAnalyticsQuery(
+    { metricType: 'safety', period: selectedPeriod === '7d' ? '7d' : selectedPeriod === '90d' ? '90d' : '30d' },
+    { skip: !driver }
   );
+  const safetyData = safetyDataResponse?.data || null;
 
-  const customerData = useSessionAwareQuery(api.driverPerformance.getDriverPerformanceAnalytics, 
-    driverId ? { driverId: driverId, metricType: "customer" } : "skip"
+  const { data: customerDataResponse } = useGetDriverPerformanceAnalyticsQuery(
+    { metricType: 'customer', period: selectedPeriod === '7d' ? '7d' : selectedPeriod === '90d' ? '90d' : '30d' },
+    { skip: !driver }
   );
+  const customerData = customerDataResponse?.data || null;
 
   const periods = [
     { value: '7d', label: 'Last 7 Days' },
@@ -51,13 +56,13 @@ export default function PerformanceAnalyticsScreen() {
   const getCurrentPerformanceData = () => {
     switch (selectedMetric) {
       case 'efficiency':
-        return efficiencyData || { overall: 0, trend: 0, breakdown: {} };
+        return efficiencyData || { score: 0, trend: 0, breakdown: {} };
       case 'safety':
-        return safetyData || { overall: 0, trend: 0, breakdown: {} };
+        return safetyData || { score: 0, trend: 0, breakdown: {} };
       case 'customer':
-        return customerData || { overall: 0, trend: 0, breakdown: {} };
+        return customerData || { score: 0, trend: 0, breakdown: {} };
       default:
-        return { overall: 0, trend: 0, breakdown: {} };
+        return { score: 0, trend: 0, breakdown: {} };
     }
   };
 
@@ -211,9 +216,9 @@ export default function PerformanceAnalyticsScreen() {
             </View>
             
             <ThemedText style={styles.performanceValue}>
-              {selectedMetric === 'customer' ? `${getPerformanceValue('overall', 0)}/5.0` : 
-               selectedMetric === 'delivery' ? `${getPerformanceValue('overall', 0)} min` : 
-               `${getPerformanceValue('overall', 0)}%`}
+              {selectedMetric === 'customer' ? `${getPerformanceValue('score', 0)}/5.0` : 
+               selectedMetric === 'delivery' ? `${getPerformanceValue('score', 0)} min` : 
+               `${getPerformanceValue('score', 0)}%`}
             </ThemedText>
             
             <ThemedText style={styles.previousValue}>
@@ -228,7 +233,7 @@ export default function PerformanceAnalyticsScreen() {
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Performance Breakdown</ThemedText>
           <View style={styles.breakdownContainer}>
-            {Object.entries(currentData.breakdown).map(([key, value]) => (
+            {currentData.breakdown && Object.entries(currentData.breakdown).map(([key, value]) => (
               <View key={key} style={styles.breakdownItem}>
                 <ThemedText style={styles.breakdownLabel}>
                   {key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ')}

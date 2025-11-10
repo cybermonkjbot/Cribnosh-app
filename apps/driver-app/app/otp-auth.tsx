@@ -250,7 +250,7 @@ export default function DriverOTPAuthScreen() {
           </TouchableOpacity>
           <View style={styles.logoContainer}>
             <Image 
-              source={require('../assets/depictions/logo.png')} 
+              source={require('../assets/images/white-greenlogo.png')} 
               style={styles.logo}
               resizeMode="contain"
             />

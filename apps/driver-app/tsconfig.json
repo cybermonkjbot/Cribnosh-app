@@ -5,6 +5,7 @@
     "composite": true,
     "noEmit": false,
     "jsx": "react-jsx",
+    "module": "esnext",
     "moduleResolution": "bundler",
     "lib": ["esnext", "dom", "dom.iterable"],
     "allowSyntheticDefaultImports": true,
@@ -14,19 +15,11 @@
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@shared/*": [
-        "../../packages/shared/dist/*"
       ]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ],
-  "references": [
-    {
-      "path": "../../packages/shared"
-    }
   ]
 }

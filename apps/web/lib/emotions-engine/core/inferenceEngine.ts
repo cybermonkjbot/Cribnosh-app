@@ -152,7 +152,7 @@ async function lookupDishes(
         let ecoImpact: string | undefined;
         if (filters?.tag === 'too-fresh') {
           try {
-            const { calculateEcoImpact } = require('@/../../packages/convex/utils/ecoImpact');
+            const { calculateEcoImpact } = require('../../../../packages/convex/utils/ecoImpact');
             const category = meal.category || meal.tags?.[0] || 'Other';
             const impact = calculateEcoImpact(category, 1);
             ecoImpact = impact.formatted;
@@ -293,7 +293,7 @@ export async function runInference(
         if (filters.tag === 'too-fresh') {
           try {
             // Import eco impact calculation utility
-            const { calculateEcoImpact } = require('@/../../packages/convex/utils/ecoImpact');
+            const { calculateEcoImpact } = require('../../../../packages/convex/utils/ecoImpact');
             const category = meal.category || meal.tags?.[0] || 'Other';
             const impact = calculateEcoImpact(category, 1);
             ecoImpact = impact.formatted;

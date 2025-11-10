@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import { LoadingScreen } from '../components/LoadingScreen';
-import { Colors } from '../constants/Colors';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { useSessionAwareQuery } from '../hooks/useSessionAwareConvex';
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View, Pressable, Image } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassCard } from '../components/GlassCard';
+import { LoadingScreen } from '../components/LoadingScreen';
+import { ShimmerEffect } from '../components/ShimmerEffect';
+import { SkeletonOrderCard } from '../components/SkeletonComponents';
+import { Colors } from '../constants/Colors';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
 import { driverNotificationService } from '../services/notificationService';
+import { useGetAvailableOrdersQuery } from '../store/driverApi';
 import { logger } from '../utils/Logger';
-import type { Order } from '../types/driver';
 
 export default function DriverDashboardScreen() {
   const router = useRouter();
@@ -56,8 +57,12 @@ export default function DriverDashboardScreen() {
     }
   }, [authLoading, driver, user, isAuthenticated, sessionToken, router]);
 
-  // Fetch available orders from shared Convex backend
-  const availableOrdersData = useSessionAwareQuery(api.drivers.getAvailableOrders);
+  // Fetch available orders (orders assigned to driver with status=assigned)
+  const { data: availableOrdersResponse, isLoading: isLoadingOrders } = useGetAvailableOrdersQuery(
+    { limit: 50 },
+    { skip: !driver }
+  );
+  const availableOrdersData = availableOrdersResponse?.data?.orders || [];
   
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -73,8 +78,8 @@ export default function DriverDashboardScreen() {
   // Show skeleton while data is loading or driver is not authenticated
   // Show skeleton if:
   // 1. Auth is still loading, OR
-  // 2. Driver exists but queries haven't loaded yet (they're undefined while loading)
-  if (authLoading || (driver && availableOrdersData === undefined)) {
+  // 2. Driver exists but orders are still loading
+  if (authLoading || (driver && isLoadingOrders)) {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView style={{ flex: 1 }}>
@@ -125,7 +130,7 @@ export default function DriverDashboardScreen() {
         <Pressable 
           style={[
             styles.statusButton, 
-            { backgroundColor: driverStatus === 'online' ? Colors.light.error : Colors.light.accent }
+            { backgroundColor: driverStatus === 'online' ? Colors.light.primary : Colors.light.accent }
           ]}
             onPress={toggleDriverStatus}
           >
@@ -177,13 +182,15 @@ export default function DriverDashboardScreen() {
                 </TouchableOpacity>
               </View>
             ) : (
-              availableOrdersData?.map((order: Order) => (
-                <TouchableOpacity
-                  key={order._id}
-                  style={styles.orderCard}
-                  onPress={() => handleOrderPress(order._id)}
-                >
-                <View style={styles.orderHeader}>
+              availableOrdersData?.map((order: any) => (
+                <View key={order._id} style={styles.orderCardWrapper}>
+                  <GlassCard style={styles.orderCard}>
+                    <TouchableOpacity
+                      onPress={() => handleOrderPress(order._id)}
+                      style={styles.orderCardContent}
+                    >
+                      <ShimmerEffect />
+                      <View style={styles.orderHeader}>
                   <View style={styles.orderInfo}>
                     <Text style={styles.customerName}>
                       {order.customerName || 'Customer'}
@@ -234,16 +241,18 @@ export default function DriverDashboardScreen() {
                     <Text style={styles.declineButtonText}>Decline</Text>
                   </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+                    </TouchableOpacity>
+                  </GlassCard>
+                </View>
             )))}
           </ScrollView>
         </View>
       </View>
 
-      {/* Floating Fuel Finder Logo Pill - Bottom Right */}
+      {/* Floating Cribnosh Logo Pill - Bottom Right */}
       <View style={[styles.floatingLogoPill, { bottom: insets.bottom + 20 }]}>
         <Image 
-          source={require('../assets/depictions/logo.png')} 
+          source={require('../assets/images/white-greenlogo.png')} 
           style={styles.floatingLogoImage}
           resizeMode="contain"
         />
@@ -330,16 +339,16 @@ const styles = StyleSheet.create({
   ordersList: {
     flex: 1,
   },
-  orderCard: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 16,
+  orderCardWrapper: {
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+  },
+  orderCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  orderCardContent: {
+    padding: 16,
+    position: 'relative',
   },
   orderHeader: {
     flexDirection: 'row',
@@ -390,7 +399,7 @@ const styles = StyleSheet.create({
   },
   acceptButton: {
     flex: 1,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
     borderRadius: 8,
     paddingVertical: 12,
     flexDirection: 'row',

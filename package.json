@@ -5,12 +5,16 @@
   "workspaces": [
     "apps/mobile",
     "apps/web",
+    "apps/driver-app",
     "packages/*"
   ],
   "scripts": {
     "mobile:dev": "cd apps/mobile && expo start",
     "mobile:android": "cd apps/mobile && expo run:android",
     "mobile:ios": "cd apps/mobile && expo run:ios",
+    "driver:dev": "cd apps/driver-app && expo start --port 8082",
+    "driver:android": "cd apps/driver-app && expo start --android --port 8082",
+    "driver:ios": "cd apps/driver-app && expo start --ios --port 8082",
     "web:dev": "cd apps/web && next dev --turbo",
     "web:build": "cd apps/web && next build",
     "convex:dev": "cd packages/convex && convex dev",

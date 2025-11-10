@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMutation } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -12,12 +11,11 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { Id } from '../../packages/convex/_generated/dataModel';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { Colors } from '../constants/Colors';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
-import { api } from '../lib/convexApi';
+import { useUpdateDriverProfileMutation } from '../store/driverApi';
 import { logger } from '../utils/Logger';
 // Note: FuelType removed - vehicle types are now handled differently in Cribnosh
 
@@ -38,8 +36,8 @@ export default function VehicleScreen() {
     insuranceExpiry: driver?.insuranceExpiry || '',
   });
 
-  // Convex mutations
-  const updateDriverProfile = useMutation(api.drivers.updateDriverProfile);
+  // RTK Query mutations
+  const [updateDriverProfile, { isLoading: isUpdating }] = useUpdateDriverProfileMutation();
 
   const handleBack = () => {
     router.back();
@@ -74,18 +72,15 @@ export default function VehicleScreen() {
     setIsLoading(true);
     try {
       const result = await updateDriverProfile({
-        driverId: driver._id as Id<"drivers">,
-        updates: {
-          vehicleType: formData.vehicleType.trim(),
-          vehicleModel: formData.vehicleModel.trim(),
-          vehicleYear: formData.vehicleYear.trim(),
-          licensePlate: formData.licensePlate.trim(),
-          vehicleColor: formData.vehicleColor.trim(),
-          vehicleCapacity: formData.vehicleCapacity.trim(),
-          insuranceProvider: formData.insuranceProvider.trim(),
-          insuranceExpiry: formData.insuranceExpiry.trim(),
-        }
-      });
+        vehicleType: formData.vehicleType.trim(),
+        vehicleModel: formData.vehicleModel.trim(),
+        vehicleYear: formData.vehicleYear.trim(),
+        licensePlate: formData.licensePlate.trim(),
+        vehicleColor: formData.vehicleColor.trim(),
+        vehicleCapacity: formData.vehicleCapacity.trim(),
+        insuranceProvider: formData.insuranceProvider.trim(),
+        insuranceExpiry: formData.insuranceExpiry.trim(),
+      }).unwrap();
 
       if (result.success) {
         Alert.alert('Success', 'Vehicle information updated successfully!');
@@ -93,9 +88,9 @@ export default function VehicleScreen() {
       } else {
         Alert.alert('Error', result.message || 'Failed to update vehicle information');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error updating vehicle information:', error);
-      Alert.alert('Error', 'Failed to update vehicle information. Please try again.');
+      Alert.alert('Error', error?.data?.message || 'Failed to update vehicle information. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +106,6 @@ export default function VehicleScreen() {
         licensePlate: driver.licensePlate || '',
         vehicleColor: driver.vehicleColor || '',
         vehicleCapacity: driver.vehicleCapacity || '',
-        fuelType: driver.fuelType || '',
         insuranceProvider: driver.insuranceProvider || '',
         insuranceExpiry: driver.insuranceExpiry || '',
       });
@@ -133,25 +127,6 @@ export default function VehicleScreen() {
     'Other'
   ];
 
-  // Note: Fuel types removed - not applicable to Cribnosh meal delivery
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>Vehicle Information</ThemedText>
-          <View style={styles.headerSpacer} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.light.primary} style={styles.loader} />
-          <ThemedText style={styles.loadingText}>Loading vehicle info...</ThemedText>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Use backend data if available, otherwise show empty state
   // Note: Fuel types removed - not applicable to Cribnosh meal delivery
   const fuelTypesToShow: string[] = [];
 

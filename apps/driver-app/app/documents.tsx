@@ -1,52 +1,42 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import type { Id } from '../../packages/convex/_generated/dataModel';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
-  Alert
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../constants/Colors';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
+import { Colors } from '../constants/Colors';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
-import { IconName } from '../utils/Logger';
-import { useSessionAwareQuery } from '../hooks/useSessionAwareConvex';
-import * as ImagePicker from 'expo-image-picker';
-import { useMutation } from 'convex/react';
-import { useGetDriverDocumentsQuery, useUploadDriverDocumentMutation } from '../store/driverApi';
+import { useConfirmUploadMutation, useGenerateUploadUrlMutation, useGetDriverDocumentsQuery, useUploadDriverDocumentMutation } from '../store/driverApi';
+
+type IconName = keyof typeof Ionicons.glyphMap;
 
 export default function DocumentsScreen() {
   const router = useRouter();
   const { driver } = useDriverAuth();
   
-  // Fetch verification status and document expiry info
-  // TODO: Replace with Cribnosh query
-  // const verificationStatus = useSessionAwareQuery(
-  //   api.queries.delivery.getDriverVerificationStatus,
-  //   driver?._id ? { driverId: driver._id as Id<"drivers"> } : "skip"
-  // );
-  const verificationStatus = null; // Placeholder
+  // Verification status is now fetched from driver profile or documents API response
 
   // Fetch driver documents using RTK Query
-  const { data: documentsData, isLoading: isLoadingDocuments } = useGetDriverDocumentsQuery(
+  const { data: documentsData } = useGetDriverDocumentsQuery(
     undefined,
     { skip: !driver }
   );
+  const driverDocuments = documentsData?.data?.documents || [];
+  const driverData = documentsData?.data?.driver;
 
   // RTK Query mutation for document upload
-  const [uploadDriverDocument, { isLoading: isUploading }] = useUploadDriverDocumentMutation();
-
-  // Convex mutations for file upload (may need to keep for file storage)
-  // TODO: Replace with Cribnosh mutations or use RTK Query for file upload
-  const generateUploadUrl = useMutation(api.fileStorage?.generateUploadUrl || null);
-  const confirmUpload = useMutation(api.fileStorage?.confirmUpload || null);
-  const updateDriverProfile = useMutation(api.drivers?.updateDriverProfile || null);
+  const [uploadDriverDocument] = useUploadDriverDocumentMutation();
+  
+  // RTK Query mutations for file upload
+  const [generateUploadUrl] = useGenerateUploadUrlMutation();
+  const [confirmUpload] = useConfirmUploadMutation();
 
   const handleBack = () => {
     router.back();
@@ -70,77 +60,73 @@ export default function DocumentsScreen() {
       const fileName = asset.fileName || `document_${Date.now()}.jpg`;
       const fileType = asset.type || 'image/jpeg';
 
-      // Generate upload URL
-      const uploadData = await generateUploadUrl({
+      // Generate upload URL using RTK Query
+      const uploadUrlResult = await generateUploadUrl({
         fileName,
-        fileType,
-        documentType: docType,
-      });
+        contentType: fileType,
+        fileSize: asset.fileSize || 0,
+        metadata: { documentType: docType },
+      }).unwrap();
 
-      if (!uploadData.uploadUrl || !uploadData.fileId) {
+      if (!uploadUrlResult.data.url) {
         throw new Error('Failed to generate upload URL');
       }
 
-      // Upload file
-      const formData = new FormData();
-      formData.append('file', {
-        uri: fileUri,
-        type: fileType,
-        name: fileName,
-      } as any);
-
-      const uploadResponse = await fetch(uploadData.uploadUrl, {
+      // Upload file to Convex storage
+      const fileBlob = await fetch(fileUri).then(res => res.blob());
+      const uploadResponse = await fetch(uploadUrlResult.data.url, {
         method: 'POST',
-        body: formData,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': fileType,
         },
+        body: fileBlob,
       });
 
       if (!uploadResponse.ok) {
         throw new Error('File upload failed');
       }
 
-      const uploadResult = await uploadResponse.json();
-      const storageId = uploadResult.storageId || uploadResult.id;
+      // Get storage ID from upload response
+      const responseText = await uploadResponse.text();
+      let storageId: string;
+      try {
+        const parsed = JSON.parse(responseText);
+        storageId = parsed.storageId || parsed.id || responseText.trim();
+      } catch {
+        storageId = responseText.trim();
+      }
 
       if (!storageId) {
         throw new Error('Storage ID not found in upload response');
       }
 
-      // Confirm upload
+      // Confirm upload using RTK Query
       const confirmResult = await confirmUpload({
-        fileId: storageId as any,
-        recordId: uploadData.fileId,
-      });
+        storageId,
+        fileName,
+        contentType: fileType,
+        fileSize: asset.fileSize || 0,
+        metadata: { documentType: docType },
+      }).unwrap();
 
       if (!confirmResult.success) {
-        throw new Error(confirmResult.error || 'Upload confirmation failed');
+        throw new Error(confirmResult.message || 'Upload confirmation failed');
       }
 
-      const fileUrl = confirmResult.fileUrl || '';
-
-      // Update driver document
+      // Update driver document using RTK Query
       if (driver?._id) {
-        const updates: any = {};
-        if (docType === 'driversLicense') {
-          updates.driversLicense = fileUrl;
-          updates.driversLicenseFileId = uploadData.fileId;
-          updates.driversLicenseUploadedAt = Date.now();
-        } else if (docType === 'vehicleRegistration') {
-          updates.vehicleRegistration = fileUrl;
-          updates.vehicleRegistrationFileId = uploadData.fileId;
-          updates.vehicleRegistrationUploadedAt = Date.now();
-        } else if (docType === 'insurance') {
-          updates.insurance = fileUrl;
-          updates.insuranceFileId = uploadData.fileId;
-          updates.insuranceUploadedAt = Date.now();
-        }
+        const formData = new FormData();
+        formData.append('type', docType);
+        formData.append('file', {
+          uri: fileUri,
+          type: fileType,
+          name: fileName,
+        } as any);
 
-        await updateDriverProfile({
-          driverId: driver._id as Id<"drivers">,
-          updates,
-        });
+        await uploadDriverDocument({
+          type: docType,
+          file: formData,
+        }).unwrap();
       }
 
       Alert.alert('Success', 'Document uploaded successfully!');
@@ -152,15 +138,16 @@ export default function DocumentsScreen() {
 
   // Map document status from backend to display
   const getDocumentInfo = (docId: 'driversLicense' | 'vehicleRegistration' | 'insurance') => {
-    const docStatus = verificationStatus?.documents?.[docId];
-    const hasFile = docId === 'driversLicense' ? driver?.driversLicense 
-      : docId === 'vehicleRegistration' ? driver?.vehicleRegistration 
-      : driver?.insurance;
+    const hasFile = docId === 'driversLicense' ? (driver?.driversLicense || driverData?.driversLicense)
+      : docId === 'vehicleRegistration' ? (driver?.vehicleRegistration || driverData?.vehicleRegistration)
+      : (driver?.insurance || driverData?.insurance);
     
-    const status = docStatus?.status || (hasFile ? 'PENDING' : 'MISSING');
-    const daysUntilExpiry = docStatus?.daysUntilExpiry;
+    // Find document in driverDocuments array
+    const doc = driverDocuments.find(d => d.type === docId);
+    const status = doc?.verified ? 'VERIFIED' : (hasFile ? 'PENDING' : 'MISSING');
+    const daysUntilExpiry = undefined; // TODO: Add expiry tracking if needed
     
-    let displayStatus = status;
+    let displayStatus: 'VERIFIED' | 'PENDING' | 'MISSING' | 'REJECTED' | 'WARNING' | 'EXPIRED' = status as any;
     let statusColor = Colors.light.icon;
     let statusText = 'Unknown';
     let expiryWarning = '';
@@ -171,17 +158,17 @@ export default function DocumentsScreen() {
         statusText = 'Verified';
         if (daysUntilExpiry !== undefined && daysUntilExpiry !== null) {
           if (daysUntilExpiry <= 0) {
-            displayStatus = 'EXPIRED';
+            displayStatus = 'EXPIRED' as any;
             statusColor = Colors.light.error;
             statusText = 'Expired';
             expiryWarning = 'This document has expired. Please renew it.';
           } else if (daysUntilExpiry <= 7) {
-            displayStatus = 'WARNING';
+            displayStatus = 'WARNING' as any;
             statusColor = Colors.light.warning;
             statusText = 'Expiring Soon';
             expiryWarning = `Expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`;
           } else if (daysUntilExpiry <= 30) {
-            displayStatus = 'WARNING';
+            displayStatus = 'WARNING' as any;
             statusColor = Colors.light.warning;
             statusText = `Expires in ${daysUntilExpiry} days`;
             expiryWarning = `Expires in ${daysUntilExpiry} days`;
@@ -192,18 +179,21 @@ export default function DocumentsScreen() {
         statusColor = Colors.light.warning;
         statusText = 'Pending';
         break;
-      case 'REJECTED':
+      case 'REJECTED' as any:
+        displayStatus = 'REJECTED' as any;
         statusColor = Colors.light.error;
         statusText = 'Rejected';
         break;
-      case 'WARNING':
+      case 'WARNING' as any:
+        displayStatus = 'WARNING' as any;
         statusColor = Colors.light.warning;
         statusText = 'Warning';
         if (daysUntilExpiry !== undefined && daysUntilExpiry !== null) {
           expiryWarning = `Expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`;
         }
         break;
-      case 'EXPIRED':
+      case 'EXPIRED' as any:
+        displayStatus = 'EXPIRED' as any;
         statusColor = Colors.light.error;
         statusText = 'Expired';
         expiryWarning = 'This document has expired. Please renew it.';
@@ -228,7 +218,7 @@ export default function DocumentsScreen() {
     };
   };
 
-  const documents = [
+  const documentsList = [
     {
       id: 'driversLicense' as const,
       title: "Driver's License",
@@ -254,7 +244,7 @@ export default function DocumentsScreen() {
 
   // Calculate progress
   const getVerificationProgress = () => {
-    const verifiedCount = documents.filter(doc => {
+    const verifiedCount = documentsList.filter(doc => {
       const info = getDocumentInfo(doc.id as 'driversLicense' | 'vehicleRegistration' | 'insurance');
       return info.status === 'VERIFIED';
     }).length;
@@ -262,27 +252,28 @@ export default function DocumentsScreen() {
   };
 
   const progress = getVerificationProgress();
-  const missingDocuments = documents.filter(doc => {
+  const missingDocuments = documentsList.filter(doc => {
     const info = getDocumentInfo(doc.id as 'driversLicense' | 'vehicleRegistration' | 'insurance');
     return info.isMissing;
   });
   
   // Get verification status message
   const getVerificationStatusMessage = () => {
-    const status = verificationStatus?.verificationStatus || 'PENDING';
+    const status = driver?.verificationStatus || driverData?.verificationStatus || 'pending';
     switch (status) {
-      case 'APPROVED':
+      case 'approved':
         return { message: 'Your account has been verified. You can now accept orders.', color: Colors.light.accent };
-      case 'REJECTED':
+      case 'rejected':
         return { 
-          message: verificationStatus?.verificationNotes || 'Your verification was rejected. Please review your documents and re-submit.', 
+          message: driver?.verificationNotes || driverData?.verificationNotes || 'Your verification was rejected. Please review your documents and re-submit.', 
           color: Colors.light.error 
         };
-      case 'EXPIRED':
-        return { message: 'One or more documents have expired. Please renew them to continue.', color: Colors.light.error };
-      case 'PENDING':
-      default:
+      case 'pending':
         return { message: 'Your verification is pending review. You can view orders but cannot accept them until verified.', color: Colors.light.warning };
+      case 'on_hold':
+        return { message: 'Your verification is on hold. Please contact support for more information.', color: Colors.light.warning };
+      default:
+        return { message: 'Your verification status is unknown. Please contact support.', color: Colors.light.icon };
     }
   };
   
@@ -301,16 +292,16 @@ export default function DocumentsScreen() {
 
       <ScrollView style={styles.content}>
         {/* Verification Status Banner */}
-        {verificationStatus && (
+        {(driver?.verificationStatus || driverData?.verificationStatus) && (
           <ThemedView style={[styles.verificationBanner, { backgroundColor: verificationMessage.color + '20', borderLeftColor: verificationMessage.color }]}>
             <View style={styles.verificationBannerHeader}>
               <Ionicons 
-                name={verificationStatus.verificationStatus === 'APPROVED' ? 'checkmark-circle' : 'alert-circle'} 
+                name={(driver?.verificationStatus || driverData?.verificationStatus) === 'approved' ? 'checkmark-circle' : 'alert-circle'} 
                 size={20} 
                 color={verificationMessage.color} 
               />
               <ThemedText style={[styles.verificationBannerTitle, { color: verificationMessage.color }]}>
-                Verification {verificationStatus.verificationStatus === 'APPROVED' ? 'Approved' : verificationStatus.verificationStatus === 'REJECTED' ? 'Rejected' : verificationStatus.verificationStatus === 'EXPIRED' ? 'Expired' : 'Pending'}
+                Verification {(driver?.verificationStatus || driverData?.verificationStatus) === 'approved' ? 'Approved' : (driver?.verificationStatus || driverData?.verificationStatus) === 'rejected' ? 'Rejected' : (driver?.verificationStatus || driverData?.verificationStatus) === 'on_hold' ? 'On Hold' : 'Pending'}
               </ThemedText>
             </View>
             <ThemedText style={styles.verificationBannerMessage}>
@@ -346,7 +337,7 @@ export default function DocumentsScreen() {
           </View>
         </ThemedView>
 
-        {documents.map((doc) => {
+        {documentsList.map((doc) => {
           const docInfo = getDocumentInfo(doc.id as 'driversLicense' | 'vehicleRegistration' | 'insurance');
           const isMissing = docInfo.isMissing;
           const isPending = docInfo.status === 'PENDING' && docInfo.hasFile;

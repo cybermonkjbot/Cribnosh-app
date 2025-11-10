@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from "convex/react";
-import { api } from "../lib/convexApi";
-import { Colors } from '../constants/Colors';
+import React, { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+// TODO: Use API endpoints for advanced earnings when available
 import { SkeletonStatCard } from '../components/SkeletonComponents';
 import { ThemedText } from '../components/ThemedText';
+import { Colors } from '../constants/Colors';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
-import { useGetDriverEarningsQuery } from '../store/driverApi';
+import { useGetDriverAdvancedEarningsQuery } from '../store/driverApi';
 
 interface EarningsData {
   totalEarnings: number;
@@ -50,10 +49,12 @@ export default function AdvancedEarningsScreen() {
   // Get driver ID from context
   const driverId = driver?._id;
 
-  // Fetch earnings data from Convex
-  const advancedEarnings = useQuery(api.driverPerformance.getDriverAdvancedEarnings, 
-    driverId ? { driverId: driverId } : "skip"
+  // Fetch advanced earnings data
+  const { data: advancedEarningsResponse, isLoading: isLoadingAdvancedEarnings } = useGetDriverAdvancedEarningsQuery(
+    { period: selectedPeriod === '7d' ? '7d' : selectedPeriod === '90d' ? '90d' : selectedPeriod === '1y' ? 'all' : '30d' },
+    { skip: !driver }
   );
+  const advancedEarnings = advancedEarningsResponse?.data || null;
 
   const periods = [
     { value: '7d', label: 'Last 7 Days' },
@@ -74,7 +75,30 @@ export default function AdvancedEarningsScreen() {
   ];
 
   // Get earnings data with fallback
-  const earningsData: EarningsData | EarningsDataFallback = advancedEarnings || {
+  const earningsData: EarningsData | EarningsDataFallback = advancedEarnings ? {
+    totalEarnings: advancedEarnings.total_earnings || 0,
+    weeklyEarnings: advancedEarnings.weekly_earnings || 0,
+    monthlyEarnings: advancedEarnings.monthly_earnings || 0,
+    earningsBreakdown: {
+      baseEarnings: advancedEarnings.earnings_breakdown?.base_earnings || 0,
+      tips: advancedEarnings.earnings_breakdown?.tips || 0,
+      bonuses: advancedEarnings.earnings_breakdown?.bonuses || 0,
+      incentives: advancedEarnings.earnings_breakdown?.incentives || 0,
+    },
+    earningsTrend: advancedEarnings.earnings_trend || 0,
+    goals: {
+      weeklyTarget: advancedEarnings.goals?.weekly_target || 0,
+      monthlyTarget: advancedEarnings.goals?.monthly_target || 0,
+      weeklyProgress: advancedEarnings.goals?.weekly_progress || 0,
+      monthlyProgress: advancedEarnings.goals?.monthly_progress || 0,
+    },
+    performance: {
+      averageOrderValue: advancedEarnings.performance?.average_order_value || 0,
+      ordersCompleted: advancedEarnings.performance?.orders_completed || 0,
+      averageRating: advancedEarnings.performance?.average_rating || 0,
+      completionRate: advancedEarnings.performance?.completion_rate || 0,
+    },
+  } : {
     totalEarnings: 0,
     weeklyEarnings: 0,
     monthlyEarnings: 0,
@@ -139,7 +163,7 @@ export default function AdvancedEarningsScreen() {
   }
 
   // Show loading state if data is not available
-  if (advancedEarnings === undefined) {
+  if (isLoadingAdvancedEarnings) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>

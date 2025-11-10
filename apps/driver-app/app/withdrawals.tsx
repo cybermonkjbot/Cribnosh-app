@@ -1,9 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import { Colors } from '../constants/Colors';
-import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,11 +11,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
+import { PersistentBottomSheet } from '../components/PersistentBottomSheet';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
+import { Colors } from '../constants/Colors';
+import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
+import { useGetDriverEarningsQuery, useGetDriverPayoutHistoryQuery, useRequestPayoutMutation } from '../store/driverApi';
 import { logger } from '../utils/Logger';
-import { PersistentBottomSheet } from '../components/PersistentBottomSheet';
 
 export default function WithdrawalsScreen() {
   const router = useRouter();
@@ -27,18 +26,21 @@ export default function WithdrawalsScreen() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
 
-  // Fetch driver earnings data
-  const earningsData = useQuery(
-    api.driverEarnings.getDriverEarningsSummary,
-    driver ? { driverId: driver._id } : 'skip'
+  // Fetch driver earnings data using RTK Query
+  const { data: earningsData } = useGetDriverEarningsQuery(
+    undefined,
+    { skip: !driver }
   );
-  const payoutHistory = useQuery(
-    api.driverEarnings.getDriverPayoutHistory,
-    driver ? { driverId: driver._id } : 'skip'
+  
+  // Fetch payout history using RTK Query
+  const { data: payoutHistoryData, isLoading: isLoadingPayoutHistory } = useGetDriverPayoutHistoryQuery(
+    { limit: 50, offset: 0 },
+    { skip: !driver }
   );
+  const payoutHistory = payoutHistoryData?.data?.payouts || [];
 
-  // Mutations
-  const requestPayout = useMutation(api.driverEarnings.requestPayout);
+  // RTK Query mutation for payout request
+  const [requestPayout, { isLoading: isRequestingPayout }] = useRequestPayoutMutation();
 
   const handleBack = () => {
     router.back();
@@ -385,7 +387,7 @@ export default function WithdrawalsScreen() {
           {/* Withdrawal History */}
           <ThemedView style={styles.sectionCard}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Withdrawal History</ThemedText>
-            {!payoutHistory ? (
+            {isLoadingPayoutHistory ? (
               <View style={styles.loadingHistory}>
                 <ActivityIndicator size="small" color={Colors.light.primary} />
                 <ThemedText style={styles.loadingHistoryText}>Loading history...</ThemedText>

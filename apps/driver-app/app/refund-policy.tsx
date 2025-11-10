@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import { useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/ThemedText';
 import { Colors } from '../constants/Colors';
+import { useGetRefundPolicyQuery } from '../store/driverApi';
 
 export default function RefundPolicyScreen() {
   const router = useRouter();
-  const refundPolicy = useQuery(api.legalContent.getRefundPolicy, {});
+  // Fetch refund policy using RTK Query
+  const { data: refundPolicyResponse, isLoading } = useGetRefundPolicyQuery();
+  const refundPolicy = refundPolicyResponse?.data || null;
 
   const handleBack = () => {
     router.back();
@@ -28,37 +29,30 @@ export default function RefundPolicyScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {!refundPolicy ? (
+        {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ThemedText>Loading...</ThemedText>
+            <ActivityIndicator size="large" color={Colors.light.primary} />
+            <ThemedText style={{ marginTop: 12 }}>Loading...</ThemedText>
           </View>
-        ) : (
+        ) : refundPolicy ? (
           <>
             {/* Last Updated */}
             <View style={styles.lastUpdatedContainer}>
               <ThemedText style={styles.lastUpdatedText}>
-                Last Updated: {refundPolicy.lastUpdated}
+                Last Updated: {new Date(refundPolicy.lastUpdated).toLocaleDateString()}
               </ThemedText>
             </View>
 
             {/* Content */}
-            {refundPolicy.content.map((section: { section: string; title: string; body: string }, index: number) => (
-              <View key={section.section} style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionNumber}>
-                    <ThemedText style={styles.sectionNumberText}>{index + 1}</ThemedText>
-                  </View>
-                  <ThemedText style={styles.sectionTitle}>{section.title}</ThemedText>
-                </View>
-                <ThemedText style={styles.sectionBody}>{section.body}</ThemedText>
-              </View>
-            ))}
-
-            {/* FAQs */}
-            {refundPolicy.faqs && refundPolicy.faqs.length > 0 && (
-              <FAQAccordion faqs={refundPolicy.faqs} />
-            )}
+            <View style={styles.contentContainer}>
+              <ThemedText style={styles.contentTitle}>{refundPolicy.title}</ThemedText>
+              <ThemedText style={styles.contentBody}>{refundPolicy.content}</ThemedText>
+            </View>
           </>
+        ) : (
+          <View style={styles.loadingContainer}>
+            <ThemedText>No content available</ThemedText>
+          </View>
         )}
 
         <View style={styles.bottomSpacing} />
@@ -211,6 +205,29 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 20,
+  },
+  contentContainer: {
+    backgroundColor: Colors.light.background,
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  contentTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 16,
+  },
+  contentBody: {
+    fontSize: 14,
+    color: Colors.light.text,
+    lineHeight: 22,
   },
   faqContainer: {
     marginHorizontal: 16,

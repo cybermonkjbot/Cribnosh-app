@@ -10,26 +10,42 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery } from "convex/react";
-import { api } from '../lib/convexApi';
 import { Colors } from '../constants/Colors';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { logger } from '../utils/Logger';
+import { useGetHelpFAQsQuery } from '../store/driverApi';
+import { SkeletonListItem } from '../components/SkeletonComponents';
+
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+}
 
 export default function HelpScreen() {
   const router = useRouter();
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
-  // Fetch driver FAQs from backend
-  const faqItems = useQuery(api.driverSupport.getDriverFAQs);
+  // Fetch driver FAQs from backend using RTK Query
+  const { data: faqsResponse, isLoading } = useGetHelpFAQsQuery();
+  const faqsData = faqsResponse?.data || null;
+  
+  // Flatten FAQs from categories
+  const faqItems: FAQ[] = faqsData?.categories?.flatMap((category: any, categoryIndex: number) =>
+    category.questions.map((faq: any, faqIndex: number) => ({
+      id: `faq-${categoryIndex}-${faqIndex}`,
+      question: faq.question,
+      answer: faq.answer,
+    }))
+  ) || [];
 
   const handleBack = () => {
     router.back();
   };
 
   // Loading state
-  if (faqItems === undefined) {
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>

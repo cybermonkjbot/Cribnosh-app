@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '../components/EmptyState';
+import { GlassCard } from '../components/GlassCard';
+import { ShimmerEffect } from '../components/ShimmerEffect';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { Colors } from '../constants/Colors';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
@@ -186,12 +188,14 @@ export default function DriverOrdersScreen() {
               const createdAt = order._creationTime || order.createdAt || Date.now();
               
               return (
-                <TouchableOpacity
-                  key={orderId}
-                  style={styles.orderCard}
-                  onPress={() => handleOrderPress(order)}
-                >
-                  <View style={styles.orderHeader}>
+                <View key={orderId} style={styles.orderCardWrapper}>
+                  <GlassCard style={styles.orderCard}>
+                    <TouchableOpacity
+                      onPress={() => handleOrderPress(order)}
+                      style={styles.orderCardContent}
+                    >
+                      <ShimmerEffect />
+                      <View style={styles.orderHeader}>
                     <View style={styles.orderInfo}>
                       <Text style={styles.orderId}>
                         Order #{orderId.slice(-8)}
@@ -246,7 +250,9 @@ export default function DriverOrdersScreen() {
                       </Text>
                     </View>
                   </View>
-                </TouchableOpacity>
+                    </TouchableOpacity>
+                  </GlassCard>
+                </View>
               );
             })
           )}
@@ -305,16 +311,16 @@ const styles = StyleSheet.create({
   ordersList: {
     flex: 1,
   },
-  orderCard: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 16,
+  orderCardWrapper: {
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+  },
+  orderCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  orderCardContent: {
+    padding: 16,
+    position: 'relative',
   },
   orderHeader: {
     flexDirection: 'row',

@@ -28,6 +28,7 @@ export type VehicleType =
 
 export interface Driver {
   _id: Id<'drivers'>;
+  userId?: Id<'users'>;
   name: string;
   email: string;
   phone?: string;
@@ -45,6 +46,19 @@ export interface Driver {
   rating?: number;
   totalDeliveries?: number;
   totalEarnings?: number;
+  // Document fields
+  driversLicense?: string;
+  driversLicenseFileId?: string;
+  driversLicenseUploadedAt?: number;
+  vehicleRegistration?: string;
+  vehicleRegistrationFileId?: string;
+  vehicleRegistrationUploadedAt?: number;
+  insurance?: string;
+  insuranceFileId?: string;
+  insuranceUploadedAt?: number;
+  // Verification status
+  verificationStatus?: 'pending' | 'approved' | 'rejected' | 'on_hold';
+  verificationNotes?: string;
   documents?: {
     type: string;
     url: string;

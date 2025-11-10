@@ -1,22 +1,33 @@
 // store/driverApi.ts
 import { API_CONFIG } from "@/constants/api";
 import {
-    GetDriverDocumentsResponse,
-    GetDriverEarningsResponse,
-    GetDriverOrderResponse,
-    GetDriverOrdersResponse,
-    GetDriverProfileResponse,
-    PhoneLoginData,
-    PhoneLoginResponse,
-    SendOTPResponse,
-    UpdateDriverLocationRequest,
-    UpdateDriverLocationResponse,
-    UpdateDriverProfileRequest,
-    UpdateDriverProfileResponse,
-    UpdateOrderStatusRequest,
-    UpdateOrderStatusResponse,
-    UploadDriverDocumentRequest,
-    UploadDriverDocumentResponse,
+  ConfirmUploadRequest,
+  ConfirmUploadResponse,
+  GenerateUploadUrlRequest,
+  GenerateUploadUrlResponse,
+  GetDriverAdvancedEarningsResponse,
+  GetDriverDocumentsResponse,
+  GetDriverEarningsResponse,
+  GetDriverOrderResponse,
+  GetDriverOrdersResponse,
+  GetDriverPayoutHistoryResponse,
+  GetDriverPerformanceAnalyticsResponse,
+  GetDriverProfileResponse,
+  GetHelpFAQsResponse,
+  GetLegalContentResponse,
+  GetUserByIdResponse,
+  LogoutResponse,
+  PhoneLoginData,
+  PhoneLoginResponse,
+  SendOTPResponse,
+  UpdateDriverLocationRequest,
+  UpdateDriverLocationResponse,
+  UpdateDriverProfileRequest,
+  UpdateDriverProfileResponse,
+  UpdateOrderStatusRequest,
+  UpdateOrderStatusResponse,
+  UploadDriverDocumentRequest,
+  UploadDriverDocumentResponse,
 } from "@/types/api";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
@@ -334,6 +345,26 @@ export const driverApi = createApi({
     }),
 
     /**
+     * Get available orders (orders assigned to driver with status=assigned)
+     * GET /api/driver/orders?status=assigned
+     */
+    getAvailableOrders: builder.query<GetDriverOrdersResponse, { limit?: number; offset?: number }>({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("status", "assigned");
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.offset) searchParams.append("offset", params.offset.toString());
+
+        const queryString = searchParams.toString();
+        return {
+          url: `/driver/orders?${queryString}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["DriverOrders"],
+    }),
+
+    /**
      * Get driver order by ID
      * GET /api/driver/orders/{id}
      */
@@ -504,6 +535,300 @@ export const driverApi = createApi({
       },
       invalidatesTags: ["DriverDocuments", "DriverProfile"],
     }),
+
+    // ========================================================================
+    // DRIVER REGISTRATION ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get vehicle types
+     * GET /api/driver/vehicles/types
+     */
+    getVehicleTypes: builder.query<{ id: string; name: string }[], void>({
+      query: () => ({
+        url: "/driver/vehicles/types",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Get vehicle models by type
+     * GET /api/driver/vehicles/models?vehicleType={type}
+     */
+    getVehicleModels: builder.query<{ id: string; name: string }[], string>({
+      query: (vehicleType) => ({
+        url: `/driver/vehicles/models?vehicleType=${encodeURIComponent(vehicleType)}`,
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Get vehicle years
+     * GET /api/driver/vehicles/years
+     */
+    getVehicleYears: builder.query<{ id: string; name: string }[], void>({
+      query: () => ({
+        url: "/driver/vehicles/years",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Get banks
+     * GET /api/driver/banks
+     */
+    getBanks: builder.query<{ code: string; name: string }[], void>({
+      query: () => ({
+        url: "/driver/banks",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Verify bank account
+     * POST /api/driver/banks/verify
+     * Note: Stripe doesn't provide account name verification for UK accounts without user interaction
+     * This endpoint validates the account format only - account name must be entered manually
+     */
+    verifyBankAccount: builder.mutation<
+      { success: boolean; verified: boolean; message?: string; error?: string },
+      { accountNumber: string; bankCode: string }
+    >({
+      query: (data) => ({
+        url: "/driver/banks/verify",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    /**
+     * Register driver
+     * POST /api/driver/register
+     */
+    registerDriver: builder.mutation<
+      { success: boolean; driverId: string; userId?: string },
+      {
+        sessionToken?: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+        phoneNumber: string;
+        vehicleType: string;
+        vehicleModel: string;
+        vehicleYear: string;
+        licensePlate: string;
+        driversLicense: string;
+        driversLicenseFileId?: string;
+        vehicleRegistration: string;
+        vehicleRegistrationFileId?: string;
+        insurance: string;
+        insuranceFileId?: string;
+        bankName: string;
+        bankCode: string;
+        accountNumber: string;
+        accountName: string;
+        workType?: 'independent' | 'supplier';
+        supplierId?: string;
+      }
+    >({
+      query: (data) => ({
+        url: "/driver/register",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["DriverProfile"],
+    }),
+
+    // ========================================================================
+    // USER & CUSTOMER ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get user by ID
+     * GET /api/users/{id}
+     */
+    getUserById: builder.query<GetUserByIdResponse, string>({
+      query: (userId) => ({
+        url: `/users/${userId}`,
+        method: "GET",
+      }),
+    }),
+
+    // ========================================================================
+    // PERFORMANCE & ANALYTICS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get driver performance analytics
+     * GET /api/driver/performance/analytics?metricType={type}&period={period}
+     */
+    getDriverPerformanceAnalytics: builder.query<
+      GetDriverPerformanceAnalyticsResponse,
+      { metricType?: 'efficiency' | 'safety' | 'customer'; period?: '7d' | '30d' | '90d' }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.metricType) searchParams.append("metricType", params.metricType);
+        if (params.period) searchParams.append("period", params.period);
+
+        const queryString = searchParams.toString();
+        return {
+          url: `/driver/performance/analytics${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+    }),
+
+    /**
+     * Get advanced driver earnings
+     * GET /api/driver/earnings/advanced?period={period}
+     */
+    getDriverAdvancedEarnings: builder.query<
+      GetDriverAdvancedEarningsResponse,
+      { period?: '7d' | '30d' | '90d' | 'all' }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.period) searchParams.append("period", params.period);
+
+        const queryString = searchParams.toString();
+        return {
+          url: `/driver/earnings/advanced${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+    }),
+
+    /**
+     * Get driver payout history
+     * GET /api/driver/payouts/history?limit={limit}&offset={offset}&status={status}
+     */
+    getDriverPayoutHistory: builder.query<
+      GetDriverPayoutHistoryResponse,
+      { limit?: number; offset?: number; status?: string }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.offset) searchParams.append("offset", params.offset.toString());
+        if (params.status) searchParams.append("status", params.status);
+
+        const queryString = searchParams.toString();
+        return {
+          url: `/driver/payouts/history${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+    }),
+
+    // ========================================================================
+    // FILE UPLOAD ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Generate upload URL
+     * POST /api/files/upload-url
+     */
+    generateUploadUrl: builder.mutation<
+      GenerateUploadUrlResponse,
+      GenerateUploadUrlRequest
+    >({
+      query: (data) => ({
+        url: "/files/upload-url",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    /**
+     * Confirm file upload
+     * POST /api/files/confirm-upload
+     */
+    confirmUpload: builder.mutation<
+      ConfirmUploadResponse,
+      ConfirmUploadRequest
+    >({
+      query: (data) => ({
+        url: "/files/confirm-upload",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    // ========================================================================
+    // LEGAL CONTENT & HELP ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get community guidelines
+     * GET /api/legal/community-guidelines
+     */
+    getCommunityGuidelines: builder.query<GetLegalContentResponse, void>({
+      query: () => ({
+        url: "/legal/community-guidelines",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Get privacy policy
+     * GET /api/legal/privacy-policy
+     */
+    getPrivacyPolicy: builder.query<GetLegalContentResponse, void>({
+      query: () => ({
+        url: "/legal/privacy-policy",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Get refund policy
+     * GET /api/legal/refund-policy
+     */
+    getRefundPolicy: builder.query<GetLegalContentResponse, void>({
+      query: () => ({
+        url: "/legal/refund-policy",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Get terms of service
+     * GET /api/legal/terms-of-service
+     */
+    getTermsOfService: builder.query<GetLegalContentResponse, void>({
+      query: () => ({
+        url: "/legal/terms-of-service",
+        method: "GET",
+      }),
+    }),
+
+    /**
+     * Get help FAQs
+     * GET /api/help/faqs
+     */
+    getHelpFAQs: builder.query<GetHelpFAQsResponse, void>({
+      query: () => ({
+        url: "/help/faqs",
+        method: "GET",
+      }),
+    }),
+
+    // ========================================================================
+    // AUTHENTICATION ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Logout user
+     * POST /api/auth/logout
+     */
+    logout: builder.mutation<LogoutResponse, void>({
+      query: () => ({
+        url: "/auth/logout",
+        method: "POST",
+      }),
+      invalidatesTags: ["DriverProfile"],
+    }),
   }),
 });
 
@@ -517,6 +842,7 @@ export const {
   useUpdateDriverProfileMutation,
   useGetDriversQuery,
   useGetDriverOrdersQuery,
+  useGetAvailableOrdersQuery,
   useGetDriverOrderQuery,
   useGetOrderQuery,
   useUpdateOrderStatusMutation,
@@ -527,5 +853,23 @@ export const {
   useRequestPayoutMutation,
   useGetDriverDocumentsQuery,
   useUploadDriverDocumentMutation,
+  useGetVehicleTypesQuery,
+  useGetVehicleModelsQuery,
+  useGetVehicleYearsQuery,
+  useGetBanksQuery,
+  useVerifyBankAccountMutation,
+  useRegisterDriverMutation,
+  useGetUserByIdQuery,
+  useGetDriverPerformanceAnalyticsQuery,
+  useGetDriverAdvancedEarningsQuery,
+  useGetDriverPayoutHistoryQuery,
+  useGenerateUploadUrlMutation,
+  useConfirmUploadMutation,
+  useGetCommunityGuidelinesQuery,
+  useGetPrivacyPolicyQuery,
+  useGetRefundPolicyQuery,
+  useGetTermsOfServiceQuery,
+  useGetHelpFAQsQuery,
+  useLogoutMutation,
 } = driverApi;
 
