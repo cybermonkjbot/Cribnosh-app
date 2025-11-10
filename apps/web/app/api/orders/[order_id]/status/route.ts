@@ -10,14 +10,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
- * /orders/{id}/status:
+ * /orders/{order_id}/status:
  *   post:
  *     summary: Update Order/Delivery Status
  *     description: Update the delivery status of an order (picked_up, in_transit, delivered). Only drivers can update status.
  *     tags: [Driver, Orders]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: order_id
  *         required: true
  *         schema:
  *           type: string
@@ -80,7 +80,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 async function handlePOST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { order_id: string } }
 ): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedDriver(request);
@@ -97,7 +97,7 @@ async function handlePOST(
       return ResponseFactory.notFound('Driver profile not found. Please complete your driver registration.');
     }
 
-    const orderId = params.id;
+    const orderId = params.order_id;
     const body = await request.json();
     const { status, location, notes } = body;
 

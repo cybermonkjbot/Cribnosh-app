@@ -390,7 +390,7 @@ export const driverApi = createApi({
 
     /**
      * Update order status
-     * POST /api/orders/{id}/status (using web endpoint)
+     * POST /api/orders/{order_id}/status (using web endpoint)
      */
     updateOrderStatus: builder.mutation<
       UpdateOrderStatusResponse,
