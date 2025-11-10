@@ -12,15 +12,9 @@ const departments = [
   "Engineering",
   "Product",
   "Design",
-  "Marketing",
-  "Operations",
-  "Customer Support",
-  "Sales",
-  "HR",
 ];
 
-const jobTypes = ["Full-time", "Part-time", "Contract", "Internship"];
-const locations = ["Remote", "London, UK", "Birmingham, UK", "Manchester, UK"];
+const jobTypes = ["Full-time", "Remote"];
 
 const FilterButton = ({ 
   label, 
@@ -49,17 +43,17 @@ export default function CareersPage() {
   const jobs = useQuery(api.queries.careers.listActiveJobs);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
   const filteredJobs = useMemo(() => {
     if (!jobs) return [];
     return jobs.filter((job: any) => {
       const matchesDepartment = !selectedDepartment || job.department === selectedDepartment;
-      const matchesType = !selectedType || job.type === selectedType;
-      const matchesLocation = !selectedLocation || job.location === selectedLocation;
-      return matchesDepartment && matchesType && matchesLocation;
+      const matchesType = !selectedType || 
+        (selectedType === "Full-time" && job.type === "Full-time") ||
+        (selectedType === "Remote" && job.location === "Remote");
+      return matchesDepartment && matchesType;
     });
-  }, [jobs, selectedDepartment, selectedType, selectedLocation]);
+  }, [jobs, selectedDepartment, selectedType]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -110,46 +104,25 @@ export default function CareersPage() {
           className="py-4 sm:py-6 px-3 sm:px-6 lg:px-8 sticky top-0 bg-white/90 backdrop-blur-lg z-20 border-y border-gray-100 shadow-sm"
         >
           <div className="max-w-7xl mx-auto">
-            <div className="space-y-3 sm:space-y-4">
-              {/* Department Filters */}
-              <div className="flex justify-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-                {departments.map(dept => (
-                  <FilterButton
-                    key={dept}
-                    label={dept}
-                    value={dept}
-                    selected={selectedDepartment === dept}
-                    onChange={setSelectedDepartment}
-                  />
-                ))}
-              </div>
-
-              {/* Job Type and Location Filters */}
-              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-                <div className="flex justify-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-                  {jobTypes.map(type => (
-                    <FilterButton
-                      key={type}
-                      label={type}
-                      value={type}
-                      selected={selectedType === type}
-                      onChange={setSelectedType}
-                    />
-                  ))}
-                </div>
-                <div className="h-px sm:h-6 w-full sm:w-px bg-gray-200 hidden sm:block" />
-                <div className="flex justify-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-                  {locations.map(location => (
-                    <FilterButton
-                      key={location}
-                      label={location}
-                      value={location}
-                      selected={selectedLocation === location}
-                      onChange={setSelectedLocation}
-                    />
-                  ))}
-                </div>
-              </div>
+            <div className="flex justify-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex-wrap">
+              {departments.map(dept => (
+                <FilterButton
+                  key={dept}
+                  label={dept}
+                  value={dept}
+                  selected={selectedDepartment === dept}
+                  onChange={setSelectedDepartment}
+                />
+              ))}
+              {jobTypes.map(type => (
+                <FilterButton
+                  key={type}
+                  label={type}
+                  value={type}
+                  selected={selectedType === type}
+                  onChange={setSelectedType}
+                />
+              ))}
             </div>
           </div>
         </section>

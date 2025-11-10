@@ -1,7 +1,10 @@
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
+import { getApiFunction, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -55,11 +58,15 @@ async function handleGET(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get video post to retrieve storage ID
-    const getVideoById = getApiFunction('queries/videoPosts', 'getVideoById');
-    const video = await convex.query(getVideoById, { videoId: videoId as any });
+    const getVideoById = getApiFunction('queries/videoPosts', 'getVideoById') as any;
+    const video = await convex.query(getVideoById, {
+      videoId: videoId as any,
+      sessionToken: sessionToken || undefined
+    });
 
     if (!video) {
       return ResponseFactory.notFound('Video not found');
@@ -79,8 +86,11 @@ async function handleGET(
     }, 'Video download URL retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Error in video download:', error);
-    const message = error instanceof Error ? error.message : 'Failed to retrieve video download URL';
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error in video download:', error);
+    const message = getErrorMessage(error, 'Failed to retrieve video download URL');
     
     if (message.includes('not found')) {
       return ResponseFactory.notFound(message);

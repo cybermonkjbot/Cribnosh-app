@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -60,32 +59,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Note: Role check is optional - if roles are not in JWT, we still allow access based on user_id
-    // Uncomment below if you want strict role checking:
-    // if (!payload.roles?.includes('customer')) {
-    //   return ResponseFactory.forbidden('Forbidden: Only customers can access support chat.');
-    // }
-
-    const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
+    const convex = getConvexClientFromRequest(request);
 
     // Check if specific case ID is requested
     const { searchParams } = new URL(request.url);
@@ -121,7 +102,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         }
       } catch (error) {
         // If case not found or invalid, fall through to get active chat
-        console.error('Error loading case chat:', error);
+        logger.error('Error loading case chat:', error);
       }
     }
 
@@ -176,52 +157,48 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       attachments: [],
     });
 
-    // Get available agent
-    const availableAgents = await convex.query(api.queries.supportAgents.getAvailableAgents, {});
-    
-    if (availableAgents.length === 0) {
-      return ResponseFactory.success({
-        chatId: null,
-        supportCaseId: caseId,
-        agent: null,
-        messages: [],
-        message: 'No support agents are currently available. We will assign an agent soon.',
-      });
-    }
+    // Create support chat with AI agent (no human agent assigned initially)
+    // Create chat without a human agent - AI will handle responses initially
+    const chatResult = await convex.mutation(api.mutations.chats.createConversation, {
+      participants: [userId], // Only the customer initially
+      metadata: {
+        support_case_id: caseId,
+        is_support_chat: true,
+        is_ai_assigned: true, // Mark as AI-assigned
+        agent_id: null, // No human agent initially
+      },
+    });
 
-    // Assign first available agent
-    const selectedAgent = availableAgents[0];
+    const chatId = chatResult.chatId;
     
-    // Create support chat
-    const chatResult = await convex.mutation(api.mutations.supportCases.createSupportChat, {
+    // Link chat to support case (without assigning a human agent)
+    await convex.mutation(api.mutations.supportCases.linkChat, {
       caseId,
-      agentId: selectedAgent._id as Id<'users'>,
+      chatId,
     });
 
-    // Get agent info
-    const agentInfo = await convex.query(api.queries.supportAgents.getAgentInfo, {
-      agentId: selectedAgent._id as Id<'users'>,
-    });
-
-    // Get messages (should be empty for new chat)
+    // Get messages (should include the welcome message)
     const messagesResult = await convex.query(api.queries.chats.listMessagesForChat, {
-      chatId: chatResult.chatId,
+      chatId,
       limit: 50,
       offset: 0,
     });
 
     return ResponseFactory.success({
-      chatId: chatResult.chatId,
+      chatId,
       supportCaseId: caseId,
-      agent: agentInfo ? {
-        id: agentInfo._id,
-        name: agentInfo.name,
-        avatar: agentInfo.avatar,
-        isOnline: agentInfo.isOnline,
-      } : null,
+      agent: {
+        id: 'ai',
+        name: 'CribNosh AI',
+        avatar: null,
+        isOnline: true,
+      },
       messages: messagesResult.messages.reverse(),
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get or create support chat.'));
   }
 }

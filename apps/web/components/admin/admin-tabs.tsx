@@ -52,9 +52,9 @@ export function AdminTabs({
                 onClick={() => handleTabChange(tab.id)}
                 className={cn(
                   "relative flex items-center gap-2 px-4 py-3 text-sm font-medium font-satoshi transition-all duration-200 whitespace-nowrap min-h-[44px]",
-                  "hover:bg-gray-50/80 focus:outline-none focus:ring-2 focus:ring-[#F23E2E]/20 focus:z-10",
+                  "hover:bg-gray-50/80 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:z-10",
                   isActive
-                    ? "text-[#F23E2E] border-b-2 border-[#F23E2E] bg-[#F23E2E]/5"
+                    ? "text-gray-900 border-b-2 border-gray-900 bg-gray-50"
                     : "text-gray-600 hover:text-gray-900 border-b-2 border-transparent"
                 )}
                 aria-current={isActive ? "page" : undefined}
@@ -65,7 +65,7 @@ export function AdminTabs({
                   <span className={cn(
                     "ml-2 px-2 py-0.5 text-xs font-medium rounded-full",
                     isActive 
-                      ? "bg-[#F23E2E]/20 text-[#F23E2E]" 
+                      ? "bg-gray-200 text-gray-900" 
                       : "bg-gray-100 text-gray-600"
                   )}>
                     {tab.badge}
@@ -118,7 +118,7 @@ export function AdminTabsMobile({
         <select
           value={activeTab}
           onChange={(e) => handleTabChange(e.target.value)}
-          className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl text-sm font-medium font-satoshi focus:outline-none focus:ring-2 focus:ring-[#F23E2E]/20 focus:border-[#F23E2E]"
+          className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl text-sm font-medium font-satoshi focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
         >
           {tabs.map((tab) => (
             <option key={tab.id} value={tab.id}>

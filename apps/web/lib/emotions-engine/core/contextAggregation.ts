@@ -2,6 +2,7 @@ import { EmotionsContext } from '../types';
 import { getConvexClient } from '../../conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { logger } from '@/lib/utils/logger';
 
 // Real fetch for backend user data from Convex
 async function fetchUserData(userId: string): Promise<Partial<EmotionsContext>> {
@@ -47,7 +48,7 @@ async function fetchUserData(userId: string): Promise<Partial<EmotionsContext>> 
       time_constraint: 'flexible', // Default value since this field doesn't exist in schema
     } as Partial<EmotionsContext>;
   } catch (error) {
-    console.error('Error fetching user data for emotions engine:', error);
+    logger.error('Error fetching user data for emotions engine:', error);
     // Return fallback data
     return {
       diet_type: 'none',

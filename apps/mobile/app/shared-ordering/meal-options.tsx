@@ -1,10 +1,10 @@
 import { SharedOrderingHeader } from "@/components/ui/SharedOrderingHeader";
 import {
-    useGetCustomOrdersQuery,
+    useGetCustomOrderQuery,
     useUpdateCustomOrderMutation,
 } from "@/store/customerApi";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useToast } from "../../lib/ToastContext";
@@ -17,16 +17,29 @@ export default function MealOptions() {
   const [selectedDiet, setSelectedDiet] = useState<string>("");
   const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
 
-  // Fetch existing custom orders for fallback data
-  const { data: customOrdersData, error: customOrdersError } =
-    useGetCustomOrdersQuery(
-      { page: 1, limit: 10 },
-      {
-        skip: false, // Always fetch to check if we have data
-      }
-    );
+  // Fetch the specific custom order to check if dietary restrictions are already set
+  const customOrderId = typeof orderId === "string" ? orderId : undefined;
+  const { data: customOrderData } = useGetCustomOrderQuery(
+    customOrderId || "",
+    {
+      skip: !customOrderId,
+    }
+  );
 
   const [updateCustomOrder] = useUpdateCustomOrderMutation();
+
+  // Check if dietary restrictions are already set and match selection
+  useEffect(() => {
+    if (customOrderData?.data?.dietary_restrictions) {
+      const existingRestrictions = customOrderData.data.dietary_restrictions;
+      // If dietary restrictions are already set, pre-select them
+      if (typeof existingRestrictions === 'string') {
+        setSelectedDiet(existingRestrictions);
+      } else if (Array.isArray(existingRestrictions) && existingRestrictions.length > 0) {
+        setSelectedDiet(existingRestrictions[0]);
+      }
+    }
+  }, [customOrderData]);
 
   const dietOptions: DropdownOption[] = [
     { label: "No restrictions", value: "none" },
@@ -46,11 +59,6 @@ export default function MealOptions() {
   };
 
   const handleConfirm = async () => {
-    const customOrderId =
-      typeof orderId === "string"
-        ? orderId
-        : customOrdersData?.data?.orders?.[0]?._id;
-
     if (!customOrderId) {
       showToast({
         type: "error",
@@ -61,10 +69,23 @@ export default function MealOptions() {
       return;
     }
 
+    // Check if dietary restrictions are already set and match selection
+    const existingRestrictions = customOrderData?.data?.dietary_restrictions;
+    const newRestrictions = selectedDiet && selectedDiet !== "none" ? selectedDiet : null;
+    
+    // If dietary restrictions haven't changed, skip the update
+    if (existingRestrictions === newRestrictions || 
+        (Array.isArray(existingRestrictions) && existingRestrictions.length > 0 && existingRestrictions[0] === newRestrictions) ||
+        (typeof existingRestrictions === 'string' && existingRestrictions === newRestrictions)) {
+      // Dietary restrictions already match, skip update
+      router.push("/shared-ordering/its-on-you");
+      return;
+    }
+
     try {
       setIsUpdatingOrder(true);
 
-      // Update custom order via API
+      // Update custom order via API only if dietary restrictions have changed
       await updateCustomOrder({
         customOrderId,
         data: {

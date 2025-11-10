@@ -1,14 +1,12 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface BulkRefundEligibilityRequest {
   orders: Array<{
@@ -192,35 +190,13 @@ interface BulkRefundEligibilityRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    interface JWTPayload {
-      role?: string;
-      userId?: string;
-      user_id?: string;
-      email?: string;
-      [key: string]: unknown;
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has admin permissions
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Admin access required.');
-    }
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
 
     const body: BulkRefundEligibilityRequest = await request.json();
     const { orders, globalReason, globalDescription } = body;
@@ -233,7 +209,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Too many orders. Maximum 50 orders per request.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     interface RefundOperationResult {
       orderId: string;
       success: boolean;
@@ -261,7 +238,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         const finalDescription = description || globalDescription || 'Bulk admin operation';
 
         // Get order details
-        const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+        const order = await convex.query(api.queries.orders.getOrderById, {
+          orderId,
+          sessionToken: sessionToken || undefined
+        });
         if (!order) {
           results.failed.push({
             orderId,
@@ -314,19 +294,20 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
             await convex.mutation(api.mutations.orders.updateRefundEligibility, {
               orderId: order._id,
-              updatedBy: (payload.user_id || payload.userId) as Id<"users">,
+              updatedBy: userId,
               reason: `Bulk admin override: ${finalDescription}`,
               metadata: {
                 adminReason: finalReason,
                 adminDescription: finalDescription,
                 effectiveImmediately,
-                adminUserId: payload.user_id,
+                adminUserId: userId,
                 adminOverride: true,
                 bulkOperation: true,
                 originalRefundEligibleUntil: order.refund_eligible_until,
                 originalIsRefundable: order.is_refundable,
                 ...metadata
-              }
+              },
+              sessionToken: sessionToken || undefined
             });
             break;
 
@@ -344,18 +325,19 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
             await convex.mutation(api.mutations.orders.updateRefundEligibility, {
               orderId: order._id,
-              updatedBy: (payload.user_id || payload.userId) as Id<"users">,
+              updatedBy: userId,
               reason: `Bulk admin override: ${finalDescription}`,
               metadata: {
                 adminReason: finalReason,
                 adminDescription: finalDescription,
-                adminUserId: payload.user_id,
+                adminUserId: userId,
                 adminOverride: true,
                 bulkOperation: true,
                 originalRefundEligibleUntil: order.refund_eligible_until,
                 originalIsRefundable: order.is_refundable,
                 ...metadata
-              }
+              },
+              sessionToken: sessionToken || undefined
             });
             break;
 
@@ -373,19 +355,20 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
             const newRefundEligibleUntil = now + (newWindowHours * 60 * 60 * 1000);
             await convex.mutation(api.mutations.orders.updateRefundWindow, {
               orderId: order._id,
-              updatedBy: (payload.user_id || payload.userId) as Id<"users">,
+              updatedBy: userId,
               newRefundEligibleUntil,
               reason: `Bulk admin window extension: ${finalDescription}`,
               metadata: {
                 adminReason: finalReason,
                 adminDescription: finalDescription,
                 newWindowHours,
-                adminUserId: payload.user_id,
+                adminUserId: userId,
                 adminOverride: true,
                 bulkOperation: true,
                 originalRefundEligibleUntil: order.refund_eligible_until,
                 ...metadata
-              }
+              },
+              sessionToken: sessionToken || undefined
             });
             break;
 
@@ -420,7 +403,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     results.summary.successful = results.successful.length;
     results.summary.failed = results.failed.length;
 
-    console.log(`Bulk refund eligibility operation completed by admin ${payload.user_id}: ${results.summary.successful} successful, ${results.summary.failed} failed`);
+    logger.log(`Bulk refund eligibility operation completed by admin ${userId}: ${results.summary.successful} successful, ${results.summary.failed} failed`);
 
     return ResponseFactory.success({
       success: true,
@@ -429,7 +412,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Bulk refund eligibility error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Bulk refund eligibility error:', error);
     return ResponseFactory.internalError(error instanceof Error ? error.message : 'Failed to process bulk refund eligibility operation.' 
     );
   }

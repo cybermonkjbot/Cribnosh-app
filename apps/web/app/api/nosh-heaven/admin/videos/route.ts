@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAdminAuth } from '@/lib/api/admin-middleware';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -14,7 +18,7 @@ import { withAdminAuth } from '@/lib/api/admin-middleware';
  *     description: Retrieves all videos with admin details for moderation
  *     tags: [Nosh Heaven, Admin, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: status
@@ -69,12 +73,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const cursor = searchParams.get('cursor') || undefined;
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Get videos based on status filter
     let videos;
     if (status) {
-      videos = await convex.query((api as any).queries.videoPosts.getVideoFeed, {
+      videos = await convex.query(api.queries.videoPosts.getVideoFeed, {
         limit,
         cursor,
       });
@@ -82,7 +86,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       // In production, you'd want a proper index for this
       videos.videos = videos.videos.filter((video: any) => video.status === status);
     } else {
-      videos = await convex.query((api as any).queries.videoPosts.getVideoFeed, {
+      videos = await convex.query(api.queries.videoPosts.getVideoFeed, {
         limit,
         cursor,
       });
@@ -90,9 +94,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     return ResponseFactory.success(videos, 'Videos retrieved successfully');
 
-  } catch (error: any) {
-    console.error('Admin videos retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve videos');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Admin videos retrieval error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve videos'));
   }
 }
 

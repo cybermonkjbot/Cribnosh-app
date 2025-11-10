@@ -5,8 +5,9 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -160,7 +161,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ url: uploadUrl, objectKey, storageType: 'convex' });
   } catch (error) {
-    console.error('Failed to generate upload URL:', error);
+    logger.error('Failed to generate upload URL:', error);
     return ResponseFactory.internalError('Failed to generate upload URL');
   }
 }

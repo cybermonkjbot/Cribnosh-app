@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 interface ReadyOrderRequest {
   orderId: string;
   readyNotes?: string;
@@ -138,26 +138,15 @@ interface ReadyOrderRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     // Check if user has permission to mark orders as ready
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
+    if (!user.roles?.some((role: string) => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -168,16 +157,21 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required field: orderId.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+    // @ts-ignore - Type instantiation is excessively deep (TypeScript limitation with complex Convex types)
+    const order = await convex.query(api.queries.orders.getOrderById, { 
+      orderId,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to mark this specific order as ready
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only mark your own orders as ready.');
     }
 
@@ -189,20 +183,21 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Mark order as ready
     const readyOrder = await convex.mutation(api.mutations.orders.markOrderReady, {
       orderId: order._id,
-      readyBy: payload.user_id || '',
+      readyBy: userId || '',
       readyNotes: readyNotes || order.chef_notes,
       metadata: {
-        markedReadyByRole: payload.roles?.[0] || 'unknown',
+        markedReadyByRole: user.roles?.[0] || 'unknown',
         packagingNotes,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     if (!readyOrder) {
       return ResponseFactory.internalError('Failed to mark order as ready');
     }
 
-    console.log(`Order ${orderId} marked as ready by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${orderId} marked as ready by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: readyOrder._id,
@@ -210,7 +205,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       readyNotes: readyOrder.chef_notes
     });
   } catch (error: unknown) {
-    console.error('Error marking order as ready:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error marking order as ready:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to mark order as ready'));
   }
 }

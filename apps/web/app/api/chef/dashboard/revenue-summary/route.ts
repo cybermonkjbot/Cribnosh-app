@@ -3,11 +3,11 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -139,32 +139,27 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'chef') {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can access revenue summary.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedChef(request);
     const convex = getConvexClient();
-    const orders = await convex.query(api.queries.orders.listByChef, { chef_id: payload.user_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const orders = await convex.query(api.queries.orders.listByChef, {
+      chef_id: userId,
+      sessionToken: sessionToken || undefined
+    });
     const total_revenue = orders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
     const order_count = orders.length;
     return ResponseFactory.success({ total_revenue, order_count });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch revenue summary.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

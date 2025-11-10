@@ -1,3 +1,4 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useToast } from '@/lib/ToastContext';
 import { useAddToCartMutation, useSendChatMessageMutation } from '@/store/customerApi';
@@ -7,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { Avatar } from './Avatar';
@@ -439,6 +440,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
   const topPosition = useTopPosition(0);
   const { showError, showSuccess, showInfo } = useToast();
   const locationState = useUserLocation();
+  const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
   const [sendChatMessage, { isLoading: isSendingMessage }] = useSendChatMessageMutation();
   const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
   
@@ -505,6 +507,21 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       return;
     }
 
+    // Check authentication and token validity
+    if (!isAuthenticated || !token) {
+      showError('Authentication Required', 'Please sign in to add items to cart');
+      return;
+    }
+
+    // Check if token is expired and refresh auth state if needed
+    const isExpired = checkTokenExpiration();
+    if (isExpired) {
+      // Refresh auth state to update isAuthenticated
+      await refreshAuthState();
+      showError('Session Expired', 'Please sign in again to add items to cart');
+      return;
+    }
+
     try {
       // Get special instructions from the conversation context
       const userMessages = messages
@@ -532,7 +549,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add items to cart';
       showError('Cart error', errorMessage);
     }
-  }, [messages, addToCart, showSuccess, showError]);
+  }, [isAuthenticated, token, checkTokenExpiration, refreshAuthState, messages, addToCart, showSuccess, showError]);
 
   const handleSendMessage = useCallback(async (messageText: string) => {
     if (!messageText.trim()) return;
@@ -636,16 +653,20 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       statusBarTranslucent={true}
       presentationStyle="fullScreen"
     >
-      <LinearGradient
-        colors={[COLORS.homePink, COLORS.homeCream]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          flex: 1,
-          paddingTop: topPosition,
-          zIndex: 99999, // High z-index but lower than bottom tabs (999999)
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
+        <LinearGradient
+          colors={[COLORS.homePink, COLORS.homeCream]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            flex: 1,
+            paddingTop: topPosition,
+            zIndex: 99999, // High z-index but lower than bottom tabs (999999)
+          }}
+        >
         <Animated.View style={[animatedContainerStyle, { flex: 1 }]}>
           {/* Header */}
           <View style={{
@@ -704,6 +725,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingVertical: 20 }}
             showsVerticalScrollIndicator={false}
+            automaticallyAdjustKeyboardInsets={true}
           >
             {messages.length === 0 ? (
               // Empty state
@@ -790,6 +812,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
           <ChatInput onSend={handleSendMessage} isLoading={isLoadingMessage || isSendingMessage} />
         </Animated.View>
       </LinearGradient>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }; 

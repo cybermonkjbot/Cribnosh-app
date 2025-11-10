@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { monitoringService } from '../monitoring/monitor';
 import type { JWTPayload } from '@/types/convex-contexts';
+import { logger } from '@/lib/utils/logger';
 
 export interface MonitoringOptions {
   enabled?: boolean;
@@ -111,7 +112,7 @@ function extractUserId(request: NextRequest): string | undefined {
         }
       } catch (error) {
         // Token is invalid or expired, continue to other methods
-        console.warn('Invalid JWT token in Authorization header:', error);
+        logger.warn('Invalid JWT token in Authorization header:', error);
       }
     }
 
@@ -142,7 +143,7 @@ function extractUserId(request: NextRequest): string | undefined {
           return `session_${hash.slice(0, 8)}`;
         }
       } catch (error) {
-        console.warn('Invalid session token:', error);
+        logger.warn('Invalid session token:', error);
       }
     }
 
@@ -162,7 +163,7 @@ function extractUserId(request: NextRequest): string | undefined {
 
     return undefined;
   } catch (error) {
-    console.warn('Error extracting user ID:', error);
+    logger.warn('Error extracting user ID:', error);
     return undefined;
   }
 }
@@ -248,7 +249,7 @@ async function recordBusinessMetrics(
     }
   } catch (error) {
     // Don't let monitoring errors affect the main request
-    console.error('Failed to record business metrics:', error);
+    logger.error('Failed to record business metrics:', error);
   }
 }
 

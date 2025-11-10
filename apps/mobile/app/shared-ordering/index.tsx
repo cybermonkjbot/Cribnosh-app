@@ -149,7 +149,7 @@ export default function SharedOrderingIndex() {
         selectedDiet,
       });
 
-      // Create custom order via API with both budget and dietary restrictions
+      // Create custom order via API with both budget and dietary restrictions in one call
       const customOrderData = await createCustomOrder({
         requirements: `Shared ordering for £${amount || "unlimited"}`,
         serving_size: parseInt(amount) || 0,
@@ -157,19 +157,8 @@ export default function SharedOrderingIndex() {
           selectedAmount === "Unlimited"
             ? undefined
             : parseFloat(amount) * 100, // Convert to pence
+        dietary_restrictions: selectedDiet !== "none" ? selectedDiet : undefined,
       }).unwrap();
-
-      // Update custom order with dietary restrictions if not "none"
-      if (selectedDiet !== "none") {
-        await updateCustomOrder({
-          customOrderId: customOrderData.data._id,
-          data: {
-            details: {
-              dietary_restrictions: [selectedDiet],
-            },
-          },
-        }).unwrap();
-      }
 
       // Navigate directly to "it's on you" screen
       router.push("/shared-ordering/its-on-you");

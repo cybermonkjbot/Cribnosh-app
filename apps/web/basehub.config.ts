@@ -1,3 +1,4 @@
+// @ts-ignore - setGlobalConfig may not be exported in all basehub versions
 import { setGlobalConfig } from "basehub";
 
 const _vercel_url_env = "VERCEL_URL";

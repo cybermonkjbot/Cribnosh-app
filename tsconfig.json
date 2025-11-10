@@ -8,5 +8,16 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "files": []
+  "include": [
+    "package/**/*.ts",
+    "package/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "**/dist",
+    "**/build",
+    "apps",
+    "packages"
+  ]
 }

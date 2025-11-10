@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -61,27 +60,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can change their password.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     // Parse request body
     const body = await request.json();
@@ -96,11 +80,14 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('New password must be at least 8 characters long.');
     }
 
-    const convex = getConvexClient();
-    const userId = payload.user_id;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get user to verify current password
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }
@@ -114,7 +101,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       // Check password (scrypt + salt)
       const [salt, storedHash] = user.password.split(':');
       if (!salt || !storedHash) {
-        console.error('[PASSWORD_CHANGE] Invalid password format for user:', user.email);
+        logger.error('[PASSWORD_CHANGE] Invalid password format for user:', user.email);
         return ResponseFactory.unauthorized('Invalid current password.');
       }
       const hash = scryptSync(current_password, salt, 64).toString('hex');
@@ -122,7 +109,7 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         return ResponseFactory.unauthorized('Invalid current password.');
       }
     } catch (error) {
-      console.error('[PASSWORD_CHANGE] Password verification error for user:', user.email, error);
+      logger.error('[PASSWORD_CHANGE] Password verification error for user:', user.email, error);
       return ResponseFactory.unauthorized('Invalid current password.');
     }
 
@@ -135,13 +122,17 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.users.updateUser, {
       userId: userId as Id<'users'>,
       password: hashedPassword,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({
       message: 'Password changed successfully',
     });
   } catch (error: unknown) {
-    console.error('[PASSWORD_CHANGE] Error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('[PASSWORD_CHANGE] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to change password.'));
   }
 }

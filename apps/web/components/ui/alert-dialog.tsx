@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import { Button } from './button';
@@ -18,6 +18,19 @@ interface AlertDialogProps {
   showCancel?: boolean;
 }
 
+// Body scroll lock effect
+function useBodyScrollLock(locked: boolean) {
+  useEffect(() => {
+    if (locked) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalStyle;
+      };
+    }
+  }, [locked]);
+}
+
 const AlertDialog: React.FC<AlertDialogProps> = ({
   isOpen,
   onClose,
@@ -30,6 +43,71 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
   onCancel,
   showCancel = false,
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Lock body scroll when dialog is open
+  useBodyScrollLock(isOpen);
+  
+  // Handle escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+  
+  // Focus trap - focus first button when dialog opens
+  useEffect(() => {
+    if (isOpen && dialogRef.current) {
+      // Focus the confirm button or cancel button if available
+      const firstButton = showCancel ? cancelButtonRef.current : confirmButtonRef.current;
+      if (firstButton) {
+        firstButton.focus();
+      }
+    }
+  }, [isOpen, showCancel]);
+  
+  // Handle focus trap - keep focus within dialog
+  useEffect(() => {
+    if (!isOpen || !dialogRef.current) return;
+    
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      
+      const focusableElements = dialogRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      ) as NodeListOf<HTMLElement>;
+      
+      if (!focusableElements || focusableElements.length === 0) return;
+      
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleTab);
+    return () => document.removeEventListener('keydown', handleTab);
+  }, [isOpen]);
+  
   const handleConfirm = () => {
     if (onConfirm) {
       onConfirm();
@@ -112,15 +190,23 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
           >
-            <div className={`relative w-full max-w-md ${colors.bg} rounded-2xl border ${colors.border} shadow-2xl overflow-hidden`}>
+            <div 
+              ref={dialogRef}
+              className={`relative w-full max-w-md ${colors.bg} rounded-2xl border ${colors.border} shadow-2xl overflow-hidden`}
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Header */}
               <div className="flex items-center justify-between p-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${colors.iconBg}`}>
                     {getIcon()}
                   </div>
-                  <h3 className="text-lg font-bold font-asgard text-gray-900">
+                  <h3 id="alert-dialog-title" className="text-lg font-bold font-asgard text-gray-900">
                     {title}
                   </h3>
                 </div>
@@ -134,7 +220,7 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
 
               {/* Content */}
               <div className="px-6 pb-6">
-                <p className="text-gray-700 font-satoshi leading-relaxed">
+                <p id="alert-dialog-description" className="text-gray-700 font-satoshi leading-relaxed">
                   {message}
                 </p>
               </div>
@@ -143,6 +229,7 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
               <div className="flex gap-3 px-6 pb-6">
                 {showCancel && (
                   <Button
+                    ref={cancelButtonRef}
                     variant="outline"
                     onClick={handleCancel}
                     className="flex-1 bg-white/80 hover:bg-white border-gray-300 hover:border-gray-400"
@@ -151,6 +238,7 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
                   </Button>
                 )}
                 <Button
+                  ref={confirmButtonRef}
                   onClick={handleConfirm}
                   className={`flex-1 text-white ${colors.button}`}
                 >

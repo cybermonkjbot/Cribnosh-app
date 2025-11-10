@@ -4,7 +4,7 @@ import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
 
 // Endpoint: /v1/chef/status
@@ -54,7 +54,7 @@ import { NextResponse } from 'next/server';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   const user = await getUserFromRequest(request);
@@ -62,8 +62,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.unauthorized('Unauthorized');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   // Find the chef record for the current user
-  const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
+  const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+    sessionToken: sessionToken || undefined
+  });
   const chef = chefs.find((c: any) => c.userId === user._id);
   if (!chef) {
     return ResponseFactory.notFound('Chef profile not found');

@@ -1,9 +1,10 @@
 import { v } from 'convex/values';
 import { mutation } from "../_generated/server";
+import { requireAuth, requireStaff, requireAdmin, isAdmin, isStaff } from '../utils/auth';
 
 export const createMeal = mutation(
   async (
-    { db },
+    ctx,
     args: {
       chefId: string;
       name: string;
@@ -14,9 +15,23 @@ export const createMeal = mutation(
       status: 'available' | 'unavailable';
       images?: string[];
       rating?: number;
+      sessionToken?: string;
     }
   ) => {
-    const id = await db.insert("meals", {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(args.chefId as any);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only create meals for their own chef profile, staff/admin can create for any chef
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    const id = await ctx.db.insert("meals", {
       chefId: args.chefId as any, // Should be Id<'chefs'>
       name: args.name,
       description: args.description,
@@ -35,10 +50,25 @@ export const updateMealImages = mutation({
   args: {
     mealId: v.id('meals'),
     imageUrl: v.string(),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const meal = await ctx.db.get(args.mealId);
     if (!meal) throw new Error('Meal not found');
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(meal.chefId);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only update meals for their own chef profile, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     const images = Array.isArray(meal.images) ? meal.images : [];
     images.push(args.imageUrl);
     await ctx.db.patch(args.mealId, { images });
@@ -50,10 +80,25 @@ export const setPrimaryMealImage = mutation({
   args: {
     mealId: v.id('meals'),
     imageId: v.string(),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const meal = await ctx.db.get(args.mealId);
     if (!meal) throw new Error('Meal not found');
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(meal.chefId);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only update meals for their own chef profile, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     let images = Array.isArray(meal.images) ? meal.images : [];
     // Move imageId to the front if it exists
     images = images.filter((img) => img !== args.imageId);
@@ -76,16 +121,58 @@ export const updateMeal = mutation({
       images: v.optional(v.array(v.string())),
       rating: v.optional(v.number()),
     }),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    const meal = await ctx.db.get(args.mealId);
+    if (!meal) {
+      throw new Error('Meal not found');
+    }
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(meal.chefId);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only update meals for their own chef profile, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     await ctx.db.patch(args.mealId, args.updates);
     return true;
   },
 });
 
 export const deleteMeal = mutation({
-  args: { mealId: v.id('meals') },
+  args: { 
+    mealId: v.id('meals'),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    const meal = await ctx.db.get(args.mealId);
+    if (!meal) {
+      throw new Error('Meal not found');
+    }
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(meal.chefId);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only delete meals for their own chef profile, staff/admin can delete any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     await ctx.db.delete(args.mealId);
     return true;
   },

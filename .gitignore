@@ -38,3 +38,9 @@ yarn-error.*
 
 app-example
 .env
+
+# Google Cloud Service Account credentials
+**/google-service-account.json
+*-*.json
+deep-rigging-*.json
+elite-clarity-*.json

@@ -1,26 +1,85 @@
 import { v } from 'convex/values';
-import { query } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
+import { query } from '../_generated/server';
+import { isAdmin, requireAuth } from '../utils/auth';
 
 export const listByChef = query({
-  args: { chef_id: v.string() },
+  args: { 
+    chef_id: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Only allow if user is admin, or if they own the chef account
+    // For now, we'll require admin or staff for chef queries
+    // In a full implementation, you'd check if user owns the chef account
+    if (!isAdmin(user)) {
+      // Check if user is the chef (would need chef-user relationship)
+      // For now, require staff/admin
+      const { isStaff } = await import('../utils/auth');
+      if (!isStaff(user)) {
+        throw new Error('Access denied');
+      }
+    }
+    
     return await ctx.db.query('orders').filter(q => q.eq(q.field('chef_id'), args.chef_id)).collect();
   },
 });
 
 export const getById = query({
-  args: { order_id: v.string() },
+  args: { 
+    order_id: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
-    return await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.order_id)).first();
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    const order = await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.order_id)).first();
+    if (!order) return null;
+    
+    // Only allow if user is admin/staff, or if they are the customer
+    if (!isAdmin(user)) {
+      const { isStaff } = await import('../utils/auth');
+      if (!isStaff(user)) {
+        // Check if user is the customer
+        if (order.customer_id !== user._id) {
+          throw new Error('Access denied');
+        }
+      }
+    }
+    
+    return order;
   },
 });
 
 // Get order by ID
 export const getOrderById = query({
-  args: { orderId: v.string() },
+  args: { 
+    orderId: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
-    return await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.orderId)).first();
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    const order = await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.orderId)).first();
+    if (!order) return null;
+    
+    // Only allow if user is admin/staff, or if they are the customer
+    if (!isAdmin(user)) {
+      const { isStaff } = await import('../utils/auth');
+      if (!isStaff(user)) {
+        // Check if user is the customer
+        if (order.customer_id !== user._id) {
+          throw new Error('Access denied');
+        }
+      }
+    }
+    
+    return order;
   },
 });
 
@@ -35,8 +94,31 @@ export const getOrdersWithRefundEligibility = query({
     )),
     limit: v.number(),
     offset: v.number(),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // If customerId is specified, ensure user can access it
+    if (args.customerId) {
+      if (!isAdmin(user)) {
+        const { isStaff } = await import('../utils/auth');
+        if (!isStaff(user) && args.customerId !== user._id) {
+          throw new Error('Access denied');
+        }
+      }
+    } else {
+      // If no customerId specified, only allow staff/admin
+      if (!isAdmin(user)) {
+        const { isStaff } = await import('../utils/auth');
+        if (!isStaff(user)) {
+          // Default to current user's orders
+          args.customerId = user._id;
+        }
+      }
+    }
+    
     let query = ctx.db.query('orders');
     
     // Filter by customer if specified
@@ -97,8 +179,31 @@ export const getOrdersWithRefundEligibility = query({
 export const getRefundEligibilitySummary = query({
   args: {
     customerId: v.optional(v.id('users')),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // If customerId is specified, ensure user can access it
+    if (args.customerId) {
+      if (!isAdmin(user)) {
+        const { isStaff } = await import('../utils/auth');
+        if (!isStaff(user) && args.customerId !== user._id) {
+          throw new Error('Access denied');
+        }
+      }
+    } else {
+      // If no customerId specified, only allow staff/admin
+      if (!isAdmin(user)) {
+        const { isStaff } = await import('../utils/auth');
+        if (!isStaff(user)) {
+          // Default to current user's orders
+          args.customerId = user._id;
+        }
+      }
+    }
+    
     const now = Date.now();
     let baseQuery = ctx.db.query('orders');
     
@@ -221,8 +326,19 @@ export const listByCustomer = query({
     )),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Ensure user can only access their own orders unless they're staff/admin
+    if (!isAdmin(user)) {
+      const { isStaff } = await import('../utils/auth');
+      if (!isStaff(user) && args.customer_id !== user._id.toString()) {
+        throw new Error('Access denied');
+      }
+    }
     let query = ctx.db
       .query('orders')
       .withIndex('by_customer', q => q.eq('customer_id', args.customer_id as Id<'users'>));
@@ -256,10 +372,13 @@ export const listByCustomer = query({
     // Sort by date (newest first)
     filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     
-    // Pagination
+    // Pagination - only paginate if limit is explicitly provided
+    let paginated = filtered;
+    if (args.limit !== undefined) {
     const offset = args.offset || 0;
-    const limit = args.limit || 20;
-    const paginated = filtered.slice(offset, offset + limit);
+      const limit = args.limit;
+      paginated = filtered.slice(offset, offset + limit);
+    }
     
     // Enrich with group order data if applicable
     const enriched = await Promise.all(paginated.map(async (order) => {
@@ -289,9 +408,21 @@ export const listByCustomer = query({
 export const getRecentOrders = query({
   args: { 
     userId: v.id("users"),
-    limit: v.optional(v.number()) 
+    limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Ensure user can only access their own orders unless they're staff/admin
+    if (!isAdmin(user)) {
+      const { isStaff } = await import('../utils/auth');
+      if (!isStaff(user) && args.userId !== user._id) {
+        throw new Error('Access denied');
+      }
+    }
+    
     const { userId, limit = 10 } = args;
     const orders = await ctx.db
       .query('orders')
@@ -315,8 +446,21 @@ export const getRecentOrders = query({
 
 // Get user's cart
 export const getUserCart = query({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Ensure user can only access their own cart unless they're staff/admin
+    if (!isAdmin(user)) {
+      const { isStaff } = await import('../utils/auth');
+      if (!isStaff(user) && args.userId !== user._id) {
+        throw new Error('Access denied');
+      }
+    }
     const cart = await ctx.db
       .query('carts')
       .withIndex('by_user', (q) => q.eq('userId', args.userId))

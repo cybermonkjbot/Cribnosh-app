@@ -337,6 +337,17 @@ export const updateMemberPreferences = mutation({
     allergy_ids: v.optional(v.array(v.id('allergies'))),
     dietary_preference_id: v.optional(v.id('dietaryPreferences')),
     parent_controlled: v.optional(v.boolean()),
+    // New fields for creating allergies and dietary preferences
+    allergies: v.optional(v.array(v.object({
+      name: v.string(),
+      type: v.union(v.literal('allergy'), v.literal('intolerance')),
+      severity: v.union(v.literal('mild'), v.literal('moderate'), v.literal('severe')),
+    }))),
+    dietary_preferences: v.optional(v.object({
+      preferences: v.array(v.string()),
+      religious_requirements: v.array(v.string()),
+      health_driven: v.array(v.string()),
+    })),
   },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.family_profile_id);
@@ -357,13 +368,75 @@ export const updateMemberPreferences = mutation({
       throw new Error('Member must have accepted invitation to update preferences');
     }
 
+    let allergyIds: Id<'allergies'>[] = [];
+    let dietaryPreferenceId: Id<'dietaryPreferences'> | undefined = undefined;
+
+    // Create allergies if provided
+    if (args.allergies && args.allergies.length > 0) {
+      // Delete existing allergies for this member
+      const existingAllergies = await ctx.db
+        .query('allergies')
+        .withIndex('by_user', (q) => q.eq('userId', member.user_id!))
+        .collect();
+
+      for (const allergy of existingAllergies) {
+        await ctx.db.delete(allergy._id);
+      }
+
+      // Create new allergies
+      const now = Date.now();
+      for (const allergy of args.allergies) {
+        const id = await ctx.db.insert('allergies', {
+          userId: member.user_id,
+          name: allergy.name,
+          type: allergy.type,
+          severity: allergy.severity,
+          created_at: now,
+          updated_at: now,
+        });
+        allergyIds.push(id);
+      }
+    } else if (args.allergy_ids) {
+      // Use provided allergy IDs
+      allergyIds = args.allergy_ids;
+    }
+
+    // Create dietary preferences if provided
+    if (args.dietary_preferences) {
+      const existingDietaryPrefs = await ctx.db
+        .query('dietaryPreferences')
+        .withIndex('by_user', (q) => q.eq('userId', member.user_id!))
+        .first();
+
+      if (existingDietaryPrefs) {
+        await ctx.db.patch(existingDietaryPrefs._id, {
+          preferences: args.dietary_preferences.preferences,
+          religious_requirements: args.dietary_preferences.religious_requirements,
+          health_driven: args.dietary_preferences.health_driven,
+          updated_at: Date.now(),
+        });
+        dietaryPreferenceId = existingDietaryPrefs._id;
+      } else {
+        dietaryPreferenceId = await ctx.db.insert('dietaryPreferences', {
+          userId: member.user_id,
+          preferences: args.dietary_preferences.preferences,
+          religious_requirements: args.dietary_preferences.religious_requirements,
+          health_driven: args.dietary_preferences.health_driven,
+          updated_at: Date.now(),
+        });
+      }
+    } else if (args.dietary_preference_id) {
+      // Use provided dietary preference ID
+      dietaryPreferenceId = args.dietary_preference_id;
+    }
+
     // Update member in family profile
     const updatedMembers = profile.family_members.map((m) =>
       m.id === args.member_id
         ? {
             ...m,
-            allergy_preferences: args.allergy_ids || m.allergy_preferences,
-            dietary_preference_id: args.dietary_preference_id || m.dietary_preference_id,
+            allergy_preferences: allergyIds.length > 0 ? allergyIds : m.allergy_preferences,
+            dietary_preference_id: dietaryPreferenceId || m.dietary_preference_id,
           }
         : m
     );
@@ -382,8 +455,8 @@ export const updateMemberPreferences = mutation({
       .first();
 
     const prefsData = {
-      allergy_ids: args.allergy_ids || existingPrefs?.allergy_ids || [],
-      dietary_preference_id: args.dietary_preference_id || existingPrefs?.dietary_preference_id,
+      allergy_ids: allergyIds.length > 0 ? allergyIds : (existingPrefs?.allergy_ids || []),
+      dietary_preference_id: dietaryPreferenceId || existingPrefs?.dietary_preference_id,
       parent_controlled: args.parent_controlled ?? existingPrefs?.parent_controlled ?? true,
       updated_at: Date.now(),
     };
@@ -508,6 +581,150 @@ export const transferOwnership = mutation({
       member_user_ids: updatedMemberUserIds,
       updated_at: Date.now(),
     });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Record order spending for a family member
+ * This updates the budget tracking when a family member places an order
+ */
+export const recordOrderSpending = mutation({
+  args: {
+    family_profile_id: v.id('familyProfiles'),
+    member_user_id: v.id('users'),
+    order_amount: v.number(),
+    currency: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.family_profile_id);
+    if (!profile) {
+      throw new Error('Family profile not found');
+    }
+
+    const member = profile.family_members.find((m) => m.user_id === args.member_user_id);
+    if (!member) {
+      throw new Error('Family member not found');
+    }
+
+    if (member.status !== 'accepted') {
+      throw new Error('Member invitation not accepted');
+    }
+
+    const now = Date.now();
+    const currency = args.currency || member.budget_settings?.currency || 'gbp';
+
+    // Update daily budget if it exists
+    if (member.budget_settings?.daily_limit !== undefined) {
+      const dayStart = new Date(now);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayStartTs = dayStart.getTime();
+
+      const dailyBudget = await ctx.db
+        .query('familyMemberBudgets')
+        .withIndex('by_period', (q) =>
+          q
+            .eq('family_profile_id', args.family_profile_id)
+            .eq('member_user_id', args.member_user_id)
+            .eq('period_type', 'daily')
+            .eq('period_start', dayStartTs)
+        )
+        .first();
+
+      if (dailyBudget) {
+        await ctx.db.patch(dailyBudget._id, {
+          spent_amount: dailyBudget.spent_amount + args.order_amount,
+          updated_at: now,
+        });
+      } else {
+        await ctx.db.insert('familyMemberBudgets', {
+          family_profile_id: args.family_profile_id,
+          member_user_id: args.member_user_id,
+          period_start: dayStartTs,
+          period_type: 'daily',
+          spent_amount: args.order_amount,
+          limit_amount: member.budget_settings.daily_limit,
+          currency,
+          created_at: now,
+        });
+      }
+    }
+
+    // Update weekly budget if it exists
+    if (member.budget_settings?.weekly_limit !== undefined) {
+      const weekStart = new Date(now);
+      const dayOfWeek = weekStart.getDay();
+      weekStart.setDate(weekStart.getDate() - dayOfWeek);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekStartTs = weekStart.getTime();
+
+      const weeklyBudget = await ctx.db
+        .query('familyMemberBudgets')
+        .withIndex('by_period', (q) =>
+          q
+            .eq('family_profile_id', args.family_profile_id)
+            .eq('member_user_id', args.member_user_id)
+            .eq('period_type', 'weekly')
+            .eq('period_start', weekStartTs)
+        )
+        .first();
+
+      if (weeklyBudget) {
+        await ctx.db.patch(weeklyBudget._id, {
+          spent_amount: weeklyBudget.spent_amount + args.order_amount,
+          updated_at: now,
+        });
+      } else {
+        await ctx.db.insert('familyMemberBudgets', {
+          family_profile_id: args.family_profile_id,
+          member_user_id: args.member_user_id,
+          period_start: weekStartTs,
+          period_type: 'weekly',
+          spent_amount: args.order_amount,
+          limit_amount: member.budget_settings.weekly_limit,
+          currency,
+          created_at: now,
+        });
+      }
+    }
+
+    // Update monthly budget if it exists
+    if (member.budget_settings?.monthly_limit !== undefined) {
+      const monthStart = new Date(now);
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const monthStartTs = monthStart.getTime();
+
+      const monthlyBudget = await ctx.db
+        .query('familyMemberBudgets')
+        .withIndex('by_period', (q) =>
+          q
+            .eq('family_profile_id', args.family_profile_id)
+            .eq('member_user_id', args.member_user_id)
+            .eq('period_type', 'monthly')
+            .eq('period_start', monthStartTs)
+        )
+        .first();
+
+      if (monthlyBudget) {
+        await ctx.db.patch(monthlyBudget._id, {
+          spent_amount: monthlyBudget.spent_amount + args.order_amount,
+          updated_at: now,
+        });
+      } else {
+        await ctx.db.insert('familyMemberBudgets', {
+          family_profile_id: args.family_profile_id,
+          member_user_id: args.member_user_id,
+          period_start: monthStartTs,
+          period_type: 'monthly',
+          spent_amount: args.order_amount,
+          limit_amount: member.budget_settings.monthly_limit,
+          currency,
+          created_at: now,
+        });
+      }
+    }
 
     return { success: true };
   },

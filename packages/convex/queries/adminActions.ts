@@ -371,42 +371,22 @@ async function getRealServiceStatus(ctx: QueryCtx): Promise<ServiceStatus[]> {
       }
     });
 
-    // Convert to array format
+    // Convert to array format - return only real data from database
     const services = Array.from(serviceMap.values()).map(health => ({
       name: health.service,
       status: health.status === 'healthy' ? 'healthy' : 
               health.status === 'degraded' ? 'warning' : 
               'critical',
       responseTime: health.responseTime || 0,
-      uptime: health.uptime || 99.0
+      uptime: health.uptime || 0
     } as ServiceStatus));
 
-    // Add default services if not found in monitoring data
-    const defaultServices = [
-      { name: "API Gateway", status: "healthy", responseTime: 120, uptime: 99.9 },
-      { name: "Database", status: "healthy", responseTime: 45, uptime: 99.95 },
-      { name: "Authentication", status: "healthy", responseTime: 80, uptime: 99.8 },
-      { name: "Payment Processing", status: "healthy", responseTime: 150, uptime: 99.5 },
-      { name: "File Storage", status: "healthy", responseTime: 90, uptime: 99.7 },
-    ];
-
-    // Merge with default services, preferring real data
-    const allServices = defaultServices.map(defaultService => {
-      const realService = services.find(s => s.name === defaultService.name);
-      return realService || defaultService;
-    });
-
-    return allServices;
+    // Return only real services from database - no fallback data
+    return services;
   } catch (error) {
     console.error('Failed to get real service status:', error);
-    // Fallback to default services
-    return [
-      { name: "API Gateway", status: "healthy", responseTime: 120, uptime: 99.9 },
-      { name: "Database", status: "healthy", responseTime: 45, uptime: 99.95 },
-      { name: "Authentication", status: "healthy", responseTime: 80, uptime: 99.8 },
-      { name: "Payment Processing", status: "healthy", responseTime: 150, uptime: 99.5 },
-      { name: "File Storage", status: "healthy", responseTime: 90, uptime: 99.7 },
-    ];
+    // Return empty array if no data - no fallback
+    return [];
   }
 }
 
@@ -450,12 +430,12 @@ async function getRealSystemMetrics(ctx: QueryCtx): Promise<SystemMetrics> {
     return metrics;
   } catch (error) {
     console.error('Failed to get real system metrics:', error);
-    // Fallback to default metrics
+    // Return zero values if no data - no fallback
     return {
-      cpuUsage: 45,
-      memoryUsage: 60,
-      diskUsage: 75,
-      networkLatency: 50
+      cpuUsage: 0,
+      memoryUsage: 0,
+      diskUsage: 0,
+      networkLatency: 0
     } as SystemMetrics;
   }
 }

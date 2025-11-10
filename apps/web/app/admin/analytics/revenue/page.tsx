@@ -1,25 +1,25 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { 
-  DollarSign, 
-  TrendingUp,
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from '@/convex/_generated/api';
+import { formatCurrency } from '@/lib/utils/number-format';
+import { useQuery } from 'convex/react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
   BarChart2,
-  PieChart,
   CreditCard,
+  DollarSign,
+  PieChart,
   Receipt,
   Target,
-  Wallet,
-  ArrowUpRight,
-  ArrowDownRight
+  TrendingUp,
+  Wallet
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface RevenueData {
   totalRevenue: number;
@@ -60,15 +60,8 @@ export default function RevenueAnalyticsPage() {
     return 'text-gray-600';
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(amount);
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -95,7 +88,7 @@ export default function RevenueAnalyticsPage() {
         <Button
           variant={viewMode === 'overview' ? 'default' : 'outline'}
           onClick={() => setViewMode('overview')}
-          className={viewMode === 'overview' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'overview' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <BarChart2 className="w-4 h-4 mr-2" />
           Overview
@@ -103,7 +96,7 @@ export default function RevenueAnalyticsPage() {
         <Button
           variant={viewMode === 'trends' ? 'default' : 'outline'}
           onClick={() => setViewMode('trends')}
-          className={viewMode === 'trends' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'trends' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <TrendingUp className="w-4 h-4 mr-2" />
           Trends
@@ -111,7 +104,7 @@ export default function RevenueAnalyticsPage() {
         <Button
           variant={viewMode === 'sources' ? 'default' : 'outline'}
           onClick={() => setViewMode('sources')}
-          className={viewMode === 'sources' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'sources' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <PieChart className="w-4 h-4 mr-2" />
           Sources
@@ -119,7 +112,7 @@ export default function RevenueAnalyticsPage() {
         <Button
           variant={viewMode === 'products' ? 'default' : 'outline'}
           onClick={() => setViewMode('products')}
-          className={viewMode === 'products' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'products' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <Target className="w-4 h-4 mr-2" />
           Products
@@ -285,7 +278,7 @@ export default function RevenueAnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {revenueAnalytics?.paymentMethods?.map((method, index: number) => (
+                  {revenueAnalytics?.paymentMethods?.map((method: { method: string; amount: number; percentage: number }, index: number) => (
                     <div key={method.method} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full ${
@@ -318,7 +311,7 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                  {revenueAnalytics?.monthlyRevenueData?.map((month, index: number) => (
+                  {revenueAnalytics?.monthlyRevenueData?.map((month: { month: string; revenue: number; growth: number }, index: number) => (
                   <div key={month.month} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{month.month}</p>
@@ -343,11 +336,11 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {revenueAnalytics?.dailyRevenueData?.slice(-7).map((day, index: number) => (
+                {revenueAnalytics?.dailyRevenueData?.slice(-7).map((day: { date: string; revenue: number }, index: number) => (
                   <div key={day.date} className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">{day.date}</span>
                     <div className="flex items-center gap-2">
-                      <Progress value={(day.revenue / Math.max(...(revenueAnalytics?.dailyRevenueData?.map((d) => d.revenue) || [1]))) * 100} className="w-32 h-2" />
+                      <Progress value={(day.revenue / Math.max(...(revenueAnalytics?.dailyRevenueData?.map((d: { date: string; revenue: number }) => d.revenue) || [1]))) * 100} className="w-32 h-2" />
                       <span className="text-sm font-medium w-20 text-right">{formatCurrency(day.revenue)}</span>
                     </div>
                   </div>
@@ -370,7 +363,7 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                  {revenueAnalytics?.revenueBySource?.map((source, index: number) => (
+                  {revenueAnalytics?.revenueBySource?.map((source: { source: string; amount: number; percentage: number }, index: number) => (
                   <div key={source.source} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${

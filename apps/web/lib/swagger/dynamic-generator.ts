@@ -1,6 +1,7 @@
 import swaggerJSDoc from 'swagger-jsdoc';
 import { glob } from 'glob';
 import path from 'path';
+import { logger } from '@/lib/utils/logger';
 
 interface SwaggerConfig {
   title: string;
@@ -249,10 +250,10 @@ export class DynamicSwaggerGenerator {
         );
       });
 
-      console.log(`Found ${routeFiles.length} API route files for Swagger generation`);
+      logger.log(`Found ${routeFiles.length} API route files for Swagger generation`);
       return routeFiles;
     } catch (error) {
-      console.error('Error finding API files:', error);
+      logger.error('Error finding API files:', error);
       return [];
     }
   }

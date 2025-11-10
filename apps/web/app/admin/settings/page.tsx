@@ -1,35 +1,31 @@
 "use client";
 
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
-import { AdminTabs, AdminTabsMobile } from '@/components/admin/admin-tabs';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { AdminTabs, AdminTabsMobile } from '@/components/admin/admin-tabs';
 import { AdminPageSkeleton } from '@/components/admin/skeletons';
-import { useMutation, useQuery } from 'convex/react';
+import { Button } from '@/components/ui/button';
 import { api } from '@/convex/_generated/api';
-import { motion } from 'motion/react';
-import { useState, useEffect } from 'react';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useMutation, useQuery } from 'convex/react';
 import {
   Activity,
   AlertTriangle,
   CheckCircle,
+  Database,
+  FileText,
+  Globe,
   Mail,
   RefreshCw,
   Save,
   Server,
-  Shield,
-  Zap,
-  User,
   Settings,
-  Bell,
-  Database,
-  Lock,
-  Globe,
-  BarChart3,
-  FileText,
-  Clock,
-  Upload
+  Shield,
+  Upload,
+  User,
+  Zap
 } from 'lucide-react';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
 
 interface SystemSetting {
   key: string;
@@ -42,13 +38,16 @@ interface SystemSetting {
 }
 
 export default function AdminSettings() {
-  const { user: adminUser, loading: adminLoading } = useAdminUser();
+  const { user: adminUser, loading: adminLoading, sessionToken } = useAdminUser();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState('general');
   
-  const systemSettings = useQuery(api.queries.admin.getSystemSettings);
+  const systemSettings = useQuery(
+    api.queries.admin.getSystemSettings,
+    sessionToken ? { sessionToken } : "skip"
+  );
   const updateSystemSetting = useMutation(api.mutations.admin.createSystemSetting);
   const logActivity = useMutation(api.mutations.admin.logActivity);
 
@@ -590,8 +589,7 @@ export default function AdminSettings() {
   }
 
   return (
-    <AuthWrapper role="admin">
-      <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold font-asgard text-gray-900">
@@ -603,12 +601,11 @@ export default function AdminSettings() {
           </div>
           
           <div className="flex items-center gap-3">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <Button
               onClick={handleSaveSettings}
               disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-[#F23E2E] text-white rounded-lg hover:bg-[#F23E2E]/90 transition-colors font-satoshi disabled:opacity-50"
+              size="lg"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               {isLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -616,7 +613,7 @@ export default function AdminSettings() {
                 <Save className="w-4 h-4" />
               )}
               {saveStatus === 'saving' ? 'Saving...' : 'Save Settings'}
-            </motion.button>
+            </Button>
           </div>
         </div>
 
@@ -627,10 +624,10 @@ export default function AdminSettings() {
             animate={{ opacity: 1, y: 0 }}
             className={`p-4 rounded-xl border font-satoshi ${
               saveStatus === 'success' 
-                ? 'bg-green-100 border-green-300 text-green-800' 
+                ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]' 
                 : saveStatus === 'error'
-                ? 'bg-red-100 border-red-300 text-red-800'
-                : 'bg-blue-100 border-blue-300 text-blue-800'
+                ? 'bg-gray-100 border-gray-300 text-gray-800'
+                : 'bg-gray-100 border-gray-300 text-gray-800'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -673,8 +670,8 @@ export default function AdminSettings() {
           className="bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30 p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <Activity className="w-6 h-6 text-green-600" />
+            <div className="p-3 bg-gray-100 rounded-lg">
+              <Activity className="w-6 h-6 text-gray-900" />
             </div>
             <div>
               <h3 className="text-xl font-bold font-asgard text-gray-900">
@@ -687,30 +684,30 @@ export default function AdminSettings() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-green-100 rounded-lg">
-              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2"></div>
+            <div className="text-center p-4 bg-[#F23E2E]/10 rounded-lg">
+              <div className="w-3 h-3 bg-[#F23E2E] rounded-full mx-auto mb-2"></div>
               <p className="text-sm font-medium text-gray-800 font-satoshi">System</p>
-              <p className="text-lg font-bold text-green-600 font-asgard">
+              <p className="text-lg font-bold text-[#F23E2E] font-asgard">
                 {settings.maintenanceMode ? 'Maintenance' : 'Operational'}
               </p>
             </div>
-            <div className="text-center p-4 bg-blue-100 rounded-lg">
-              <div className="w-3 h-3 bg-blue-500 rounded-full mx-auto mb-2"></div>
+            <div className="text-center p-4 bg-gray-100 rounded-lg">
+              <div className="w-3 h-3 bg-gray-500 rounded-full mx-auto mb-2"></div>
               <p className="text-sm font-medium text-gray-800 font-satoshi">Database</p>
-              <p className="text-lg font-bold text-blue-600 font-asgard">
+              <p className="text-lg font-bold text-gray-900 font-asgard">
                 {settings.cacheEnabled ? 'Cached' : 'Direct'}
               </p>
             </div>
-            <div className="text-center p-4 bg-purple-100 rounded-lg">
-              <div className="w-3 h-3 bg-purple-500 rounded-full mx-auto mb-2"></div>
+            <div className="text-center p-4 bg-gray-100 rounded-lg">
+              <div className="w-3 h-3 bg-gray-500 rounded-full mx-auto mb-2"></div>
               <p className="text-sm font-medium text-gray-800 font-satoshi">API</p>
-              <p className="text-lg font-bold text-purple-600 font-asgard">
+              <p className="text-lg font-bold text-gray-900 font-asgard">
                 {settings.enableApiAccess ? 'Active' : 'Disabled'}
               </p>
             </div>
           </div>
         </motion.div>
       </div>
-    </AuthWrapper>
+    </div>
   );
 }

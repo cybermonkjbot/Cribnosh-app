@@ -1,40 +1,62 @@
 import { Mascot } from '@/components/Mascot';
 import { Input } from '@/components/ui/Input';
 import ScatteredGroupMembers from '@/components/ui/ScatteredGroupMembers';
+import { SharedOrderingHeader } from '@/components/ui/SharedOrderingHeader';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useGetUserConnectionsQuery } from '@/store/customerApi';
 import { useRouter } from 'expo-router';
-import { ChevronDown, SearchIcon, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { SearchIcon, X } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SharedOrderingHeader } from '@/components/ui/SharedOrderingHeader';
-
-// Mock data for friends
-const friends = [
-  { id: '1', name: 'Sandy Wilder Cheng', avatar: require('../../assets/images/demo/avatar-1.png') },
-  { id: '2', name: 'Kevin Leong', avatar: require('../../assets/images/demo/avatar-2.png') },
-  { id: '3', name: 'Greg Apodaca', avatar: require('../../assets/images/demo/avatar-3.png') },
-  { id: '4', name: 'Juliana Mejia', avatar: require('../../assets/images/demo/avatar-4.png') },
-];
-
-// Mock data for scattered group members
-const groupMembers = [
-  { name: 'Fola', avatarUri: require('@/assets/images/demo/avatar-1.png'), top: 0, left: 0, status: 'Contributing £3', isDone: false },
-  { name: 'Josh', avatarUri: require('@/assets/images/demo/avatar-2.png'), top: 50, left: 50, status: 'Selecting meal', isDone: true },
-  { name: 'Favour', avatarUri: require('@/assets/images/demo/avatar-3.png'), top: 100, left: 100, status: 'Browsing menu', isDone: false },
-  { name: 'Mike', avatarUri: require('@/assets/images/demo/avatar-4.png'), top: 150, left: 150, status: 'Contributing £5', isDone: true },
-  { name: 'Emma', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 200, left: 200, status: 'Adding sides', isDone: false },
-  { name: 'Alex', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 250, left: 250, status: 'Ready to order', isDone: true },
-];
 
 export default function ChooseFriends() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-  const [buttonPressed, setButtonPressed] = useState(false);
+
+  // Fetch real connections/friends from API
+  const {
+    data: connectionsData,
+  } = useGetUserConnectionsQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  // Transform API connections to friend format
+  const friends = useMemo(() => {
+    if (connectionsData?.success && connectionsData.data && Array.isArray(connectionsData.data)) {
+      return connectionsData.data.map((connection: any) => ({
+        id: connection.user_id || connection._id || '',
+        name: connection.user_name || connection.name || 'Unknown User',
+        avatar: connection.avatar_url || connection.picture || undefined, // No fallback - use default avatar component
+      }));
+    }
+    return []; // Return empty array if no connections
+  }, [connectionsData]);
+
+  // Create group members from selected friends (for display purposes)
+  const groupMembers = useMemo(() => {
+    if (selectedFriends.length === 0) return [];
+    
+    return selectedFriends.map((friendId, index) => {
+      const friend = friends.find(f => f.id === friendId);
+      if (!friend) return null;
+      
+      return {
+        name: friend.name,
+        avatarUri: friend.avatar,
+        top: (index % 3) * 50,
+        left: (index % 2) * 50,
+        status: 'Invited',
+        isDone: false,
+      };
+    }).filter((member): member is NonNullable<typeof member> => member !== null);
+  }, [selectedFriends, friends]);
 
   const handleBack = () => {
     router.back();
@@ -42,7 +64,6 @@ export default function ChooseFriends() {
   
   const handleNavigate = () => {
     console.log('Share button pressed - attempting navigation...');
-    setButtonPressed(true);
     // Close any active modals before navigating
     setShowShareModal(false);
     setIsGeneratingLink(false);

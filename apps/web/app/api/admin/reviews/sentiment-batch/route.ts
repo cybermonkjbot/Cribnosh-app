@@ -1,13 +1,14 @@
-import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
-import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { ErrorCode, ErrorFactory, withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -119,7 +120,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 interface Review {
@@ -138,40 +139,30 @@ interface Review {
   user_id?: Id<"users">;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const EMOTIONS_ENGINE_URL = process.env.EMOTIONS_ENGINE_URL || 'http://localhost:3000/api/emotions-engine';
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const { model, start_date, end_date } = await request.json();
     if (!model || !start_date || !end_date) {
       return ResponseFactory.validationError('model, start_date, and end_date are required.');
     }
-    const convex = getConvexClient();
-    const allReviews = await convex.query(api.queries.reviews.getAll);
-    const reviews = allReviews.filter((r: { createdAt?: number }) => {
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    // Type assertion to avoid deep type inference issue
+    const queryResult = await convex.query(api.queries.reviews.getAll);
+    const allReviews = queryResult as unknown as Review[];
+    const reviews = allReviews.filter((r: Review) => {
       const created = new Date(r.createdAt || 0);
       const start = new Date(start_date);
       const end = new Date(end_date);
       return created >= start && created <= end;
     });
     const reviewTexts = reviews
-      .map((r: { comment?: string }) => r.comment)
-      .filter((comment): comment is string => typeof comment === 'string' && comment.trim().length > 0);
+      .map((r: Review) => r.comment)
+      .filter((comment: string | undefined): comment is string => typeof comment === 'string' && comment.trim().length > 0);
 
     if (reviewTexts.length === 0) {
       return ResponseFactory.success({ success: true, message: 'No reviews with valid text found in the date range', results: [] });
@@ -211,10 +202,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
                 await convex.mutation(api.mutations.reviews.updateReview, { 
                   reviewId: review._id, 
                   sentiment: data.results[index],
-                  analyzedAt: Date.now()
+                  analyzedAt: Date.now(),
+                  sessionToken: sessionToken || undefined
                 });
               } catch (error) {
-                console.error(`Failed to update review ${review._id}:`, error);
+                logger.error(`Failed to update review ${review._id}:`, error);
               }
             }
           })
@@ -227,10 +219,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         processedCount: reviews.length
       });
     } catch (error: unknown) {
-      return ResponseFactory.internalError(getErrorMessage(error, 'Batch sentiment failed.'));
+      if (isAuthenticationError(error) || isAuthorizationError(error)) {
+        return handleConvexError(error, request);
+      }
+      return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
     }
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process batch sentiment analysis'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

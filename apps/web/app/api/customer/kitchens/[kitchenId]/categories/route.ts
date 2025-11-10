@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -14,7 +17,7 @@ import { getErrorMessage } from '@/types/errors';
  *     description: Get all available meal categories with meal counts for a specific kitchen/chef
  *     tags: [Customer, Kitchens, Meals, Categories]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId
@@ -63,12 +66,16 @@ async function handleGET(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
       (api as any).queries.kitchens.getChefByKitchenId,
-      { kitchenId }
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     if (!chefId) {
@@ -80,13 +87,17 @@ async function handleGET(
       (api as any).queries.meals.getCategoriesByChefId,
       {
         chefId,
+        sessionToken: sessionToken || undefined
       }
     );
 
     return ResponseFactory.success({ categories }, 'Categories retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get categories error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get categories error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve categories')
     );

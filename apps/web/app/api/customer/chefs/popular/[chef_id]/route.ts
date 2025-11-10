@@ -32,11 +32,13 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 // Type definitions for data structures
 interface ChefData {
@@ -108,7 +110,8 @@ async function handleGET(
     return ResponseFactory.validationError('Missing chef_id');
   }
 
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
   
   try {
     // Extract userId from request (optional for public endpoints)
@@ -122,10 +125,14 @@ async function handleGET(
     
     const [chef, reviews, allMeals] = await Promise.all([
       convex.query((apiQueries.chefs.getChefById as unknown as ChefByIdQuery), { 
-        chefId: chef_id as Id<'chefs'> 
+        chefId: chef_id as Id<'chefs'>
       }) as Promise<ChefData | null>,
-      convex.query((apiQueries.reviews.getByChef as unknown as ReviewsByChefQuery), { chef_id }) as Promise<ReviewData[]>,
-      convex.query((apiQueries.meals.getAll as unknown as MealsQuery), { userId }) as Promise<MealData[]>
+      convex.query((apiQueries.reviews.getByChef as unknown as ReviewsByChefQuery), {
+        chef_id
+      }) as Promise<ReviewData[]>,
+      convex.query((apiQueries.meals.getAll as unknown as MealsQuery), {
+        userId
+      }) as Promise<MealData[]>
     ]);
     
     if (!chef) {
@@ -148,7 +155,10 @@ async function handleGET(
       reviewCount: reviewCount
     });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch chef details'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

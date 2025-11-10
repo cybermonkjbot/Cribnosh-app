@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -71,18 +75,23 @@ async function handleGET(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const comments = await convex.query((api as any).queries.videoComments.getVideoComments, {
       videoId,
       limit,
       cursor,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(comments, 'Comments retrieved successfully');
 
-  } catch (error: any) {
-    console.error('Comments retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve comments');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Comments retrieval error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve comments'));
   }
 }
 
@@ -94,7 +103,7 @@ async function handleGET(
  *     description: Adds a new comment to a video post
  *     tags: [Nosh Heaven, Videos, Comments]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -163,18 +172,12 @@ async function handlePOST(
       return ResponseFactory.validationError('Comment content is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Add comment
@@ -182,15 +185,19 @@ async function handlePOST(
       videoId,
       content: body.content.trim(),
       parentCommentId: body.parentCommentId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({
       commentId,
     }, 'Comment added successfully', 201);
 
-  } catch (error: any) {
-    console.error('Comment creation error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to add comment');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Comment creation error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to add comment'));
   }
 }
 

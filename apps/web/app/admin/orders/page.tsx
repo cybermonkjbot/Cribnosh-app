@@ -1,45 +1,40 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
+import { OrderFilterBar } from '@/components/admin/order-filter-bar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  ShoppingCart, 
-  Search, 
-  Filter,
-  Eye,
-  Clock,
-  CheckCircle,
-  XCircle,
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from 'convex/react';
+import {
   AlertTriangle,
-  TrendingUp,
-  Users,
-  DollarSign,
-  MapPin,
-  Phone,
-  MessageSquare,
   BarChart3,
-  Download,
-  RefreshCw,
-  MoreHorizontal,
-  Calendar,
+  CheckCircle,
   ChefHat,
-  Package,
-  Truck,
-  Star,
+  Clock,
+  DollarSign,
+  Download,
+  Eye,
   Flag,
+  MessageSquare,
+  MoreHorizontal,
+  Package,
+  RefreshCw,
+  ShoppingCart,
+  Star,
+  TrendingUp,
+  Truck,
+  XCircle,
   Zap
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useMemo, useState } from 'react';
 
 interface Order {
   _id: Id<"orders">;
@@ -89,6 +84,8 @@ interface Order {
 }
 
 export default function OrderManagementPage() {
+  const { user, sessionToken, loading } = useAdminUser();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
@@ -97,12 +94,23 @@ export default function OrderManagementPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
-  // Fetch data
-  const orders = useQuery(api.queries.admin.getAllOrdersWithDetails, {}) as Order[] | undefined;
-  const orderStats = useQuery(api.queries.admin.getOrderStats);
+  // Fetch data - authentication is handled by layout, so user is guaranteed to be authenticated here
+  // These queries don't accept sessionToken, so we just pass an empty object when user is authenticated
+  const shouldSkip = !user;
+      // Use orderStats from backend query instead of calculating client-side
+      const ordersQueryResult = useQuery(api.queries.admin.getAllOrdersWithDetails, shouldSkip ? "skip" : {});
+  const orders = ordersQueryResult as Order[] | undefined;
+  const orderStatsQueryResult = useQuery(api.queries.admin.getOrderStats, shouldSkip ? "skip" : {});
+  const orderStats = orderStatsQueryResult as {
+    totalOrders: number;
+    activeOrders: number;
+    todayRevenue: number;
+    averageOrderValue: number;
+    completedOrders: number;
+    cancelledOrders: number;
+    completionRate: number;
+  } | undefined;
 
   // Mutations
   const updateOrderStatus = useMutation((api as any)["mutations/orderAdmin"].updateOrderStatus);
@@ -159,22 +167,30 @@ export default function OrderManagementPage() {
   const handleStatusUpdate = async (orderId: Id<"orders">, newStatus: string) => {
     try {
       await updateOrderStatus({ orderId, status: newStatus as any });
-      setSuccess('Order status updated successfully');
-      setError(null);
+      toast({
+        title: "Order status updated",
+        description: "The order status has been updated successfully.",
+        variant: "success",
+      });
     } catch (err) {
-      setError('Failed to update order status');
+      toast({
+        title: "Failed to update order status",
+        description: "An error occurred while updating the order status. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const getStatusBadge = (status: string) => {
+    // Use brand color for active/positive statuses, neutral dark for others
     const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      confirmed: { color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
-      preparing: { color: 'bg-orange-100 text-orange-800', icon: ChefHat },
-      ready: { color: 'bg-purple-100 text-purple-800', icon: Package },
-      out_for_delivery: { color: 'bg-indigo-100 text-indigo-800', icon: Truck },
-      delivered: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      cancelled: { color: 'bg-red-100 text-red-800', icon: XCircle },
+      pending: { color: 'bg-gray-100 text-gray-800', icon: Clock },
+      confirmed: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      preparing: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: ChefHat },
+      ready: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Package },
+      out_for_delivery: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Truck },
+      delivered: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      cancelled: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
       refunded: { color: 'bg-gray-100 text-gray-800', icon: RefreshCw }
     };
     
@@ -190,10 +206,11 @@ export default function OrderManagementPage() {
   };
 
   const getPaymentBadge = (status: string) => {
+    // Use brand color for paid, neutral dark for others
     const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800' },
-      paid: { color: 'bg-green-100 text-green-800' },
-      failed: { color: 'bg-red-100 text-red-800' },
+      pending: { color: 'bg-gray-100 text-gray-800' },
+      paid: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]' },
+      failed: { color: 'bg-gray-100 text-gray-800' },
       refunded: { color: 'bg-gray-100 text-gray-800' }
     };
     
@@ -222,11 +239,12 @@ export default function OrderManagementPage() {
   };
 
   const getUrgencyBadge = (urgency: string) => {
+    // Use brand color for urgent statuses, neutral dark for normal
     const config = {
-      critical: { color: 'bg-red-100 text-red-800', icon: AlertTriangle },
-      warning: { color: 'bg-orange-100 text-orange-800', icon: Clock },
-      attention: { color: 'bg-yellow-100 text-yellow-800', icon: Zap },
-      normal: { color: 'bg-green-100 text-green-800', icon: CheckCircle }
+      critical: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: AlertTriangle },
+      warning: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Clock },
+      attention: { color: 'bg-gray-100 text-gray-800', icon: Zap },
+      normal: { color: 'bg-gray-100 text-gray-800', icon: CheckCircle }
     };
     
     const { color, icon: Icon } = config[urgency as keyof typeof config];
@@ -239,9 +257,43 @@ export default function OrderManagementPage() {
     );
   };
 
+  // Loading state
+  if (orders === undefined) {
+    return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold font-asgard text-gray-900">Order Management</h1>
+              <p className="text-gray-600 font-satoshi mt-2">Monitor and oversee order fulfillment across the platform</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-20 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+    );
+  }
+
+  // Check for active filters
+  const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || paymentFilter !== "all" || timeFilter !== "today";
+
   return (
-    <AuthWrapper role="admin">
-      <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -257,7 +309,7 @@ export default function OrderManagementPage() {
               Export Orders
             </Button>
             <Button
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Data
@@ -277,7 +329,7 @@ export default function OrderManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">{orders?.length || 0}</p>
+                    <p className="text-2xl font-bold text-gray-900">{orderStats?.totalOrders || 0}</p>
                   </div>
                   <ShoppingCart className="w-8 h-8 text-[#F23E2E]" />
                 </div>
@@ -295,11 +347,11 @@ export default function OrderManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Active Orders</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {orders?.filter(o => !['delivered', 'cancelled', 'refunded'].includes(o.order_status)).length || 0}
+                    <p className="text-2xl font-bold text-gray-900">
+                      {orderStats?.activeOrders || 0}
                     </p>
                   </div>
-                  <Clock className="w-8 h-8 text-blue-600" />
+                  <Clock className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -315,15 +367,11 @@ export default function OrderManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      ${orders?.filter(o => {
-                        const today = new Date();
-                        const orderDate = new Date(o.createdAt);
-                        return orderDate.toDateString() === today.toDateString();
-                      }).reduce((sum, o) => sum + o.total_amount, 0).toLocaleString() || '0'}
+                    <p className="text-2xl font-bold text-gray-900">
+                      ${orderStats?.todayRevenue.toLocaleString() || '0'}
                     </p>
                   </div>
-                  <DollarSign className="w-8 h-8 text-green-600" />
+                  <DollarSign className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -339,11 +387,11 @@ export default function OrderManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-                    <p className="text-2xl font-bold text-purple-600">
-                      ${orders?.length ? Math.round(orders.reduce((sum, o) => sum + o.total_amount, 0) / orders.length) : '0'}
+                    <p className="text-2xl font-bold text-gray-900">
+                      ${orderStats?.averageOrderValue.toLocaleString() || '0'}
                     </p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-purple-600" />
+                  <TrendingUp className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -351,72 +399,20 @@ export default function OrderManagementPage() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                  <Input
-                    placeholder="Search orders by customer, chef, or order ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="preparing">Preparing</SelectItem>
-                  <SelectItem value="ready">Ready</SelectItem>
-                  <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payment</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={timeFilter} onValueChange={setTimeFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Time" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="all">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                  <SelectItem value="amount">Highest Amount</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <OrderFilterBar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          paymentFilter={paymentFilter}
+          onPaymentFilterChange={setPaymentFilter}
+          timeFilter={timeFilter}
+          onTimeFilterChange={setTimeFilter}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          totalCount={orders?.length || 0}
+          filteredCount={filteredOrders.length}
+        />
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -441,8 +437,28 @@ export default function OrderManagementPage() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="space-y-4">
-              {filteredOrders.map((order, index) => {
+            {filteredOrders.length === 0 ? (
+              <EmptyState
+                icon={ShoppingCart}
+                title={hasActiveFilters ? "No orders found" : "No orders yet"}
+                description={hasActiveFilters 
+                  ? "Try adjusting your search or filter criteria to see more results."
+                  : "Orders will appear here once they are placed."}
+                action={hasActiveFilters ? {
+                  label: "Clear filters",
+                  onClick: () => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setPaymentFilter("all");
+                    setTimeFilter("today");
+                  },
+                  variant: "secondary"
+                } : undefined}
+                variant={hasActiveFilters ? "filtered" : "no-data"}
+              />
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders.map((order, index) => {
                 const urgency = getUrgencyLevel(order);
                 return (
                   <motion.div
@@ -452,9 +468,8 @@ export default function OrderManagementPage() {
                     transition={{ delay: index * 0.05 }}
                   >
                     <Card className={`hover:shadow-lg transition-shadow ${
-                      urgency === 'critical' ? 'border-red-200 bg-red-50/30' : 
-                      urgency === 'warning' ? 'border-orange-200 bg-orange-50/30' : 
-                      urgency === 'attention' ? 'border-yellow-200 bg-yellow-50/30' : ''
+                      urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' : 
+                      urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
                     }`}>
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
@@ -509,16 +524,37 @@ export default function OrderManagementPage() {
                     </Card>
                   </motion.div>
                 );
-              })}
-            </div>
+                })}
+              </div>
+            )}
           </TabsContent>
 
           {/* Active Orders Tab */}
           <TabsContent value="active" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredOrders
-                .filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status))
-                .map((order, index) => {
+            {filteredOrders.filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status)).length === 0 ? (
+              <EmptyState
+                icon={Clock}
+                title={hasActiveFilters ? "No active orders found" : "No active orders"}
+                description={hasActiveFilters 
+                  ? "Try adjusting your search or filter criteria to see more results."
+                  : "There are currently no active orders."}
+                action={hasActiveFilters ? {
+                  label: "Clear filters",
+                  onClick: () => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setPaymentFilter("all");
+                    setTimeFilter("today");
+                  },
+                  variant: "secondary"
+                } : undefined}
+                variant={hasActiveFilters ? "filtered" : "no-data"}
+              />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {filteredOrders
+                  .filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status))
+                  .map((order, index) => {
                   const urgency = getUrgencyLevel(order);
                   return (
                     <motion.div
@@ -527,11 +563,10 @@ export default function OrderManagementPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <Card className={`hover:shadow-lg transition-shadow ${
-                        urgency === 'critical' ? 'border-red-200 bg-red-50/30' : 
-                        urgency === 'warning' ? 'border-orange-200 bg-orange-50/30' : 
-                        urgency === 'attention' ? 'border-yellow-200 bg-yellow-50/30' : ''
-                      }`}>
+                          <Card className={`hover:shadow-lg transition-shadow ${
+                            urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' : 
+                            urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
+                          }`}>
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-lg">Order #{order._id.slice(-8)}</CardTitle>
@@ -549,7 +584,7 @@ export default function OrderManagementPage() {
                               <p className="font-medium text-gray-600">Chef</p>
                               <p>{order.chef?.bio?.substring(0, 30) || 'Unknown'}...</p>
                               <div className="flex items-center gap-1">
-                                <Star className="w-3 h-3 text-yellow-500" />
+                                <Star className="w-3 h-3 text-gray-900" />
                                 <span className="text-sm">{order.chef?.rating?.toFixed(1) || 'N/A'}</span>
                               </div>
                             </div>
@@ -592,21 +627,35 @@ export default function OrderManagementPage() {
                       </Card>
                     </motion.div>
                   );
-                })}
-            </div>
+                  })}
+              </div>
+            )}
           </TabsContent>
 
           {/* Issues Tab */}
           <TabsContent value="issues" className="space-y-6">
-            <div className="space-y-4">
-              {filteredOrders
-                .filter(order => {
-                  const urgency = getUrgencyLevel(order);
-                  return urgency === 'critical' || urgency === 'warning' || 
-                         order.payment_status === 'failed' || 
-                         order.order_status === 'cancelled';
-                })
-                .map((order, index) => {
+            {filteredOrders.filter(order => {
+              const urgency = getUrgencyLevel(order);
+              return urgency === 'critical' || urgency === 'warning' || 
+                     order.payment_status === 'failed' || 
+                     order.order_status === 'cancelled';
+            }).length === 0 ? (
+              <EmptyState
+                icon={CheckCircle}
+                title="No issues found"
+                description="All orders are processing normally. Great job!"
+                variant="no-data"
+              />
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders
+                  .filter(order => {
+                    const urgency = getUrgencyLevel(order);
+                    return urgency === 'critical' || urgency === 'warning' || 
+                           order.payment_status === 'failed' || 
+                           order.order_status === 'cancelled';
+                  })
+                  .map((order, index) => {
                   const urgency = getUrgencyLevel(order);
                   return (
                     <motion.div
@@ -615,19 +664,19 @@ export default function OrderManagementPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <Card className={`border-red-200 bg-red-50/30`}>
+                      <Card className={`border-[#F23E2E]/20 bg-[#F23E2E]/5`}>
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                                <AlertTriangle className="w-6 h-6 text-red-600" />
+                              <div className="w-12 h-12 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
+                                <AlertTriangle className="w-6 h-6 text-[#F23E2E]" />
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <h3 className="font-semibold text-red-900">Order #{order._id.slice(-8)}</h3>
+                                  <h3 className="font-semibold text-gray-900">Order #{order._id.slice(-8)}</h3>
                                   {getUrgencyBadge(urgency)}
                                 </div>
-                                <p className="text-sm text-red-700 mt-1">
+                                <p className="text-sm text-gray-700 mt-1">
                                   {urgency === 'critical' ? 'Order is significantly delayed' :
                                    urgency === 'warning' ? 'Order is running late' :
                                    order.payment_status === 'failed' ? 'Payment failed' :
@@ -639,7 +688,7 @@ export default function OrderManagementPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-red-300 text-red-600 hover:bg-red-50"
+                                    className="border-[#F23E2E]/30 text-[#F23E2E] hover:bg-[#F23E2E]/10"
                               >
                                 <Flag className="w-4 h-4 mr-1" />
                                 Flag for Review
@@ -661,8 +710,9 @@ export default function OrderManagementPage() {
                       </Card>
                     </motion.div>
                   );
-                })}
-            </div>
+                  })}
+              </div>
+            )}
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -721,22 +771,6 @@ export default function OrderManagementPage() {
             </div>
           </TabsContent>
         </Tabs>
-
-        {/* Error/Success Messages */}
-        {error && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {success && (
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
-          </Alert>
-        )}
       </div>
-    </AuthWrapper>
   );
 }

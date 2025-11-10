@@ -5,8 +5,11 @@ import { randomUUID } from 'crypto';
 import { env } from '@/lib/config/env';
 import { jwtVerify } from 'jose';
 import { getUserFromRequest } from "@/lib/auth/session";
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -99,7 +102,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Generate an upload URL from Convex
     const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
@@ -111,7 +115,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
       },
-      body: buffer,
+      body: buffer
     });
     
     if (!uploadRes.ok) {
@@ -127,8 +131,11 @@ export async function POST(request: NextRequest) {
     const fileUrl = `/api/files/${storageId}`;
     
     return ResponseFactory.success({ fileUrl, fileName });
-  } catch (e) {
-    console.error('Convex upload error:', e);
-    return ResponseFactory.internalError('Failed to upload document');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Convex upload error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to upload document'));
   }
 } 

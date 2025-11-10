@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAdminAuth } from '@/lib/api/admin-middleware';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -14,7 +18,7 @@ import { withAdminAuth } from '@/lib/api/admin-middleware';
  *     description: Admin action to moderate a video (approve, reject, flag)
  *     tags: [Nosh Heaven, Admin, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -83,10 +87,11 @@ async function handlePOST(
       return ResponseFactory.validationError('Valid action is required (approve, reject, flag, remove)');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Get video to check if it exists
-    const video = await convex.query((api as any).queries.videoPosts.getVideoById, { videoId });
+    // @ts-ignore - videoId from URL may be string, but query expects Id<"videoPosts">
+    const video = await convex.query(api.queries.videoPosts.getVideoById, { videoId: videoId as any });
     if (!video) {
       return ResponseFactory.notFound('Video not found');
     }
@@ -110,13 +115,14 @@ async function handlePOST(
         return ResponseFactory.validationError('Invalid action');
     }
 
-    await convex.mutation((api as any).mutations.videoPosts.updateVideoPost, {
-      videoId,
+    // @ts-ignore - videoId from URL may be string, but mutation expects Id<"videoPosts">
+    await convex.mutation(api.mutations.videoPosts.updateVideoPost, {
+      videoId: videoId as any,
       // We'll need to add status to the update mutation
     });
 
     // Log moderation action
-    await convex.mutation((api as any).mutations.admin.logActivity, {
+    await convex.mutation(api.mutations.admin.logActivity, {
       action: `video_${body.action}`,
       details: {
         videoId,
@@ -129,9 +135,12 @@ async function handlePOST(
 
     return ResponseFactory.success(null, 'Video moderated successfully');
 
-  } catch (error: any) {
-    console.error('Video moderation error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to moderate video');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Video moderation error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to moderate video'));
   }
 }
 

@@ -72,3 +72,29 @@ export const isKitchenFavorited = query({
   },
 });
 
+// Check if a meal/dish is favorited by user
+export const isMealFavorited = query({
+  args: {
+    userId: v.id("users"),
+    mealId: v.id("meals"),
+  },
+  returns: v.object({
+    isFavorited: v.boolean(),
+    favoriteId: v.optional(v.id("userFavorites")),
+  }),
+  handler: async (ctx, args) => {
+    const favorite = await ctx.db
+      .query("userFavorites")
+      .withIndex("by_user_type", (q) => 
+        q.eq("userId", args.userId).eq("favoriteType", "meal")
+      )
+      .filter((q) => q.eq(q.field("favoriteId"), args.mealId))
+      .first();
+
+    return {
+      isFavorited: !!favorite,
+      favoriteId: favorite?._id,
+    };
+  },
+});
+

@@ -1,30 +1,14 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
 import type { UpdateMemberBudgetRequest } from '@/types/family-profile';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
-function getAuthPayload(request: NextRequest): JWTPayload {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('Invalid or missing token');
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    throw new Error('Invalid or expired token');
-  }
-}
 
 /**
  * @swagger
@@ -65,10 +49,7 @@ async function handlePUT(
   { params }: { params: { memberId: string } }
 ): Promise<NextResponse> {
   try {
-    const payload = getAuthPayload(request);
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse('Only customers can update budgets', 'FORBIDDEN', 403);
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     let body: UpdateMemberBudgetRequest;
     try {
@@ -84,12 +65,13 @@ async function handlePUT(
       return createSpecErrorResponse('Member ID is required', 'BAD_REQUEST', 400);
     }
 
-    const convex = getConvexClient();
-    const userId = payload.user_id as string;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     if (!familyProfile) {
@@ -103,6 +85,7 @@ async function handlePUT(
         member_id: memberId,
         userId: userId as any,
         budget_settings,
+        sessionToken: sessionToken || undefined
       });
     }
 
@@ -115,15 +98,16 @@ async function handlePUT(
         allergy_ids: preferences.allergy_ids ?? undefined,
         dietary_preference_id: preferences.dietary_preference_id ?? undefined,
         parent_controlled: preferences.parent_controlled ?? undefined,
+        sessionToken: sessionToken || undefined
       });
     }
 
     return ResponseFactory.success({ success: true }, 'Member updated successfully');
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
-      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
+    const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
       errorMessage || 'Failed to update member',
       'INTERNAL_ERROR',
@@ -151,10 +135,7 @@ async function handleDELETE(
   { params }: { params: { memberId: string } }
 ): Promise<NextResponse> {
   try {
-    const payload = getAuthPayload(request);
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse('Only customers can remove members', 'FORBIDDEN', 403);
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     const { memberId } = params;
 
@@ -162,12 +143,13 @@ async function handleDELETE(
       return createSpecErrorResponse('Member ID is required', 'BAD_REQUEST', 400);
     }
 
-    const convex = getConvexClient();
-    const userId = payload.user_id as string;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get family profile
     const familyProfile = await convex.query(api.queries.familyProfiles.getByUserId, {
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     if (!familyProfile) {
@@ -179,14 +161,15 @@ async function handleDELETE(
       family_profile_id: familyProfile._id,
       member_id: memberId,
       userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({ success: true }, 'Member removed successfully');
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
-      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
+    const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
       errorMessage || 'Failed to remove member',
       'INTERNAL_ERROR',

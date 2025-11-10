@@ -1,28 +1,28 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileSpreadsheet, 
+import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  BarChart2,
+  Clock,
+  DollarSign,
   Download,
+  Eye,
+  FileSpreadsheet,
   Filter,
   Plus,
-  Eye,
   Trash2,
-  BarChart2,
-  Users,
-  DollarSign,
-  Clock
+  Users
 } from 'lucide-react';
-import type { Id } from '@/convex/_generated/dataModel';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useState } from 'react';
 
 interface Report {
   _id: string;
@@ -108,10 +108,26 @@ export default function AnalyticsReportsPage() {
 
   const handleDownloadReport = async (reportId: string) => {
     try {
-      await downloadReport({ 
+      const result = await downloadReport({ 
         reportId: reportId as unknown as Id<"reports">
       });
-      setSuccess('Report download started');
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        const report = reports?.find((r: Report) => r._id === reportId);
+        const fileName = report?.name 
+          ? `${report.name.replace(/[^a-z0-9]/gi, '_')}.${report.parameters?.format || 'pdf'}`
+          : `report-${reportId}.pdf`;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Report downloaded successfully');
+      } else {
+        setSuccess('Report download started');
+      }
       setError(null);
     } catch {
       setError('Failed to download report');
@@ -182,7 +198,7 @@ export default function AnalyticsReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -357,7 +373,7 @@ export default function AnalyticsReportsPage() {
             )}
 
             <div className="flex gap-2">
-              <Button onClick={handleGenerateReport} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleGenerateReport} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Generate Report
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -462,7 +478,7 @@ export default function AnalyticsReportsPage() {
                     <Button
                       size="sm"
                       onClick={() => handleDownloadReport(report._id)}
-                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                     >
                       <Download className="w-4 h-4 mr-1" />
                       Download

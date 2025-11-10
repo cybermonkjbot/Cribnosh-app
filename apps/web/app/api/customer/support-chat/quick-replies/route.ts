@@ -2,15 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
 import { getQuickReplies } from '@/lib/support/quickReplies';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -46,31 +44,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Note: Role check is optional - if roles are not in JWT, we still allow access based on user_id
-
-    const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get active support chat to analyze context
     const activeChat = await convex.query(api.queries.supportCases.getActiveSupportChat, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     let context: {
@@ -87,6 +73,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
           chatId: activeChat.chat._id,
           limit: 5,
           offset: 0,
+          sessionToken: sessionToken || undefined
         });
 
         context.recentMessages = messagesResult.messages
@@ -105,6 +92,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       })),
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get quick replies.'));
   }
 }

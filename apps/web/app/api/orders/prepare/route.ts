@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 interface PrepareOrderRequest {
   orderId: string;
   prepNotes?: string;
@@ -131,26 +131,15 @@ interface PrepareOrderRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     // Check if user has permission to prepare orders
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef'].includes(role))) {
+    if (!user.roles?.some((role: string) => ['admin', 'staff', 'chef'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -161,16 +150,20 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required field: orderId.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to prepare this specific order
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only prepare your own orders.');
     }
 
@@ -182,20 +175,21 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Start preparing order
     const preparedOrder = await convex.mutation(api.mutations.orders.prepareOrder, {
       orderId: order._id,
-      preparedBy: payload.user_id || '',
+      preparedBy: userId || '',
       prepNotes: prepNotes || order.chef_notes,
       updatedPrepTime: updatedPrepTime || order.estimated_prep_time_minutes,
       metadata: {
-        preparedByRole: payload.roles?.[0] || 'unknown',
+        preparedByRole: user.roles?.[0] || 'unknown',
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
     if (!preparedOrder) {
       return ResponseFactory.internalError('Failed to prepare order');
     }
 
-    console.log(`Order ${orderId} preparation started by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${orderId} preparation started by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       orderId: preparedOrder._id,
@@ -203,7 +197,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       prepNotes: preparedOrder.chef_notes
     });
   } catch (error: unknown) {
-    console.error('Error preparing order:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error preparing order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to prepare order'));
   }
 }

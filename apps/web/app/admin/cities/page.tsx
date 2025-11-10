@@ -1,32 +1,33 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  MapPin, 
-  Search, 
-  Filter,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Users,
-  ChefHat,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Globe,
+import { useSessionToken } from '@/hooks/useSessionToken';
+import { formatCurrency } from '@/lib/utils/number-format';
+import { useMutation, useQuery } from 'convex/react';
+import {
   Building,
-  Navigation
+  CheckCircle,
+  ChefHat,
+  Edit,
+  Eye,
+  Filter,
+  Globe,
+  MapPin,
+  Navigation,
+  Plus,
+  Search,
+  Trash2,
+  Users,
+  XCircle
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface City {
   _id: Id<"cities">;
@@ -103,8 +104,9 @@ export default function CitiesManagementPage() {
   });
 
   // Fetch data
-  const cities = useQuery(api.queries.cities.getCities);
-  const countries = useQuery(api.queries.cities.getCountries);
+  const sessionToken = useSessionToken();
+  const cities = useQuery(api.queries.cities.getCities, sessionToken ? { sessionToken } : "skip");
+  const countries = useQuery(api.queries.cities.getCountries, sessionToken ? { sessionToken } : "skip");
 
   // Mutations
   const createCity = useMutation(api.mutations.cities.createCity);
@@ -119,8 +121,7 @@ export default function CitiesManagementPage() {
     }
 
     try {
-      await createCity({
-        ...newCity,
+      await createCity({...newCity,
         slug: newCity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         coordinates: {
           latitude: newCity.latitude,
@@ -138,7 +139,8 @@ export default function CitiesManagementPage() {
           deliveryFee: newCity.deliveryFee,
           estimatedDeliveryTime: newCity.estimatedDeliveryTime,
           operatingHours: newCity.operatingHours
-        }
+        },
+        sessionToken: sessionToken || undefined
       });
       
       setNewCity({
@@ -171,7 +173,9 @@ export default function CitiesManagementPage() {
 
   const handleUpdateCity = async (cityId: Id<"cities">, updates: Partial<City>) => {
     try {
-      await updateCity({ cityId, ...updates });
+      await updateCity({cityId, ...updates,
+    sessionToken: sessionToken || undefined
+  });
       setSuccess('City updated successfully');
       setError(null);
       setIsEditing(null);
@@ -183,7 +187,9 @@ export default function CitiesManagementPage() {
   const handleDeleteCity = async (cityId: Id<"cities">) => {
     if (confirm('Are you sure you want to delete this city?')) {
       try {
-        await deleteCity({ cityId });
+        await deleteCity({cityId,
+    sessionToken: sessionToken || undefined
+  });
         setSuccess('City deleted successfully');
         setError(null);
       } catch (err) {
@@ -194,7 +200,9 @@ export default function CitiesManagementPage() {
 
   const handleToggleStatus = async (cityId: Id<"cities">) => {
     try {
-      await toggleCityStatus({ cityId });
+      await toggleCityStatus({cityId,
+    sessionToken: sessionToken || undefined
+  });
       setSuccess('City status updated successfully');
       setError(null);
     } catch (err) {
@@ -246,7 +254,7 @@ export default function CitiesManagementPage() {
   const uniqueCountries = Array.from(new Set(cities?.map((city: any) => city.country) || []));
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -508,7 +516,7 @@ export default function CitiesManagementPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreateCity} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleCreateCity} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Add City
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -615,7 +623,7 @@ export default function CitiesManagementPage() {
                   <p className="text-xs text-gray-600">Orders</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-medium">£{city.stats.averageOrderValue.toFixed(2)}</p>
+                  <p className="font-medium">{formatCurrency(city.stats.averageOrderValue, { currency: 'GBP' })}</p>
                   <p className="text-xs text-gray-600">Avg Order</p>
                 </div>
               </div>
@@ -624,11 +632,11 @@ export default function CitiesManagementPage() {
               <div className="text-sm text-gray-600 space-y-1">
                 <div className="flex justify-between">
                   <span>Min Order:</span>
-                  <span>£{city.settings.minOrderValue.toFixed(2)}</span>
+                  <span>{formatCurrency(city.settings.minOrderValue, { currency: 'GBP' })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee:</span>
-                  <span>£{city.settings.deliveryFee.toFixed(2)}</span>
+                  <span>{formatCurrency(city.settings.deliveryFee, { currency: 'GBP' })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Est. Time:</span>

@@ -1,16 +1,14 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { EmailService } from '@/lib/email/email.service';
 import { withErrorHandling } from '@/lib/errors';
 import { mattermostService } from '@/lib/mattermost';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || '';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const emailService = new EmailService({
@@ -108,22 +106,7 @@ const emailService = new EmailService({
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can submit event chef requests.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     
     const body = await request.json();
     const {
@@ -148,12 +131,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('number_of_guests must be a positive number.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get customer profile to get name
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
     const customerProfile: any = await convex.query(api.queries.customers.getByUserId, {
-      userId: payload.user_id as any,
+      userId: userId as any,
+      sessionToken: sessionToken || undefined
     });
     
     const customerName = customerProfile?.name || email.split('@')[0];
@@ -161,7 +146,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Create event chef request in Convex
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
     const requestId: any = await convex.mutation(api.mutations.eventChefRequests.create, {
-      customer_id: payload.user_id as any,
+      customer_id: userId as any,
       event_date,
       number_of_guests,
       event_type,
@@ -171,6 +156,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       dietary_requirements: dietary_requirements || undefined,
       additional_notes: additional_notes || undefined,
       status: 'pending',
+      sessionToken: sessionToken || undefined
     });
     
     // Send email to admin
@@ -220,6 +206,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'Request submitted successfully'
     );
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to submit event chef request.'));
   }
 }

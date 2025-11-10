@@ -6,7 +6,9 @@ import { runInference } from '@/lib/emotions-engine/core/inferenceEngine';
 // import { EmotionsEngineRequest } from '@/lib/emotions-engine/types'; // Unused for now
 import { withRetry } from '@/lib/api/retry';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -157,39 +159,28 @@ export async function POST(req: NextRequest) {
     // Extract user/session info from cookies
     const user = await getUserFromRequest(req);
     const userId = user?._id || body.userId || undefined;
-    // Fetch nearby cuisines if location is available
-    let nearbyCuisines: string[] = [];
-    if (body.location && body.location.latitude && body.location.longitude) {
-      const convex = getConvexClient();
-      const nearbyChefsResult = await withRetry(async () => {
-        return await convex.query(api.queries.chefs.findNearbyChefs, {
-          latitude: body.location.latitude,
-          longitude: body.location.longitude,
-          maxDistanceKm: 10,
-        });
-      });
-      
-      // Extract data from retry result
-      const nearbyChefs = nearbyChefsResult.success ? nearbyChefsResult.data : [];
-      
-      // Collect unique cuisines from nearby chefs' specialties
-      const cuisineSet = new Set<string>();
-      if (Array.isArray(nearbyChefs)) {
-        for (const chef of nearbyChefs) {
-          if (Array.isArray(chef.specialties)) {
-            chef.specialties.forEach((c: string) => cuisineSet.add(c));
-          }
-        }
-      }
-      nearbyCuisines = Array.from(cuisineSet);
-    }
+    // Get emotions engine context - this consolidates nearby chefs, user data, and preferences
+    const convex = getConvexClientFromRequest(req);
+    const emotionsContext = await convex.action(api.actions.emotionsEngine.getEmotionsEngineContext, {
+      userId: userId as any,
+      location: body.location ? {
+        latitude: body.location.latitude,
+        longitude: body.location.longitude,
+        address: body.location.address,
+      } : undefined,
+    });
+    
     // Aggregate context (merge frontend and backend data)
+    const nearbyCuisines = emotionsContext.nearbyCuisines || [];
     const context = await aggregateContext(body, userId, nearbyCuisines);
     // Run inference
     const result = await runInference({ ...context, ...body });
     return ResponseFactory.success(result.data);
   } catch (err: unknown) {
-    console.error('Emotions engine error:', err);
+    if (isAuthenticationError(err) || isAuthorizationError(err)) {
+      return handleConvexError(err, req);
+    }
+    logger.error('Emotions engine error:', err);
     return ResponseFactory.internalError(
       err instanceof Error ? err.message : 'Emotions engine processing failed'
     );

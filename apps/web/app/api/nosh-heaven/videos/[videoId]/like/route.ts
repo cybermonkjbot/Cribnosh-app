@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -13,7 +17,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Likes a video post
  *     tags: [Nosh Heaven, Videos, Interactions]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -53,30 +57,28 @@ async function handlePOST(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Like video
     await convex.mutation((api as any).mutations.videoPosts.likeVideo, {
       videoId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Video liked successfully');
 
-  } catch (error: any) {
-    console.error('Video like error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to like video');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Video like error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to like video'));
   }
 }
 
@@ -88,7 +90,7 @@ async function handlePOST(
  *     description: Removes like from a video post
  *     tags: [Nosh Heaven, Videos, Interactions]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -117,30 +119,28 @@ async function handleDELETE(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Unlike video
     await convex.mutation((api as any).mutations.videoPosts.unlikeVideo, {
       videoId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Video unliked successfully');
 
-  } catch (error: any) {
-    console.error('Video unlike error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to unlike video');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Video unlike error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to unlike video'));
   }
 }
 

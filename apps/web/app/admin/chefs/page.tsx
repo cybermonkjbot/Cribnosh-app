@@ -1,42 +1,40 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { ChefFilterBar } from '@/components/admin/chef-filter-bar';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  ChefHat, 
-  Search, 
-  Filter,
-  Plus,
-  Edit,
-  Eye,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Star,
-  MapPin,
-  DollarSign,
-  TrendingUp,
-  Users,
-  Calendar,
-  Shield,
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from 'convex/react';
+import {
   AlertTriangle,
-  MessageSquare,
   Award,
   BarChart3,
+  Calendar,
+  CheckCircle,
+  ChefHat,
+  Clock,
+  DollarSign,
   Download,
-  MoreHorizontal
+  Eye,
+  MapPin,
+  MessageSquare,
+  MoreHorizontal,
+  Plus,
+  Shield,
+  Star,
+  TrendingUp,
+  Users,
+  XCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useMemo, useState } from 'react';
 
 interface Chef {
   _id: Id<"chefs">;
@@ -73,6 +71,8 @@ interface Chef {
 }
 
 export default function ChefManagementPage() {
+  const { user, sessionToken, loading } = useAdminUser();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [verificationFilter, setVerificationFilter] = useState<string>('all');
@@ -81,12 +81,12 @@ export default function ChefManagementPage() {
   const [selectedChef, setSelectedChef] = useState<Chef | null>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showPerformanceModal, setShowPerformanceModal] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
-  // Fetch data
-  const chefs = useQuery(api.queries.admin.getChefsWithPerformance, {}) as Chef[] | undefined;
-  const chefStats = useQuery(api.queries.admin.getChefStats);
+  // Fetch data - authentication is handled by layout, so user is guaranteed to be authenticated here
+  // These queries don't accept sessionToken, so we just pass an empty object when user is authenticated
+  const queryArgs = user ? {} : "skip";
+  const chefs = useQuery(api.queries.admin.getChefsWithPerformance, queryArgs) as Chef[] | undefined;
+  const chefStats = useQuery(api.queries.admin.getChefStats, queryArgs);
 
   // Mutations
   const updateChefStatus = useMutation(api.mutations.chefs.updateChef);
@@ -123,29 +123,44 @@ export default function ChefManagementPage() {
   const handleStatusUpdate = async (chefId: Id<"chefs">, newStatus: string) => {
     try {
       await updateChefStatus({ chefId, status: newStatus as any });
-      setSuccess('Chef status updated successfully');
-      setError(null);
+      toast({
+        title: "Chef status updated",
+        description: "The chef status has been updated successfully.",
+        variant: "success",
+      });
     } catch (err) {
-      setError('Failed to update chef status');
+      toast({
+        title: "Failed to update chef status",
+        description: "An error occurred while updating the chef status. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleVerificationUpdate = async (chefId: Id<"chefs">, verificationStatus: string) => {
     try {
       await updateChefVerification({ chefId, verificationStatus: verificationStatus as any });
-      setSuccess('Chef verification updated successfully');
-      setError(null);
+      toast({
+        title: "Chef verification updated",
+        description: "The chef verification status has been updated successfully.",
+        variant: "success",
+      });
     } catch (err) {
-      setError('Failed to update chef verification');
+      toast({
+        title: "Failed to update chef verification",
+        description: "An error occurred while updating the chef verification. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const getStatusBadge = (status: string) => {
+    // Use brand color for active/positive statuses, neutral dark for others
     const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
+      active: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
       inactive: { color: 'bg-gray-100 text-gray-800', icon: Clock },
-      suspended: { color: 'bg-red-100 text-red-800', icon: XCircle },
-      pending_verification: { color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle }
+      suspended: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
+      pending_verification: { color: 'bg-gray-100 text-gray-800', icon: AlertTriangle }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.inactive;
@@ -160,10 +175,11 @@ export default function ChefManagementPage() {
   };
 
   const getVerificationBadge = (status: string) => {
+    // Use brand color for verified, neutral dark for others
     const statusConfig = {
-      verified: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      rejected: { color: 'bg-red-100 text-red-800', icon: XCircle }
+      verified: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      pending: { color: 'bg-gray-100 text-gray-800', icon: Clock },
+      rejected: { color: 'bg-gray-100 text-gray-800', icon: XCircle }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -177,9 +193,43 @@ export default function ChefManagementPage() {
     );
   };
 
-  return (
-    <AuthWrapper role="admin">
+  // Loading state
+  if (chefs === undefined) {
+    return (
       <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold font-asgard text-gray-900">Chef Management</h1>
+              <p className="text-gray-600 font-satoshi mt-2">Manage food creators, verification, and performance</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-20 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-48 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+    );
+  }
+
+  // Check for active filters
+  const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || verificationFilter !== "all";
+
+  return (
+    <div className="container mx-auto py-6 space-y-[18px]">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -196,7 +246,7 @@ export default function ChefManagementPage() {
             </Button>
             <Button
               onClick={() => setShowVerificationModal(true)}
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Verify Chef
@@ -234,11 +284,11 @@ export default function ChefManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Active Chefs</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {chefs?.filter(c => c.status === 'active').length || 0}
                     </p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+                  <CheckCircle className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -254,11 +304,11 @@ export default function ChefManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Pending Verification</p>
-                    <p className="text-2xl font-bold text-yellow-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {chefs?.filter(c => c.verificationStatus === 'pending').length || 0}
                     </p>
                   </div>
-                  <Clock className="w-8 h-8 text-yellow-600" />
+                  <Clock className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -274,11 +324,11 @@ export default function ChefManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Avg Rating</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {chefs?.length ? (chefs.reduce((sum, c) => sum + c.rating, 0) / chefs.length).toFixed(1) : '0.0'}
                     </p>
                   </div>
-                  <Star className="w-8 h-8 text-blue-600" />
+                  <Star className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -286,57 +336,18 @@ export default function ChefManagementPage() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                  <Input
-                    placeholder="Search chefs by name, specialty, or location..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                  <SelectItem value="pending_verification">Pending Verification</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={verificationFilter} onValueChange={setVerificationFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Verification" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Verification</SelectItem>
-                  <SelectItem value="verified">Verified</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="rating">Highest Rating</SelectItem>
-                  <SelectItem value="earnings">Top Earners</SelectItem>
-                  <SelectItem value="orders">Most Orders</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <ChefFilterBar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          verificationFilter={verificationFilter}
+          onVerificationFilterChange={setVerificationFilter}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          totalCount={chefs?.length || 0}
+          filteredCount={filteredChefs.length}
+        />
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -361,8 +372,27 @@ export default function ChefManagementPage() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredChefs.map((chef, index) => (
+            {filteredChefs.length === 0 ? (
+              <EmptyState
+                icon={ChefHat}
+                title={hasActiveFilters ? "No chefs found" : "No chefs yet"}
+                description={hasActiveFilters 
+                  ? "Try adjusting your search or filter criteria to see more results."
+                  : "Chefs will appear here once they register."}
+                action={hasActiveFilters ? {
+                  label: "Clear filters",
+                  onClick: () => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setVerificationFilter("all");
+                  },
+                  variant: "secondary"
+                } : undefined}
+                variant={hasActiveFilters ? "filtered" : "no-data"}
+              />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredChefs.map((chef, index) => (
                 <motion.div
                   key={chef._id}
                   initial={{ opacity: 0, y: 20 }}
@@ -406,19 +436,19 @@ export default function ChefManagementPage() {
                       
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <Star className="w-4 h-4 text-yellow-500" />
+                          <Star className="w-4 h-4 text-gray-900" />
                           <span>{chef.rating.toFixed(1)}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-green-500" />
+                          <DollarSign className="w-4 h-4 text-gray-900" />
                           <span>${chef.performance.totalEarnings.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-blue-500" />
+                          <Users className="w-4 h-4 text-gray-900" />
                           <span>{chef.performance.totalOrders} orders</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-purple-500" />
+                          <Calendar className="w-4 h-4 text-gray-900" />
                           <span>{chef.performance.completedOrders} completed</span>
                         </div>
                       </div>
@@ -451,7 +481,8 @@ export default function ChefManagementPage() {
                   </Card>
                 </motion.div>
               ))}
-            </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* Verification Tab */}
@@ -464,8 +495,16 @@ export default function ChefManagementPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {filteredChefs.filter(c => c.verificationStatus === 'pending').map((chef) => (
+                {filteredChefs.filter(c => c.verificationStatus === 'pending').length === 0 ? (
+                  <EmptyState
+                    icon={CheckCircle}
+                    title="No pending verifications"
+                    description="All chefs have been verified. Great job!"
+                    variant="no-data"
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    {filteredChefs.filter(c => c.verificationStatus === 'pending').map((chef) => (
                     <div key={chef._id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -481,7 +520,7 @@ export default function ChefManagementPage() {
                           <Button
                             size="sm"
                             onClick={() => handleVerificationUpdate(chef._id, 'verified')}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                           >
                             <CheckCircle className="w-4 h-4 mr-1" />
                             Approve
@@ -490,7 +529,7 @@ export default function ChefManagementPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleVerificationUpdate(chef._id, 'rejected')}
-                            className="border-red-300 text-red-600 hover:bg-red-50"
+                            className="border-gray-300 text-gray-900 hover:bg-gray-50"
                           >
                             <XCircle className="w-4 h-4 mr-1" />
                             Reject
@@ -498,8 +537,9 @@ export default function ChefManagementPage() {
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -528,7 +568,7 @@ export default function ChefManagementPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-green-600">${chef.performance.totalEarnings.toLocaleString()}</p>
+                            <p className="font-bold text-gray-900">${chef.performance.totalEarnings.toLocaleString()}</p>
                             <p className="text-sm text-gray-600">{chef.performance.totalOrders} orders</p>
                           </div>
                         </div>
@@ -549,8 +589,8 @@ export default function ChefManagementPage() {
                       .map((chef, index) => (
                         <div key={chef._id} className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                              <Star className="w-4 h-4 text-yellow-500" />
+                            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                              <Star className="w-4 h-4 text-gray-900" />
                             </div>
                             <div>
                               <p className="font-medium">{chef.bio.substring(0, 30)}...</p>
@@ -558,7 +598,7 @@ export default function ChefManagementPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-yellow-600">{chef.rating.toFixed(1)}</p>
+                            <p className="font-bold text-gray-900">{chef.rating.toFixed(1)}</p>
                             <p className="text-sm text-gray-600">{chef.performance.totalOrders} orders</p>
                           </div>
                         </div>
@@ -583,7 +623,7 @@ export default function ChefManagementPage() {
                   <div className="flex gap-2">
                     <Button
                       onClick={() => {/* Open bulk message modal */}}
-                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Send Bulk Message
@@ -608,22 +648,6 @@ export default function ChefManagementPage() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Error/Success Messages */}
-        {error && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {success && (
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
-          </Alert>
-        )}
-      </div>
-    </AuthWrapper>
+    </div>
   );
 }

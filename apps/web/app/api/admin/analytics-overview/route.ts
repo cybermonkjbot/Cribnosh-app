@@ -1,14 +1,10 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import type { JWTPayload } from '@/types/convex-contexts';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest } from 'next/server';
 function groupByDate<T extends Record<string, unknown>>(
   items: T[],
   field: keyof T,
@@ -122,34 +118,27 @@ function groupByDate<T extends Record<string, unknown>>(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin' && !payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access analytics.');
-    }
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start') ? Number(searchParams.get('start')) : undefined;
     const end = searchParams.get('end') ? Number(searchParams.get('end')) : undefined;
     // Fetch data
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     type Order = { createdAt?: number | string; total_amount?: number; [key: string]: unknown };
     let orders: Order[] = [];
     try {
-      orders = await convex.query(api.queries.custom_orders.getAllOrders, {}) as Order[];
+      orders = await convex.query(api.queries.custom_orders.getAllOrders, {
+        sessionToken: sessionToken || undefined
+      }) as Order[];
     } catch { orders = []; }
     // Filter by date range helper
     const filterByDateRange = <T extends { [key: string]: unknown }>(
@@ -201,14 +190,12 @@ async function handleGET(request: NextRequest) {
     const aov_trend = trend(average_order_value, aovPrev);
     const users_trend = trend(total_users, usersPrev.length);
     // Audit log
-    const userId = payload.user_id || payload.userId;
-    if (userId) {
-      await convex.mutation(api.mutations.admin.insertAdminLog, {
-        action: 'view_analytics_overview',
-        details: { start, end },
-        adminId: userId as unknown as import('@/convex/_generated/dataModel').Id<"users">,
-      });
-    }
+    await convex.mutation(api.mutations.admin.insertAdminLog, {
+      action: 'view_analytics_overview',
+      details: { start, end },
+      adminId: userId,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({
       total_revenue,
       total_orders,

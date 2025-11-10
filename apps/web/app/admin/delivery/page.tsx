@@ -1,49 +1,39 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Truck, 
-  Search, 
-  Filter,
-  Eye,
-  Clock,
-  CheckCircle,
-  XCircle,
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import {
   AlertTriangle,
-  TrendingUp,
-  Users,
-  MapPin,
-  Phone,
-  MessageSquare,
   BarChart3,
+  CheckCircle,
+  Clock,
   Download,
-  RefreshCw,
-  MoreHorizontal,
-  Calendar,
-  ChefHat,
-  Package,
-  Star,
+  Eye,
   Flag,
-  Zap,
-  Navigation,
-  Route,
+  MessageSquare,
+  MoreHorizontal,
+  Package,
+  RefreshCw,
+  Search,
+  Star,
   Timer,
-  Shield,
-  Activity,
-  Globe
+  TrendingUp,
+  Truck,
+  Users,
+  XCircle,
+  Zap
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useMemo, useState } from 'react';
 
 interface Driver {
   _id: Id<"drivers">;
@@ -118,6 +108,8 @@ interface Delivery {
 }
 
 export default function DeliveryManagementPage() {
+  // Auth is handled by layout, no client-side checks needed
+  const { user, sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [driverFilter, setDriverFilter] = useState<string>('all');
@@ -129,10 +121,11 @@ export default function DeliveryManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Fetch data
-  const deliveries = useQuery(api.queries.admin.getAllDeliveriesWithDetails, {}) as Delivery[] | undefined;
-  const drivers = useQuery(api.queries.drivers.getAll) as Driver[] | undefined;
-  const deliveryStats = useQuery(api.queries.admin.getDeliveryStats);
+  // Fetch data - authentication is handled by layout
+  const queryArgs = user && sessionToken ? { sessionToken } : "skip";
+  const deliveries = useQuery(api.queries.admin.getAllDeliveriesWithDetails, queryArgs) as Delivery[] | undefined;
+  const drivers = useQuery(api.queries.drivers.getAll, queryArgs) as Driver[] | undefined;
+  const deliveryStats = useQuery(api.queries.admin.getDeliveryStats, queryArgs);
 
   // Mutations
   const updateDeliveryStatus = useMutation((api as any)["mutations/deliveryAdmin"].updateDeliveryStatus);
@@ -199,12 +192,13 @@ export default function DeliveryManagementPage() {
   };
 
   const getStatusBadge = (status: string) => {
+    // Use brand color for active/positive statuses, neutral dark for others
     const statusConfig = {
-      assigned: { color: 'bg-blue-100 text-blue-800', icon: Clock },
-      picked_up: { color: 'bg-green-100 text-green-800', icon: Package },
-      in_transit: { color: 'bg-orange-100 text-orange-800', icon: Truck },
-      delivered: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      failed: { color: 'bg-red-100 text-red-800', icon: XCircle },
+      assigned: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Clock },
+      picked_up: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Package },
+      in_transit: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Truck },
+      delivered: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      failed: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
       cancelled: { color: 'bg-gray-100 text-gray-800', icon: XCircle }
     };
     
@@ -220,12 +214,13 @@ export default function DeliveryManagementPage() {
   };
 
   const getDriverStatusBadge = (status: string) => {
+    // Use brand color for active/busy, neutral dark for others
     const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      busy: { color: 'bg-orange-100 text-orange-800', icon: Clock },
+      active: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      busy: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Clock },
       offline: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
-      inactive: { color: 'bg-red-100 text-red-800', icon: XCircle },
-      suspended: { color: 'bg-red-100 text-red-800', icon: AlertTriangle }
+      inactive: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
+      suspended: { color: 'bg-gray-100 text-gray-800', icon: AlertTriangle }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
@@ -255,11 +250,12 @@ export default function DeliveryManagementPage() {
   };
 
   const getUrgencyBadge = (urgency: string) => {
+    // Use brand color for urgent statuses, neutral dark for normal
     const config = {
-      critical: { color: 'bg-red-100 text-red-800', icon: AlertTriangle },
-      warning: { color: 'bg-orange-100 text-orange-800', icon: Clock },
-      attention: { color: 'bg-yellow-100 text-yellow-800', icon: Zap },
-      normal: { color: 'bg-green-100 text-green-800', icon: CheckCircle }
+      critical: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: AlertTriangle },
+      warning: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Clock },
+      attention: { color: 'bg-gray-100 text-gray-800', icon: Zap },
+      normal: { color: 'bg-gray-100 text-gray-800', icon: CheckCircle }
     };
     
     const { color, icon: Icon } = config[urgency as keyof typeof config];
@@ -284,8 +280,7 @@ export default function DeliveryManagementPage() {
   };
 
   return (
-    <AuthWrapper role="admin">
-      <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -301,7 +296,7 @@ export default function DeliveryManagementPage() {
               Export Data
             </Button>
             <Button
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Data
@@ -341,11 +336,11 @@ export default function DeliveryManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">In Transit</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {deliveries?.filter(d => d.status === 'in_transit').length || 0}
                     </p>
                   </div>
-                  <Truck className="w-8 h-8 text-blue-600" />
+                  <Truck className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -361,7 +356,7 @@ export default function DeliveryManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Completed Today</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {deliveries?.filter(d => {
                         const today = new Date();
                         const deliveryDate = new Date(d.actualDeliveryTime || d.createdAt);
@@ -369,7 +364,7 @@ export default function DeliveryManagementPage() {
                       }).length || 0}
                     </p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+                  <CheckCircle className="w-8 h-8 text-gray-900" />
                 </div>
               </CardContent>
             </Card>
@@ -771,6 +766,6 @@ export default function DeliveryManagementPage() {
           </Alert>
         )}
       </div>
-    </AuthWrapper>
+    </div>
   );
 }

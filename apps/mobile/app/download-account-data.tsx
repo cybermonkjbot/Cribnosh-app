@@ -1,10 +1,13 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useDownloadAccountDataMutation } from '@/store/customerApi';
 import { useToast } from '../lib/ToastContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -49,6 +52,8 @@ export default function DownloadAccountDataScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
+  const insets = useSafeAreaInsets();
+  const { token } = useAuthContext();
 
   const [downloadAccountData] = useDownloadAccountDataMutation();
 
@@ -60,15 +65,51 @@ export default function DownloadAccountDataScreen() {
     try {
       setIsDownloading(true);
       const result = await downloadAccountData(undefined).unwrap();
-      setIsDownloading(false);
       
       if (result.data?.download_url) {
-        // In a real implementation, this would open/download the file
-        Alert.alert(
-          "Download Ready",
-          `Your account data is ready for download. It will be sent to your registered email within 24-48 hours.${result.data.download_url ? `\n\nDownload URL: ${result.data.download_url}` : ""}`,
-          [{ text: "OK" }]
+        // Download the file from the URL
+        const downloadUrl = result.data.download_url;
+        const fileName = `cribnosh-account-data-${Date.now()}.zip`;
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+        // Download the file
+        const downloadResult = await FileSystem.downloadAsync(
+          downloadUrl,
+          fileUri,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
         );
+
+        if (downloadResult.status === 200) {
+          // Check if sharing is available
+          const isAvailable = await Sharing.isAvailableAsync();
+          
+          if (isAvailable) {
+            // Share/open the file
+            await Sharing.shareAsync(downloadResult.uri, {
+              mimeType: 'application/zip',
+              dialogTitle: 'Save Account Data',
+            });
+            
+            showToast({
+              type: "success",
+              title: "Download Complete",
+              message: "Your account data has been downloaded successfully.",
+              duration: 5000,
+            });
+          } else {
+            // Fallback: show success message
+            showToast({
+              type: "success",
+              title: "Download Complete",
+              message: `Your account data has been saved to: ${downloadResult.uri}`,
+              duration: 5000,
+            });
+          }
+        } else {
+          throw new Error(`Download failed with status: ${downloadResult.status}`);
+        }
       } else {
         showToast({
           type: "success",
@@ -78,19 +119,20 @@ export default function DownloadAccountDataScreen() {
         });
       }
     } catch (error: any) {
-      setIsDownloading(false);
       console.error("Error downloading account data:", error);
       const errorMessage = 
         error?.data?.error?.message ||
         error?.data?.message ||
         error?.message ||
-        "Failed to initiate data download. Please try again.";
+        "Failed to download account data. Please try again.";
       showToast({
         type: "error",
         title: "Download Failed",
         message: errorMessage,
         duration: 4000,
       });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -114,33 +156,38 @@ export default function DownloadAccountDataScreen() {
         </View>
 
         {/* Content */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Main Title */}
           <Text style={styles.mainTitle}>Download Account Data</Text>
           
           {/* Download Section */}
           <View style={styles.downloadSection}>
-            <Text style={styles.sectionTitle}>Download Your Data</Text>
             <Text style={styles.sectionDescription}>
               Get a complete copy of your personal data including profile, orders, and activity.
             </Text>
-            <TouchableOpacity
-              style={[styles.primaryDownloadButton, isDownloading && { opacity: 0.6 }]}
-              onPress={handleDownloadData}
-              disabled={isDownloading}
-            >
-              <SvgXml xml={downloadIconSVG} width={20} height={20} />
-              <Text style={styles.primaryDownloadButtonText}>
-                {isDownloading ? "Preparing Download..." : "Download All Data"}
-              </Text>
-            </TouchableOpacity>
             <Text style={styles.downloadNote}>
               Your data will be prepared and sent to your email within 24-48 hours.
             </Text>
           </View>
-
-
         </ScrollView>
+
+        {/* Floating Download Button */}
+        <View style={[styles.floatingButtonContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <TouchableOpacity
+            style={[styles.floatingButton, isDownloading && { opacity: 0.6 }]}
+            onPress={handleDownloadData}
+            disabled={isDownloading}
+          >
+            <SvgXml xml={downloadIconSVG} width={20} height={20} />
+            <Text style={styles.floatingButtonText}>
+              {isDownloading ? "Preparing Download..." : "Download All Data"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     </>
   );
@@ -171,6 +218,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  contentContainer: {
+    paddingBottom: 100,
+  },
   mainTitle: {
     fontFamily: 'Archivo',
     fontStyle: 'normal',
@@ -183,24 +233,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   downloadSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 24,
+    paddingTop: 0,
+    paddingBottom: 0,
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontFamily: 'Archivo',
-    fontStyle: 'normal',
-    fontWeight: '600',
-    fontSize: 18,
-    lineHeight: 24,
-    color: '#1F2937',
-    marginBottom: 12,
   },
   sectionDescription: {
     fontFamily: 'Inter',
@@ -210,35 +245,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#6B7280',
     marginBottom: 20,
-  },
-
-  // Primary Download Button
-  primaryDownloadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF3B30',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    marginBottom: 16,
-    shadowColor: '#FF3B30',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  primaryDownloadButtonText: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
-    fontWeight: '600',
-    fontSize: 18,
-    lineHeight: 24,
-    color: '#FFFFFF',
-    marginLeft: 12,
+    textAlign: 'left',
   },
   // Security Link
   securityLink: {
@@ -260,7 +267,44 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     color: '#6B7280',
-    marginTop: 12,
-    textAlign: 'center',
+    marginTop: 20,
+    textAlign: 'left',
+  },
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    backgroundColor: '#FAFFFA',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+  floatingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    shadowColor: '#FF3B30',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  floatingButtonText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '600',
+    fontSize: 18,
+    lineHeight: 24,
+    color: '#FFFFFF',
+    marginLeft: 12,
   },
 });

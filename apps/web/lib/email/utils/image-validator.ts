@@ -1,6 +1,7 @@
 /**
  * Image validation utility to ensure no broken images are sent in emails
- */
+ */import { logger } from '@/lib/utils/logger';
+
 
 interface ImageValidationResult {
   isValid: boolean;
@@ -48,7 +49,7 @@ export async function validateImageUrl(
     const isValid = response.ok && contentType ? contentType.startsWith('image/') : false;
     
     if (!isValid) {
-      console.warn(`Image validation failed for ${imageUrl}: Status ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
+      logger.warn(`Image validation failed for ${imageUrl}: Status ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
     }
 
     return {
@@ -58,7 +59,7 @@ export async function validateImageUrl(
       error: isValid ? undefined : `HTTP ${response.status}`,
     };
   } catch (error) {
-    console.error(`Error validating image ${imageUrl}:`, error);
+    logger.error(`Error validating image ${imageUrl}:`, error);
     return {
       isValid: false,
       url: imageUrl,

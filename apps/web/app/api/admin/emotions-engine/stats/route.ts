@@ -44,6 +44,7 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getSessionTokenFromRequest } from '@/lib/conxed-client';
 
 /**
  * @swagger
@@ -53,7 +54,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Retrieve comprehensive statistics about the emotions engine performance (admin only)
  *     tags: [Admin Emotions Engine]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Emotions engine statistics retrieved successfully
@@ -82,9 +83,12 @@ export async function GET(req: NextRequest) {
   if (!user || !user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
     return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
   }
-  const { getConvexClient } = await import('@/lib/conxed-client');
+  const { getConvexClient } = await import('@/lib/conxed-client')
+  const sessionToken = getSessionTokenFromRequest(req);;
   const convex = getConvexClient();
-  const all = await convex.query(api.queries.emotionsEngine.getAllLogs, {});
+  const all = await convex.query(api.queries.emotionsEngine.getAllLogs, {
+    sessionToken: sessionToken || undefined
+  });
   const total = all.length;
   interface EmotionsEngineLog {
     provider?: string;

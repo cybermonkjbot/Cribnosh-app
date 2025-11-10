@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { cookies } from 'next/headers';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withCustomSensitiveRateLimit } from '@/lib/api/sensitive-middleware';
 
 /**
@@ -103,9 +104,21 @@ async function handlePOST(request: NextRequest) {
     // Sanitize email (trim whitespace and convert to lowercase)
     const sanitizedEmail = email.trim().toLowerCase();
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    // Get user agent and IP address for session tracking
+    const userAgent = request.headers.get('user-agent') || undefined;
+    const ipAddress = request.headers.get('x-real-ip') || 
+                      request.headers.get('cf-connecting-ip') || 
+                      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      undefined;
+    
     // Call Convex action to validate credentials and create session
-    const result = await convex.action(api.actions.users.loginAndCreateSession, { email: sanitizedEmail, password });
+    const result = await convex.action(api.actions.users.loginAndCreateSession, { 
+      email: sanitizedEmail, 
+      password,
+      userAgent,
+      ipAddress,
+    });
     if (!result || !result.sessionToken) {
       return ResponseFactory.unauthorized(result?.error || 'Invalid credentials' );
     }
@@ -120,7 +133,10 @@ async function handlePOST(request: NextRequest) {
       path: '/',
     });
     return response;
-  } catch (e) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError('Login failed');
   }
 }
@@ -136,11 +152,11 @@ export async function POST(request: NextRequest) {
       try {
         const body = await clonedRequest.json();
         const email = body?.email || '';
-        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || req.ip || 'unknown';
+        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || 'unknown';
         // Rate limit by both email and IP for extra security
         return `staff-login:${email}:${ip}`;
       } catch {
-        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || req.ip || 'unknown';
+        const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || 'unknown';
         return `staff-login:${ip}`;
       }
     }

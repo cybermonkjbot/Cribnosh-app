@@ -2,8 +2,11 @@ import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '../../../lib/api/middleware';
-import { getConvexClient, api } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, api, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 type ActivityWatchLog = {
   timestamp: string;
@@ -104,7 +107,7 @@ function validateTimelogRequest(data: any): data is TimelogRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *       - cookieAuth: []
  */
 async function postHandler(req: NextRequest) {
@@ -113,8 +116,12 @@ async function postHandler(req: NextRequest) {
     if (!validateTimelogRequest(data)) {
       return ResponseFactory.badRequest("Validation error");
     }
-    const convex = getConvexClient();
-    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, { identifier: data.user });
+    const convex = getConvexClientFromRequest(req)
+    const sessionToken = getSessionTokenFromRequest(req);;
+    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, {
+      identifier: data.user,
+      sessionToken: sessionToken || undefined
+    });
     if (!staff) {
       return ResponseFactory.notFound("Resource not found");
     }
@@ -124,9 +131,13 @@ async function postHandler(req: NextRequest) {
       bucket: data.bucket,
       logs: data.logs,
       timestamp: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({});
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     return ResponseFactory.badRequest("Validation error");
   }
 }
@@ -195,12 +206,13 @@ export function OPTIONS() {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *       - cookieAuth: []
  */
 export async function GET(req: NextRequest) {
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(req);
+    const sessionToken = getSessionTokenFromRequest(req);
     const { searchParams } = new URL(req.url);
     const staffIdParam = searchParams.get('staffId');
     const staffId = staffIdParam ? staffIdParam as Id<'users'> : undefined;
@@ -216,9 +228,13 @@ export async function GET(req: NextRequest) {
       end,
       skip,
       limit,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({});
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     return ResponseFactory.badRequest("Validation error");
   }
 }
@@ -237,8 +253,12 @@ async function putHandler(req: NextRequest) {
       return ResponseFactory.badRequest("Validation error");
     }
     
-    const convex = getConvexClient();
-    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, { identifier: data.user });
+    const convex = getConvexClientFromRequest(req);
+    const sessionToken = getSessionTokenFromRequest(req);
+    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, {
+      identifier: data.user,
+      sessionToken: sessionToken || undefined
+    });
     if (!staff) {
       return ResponseFactory.notFound("Resource not found");
     }
@@ -250,10 +270,14 @@ async function putHandler(req: NextRequest) {
       bucket: data.bucket,
       logs: data.logs,
       timestamp: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({});
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     return ResponseFactory.badRequest("Validation error");
   }
 }
@@ -267,13 +291,18 @@ async function deleteHandler(req: NextRequest) {
       return ResponseFactory.badRequest("Timelog ID is required");
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(req);
+    const sessionToken = getSessionTokenFromRequest(req);
     const result = await convex.mutation(api.mutations.timelogs.deleteTimelog, {
       timelogId: timelogId as Id<'timelogs'>,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({});
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     return ResponseFactory.badRequest("Validation error");
   }
 }
@@ -288,14 +317,19 @@ async function patchHandler(req: NextRequest) {
       return ResponseFactory.badRequest("Timelog ID is required");
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(req);
+    const sessionToken = getSessionTokenFromRequest(req);
     const result = await convex.mutation(api.mutations.timelogs.patchTimelog, {
       timelogId: timelogId as Id<'timelogs'>,
       updates: data,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({});
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     return ResponseFactory.badRequest("Validation error");
   }
 }

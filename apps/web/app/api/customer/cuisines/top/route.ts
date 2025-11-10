@@ -1,8 +1,10 @@
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -167,31 +169,42 @@ interface MealData {
  */
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const convex = getConvexClient();
-  
-  // Extract userId from request (optional for public endpoints)
-  const userId = extractUserIdFromRequest(request);
-  
-  // Aggregate cuisine popularity from meals/orders (with user preferences)
-  const apiQueries = getApiQueries();
-  type MealsQuery = FunctionReference<"query", "public", { userId?: string }, MealData[]>;
-  const mealsQuery = (apiQueries.meals.getAll as unknown as MealsQuery);
-  const meals = await convex.query(mealsQuery, { userId }) as MealData[];
-  const cuisineCount: Record<string, number> = {};
-  
-  for (const meal of meals) {
-    if (meal.cuisine && Array.isArray(meal.cuisine)) {
-      meal.cuisine.forEach((c: string) => {
-        cuisineCount[c] = (cuisineCount[c] || 0) + 1;
-      });
+  try {
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
+    
+    // Aggregate cuisine popularity from meals/orders (with user preferences)
+    const apiQueries = getApiQueries();
+    type MealsQuery = FunctionReference<"query", "public", { userId?: string; sessionToken?: string }, MealData[]>;
+    const mealsQuery = (apiQueries.meals.getAll as unknown as MealsQuery);
+    const meals = await convex.query(mealsQuery, {
+      userId,
+      sessionToken: sessionToken || undefined
+    }) as MealData[];
+    const cuisineCount: Record<string, number> = {};
+    
+    for (const meal of meals) {
+      if (meal.cuisine && Array.isArray(meal.cuisine)) {
+        meal.cuisine.forEach((c: string) => {
+          cuisineCount[c] = (cuisineCount[c] || 0) + 1;
+        });
+      }
     }
+    
+    const topCuisines = Object.entries(cuisineCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([cuisine, count]) => ({ cuisine, count }));
+    return ResponseFactory.success({ top_cuisines: topCuisines });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
-  
-  const topCuisines = Object.entries(cuisineCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([cuisine, count]) => ({ cuisine, count }));
-  return ResponseFactory.success({ top_cuisines: topCuisines });
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 

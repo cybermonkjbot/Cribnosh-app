@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedAdmin, getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -116,35 +116,34 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated user from session token
+    await getAuthenticatedUser(request);
+    
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch all reviews
-    const allReviews = await convex.query(api.queries.reviews.getAll, {});
+    // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
+    const allReviews = (await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    })) as any[];
     // Consistent ordering (createdAt DESC)
     allReviews.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     const paginated = allReviews.slice(offset, offset + limit);
     return ResponseFactory.success({ reviews: paginated, total: allReviews.length, limit, offset });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch reviews.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
@@ -229,21 +228,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { meal_id, rating, comment } = await request.json();
     if (!meal_id || typeof rating !== 'number') {
       return ResponseFactory.error('meal_id and rating are required.', 'CUSTOM_ERROR', 422);
@@ -251,47 +241,48 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (rating < 1 || rating > 5) {
       return ResponseFactory.error('Rating must be between 1 and 5.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Check meal ownership (user must have ordered this meal)
-    const bookings = await convex.query(api.queries.bookings.getAll, {});
-    const userBooking = bookings.find((b: any) => b.user_id === payload.user_id && b.meal_id === meal_id);
+    const bookings = await convex.query(api.queries.bookings.getAll, {
+      sessionToken: sessionToken || undefined
+    });
+    const userBooking = bookings.find((b: any) => b.user_id === userId && b.meal_id === meal_id);
     if (!userBooking) {
       return ResponseFactory.forbidden('You can only review meals you have ordered.');
     }
     // Create review in Convex
     const reviewId = await convex.mutation(api.mutations.reviews.create, {
-      user_id: payload.user_id,
+      user_id: userId,
       meal_id,
       rating,
       comment: comment || '',
       status: 'pending',
       createdAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, reviewId });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to create review.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { review_id, rating, comment } = await request.json();
     if (!review_id) {
       return ResponseFactory.error('review_id is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
-    const allReviews = await convex.query(api.queries.reviews.getAll, {});
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allReviews = (await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    })) as any[];
     const review = allReviews.find((r: any) => r._id === review_id);
     if (!review) {
       return ResponseFactory.notFound('Review not found.');
@@ -299,114 +290,114 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     if (review.status === 'approved') {
       return ResponseFactory.forbidden('Cannot update an approved review.');
     }
-    if (review.user_id !== payload.user_id) {
+    if (review.user_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own reviews.');
     }
     await convex.mutation(api.mutations.reviews.updateReview, {
       reviewId: review_id,
       rating,
       comment,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update review.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { review_id } = await request.json();
     if (!review_id) {
       return ResponseFactory.error('review_id is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
-    const allReviews = await convex.query(api.queries.reviews.getAll, {});
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allReviews = (await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    })) as any[];
     const review = allReviews.find((r: any) => r._id === review_id);
     if (!review) {
       return ResponseFactory.notFound('Review not found.');
     }
     // Allow user to delete their own review if not approved, or admin to delete any review
-    if (review.user_id !== payload.user_id && (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin'))) {
+    if (review.user_id !== userId && (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin'))) {
       return ResponseFactory.forbidden('Forbidden: You can only delete your own reviews.');
     }
-    if (review.status === 'approved' && (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin'))) {
+    if (review.status === 'approved' && (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin'))) {
       return ResponseFactory.forbidden('Cannot delete an approved review unless you are admin.');
     }
-    await convex.mutation(api.mutations.reviews.deleteReview, { reviewId: review_id });
+    await convex.mutation(api.mutations.reviews.deleteReview, {
+      reviewId: review_id,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete review.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated admin from session token
+    const { userId, user } = await getAuthenticatedAdmin(request);
+    if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can bulk delete reviews.');
     }
     const { review_ids } = await request.json();
     if (!Array.isArray(review_ids) || review_ids.length === 0) {
       return ResponseFactory.error('review_ids array is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     for (const reviewId of review_ids) {
-      await convex.mutation(api.mutations.reviews.deleteReview, { reviewId });
+      await convex.mutation(api.mutations.reviews.deleteReview, {
+        reviewId,
+        sessionToken: sessionToken || undefined
+      });
     }
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'bulk_delete_reviews',
       details: { review_ids },
-      adminId: payload.user_id,
+      adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, deleted: review_ids.length });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to bulk delete reviews.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated admin from session token
+    const { user } = await getAuthenticatedAdmin(request);
+    if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can export reviews.');
     }
-    const convex = getConvexClient();
-    const allReviews = await convex.query(api.queries.reviews.getAll, {});
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allReviews = (await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    })) as any[];
     return ResponseFactory.jsonDownload(allReviews, 'reviews-export.json');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to export reviews.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

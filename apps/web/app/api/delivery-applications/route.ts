@@ -106,12 +106,14 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -123,7 +125,7 @@ const MAX_LIMIT = 100;
  *     description: Retrieve a paginated list of all delivery applications (admin only)
  *     tags: [Delivery Applications]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: limit
@@ -154,34 +156,28 @@ const MAX_LIMIT = 100;
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch all delivery applications (assuming a 'drivers' table)
-    const allApplications = await convex.query(api.queries.drivers.getAll, {});
+    const allApplications = await convex.query(api.queries.drivers.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Consistent ordering (createdAt DESC)
     allApplications.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     const paginated = allApplications.slice(offset, offset + limit);
     return ResponseFactory.success({ delivery_applications: paginated, total: allApplications.length, limit, offset });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch delivery applications.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
@@ -226,7 +222,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return ResponseFactory.error('Invalid email format.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const applicationId = await convex.mutation(api.mutations.drivers.createDriver, {
       name,
       email,
@@ -234,10 +231,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       vehicleType: 'car', // Default to car, could be made configurable
       experience: experience || '',
       createdAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, applicationId });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to submit delivery application.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
@@ -249,7 +250,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
  *     description: Update the status of a delivery application (admin only)
  *     tags: [Delivery Applications]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -278,34 +279,27 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
  */
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can update delivery applications.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { application_id, status } = await request.json();
     if (!application_id || !status) {
       return ResponseFactory.error('application_id and status are required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Update the driver application status
     await convex.mutation(api.mutations.drivers.updateDriver, {
       id: application_id as Id<'drivers'>,
       status,
       updatedAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to update application.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
@@ -317,7 +311,7 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
  *     description: Delete a specific delivery application (admin only)
  *     tags: [Delivery Applications]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -346,110 +340,97 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
  */
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can delete delivery applications.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { application_id } = await request.json();
     if (!application_id) {
       return ResponseFactory.error('application_id is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Delete the driver application
     try {
-      await convex.mutation(api.mutations.drivers.deleteDriver, { id: application_id as Id<'drivers'> });
+      await convex.mutation(api.mutations.drivers.deleteDriver, {
+        id: application_id as Id<'drivers'>,
+        sessionToken: sessionToken || undefined
+      });
     } catch (error) {
-      console.error('Error deleting driver application:', error);
+      logger.error('Error deleting driver application:', error);
       return ResponseFactory.error('Failed to delete driver application', 'CUSTOM_ERROR', 500);
     }
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_delivery_application',
       details: { application_id },
-      adminId: payload.user_id,
-      // Timestamp is added automatically by the mutation
+      adminId: userId,
+      // Timestamp is added automatically by the mutation,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete application.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handleBulkDelete(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can bulk delete delivery applications.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { application_ids } = await request.json();
     if (!Array.isArray(application_ids) || application_ids.length === 0) {
       return ResponseFactory.error('application_ids array is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     for (const applicationId of application_ids) {
-      await convex.mutation(api.mutations.drivers.deleteDriver, { id: applicationId as Id<'drivers'> });
+      await convex.mutation(api.mutations.drivers.deleteDriver, {
+        id: applicationId as Id<'drivers'>,
+        sessionToken: sessionToken || undefined
+      });
     }
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'bulk_delete_delivery_applications',
       details: { application_ids },
-      adminId: payload.user_id,
-      // Timestamp is added automatically by the mutation
+      adminId: userId,
+      // Timestamp is added automatically by the mutation,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, deleted: application_ids.length });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to bulk delete delivery applications.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can export delivery applications.');
-    }
-    const convex = getConvexClient();
-    const allApplications = await convex.query(api.queries.drivers.getAll, {});
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allApplications = await convex.query(api.queries.drivers.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'export_delivery_applications',
       details: {},
-      adminId: payload.user_id,
-      // Timestamp is added automatically by the mutation
+      adminId: userId,
+      // Timestamp is added automatically by the mutation,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.jsonDownload(allApplications, 'delivery-applications-export.json');
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to export delivery applications.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

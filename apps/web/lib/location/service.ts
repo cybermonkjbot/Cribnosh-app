@@ -1,4 +1,5 @@
 import { createAppleMapsClient, calculateDistanceKm, Coordinates, PlaceResult, DirectionsResult } from '@/lib/apple-maps/service';
+import { logger } from '@/lib/utils/logger';
 
 export interface LocationData {
   ip: string;
@@ -45,7 +46,7 @@ export class LocationService {
     try {
       this.appleMapsClient = createAppleMapsClient();
     } catch (error) {
-      console.warn('Apple Maps client not available:', error);
+      logger.warn('Apple Maps client not available:', error);
       this.appleMapsClient = null;
     }
   }
@@ -72,7 +73,7 @@ export class LocationService {
         addressComponents: enhancedLocation.components as Record<string, string>,
       };
     } catch (error) {
-      console.warn('Apple Maps enhancement failed, using basic location:', error);
+      logger.warn('Apple Maps enhancement failed, using basic location:', error);
       return basicLocation;
     }
   }
@@ -97,7 +98,7 @@ export class LocationService {
         components: result.components as Record<string, string>,
       };
     } catch (error) {
-      console.error('Geocoding failed:', error);
+      logger.error('Geocoding failed:', error);
       return null;
     }
   }
@@ -125,7 +126,7 @@ export class LocationService {
     try {
       return await this.appleMapsClient.searchPlaces(query, location, radius, 'en', categories);
     } catch (error) {
-      console.error('Places search failed:', error);
+      logger.error('Places search failed:', error);
       return [];
     }
   }
@@ -145,7 +146,7 @@ export class LocationService {
     try {
       return await this.appleMapsClient.getDirections(origin, destination, mode);
     } catch (error) {
-      console.error('Directions failed:', error);
+      logger.error('Directions failed:', error);
       return null;
     }
   }

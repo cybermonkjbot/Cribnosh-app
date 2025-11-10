@@ -51,56 +51,72 @@
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Endpoint: /v1/reviews/{review_id}/approval
 // Group: reviews
 
 export async function POST(request: NextRequest, { params }: { params: { review_id: string } }) {
-  const { review_id } = params;
-  if (!review_id) {
-    return ResponseFactory.validationError('Missing review_id');
-  }
-  let body: any;
   try {
-    body = await request.json();
-  } catch {
-    return ResponseFactory.validationError('Invalid JSON body');
+    const { review_id } = params;
+    if (!review_id) {
+      return ResponseFactory.validationError('Missing review_id');
+    }
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return ResponseFactory.validationError('Invalid JSON body');
+    }
+    const { is_approved } = body;
+    if (typeof is_approved !== 'boolean') {
+      return ResponseFactory.validationError('is_approved must be a boolean');
+    }
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allReviews = await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    });
+    const review = allReviews.find((r: any) => r._id === review_id);
+    if (!review) {
+      return ResponseFactory.notFound('Review not found');
+    }
+    // Patch the review with approval status and status string
+    let approvalDate: number | null = null;
+    if (is_approved) {
+      approvalDate = Date.now();
+    }
+    await convex.mutation(api.mutations.reviews.updateReview, {
+      reviewId: review_id as Id<'reviews'>,
+      ...(is_approved ? { status: 'approved' } : { status: 'pending' }),
+      // approval_date is not in schema, so do not store it in DB,
+      sessionToken: sessionToken || undefined
+    });
+    // Return the updated review
+    const updatedAll = await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    });
+    const updated = updatedAll.find((r: any) => r._id === review_id);
+    if (!updated) {
+      return ResponseFactory.notFound('Review not found after update');
+    }
+    return ResponseFactory.success({ review: updated });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
-  const { is_approved } = body;
-  if (typeof is_approved !== 'boolean') {
-    return ResponseFactory.validationError('is_approved must be a boolean');
-  }
-  const convex = getConvexClient();
-  const allReviews = await convex.query(api.queries.reviews.getAll, {});
-  const review = allReviews.find((r: any) => r._id === review_id);
-  if (!review) {
-    return ResponseFactory.notFound('Review not found');
-  }
-  // Patch the review with approval status and status string
-  let approvalDate: number | null = null;
-  if (is_approved) {
-    approvalDate = Date.now();
-  }
-  await convex.mutation(api.mutations.reviews.updateReview, {
-    reviewId: review_id as Id<'reviews'>,
-    ...(is_approved ? { status: 'approved' } : { status: 'pending' }),
-    // approval_date is not in schema, so do not store it in DB
-  });
-  // Return the updated review
-  const updatedAll = await convex.query(api.queries.reviews.getAll, {});
-  const updated = updatedAll.find((r: any) => r._id === review_id);
-  if (!updated) {
-    return ResponseFactory.notFound('Review not found after update');
-  }
-  return ResponseFactory.success({ review: updated });
 }

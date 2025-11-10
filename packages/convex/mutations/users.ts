@@ -1,14 +1,11 @@
 import { v } from 'convex/values';
-import { mutation, MutationCtx } from '../_generated/server';
-import { 
-  withConvexErrorHandling, 
-  validateConvexArgs, 
-  safeConvexOperation,
-  ErrorFactory,
-  ErrorCode
+import {
+  ErrorFactory
 } from '../../../apps/web/lib/errors/convex-exports';
 import { api } from '../_generated/api';
 import { Id } from '../_generated/dataModel';
+import { mutation, MutationCtx } from '../_generated/server';
+import { requireAuth, requireAdmin, requireStaff, isAdmin, isStaff } from '../utils/auth';
 
 /**
  * Initialize profile tracking records for a new user
@@ -100,9 +97,23 @@ export const updateUser = mutation({
       verified: v.boolean(),
     }))),
     primaryOAuthProvider: v.optional(v.union(v.literal('google'), v.literal('apple'))),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can update their own data, but only admins can update roles/status
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    // Only admins can update roles or status
+    if ((args.roles || args.status) && !isAdmin(user)) {
+      throw new Error('Only admins can update roles or status');
+    }
+    
     const { userId, ...updates } = args;
     // Check if email is being updated and if it's already taken
     if (updates.email) {
@@ -125,9 +136,17 @@ export const setupTwoFactor = mutation({
     userId: v.id("users"),
     secret: v.string(), // Encrypted secret
     backupCodes: v.array(v.string()), // Hashed backup codes
+    sessionToken: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can only set up 2FA for themselves
+    if (!isAdmin(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     const { userId, secret, backupCodes } = args;
     await ctx.db.patch(userId, {
       twoFactorEnabled: true,
@@ -142,9 +161,17 @@ export const setupTwoFactor = mutation({
 export const disableTwoFactor = mutation({
   args: {
     userId: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can only disable 2FA for themselves, admins can disable for anyone
+    if (!isAdmin(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     const { userId } = args;
     await ctx.db.patch(userId, {
       twoFactorEnabled: false,
@@ -161,12 +188,20 @@ export const verifyTwoFactorCode = mutation({
     userId: v.id("users"),
     code: v.string(),
     isValid: v.boolean(), // Passed from API route which has otplib access
+    sessionToken: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const authUser = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can only verify 2FA for themselves
+    if (!isAdmin(authUser) && args.userId !== authUser._id) {
+      throw new Error('Access denied');
+    }
     const { userId, code, isValid } = args;
-    const user = await ctx.db.get(userId);
-    if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser || !targetUser.twoFactorEnabled || !targetUser.twoFactorSecret) {
       return false;
     }
     
@@ -175,10 +210,10 @@ export const verifyTwoFactorCode = mutation({
     }
     
     // If code is valid and it's a backup code, remove it from the list
-    if (user.twoFactorBackupCodes && user.twoFactorBackupCodes.length > 0) {
+    if (targetUser.twoFactorBackupCodes && targetUser.twoFactorBackupCodes.length > 0) {
       // Check if code matches any backup code (this check was done in API route)
       // Remove the used backup code
-      const updatedCodes = user.twoFactorBackupCodes.filter((hashedCode: string) => {
+      const updatedCodes = targetUser.twoFactorBackupCodes.filter((hashedCode: string) => {
         // We'll identify which backup code was used in the API route
         // For now, just remove one code if it was a backup code
         // This is a simplified approach - the API route will handle the actual verification
@@ -196,16 +231,24 @@ export const removeBackupCode = mutation({
   args: {
     userId: v.id("users"),
     hashedCode: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const authUser = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can only remove backup codes for themselves
+    if (!isAdmin(authUser) && args.userId !== authUser._id) {
+      throw new Error('Access denied');
+    }
     const { userId, hashedCode } = args;
-    const user = await ctx.db.get(userId);
-    if (!user || !user.twoFactorBackupCodes) {
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser || !targetUser.twoFactorBackupCodes) {
       return false;
     }
     
-    const updatedCodes = user.twoFactorBackupCodes.filter((code: string) => code !== hashedCode);
+    const updatedCodes = targetUser.twoFactorBackupCodes.filter((code: string) => code !== hashedCode);
     await ctx.db.patch(userId, {
       twoFactorBackupCodes: updatedCodes,
       lastModified: Date.now(),
@@ -218,9 +261,13 @@ export const removeBackupCode = mutation({
 export const deleteUser = mutation({
   args: {
     userId: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     await ctx.db.delete(args.userId);
   },
 });
@@ -229,9 +276,13 @@ export const updateUserStatus = mutation({
   args: {
     userId: v.id("users"),
     status: v.union(v.literal("active"), v.literal("inactive"), v.literal("suspended")),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     await ctx.db.patch(args.userId, {
       status: args.status,
     });
@@ -242,9 +293,13 @@ export const updateUserRoles = mutation({
   args: {
     userId: v.id("users"),
     roles: v.array(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     await ctx.db.patch(args.userId, {
       roles: args.roles,
       lastModified: Date.now(),
@@ -313,9 +368,12 @@ export const bulkUpdateUserStatus = mutation({
   args: {
     userIds: v.array(v.id("users")),
     status: v.union(v.literal("active"), v.literal("inactive"), v.literal("suspended")),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     for (const userId of args.userIds) {
       await ctx.db.patch(userId, {
         status: args.status,
@@ -329,9 +387,12 @@ export const bulkUpdateUserRoles = mutation({
   args: {
     userIds: v.array(v.id("users")),
     roles: v.array(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     for (const userId of args.userIds) {
       await ctx.db.patch(userId, {
         roles: args.roles,
@@ -344,9 +405,12 @@ export const bulkUpdateUserRoles = mutation({
 export const deleteMultipleUsers = mutation({
   args: {
     userIds: v.array(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     for (const userId of args.userIds) {
       await ctx.db.delete(userId);
     }
@@ -354,8 +418,12 @@ export const deleteMultipleUsers = mutation({
 });
 
 export const getUserStats = mutation({
-  args: {},
-  handler: async (ctx: MutationCtx) => {
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
     const users = await ctx.db.query("users").collect();
     const activeUsers = users.filter(user => user.status === 'active');
     const inactiveUsers = users.filter(user => user.status === 'inactive');
@@ -375,9 +443,12 @@ export const searchUsers = mutation({
   args: {
     query: v.string(),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.array(v.any()),
   handler: async (ctx: MutationCtx, args) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
     const users = await ctx.db.query("users").collect();
     const filtered = users.filter(user => 
       user.name.toLowerCase().includes(args.query.toLowerCase()) ||
@@ -397,9 +468,17 @@ export const updateUserOnboarding = mutation({
   args: {
     userId: v.id("users"),
     onboarding: v.any(),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can update their own onboarding, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     await ctx.db.patch(args.userId, {
       onboarding: args.onboarding,
       lastModified: Date.now(),
@@ -418,8 +497,25 @@ export const updateMattermostStatus = mutation({
 });
 
 export const markNotificationRead = mutation({
-  args: { notificationId: v.id("notifications") },
+  args: { 
+    notificationId: v.id("notifications"),
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get notification to check ownership
+    const notification = await ctx.db.get(args.notificationId);
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+    
+    // Users can mark their own notifications as read, staff/admin can mark any
+    if (notification.userId && !isAdmin(user) && !isStaff(user) && notification.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     await ctx.db.patch(args.notificationId, { read: true });
   },
 });
@@ -431,8 +527,18 @@ export const createNotification = mutation({
     message: v.string(),
     global: v.optional(v.boolean()),
     roles: v.optional(v.array(v.string())),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // If creating global notification or notification for other users, require staff/admin
+    if (args.global || (args.userId && args.userId !== user._id)) {
+      if (!isAdmin(user) && !isStaff(user)) {
+        throw new Error('Access denied');
+      }
+    }
     await ctx.db.insert("notifications", {
       userId: args.userId,
       type: args.type,
@@ -448,9 +554,17 @@ export const createNotification = mutation({
 export const generateReferralLink = mutation({
   args: {
     userId: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.string(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can generate referral links for themselves
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     // Generate a unique referral code (could be userId or a hash)
     const referralCode = args.userId;
     const referralLink = `${process.env.NEXT_PUBLIC_BASE_URL || "https://cribnosh.com"}/waitlist?ref=${referralCode}`;
@@ -600,6 +714,154 @@ export const createMinimalUser = mutation({
       lastModified: Date.now(),
     });
     return userId;
+  },
+});
+
+/**
+ * Create or update user with roles - ensures customer role and returns full user
+ * This consolidates user creation/update and role assignment into a single mutation
+ */
+export const createOrUpdateUserWithRoles = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    roles: v.optional(v.array(v.string())),
+    ensureCustomerRole: v.optional(v.boolean()), // Default true
+  },
+  returns: v.any(),
+  handler: async (ctx: MutationCtx, args) => {
+    // Check if user already exists (unique by email)
+    const existing = await ctx.db
+      .query('users')
+      .filter(q => q.eq(q.field('email'), args.email))
+      .first();
+    
+    let userId: Id<'users'>;
+    let userRoles: string[] = args.roles || [];
+    
+    if (existing) {
+      userId = existing._id;
+      // Merge with existing roles
+      const existingRoles = existing.roles || [];
+      userRoles = [...new Set([...existingRoles, ...userRoles])];
+    } else {
+      // Create new user
+      userId = await ctx.db.insert('users', {
+        name: args.name,
+        email: args.email,
+        password: '',
+        status: 'active',
+        roles: userRoles,
+        lastModified: Date.now(),
+      });
+    }
+    
+    // Ensure customer role if requested (default true)
+    const ensureCustomer = args.ensureCustomerRole !== false;
+    if (ensureCustomer && !userRoles.includes('customer')) {
+      userRoles = [...userRoles, 'customer'];
+    }
+    
+    // Update roles if needed
+    if (existing) {
+      await ctx.db.patch(userId, {
+        roles: userRoles,
+        lastModified: Date.now(),
+      });
+    }
+    
+    // Return the full user
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error('Failed to retrieve user after creation/update');
+    }
+    
+    return user;
+  },
+});
+
+/**
+ * Convert bytes to base64url encoding (URL-safe base64 without padding)
+ * This is more performant and secure than hex encoding:
+ * - Shorter tokens (43 chars vs 64 chars for 32 bytes) = 33% reduction in size
+ * - URL-safe (can be used in URLs without encoding)
+ * - Better entropy per character (6 bits vs 4 bits for hex)
+ * - Industry standard (used in JWT, OAuth tokens, etc.)
+ */
+function toBase64Url(bytes: Uint8Array): string {
+  // Convert bytes to binary string
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  // Convert to base64, then to base64url: replace + with -, / with _, and remove padding
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * Generate a secure session token using crypto.getRandomValues (available in V8 runtime)
+ * Uses base64url encoding for better performance and URL safety
+ * This is more performant than Node.js crypto.randomBytes and works natively in Convex
+ */
+function generateSecureSessionToken(): string {
+  // Generate 32 bytes of cryptographically secure random data
+  // This provides 256 bits of entropy, which is more than sufficient for session tokens
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  // Use base64url encoding for better performance and URL safety
+  return toBase64Url(array);
+}
+
+/**
+ * Create and set a session token atomically
+ * This is more performant than generating tokens externally and setting them separately
+ */
+export const createAndSetSessionToken = mutation({
+  args: {
+    userId: v.id("users"),
+    expiresInDays: v.optional(v.number()), // Default to 30 days if not provided
+    userAgent: v.optional(v.string()), // User agent for session tracking
+    ipAddress: v.optional(v.string()), // IP address for session tracking
+  },
+  returns: v.object({
+    sessionToken: v.string(),
+    sessionExpiry: v.number(),
+  }),
+  handler: async (ctx: MutationCtx, args) => {
+    const { userId, expiresInDays = 30, userAgent, ipAddress } = args;
+    
+    // Generate secure session token using Convex-native crypto
+    const sessionToken = generateSecureSessionToken();
+    
+    // Calculate expiry (default 30 days)
+    const expiresInMs = expiresInDays * 24 * 60 * 60 * 1000;
+    const sessionExpiry = Date.now() + expiresInMs;
+    const now = Date.now();
+    
+    // Store token and expiry atomically on user document
+    await ctx.db.patch(userId, {
+      sessionToken,
+      sessionExpiry,
+      lastModified: now,
+    });
+    
+    // Also create an entry in the sessions table for session management
+    await ctx.db.insert("sessions", {
+      userId,
+      sessionToken,
+      expiresAt: sessionExpiry,
+      createdAt: now,
+      userAgent: userAgent || undefined,
+      ipAddress: ipAddress || undefined,
+    });
+    
+    return {
+      sessionToken,
+      sessionExpiry,
+    };
   },
 });
 

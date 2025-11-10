@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -93,21 +97,26 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Search query is required');
     }
 
-    const convex = getConvexClient();
-    const results = await convex.query((api as any).queries.videoPosts.searchVideos, {
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const results = await convex.query(api.queries.videoPosts.searchVideos, {
       query: query.trim(),
       cuisine,
       difficulty: difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
       tags,
       limit,
       cursor,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(results, 'Search results retrieved successfully');
 
-  } catch (error: any) {
-    console.error('Video search error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to search videos');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Video search error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to search videos'));
   }
 }
 

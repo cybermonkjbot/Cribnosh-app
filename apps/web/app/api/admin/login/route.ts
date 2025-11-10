@@ -1,10 +1,11 @@
 const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { retryCritical } from '@/lib/api/retry';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     try {
       requestBody = await request.json();
     } catch (error) {
-      console.error('[ADMIN LOGIN] Invalid JSON in request body');
+      logger.error('[ADMIN LOGIN] Invalid JSON in request body');
       return ResponseFactory.validationError('Invalid request body. Expected JSON.');
     }
 
@@ -114,20 +115,43 @@ export async function POST(request: NextRequest) {
     
     // Validate required fields
     if (!email || !password) {
-      console.error('[ADMIN LOGIN] Missing required fields');
+      logger.error('[ADMIN LOGIN] Missing required fields');
       return ResponseFactory.validationError('Email and password are required');
     }
-    console.log('[ADMIN LOGIN] Attempting login for:', email);
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return ResponseFactory.validationError('Invalid email format');
+    }
+
+    // Sanitize email (trim whitespace and convert to lowercase)
+    const sanitizedEmail = email.trim().toLowerCase();
+
+    logger.log('[ADMIN LOGIN] Attempting login for:', sanitizedEmail);
     const convex = getConvexClient();
+    
+    // Get user agent and IP address for session tracking
+    const userAgent = request.headers.get('user-agent') || undefined;
+    const ipAddress = request.headers.get('x-real-ip') || 
+                      request.headers.get('cf-connecting-ip') || 
+                      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      undefined;
+    
     // Call Convex action to validate credentials and create session
     let result;
     try {
       // Use retry logic for critical authentication calls
       result = await retryCritical(async () => {
-        return await convex.action(api.actions.users.loginAndCreateSession, { email, password });
+        return await convex.action(api.actions.users.loginAndCreateSession, { 
+          email: sanitizedEmail, 
+          password,
+          userAgent,
+          ipAddress,
+        });
       });
     } catch (convexErr) {
-      console.error('[ADMIN LOGIN] Convex connection error:', convexErr);
+      logger.error('[ADMIN LOGIN] Convex connection error:', convexErr);
       // Type guard for error object
       const errObj = convexErr as Record<string, any>;
       if (errObj && typeof errObj === 'object' && 'code' in errObj && String(errObj.code).includes('CONNECT_TIMEOUT')) {
@@ -135,17 +159,22 @@ export async function POST(request: NextRequest) {
       }
       return ResponseFactory.error('Authentication service unavailable. Please try again later.', 'CUSTOM_ERROR', 503);
     }
-    console.log('[ADMIN LOGIN] Convex result:', result);
+    logger.log('[ADMIN LOGIN] Convex result:', result);
     if (!result || !result.sessionToken) {
-      console.log('[ADMIN LOGIN] Login failed for:', email, 'Reason:', result?.error);
+      logger.log('[ADMIN LOGIN] Login failed for:', sanitizedEmail, 'Reason:', result?.error);
       return ResponseFactory.unauthorized(result?.error || 'Invalid credentials' );
     }
+    
     // Now, fetch the user to check their role
+    // getUserByEmail is a public query that doesn't require authentication
     const user = await retryCritical(async () => {
-      return await convex.query(api.queries.users.getUserByEmail, { email });
+      return await convex.query(api.queries.users.getUserByEmail, {
+        email: sanitizedEmail
+      });
     });
+    
     if (!user || !user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
-      console.log('[ADMIN LOGIN] Not an admin:', email);
+      logger.log('[ADMIN LOGIN] Not an admin:', sanitizedEmail);
       return ResponseFactory.unauthorized('Not an admin');
     }
     
@@ -161,17 +190,19 @@ export async function POST(request: NextRequest) {
     
     // Set the Convex session token in cookies for middleware authentication
     // Set cookie to expire in 1 year for long-term persistence
+    // httpOnly is false in production so JavaScript can read it for Convex queries
     const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60; // 1 year in seconds
+    const isProd = process.env.NODE_ENV === 'production';
     response.cookies.set('convex-auth-token', result.sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false, // Allow JavaScript to read in production for Convex queries
+      secure: isProd,
       sameSite: 'strict', // Changed from 'lax' to 'strict' to match staff login
       maxAge: ONE_YEAR_SECONDS, // 1 year for persistent login
       path: '/',
     });
     
-    // Also set a non-httpOnly cookie for debugging in development
-    if (process.env.NODE_ENV !== 'production') {
+    // Also set a non-httpOnly cookie for debugging in development (for backward compatibility)
+    if (!isProd) {
       response.cookies.set('convex-auth-token-debug', result.sessionToken, {
         httpOnly: false,
         secure: false,
@@ -183,7 +214,7 @@ export async function POST(request: NextRequest) {
     
     return response;
   } catch (e) {
-    console.error('[ADMIN LOGIN] Internal Server Error:', e);
+    logger.error('[ADMIN LOGIN] Internal Server Error:', e);
     return ResponseFactory.internalError('Login failed');
   }
 } 

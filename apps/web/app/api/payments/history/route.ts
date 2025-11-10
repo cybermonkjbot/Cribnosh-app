@@ -1,10 +1,10 @@
 import { getOrCreateCustomer, stripe } from '@/lib/stripe';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -129,25 +129,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: any;
   try {
-    payload = jwt.verify(token, JWT_SECRET);
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  const { email } = payload;
-  if (!email) {
-    return ResponseFactory.validationError('User email required.');
-  }
-  const customer = await getOrCreateCustomer({ userId: payload.user_id, email });
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    
+    const email = user.email;
+    if (!email) {
+      return ResponseFactory.validationError('User email required.');
+    }
+    const customer = await getOrCreateCustomer({ userId, email });
   if (!stripe) {
     return ResponseFactory.serviceUnavailable('Stripe is not configured');
   }
@@ -156,6 +149,12 @@ async function handleGET(request: NextRequest) {
     limit: 20,
   });
   return ResponseFactory.success({ payments: paymentIntents.data });
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve payment history'));
+  }
 }
 
 export const GET = withErrorHandling(handleGET); 

@@ -1,12 +1,11 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
-import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -75,7 +74,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 function groupByDate<T extends { [key: string]: unknown }>(items: T[], field: string, range: 'day' | 'week' | 'month') {
   const result: Record<string, number> = {};
@@ -99,29 +98,24 @@ function groupByDate<T extends { [key: string]: unknown }>(items: T[], field: st
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { roles?: string[] } | string;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { roles?: string[] } | string;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (typeof payload === 'string' || !payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Replace api.orders with api.queries.custom_orders.getAllOrders
-    const orders = await convex.query(api.queries.custom_orders.getAllOrders, {});
+    const orders = await convex.query(api.queries.custom_orders.getAllOrders, {
+      sessionToken: sessionToken || undefined
+    });
     const { searchParams } = new URL(request.url);
     const range = (searchParams.get('range') as 'day' | 'week' | 'month') || 'day';
     const grouped = groupByDate(orders, 'createdAt', range);
     const revenueChart = Object.entries(grouped).map(([date, revenue]) => ({ date, revenue }));
     return ResponseFactory.success({ revenueChart });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch revenue chart.';
     return ResponseFactory.internalError(errorMessage);
   }

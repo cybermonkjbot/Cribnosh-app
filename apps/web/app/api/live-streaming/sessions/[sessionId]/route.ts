@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -124,10 +128,12 @@ export const GET = withErrorHandling(async (
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Fetch session with enriched data (chef and meal)
     const sessionData = await convex.query((api as any).queries.liveSessions.getLiveSessionWithMeal, {
       sessionId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!sessionData || !sessionData.session) {
@@ -203,7 +209,7 @@ export const GET = withErrorHandling(async (
     });
 
   } catch (error) {
-    console.error('Error getting live session:', error);
+    logger.error('Error getting live session:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to retrieve live session',

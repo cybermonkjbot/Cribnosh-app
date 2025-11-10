@@ -1,29 +1,26 @@
 ﻿"use client";
 
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { useQuery } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { api } from '@/convex/_generated/api';
-import { 
-  Shield, 
-  Lock, 
-  FileText, 
-  CheckCircle, 
-  AlertTriangle, 
-  Download, 
-  Upload,
-  Eye,
-  EyeOff,
-  Settings,
-  Users,
-  Database,
-  Globe,
+import { useQuery } from 'convex/react';
+import {
+  AlertTriangle,
   Calendar,
-  Clock
+  CheckCircle,
+  Clock,
+  Database,
+  Download,
+  Eye,
+  FileText,
+  Globe,
+  Lock,
+  Shield,
+  Users
 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useState } from 'react';
 
 
-import Link from 'next/link';
 
 interface ComplianceItem {
   id: string;
@@ -35,13 +32,16 @@ interface ComplianceItem {
 }
 
 export default function AdminCompliancePage() {
-  
+  const { sessionToken } = useAdminUser();
   
   const [activeTab, setActiveTab] = useState<'overview' | 'gdpr' | 'security' | 'audit'>('overview');
   const [showExportModal, setShowExportModal] = useState(false);
 
   // Get compliance items from Convex
-  const complianceItems = useQuery(api.queries.admin.getAdminStats) as ComplianceItem[] | undefined;
+  const complianceItems = useQuery(
+    api.queries.admin.getAdminStats,
+    sessionToken ? { sessionToken } : "skip"
+  ) as ComplianceItem[] | undefined;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -78,7 +78,7 @@ export default function AdminCompliancePage() {
 
   
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-asgard text-gray-900">
@@ -93,7 +93,7 @@ export default function AdminCompliancePage() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleExportCompliance}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-satoshi"
+          className="flex items-center gap-2 px-4 py-2 bg-[#F23E2E] text-white rounded-lg hover:bg-[#F23E2E]/90 transition-colors font-satoshi"
         >
           <Download className="w-4 h-4" />
           Export Report
@@ -383,7 +383,7 @@ export default function AdminCompliancePage() {
                   // Handle export logic here
                   setShowExportModal(false);
                 }}
-                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-satoshi"
+                className="px-6 py-2 bg-[#F23E2E] text-white rounded-lg hover:bg-[#F23E2E]/90 transition-colors font-satoshi"
               >
                 Export Report
               </button>

@@ -1,7 +1,9 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
 import { getHeatmapData } from '@/lib/analytics-store';
+import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -181,15 +183,25 @@ import { getHeatmapData } from '@/lib/analytics-store';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url!);
-  const page = searchParams.get('page');
-  if (!page) {
-    return ResponseFactory.validationError('Missing page parameter');
+  try {
+    // Get authenticated user from session token
+    await getAuthenticatedUser(req);
+    
+    const { searchParams } = new URL(req.url!);
+    const page = searchParams.get('page');
+    if (!page) {
+      return ResponseFactory.validationError('Missing page parameter');
+    }
+    const data = await getHeatmapData(page);
+    return ResponseFactory.success({ data });
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch heatmap data.'));
   }
-  const data = await getHeatmapData(page);
-  return ResponseFactory.success({ data });
 }

@@ -1,10 +1,9 @@
 'use client';
 
-import React from 'react';
-import { cn } from '@/lib/utils';
+import { PriorityBadge, StatusBadge } from '@/components/ui/glass-badges';
 import { GlassCard } from '@/components/ui/glass-card';
-import { StatusBadge, PriorityBadge } from '@/components/ui/glass-badges';
-import { Mail, Phone, MapPin, Calendar, User, Tag } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Calendar, Mail, MapPin, Phone, Tag, User } from 'lucide-react';
 
 interface WaitlistEntryCardProps {
   entry: {
@@ -12,7 +11,14 @@ interface WaitlistEntryCardProps {
     email: string;
     name?: string;
     phone?: string;
-    location?: string;
+    location?: string | {
+      city?: string;
+      country?: string;
+      country_name?: string;
+      region?: string;
+      region_code?: string;
+      [key: string]: any; // Allow other geolocation fields
+    };
     source: string;
     status: 'active' | 'converted' | 'inactive';
     priority?: 'low' | 'medium' | 'high' | 'vip' | 'normal';
@@ -40,13 +46,49 @@ export function WaitlistEntryCard({ entry, className }: WaitlistEntryCardProps) 
     }
   };
 
+  // Format location - handle both string and object formats
+  const formatLocation = (location: string | {
+    city?: string;
+    country?: string;
+    country_name?: string;
+    region?: string;
+    region_code?: string;
+    [key: string]: any;
+  } | undefined): string | undefined => {
+    if (!location) return undefined;
+    if (typeof location === 'string') return location;
+    if (typeof location === 'object' && location !== null) {
+      // Format geolocation object to a readable string
+      const loc = location as {
+        city?: string;
+        country?: string;
+        country_name?: string;
+        region?: string;
+        region_code?: string;
+        [key: string]: any;
+      };
+      const parts: string[] = [];
+      if (loc.city) parts.push(loc.city);
+      const region = loc.region || loc.region_code;
+      if (region) {
+        parts.push(region);
+      }
+      const country = loc.country_name || loc.country;
+      if (country) {
+        parts.push(country);
+      }
+      return parts.length > 0 ? parts.join(', ') : undefined;
+    }
+    return undefined;
+  };
+
   // Safely handle potentially undefined fields
   const safeEntry = {
     _id: entry._id || 'unknown',
     email: entry.email || 'no-email@example.com',
     name: entry.name || undefined,
     phone: entry.phone || undefined,
-    location: entry.location || undefined,
+    location: formatLocation(entry.location),
     source: entry.source || 'unknown',
     status: entry.status || 'active',
     priority: entry.priority || 'normal',
@@ -63,7 +105,7 @@ export function WaitlistEntryCard({ entry, className }: WaitlistEntryCardProps) 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Mail className="w-4 h-4 text-gray-400 shrink-0" />
               <h3 className="font-semibold text-gray-900 font-asgard truncate">
                 {safeEntry.email}
               </h3>
@@ -79,21 +121,21 @@ export function WaitlistEntryCard({ entry, className }: WaitlistEntryCardProps) 
         <div className="space-y-2">
           {safeEntry.name && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <User className="w-4 h-4 text-gray-400 shrink-0" />
               <span className="font-satoshi">{safeEntry.name}</span>
             </div>
           )}
           
           {safeEntry.phone && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Phone className="w-4 h-4 text-gray-400 shrink-0" />
               <span className="font-satoshi">{safeEntry.phone}</span>
             </div>
           )}
           
           {safeEntry.location && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
               <span className="font-satoshi">{safeEntry.location}</span>
             </div>
           )}

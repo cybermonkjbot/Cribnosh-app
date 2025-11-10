@@ -1,18 +1,20 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { generateOTPCode, sendOTPEmail } from '@/lib/email/send-otp-email';
 import { ErrorFactory, withErrorHandling } from '@/lib/errors';
 import { ErrorCode } from '@/lib/errors/types';
 import { otpRateLimiter, verificationRateLimiter } from '@/lib/rate-limiting';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // Endpoint: /v1/auth/email-otp
 // Group: auth
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const TEST_OTP = '123456'; // Test OTP for development
 
 /**
@@ -70,9 +72,9 @@ const TEST_OTP = '123456'; // Test OTP for development
  *                       type: string
  *                       description: Test OTP (development only)
  *                       example: "123456"
- *                     token:
+ *                     sessionResult.sessionToken:
  *                       type: string
- *                       description: JWT token (for verify action)
+ *                       description: JWT sessionResult.sessionToken (for verify action)
  *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *                     user:
  *                       type: object
@@ -131,7 +133,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Invalid email format.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     if (action === 'send') {
       // Check rate limit for OTP requests
@@ -156,7 +158,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       });
 
       if (!emailResult.success) {
-        console.error('Failed to send OTP email:', {
+        logger.error('Failed to send OTP email:', {
           email,
           error: emailResult.error,
           messageId: emailResult.messageId,
@@ -165,8 +167,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         
         // In development, still allow the OTP to be created even if email fails
         if (process.env.NODE_ENV === 'development') {
-          console.warn('⚠️ Development mode: Email sending failed, but continuing with OTP creation');
-          console.log('🔐 Development OTP Code:', otpCode);
+          logger.warn('⚠️ Development mode: Email sending failed, but continuing with OTP creation');
+          logger.log('🔐 Development OTP Code:', otpCode);
         } else {
           return ResponseFactory.error(
             emailResult.error || 'Failed to send verification email. Please check your email address and try again.',
@@ -175,7 +177,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           );
         }
       } else {
-        console.log('✅ OTP email sent successfully:', {
+        logger.log('✅ OTP email sent successfully:', {
           email,
           messageId: emailResult.messageId,
           timestamp: new Date().toISOString(),
@@ -228,40 +230,36 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       const user = await convex.query(api.queries.users.getUserByEmail, { email });
       
       if (!user) {
-        // If user doesn't exist, create a new one for waitlist
-        const userId = await convex.mutation(api.mutations.users.createMinimalUser, {
+        // If user doesn't exist, create a new one with customer role in one call
+        const newUser = await convex.mutation(api.mutations.users.createOrUpdateUserWithRoles, {
           name: email.split('@')[0],
           email: email,
+          ensureCustomerRole: true,
         });
-
-        // Get the created user
-        const newUser = await convex.query(api.queries.users.getById, { userId });
         
         if (!newUser) {
           throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Failed to create user');
         }
 
-        // Ensure user has 'customer' role
-        let userRoles = newUser.roles || [];
-        if (!userRoles.includes('customer')) {
-          userRoles = userRoles.length > 0 ? [...userRoles, 'customer'] : ['customer'];
-          await convex.mutation(api.mutations.users.updateUserRoles, {
-            userId: newUser._id,
-            roles: userRoles,
-          });
-        }
+        const userRoles = newUser.roles || ['customer'];
 
-        // Create JWT token
-        const token = jwt.sign(
-          { user_id: newUser._id, roles: userRoles }, 
-          JWT_SECRET, 
-          { expiresIn: '2h' }
-        );
+        // Create session sessionToken using Convex mutation
+        const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+          userId: newUser._id,
+          expiresInDays: 30, // 30 days expiry
+        });
+        
+        // Update last login
+        await convex.mutation(api.mutations.users.updateLastLogin, {
+          userId: newUser._id,
+        });
 
-        return ResponseFactory.success({
+        // Set session sessionToken cookie
+        const isProd = process.env.NODE_ENV === 'production';
+        const response = ResponseFactory.success({
           success: true,
           message: 'Email verified and user created successfully',
-          token,
+          sessionToken: sessionResult.sessionToken,
           user: {
             user_id: newUser._id,
             email: newUser.email,
@@ -272,50 +270,61 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           waitlistId: verificationResult.waitlistId,
           isWaitlistUser: verificationResult.isWaitlistUser,
         });
+
+        return response;
       }
 
       // Ensure user has 'customer' role for API access
       let userRoles = user.roles || ['user'];
       if (!userRoles.includes('customer')) {
-        userRoles = [...userRoles, 'customer'];
-        // Update user roles in database
-        await convex.mutation(api.mutations.users.updateUserRoles, {
-          userId: user._id,
+        // Update user with customer role
+        const updatedUser = await convex.mutation(api.mutations.users.createOrUpdateUserWithRoles, {
+          name: user.name || user.email.split('@')[0],
+          email: user.email,
           roles: userRoles,
+          ensureCustomerRole: true,
         });
+        userRoles = updatedUser.roles || userRoles;
       }
 
-      // User exists, create JWT token
-      const token = jwt.sign(
-        { user_id: user._id, roles: userRoles }, 
-        JWT_SECRET, 
-        { expiresIn: '2h' }
-      );
+      // User exists, create JWT sessionResult.sessionToken
+      // Create session sessionResult.sessionToken using Convex mutation
+    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+      userId: user._id,
+      expiresInDays: 30, // 30 days expiry
+    });
+    
+    // Update last login
+    await convex.mutation(api.mutations.users.updateLastLogin, {
+      userId: user._id,
+    });
 
-      // Update last login
-      await convex.mutation(api.mutations.users.updateLastLogin, {
-        userId: user._id,
-      });
+    // Set session sessionToken cookie
+    const isProd = process.env.NODE_ENV === 'production';
+    const response = ResponseFactory.success({
+      success: true,
+      message: 'Email verified successfully',
+      sessionToken: sessionResult.sessionToken,
+      user: {
+        user_id: user._id,
+        email: user.email,
+        name: user.name,
+        roles: userRoles,
+        isNewUser: false,
+      },
+      waitlistId: verificationResult.waitlistId,
+      isWaitlistUser: verificationResult.isWaitlistUser,
+    });
 
-      return ResponseFactory.success({
-        success: true,
-        message: 'Email verified successfully',
-        token,
-        user: {
-          user_id: user._id,
-          email: user.email,
-          name: user.name,
-          roles: userRoles,
-          isNewUser: false,
-        },
-        waitlistId: verificationResult.waitlistId,
-        isWaitlistUser: verificationResult.isWaitlistUser,
-      });
+    return response;
     }
 
     return ResponseFactory.validationError('Invalid action.');
   } catch (error: unknown) {
-    console.error('Email OTP error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Email OTP error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Email OTP verification failed.';
     return ResponseFactory.internalError(errorMessage);
   }

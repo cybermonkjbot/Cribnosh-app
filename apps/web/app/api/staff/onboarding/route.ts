@@ -6,9 +6,11 @@ import { mattermostService } from '@/lib/mattermost';
 import { jwtVerify } from 'jose';
 import { onboardStaff } from '@/lib/onboarding/onboardStaff';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { notifyStaffOnboardingComplete, notifyOnboardingError } from '@/lib/mattermost/utils';
 import { getUserFromRequest } from "@/lib/auth/session";
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -180,17 +182,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Use shared onboarding logic
     const onboardResult = await onboardStaff(onboardingData);
 
-    // Save onboarding data to Convex
-    const convex = getConvexClient();
-    await convex.mutation(api.mutations.users.updateUserOnboarding, {
-      userId: user._id,
-      onboarding: onboardingData,
-    });
-
-    // Save onboarding record to database
-    await convex.mutation(api.mutations.staff.createOnboardingRecord, {
+    // Save onboarding data to Convex - this consolidates user update and onboarding record creation
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    await convex.mutation(api.mutations.staff.createOrUpdateStaffOnboarding, {
       userId: user._id,
       onboardingData: onboardingData,
+      sessionToken: sessionToken || undefined
     });
 
     // Send Mattermost notification to HR
@@ -227,7 +225,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error) {
-    console.error('Onboarding submission error:', error);
+    logger.error('Onboarding submission error:', error);
     
     await notifyOnboardingError({
       email: undefined,
@@ -259,8 +257,12 @@ async function handlePOST_validateCode(request: NextRequest): Promise<NextRespon
     if (!code || typeof code !== 'string' || code.length !== 6) {
       throw ErrorFactory.custom(ErrorCode.VALIDATION_ERROR, 'Invalid code format', ErrorSeverity.MEDIUM);
     }
-    const convex = getConvexClient();
-    const result = await convex.mutation(api.mutations.staff.validateOnboardingCode, { code });
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const result = await convex.mutation(api.mutations.staff.validateOnboardingCode, {
+      code,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success(result);
   } catch (error) {
     throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Failed to validate onboarding code', ErrorSeverity.HIGH);

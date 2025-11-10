@@ -1,8 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getApiFunction, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -12,7 +16,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Creates a Convex storage upload URL for uploading videos to Nosh Heaven
  *     tags: [Nosh Heaven, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Upload URL generated successfully
@@ -41,19 +45,12 @@ import { withErrorHandling } from '@/lib/errors';
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const getUserByToken = getApiFunction('queries/users', 'getUserByToken');
-    const user = await convex.query(getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Check if user is a chef or food creator
@@ -63,16 +60,21 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Generate Convex upload URL using the videoPosts mutation
-    const generateVideoUploadUrl = getApiFunction('mutations/videoPosts', 'generateVideoUploadUrl');
-    const uploadUrl = await convex.mutation(generateVideoUploadUrl, {});
+    const generateVideoUploadUrl = getApiFunction('mutations/videoPosts', 'generateVideoUploadUrl') as any;
+    const uploadUrl = await convex.mutation(generateVideoUploadUrl, {
+      sessionToken: sessionToken || undefined
+    });
 
     return ResponseFactory.success({
       uploadUrl,
     }, 'Upload URL generated successfully');
 
-  } catch (error: any) {
-    console.error('Convex upload URL generation error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to generate upload URL');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Convex upload URL generation error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to generate upload URL'));
   }
 }
 

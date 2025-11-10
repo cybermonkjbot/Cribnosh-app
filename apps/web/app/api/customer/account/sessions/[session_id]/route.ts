@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import jwt from 'jsonwebtoken';
+import { getErrorMessage } from '@/types/errors';
 import { Id } from '@/convex/_generated/dataModel';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -46,7 +47,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleDELETE(
   request: NextRequest,
@@ -54,30 +55,16 @@ async function handleDELETE(
 ): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
-
-    const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const sessionId = params.session_id as Id<'sessions'>;
 
     // Get session to verify ownership
     const session = await convex.query(api.queries.sessions.getSessionsByUserId, {
       userId: userId,
+      sessionToken: sessionToken || undefined
     });
 
     const sessionToRevoke = (session || []).find((s: any) => s._id === sessionId);
@@ -94,6 +81,7 @@ async function handleDELETE(
     // Delete session via mutation
     const deleted = await convex.mutation(api.mutations.sessions.deleteUserSession, {
       sessionId: sessionId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!deleted) {
@@ -104,7 +92,10 @@ async function handleDELETE(
       message: 'Session revoked successfully',
     });
   } catch (error: unknown) {
-    console.error('[REVOKE_SESSION] Error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('[REVOKE_SESSION] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to revoke session.'));
   }
 }

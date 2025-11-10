@@ -1,15 +1,15 @@
 "use client";
 
-import { GlassCard } from '@/components/ui/glass-card';
-import { Settings, Loader2, User, UploadCloud } from 'lucide-react';
-import { Id } from '@/convex/_generated/dataModel';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AccountSettingsSkeleton } from '@/components/admin/skeletons';
+import { GlassCard } from '@/components/ui/glass-card';
+import { Id } from '@/convex/_generated/dataModel';
+import { useSessionToken } from '@/hooks/useSessionToken';
+import { Loader2, Settings, UploadCloud, User } from 'lucide-react';
 
 import { api } from '@/convex/_generated/api';
 import { useAction, useMutation } from 'convex/react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 
 const CUISINE_OPTIONS = ["Nigerian", "Ghanaian", "Jamaican", "Indian", "Chinese", "British", "Italian", "Other"];
@@ -17,6 +17,8 @@ const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Halal", "Kosher", "Gluten-Free"
 
 export default function AdminAccountSettings() {
   const { user, loading: adminLoading } = useAdminUser();
+  const sessionToken = useSessionToken();
+
   const updateUser = useMutation(api.mutations.users.updateUser);
   const hashPassword = useAction(api.actions.password.hashPasswordAction);
   const [loading, setLoading] = useState(true);
@@ -130,7 +132,9 @@ export default function AdminAccountSettings() {
       }
       await updateUser(updates);
       setSuccess('Account updated successfully!');
-      setForm(f => ({ ...f, password: '', passwordConfirm: '' }));
+      setForm(f => ({...f, password: '', passwordConfirm: '',
+    sessionToken: sessionToken || undefined
+  }));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to update account.');
     } finally {
@@ -161,7 +165,9 @@ export default function AdminAccountSettings() {
       if (!user) {
         throw new Error('User not found');
       }
-      await updateUser({ userId: user._id as Id<"users">, avatar: data.url });
+      await updateUser({userId: user._id as Id<"users">, avatar: data.url,
+    sessionToken: sessionToken || undefined
+  });
       // Note: setUser is not available in this context, the user will be updated via the query
       setSuccess('Profile picture updated!');
     } catch (e: unknown) {
@@ -174,8 +180,8 @@ export default function AdminAccountSettings() {
 
 
   return (
-    <AuthWrapper role="admin">
-          <div className="min-h-screen flex items-center justify-center bg-primary-50 p-4">
+    <div className="container mx-auto py-6 space-y-[18px]">
+      <div className="flex items-center justify-center">
       <GlassCard className="max-w-lg w-full p-8 flex flex-col items-center gap-6 border-primary-200">
         <div className="flex items-center gap-3 mb-2">
           <Settings className="w-8 h-8 text-primary-600" />
@@ -184,9 +190,9 @@ export default function AdminAccountSettings() {
         {loading || adminLoading ? (
           <AccountSettingsSkeleton />
         ) : error ? (
-          <div className="text-red-600 font-satoshi text-center">{error}</div>
+          <div className="text-gray-900 font-satoshi text-center">{error}</div>
         ) : !user ? (
-          <div className="text-red-600 font-satoshi text-center">Please log in to access account settings.</div>
+          <div className="text-gray-900 font-satoshi text-center">Please log in to access account settings.</div>
         ) : (
           <form className="w-full space-y-6" onSubmit={handleSubmit}>
             {/* Profile Picture Section */}
@@ -316,11 +322,11 @@ export default function AdminAccountSettings() {
                 ))}
               </div>
             </div>
-            {success && <div className="text-green-700 font-satoshi text-center">{success}</div>}
-            {error && <div className="text-red-600 font-satoshi text-center">{error}</div>}
+            {success && <div className="text-[#F23E2E] font-satoshi text-center">{success}</div>}
+            {error && <div className="text-gray-900 font-satoshi text-center">{error}</div>}
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-primary-600 text-white font-bold text-lg shadow hover:bg-primary-700 transition-colors font-satoshi disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-[#F23E2E] text-white font-bold text-lg shadow hover:bg-[#F23E2E]/90 transition-colors font-satoshi disabled:opacity-50"
               disabled={saving}
             >
               {saving ? <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> : null}
@@ -329,7 +335,7 @@ export default function AdminAccountSettings() {
           </form>
         )}
       </GlassCard>
+      </div>
     </div>
-    </AuthWrapper>
   );
 } 

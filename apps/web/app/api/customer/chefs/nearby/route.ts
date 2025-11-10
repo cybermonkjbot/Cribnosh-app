@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { withCaching } from '@/lib/api/cache';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/customer/chefs/nearby
 // Group: customer
@@ -130,13 +134,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('radius must be a positive number');
   }
 
-  const convex = getConvexClient();
+  try {
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
   
   // Get nearby chefs using the Convex query
   const nearbyChefs = await convex.query(api.queries.chefs.findNearbyChefs, {
     latitude,
     longitude,
     maxDistanceKm: radius,
+    sessionToken: sessionToken || undefined
   });
 
   // Apply pagination
@@ -145,26 +152,27 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   const paginatedChefs = nearbyChefs.slice(startIndex, endIndex);
 
   // Transform to match expected mobile app format
+  // Note: coordinates are stored as [latitude, longitude]
   const chefs = paginatedChefs.map((chef: any) => ({
     id: chef._id,
     name: chef.kitchenName || chef.name || 'Unknown Kitchen',
     location: {
-      latitude: chef.location?.coordinates?.[1] || latitude,
-      longitude: chef.location?.coordinates?.[0] || longitude,
+      latitude: chef.location?.coordinates?.[0] || latitude,
+      longitude: chef.location?.coordinates?.[1] || longitude,
       address: chef.location?.address || '',
       city: chef.location?.city || '',
     },
     distance: chef.distance || 0,
     rating: chef.rating || null,
     cuisine: chef.specialties?.[0] || 'Other',
-    image_url: chef.imageUrl || chef.image_url || null,
+    image_url: chef.imageUrl || chef.image_url || chef.profileImage || null,
     is_live: chef.isLive || false,
   }));
 
   const total = nearbyChefs.length;
   const totalPages = Math.ceil(total / limit);
 
-  return ResponseFactory.success({
+  const response = ResponseFactory.success({
     chefs,
     pagination: {
       page,
@@ -173,6 +181,22 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       totalPages,
     },
   });
+  
+  // Add cache headers - location-based queries change more frequently, cache for 5 minutes
+  // Cache key includes location params so different locations get different cache entries
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=300');
+    
+    return response;
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
-export const GET = withAPIMiddleware(withErrorHandling(handleGET));
+// Use caching - the default key generation includes query params, so different locations get different cache entries
+export const GET = withAPIMiddleware(withErrorHandling(withCaching(handleGET, {
+  ttl: 300, // 5 minutes
+})));

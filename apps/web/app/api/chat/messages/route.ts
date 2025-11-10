@@ -2,12 +2,13 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/chat/messages/
 // Group: chat
@@ -129,7 +130,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   if (!user || !user._id) {
     return ResponseFactory.unauthorized('Unauthorized');
   }
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   // Get all conversations for the user
   const chatResult = await convex.query(api.queries.chats.listConversationsForUser, { userId: user._id });
   // Aggregate all messages from all conversations
@@ -278,33 +279,29 @@ export const GET = withAPIMiddleware(withErrorHandling(handleGET));
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export const POST = withAPIMiddleware(withErrorHandling(async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId } = await getAuthenticatedUser(request);
+    
     const { recipient_id, content, fileUrl, fileType, fileName, fileSize, metadata } = await request.json();
     if (!recipient_id || (!content && !fileUrl)) {
       return ResponseFactory.validationError('recipient_id and content or file required');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Find or create chat between sender and recipient
-    const chats = await convex.query(api.queries.chats.listConversationsForUser, { userId: payload.user_id });
+    const chats = await convex.query(api.queries.chats.listConversationsForUser, { 
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     // Access the chats array from the chats object and find an existing chat
     let chatId: string;
     const existingChat = chats.chats.find((c: any) => 
       Array.isArray(c.participants) && 
-      c.participants.includes(payload.user_id) && 
+      c.participants.includes(userId) && 
       c.participants.includes(recipient_id)
     );
 
@@ -312,8 +309,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       chatId = existingChat._id;
     } else {
       const newChat = await convex.mutation(api.mutations.chats.createConversation, {
-        participants: [payload.user_id, recipient_id],
+        participants: [userId, recipient_id],
         metadata: {},
+        sessionToken: sessionToken || undefined
       });
       // Handle both cases where createConversation might return the full chat or just the ID
       chatId = (newChat as any)._id || (newChat as any).chatId;
@@ -321,16 +319,20 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     const typedChatId = chatId as Id<"chats">;
     const message = await convex.mutation(api.mutations.chats.sendMessage, {
       chatId: typedChatId,
-      senderId: payload.user_id,
+      senderId: userId,
       content: content || '',
       fileUrl,
       fileType,
       fileName,
       fileSize,
       metadata,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(message);
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to send message.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message'));
   }
 })); 

@@ -1,21 +1,22 @@
 "use client";
 
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { ActivityWatchSetupStatus } from '@/components/staff/ActivityWatchSetupStatus';
+import { BackButton } from '@/components/staff/BackButton';
 import { ClockInCard } from '@/components/staff/ClockInCard';
+import { PageContainer } from '@/components/staff/PageContainer';
 import { WeeklyHoursCard } from '@/components/staff/WeeklyHoursCard';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { motion } from 'motion/react';
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function TimeTrackingPage() {
-  // All hooks at the top!
+  // Auth is handled by layout via session-based authentication (session token in cookies)
+  // Middleware validates session token server-side, no client-side checks needed
   const router = useRouter();
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const { staff: staffUser, sessionToken } = useStaffAuthContext();
   const [isActivityWatchSetup, setIsActivityWatchSetup] = useState<boolean>(false);
   const [awError, setAwError] = useState<string | null>(null);
 
@@ -46,51 +47,43 @@ export default function TimeTrackingPage() {
     if (process.env.NODE_ENV === 'development') {
       if (typeof window !== 'undefined') {
         localStorage.setItem('activityWatchSetupComplete', 'true');
-        window.location.reload();
+        router.refresh();
       }
     }
   };
 
   // Fetch full profile data using user ID
-  const profile = useQuery(api.queries.users.getById, staffUser?._id ? { userId: staffUser._id } : 'skip');
-
-  // Loading states
-  if (staffAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading...</div>
-      </div>
-    );
-  }
-  
-  if (!staffUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Please log in to access time tracking.</div>
-      </div>
-    );
-  }
+  // Auth is handled at layout level, no page-level checks needed
+  // @ts-ignore - Type instantiation is excessively deep (TypeScript limitation with complex Convex types)
+  const profile = useQuery(
+    api.queries.users.getById,
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, sessionToken }
+      : 'skip'
+  );
 
   // Enforce ActivityWatch setup
   if (!isActivityWatchSetup) {
     return (
-      <div className="max-w-2xl mx-auto min-h-screen flex flex-col justify-center items-center space-y-8 p-4">
-        <ActivityWatchSetupStatus isSetup={false} />
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-          <h2 className="text-xl font-asgard text-amber-900 mb-2">ActivityWatch Setup Required</h2>
-          <p className="text-amber-800 mb-4 font-satoshi">
-            You must complete ActivityWatch setup before you can use time tracking features. This is required for all employees to ensure accurate and secure work hour logging.
-          </p>
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={handleMarkSetupComplete}
-              className="inline-flex items-center px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-satoshi text-base font-medium"
-            >
-              [DEV ONLY] Bypass ActivityWatch Setup
-            </button>
-          )}
+      <PageContainer maxWidth="2xl">
+        <div className="min-h-screen flex flex-col justify-center items-center space-y-8">
+          <ActivityWatchSetupStatus isSetup={false} />
+          <div className="bg-[#F23E2E]/10 border border-[#F23E2E]/20 rounded-xl p-6 text-center">
+            <h2 className="text-xl font-asgard text-[#F23E2E] mb-2">ActivityWatch Setup Required</h2>
+            <p className="text-[#F23E2E] mb-4 font-satoshi">
+              You must complete ActivityWatch setup before you can use time tracking features. This is required for all employees to ensure accurate and secure work hour logging.
+            </p>
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={handleMarkSetupComplete}
+                className="inline-flex items-center px-6 py-3 bg-[#F23E2E] text-white rounded-lg hover:bg-[#ed1d12] transition-colors font-satoshi text-base font-medium"
+              >
+                [DEV ONLY] Bypass ActivityWatch Setup
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -111,28 +104,8 @@ export default function TimeTrackingPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header with Back Button */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8 relative"
-      >
-        {/* Back Button */}
-        <Link
-          href="/staff/portal"
-          className="absolute left-0 top-1/2 transform -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm"
-          aria-label="Back to Staff Portal"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
-        
-        <h1 className="text-3xl font-asgard text-gray-900 mb-2">Time Tracking</h1>
-        <p className="text-gray-600">
-          Track your work hours and view your weekly summary
-        </p>
-      </motion.div>
+    <PageContainer maxWidth="6xl">
+      <BackButton href="/staff/portal" className="mb-8" />
 
       {/* ActivityWatch Setup Status */}
       <ActivityWatchSetupStatus isSetup={true} errorMessage={awError || undefined} />
@@ -147,7 +120,8 @@ export default function TimeTrackingPage() {
         >
           <ClockInCard 
             staffId={profile._id} 
-            staffName={profile.name || profile.email || 'Staff Member'} 
+            staffName={profile.name || profile.email || 'Staff Member'}
+            sessionToken={sessionToken}
           />
         </motion.div>
 
@@ -157,11 +131,9 @@ export default function TimeTrackingPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <WeeklyHoursCard staffId={profile._id} />
+          <WeeklyHoursCard staffId={profile._id} sessionToken={sessionToken} />
         </motion.div>
       </div>
-
-      {/* Removed Time Tracking Guidelines section */}
-    </div>
+    </PageContainer>
   );
 } 

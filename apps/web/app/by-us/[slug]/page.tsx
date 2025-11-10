@@ -1,4 +1,5 @@
 import { JsonLd } from "@/components/JsonLd";
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/conxed-client";
 import type { Metadata } from "next";

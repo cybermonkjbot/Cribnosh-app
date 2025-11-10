@@ -120,7 +120,7 @@ export function PullToNoshHeavenTrigger({
             lineHeight: 22,
           }}
         >
-          Pull Harder to Enter Nosh Heaven 🍽️
+          Pull Harder to Enter Nosh Heaven
         </Text>
       </AnimatedReanimated.View>
 

@@ -1,8 +1,8 @@
 import { v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "../../apps/web/types/convex-contexts";
-import type { DeviceAnalyticsStats, EmailAnalyticsData, EmailHealthMetrics, EmailTemplate, EmailTestResults } from "../../apps/web/types/email";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./types/convexContexts";
+import type { DeviceAnalyticsStats, EmailAnalyticsData, EmailHealthMetrics, EmailTemplate, EmailTestResults } from "./types/email";
 
 // ============================================================================
 // EMAIL ANALYTICS DASHBOARD
@@ -1059,36 +1059,92 @@ export const cleanupOldAnalyticsData = internalMutation({
   },
 });
 
+// Internal query for getting dashboard stats
+export const getEmailDashboardStatsInternal = internalQuery({
+  args: { startDate: v.optional(v.number()), endDate: v.optional(v.number()) },
+  returns: v.object({
+    totalEmails: v.number(),
+    sentEmails: v.number(),
+    deliveredEmails: v.number(),
+    openedEmails: v.number(),
+    clickedEmails: v.number(),
+    bouncedEmails: v.number(),
+    unsubscribedEmails: v.number(),
+    openRate: v.number(),
+    clickRate: v.number(),
+    bounceRate: v.number(),
+    unsubscribeRate: v.number(),
+    deliveryRate: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    return await getEmailDashboardStatsHandler(ctx, args);
+  },
+});
+
+// Internal query for getting top templates
+export const getTopTemplatesInternal = internalQuery({
+  args: { startDate: v.optional(v.number()), endDate: v.optional(v.number()), limit: v.optional(v.number()) },
+  returns: v.array(v.object({
+    templateId: v.string(),
+    templateName: v.string(),
+    sent: v.number(),
+    opened: v.number(),
+    clicked: v.number(),
+    bounced: v.number(),
+    openRate: v.number(),
+    clickRate: v.number(),
+    bounceRate: v.number(),
+  })),
+  handler: async (ctx, args) => {
+    return await getTopTemplatesHandler(ctx, args);
+  },
+});
+
+// Internal query for getting device analytics
+export const getDeviceAnalyticsInternal = internalQuery({
+  args: { startDate: v.optional(v.number()), endDate: v.optional(v.number()) },
+  returns: v.array(v.object({
+    deviceType: v.string(),
+    count: v.number(),
+    percentage: v.number(),
+  })),
+  handler: async (ctx, args) => {
+    return await getDeviceAnalyticsHandler(ctx, args);
+  },
+});
+
 export const generateDailyReports = internalAction({
   args: {},
   returns: v.null(),
-  handler: async () => {
-    // Note: This is an action, so it can't directly access query context
-    // In a real implementation, you would call internal queries here
+  handler: async (ctx) => {
+    // Get yesterday's date range
+    const yesterday = Date.now() - (24 * 60 * 60 * 1000);
+    const yesterdayStart = new Date(yesterday);
+    yesterdayStart.setHours(0, 0, 0, 0);
+    const yesterdayEnd = new Date(yesterday);
+    yesterdayEnd.setHours(23, 59, 59, 999);
     
-    // Get yesterday's stats - ctx is ActionCtx but handlers need QueryCtx, so we need to use queries instead
-    // For now, return empty data as actions can't access query context directly
-    const stats = {
-      totalEmails: 0,
-      sentEmails: 0,
-      deliveredEmails: 0,
-      openedEmails: 0,
-      clickedEmails: 0,
-      bouncedEmails: 0,
-      unsubscribedEmails: 0,
-      openRate: 0,
-      clickRate: 0,
-      bounceRate: 0,
-      unsubscribeRate: 0,
-      deliveryRate: 0,
-    };
+    const startDate = yesterdayStart.getTime();
+    const endDate = yesterdayEnd.getTime();
     
-    const topTemplates: Array<{ templateId: string; templateName: string; sent: number; opened: number; clicked: number; bounced: number; openRate: number; clickRate: number; bounceRate: number }> = [];
+    // Fetch stats using internal queries
+    const stats = await ctx.runQuery(internal.emailAnalytics.getEmailDashboardStatsInternal, {
+      startDate,
+      endDate,
+    });
     
-    const deviceAnalytics: DeviceAnalyticsStats[] = [];
+    const topTemplates = await ctx.runQuery(internal.emailAnalytics.getTopTemplatesInternal, {
+      startDate,
+      endDate,
+      limit: 10,
+    });
+    
+    const deviceAnalytics = await ctx.runQuery(internal.emailAnalytics.getDeviceAnalyticsInternal, {
+      startDate,
+      endDate,
+    });
     
     // Create daily report
-    const yesterday = Date.now() - (24 * 60 * 60 * 1000);
     const report = {
       date: new Date(yesterday).toISOString().split('T')[0],
       stats,
@@ -1165,33 +1221,37 @@ export const checkEmailHealthMetrics = internalAction({
       startDate: last24Hours,
     });
     
-    // Check for alerts
+    // Check for alerts (only if there's actual email data)
     const alerts = [];
     
-    if (healthMetrics.deliveryRate < 95) {
-      alerts.push({
-        type: "delivery_rate_low",
-        message: `Email delivery rate is ${healthMetrics.deliveryRate}%, below threshold of 95%`,
-        severity: "high" as const,
-      });
+    // Only check metrics if there are actual emails sent
+    if (healthMetrics.sentEmails > 0) {
+      if (healthMetrics.deliveryRate < 95) {
+        alerts.push({
+          type: "delivery_rate_low",
+          message: `Email delivery rate is ${healthMetrics.deliveryRate}%, below threshold of 95%`,
+          severity: "high" as const,
+        });
+      }
+      
+      if (healthMetrics.bounceRate > 5) {
+        alerts.push({
+          type: "bounce_rate_high",
+          message: `Email bounce rate is ${healthMetrics.bounceRate}%, above threshold of 5%`,
+          severity: "medium" as const,
+        });
+      }
+      
+      if (healthMetrics.bounceRate > 10) {
+        alerts.push({
+          type: "bounce_rate_critical",
+          message: `Email bounce rate is ${healthMetrics.bounceRate}%, above threshold of 10%`,
+          severity: "critical" as const,
+        });
+      }
     }
     
-    if (healthMetrics.bounceRate > 5) {
-      alerts.push({
-        type: "bounce_rate_high",
-        message: `Email bounce rate is ${healthMetrics.bounceRate}%, above threshold of 5%`,
-        severity: "medium" as const,
-      });
-    }
-    
-    if (healthMetrics.bounceRate > 10) {
-      alerts.push({
-        type: "bounce_rate_critical",
-        message: `Email bounce rate is ${healthMetrics.bounceRate}%, above threshold of 10%`,
-        severity: "critical" as const,
-      });
-    }
-    
+    // Queue size check doesn't require sent emails, so check it separately
     if (healthMetrics.queueSize > 1000) {
       alerts.push({
         type: "queue_size_large",
@@ -1387,6 +1447,7 @@ export async function getTopTemplatesHandler(ctx: QueryCtx, args: { startDate?: 
   // Group by template ID and count events
   const templateStats = analyticsData.reduce((acc: Record<string, {
     templateId: string;
+    templateName: string;
     sent: number;
     delivered: number;
     opened: number;
@@ -1398,6 +1459,7 @@ export async function getTopTemplatesHandler(ctx: QueryCtx, args: { startDate?: 
     if (!acc[event.templateId]) {
       acc[event.templateId] = {
         templateId: event.templateId,
+        templateName: event.templateId, // Would need to join with templates table
         sent: 0,
         delivered: 0,
         opened: 0,
@@ -1416,6 +1478,7 @@ export async function getTopTemplatesHandler(ctx: QueryCtx, args: { startDate?: 
     return acc;
   }, {} as Record<string, {
     templateId: string;
+    templateName: string;
     sent: number;
     delivered: number;
     opened: number;
@@ -1430,6 +1493,7 @@ export async function getTopTemplatesHandler(ctx: QueryCtx, args: { startDate?: 
     .map((template) => {
       const templateObj = template as {
         templateId: string;
+        templateName: string;
         sent: number;
         delivered: number;
         opened: number;
@@ -1439,12 +1503,15 @@ export async function getTopTemplatesHandler(ctx: QueryCtx, args: { startDate?: 
         [key: string]: string | number;
       };
       return {
-        ...templateObj,
-        openRate: templateObj.sent > 0 ? (templateObj.opened / templateObj.sent) * 100 : 0,
-        clickRate: templateObj.sent > 0 ? (templateObj.clicked / templateObj.sent) * 100 : 0,
-        bounceRate: templateObj.sent > 0 ? (templateObj.bounced / templateObj.sent) * 100 : 0,
-        unsubscribeRate: templateObj.sent > 0 ? (templateObj.unsubscribed / templateObj.sent) * 100 : 0,
-        deliveryRate: templateObj.sent > 0 ? (templateObj.delivered / templateObj.sent) * 100 : 0,
+        templateId: templateObj.templateId,
+        templateName: templateObj.templateName,
+        sent: templateObj.sent,
+        opened: templateObj.opened,
+        clicked: templateObj.clicked,
+        bounced: templateObj.bounced,
+        openRate: templateObj.sent > 0 ? Math.round((templateObj.opened / templateObj.sent) * 10000) / 100 : 0,
+        clickRate: templateObj.sent > 0 ? Math.round((templateObj.clicked / templateObj.sent) * 10000) / 100 : 0,
+        bounceRate: templateObj.sent > 0 ? Math.round((templateObj.bounced / templateObj.sent) * 10000) / 100 : 0,
       };
     })
     .sort((a, b) => b.sent - a.sent)

@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface UpdateDeliveryStatusRequest {
   assignmentId: string;
   status: 'accepted' | 'picked_up' | 'in_transit' | 'delivered' | 'failed';
@@ -152,25 +152,13 @@ interface UpdateDeliveryStatusRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    const body: UpdateDeliveryStatusRequest = await request.json();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const body: UpdateDeliveryStatusRequest = await request.json();
     const { assignmentId, status, location, notes, metadata } = body;
 
     if (!assignmentId || !status) {
@@ -178,15 +166,19 @@ async function handlePOST(request: NextRequest) {
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get delivery assignment details
-    const assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentById, { assignmentId: assignmentId as any });
+    const assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentById, {
+      assignmentId: assignmentId as any,
+      sessionToken: sessionToken || undefined
+    });
     if (!assignment) {
       return ResponseFactory.notFound('Delivery assignment not found.');
     }
 
     // Verify user has permission to update this delivery
-    if (payload.role === 'driver' && assignment.driver_id !== payload.user_id) {
+    if (user.roles?.[0] === 'driver' && assignment.driver_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own deliveries.');
     }
 
@@ -198,13 +190,14 @@ async function handlePOST(request: NextRequest) {
       location,
       notes,
       metadata: {
-        updatedByRole: payload.role,
-        updatedBy: payload.user_id,
+        updatedByRole: user.roles?.[0],
+        updatedBy: userId,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
-    console.log(`Delivery status updated for assignment ${assignmentId} to ${status} by ${payload.user_id}`);
+    logger.log(`Delivery status updated for assignment ${assignmentId} to ${status} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,
@@ -216,7 +209,7 @@ async function handlePOST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Update delivery status error:', error);
+    logger.error('Update delivery status error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update delivery status.' 
     );
   }
@@ -225,20 +218,8 @@ async function handlePOST(request: NextRequest) {
 async function handleGET(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    const { searchParams } = new URL(request.url);
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const { searchParams } = new URL(request.url);
     const assignmentId = searchParams.get('assignmentId');
     const orderId = searchParams.get('orderId');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -248,12 +229,19 @@ async function handleGET(request: NextRequest) {
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     let assignment;
     if (assignmentId) {
-      assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentById, { assignmentId: assignmentId as any });
+      assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentById, {
+        assignmentId: assignmentId as any,
+        sessionToken: sessionToken || undefined
+      });
     } else if (orderId) {
-      assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentByOrder, { orderId });
+      assignment = await convex.query(api.queries.delivery.getDeliveryAssignmentByOrder, {
+        orderId,
+        sessionToken: sessionToken || undefined
+      });
     }
 
     if (!assignment) {
@@ -261,22 +249,26 @@ async function handleGET(request: NextRequest) {
     }
 
     // Verify user has permission to view this delivery
-    if (payload.role === 'driver' && assignment.driver_id !== payload.user_id) {
+    if (user.roles?.[0] === 'driver' && assignment.driver_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own deliveries.');
     }
 
     // Get delivery tracking history
     const trackingHistory = await convex.query(api.queries.delivery.getDeliveryTrackingHistory, {
       assignmentId: assignment._id,
-      limit
+      limit,
+      sessionToken: sessionToken || undefined
     });
 
     // Get driver details
-    const driver = await convex.query(api.queries.delivery.getDriverById, { driverId: assignment.driver_id });
+    const driver = await convex.query(api.queries.delivery.getDriverById, {
+      driverId: assignment.driver_id,
+      sessionToken: sessionToken || undefined
+    });
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error tracking delivery:', error);
+    logger.error('Error tracking delivery:', error);
     return ResponseFactory.internalError('Failed to track delivery');
   }
 }

@@ -1,7 +1,6 @@
 // store/authApi.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
-import { isTokenExpired } from "@/utils/jwtUtils";
 import {
   PhoneLoginData,
   PhoneLoginResponse,
@@ -15,26 +14,107 @@ import { API_CONFIG } from '@/constants/api';
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseUrlNoTrailing,
   prepareHeaders: async (headers) => {
-    const token = await SecureStore.getItemAsync("cribnosh_token");
-    if (token) {
-      // Check if token is expired before adding to headers
-      if (isTokenExpired(token)) {
-        // Clear expired token
-        await SecureStore.deleteItemAsync("cribnosh_token");
-        await SecureStore.deleteItemAsync("cribnosh_user");
-        // Don't add the expired token to headers
-        console.log("Token expired, cleared from storage");
-      } else {
-        headers.set("authorization", `Bearer ${token}`);
-      }
+    // Get sessionToken from SecureStore
+    const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+    if (sessionToken) {
+      // Send sessionToken in X-Session-Token header (preferred) or as Bearer token
+      headers.set("X-Session-Token", sessionToken);
+      // Alternative: headers.set("authorization", `Bearer ${sessionToken}`);
     }
     headers.set("accept", "application/json");
     return headers;
   },
 });
 
+/**
+ * Check if an endpoint requires authentication
+ * Auth endpoints don't require authentication (they're used to authenticate)
+ * But some endpoints like logout might require authentication
+ */
+const requiresAuthentication = (url: string): boolean => {
+  // Auth endpoints that don't require authentication
+  const publicAuthEndpoints = [
+    '/auth/login',
+    '/auth/phone-signin',
+    '/auth/apple-signin',
+    '/auth/google-signin',
+    '/auth/register',
+    '/auth/verify-2fa',
+    '/auth/send-otp',
+  ];
+  
+  // Check if URL matches any public auth endpoint
+  return !publicAuthEndpoints.some(endpoint => url.includes(endpoint));
+};
+
+/**
+ * Fast check for session token existence
+ * This is called BEFORE making any API call to fail fast if no token exists
+ */
+const checkAuthentication = async (url: string): Promise<{ hasAuth: boolean; error?: any }> => {
+  // Check if endpoint requires authentication
+  if (!requiresAuthentication(url)) {
+    return { hasAuth: true }; // Public auth endpoint, no auth needed
+  }
+  
+  // Fast check: Fail immediately if no token exists (no API call)
+  try {
+    const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+    if (!sessionToken) {
+      return {
+        hasAuth: false,
+        error: {
+          status: 401,
+          data: {
+            success: false,
+            error: {
+              code: '401',
+              message: 'Authentication required. Please sign in.',
+            },
+          },
+        },
+      };
+    }
+    return { hasAuth: true };
+  } catch (error) {
+    console.error("[Auth API] Error checking authentication:", error);
+    return {
+      hasAuth: false,
+      error: {
+        status: 401,
+        data: {
+          success: false,
+          error: {
+            code: '401',
+            message: 'Authentication required. Please sign in.',
+          },
+        },
+      },
+    };
+  }
+};
+
 // Custom baseQuery wrapper to handle non-JSON responses (e.g., HTML 404 pages)
 const baseQuery = async (args: any, api: any, extraOptions: any) => {
+  // Fast authentication check BEFORE making API call
+  const url = typeof args === 'string' ? args : args?.url || '';
+  const authCheck = await checkAuthentication(url);
+  
+  if (!authCheck.hasAuth) {
+    // Return error immediately without making API call
+    // Clear expired/invalid sessionToken
+    await SecureStore.deleteItemAsync("cribnosh_session_token").catch(() => {});
+    await SecureStore.deleteItemAsync("cribnosh_user").catch(() => {});
+    
+    // Handle 401 error (dynamic import to avoid circular deps)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { handle401Error } = require("@/utils/authErrorHandler");
+    handle401Error(authCheck.error);
+    
+    // RTK Query expects { error: { status, data } } format
+    return { error: authCheck.error };
+  }
+  
   const result = await rawBaseQuery(args, api, extraOptions);
 
   // Handle parsing errors (when server returns HTML instead of JSON)
@@ -77,8 +157,8 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
     const is401 = errorStatus === 401 || errorStatus === "401" || errorCode === 401 || errorCode === "401";
     
     if (is401) {
-      // Clear expired/invalid tokens
-      await SecureStore.deleteItemAsync("cribnosh_token");
+      // Clear expired/invalid sessionToken
+      await SecureStore.deleteItemAsync("cribnosh_session_token");
       await SecureStore.deleteItemAsync("cribnosh_user");
       
       // Check if this is an authentication endpoint (login, phone-signin, apple-signin)
@@ -149,6 +229,13 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      transformResponse: async (response: any) => {
+        // Store sessionToken if present in response
+        if (response?.data?.sessionToken) {
+          await SecureStore.setItemAsync("cribnosh_session_token", response.data.sessionToken);
+        }
+        return response;
+      },
     }),
     appleSignIn: builder.mutation<
       {
@@ -157,6 +244,7 @@ export const authApi = createApi({
           success: boolean;
           message: string;
           token?: string;
+          sessionToken?: string;
           user?: {
             user_id: string;
             email: string;
@@ -178,6 +266,13 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      transformResponse: async (response: any) => {
+        // Store sessionToken if present in response
+        if (response?.data?.sessionToken) {
+          await SecureStore.setItemAsync("cribnosh_session_token", response.data.sessionToken);
+        }
+        return response;
+      },
     }),
     verify2FA: builder.mutation<Verify2FAResponse, Verify2FARequest>({
       query: (data) => ({
@@ -185,6 +280,13 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      transformResponse: async (response: any) => {
+        // Store sessionToken if present in response (after 2FA verification)
+        if (response?.data?.sessionToken) {
+          await SecureStore.setItemAsync("cribnosh_session_token", response.data.sessionToken);
+        }
+        return response;
+      },
     }),
     emailLogin: builder.mutation<PhoneLoginResponse, { email: string; password: string }>({
       query: (data) => ({
@@ -192,6 +294,13 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      transformResponse: async (response: any) => {
+        // Store sessionToken if present in response
+        if (response?.data?.sessionToken) {
+          await SecureStore.setItemAsync("cribnosh_session_token", response.data.sessionToken);
+        }
+        return response;
+      },
     }),
     logout: builder.mutation<
       {
@@ -207,6 +316,12 @@ export const authApi = createApi({
         url: "/auth/logout",
         method: "POST",
       }),
+      transformResponse: async () => {
+        // Clear sessionToken on logout
+        await SecureStore.deleteItemAsync("cribnosh_session_token");
+        await SecureStore.deleteItemAsync("cribnosh_user");
+        return { success: true, data: { message: "Logged out successfully" }, message: "Logged out" };
+      },
     }),
   }),
 });

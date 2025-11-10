@@ -3,6 +3,9 @@ import { AsyncTaskManager } from '@/lib/api/async-task-manager';
 import { ResponseFactory } from '@/lib/api';
 import { securityMiddleware } from '@/lib/api/security';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * API endpoint for async task management

@@ -1,8 +1,10 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -60,19 +62,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { city, country, address } = body;
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
-    const isSupported = await convex.query((api as { queries: { admin: { checkRegionAvailability: unknown } } }).queries.admin.checkRegionAvailability as never, {
+    const isSupported = await convex.query(api.queries.admin.checkRegionAvailability as any, {
       city,
       country,
       address,
-    });
+      sessionToken: sessionToken || undefined
+    }) as unknown;
     
     return ResponseFactory.success({
       isSupported,
     });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to check region availability'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

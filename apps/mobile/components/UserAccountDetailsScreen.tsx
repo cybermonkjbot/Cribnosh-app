@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import { ProfileAvatar } from './ProfileAvatar';
 import { VerificationBanner } from './VerificationBanner';
 import { AddressSelectionSheet } from './ui/AddressSelectionSheet';
@@ -125,12 +126,64 @@ export function UserAccountDetailsScreen({
 
   // Get user data from API or fallback to prop
   const userName = profileData?.data?.name || propUserName || "User";
-  const profilePicture = profileData?.data?.picture;
   const isVerified = profileData?.data?.is_verified ?? false;
   const profileAddress = profileData?.data?.address;
   
+  // Check if profile is complete
+  // Profile is complete if it has: name, email or phone, address, and is verified
+  const isProfileComplete = useMemo(() => {
+    if (!profileData?.data) {
+      return false;
+    }
+    
+    const hasName = !!profileData.data.name && profileData.data.name.trim().length > 0;
+    const hasEmail = !!profileData.data.email && profileData.data.email.trim().length > 0;
+    const hasPhone = !!profileData.data.phone && profileData.data.phone.trim().length > 0;
+    const hasContact = hasEmail || hasPhone;
+    const hasAddress = !!profileAddress && !!profileAddress.street && profileAddress.street.trim().length > 0;
+    
+    return hasName && hasContact && hasAddress && isVerified;
+  }, [profileData?.data, profileAddress, isVerified]);
+  
+  // Convert profile picture URL to absolute if needed
+  // Check multiple possible locations for the picture field
+  const profilePictureUrl = useMemo(() => {
+    if (!profileData?.data) {
+      return undefined;
+    }
+    
+    // Check multiple possible locations for the picture
+    const picture = 
+      profileData.data.picture || 
+      (profileData.data as any)?.user?.picture || 
+      (profileData.data as any)?.user?.avatar ||
+      (profileData.data as any)?.avatar;
+    
+    // Debug: Log the profile data structure
+    console.log('Account Details Screen - Profile Data:', {
+      hasData: !!profileData.data,
+      picture: picture,
+      dataPicture: profileData.data.picture,
+      userPicture: (profileData.data as any)?.user?.picture,
+      userAvatar: (profileData.data as any)?.user?.avatar,
+      dataAvatar: (profileData.data as any)?.avatar,
+      dataKeys: Object.keys(profileData.data),
+    });
+    
+    if (picture) {
+      const absoluteUrl = getAbsoluteImageUrl(picture);
+      console.log('Account Details Screen - Picture URL:', {
+        original: picture,
+        absolute: absoluteUrl,
+      });
+      return absoluteUrl;
+    }
+    
+    return undefined;
+  }, [profileData?.data]);
+  
   // Use profile picture from API or selected local image
-  const displayPicture = selectedProfileImage || profilePicture;
+  const displayPicture = selectedProfileImage || profilePictureUrl;
 
   // Check if addresses exist
   const hasHomeAddress = useMemo(() => {
@@ -145,10 +198,11 @@ export function UserAccountDetailsScreen({
 
   // Update local state when profile picture changes
   useEffect(() => {
-    if (profilePicture && !selectedProfileImage) {
-      setSelectedProfileImage(undefined);
+    if (profilePictureUrl && !selectedProfileImage) {
+      // If we have a profile picture from API and no selected image, use the API picture
+      // The displayPicture will automatically use profilePictureUrl if selectedProfileImage is undefined
     }
-  }, [profilePicture, selectedProfileImage]);
+  }, [profilePictureUrl, selectedProfileImage]);
 
   const handleBackPress = () => {
     router.back();
@@ -385,8 +439,8 @@ export function UserAccountDetailsScreen({
         <Text style={styles.userName}>{userName}</Text>
       </View>
       
-      {/* Verification Banner - Only show if authenticated and not verified */}
-      {isAuthenticated && !isVerified && (
+      {/* Verification Banner - Only show if authenticated and profile is not complete */}
+      {isAuthenticated && !isProfileComplete && (
         <View style={styles.bannerContainer}>
           <VerificationBanner 
             text="Finish your verification to help kitchens serve you better"

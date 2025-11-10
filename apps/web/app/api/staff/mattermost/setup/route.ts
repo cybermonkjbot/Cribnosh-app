@@ -3,8 +3,12 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler, ErrorSeverity } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { mattermostService } from '@/lib/mattermost';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -189,21 +193,23 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         };
         // await mattermostService.setUserTheme(mattermostUser.id, sampleTheme);
       } else {
-        console.error('Failed to create or find Mattermost user for setup:', data.email);
+        logger.error('Failed to create or find Mattermost user for setup:', data.email);
       }
     } catch (err) {
-      console.error('Mattermost user setup error:', data.email, err);
+      logger.error('Mattermost user setup error:', data.email, err);
     }
     // --- END MATTERMOST USER SETUP ---
 
     // Save Mattermost setup to database
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.staff.updateMattermostSetup, {
       userId: data.userId,
       mattermostUsername: data.username,
       mattermostEmail: data.email,
       setupCompleted: true,
       setupCompletedAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
 
     return errorHandler.createSuccessResponse({
@@ -212,7 +218,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error) {
-    console.error('Mattermost setup error:', error);
+    logger.error('Mattermost setup error:', error);
     
     throw ErrorFactory.custom(
       ErrorCode.INTERNAL_ERROR,

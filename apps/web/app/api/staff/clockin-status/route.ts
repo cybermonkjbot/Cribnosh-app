@@ -1,8 +1,9 @@
 import { getUserFromRequest } from '@/lib/auth/session';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -139,26 +140,35 @@ import { withErrorHandling } from '@/lib/errors';
  */
 
 export async function GET(request: NextRequest) {
-  // Authenticate staff user
-  const user = await getUserFromRequest(request);
-  if (!user) {
-    return ResponseFactory.unauthorized('Unauthorized');
+  try {
+    // Authenticate staff user
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return ResponseFactory.unauthorized('Unauthorized');
+    }
+    const convex = getConvexClientFromRequest(request);
+    // Fetch today's timelogs for this user
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+    const logs = await convex.query(api.queries.timelogs.getTimelogs, {
+      staffId: user._id,
+      start: startOfDay.getTime(),
+      end: endOfDay.getTime(),
+      limit: 1,
+      skip: 0,
+    });
+    // Determine clock-in status: if there is a log for today, assume clocked in
+    // (You can refine this logic if you have explicit clock-in/clock-out events)
+    const clockedIn = Array.isArray(logs) && logs.length > 0;
+    return ResponseFactory.success({ clockedIn });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(
+      error instanceof Error ? error.message : 'Failed to get clock-in status.'
+    );
   }
-  const convex = getConvexClient();
-  // Fetch today's timelogs for this user
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
-  const logs = await convex.query(api.queries.timelogs.getTimelogs, {
-    staffId: user._id,
-    start: startOfDay.getTime(),
-    end: endOfDay.getTime(),
-    limit: 1,
-    skip: 0,
-  });
-  // Determine clock-in status: if there is a log for today, assume clocked in
-  // (You can refine this logic if you have explicit clock-in/clock-out events)
-  const clockedIn = Array.isArray(logs) && logs.length > 0;
-  return ResponseFactory.success({ clockedIn });
 } 

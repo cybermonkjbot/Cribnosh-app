@@ -22,6 +22,28 @@ export const getCities = query({
       );
     }
     
+    // Get real chef and order counts from database
+    const chefs = await ctx.db.query("chefs").collect();
+    const orders = await ctx.db.query("orders").collect();
+    
+    // Count chefs and orders per city
+    const chefCountsByCity = new Map<string, number>();
+    const orderCountsByCity = new Map<string, number>();
+    
+    chefs.forEach((chef: any) => {
+      const cityName = chef.location?.city || chef.city;
+      if (cityName) {
+        chefCountsByCity.set(cityName, (chefCountsByCity.get(cityName) || 0) + 1);
+      }
+    });
+    
+    orders.forEach((order: any) => {
+      const cityName = order.delivery_address?.city;
+      if (cityName) {
+        orderCountsByCity.set(cityName, (orderCountsByCity.get(cityName) || 0) + 1);
+      }
+    });
+    
     return cities.map((city: any) => ({
       _id: city._id,
       name: city.name,
@@ -32,8 +54,8 @@ export const getCities = query({
       deliveryFee: city.deliveryFee || 0,
       minOrderAmount: city.minOrderAmount || 0,
       estimatedDeliveryTime: city.estimatedDeliveryTime || '30-45 min',
-      chefCount: Math.floor(Math.random() * 50) + 5, // Mock data
-      orderCount: Math.floor(Math.random() * 1000) + 100, // Mock data
+      chefCount: chefCountsByCity.get(city.name) || 0,
+      orderCount: orderCountsByCity.get(city.name) || 0,
       createdAt: city.createdAt,
       updatedAt: city.updatedAt
     }));

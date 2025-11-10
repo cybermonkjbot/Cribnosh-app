@@ -75,11 +75,27 @@ async function lookupDishes(
         const mealCuisine = meal.cuisine?.map((c: string) => c.toLowerCase()) || [];
         
         // Match by name/description/cuisine
+        // Also handle cuisine aliases (e.g., "middle eastern" matches "kebab")
+        const cuisineAliases: Record<string, string[]> = {
+          'middle eastern': ['kebab', 'turkish', 'arabic', 'lebanese'],
+          'kebab': ['middle eastern', 'turkish', 'arabic'],
+        };
+        
         const nameMatch = (
           mealName.includes(searchTerm) ||
           mealDesc.includes(searchTerm) ||
           mealCuisine.some((c: string) => c.includes(searchTerm)) ||
-          searchTerm.includes(mealName)
+          searchTerm.includes(mealName) ||
+          // Check cuisine aliases
+          Object.entries(cuisineAliases).some(([key, aliases]) => {
+            if (searchTerm.includes(key) || key.includes(searchTerm)) {
+              return mealCuisine.some((c: string) => aliases.includes(c));
+            }
+            if (mealCuisine.some((c: string) => c === key || aliases.includes(c))) {
+              return searchTerm.includes(key) || aliases.some(a => searchTerm.includes(a));
+            }
+            return false;
+          })
         );
         
         if (!nameMatch) return false;
@@ -87,17 +103,23 @@ async function lookupDishes(
         // Apply category filter if provided
         if (filters?.category) {
           const mealCategory = meal.category?.toLowerCase() || '';
-          const categoryMatch = mealCategory === filters.category.toLowerCase() ||
-            mealCuisine.some((c: string) => c === filters.category!.toLowerCase());
+          const categoryFilter = filters.category.toLowerCase();
+          // Match by category field, cuisine, or name/description containing the category
+          const categoryMatch = mealCategory === categoryFilter ||
+            mealCuisine.some((c: string) => c === categoryFilter) ||
+            mealName.includes(categoryFilter) ||
+            mealDesc.includes(categoryFilter);
           if (!categoryMatch) return false;
         }
         
         // Apply tag filter if provided
         if (filters?.tag) {
           const mealTags = meal.tags?.map((t: string) => t.toLowerCase()) || [];
-          const tagMatch = mealTags.includes(filters.tag.toLowerCase()) ||
-            mealDesc.includes(filters.tag.toLowerCase()) ||
-            mealName.includes(filters.tag.toLowerCase());
+          const tagFilter = filters.tag.toLowerCase();
+          // Match by tags field, or name/description containing the tag
+          const tagMatch = mealTags.includes(tagFilter) ||
+            mealDesc.includes(tagFilter) ||
+            mealName.includes(tagFilter);
           if (!tagMatch) return false;
         }
         
@@ -126,6 +148,19 @@ async function lookupDishes(
           badge = 'BUSSIN';
         }
         
+        // Calculate eco impact if filters include "too-fresh" tag
+        let ecoImpact: string | undefined;
+        if (filters?.tag === 'too-fresh') {
+          try {
+            const { calculateEcoImpact } = require('@/../../packages/convex/utils/ecoImpact');
+            const category = meal.category || meal.tags?.[0] || 'Other';
+            const impact = calculateEcoImpact(category, 1);
+            ecoImpact = impact.formatted;
+          } catch (error) {
+            console.error('Error calculating eco impact:', error);
+          }
+        }
+        
         dishRecommendations.push({
           dish_id: meal._id,
           name: meal.name || rec.item_name,
@@ -139,6 +174,7 @@ async function lookupDishes(
           dietary_tags: meal.dietary || [],
           rating: meal.averageRating || meal.rating || 0,
           review_count: meal.reviewCount || 0,
+          eco_impact: ecoImpact,
         });
       }
     }
@@ -165,6 +201,146 @@ async function lookupDishes(
 export async function runInference(
   request: EmotionsEngineRequest
 ): Promise<EmotionsEngineResponse> {
+  // Extract category and tag filters from request
+  const filters = {
+    category: (request as any).category,
+    tag: (request as any).tag,
+  };
+  const userId = (request as any).userId;
+  const searchQuery = (request as any).searchQuery || (request as any).query || (request as any).q;
+  
+  // If we have filters (category or tag), do direct search first
+  if (filters.category || filters.tag) {
+    try {
+      const convex = getConvexClient();
+      const allMeals = await convex.query(
+        (api as any).queries.meals.getAll,
+        userId ? { userId: userId as any } : {}
+      );
+      
+      const searchTerm = searchQuery ? searchQuery.toLowerCase() : '';
+      // Handle cuisine aliases (e.g., "middle eastern" matches "kebab")
+      const cuisineAliases: Record<string, string[]> = {
+        'middle eastern': ['kebab', 'turkish', 'arabic', 'lebanese'],
+        'kebab': ['middle eastern', 'turkish', 'arabic'],
+      };
+      
+      // Get cuisine filter from request if provided
+      const cuisineFilter = (request as any).cuisine || (request as any).cuisinePreferences?.[0];
+      
+      const matchingMeals = allMeals.filter((meal: any) => {
+        const mealName = meal.name?.toLowerCase() || '';
+        const mealDesc = meal.description?.toLowerCase() || '';
+        const mealCuisine = meal.cuisine?.map((c: string) => c.toLowerCase()) || [];
+        
+        // Match by search query if provided
+        if (searchTerm) {
+          const nameMatch = mealName.includes(searchTerm) ||
+            mealDesc.includes(searchTerm) ||
+            mealCuisine.some((c: string) => c.includes(searchTerm)) ||
+            searchTerm.includes(mealName) ||
+            // Check cuisine aliases
+            Object.entries(cuisineAliases).some(([key, aliases]) => {
+              if (searchTerm.includes(key) || key.includes(searchTerm)) {
+                return mealCuisine.some((c: string) => aliases.includes(c));
+              }
+              if (mealCuisine.some((c: string) => c === key || aliases.includes(c))) {
+                return searchTerm.includes(key) || aliases.some(a => searchTerm.includes(a));
+              }
+              return false;
+            });
+          if (!nameMatch) return false;
+        }
+        
+        // Apply cuisine filter if provided
+        if (cuisineFilter) {
+          const cuisineFilterLower = cuisineFilter.toLowerCase();
+          const cuisineMatch = mealCuisine.some((c: string) => c === cuisineFilterLower) ||
+            // Check cuisine aliases
+            Object.entries(cuisineAliases).some(([key, aliases]) => {
+              if (cuisineFilterLower === key || aliases.includes(cuisineFilterLower)) {
+                return mealCuisine.some((c: string) => c === key || aliases.includes(c));
+              }
+              return false;
+            });
+          if (!cuisineMatch) return false;
+        }
+        
+        // Apply category filter
+        if (filters.category) {
+          const categoryFilter = filters.category.toLowerCase();
+          const categoryMatch = mealName.includes(categoryFilter) ||
+            mealDesc.includes(categoryFilter) ||
+            mealCuisine.some((c: string) => c === categoryFilter);
+          if (!categoryMatch) return false;
+        }
+        
+        // Apply tag filter
+        if (filters.tag) {
+          const tagFilter = filters.tag.toLowerCase();
+          const tagMatch = mealDesc.includes(tagFilter) ||
+            mealName.includes(tagFilter);
+          if (!tagMatch) return false;
+        }
+        
+        return true;
+      });
+      
+      // Convert to DishRecommendation format with eco impact calculation for too-fresh items
+      const dishes: DishRecommendation[] = matchingMeals.slice(0, 20).map((meal: any) => {
+        // Calculate eco impact if this is a "too-fresh" item
+        let ecoImpact: string | undefined;
+        if (filters.tag === 'too-fresh') {
+          try {
+            // Import eco impact calculation utility
+            const { calculateEcoImpact } = require('@/../../packages/convex/utils/ecoImpact');
+            const category = meal.category || meal.tags?.[0] || 'Other';
+            const impact = calculateEcoImpact(category, 1);
+            ecoImpact = impact.formatted;
+          } catch (error) {
+            // If calculation fails, don't include eco impact
+            console.error('Error calculating eco impact:', error);
+          }
+        }
+        
+        return {
+          dish_id: meal._id,
+          name: meal.name || '',
+          price: Math.round((meal.price || 0) * 100),
+          image_url: meal.images?.[0] ? `/api/files/${meal.images[0]}` : '/default-dish.jpg',
+          description: meal.description || '',
+          chef_name: meal.chef?.name || `Chef ${meal.chefId}`,
+          chef_id: meal.chefId,
+          badge: meal.rating >= 4.5 ? 'BUSSIN' : undefined,
+          relevance_score: 1.0,
+          dietary_tags: meal.dietary || [],
+          rating: meal.averageRating || meal.rating || 0,
+          review_count: meal.reviewCount || 0,
+          eco_impact: ecoImpact,
+        };
+      });
+      
+      if (dishes.length > 0) {
+        return {
+          success: true,
+          data: {
+            response_type: 'recommendation' as const,
+            intent: 'recommendation',
+            inferred_context: {},
+            dishes: dishes,
+            message: 'Search completed successfully',
+          },
+          message: 'Search completed successfully',
+        };
+      }
+    } catch (err) {
+      monitoring.logError(
+        err instanceof Error ? err : new Error(String(err)),
+        { context: 'Direct search failed, falling back to LLM' }
+      );
+    }
+  }
+  
   const provider: Provider = chooseProvider(request);
   const systemPrompt = buildSystemPrompt(request);
   let rawReply: string = '';
@@ -187,13 +363,6 @@ export async function runInference(
     // Lookup actual dishes if recommendations are present
     let dishes: DishRecommendation[] = [];
     if (parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
-      // Extract category and tag filters from request
-      const filters = {
-        category: (request as any).category,
-        tag: (request as any).tag,
-      };
-      // Pass userId to filter by user preferences
-      const userId = (request as any).userId;
       dishes = await lookupDishes(parsed.recommendations, filters, userId);
     }
     

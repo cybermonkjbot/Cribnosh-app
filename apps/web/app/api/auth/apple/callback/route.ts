@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Apple Sign-In Callback Handler
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
         const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
         redirectUrl = stateData.redirect || '/try-it';
       } catch (e) {
-        console.error('Failed to parse state:', e);
+        logger.error('Failed to parse state:', e);
       }
     }
 
@@ -30,7 +34,7 @@ export async function POST(request: NextRequest) {
       try {
         userData = JSON.parse(user);
       } catch (e) {
-        console.error('Failed to parse user data:', e);
+        logger.error('Failed to parse user data:', e);
       }
     }
 
@@ -54,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     if (data.success && data.data?.token) {
       // Set cookie
-      cookies().set('convex-auth-token', data.data.token, {
+      (await cookies()).set('convex-auth-token', data.data.token, {
         path: '/',
         maxAge: 7200,
         sameSite: 'lax',
@@ -72,7 +76,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.redirect(errorUrl);
     }
   } catch (error) {
-    console.error('Apple callback error:', error);
+    logger.error('Apple callback error:', error);
     const errorUrl = new URL('/try-it', request.url);
     errorUrl.searchParams.set('error', 'apple_signin_error');
     return NextResponse.redirect(errorUrl);

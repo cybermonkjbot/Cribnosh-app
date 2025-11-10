@@ -23,7 +23,7 @@ interface TakeAwaysProps {
 
 export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
   const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
 
   // Backend API integration
   const {
@@ -87,11 +87,24 @@ export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
   }
 
   const handleAddToCart = async (item: TakeAwayItem) => {
-    // Check authentication
-    if (!isAuthenticated) {
+    // Check authentication and token validity
+    if (!isAuthenticated || !token) {
       showWarning(
         "Authentication Required",
         "Please sign in to add items to cart"
+      );
+      navigateToSignIn();
+      return;
+    }
+
+    // Check if token is expired and refresh auth state if needed
+    const isExpired = checkTokenExpiration();
+    if (isExpired) {
+      // Refresh auth state to update isAuthenticated
+      await refreshAuthState();
+      showWarning(
+        "Session Expired",
+        "Please sign in again to add items to cart"
       );
       navigateToSignIn();
       return;

@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -89,32 +89,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { roles?: string[] } | string;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { roles?: string[] } | string;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (typeof payload === 'string' || !payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Use correct queries for orders and chefs
-    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+      sessionToken: sessionToken || undefined
+    });
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     // Aggregate orders per chef
     const chefStats: Record<string, { orders: number; revenue: number; rating: number }> = {};
     for (const chef of chefs) {
-      const orders = await convex.query(api.queries.orders.listByChef, { chef_id: chef.chefId });
+      const orders = await convex.query(api.queries.orders.listByChef, {
+        chef_id: chef.chefId,
+        sessionToken: sessionToken || undefined
+      });
       chefStats[chef.chefId] = { orders: 0, revenue: 0, rating: chef.rating || 0 };
       orders.forEach((o: any) => {
         chefStats[chef.chefId].orders += 1;
@@ -141,7 +138,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       .sort((a, b) => b!.orders - a!.orders)
       .slice(0, 5);
     return ResponseFactory.success({ topChefs });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch top chefs.';
     return ResponseFactory.internalError(errorMessage);
   }

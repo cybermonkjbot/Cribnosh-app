@@ -1,5 +1,5 @@
 import { cronJobs } from "convex/server";
-import { internal, api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const crons = cronJobs();
 
@@ -32,6 +32,30 @@ crons.interval(
   "check email health metrics",
   { minutes: 5 },
   internal.emailAnalytics.checkEmailHealthMetrics,
+  {}
+);
+
+// Generate daily payment reports
+crons.interval(
+  "generate daily payment reports",
+  { hours: 24 },
+  internal.paymentAnalytics.generateDailyReports,
+  {}
+);
+
+// Check payment health metrics every 5 minutes
+crons.interval(
+  "check payment health metrics",
+  { minutes: 5 },
+  internal.paymentAnalytics.checkPaymentHealthMetrics,
+  {}
+);
+
+// Clean up old payment analytics data daily
+crons.interval(
+  "cleanup old payment analytics data",
+  { hours: 24 },
+  internal.paymentAnalytics.cleanupOldPaymentAnalyticsData,
   {}
 );
 

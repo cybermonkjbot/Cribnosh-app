@@ -1,18 +1,20 @@
 ﻿"use client";
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
-import { StaffTableSkeleton } from '@/components/admin/skeletons';
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
-import { Plus, Search, Shield, Users, Upload, FileText, Eye, Edit, Trash, Filter, Download } from "lucide-react";
-import React, { useMemo, useState, useEffect } from 'react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
+import { StaffTableSkeleton } from '@/components/admin/skeletons';
+import { UserFilterBar } from '@/components/admin/user-filter-bar';
+// Authentication is handled by layout, no need for AuthWrapper
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from "convex/react";
+import { Download, Edit, Eye, FileText, Plus, Shield, Upload, Users } from "lucide-react";
 import { motion } from 'motion/react';
+import React, { useMemo, useState } from 'react';
 
 interface StaffUser {
   _id: string;
@@ -33,13 +35,22 @@ interface Document {
 }
 
 export default function AdminStaffPage() {
-  const staff = useQuery(api.queries.users.getAllStaff) as StaffUser[] | undefined;
-  const documents = useQuery(api.queries.users.getAllDocuments, {}) as Document[] | undefined;
+  const { user, sessionToken } = useAdminUser();
+  const { toast } = useToast();
+  // Authentication is handled by layout, so user is guaranteed to be authenticated here
+  // Pass sessionToken if available (for development debug cookie), otherwise rely on httpOnly cookie
+  const staff = useQuery(
+    api.queries.users.getAllStaff,
+    user ? (sessionToken ? { sessionToken } : {}) : "skip"
+  ) as StaffUser[] | undefined;
+  const documents = useQuery(
+    api.queries.users.getAllDocuments,
+    user ? (sessionToken ? { sessionToken } : {}) : "skip"
+  ) as Document[] | undefined;
   const uploadDocument = useMutation(api.mutations.documents.uploadDocument);
   const updateDocumentStatus = useMutation(api.mutations.documents.updateDocumentStatus);
   const [search, setSearch] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [type, setType] = useState('contract');
   const [description, setDescription] = useState('');
@@ -68,7 +79,6 @@ export default function AdminStaffPage() {
     e.preventDefault();
     if (!file || !selectedStaff) return;
     setUploading(true);
-    setUploadError(null);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -90,8 +100,17 @@ export default function AdminStaffPage() {
       });
       setFile(null);
       setDescription('');
+      toast({
+        title: "Document uploaded",
+        description: "The document has been uploaded successfully.",
+        variant: "success",
+      });
     } catch (err: unknown) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : 'An error occurred while uploading the document. Please try again.',
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -124,17 +143,8 @@ export default function AdminStaffPage() {
     return variants[status as keyof typeof variants] || variants.active;
   };
 
-  // Auto-dismiss upload error after 5 seconds
-  useEffect(() => {
-    if (uploadError) {
-      const timer = setTimeout(() => setUploadError(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [uploadError]);
-
   return (
-    <AuthWrapper role="admin">
-      <div className="space-y-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
         {/* Enhanced Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -178,69 +188,24 @@ export default function AdminStaffPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl"
         >
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-primary-600" />
-            <h3 className="text-lg font-semibold font-asgard text-gray-900">Search & Filters</h3>
-          </div>
-          
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium font-satoshi text-gray-700">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <Input
-                  type="text"
-                  placeholder="Search staff by name or email..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="pl-10 bg-white/80 border-gray-200"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium font-satoshi text-gray-700">Role</label>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="bg-white/80 border-gray-200">
-                  <SelectValue placeholder="All roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="chef">Chef</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium font-satoshi text-gray-700">Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-white/80 border-gray-200">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium font-satoshi text-gray-700">Total Staff</label>
-              <div className="p-3 bg-primary-50 rounded-lg border border-primary-200">
-                <span className="text-2xl font-bold font-asgard text-primary-600">
-                  {filteredStaff.length}
-                </span>
-                <p className="text-xs text-primary-600 font-satoshi">Members</p>
-              </div>
-            </div>
-          </div>
+          <UserFilterBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            roleFilter={roleFilter}
+            onRoleFilterChange={setRoleFilter}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            totalCount={staff?.length || 0}
+            filteredCount={filteredStaff.length}
+            roleOptions={[
+              { value: 'all', label: 'All Roles' },
+              { value: 'admin', label: 'Admin' },
+              { value: 'moderator', label: 'Moderator' },
+              { value: 'chef', label: 'Chef' },
+              { value: 'employee', label: 'Employee' },
+            ]}
+          />
         </motion.div>
 
         {/* Enhanced Staff Table */}
@@ -405,15 +370,11 @@ export default function AdminStaffPage() {
               <Button 
                 type="submit" 
                 disabled={!file || !selectedStaff || uploading}
-                className="bg-primary-600 hover:bg-primary-700"
+                className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 {uploading ? 'Uploading...' : 'Upload Document'}
               </Button>
-              
-              {uploadError && (
-                <p className="text-red-600 text-sm font-satoshi">{uploadError}</p>
-              )}
             </div>
           </form>
         </motion.div>
@@ -474,6 +435,5 @@ export default function AdminStaffPage() {
           </motion.div>
         )}
       </div>
-    </AuthWrapper>
   );
 } 

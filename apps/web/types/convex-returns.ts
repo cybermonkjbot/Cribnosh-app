@@ -9,7 +9,7 @@ import type { FunctionReference } from 'convex/server';
 /**
  * Extract return type from a Convex function reference
  */
-export type ConvexReturnType<T extends FunctionReference<'query' | 'mutation' | 'action', 'public' | 'internal', unknown, unknown>> =
+export type ConvexReturnType<T extends FunctionReference<'query' | 'mutation' | 'action', 'public' | 'internal', Record<string, unknown>, unknown>> =
   T extends FunctionReference<infer _Type, infer _Visibility, infer _Args, infer Return, infer _Optional>
     ? Return
     : never;
@@ -17,7 +17,7 @@ export type ConvexReturnType<T extends FunctionReference<'query' | 'mutation' | 
 /**
  * Extract argument type from a Convex function reference
  */
-export type ConvexArgsType<T extends FunctionReference<'query' | 'mutation' | 'action', 'public' | 'internal', unknown, unknown>> =
+export type ConvexArgsType<T extends FunctionReference<'query' | 'mutation' | 'action', 'public' | 'internal', Record<string, unknown>, unknown>> =
   T extends FunctionReference<infer _Type, infer _Visibility, infer Args, infer _Return, infer _Optional>
     ? Args
     : never;

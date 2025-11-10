@@ -47,10 +47,13 @@
  *           description: Batch identifier for deduplication
  */
 
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Chrome Activity Log type
 interface ChromeActivityLog {
@@ -136,10 +139,14 @@ export async function POST(req: NextRequest) {
       return ResponseFactory.badRequest("Validation error");
     }
     const batchId = data.batchId;
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(req)
+    const sessionToken = getSessionTokenFromRequest(req);;
     
     // Get staff user first
-    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, { identifier: data.user });
+    const staff = await convex.query(api.queries.users.getUserByNameOrEmail, {
+      identifier: data.user,
+      sessionToken: sessionToken || undefined
+    });
     if (!staff) {
       return ResponseFactory.notFound("Resource not found");
     }
@@ -151,6 +158,7 @@ export async function POST(req: NextRequest) {
         const existingLogs = await convex.query(api.queries.timelogs.getTimelogs, {
           staffId: staff._id,
           bucket: data.bucket || 'chrome-activity',
+          sessionToken: sessionToken || undefined
         });
         
         const hasExistingBatch = existingLogs.results.some((log: { logs: Array<{ data?: { batchId?: string } }> }) => 
@@ -191,7 +199,8 @@ export async function POST(req: NextRequest) {
           batchId: batchId || null
         }
       })),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     
     if (batchId && !isProd) {
@@ -199,7 +208,10 @@ export async function POST(req: NextRequest) {
       processedBatchIds.add(batchId);
     }
     return ResponseFactory.success({});
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
     return ResponseFactory.badRequest("Validation error");
   }
 }

@@ -11,7 +11,7 @@ export function GlassCard({ children, className, ...props }: GlassCardProps) {
   return (
     <div
       className={cn(
-        "bg-white/70 backdrop-blur-lg rounded-2xl border border-primary-100 shadow-lg transition-all",
+        "bg-white/90 backdrop-blur-lg rounded-2xl border border-gray-200/40 shadow-lg transition-all",
         className
       )}
       {...props}

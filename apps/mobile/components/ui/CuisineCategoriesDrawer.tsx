@@ -1,5 +1,5 @@
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { Image } from 'expo-image';
-import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
@@ -22,52 +22,15 @@ export function CuisineCategoriesDrawer({
   cuisines = [],
   onCuisinePress
 }: CuisineCategoriesDrawerProps) {
-  const defaultCuisines: Cuisine[] = [
-    {
-      id: '1',
-      name: 'Italian',
-      image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop' },
-      restaurantCount: 24,
-      isActive: false,
-    },
-    {
-      id: '2',
-      name: 'Mexican',
-      image: { uri: 'https://images.unsplash.com/photo-1565958911770-bed387754dfa?w=400&h=400&fit=crop' },
-      restaurantCount: 18,
-      isActive: false,
-    },
-    {
-      id: '3',
-      name: 'French',
-      image: { uri: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop' },
-      restaurantCount: 12,
-      isActive: false,
-    },
-    {
-      id: '4',
-      name: 'Japanese',
-      image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=400&fit=crop' },
-      restaurantCount: 15,
-      isActive: false,
-    },
-    {
-      id: '5',
-      name: 'Indian',
-      image: { uri: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=400&fit=crop' },
-      restaurantCount: 20,
-      isActive: false,
-    },
-    {
-      id: '6',
-      name: 'Thai',
-      image: { uri: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400&h=400&fit=crop' },
-      restaurantCount: 14,
-      isActive: false,
-    },
-  ];
+  // Use cuisines from props (which come from API in MainScreen)
+  // Return empty array if no cuisines provided instead of mock data
+  const baseCuisines = cuisines.length > 0 ? cuisines : [];
 
-  const displayCuisines = cuisines.length > 0 ? cuisines : defaultCuisines;
+  // Search functionality with debouncing
+  const { setSearchQuery, filteredItems: displayCuisines } = useCategoryDrawerSearch({
+    items: baseCuisines,
+    searchFields: ['name'],
+  });
 
   const renderCuisineCard = (cuisine: Cuisine) => (
     <TouchableOpacity
@@ -105,7 +68,9 @@ export function CuisineCategoriesDrawer({
       categoryDescription="Explore all cuisine types available in your area"
       onBack={onBack}
       showTabs={false}
+      onSearch={setSearchQuery}
       searchPlaceholder="Search cuisines..."
+      backButtonInSearchBar={true}
     >
       <ScrollView 
         style={styles.container}

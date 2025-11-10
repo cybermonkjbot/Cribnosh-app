@@ -1,12 +1,15 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface Chat {
   _id: Id<'chats'>;
@@ -111,7 +114,7 @@ interface Chat {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   // Extract order_id from the URL
@@ -121,22 +124,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   if (!order_id) {
     return ResponseFactory.validationError('Missing order_id');
   }
-  // Auth: get user from JWT
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: any;
-  try {
-    payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
-  const convex = getConvexClient();
+  // Get authenticated user from session token
+  const { userId, user } = await getAuthenticatedUser(request);
+  const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
   // Use the proper Convex query to get chats for the current user
   const chats = await convex.query(api.queries.chats.listConversationsForUser, { 
-    userId: payload.user_id as Id<'users'> 
+    userId: userId as Id<'users'>,
+    sessionToken: sessionToken || undefined
   });
   // Find chat with matching order_id in metadata
   const chat = chats.chats.find((c: Chat) => c.metadata?.order_id === order_id);
@@ -144,8 +139,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.notFound('Chat not found for order_id');
   }
   // Only allow if user is a participant or admin
-  const isParticipant = Array.isArray(chat.participants) && chat.participants.includes(payload.user_id);
-  if (!isParticipant && payload.role !== 'admin') {
+  const isParticipant = Array.isArray(chat.participants) && chat.participants.includes(userId);
+  if (!isParticipant && user.roles?.[0] !== 'admin') {
     return ResponseFactory.forbidden('Forbidden: Not a participant or admin.');
   }
   return ResponseFactory.success({
@@ -168,37 +163,32 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     if (!order_id) {
       return ResponseFactory.validationError('Missing order_id');
     }
-    // Auth: get user from JWT
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // First, try to find an existing chat for this order
     const chatsResponse = await convex.query(api.queries.chats.listConversationsForUser, { 
-      userId: payload.user_id as Id<'users'> 
+      userId: userId as Id<'users'>,
+      sessionToken: sessionToken || undefined
     });
     let chat = chatsResponse.chats.find((c: Chat) => c.metadata?.order_id === order_id);
     
     if (!chat) {
       // Find participants: customer and chef from order
-      const order = await convex.query(api.queries.orders.getById, { order_id: order_id });
+      const order = await convex.query(api.queries.orders.getById, {
+        order_id: order_id,
+        sessionToken: sessionToken || undefined
+      });
       if (!order) {
         return ResponseFactory.notFound('Order not found');
       }
       
       // Ensure we have valid participant IDs
-      const userId = payload.user_id as Id<'users'>;
-      const otherUserId = order.customer_id === userId ? order.chef_id : order.customer_id;
-      const participants = [userId, otherUserId].filter(Boolean) as Id<'users'>[];
+      const authenticatedUserId = userId as Id<'users'>;
+      const otherUserId = order.customer_id === authenticatedUserId ? order.chef_id : order.customer_id;
+      const participants = [authenticatedUserId, otherUserId].filter(Boolean) as Id<'users'>[];
       
       if (participants.length < 2) {
         return ResponseFactory.validationError('Could not determine chat participants');
@@ -208,14 +198,16 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
         // Create a new chat using the createConversation mutation
         const result = await convex.mutation(api.mutations.chats.createConversation, {
           participants,
-          metadata: { order_id }
+          metadata: { order_id },
+          sessionToken: sessionToken || undefined
         });
         
         // Get the newly created chat using the returned chatId
         const chatResponse = await convex.query(api.queries.chats.listConversationsForUser, { 
           userId,
           limit: 1,
-          offset: 0
+          offset: 0,
+          sessionToken: sessionToken || undefined
         });
         
         chat = chatResponse.chats.find((c: any) => c._id === result.chatId);
@@ -223,12 +215,15 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
           return ResponseFactory.error('Failed to create chat', 'CUSTOM_ERROR', 500);
         }
       } catch (error: any) {
-        console.error('Error creating chat:', error);
+        logger.error('Error creating chat:', error);
         return ResponseFactory.internalError('Failed to create chat');
       }
     }
     return ResponseFactory.success(chat);
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to initiate/retrieve chat.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }));

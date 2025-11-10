@@ -2,10 +2,13 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -15,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Search for meals within a specific kitchen/chef with optional filters
  *     tags: [Customer, Kitchens, Meals, Search]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId
@@ -82,12 +85,16 @@ async function handleGET(
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
       (api as any).queries.kitchens.getChefByKitchenId,
-      { kitchenId }
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     if (!chefId) {
@@ -104,13 +111,17 @@ async function handleGET(
         category,
         dietary: dietary.length > 0 ? dietary : undefined,
         limit,
+        sessionToken: sessionToken || undefined
       }
     );
 
     return ResponseFactory.success({ meals, query }, 'Search results retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Search meals error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Search meals error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to search meals')
     );

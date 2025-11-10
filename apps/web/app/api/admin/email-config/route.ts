@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { emailAdminConfigManager } from '@/lib/email/admin-config';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -415,7 +419,7 @@ export async function GET(request: NextRequest) {
       return ResponseFactory.success({ configs: allConfigs });
     }
   } catch (error) {
-    console.error('Error fetching email configurations:', error);
+    logger.error('Error fetching email configurations:', error);
     return ResponseFactory.error('Failed to fetch email configurations', 'CUSTOM_ERROR', 500);
   }
 }
@@ -455,7 +459,7 @@ export async function POST(request: NextRequest) {
 
     return ResponseFactory.success({ success: true, message: 'Configuration updated successfully' });
   } catch (error) {
-    console.error('Error updating email configuration:', error);
+    logger.error('Error updating email configuration:', error);
     return ResponseFactory.error('Failed to update email configuration', 'CUSTOM_ERROR', 500);
   }
 }
@@ -517,7 +521,7 @@ export async function PUT(request: NextRequest) {
       warnings: validation.warnings
     });
   } catch (error) {
-    console.error('Error updating email configuration:', error);
+    logger.error('Error updating email configuration:', error);
     return ResponseFactory.error('Failed to update email configuration', 'CUSTOM_ERROR', 500);
   }
 }
@@ -558,7 +562,7 @@ export async function DELETE(request: NextRequest) {
 
     return ResponseFactory.success({ success: true, message: 'Configuration deleted successfully' });
   } catch (error) {
-    console.error('Error deleting email configuration:', error);
+    logger.error('Error deleting email configuration:', error);
     return ResponseFactory.error('Failed to delete email configuration', 'CUSTOM_ERROR', 500);
   }
 }

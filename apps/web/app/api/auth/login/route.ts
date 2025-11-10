@@ -1,24 +1,22 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
 import { scryptSync, timingSafeEqual } from 'crypto';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { logger } from '@/lib/utils/logger';
 
 // Endpoint: /v1/auth/login
 // Group: auth
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 /**
  * @swagger
  * /auth/login:
  *   post:
  *     summary: User Login
- *     description: Authenticate user with email and password, returns JWT token
+ *     description: Authenticate user with email and password, returns session token
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -109,7 +107,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Email and password are required.');
     }
     const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByEmail, { email });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await convex.query(api.queries.users.getUserByEmail, {
+      email,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.unauthorized('Invalid credentials.');
     }
@@ -117,7 +119,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     try {
       const [salt, storedHash] = user.password.split(':');
       if (!salt || !storedHash) {
-        console.error('[LOGIN] Invalid password format for user:', email);
+        logger.error('[LOGIN] Invalid password format for user:', email);
         return ResponseFactory.unauthorized('Invalid credentials.');
       }
       const hash = scryptSync(password, salt, 64).toString('hex');
@@ -125,7 +127,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         return ResponseFactory.unauthorized('Invalid credentials.');
       }
     } catch (error) {
-      console.error('[LOGIN] Password verification error for user:', email, error);
+      logger.error('[LOGIN] Password verification error for user:', email, error);
       return ResponseFactory.unauthorized('Invalid credentials.');
     }
     
@@ -137,6 +139,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       await convex.mutation(api.mutations.users.updateUserRoles, {
         userId: user._id,
         roles: userRoles,
+        sessionToken: sessionToken || undefined
       });
     }
     
@@ -145,6 +148,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // Create verification session for 2FA
       const verificationToken = await convex.mutation(api.mutations.verificationSessions.createVerificationSession, {
         userId: user._id,
+        sessionToken: sessionToken || undefined
       });
       
       // Return verification token instead of JWT
@@ -156,9 +160,35 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       });
     }
     
-    // No 2FA required - create JWT token
-    const token = jwt.sign({ user_id: user._id, roles: userRoles }, JWT_SECRET, { expiresIn: '2h' });
-    return ResponseFactory.success({ success: true, token, user: { user_id: user._id, email: user.email, name: user.name, roles: userRoles } });
+    // No 2FA required - create session token using Convex mutation
+    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+      userId: user._id,
+      expiresInDays: 30, // 30 days expiry,
+      sessionToken: sessionToken || undefined
+    });
+    
+    // Set session token cookie
+    const isProd = process.env.NODE_ENV === 'production';
+    const response = ResponseFactory.success({ 
+      success: true, 
+      sessionToken: sessionResult.sessionToken,
+      user: { 
+        user_id: user._id, 
+        email: user.email, 
+        name: user.name, 
+        roles: userRoles 
+      } 
+    });
+    
+    response.cookies.set('convex-auth-token', sessionResult.sessionToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
+    });
+    
+    return response;
   } catch (error: unknown) {
     return ResponseFactory.internalError(getErrorMessage(error, 'Login failed.'));
   }

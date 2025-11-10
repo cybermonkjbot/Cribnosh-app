@@ -1,4 +1,5 @@
 import { EmailService } from '@/lib/email/email.service';
+import { logger } from '@/lib/utils/logger';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const emailService = new EmailService({
@@ -21,7 +22,7 @@ export async function sendAccountDeletionEmail(email: string, deletionDate: stri
       from: 'noreply@cribnosh.com',
     });
   } catch (error) {
-    console.error('Failed to send account deletion email:', error);
+    logger.error('Failed to send account deletion email:', error);
   }
 }
 
@@ -39,7 +40,7 @@ export async function sendDataDownloadEmail(email: string, downloadUrl: string, 
       from: 'noreply@cribnosh.com',
     });
   } catch (error) {
-    console.error('Failed to send data download email:', error);
+    logger.error('Failed to send data download email:', error);
   }
 }
 
@@ -65,7 +66,7 @@ export async function sendFamilyInvitationEmail(
       from: 'noreply@cribnosh.com',
     });
   } catch (error) {
-    console.error('Failed to send family invitation email:', error);
+    logger.error('Failed to send family invitation email:', error);
   }
 }
 
@@ -97,7 +98,7 @@ export async function sendSupportCaseNotification(supportCaseRef: string, custom
       from: 'support@cribnosh.com',
     });
   } catch (error) {
-    console.error('Failed to send support case notifications:', error);
+    logger.error('Failed to send support case notifications:', error);
   }
 }
 
@@ -116,7 +117,7 @@ export async function sendReviewNotification(chefEmail: string, customerName: st
       from: 'noreply@cribnosh.com',
     });
   } catch (error) {
-    console.error('Failed to send review notification:', error);
+    logger.error('Failed to send review notification:', error);
   }
 }
 

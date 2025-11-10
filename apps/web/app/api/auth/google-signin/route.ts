@@ -3,14 +3,13 @@ import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { logger } from '@/lib/utils/logger';
 
 // Endpoint: /v1/auth/google-signin
 // Group: auth
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -147,7 +146,10 @@ async function handlePOST(request: NextRequest) {
     });
 
     // Get the user details
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, { 
+      userId,
+      sessionToken: undefined // No session token during sign-in
+    });
     
     if (!user) {
       throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Failed to retrieve user after OAuth authentication');
@@ -179,21 +181,18 @@ async function handlePOST(request: NextRequest) {
       });
     }
 
-    // No 2FA required - create JWT token
-    const token = jwt.sign(
-      { 
-        user_id: user._id, 
-        roles: userRoles,
-        provider: 'google'
-      }, 
-      JWT_SECRET, 
-      { expiresIn: '2h' }
-    );
-
-    return ResponseFactory.success({
+    // No 2FA required - create session token using Convex mutation
+    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+      userId: user._id,
+      expiresInDays: 30, // 30 days expiry
+    });
+    
+    // Set session token cookie
+    const isProd = process.env.NODE_ENV === 'production';
+    const response = ResponseFactory.success({
       success: true,
       message: isNewUser ? 'User created and authenticated successfully' : 'Authentication successful',
-      token,
+      sessionToken: sessionResult.sessionToken,
       user: {
         user_id: user._id,
         email: user.email,
@@ -204,6 +203,16 @@ async function handlePOST(request: NextRequest) {
         provider: 'google',
       },
     });
+    
+    response.cookies.set('convex-auth-token', sessionResult.sessionToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
+    });
+    
+    return response;
 
   } catch (error: unknown) {
     return ResponseFactory.internalError(getErrorMessage(error, 'Google sign-in failed'));
@@ -238,7 +247,7 @@ async function verifyGoogleIdToken(idToken: string) {
       email_verified: data.email_verified === 'true',
     };
   } catch (error) {
-    console.error('Google ID token verification failed:', error);
+    logger.error('Google ID token verification failed:', error);
     return null;
   }
 }
@@ -276,7 +285,7 @@ async function getGoogleUserInfo(accessToken: string) {
       email_verified: data.verified_email || false,
     };
   } catch (error) {
-    console.error('Google user info fetch failed:', error);
+    logger.error('Google user info fetch failed:', error);
     return null;
   }
 }

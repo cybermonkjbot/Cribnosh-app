@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import localFont from "next/font/local";
+import * as Sentry from "@sentry/nextjs";
 
 const satoshiFont = localFont({
   variable: "--font-satoshi",
@@ -40,8 +41,18 @@ export default function GlobalError({
   reset: () => void;
 }) {
   React.useEffect(() => {
-    // Log the error to an error reporting service
-    console.error(error);
+    // Log the error to Sentry
+    Sentry.captureException(error, {
+      tags: {
+        errorBoundary: 'global-error',
+        errorDigest: error.digest,
+      },
+      extra: {
+        errorMessage: error.message,
+        errorStack: error.stack,
+      },
+      level: 'fatal',
+    });
   }, [error]);
 
   return (

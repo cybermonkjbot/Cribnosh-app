@@ -1,8 +1,12 @@
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
+import { getApiFunction, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -50,9 +54,13 @@ async function handleGET(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    const convex = getConvexClient();
-    const getFeaturedVideo = getApiFunction('queries/kitchens', 'getFeaturedVideo');
-    const featuredVideo = await convex.query(getFeaturedVideo, { kitchenId });
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const getFeaturedVideo = getApiFunction('queries/kitchens', 'getFeaturedVideo') as any;
+    const featuredVideo = await convex.query(getFeaturedVideo, {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    });
 
     if (!featuredVideo) {
       return ResponseFactory.notFound('Kitchen or featured video not found');
@@ -64,9 +72,11 @@ async function handleGET(
     );
 
   } catch (error: unknown) {
-    console.error('Featured video retrieval error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to retrieve featured video';
-    return ResponseFactory.internalError(message);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Featured video retrieval error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve featured video'));
   }
 }
 

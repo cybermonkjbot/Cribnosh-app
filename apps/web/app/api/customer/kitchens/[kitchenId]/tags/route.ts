@@ -1,10 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -14,7 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Retrieve unique dietary tags from all meals in a kitchen
  *     tags: [Customer, Kitchens]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId
@@ -62,17 +65,24 @@ async function handleGET(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     const tags = await convex.query(
       (api as any).queries.kitchens.getKitchenTags,
-      { kitchenId }
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     return ResponseFactory.success(tags, 'Kitchen tags retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get kitchen tags error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get kitchen tags error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve kitchen tags')
     );

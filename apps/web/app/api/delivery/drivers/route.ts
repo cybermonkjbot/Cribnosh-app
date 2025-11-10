@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface UpdateDriverLocationRequest {
   driverId: string;
   location: {
@@ -235,18 +235,20 @@ async function handleGET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get drivers based on filters with proper type validation
     const drivers = await convex.query(api.queries.delivery.getDrivers, {
       status: isValidDriverStatus(status) ? status : undefined,
       availability: isValidDriverAvailability(availability) ? availability : undefined,
       limit,
-      offset
+      offset,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error getting drivers:', error);
+    logger.error('Error getting drivers:', error);
     return ResponseFactory.internalError('Failed to get drivers');
   }
 }
@@ -381,26 +383,14 @@ async function handleGET(request: NextRequest) {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to update driver location
-    if (!['admin', 'staff', 'driver'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to update driver location
+    if (!['admin', 'staff', 'driver'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -412,11 +402,12 @@ async function handlePOST(request: NextRequest) {
     }
 
     // Verify driver can only update their own location
-    if (payload.role === 'driver' && driverId !== payload.user_id) {
+    if (user.roles?.[0] === 'driver' && driverId !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own location.');
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Update driver location and availability
     const updateResult = await convex.mutation(api.mutations.delivery.updateDriverLocation, {
@@ -424,13 +415,14 @@ async function handlePOST(request: NextRequest) {
       location,
       availability,
       metadata: {
-        updatedByRole: payload.role,
-        updatedBy: payload.user_id,
+        updatedByRole: user.roles?.[0],
+        updatedBy: userId,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
-    console.log(`Driver location updated for ${driverId} by ${payload.user_id}`);
+    logger.log(`Driver location updated for ${driverId} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,
@@ -442,7 +434,7 @@ async function handlePOST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Update driver location error:', error);
+    logger.error('Update driver location error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update driver location.' 
     );
   }
@@ -451,21 +443,9 @@ async function handlePOST(request: NextRequest) {
 async function handlePATCH(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to update driver status
-    if (!['admin', 'staff'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to update driver status
+    if (!['admin', 'staff'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Only admins and staff can update driver status.');
     }
 
@@ -477,20 +457,22 @@ async function handlePATCH(request: NextRequest) {
     }
 
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Update driver status
     const updateResult = await convex.mutation(api.mutations.delivery.updateDriverStatus, {
       driverId: driverId as Id<'drivers'>,
       status,
       reason,
-      updatedBy: payload.user_id as Id<'users'>,
+      updatedBy: userId as Id<'users'>,
       metadata: {
-        updatedByRole: payload.role,
+        updatedByRole: user.roles?.[0],
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
-    console.log(`Driver status updated for ${driverId} to ${status} by ${payload.user_id}`);
+    logger.log(`Driver status updated for ${driverId} to ${status} by ${userId}`);
 
     return ResponseFactory.success({
       success: true,
@@ -502,7 +484,7 @@ async function handlePATCH(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Update driver status error:', error);
+    logger.error('Update driver status error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to update driver status.' 
     );
   }

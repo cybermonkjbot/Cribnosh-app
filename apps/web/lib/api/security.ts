@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MonitoringService } from '../monitoring/monitoring.service';
+import { logger } from '../utils/logger';
 
 const monitoring = MonitoringService.getInstance();
 
@@ -62,7 +63,7 @@ export class SecurityMiddleware {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https: blob:",
-        "connect-src 'self' https://api.convex.cloud https://api.resend.com https://api.notion.com",
+        "connect-src 'self' https://api.convex.cloud https://api.resend.com https://api.notion.com wss://*.convex.cloud wss://wandering-finch-293.convex.cloud",
         "frame-src 'none'",
         "object-src 'none'",
         "base-uri 'self'",
@@ -90,21 +91,21 @@ export class SecurityMiddleware {
    * Apply CORS headers
    */
   applyCORSHeaders(response: NextResponse, request: NextRequest): NextResponse {
-    console.log('[CORS] Applying CORS headers, enableCORS:', this.config.enableCORS);
+    logger.log('[CORS] Applying CORS headers, enableCORS:', this.config.enableCORS);
     if (!this.config.enableCORS) return response;
 
     const origin = request.headers.get('origin');
     const hostname = request.headers.get('host') || '';
     const isDevelopment = hostname.includes('localhost') || hostname.includes('127.0.0.1');
 
-    console.log('[CORS] Origin:', origin, 'Hostname:', hostname, 'IsDevelopment:', isDevelopment);
+    logger.log('[CORS] Origin:', origin, 'Hostname:', hostname, 'IsDevelopment:', isDevelopment);
 
     // In development, allow all origins for localhost
     if (isDevelopment) {
-      console.log('[CORS] Setting Access-Control-Allow-Origin to * for development');
+      logger.log('[CORS] Setting Access-Control-Allow-Origin to * for development');
       response.headers.set('Access-Control-Allow-Origin', '*');
     } else if (origin && this.config.allowedOrigins.includes(origin)) {
-      console.log('[CORS] Setting Access-Control-Allow-Origin to:', origin);
+      logger.log('[CORS] Setting Access-Control-Allow-Origin to:', origin);
       response.headers.set('Access-Control-Allow-Origin', origin);
     }
 
@@ -113,7 +114,7 @@ export class SecurityMiddleware {
     response.headers.set('Access-Control-Allow-Credentials', 'true');
     response.headers.set('Access-Control-Max-Age', '86400');
 
-    console.log('[CORS] CORS headers applied');
+    logger.log('[CORS] CORS headers applied');
     return response;
   }
 

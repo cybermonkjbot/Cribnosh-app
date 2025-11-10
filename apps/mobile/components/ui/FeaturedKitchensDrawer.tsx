@@ -1,4 +1,4 @@
-import React from 'react';
+import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 import { FeaturedKitchensSection } from './FeaturedKitchensSection';
@@ -26,95 +26,15 @@ export function FeaturedKitchensDrawer({
   kitchens = [],
   onKitchenPress
 }: FeaturedKitchensDrawerProps) {
-  // Enhanced default kitchens with more realistic data
-  const defaultKitchens: Kitchen[] = [
-    {
-      id: '1',
-      name: 'Amara\'s Kitchen',
-      cuisine: 'Nigerian',
-      sentiment: 'elite',
-      deliveryTime: '25 min',
-      distance: '0.8 mi',
-      image: { uri: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop' },
-      isLive: true,
-      liveViewers: 156,
-    },
-    {
-      id: '2',
-      name: 'Bangkok Bites',
-      cuisine: 'Thai',
-      sentiment: 'fire',
-      deliveryTime: '30 min',
-      distance: '1.2 mi',
-      image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
-      isLive: false,
-    },
-    {
-      id: '3',
-      name: 'Marrakech Delights',
-      cuisine: 'Moroccan',
-      sentiment: 'slaps',
-      deliveryTime: '35 min',
-      distance: '1.5 mi',
-      image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
-      isLive: true,
-      liveViewers: 89,
-    },
-    {
-      id: '4',
-      name: 'Seoul Street',
-      cuisine: 'Korean',
-      sentiment: 'solid',
-      deliveryTime: '28 min',
-      distance: '1.0 mi',
-      image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
-      isLive: false,
-    },
-    {
-      id: '5',
-      name: 'Nonna\'s Table',
-      cuisine: 'Italian',
-      sentiment: 'bussing',
-      deliveryTime: '32 min',
-      distance: '1.3 mi',
-      image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
-      isLive: false,
-    },
-    {
-      id: '6',
-      name: 'Tokyo Dreams',
-      cuisine: 'Japanese',
-      sentiment: 'decent',
-      deliveryTime: '22 min',
-      distance: '0.6 mi',
-      image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
-      isLive: true,
-      liveViewers: 234,
-    },
-    {
-      id: '7',
-      name: 'Mumbai Spice',
-      cuisine: 'Indian',
-      sentiment: 'average',
-      deliveryTime: '40 min',
-      distance: '1.8 mi',
-      image: { uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop' },
-      isLive: false,
-    },
-    {
-      id: '8',
-      name: 'Parisian Bistro',
-      cuisine: 'French',
-      sentiment: 'mid',
-      deliveryTime: '45 min',
-      distance: '2.1 mi',
-      image: { uri: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop' },
-      isLive: true,
-      liveViewers: 67,
-    },
-  ];
+  // Use kitchens from props (which come from API in MainScreen)
+  // Return empty array if no kitchens provided instead of mock data
+  const baseKitchens = kitchens.length > 0 ? kitchens : [];
 
-  const displayKitchens = kitchens.length > 0 ? kitchens : defaultKitchens;
+  // Search functionality with debouncing
+  const { setSearchQuery, filteredItems: displayKitchens } = useCategoryDrawerSearch({
+    items: baseKitchens,
+    searchFields: ['name', 'cuisine'],
+  });
 
   // Enhanced filter chips for kitchen categories
   const filterChips = [
@@ -126,19 +46,6 @@ export function FeaturedKitchensDrawer({
     { id: 'trending', label: 'Trending', icon: 'flame' },
   ];
 
-  const liveKitchens = displayKitchens.filter(kitchen => kitchen.isLive);
-  const eliteKitchens = displayKitchens.filter(kitchen => 
-    ['elite', 'bussing', 'fire', 'slaps'].includes(kitchen.sentiment)
-  );
-  const quickKitchens = displayKitchens.filter(kitchen => {
-    const deliveryTime = parseInt(kitchen.deliveryTime.split(' ')[0]);
-    return deliveryTime <= 30;
-  });
-  const nearbyKitchens = displayKitchens.filter(kitchen => {
-    const distance = parseFloat(kitchen.distance.split(' ')[0]);
-    return distance <= 1.5;
-  });
-
   return (
     <CategoryFullDrawer
       categoryName="Featured Kitchens"
@@ -146,7 +53,9 @@ export function FeaturedKitchensDrawer({
       onBack={onBack}
       filterChips={filterChips}
       activeFilters={[]}
+      onSearch={setSearchQuery}
       searchPlaceholder="Search kitchens by name or cuisine..."
+      backButtonInSearchBar={true}
     >
       <View style={styles.content}>
         <ScrollView 

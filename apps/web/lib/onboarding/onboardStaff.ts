@@ -1,6 +1,7 @@
 import { mattermostService } from '@/lib/mattermost';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
+import { logger } from '@/lib/utils/logger';
 
 export async function onboardStaff(validatedData: any) {
   // --- MATTERMOST USER SETUP ---
@@ -60,7 +61,7 @@ export async function onboardStaff(validatedData: any) {
       // };
       // const themeSet = await mattermostService.setUserTheme(mattermostUser.id, sampleTheme);
       // if (!themeSet) {
-      //   console.error('Failed to set Mattermost theme for user:', validatedData.email);
+      //   logger.error('Failed to set Mattermost theme for user:', validatedData.email);
       // }
       // Store Mattermost user ID in DB
       try {
@@ -90,13 +91,13 @@ export async function onboardStaff(validatedData: any) {
           }
         }
       } catch (err) {
-        console.error('Failed to update Mattermost user ID in DB:', validatedData.email, err);
+        logger.error('Failed to update Mattermost user ID in DB:', validatedData.email, err);
       }
     } else {
-      console.error('Failed to create or find Mattermost user for onboarding:', validatedData.email);
+      logger.error('Failed to create or find Mattermost user for onboarding:', validatedData.email);
     }
   } catch (err) {
-    console.error('Mattermost user setup error:', validatedData.email, err);
+    logger.error('Mattermost user setup error:', validatedData.email, err);
   }
   // --- END MATTERMOST USER SETUP ---
   return { success: true, email: validatedData.email, mattermostUser };

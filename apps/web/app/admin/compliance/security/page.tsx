@@ -1,33 +1,29 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, 
-  CheckCircle,
-  XCircle,
+import { api } from '@/convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Activity,
   AlertTriangle,
-  Lock,
-  Eye,
-  Download,
   Calendar,
-  Clock,
-  Settings,
-  Key,
+  CheckCircle,
   Database,
-  Network,
-  UserCheck,
+  Download,
+  Eye,
   FileText,
-  Activity
+  Key,
+  Network,
+  Settings,
+  Shield,
+  UserCheck
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 interface SecurityCompliance {
   authentication: {
@@ -110,6 +106,15 @@ export default function SecurityCompliancePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  
+  // Get session token from admin auth provider
+  const { sessionToken } = useAdminUser();
+  
+  // Filter states
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedComplianceStandards, setSelectedComplianceStandards] = useState<string[]>([]);
 
   // Fetch security compliance data
   const securityData = useQuery((api as any).queries.compliance.getSecurityCompliance);
@@ -156,8 +161,28 @@ export default function SecurityCompliancePage() {
 
   const handleGenerateReport = async () => {
     try {
-      await generateSecurityReport();
-      setSuccess('Security report generated successfully');
+      const result = await generateSecurityReport({
+        reportType: 'security',
+        dateRange: {
+          start: Date.now() - (30 * 24 * 60 * 60 * 1000), // 30 days ago
+          end: Date.now(),
+        },
+        format: 'pdf',
+        sessionToken: sessionToken || undefined,
+      });
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        link.download = `security-compliance-report-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Security report downloaded successfully');
+      } else {
+        setSuccess('Security report generated successfully');
+      }
       setError(null);
     } catch (err) {
       setError('Failed to generate report');
@@ -196,56 +221,136 @@ export default function SecurityCompliancePage() {
 
   const securityCategories = [
     {
+      id: 'authentication',
       title: 'Authentication',
       icon: Key,
       items: [
-        { label: 'Two-Factor Authentication', value: securityData?.authentication.twoFactorAuth ? 1 : 0, max: 1 },
-        { label: 'Password Policy', value: securityData?.authentication.passwordPolicy ? 1 : 0, max: 1 },
-        { label: 'Session Management', value: securityData?.authentication.sessionManagement ? 1 : 0, max: 1 },
-        { label: 'Account Lockout', value: securityData?.authentication.accountLockout ? 1 : 0, max: 1 },
-        { label: 'Biometric Auth', value: securityData?.authentication.biometricAuth ? 1 : 0, max: 1 },
-        { label: 'SSO Enabled', value: securityData?.authentication.ssoEnabled ? 1 : 0, max: 1 }
+        { label: 'Two-Factor Authentication', value: securityData?.authentication?.twoFactorAuth ? 1 : 0, max: 1 },
+        { label: 'Password Policy', value: securityData?.authentication?.passwordPolicy ? 1 : 0, max: 1 },
+        { label: 'Session Management', value: securityData?.authentication?.sessionManagement ? 1 : 0, max: 1 },
+        { label: 'Account Lockout', value: securityData?.authentication?.accountLockout ? 1 : 0, max: 1 },
+        { label: 'Biometric Auth', value: securityData?.authentication?.biometricAuth ? 1 : 0, max: 1 },
+        { label: 'SSO Enabled', value: securityData?.authentication?.ssoEnabled ? 1 : 0, max: 1 }
       ]
     },
     {
+      id: 'authorization',
       title: 'Authorization',
       icon: UserCheck,
       items: [
-        { label: 'Role-Based Access', value: securityData?.authorization.roleBasedAccess ? 1 : 0, max: 1 },
-        { label: 'Least Privilege', value: securityData?.authorization.principleOfLeastPrivilege ? 1 : 0, max: 1 },
-        { label: 'Access Reviews', value: securityData?.authorization.regularAccessReviews ? 1 : 0, max: 1 },
-        { label: 'Privilege Escalation', value: securityData?.authorization.privilegeEscalation ? 1 : 0, max: 1 },
-        { label: 'API Access Control', value: securityData?.authorization.apiAccessControl ? 1 : 0, max: 1 }
+        { label: 'Role-Based Access', value: securityData?.authorization?.roleBasedAccess ? 1 : 0, max: 1 },
+        { label: 'Least Privilege', value: securityData?.authorization?.principleOfLeastPrivilege ? 1 : 0, max: 1 },
+        { label: 'Access Reviews', value: securityData?.authorization?.regularAccessReviews ? 1 : 0, max: 1 },
+        { label: 'Privilege Escalation', value: securityData?.authorization?.privilegeEscalation ? 1 : 0, max: 1 },
+        { label: 'API Access Control', value: securityData?.authorization?.apiAccessControl ? 1 : 0, max: 1 }
       ]
     },
     {
+      id: 'dataSecurity',
       title: 'Data Security',
       icon: Database,
       items: [
-        { label: 'Encryption at Rest', value: securityData?.dataSecurity.encryptionAtRest ? 1 : 0, max: 1 },
-        { label: 'Encryption in Transit', value: securityData?.dataSecurity.encryptionInTransit ? 1 : 0, max: 1 },
-        { label: 'Key Management', value: securityData?.dataSecurity.keyManagement ? 1 : 0, max: 1 },
-        { label: 'Data Classification', value: securityData?.dataSecurity.dataClassification ? 1 : 0, max: 1 },
-        { label: 'Secure Backup', value: securityData?.dataSecurity.secureBackup ? 1 : 0, max: 1 },
-        { label: 'Data Loss Prevention', value: securityData?.dataSecurity.dataLossPrevention ? 1 : 0, max: 1 }
+        { label: 'Encryption at Rest', value: securityData?.dataSecurity?.encryptionAtRest ? 1 : 0, max: 1 },
+        { label: 'Encryption in Transit', value: securityData?.dataSecurity?.encryptionInTransit ? 1 : 0, max: 1 },
+        { label: 'Key Management', value: securityData?.dataSecurity?.keyManagement ? 1 : 0, max: 1 },
+        { label: 'Data Classification', value: securityData?.dataSecurity?.dataClassification ? 1 : 0, max: 1 },
+        { label: 'Secure Backup', value: securityData?.dataSecurity?.secureBackup ? 1 : 0, max: 1 },
+        { label: 'Data Loss Prevention', value: securityData?.dataSecurity?.dataLossPrevention ? 1 : 0, max: 1 }
       ]
     },
     {
+      id: 'networkSecurity',
       title: 'Network Security',
       icon: Network,
       items: [
-        { label: 'Firewall', value: securityData?.networkSecurity.firewall ? 1 : 0, max: 1 },
-        { label: 'Intrusion Detection', value: securityData?.networkSecurity.intrusionDetection ? 1 : 0, max: 1 },
-        { label: 'DDoS Protection', value: securityData?.networkSecurity.ddosProtection ? 1 : 0, max: 1 },
-        { label: 'VPN Access', value: securityData?.networkSecurity.vpnAccess ? 1 : 0, max: 1 },
-        { label: 'Network Segmentation', value: securityData?.networkSecurity.networkSegmentation ? 1 : 0, max: 1 },
-        { label: 'SSL/TLS', value: securityData?.networkSecurity.sslTls ? 1 : 0, max: 1 }
+        { label: 'Firewall', value: securityData?.networkSecurity?.firewall ? 1 : 0, max: 1 },
+        { label: 'Intrusion Detection', value: securityData?.networkSecurity?.intrusionDetection ? 1 : 0, max: 1 },
+        { label: 'DDoS Protection', value: securityData?.networkSecurity?.ddosProtection ? 1 : 0, max: 1 },
+        { label: 'VPN Access', value: securityData?.networkSecurity?.vpnAccess ? 1 : 0, max: 1 },
+        { label: 'Network Segmentation', value: securityData?.networkSecurity?.networkSegmentation ? 1 : 0, max: 1 },
+        { label: 'SSL/TLS', value: securityData?.networkSecurity?.sslTls ? 1 : 0, max: 1 }
       ]
     }
   ];
 
+  // Filter functions
+  const toggleFilter = (filterType: 'category' | 'severity' | 'status' | 'compliance', value: string) => {
+    switch (filterType) {
+      case 'category':
+        setSelectedCategories(prev => 
+          prev.includes(value) ? prev.filter(f => f !== value) : [...prev, value]
+        );
+        break;
+      case 'severity':
+        setSelectedSeverities(prev => 
+          prev.includes(value) ? prev.filter(f => f !== value) : [...prev, value]
+        );
+        break;
+      case 'status':
+        setSelectedStatuses(prev => 
+          prev.includes(value) ? prev.filter(f => f !== value) : [...prev, value]
+        );
+        break;
+      case 'compliance':
+        setSelectedComplianceStandards(prev => 
+          prev.includes(value) ? prev.filter(f => f !== value) : [...prev, value]
+        );
+        break;
+    }
+  };
+
+  // Filtered data
+  const filteredCategories = useMemo(() => {
+    if (selectedCategories.length === 0) return securityCategories;
+    return securityCategories.filter(cat => selectedCategories.includes(cat.id));
+  }, [selectedCategories]);
+
+  const filteredVulnerabilities = useMemo(() => {
+    if (!securityData?.vulnerabilities) return [];
+    let filtered = securityData.vulnerabilities;
+    
+    if (selectedSeverities.length > 0) {
+      filtered = filtered.filter((v: any) => selectedSeverities.includes(v.severity));
+    }
+    
+    if (selectedStatuses.length > 0) {
+      filtered = filtered.filter((v: any) => selectedStatuses.includes(v.status));
+    }
+    
+    return filtered;
+  }, [securityData?.vulnerabilities, selectedSeverities, selectedStatuses]);
+
+  const filteredIncidents = useMemo(() => {
+    if (!securityData?.securityIncidents) return [];
+    let filtered = securityData.securityIncidents;
+    
+    if (selectedSeverities.length > 0) {
+      filtered = filtered.filter((i: any) => selectedSeverities.includes(i.severity));
+    }
+    
+    if (selectedStatuses.length > 0) {
+      filtered = filtered.filter((i: any) => selectedStatuses.includes(i.status));
+    }
+    
+    return filtered;
+  }, [securityData?.securityIncidents, selectedSeverities, selectedStatuses]);
+
+  const filteredComplianceStandards = useMemo(() => {
+    const standards = [
+      { id: 'iso27001', name: 'ISO 27001', value: securityData?.compliance?.iso27001, color: 'bg-blue-100 text-blue-800' },
+      { id: 'soc2', name: 'SOC 2', value: securityData?.compliance?.soc2, color: 'bg-green-100 text-green-800' },
+      { id: 'pciDss', name: 'PCI DSS', value: securityData?.compliance?.pciDss, color: 'bg-purple-100 text-purple-800' },
+      { id: 'hipaa', name: 'HIPAA', value: securityData?.compliance?.hipaa, color: 'bg-orange-100 text-orange-800' },
+      { id: 'gdpr', name: 'GDPR', value: securityData?.compliance?.gdpr, color: 'bg-yellow-100 text-yellow-800' },
+      { id: 'regularAudits', name: 'Regular Audits', value: securityData?.compliance?.regularAudits, color: 'bg-red-100 text-red-800' }
+    ];
+    
+    if (selectedComplianceStandards.length === 0) return standards;
+    return standards.filter(s => selectedComplianceStandards.includes(s.id));
+  }, [securityData?.compliance, selectedComplianceStandards]);
+
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -263,7 +368,7 @@ export default function SecurityCompliancePage() {
           </Button>
           <Button
             onClick={() => {/* Open security settings */}}
-            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
           >
             <Settings className="w-4 h-4 mr-2" />
             Settings
@@ -306,9 +411,120 @@ export default function SecurityCompliancePage() {
         </Alert>
       )}
 
+      {/* Filter Chips */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            {/* Category Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Security Categories</h3>
+              <div className="flex flex-wrap gap-2">
+                {securityCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => toggleFilter('category', category.id)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      selectedCategories.includes(category.id)
+                        ? 'bg-[#F23E2E] text-white border-[#F23E2E]'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#F23E2E]/50'
+                    }`}
+                  >
+                    {category.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Severity Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Severity</h3>
+              <div className="flex flex-wrap gap-2">
+                {['critical', 'high', 'medium', 'low'].map((severity) => (
+                  <button
+                    key={severity}
+                    onClick={() => toggleFilter('severity', severity)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors capitalize ${
+                      selectedSeverities.includes(severity)
+                        ? 'bg-[#F23E2E] text-white border-[#F23E2E]'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#F23E2E]/50'
+                    }`}
+                  >
+                    {severity}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Status</h3>
+              <div className="flex flex-wrap gap-2">
+                {['open', 'in_progress', 'investigating', 'contained', 'resolved'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => toggleFilter('status', status)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors capitalize ${
+                      selectedStatuses.includes(status)
+                        ? 'bg-[#F23E2E] text-white border-[#F23E2E]'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#F23E2E]/50'
+                    }`}
+                  >
+                    {status.replace('_', ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Compliance Standards Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Compliance Standards</h3>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'iso27001', name: 'ISO 27001' },
+                  { id: 'soc2', name: 'SOC 2' },
+                  { id: 'pciDss', name: 'PCI DSS' },
+                  { id: 'hipaa', name: 'HIPAA' },
+                  { id: 'gdpr', name: 'GDPR' },
+                  { id: 'regularAudits', name: 'Regular Audits' }
+                ].map((standard) => (
+                  <button
+                    key={standard.id}
+                    onClick={() => toggleFilter('compliance', standard.id)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      selectedComplianceStandards.includes(standard.id)
+                        ? 'bg-[#F23E2E] text-white border-[#F23E2E]'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#F23E2E]/50'
+                    }`}
+                  >
+                    {standard.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Clear All Filters */}
+            {(selectedCategories.length > 0 || selectedSeverities.length > 0 || selectedStatuses.length > 0 || selectedComplianceStandards.length > 0) && (
+              <div>
+                <button
+                  onClick={() => {
+                    setSelectedCategories([]);
+                    setSelectedSeverities([]);
+                    setSelectedStatuses([]);
+                    setSelectedComplianceStandards([]);
+                  }}
+                  className="text-sm text-[#F23E2E] hover:underline"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Security Categories */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {securityCategories.map((category, index) => (
+        {filteredCategories.map((category, index) => (
           <Card key={index}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -343,14 +559,7 @@ export default function SecurityCompliancePage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {[
-              { name: 'ISO 27001', value: securityData?.compliance.iso27001, color: 'bg-blue-100 text-blue-800' },
-              { name: 'SOC 2', value: securityData?.compliance.soc2, color: 'bg-green-100 text-green-800' },
-              { name: 'PCI DSS', value: securityData?.compliance.pciDss, color: 'bg-purple-100 text-purple-800' },
-              { name: 'HIPAA', value: securityData?.compliance.hipaa, color: 'bg-orange-100 text-orange-800' },
-              { name: 'GDPR', value: securityData?.compliance.gdpr, color: 'bg-yellow-100 text-yellow-800' },
-              { name: 'Regular Audits', value: securityData?.compliance.regularAudits, color: 'bg-red-100 text-red-800' }
-            ].map((standard, index) => (
+            {filteredComplianceStandards.map((standard, index) => (
               <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                 <span className="text-sm font-medium text-gray-900">{standard.name}</span>
                 <Badge className={standard.value ? standard.color : 'bg-gray-100 text-gray-800'}>
@@ -373,7 +582,18 @@ export default function SecurityCompliancePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {securityData?.vulnerabilities?.map((vulnerability: any) => (
+            {filteredVulnerabilities.length === 0 && (selectedSeverities.length > 0 || selectedStatuses.length > 0) ? (
+              <div className="text-center py-8 text-gray-500">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p>No vulnerabilities match the selected filters</p>
+              </div>
+            ) : filteredVulnerabilities.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
+                <p>No security vulnerabilities found</p>
+              </div>
+            ) : (
+              filteredVulnerabilities.map((vulnerability: any) => (
               <div key={vulnerability.id} className="flex items-start justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -423,12 +643,7 @@ export default function SecurityCompliancePage() {
                   )}
                 </div>
               </div>
-            ))}
-            {(!securityData?.vulnerabilities || securityData.vulnerabilities.length === 0) && (
-              <div className="text-center py-8 text-gray-500">
-                <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
-                <p>No security vulnerabilities found</p>
-              </div>
+              ))
             )}
           </div>
         </CardContent>
@@ -445,7 +660,18 @@ export default function SecurityCompliancePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {securityData?.securityIncidents?.map((incident: any) => (
+            {filteredIncidents.length === 0 && (selectedSeverities.length > 0 || selectedStatuses.length > 0) ? (
+              <div className="text-center py-8 text-gray-500">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p>No incidents match the selected filters</p>
+              </div>
+            ) : filteredIncidents.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
+                <p>No security incidents found</p>
+              </div>
+            ) : (
+              filteredIncidents.map((incident: any) => (
               <div key={incident.id} className="flex items-start justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -496,12 +722,7 @@ export default function SecurityCompliancePage() {
                   )}
                 </div>
               </div>
-            ))}
-            {(!securityData?.securityIncidents || securityData.securityIncidents.length === 0) && (
-              <div className="text-center py-8 text-gray-500">
-                <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
-                <p>No security incidents found</p>
-              </div>
+              ))
             )}
           </div>
         </CardContent>

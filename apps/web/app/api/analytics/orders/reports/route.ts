@@ -111,13 +111,14 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface GenerateReportRequest {
   reportType: 'sales' | 'performance' | 'trends' | 'customers' | 'chefs' | 'delivery';
@@ -142,7 +143,7 @@ interface GenerateReportRequest {
  *     description: Generate comprehensive order analytics reports in various formats (admin/staff only)
  *     tags: [Analytics]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -177,21 +178,10 @@ interface GenerateReportRequest {
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
+    // Get authenticated user from session token
+    const { user } = await getAuthenticatedUser(request);
     // Check if user has permission to generate reports
-    if (!['admin', 'staff'].includes(payload.role)) {
+    if (!user.roles || (!user.roles.includes('admin') && !user.roles.includes('staff'))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -202,7 +192,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required fields: reportType, startDate, endDate.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Generate report based on type
     const report = await convex.query(api.queries.analytics.generateOrderReport, {
@@ -210,7 +201,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       startDate: new Date(startDate).getTime(),
       endDate: new Date(endDate).getTime(),
       filters: filters || {},
-      includeDetails
+      includeDetails,
+      sessionToken: sessionToken || undefined
     });
 
     // Format response based on requested format
@@ -223,7 +215,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         contentType = 'text/csv';
         break;
       case 'pdf':
-        responseData = await convertToPDF(report, body);
+        responseData = await convertToPDF(report, body, request);
         contentType = 'application/pdf';
         break;
       default:
@@ -240,7 +232,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.fileDownload(responseData, filename, contentType);
 
   } catch (error: any) {
-    console.error('Generate order report error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Generate order report error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to generate order report.' 
     );
   }
@@ -303,12 +298,13 @@ function convertToCSV(report: any): string {
 }
 
 // Helper function to convert report data to PDF
-async function convertToPDF(report: any, requestBody: GenerateReportRequest): Promise<string> {
+async function convertToPDF(report: any, requestBody: GenerateReportRequest, request: NextRequest): Promise<string> {
   // Implementation for PDF conversion
   // This would typically use a library like jsPDF or similar
   // Generate real report data
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get real order data - using the analytics query that exists
     const orders = await convex.query(api.queries.analytics.generateOrderReport, {
@@ -320,7 +316,8 @@ async function convertToPDF(report: any, requestBody: GenerateReportRequest): Pr
         chefId: requestBody.filters?.chefId,
         customerId: requestBody.filters?.customerId
       },
-      includeDetails: true
+      includeDetails: true,
+      sessionToken: sessionToken || undefined
     });
     
     // Generate comprehensive report
@@ -339,7 +336,7 @@ async function convertToPDF(report: any, requestBody: GenerateReportRequest): Pr
     
     return JSON.stringify(reportData);
   } catch (error) {
-    console.error('Failed to generate analytics report:', error);
+    logger.error('Failed to generate analytics report:', error);
     return JSON.stringify({ error: 'Failed to generate report' });
   }
 }

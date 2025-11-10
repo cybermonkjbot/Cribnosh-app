@@ -1,9 +1,14 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from "@/convex/_generated/api";
 import { withAdminAuth } from '../../../../../lib/api/admin-middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -145,12 +150,12 @@ import { withAdminAuth } from '../../../../../lib/api/admin-middleware';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handlePOST(req: NextRequest) {
   try {
-    const client = getConvexClient();
+    const client = getConvexClientFromRequest(req);
     const { channelName, reason, adminId } = await req.json();
 
     if (!channelName || !reason) {
@@ -163,8 +168,11 @@ async function handlePOST(req: NextRequest) {
     });
 
     return ResponseFactory.success(result);
-  } catch (error) {
-    console.error('Error force ending live session:', error);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
+    logger.error('Error force ending live session:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

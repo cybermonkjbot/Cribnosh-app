@@ -1,9 +1,13 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -134,12 +138,12 @@ import { Id } from "@/convex/_generated/dataModel";
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 export async function POST(req: NextRequest) {
   try {
-    const client = getConvexClient();
+    const client = getConvexClientFromRequest(req);
     const { sessionId } = await req.json();
 
           const result = await client.mutation(api.mutations.liveSessions.endLiveSession, {
@@ -147,8 +151,11 @@ export async function POST(req: NextRequest) {
       });
 
     return ResponseFactory.success(result);
-  } catch (error) {
-    console.error('Error ending live session:', error);
-    return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
+    logger.error('Error ending live session:', error);
+    return ResponseFactory.error(getErrorMessage(error, 'Internal Server Error'), 'CUSTOM_ERROR', 500);
   }
 }

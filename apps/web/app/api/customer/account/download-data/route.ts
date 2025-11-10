@@ -1,17 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { withErrorHandling } from '@/lib/errors';
-import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
-import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { generateDataDownload } from '@/lib/services/data-compilation';
 import { Id } from '@/convex/_generated/dataModel';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { generateDataDownload } from '@/lib/services/data-compilation';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 const MAX_DOWNLOAD_REQUESTS_PER_24H = 1;
 const DOWNLOAD_EXPIRY_HOURS = 48; // Data download link expires in 48 hours
 
@@ -56,53 +55,21 @@ const DOWNLOAD_EXPIRY_HOURS = 48; // Data download link expires in 48 hours
  *       429:
  *         description: Too many download requests (max 1 per 24 hours)
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can request data downloads',
-        'FORBIDDEN',
-        403
-      );
-    }
-
-    const convex = getConvexClient();
-    const userId = payload.user_id;
-
-    if (!userId) {
-      return createSpecErrorResponse(
-        'User ID not found in token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Check if user exists
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return createSpecErrorResponse(
         'User not found',
@@ -117,6 +84,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       {
         userId,
         hours: 24,
+        sessionToken: sessionToken || undefined
       }
     );
 
@@ -138,11 +106,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       userId,
       download_token: downloadToken,
       expires_at: expiresAt,
+      sessionToken: sessionToken || undefined
     });
 
     // Trigger async job to compile user data and send email when ready
-    generateDataDownload(userId as Id<'users'>, downloadToken, expiresAt).catch((error) => {
-      console.error('Failed to generate data download:', error);
+    generateDataDownload(userId as Id<'users'>, downloadToken, expiresAt, sessionToken).catch((error) => {
+      logger.error('Failed to generate data download:', error);
     });
 
     return ResponseFactory.success(
@@ -154,6 +123,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       "Your data download request has been submitted. You'll receive an email when it's ready."
     );
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to process data download request'),
       'INTERNAL_ERROR',

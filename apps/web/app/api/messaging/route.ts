@@ -1,8 +1,12 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -42,7 +46,7 @@ import { withErrorHandling } from '@/lib/errors';
  *         description: Internal server error
  */
 export const GET = withErrorHandling(async (request: NextRequest) => {
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
   
   try {
     // For now, return mock data until Convex functions are implemented
@@ -77,7 +81,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       }
     });
   } catch (error) {
-    console.error('Error in messaging overview:', error);
+    logger.error('Error in messaging overview:', error);
     return ResponseFactory.error('Failed to retrieve messaging overview', 'MESSAGING_OVERVIEW_ERROR', 500);
   }
 });

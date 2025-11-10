@@ -1,33 +1,35 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileText, 
-  Search, 
-  Filter,
-  Plus,
-  Download,
-  Eye,
-  Trash2,
+import { useSessionToken } from '@/hooks/useSessionToken';
+import { formatCurrency } from '@/lib/utils/number-format';
+import { useMutation, useQuery } from 'convex/react';
+import {
   Calendar,
-  User,
-  DollarSign,
   CheckCircle,
   Clock,
-  AlertTriangle,
+  DollarSign,
+  Download,
+  Eye,
   FileSpreadsheet,
-  Receipt
+  FileText,
+  Filter,
+  Plus,
+  Receipt,
+  Search,
+  Trash2,
+  User
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useEffect, useState } from 'react';
+import { useAdminUser } from '../../AdminUserProvider';
 
 interface TaxDocument {
   _id: Id<"taxDocuments">;
@@ -80,15 +82,23 @@ interface TaxDocumentTemplate {
 }
 
 export default function TaxDocumentsPage() {
+  const { sessionToken: adminSessionToken } = useAdminUser();
+  const cookieSessionToken = useSessionToken();
+  // Use cookie sessionToken if available (works in dev), otherwise fall back to admin context
+  const sessionToken = cookieSessionToken || adminSessionToken;
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState<string | null>(null);
 
   // New document form
   const [newDocument, setNewDocument] = useState({
@@ -104,7 +114,7 @@ export default function TaxDocumentsPage() {
 
   // Fetch data
   const taxDocuments = useQuery((api as any).queries.payroll.getTaxDocuments);
-  const employees = useQuery((api as any).queries.users.getUsersForAdmin);
+  const employees = useQuery((api as any).queries.users.getUsersForAdmin, sessionToken ? { sessionToken } : "skip");
   const templates = useQuery((api as any).queries.payroll.getTaxDocumentTemplates);
   const payrollStats = useQuery((api as any).queries.payroll.getPayrollStats);
 
@@ -122,15 +132,17 @@ export default function TaxDocumentsPage() {
 
     setIsGenerating(true);
     try {
+      setError(null);
       await generateDocument({
         documentType: newDocument.documentType,
         employeeId: newDocument.employeeId as Id<"users">,
-        taxYear: newDocument.taxYear,
+        taxYear: parseInt(newDocument.taxYear, 10),
         period: {
           start: new Date(newDocument.period.start).getTime(),
           end: new Date(newDocument.period.end).getTime()
         },
-        notes: newDocument.notes
+        notes: newDocument.notes,
+        sessionToken: sessionToken || undefined
       });
       
       setNewDocument({
@@ -144,9 +156,8 @@ export default function TaxDocumentsPage() {
         notes: ''
       });
       setSuccess('Tax document generated successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to generate tax document');
+      setError(err instanceof Error ? err.message : 'Failed to generate tax document');
     } finally {
       setIsGenerating(false);
     }
@@ -155,39 +166,79 @@ export default function TaxDocumentsPage() {
   const handleDeleteDocument = async (documentId: Id<"taxDocuments">) => {
     if (confirm('Are you sure you want to delete this tax document?')) {
       try {
-        await deleteDocument({ documentId });
-        setSuccess('Tax document deleted successfully');
         setError(null);
+        setIsDeleting(documentId);
+        await deleteDocument({ documentId, sessionToken: sessionToken || undefined });
+        setSuccess('Tax document deleted successfully');
       } catch (err) {
-        setError('Failed to delete tax document');
+        setError(err instanceof Error ? err.message : 'Failed to delete tax document');
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
 
   const handleDownloadDocument = async (documentId: Id<"taxDocuments">) => {
     try {
-      await downloadDocument({ documentId });
-      setSuccess('Document download started');
       setError(null);
+      setIsDownloading(documentId);
+      const result = await downloadDocument({ documentId, sessionToken: sessionToken || undefined });
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        const taxDoc = taxDocuments?.find((d: any) => d._id === documentId);
+        const fileName = taxDoc 
+          ? `${taxDoc.documentType}-${taxDoc.taxYear}-${taxDoc.metadata?.employeeName || 'employee'}.pdf`
+          : `tax-document-${documentId}.pdf`;
+        link.download = fileName.replace(/[^a-z0-9.-]/gi, '_');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Document downloaded successfully');
+      } else {
+        setSuccess('Document download started');
+      }
     } catch (err) {
-      setError('Failed to download document');
+      setError(err instanceof Error ? err.message : 'Failed to download document');
+    } finally {
+      setIsDownloading(null);
     }
   };
 
   const handleSendDocument = async (documentId: Id<"taxDocuments">) => {
     try {
+      setError(null);
+      setIsSending(documentId);
       await sendDocument({ documentId });
       setSuccess('Document sent successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to send document');
+      setError(err instanceof Error ? err.message : 'Failed to send document');
+    } finally {
+      setIsSending(null);
     }
   };
 
+  // Auto-dismiss success/error messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const filteredDocuments = taxDocuments?.filter((document: any) => {
     const matchesSearch = 
-      document.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      document.documentType.toLowerCase().includes(searchTerm.toLowerCase());
+      (document.employeeName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (document.documentType?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
     const matchesType = typeFilter === 'all' || document.documentType === typeFilter;
     const matchesStatus = statusFilter === 'all' || document.status === statusFilter;
@@ -199,43 +250,45 @@ export default function TaxDocumentsPage() {
       case 'recent':
         return b.generatedAt - a.generatedAt;
       case 'name':
-        return a.employeeName.localeCompare(b.employeeName);
+        return (a.employeeName || '').localeCompare(b.employeeName || '');
       case 'type':
-        return a.documentType.localeCompare(b.documentType);
+        return (a.documentType || '').localeCompare(b.documentType || '');
       case 'status':
-        return a.status.localeCompare(b.status);
+        return (a.status || '').localeCompare(b.status || '');
       default:
         return 0;
     }
   }) || [];
 
   const getStatusBadge = (status: string) => {
+    // Use brand color for positive statuses, neutral dark for others
     switch (status) {
       case 'draft':
         return <Badge className="bg-gray-100 text-gray-800">Draft</Badge>;
       case 'generated':
-        return <Badge className="bg-blue-100 text-blue-800">Generated</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Generated</Badge>;
       case 'sent':
-        return <Badge className="bg-yellow-100 text-yellow-800">Sent</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Sent</Badge>;
       case 'acknowledged':
-        return <Badge className="bg-green-100 text-green-800">Acknowledged</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Acknowledged</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
   const getTypeBadge = (type: string) => {
+    // Use brand color for all types, neutral dark for custom
     switch (type) {
       case 'p60':
-        return <Badge className="bg-red-100 text-red-800">P60</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">P60</Badge>;
       case 'p45':
-        return <Badge className="bg-orange-100 text-orange-800">P45</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">P45</Badge>;
       case 'p11d':
-        return <Badge className="bg-purple-100 text-purple-800">P11D</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">P11D</Badge>;
       case 'payslip':
-        return <Badge className="bg-green-100 text-green-800">Payslip</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Payslip</Badge>;
       case 'tax_summary':
-        return <Badge className="bg-blue-100 text-blue-800">Tax Summary</Badge>;
+        return <Badge className="bg-[#F23E2E]/10 text-[#F23E2E]">Tax Summary</Badge>;
       case 'custom':
         return <Badge className="bg-gray-100 text-gray-800">Custom</Badge>;
       default:
@@ -243,17 +296,12 @@ export default function TaxDocumentsPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(amount);
-  };
+  // formatCurrency is imported from utils
 
   const uniqueYears = Array.from(new Set(taxDocuments?.map((doc: any) => doc.taxYear) || []));
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -274,8 +322,8 @@ export default function TaxDocumentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <FileText className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Documents</p>
@@ -288,8 +336,8 @@ export default function TaxDocumentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Generated</p>
@@ -304,8 +352,8 @@ export default function TaxDocumentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Clock className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
@@ -320,8 +368,8 @@ export default function TaxDocumentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-purple-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <DollarSign className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Value</p>
@@ -443,7 +491,7 @@ export default function TaxDocumentsPage() {
             <Button 
               onClick={handleGenerateDocument} 
               disabled={isGenerating}
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               {isGenerating ? 'Generating...' : 'Generate Document'}
             </Button>
@@ -568,7 +616,7 @@ export default function TaxDocumentsPage() {
                     <Button
                       size="sm"
                       onClick={() => handleSendDocument(document._id)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                     >
                       Send
                     </Button>
@@ -577,7 +625,7 @@ export default function TaxDocumentsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleDeleteDocument(document._id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-gray-900 hover:text-[#F23E2E]"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -671,8 +719,8 @@ export default function TaxDocumentsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {templates.map((template: any) => (
-                <div key={template._id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+              {templates.map((template: any, index: number) => (
+                <div key={template._id || `template-${index}`} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="p-2 bg-[#F23E2E]/10 rounded-lg">
                       <Receipt className="w-4 h-4 text-[#F23E2E]" />

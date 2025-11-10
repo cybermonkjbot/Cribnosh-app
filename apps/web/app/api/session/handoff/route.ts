@@ -31,6 +31,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { verifySessionTransferToken } from '@/lib/auth/session-transfer';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(req: NextRequest) {
   const xfer = req.nextUrl.searchParams.get('xfer');
@@ -39,10 +43,11 @@ export async function GET(req: NextRequest) {
   if (!payload) return ResponseFactory.validationError("Invalid transfer token");
 
   // Set the convex-auth-token from payload
+  // httpOnly is false in production so JavaScript can read it for Convex queries
   const cookieStore = await cookies();
   const isProd = process.env.NODE_ENV === 'production';
   cookieStore.set('convex-auth-token', payload.t, {
-    httpOnly: true,
+    httpOnly: false, // Allow JavaScript to read in production for Convex queries
     sameSite: 'lax',
     secure: isProd,
     path: '/',
@@ -55,7 +60,7 @@ export async function GET(req: NextRequest) {
   
   // Ensure we're redirecting to the correct domain based on country
   // This prevents redirect loops by ensuring the handoff completes the domain switch
-  console.log('Session handoff redirecting to:', url.toString());
+  logger.log('Session handoff redirecting to:', url.toString());
   
   return NextResponse.redirect(url, { status: 302 });
 }

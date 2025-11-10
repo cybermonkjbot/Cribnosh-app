@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 const presence: Record<string, Set<string>> = {};
 
@@ -117,7 +121,7 @@ const presence: Record<string, Set<string>> = {};
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 export async function POST(req: NextRequest) {
@@ -140,7 +144,7 @@ export async function POST(req: NextRequest) {
     const count = presence[channelName].size;
     return ResponseFactory.success({ channelName, viewerCount: count });
   } catch (error) {
-    console.error('Error tracking viewer presence:', error);
+    logger.error('Error tracking viewer presence:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

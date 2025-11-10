@@ -1,5 +1,6 @@
 // Real Gemini Pro REST API call using Vertex AI
 import { EmotionsEngineRequest } from '../types';
+import { logger } from '@/lib/utils/logger';
 
 export async function queryGemini(
   systemPrompt: string,
@@ -79,7 +80,7 @@ export async function queryGemini(
     
     return JSON.stringify({ response_type: 'fallback', message: 'No valid response from Gemini' });
   } catch (err: any) {
-    console.error('Gemini API error:', err);
+    logger.error('Gemini API error:', err);
     return JSON.stringify({ 
       response_type: 'fallback', 
       message: 'Gemini error: ' + (err?.message || 'Unknown error') 

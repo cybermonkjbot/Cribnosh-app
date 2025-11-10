@@ -1,24 +1,26 @@
 ﻿"use client";
 
-import React, { useState } from 'react';
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AnalyticsPageSkeleton } from '@/components/admin/skeletons';
+import { api } from '@/convex/_generated/api';
 import { useQuery } from '@tanstack/react-query';
 import { useConvex } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { motion } from 'motion/react';
-import { 
-  TrendingUp, 
-  Users, 
-  BarChart3,
+import {
   Activity,
+  BarChart3,
+  DollarSign,
   Download,
   Filter,
-  DollarSign,
+  MapPin,
   ShoppingCart,
-  MapPin
+  TrendingUp,
+  Users
 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/lib/utils/number-format';
 import Link from 'next/link';
 
 interface AnalyticsData {
@@ -38,6 +40,8 @@ interface AnalyticsData {
 }
 
 export default function AdminAnalyticsPage() {
+  // Auth is handled by layout, no client-side checks needed
+  const { user } = useAdminUser();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const convex = useConvex();
 
@@ -78,8 +82,8 @@ export default function AdminAnalyticsPage() {
       change: `${currentData.userGrowth >= 0 ? '+' : ''}${currentData.userGrowth.toFixed(1)}%`,
       changeType: currentData.userGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-gray-900',
+      bgColor: 'bg-gray-100',
     },
     {
       title: 'Active Chefs',
@@ -87,8 +91,8 @@ export default function AdminAnalyticsPage() {
       change: `${currentData.chefGrowth >= 0 ? '+' : ''}${currentData.chefGrowth.toFixed(1)}%`,
       changeType: currentData.chefGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: Activity,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-gray-900',
+      bgColor: 'bg-gray-100',
     },
     {
       title: 'Total Orders',
@@ -96,36 +100,30 @@ export default function AdminAnalyticsPage() {
       change: `${currentData.orderGrowth >= 0 ? '+' : ''}${currentData.orderGrowth.toFixed(1)}%`,
       changeType: currentData.orderGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: TrendingUp,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      color: 'text-gray-900',
+      bgColor: 'bg-gray-100',
     },
     {
       title: 'Revenue',
-      value: `£${currentData.totalRevenue.toLocaleString()}`,
+      value: formatCurrency(currentData.totalRevenue, { currency: 'GBP' }),
       change: `${currentData.revenueGrowth >= 0 ? '+' : ''}${currentData.revenueGrowth.toFixed(1)}%`,
       changeType: currentData.revenueGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: DollarSign,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      color: 'text-gray-900',
+      bgColor: 'bg-gray-100',
     },
   ];
 
   if (isLoading && !analyticsData) {
     return (
-      <AuthWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <AnalyticsPageSkeleton />
-          </div>
-        </div>
-      </AuthWrapper>
+      <div className="container mx-auto py-6 space-y-[18px]">
+        <AnalyticsPageSkeleton />
+      </div>
     );
   }
 
   return (
-    <AuthWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="container mx-auto py-6 space-y-[18px]">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -133,14 +131,14 @@ export default function AdminAnalyticsPage() {
               <p className="text-gray-600 mt-1">Monitor your platform&apos;s performance and growth</p>
             </div>
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <Button variant="outline" size="lg">
                 <Download className="w-4 h-4" />
                 <span className="text-sm font-medium">Export</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              </Button>
+              <Button variant="outline" size="lg">
                 <Filter className="w-4 h-4" />
                 <span className="text-sm font-medium">Filter</span>
-              </button>
+              </Button>
             </div>
         </div>
         
@@ -150,7 +148,7 @@ export default function AdminAnalyticsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-6">
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${realtimeMetrics.systemHealth.status === 'operational' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${realtimeMetrics.systemHealth.status === 'operational' ? 'bg-[#F23E2E]' : 'bg-gray-500'}`}></div>
                     <span className="text-sm font-medium text-gray-700">
                       System: {realtimeMetrics.systemHealth.status}
                     </span>
@@ -183,18 +181,16 @@ export default function AdminAnalyticsPage() {
                   { key: '90d' as const, label: '90 Days' },
                   { key: '1y' as const, label: '1 Year' }
                 ].map((period) => (
-                  <button
+                  <Button
                     key={period.key}
                     onClick={() => setTimeRange(period.key)}
                     disabled={isLoading}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                      timeRange === period.key 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    variant={timeRange === period.key ? "default" : "ghost"}
+                    size="sm"
+                    className={timeRange === period.key ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
                   >
                     {period.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
         </div>
@@ -212,7 +208,7 @@ export default function AdminAnalyticsPage() {
                   <p className="text-2xl sm:text-3xl font-bold font-asgard text-gray-900 mt-1">{metric.value}</p>
                   <div className="flex items-center gap-1 mt-2">
                     <span className={`text-sm font-medium font-satoshi ${
-                      metric.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                      metric.changeType === 'positive' ? 'text-[#F23E2E]' : 'text-gray-600'
                     }`}>
                       {metric.change}
                     </span>
@@ -266,8 +262,8 @@ export default function AdminAnalyticsPage() {
           {currentData.recentActivity.slice(0, 10).map((activity, index) => (
             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Activity className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Activity className="w-4 h-4 text-gray-900" />
                 </div>
                 <span className="font-medium font-satoshi text-gray-900">{activity.type}</span>
               </div>
@@ -301,7 +297,7 @@ export default function AdminAnalyticsPage() {
                   <td className="py-3 px-4 text-sm font-satoshi text-gray-900">{metric.date}</td>
                   <td className="py-3 px-4 text-sm font-satoshi text-gray-600">{metric.users}</td>
                   <td className="py-3 px-4 text-sm font-satoshi text-gray-600">{metric.orders}</td>
-                  <td className="py-3 px-4 text-sm font-satoshi text-gray-600">£{metric.revenue}</td>
+                  <td className="py-3 px-4 text-sm font-satoshi text-gray-600">{formatCurrency(metric.revenue, { currency: 'GBP' })}</td>
                 </tr>
               ))}
             </tbody>
@@ -312,10 +308,10 @@ export default function AdminAnalyticsPage() {
           {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { title: 'View Users', icon: Users, href: '/admin/users', color: 'text-blue-600', bgColor: 'bg-blue-50' },
-              { title: 'Manage Chefs', icon: Activity, href: '/admin/chefs', color: 'text-green-600', bgColor: 'bg-green-50' },
-              { title: 'Order History', icon: ShoppingCart, href: '/admin/orders', color: 'text-purple-600', bgColor: 'bg-purple-50' },
-              { title: 'System Settings', icon: BarChart3, href: '/admin/settings', color: 'text-orange-600', bgColor: 'bg-orange-50' },
+              { title: 'View Users', icon: Users, href: '/admin/users', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+              { title: 'Manage Chefs', icon: Activity, href: '/admin/chefs', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+              { title: 'Order History', icon: ShoppingCart, href: '/admin/orders', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+              { title: 'System Settings', icon: BarChart3, href: '/admin/settings', color: 'text-gray-900', bgColor: 'bg-gray-100' },
             ].map((action, index) => {
               const Icon = action.icon;
               return (
@@ -335,9 +331,7 @@ export default function AdminAnalyticsPage() {
               );
             })}
           </div>
-        </div>
-    </div>
-  </AuthWrapper>
+      </div>
   );
 }
 

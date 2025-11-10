@@ -1,10 +1,13 @@
+import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { withCaching } from '@/lib/api/cache';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
-import type { FunctionReference } from 'convex/server';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 // Type definition for meal data structure
 interface MealData {
@@ -51,28 +54,28 @@ interface MealData {
  *     security: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const convex = getConvexClient();
-  
-  // Extract userId from request (optional for public endpoints)
-  const userId = extractUserIdFromRequest(request);
-  
-  // Get cuisines from meals (with user preferences)
-  const apiQueries = getApiQueries();
-  type MealsQuery = FunctionReference<"query", "public", { userId?: string }, MealData[]>;
-  const mealsQuery = (apiQueries.meals.getAll as unknown as MealsQuery);
-  const meals = await convex.query(mealsQuery, { userId }) as MealData[];
-  const cuisines = new Set<string>();
-  
-  for (const meal of meals) {
-    if (meal.cuisine && Array.isArray(meal.cuisine)) {
-      meal.cuisine.forEach((c: string) => cuisines.add(c));
+  try {
+    const convex = getConvexClientFromRequest(request);
+    
+    // Use optimized query that only gets unique cuisines without loading all meals
+    const cuisines = await convex.query(api.queries.meals.getCuisines, {});
+    
+    const response = ResponseFactory.success({ cuisines });
+    
+    // Add cache headers - cuisines don't change frequently, cache for 1 hour
+    response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=3600');
+    
+    return response;
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch cuisines.'));
   }
-  
-  return ResponseFactory.success({ cuisines: Array.from(cuisines) });
 }
 
-export const GET = withAPIMiddleware(withErrorHandling(handleGET));
+export const GET = withAPIMiddleware(withErrorHandling(withCaching(handleGET, { ttl: 3600 })));
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   return ResponseFactory.error('Method not allowed', 'CUSTOM_ERROR', 405);

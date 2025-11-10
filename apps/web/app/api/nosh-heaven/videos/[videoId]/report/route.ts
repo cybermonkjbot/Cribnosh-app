@@ -1,12 +1,12 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -61,9 +61,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *         description: Internal server error
  */
 async function handlePOST(request: NextRequest, { params }: { params: { videoId: string } }) {
-  const convex = getConvexClient();
-  
   try {
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const body = await request.json();
     const { reason, description, timestamp } = body;
     
@@ -72,20 +72,15 @@ async function handlePOST(request: NextRequest, { params }: { params: { videoId:
       return ResponseFactory.error('Reason is required', 'VALIDATION_ERROR', 400);
     }
     
-    // Get user from JWT token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return ResponseFactory.error('Authorization token required', 'AUTH_ERROR', 401);
-    }
-    
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const userId = decoded.userId;
+    // Get authenticated user from session token
+    const { userId } = await getAuthenticatedUser(request);
     
     // Create report
     await convex.mutation((api as any).mutations.videoPosts.flagVideo, {
       videoId: params.videoId as any,
       reason,
-      description: description || ''
+      description: description || '',
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({
@@ -97,9 +92,12 @@ async function handlePOST(request: NextRequest, { params }: { params: { videoId:
         reportedAt: new Date().toISOString()
       }
     });
-  } catch (error) {
-    console.error('Error in video report:', error);
-    return ResponseFactory.error('Failed to report video', 'VIDEO_REPORT_ERROR', 500);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error in video report:', error);
+    return ResponseFactory.error(getErrorMessage(error, 'Failed to report video'), 'VIDEO_REPORT_ERROR', 500);
   }
 }
 

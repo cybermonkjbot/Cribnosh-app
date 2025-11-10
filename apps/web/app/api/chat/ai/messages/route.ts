@@ -2,12 +2,15 @@ import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withRetry } from '@/lib/api/retry';
 import { getUserFromRequest } from '@/lib/auth/session';
-import { api, getConvexClient } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { aggregateContext } from '@/lib/emotions-engine/core/contextAggregation';
 import { runInference } from '@/lib/emotions-engine/core/inferenceEngine';
 import { DishRecommendation } from '@/lib/emotions-engine/types';
 import { withErrorHandling } from '@/lib/errors';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
+import { Id } from '@/convex/_generated/dataModel';
 
 /**
  * @swagger
@@ -118,7 +121,7 @@ import { NextRequest } from 'next/server';
  *       500:
  *         description: Internal server error
  */
-async function handlePOST(request: NextRequest): Promise<Response> {
+async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Get user from request (optional for AI chat - can work without auth)
     const user = await getUserFromRequest(request);
@@ -145,38 +148,25 @@ async function handlePOST(request: NextRequest): Promise<Response> {
       preferences,
     };
 
-    // Fetch nearby cuisines if location is available
-    let nearbyCuisines: string[] = [];
-    if (location && location.latitude && location.longitude) {
-      const convex = getConvexClient();
-      const nearbyChefsResult = await withRetry(async () => {
-        return await convex.query(api.queries.chefs.findNearbyChefs, {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          maxDistanceKm: 10,
-        });
-      });
-
-      const nearbyChefs = nearbyChefsResult.success ? nearbyChefsResult.data : [];
-      const cuisineSet = new Set<string>();
-      if (Array.isArray(nearbyChefs)) {
-        for (const chef of nearbyChefs) {
-          if (Array.isArray(chef.specialties)) {
-            chef.specialties.forEach((c: string) => cuisineSet.add(c));
-          }
-        }
-      }
-      nearbyCuisines = Array.from(cuisineSet);
-    }
-
+    // Get emotions engine context - this consolidates nearby chefs, user data, and preferences
+    const convex = getConvexClientFromRequest(request);
+    const emotionsContextData = await convex.action(api.actions.emotionsEngine.getEmotionsEngineContext, {
+      userId: userId as Id<'users'> | undefined,
+      location: location ? {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        address: location.address,
+      } : undefined,
+    });
+    
     // Aggregate context
+    const nearbyCuisines = emotionsContextData.nearbyCuisines || [];
     const context = await aggregateContext(emotionsContext, userId, nearbyCuisines);
 
     // Run inference with full context
     const result = await runInference({
       ...context,
       ...emotionsContext,
-      userId,
       intent: 'recommendation',
     });
 
@@ -195,7 +185,10 @@ async function handlePOST(request: NextRequest): Promise<Response> {
       message_id: messageId,
     });
   } catch (err: unknown) {
-    console.error('AI chat error:', err);
+    if (isAuthenticationError(err) || isAuthorizationError(err)) {
+      return handleConvexError(err, request);
+    }
+    logger.error('AI chat error:', err);
     return ResponseFactory.internalError(
       err instanceof Error ? err.message : 'Failed to process AI chat message'
     );

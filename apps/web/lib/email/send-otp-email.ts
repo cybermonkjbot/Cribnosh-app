@@ -1,4 +1,5 @@
 import { EmailService } from './email.service';
+import { logger } from '@/lib/utils/logger';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN';
 
@@ -52,7 +53,7 @@ export async function sendOTPEmail({
       messageId: result,
     };
   } catch (error) {
-    console.error('Failed to send OTP email:', {
+    logger.error('Failed to send OTP email:', {
       error,
       email,
       otpCode,

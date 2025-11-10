@@ -1,6 +1,7 @@
-import { query } from '../_generated/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
+import { query } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 
 // Chef document validator based on schema
 const chefDocValidator = v.object({
@@ -125,9 +126,12 @@ export const getChefById = query({
 export const getById = getChefById;
 
 export const getPendingCuisines = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.array(cuisineDocValidator),
-  handler: async (ctx) => {
+  handler: async (ctx, args: { sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     // Assume there is a cuisines table with a status field
     const pending = await ctx.db.query('cuisines').filter(q => q.eq(q.field('status'), 'pending')).collect();
     return pending;
@@ -151,9 +155,15 @@ export const listAllCuisines = query({
 });
 
 export const listCuisinesByStatus = query({
-  args: { status: v.string() },
+  args: { 
+    status: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.array(cuisineDocValidator),
   handler: async (ctx, args) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db.query('cuisines').filter(q => q.eq(q.field('status'), args.status)).collect();
   }
 });
@@ -175,9 +185,20 @@ export const getMenusByChefId = query({
 });
 
 export const getByUserId = query({
-  args: { userId: v.string() },
+  args: { 
+    userId: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.union(chefDocValidator, v.null()),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own chef profile, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id.toString()) {
+      throw new Error('Access denied');
+    }
+    
     const chef = await ctx.db
       .query('chefs')
       .filter(q => q.eq(q.field('userId'), args.userId))
@@ -244,16 +265,33 @@ export const findNearbyChefs = query({
     const { latitude, longitude, maxDistanceKm = 10 } = args;
     const toRad = (deg: number) => deg * Math.PI / 180;
     const earthRadiusKm = 6371;
-    const chefs = await ctx.db.query('chefs').collect();
-    const withDistance = chefs.map(chef => {
-      const [chefLat, chefLng] = chef.location.coordinates;
-      const dLat = toRad(chefLat - latitude);
-      const dLng = toRad(chefLng - longitude);
-      const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(latitude)) * Math.cos(toRad(chefLat)) * Math.sin(dLng/2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = earthRadiusKm * c;
-      return { ...chef, distance };
-    });
+    
+    // Filter by status first to reduce dataset size
+    const chefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect();
+    
+    const withDistance = chefs
+      .filter(chef => {
+        // Filter out chefs without location data
+        return chef.location && 
+               chef.location.coordinates && 
+               Array.isArray(chef.location.coordinates) && 
+               chef.location.coordinates.length === 2 &&
+               typeof chef.location.coordinates[0] === 'number' &&
+               typeof chef.location.coordinates[1] === 'number';
+      })
+      .map(chef => {
+        // Coordinates are stored as [latitude, longitude]
+        const [chefLat, chefLng] = chef.location.coordinates;
+        const dLat = toRad(chefLat - latitude);
+        const dLng = toRad(chefLng - longitude);
+        const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(latitude)) * Math.cos(toRad(chefLat)) * Math.sin(dLng/2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = earthRadiusKm * c;
+        return { ...chef, distance };
+      });
     return withDistance.filter(c => c.distance <= maxDistanceKm).sort((a, b) => a.distance - b.distance);
   }
 });
@@ -276,8 +314,11 @@ export const getChefsByLocation = query({
     const toRad = (deg: number) => deg * Math.PI / 180;
     const earthRadiusKm = 6371;
     
-    // Get all chefs
-    const allChefs = await ctx.db.query('chefs').collect();
+    // Filter by status first to reduce dataset size
+    const allChefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect();
     
     // Calculate distances and filter by radius
     const chefsWithDistance = allChefs.map(chef => {
@@ -329,8 +370,11 @@ export const searchChefsByQuery = query({
     const toRad = (deg: number) => deg * Math.PI / 180;
     const earthRadiusKm = 6371;
     
-    // Get all chefs
-    let chefs = await ctx.db.query('chefs').collect();
+    // Filter by status first to reduce dataset size
+    let chefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect();
     
     // Filter by cuisine if specified
     if (cuisine) {
@@ -433,9 +477,20 @@ const chefWithFavoriteValidator = v.object({
 });
 
 export const getFavoriteChefs = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.array(chefWithFavoriteValidator),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own favorites, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     try {
       const favorites = await ctx.db
         .query("userFavorites")

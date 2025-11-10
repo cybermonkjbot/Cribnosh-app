@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface SendLiveCommentRequest {
   sessionId: string;
@@ -155,7 +156,7 @@ interface SendLiveCommentRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   post:
  *     summary: Send Live Comment
  *     description: Send a comment to a live streaming session
@@ -273,35 +274,27 @@ interface SendLiveCommentRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    const body: SendLiveCommentRequest = await request.json();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const body: SendLiveCommentRequest = await request.json();
     const { sessionId, content, commentType, metadata } = body;
 
     if (!sessionId || !content || !commentType) {
       return ResponseFactory.validationError('Missing required fields: sessionId, content, and commentType.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get live session details first to verify it exists and is active
-    const session = await convex.query(api.queries.liveSessions.getLiveSessionById, { sessionId });
+    const session = await convex.query(api.queries.liveSessions.getLiveSessionById, {
+      sessionId,
+      sessionToken: sessionToken || undefined
+    });
     if (!session) {
       return ResponseFactory.notFound('Live session not found.');
     }
@@ -312,24 +305,25 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check if user is muted in this session
-    if (session.mutedUsers && session.mutedUsers.includes(payload.user_id)) {
+    if (session.mutedUsers && session.mutedUsers.includes(userId)) {
       return ResponseFactory.forbidden('You are muted in this live session.');
     }
 
     // Send live comment
     const commentResult = await convex.mutation(api.mutations.liveSessions.sendLiveComment, {
       sessionId: session._id,
-      sentBy: payload.user_id,
+      sentBy: userId,
       content,
       commentType,
       metadata: {
-        sentByRole: payload.role,
-        userDisplayName: payload.displayName || payload.username,
+        sentByRole: user.roles?.[0],
+        userDisplayName: user.name || user.email || 'User',
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
-    console.log(`Live comment sent for session ${sessionId} by ${payload.user_id} (${payload.role})`);
+    logger.log(`Live comment sent for session ${sessionId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({
       success: true,
@@ -338,8 +332,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         id: commentResult._id,
         content,
         commentType,
-        sentBy: payload.user_id,
-        sentByRole: payload.role,
+        sentBy: userId,
+        sentByRole: user.roles?.[0],
         sentAt: new Date().toISOString(),
         metadata: metadata || {}
       } : null,
@@ -347,7 +341,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
-    console.error('Send live comment error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Send live comment error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to send live comment.' 
     );
   }
@@ -356,20 +353,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    const { searchParams } = new URL(request.url);
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
@@ -379,10 +364,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required parameter: sessionId.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get live session details first to verify it exists
-    const session = await convex.query(api.queries.liveSessions.getLiveSessionById, { sessionId });
+    const session = await convex.query(api.queries.liveSessions.getLiveSessionById, {
+      sessionId,
+      sessionToken: sessionToken || undefined
+    });
     if (!session) {
       return ResponseFactory.notFound('Live session not found.');
     }
@@ -392,7 +381,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       sessionId: session._id,
       limit,
       offset,
-      commentType: (commentType === 'general' || commentType === 'question' || commentType === 'reaction' || commentType === 'tip' || commentType === 'moderation') ? commentType : undefined
+      commentType: (commentType === 'general' || commentType === 'question' || commentType === 'reaction' || commentType === 'tip' || commentType === 'moderation') ? commentType : undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Format comments
@@ -417,7 +407,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
-    console.error('Get live comments error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get live comments error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to get live comments.' 
     );
   }

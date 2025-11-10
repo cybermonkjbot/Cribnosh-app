@@ -4,6 +4,7 @@ import type { BenefitsReportData, DetailedPayrollReport, PaySlipBonus, PaySlipDe
 import type { DataModel } from "../_generated/dataModel";
 import { Id } from '../_generated/dataModel';
 import { mutation } from '../_generated/server';
+import { requireAdmin, requireAuth, isAdmin, isStaff } from '../utils/auth';
 
 type TaxDocumentDoc = DataModel["taxDocuments"]["document"] & {
   _id: Id<"taxDocuments">;
@@ -31,9 +32,13 @@ export const generateTaxDocument = mutation({
     }),
     taxYear: v.number(),
     amount: v.optional(v.number()),
-    notes: v.optional(v.string())
+    notes: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     // Get employee details
     const employee = await ctx.db.get(args.employeeId);
     if (!employee) {
@@ -66,9 +71,13 @@ export const generateTaxDocument = mutation({
 
 export const deleteTaxDocument = mutation({
   args: {
-    documentId: v.id('taxDocuments')
+    documentId: v.id('taxDocuments'),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     await ctx.db.delete(args.documentId);
     return { success: true };
   },
@@ -76,12 +85,21 @@ export const deleteTaxDocument = mutation({
 
 export const downloadTaxDocument = mutation({
   args: {
-    documentId: v.id('taxDocuments')
+    documentId: v.id('taxDocuments'),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const document = await ctx.db.get(args.documentId);
     if (!document) {
       throw new Error('Document not found');
+    }
+    
+    // Users can download their own tax documents, staff/admin can download any
+    if (!isAdmin(user) && !isStaff(user) && (document as any).employeeId !== user._id) {
+      throw new Error('Access denied');
     }
 
     // Generate the actual PDF document
@@ -256,8 +274,8 @@ export const sendTaxDocument = mutation({
         
       } catch (error) {
         console.error('File upload failed:', error);
-        // Fallback to placeholder storage ID
-        storageId = uploadUrl.split('/').pop() as Id<'_storage'>;
+        // If upload fails, throw error instead of using placeholder
+        throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       fileUrl = `/api/storage/${storageId}`;
       

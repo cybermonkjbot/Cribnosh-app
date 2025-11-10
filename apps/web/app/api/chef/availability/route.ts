@@ -3,12 +3,10 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 
 /**
  * @swagger
@@ -120,40 +118,36 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    
-    if (!payload.roles?.includes('chef')) {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can access this endpoint.');
-    }
+    // Get authenticated chef from session token
+    const { userId } = await getAuthenticatedChef(request);
     
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile first
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId: payload.user_id });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
     
     // Get chef availability
-    const availability = await convex.query(api.queries.chefs.getAvailability, { chefId: chef._id });
+    const availability = await convex.query(api.queries.chefs.getAvailability, {
+      chefId: chef._id,
+      sessionToken: sessionToken || undefined
+    });
     
     return ResponseFactory.success({ availability });
   } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch availability.'));
   }
 }
@@ -293,26 +287,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    
-    if (!payload.roles?.includes('chef')) {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can access this endpoint.');
-    }
+    // Get authenticated chef from session token
+    const { userId } = await getAuthenticatedChef(request);
     
     const body = await request.json();
     const { 
@@ -329,9 +309,13 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     }
     
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef profile first
-    const chef = await convex.query(api.queries.chefs.getByUserId, { userId: payload.user_id });
+    const chef = await convex.query(api.queries.chefs.getByUserId, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
     }
@@ -346,14 +330,18 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
         maxOrdersPerDay: maxOrdersPerDay || 10,
         advanceBookingDays: advanceBookingDays || 7,
         specialInstructions: specialInstructions || ''
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update availability.'));
   }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET));
-export const PUT = withAPIMiddleware(withErrorHandling(handlePUT)); 
+export const PUT = withAPIMiddleware(withErrorHandling(handlePUT));

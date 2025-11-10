@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest) {
       data: []
     });
   } catch (error) {
-    console.error('Error in messaging conversations:', error);
+    logger.error('Error in messaging conversations:', error);
     return ResponseFactory.error('Failed to retrieve conversations', 'CONVERSATIONS_ERROR', 500);
   }
 }

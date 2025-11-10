@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
-import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -146,28 +146,15 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 async function handlePOST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can trigger webhooks.');
-    }
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     const { event, data, urls } = await request.json();
     if (!event || !urls || !Array.isArray(urls) || urls.length === 0) {
       return ResponseFactory.error('event and urls[] are required.', 'CUSTOM_ERROR', 422);
@@ -188,12 +175,16 @@ async function handlePOST(request: NextRequest) {
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'trigger_webhook',
-      details: { event, urls, payload },
-      adminId: payload.user_id,
+      details: { event, urls, payload: data },
+      adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, results });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to trigger webhooks.'));
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

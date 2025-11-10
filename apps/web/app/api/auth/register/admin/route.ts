@@ -1,11 +1,14 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { randomBytes, scryptSync } from 'crypto';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -117,8 +120,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Missing or invalid fields');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   // Duplicate email check
-  const existing = await convex.query(api.queries.users.getUserByEmail, { email });
+  const existing = await convex.query(api.queries.users.getUserByEmail, {
+    email,
+    sessionToken: sessionToken || undefined
+  });
   if (existing) {
     return ResponseFactory.error('A user with this email already exists.', 'CUSTOM_ERROR', 409);
   }
@@ -127,8 +134,18 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   const hash = scryptSync(password, salt, 64).toString('hex');
   const passwordHash = `${salt}:${hash}`;
   try {
-    const userId = await convex.mutation(api.mutations.users.createUser, { name, email, password: passwordHash, roles: ['admin'], status: 'active' });
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const userId = await convex.mutation(api.mutations.users.createUser, {
+      name,
+      email,
+      password: passwordHash,
+      roles: ['admin'],
+      status: 'active',
+      sessionToken: sessionToken || undefined
+    });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.internalError('Failed to create user');
     }

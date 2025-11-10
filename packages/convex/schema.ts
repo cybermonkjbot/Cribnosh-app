@@ -2180,6 +2180,29 @@ export default defineSchema({
     .index("by_analytics_id", ["analyticsId"])
     .index("by_tracking_enabled", ["trackingEnabled"]),
 
+  // Compliance Issue Resolutions
+  complianceIssueResolutions: defineTable({
+    issueId: v.string(),
+    issueType: v.union(
+      v.literal("gdpr"),
+      v.literal("security"),
+      v.literal("data_retention"),
+      v.literal("audit_logging")
+    ),
+    status: v.union(
+      v.literal("resolved"),
+      v.literal("in_progress"),
+      v.literal("dismissed")
+    ),
+    resolution: v.optional(v.string()),
+    resolvedBy: v.id("users"),
+    resolvedAt: v.number(),
+    notes: v.optional(v.string()),
+  })
+    .index("by_issue_id", ["issueId"])
+    .index("by_status", ["status"])
+    .index("by_type", ["issueType"]),
+
   // General Compliance Settings
   complianceSettings: defineTable({
     settingId: v.string(),
@@ -2871,7 +2894,7 @@ export default defineSchema({
       v.literal("meal"),
       v.literal("video")
     ),
-    favoriteId: v.id("chefs"), // Can be chef, meal, or video ID
+    favoriteId: v.any(), // Can be chef, meal, or video ID (using any since Convex doesn't support union ID types)
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
@@ -3085,6 +3108,51 @@ export default defineSchema({
     .index("by_user_date", ["userId", "createdAt"])
     .index("by_status", ["status"])
     .index("by_order", ["order_id"]),
+
+  // Payment Analytics Data table
+  paymentAnalyticsData: defineTable({
+    paymentId: v.string(), // Stripe payment intent ID or charge ID
+    orderId: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    eventType: v.union(
+      // Payment events
+      v.literal("payment_intent.created"),
+      v.literal("payment_intent.succeeded"),
+      v.literal("payment_intent.payment_failed"),
+      v.literal("payment_intent.canceled"),
+      v.literal("payment_intent.processing"),
+      v.literal("payment_intent.requires_action"),
+      // Charge events
+      v.literal("charge.succeeded"),
+      v.literal("charge.failed"),
+      v.literal("charge.refunded"),
+      v.literal("charge.dispute.created"),
+      v.literal("charge.dispute.closed"),
+      // Subscription events
+      v.literal("subscription.created"),
+      v.literal("subscription.updated"),
+      v.literal("subscription.deleted"),
+      // Refund events
+      v.literal("refund.created"),
+      v.literal("refund.succeeded"),
+      v.literal("refund.failed"),
+    ),
+    amount: v.number(), // Amount in smallest currency unit (cents/pence)
+    currency: v.string(),
+    paymentMethod: v.optional(v.string()), // card, apple_pay, google_pay, etc.
+    paymentMethodType: v.optional(v.string()), // visa, mastercard, etc.
+    status: v.optional(v.string()),
+    failureCode: v.optional(v.string()),
+    failureReason: v.optional(v.string()),
+    metadata: v.record(v.string(), v.any()),
+    timestamp: v.number(),
+  })
+    .index("by_payment_id", ["paymentId"])
+    .index("by_order_id", ["orderId"])
+    .index("by_user_id", ["userId"])
+    .index("by_event_type", ["eventType"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_user_timestamp", ["userId", "timestamp"]),
 
   // Family Profiles table
   familyProfiles: defineTable({

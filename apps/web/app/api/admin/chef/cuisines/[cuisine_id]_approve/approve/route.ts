@@ -1,10 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -117,8 +120,13 @@ export async function POST(request: NextRequest, { params }: { params: { cuisine
     return ResponseFactory.validationError('Missing cuisine_id');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   try {
-    await convex.mutation(api.mutations.chefs.updateCuisine, { cuisineId: cuisine_id as Id<'cuisines'>, status: 'approved' });
+    await convex.mutation(api.mutations.chefs.updateCuisine, {
+      cuisineId: cuisine_id as Id<'cuisines'>,
+      status: 'approved',
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({});
   } catch (e: unknown) {
     return ResponseFactory.internalError(e instanceof Error ? e.message : 'Failed to approve cuisine' );
@@ -135,8 +143,13 @@ export async function PUT(request: NextRequest, { params }: { params: { cuisine_
     return ResponseFactory.validationError('Invalid status');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   try {
-    await convex.mutation(api.mutations.chefs.updateCuisine, { cuisineId: cuisine_id as Id<'cuisines'>, status });
+    await convex.mutation(api.mutations.chefs.updateCuisine, {
+      cuisineId: cuisine_id as Id<'cuisines'>,
+      status,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({});
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to update cuisine status';

@@ -7,7 +7,6 @@ import {
   storeAuthData,
   StoredUser,
 } from "../utils/authUtils";
-import { isTokenExpired } from "../utils/jwtUtils";
 import { useLogoutMutation } from "../store/authApi";
 
 export interface UseAuthStateReturn {
@@ -19,11 +18,11 @@ export interface UseAuthStateReturn {
   error: string | null;
 
   // Actions
-  login: (token: string, user: StoredUser) => Promise<void>;
+  login: (sessionToken: string, user: StoredUser) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuthState: () => Promise<void>;
   clearError: () => void;
-  checkTokenExpiration: () => boolean;
+  checkTokenExpiration: () => boolean; // Deprecated: kept for backward compatibility
 }
 
 /**
@@ -52,19 +51,9 @@ export const useAuthState = (): UseAuthStateReturn => {
       setError(null);
 
       const authData = await checkAuthState();
-
-      // Check if token is expired
-      if (authData.token && isTokenExpired(authData.token)) {
-        console.log("Token expired during initialization, clearing auth data");
-        await clearAuthData();
-        setAuthState({
-          isAuthenticated: false,
-          token: null,
-          user: null,
-        });
-      } else {
-        setAuthState(authData);
-      }
+      // SessionToken expiration is validated server-side
+      // No need to check expiration client-side
+      setAuthState(authData);
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -77,30 +66,30 @@ export const useAuthState = (): UseAuthStateReturn => {
     }
   };
 
-  const login = useCallback(async (token: string, user: StoredUser) => {
+  const login = useCallback(async (sessionToken: string, user: StoredUser) => {
     try {
-      console.log("Login function called with token and user:", {
-        token: !!token,
+      console.log("Login function called with sessionToken and user:", {
+        sessionToken: !!sessionToken,
         user: !!user,
       });
       setError(null);
 
       // Store auth data
       console.log("Storing auth data...");
-      await storeAuthData(token, user);
+      await storeAuthData(sessionToken, user);
       console.log("Auth data stored successfully");
 
       // Update state
       console.log("Updating auth state...");
       setAuthState({
         isAuthenticated: true,
-        token,
+        token: sessionToken, // Store as token for backward compatibility
         user,
       });
       console.log("Auth state updated successfully");
       console.log("New auth state:", {
         isAuthenticated: true,
-        token: !!token,
+        token: !!sessionToken,
         user: !!user,
       });
 
@@ -173,18 +162,11 @@ export const useAuthState = (): UseAuthStateReturn => {
   }, []);
 
   const checkTokenExpiration = useCallback(() => {
-    if (authState.token && isTokenExpired(authState.token)) {
-      console.log("Token expired, clearing auth data");
-      clearAuthData();
-      setAuthState({
-        isAuthenticated: false,
-        token: null,
-        user: null,
-      });
-      return true; // Token was expired
-    }
-    return false; // Token is still valid
-  }, [authState.token]);
+    // SessionToken expiration is validated server-side
+    // This method is kept for backward compatibility but always returns false
+    // The server will return 401 if the sessionToken is expired
+    return false; // SessionToken validity is checked server-side
+  }, []);
 
   return {
     // State

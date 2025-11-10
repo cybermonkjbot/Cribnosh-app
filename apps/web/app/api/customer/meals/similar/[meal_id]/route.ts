@@ -3,10 +3,13 @@ import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -16,7 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Get meals similar to the specified meal, respecting user preferences
  *     tags: [Customer, Meals, Recommendations]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: meal_id
@@ -54,20 +57,23 @@ async function handleGET(
     // Extract userId from request (optional for similar meals)
     const userId = extractUserIdFromRequest(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get similar meals with user preferences
-    const similarMeals = await convex.query((api as { queries: { mealRecommendations: { getSimilar: unknown } } }).queries.mealRecommendations.getSimilar as never, {
+    const similarMeals = await convex.query(api.queries.mealRecommendations.getSimilar, {
       mealId: meal_id as Id<'meals'>,
-      userId: userId || undefined,
+      userId: userId ? (userId as any) : undefined,
       limit,
-    });
+      sessionToken: sessionToken || undefined
+    }) as unknown[];
 
     if (similarMeals.length === 0) {
       // Check if the meal exists
-      const meal = await convex.query((api as { queries: { meals: { getById: unknown } } }).queries.meals.getById as never, { 
-        mealId: meal_id as Id<'meals'> 
-      });
+      const meal = await convex.query(api.queries.meals.getById, { 
+        mealId: meal_id as Id<'meals'>,
+        sessionToken: sessionToken || undefined
+      }) as unknown;
       
       if (!meal) {
         return ResponseFactory.notFound('Meal not found');
@@ -75,7 +81,7 @@ async function handleGET(
     }
 
     // Transform similar meals to match mobile app expected format
-    const dishes = similarMeals.map((meal: { _id?: string; id?: string; name: string; description?: string; price?: number; images?: string[]; image_url?: string; cuisine?: string[]; dietary?: string[]; averageRating?: number; rating?: number; reviewCount?: number; chefId?: string; chef?: { _id: string } | null }) => ({
+    const dishes = (similarMeals as any[]).map((meal: { _id?: string; id?: string; name: string; description?: string; price?: number; images?: string[]; image_url?: string; cuisine?: string[]; dietary?: string[]; averageRating?: number; rating?: number; reviewCount?: number; chefId?: string; chef?: { _id: string } | null }) => ({
       id: meal._id || meal.id,
       name: meal.name,
       description: meal.description || '',
@@ -95,7 +101,10 @@ async function handleGET(
     }, 'Similar meals retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get similar meals error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get similar meals error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve similar meals')
     );

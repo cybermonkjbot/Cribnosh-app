@@ -6,6 +6,7 @@
 import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { logger } from '@/lib/utils/logger';
 
 export interface EmailImageAsset {
   originalUrl: string;
@@ -116,13 +117,13 @@ export async function uploadImageToConvex(
         metadata,
       }
     ).catch((err) => {
-      console.error('Failed to store email asset metadata:', err);
+      logger.error('Failed to store email asset metadata:', err);
     });
 
     // Get the public URL - use storageId directly since we just uploaded it
     return `/api/files/${storageId}`;
   } catch (error) {
-    console.error(`Failed to upload image ${imageUrl} to Convex:`, error);
+    logger.error(`Failed to upload image ${imageUrl} to Convex:`, error);
     // Return original URL if upload fails
     return imageUrl;
   }
@@ -158,7 +159,7 @@ export async function migrateEmailImagesToConvex(
       const convexUrl = await uploadImageToConvex(imageUrl, purpose);
       modifiedHtml = modifiedHtml.replace(imageUrl, convexUrl);
     } catch (error) {
-      console.error(`Failed to migrate image ${imageUrl}:`, error);
+      logger.error(`Failed to migrate image ${imageUrl}:`, error);
       // Keep original URL if migration fails
     }
   }

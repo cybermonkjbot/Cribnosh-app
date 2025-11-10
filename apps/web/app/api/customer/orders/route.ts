@@ -1,14 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -147,25 +145,13 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
-    const convex = getConvexClient();
+    const { userId } = await getAuthenticatedCustomer(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination and filtering
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
@@ -178,18 +164,20 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     // Fetch orders with filters
     const orders = await convex.query(api.queries.orders.listByCustomer, { 
-      customer_id: payload.user_id,
+      customer_id: userId,
       status: statusParam || 'all',
       order_type: orderTypeParam || 'all',
       limit,
       offset,
+      sessionToken: sessionToken || undefined
     });
     
     // Get total count for pagination (without pagination limit)
     const allOrders = await convex.query(api.queries.orders.listByCustomer, {
-      customer_id: payload.user_id,
+      customer_id: userId,
       status: statusParam || 'all',
       order_type: orderTypeParam || 'all',
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({ 
@@ -204,6 +192,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       offset,
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch orders.'));
   }
 }
@@ -319,24 +310,11 @@ export const GET = withAPIMiddleware(withErrorHandling(handleGET));
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export const POST = withAPIMiddleware(withErrorHandling(async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can create orders.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     const body = await request.json();
     // Support both kitchen_id (mobile API) and chef_id (web API) for compatibility
     const chef_id = body.kitchen_id || body.chef_id;
@@ -347,7 +325,8 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     if (!chef_id || !Array.isArray(order_items) || order_items.length === 0) {
       return ResponseFactory.validationError('chef_id (or kitchen_id) and items (or order_items) are required.');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Check regional availability if delivery address is provided
     if (delivery_address) {
@@ -357,6 +336,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
           country: delivery_address.country,
           coordinates: delivery_address.coordinates,
         },
+        sessionToken: sessionToken || undefined
       });
       
       if (!isRegionSupported) {
@@ -371,7 +351,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       if (!item.dish_id || typeof item.quantity !== 'number') {
         return ResponseFactory.validationError('Each order item must have dish_id and quantity.');
       }
-      const meals = await convex.query(api.queries.meals.getAll, {});
+      const meals = await convex.query(api.queries.meals.getAll, {
+        sessionToken: sessionToken || undefined
+      });
       const dish = Array.isArray(meals) ? meals.find((m: any) => m._id === item.dish_id) : null;
       if (!dish) {
         return ResponseFactory.notFound('Dish not found: ${item.dish_id}');
@@ -381,7 +363,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
     // Prepare order items with dish details
     const orderItems = [];
     for (const item of order_items) {
-      const meals = await convex.query(api.queries.meals.getAll, {});
+      const meals = await convex.query(api.queries.meals.getAll, {
+        sessionToken: sessionToken || undefined
+      });
       const dish = Array.isArray(meals) ? meals.find((m: any) => m._id === item.dish_id) : null;
       if (!dish) {
         return ResponseFactory.notFound('Dish not found: ${item.dish_id}');
@@ -396,7 +380,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
 
     // Create the order
     const orderId = await convex.mutation(api.mutations.orders.createOrder, {
-      customer_id: payload.user_id,
+      customer_id: userId,
       chef_id,
       order_items: orderItems,
       total_amount,
@@ -404,12 +388,14 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       special_instructions: special_instructions,
       delivery_time: delivery_time,
       delivery_address: delivery_address,
+      sessionToken: sessionToken || undefined
     });
 
     // Get the order by document ID using a query that fetches all customer orders
     // and finds the one we just created (since orderId is the document _id)
     const allOrders = await convex.query(api.queries.orders.listByCustomer, {
-      customer_id: payload.user_id,
+      customer_id: userId,
+      sessionToken: sessionToken || undefined
     });
     const order = allOrders.find((o: any) => o._id === orderId);
     
@@ -417,7 +403,7 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       success: true,
       data: order || {
         _id: orderId,
-        customer_id: payload.user_id,
+        customer_id: userId,
         chef_id,
         order_items: orderItems,
         total_amount,
@@ -431,6 +417,9 @@ export const POST = withAPIMiddleware(withErrorHandling(async function handlePOS
       message: "Order created successfully"
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create order.'));
   }
 })); 

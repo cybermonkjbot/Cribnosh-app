@@ -117,15 +117,50 @@ export async function getRecommendedMeals(
   );
 
   // Combine and filter
-  const allMeals = [
+  let allMeals = [
     ...followedChefMeals.flat(),
     ...likedMeals.filter((m: MealDoc | null) => m && (m as { status?: string }).status === 'available')
   ];
 
   // Remove duplicates
-  const uniqueMeals = Array.from(
+  let uniqueMeals = Array.from(
     new Map(allMeals.map((meal: MealDoc) => [meal._id, meal])).values()
   );
+
+  // If no follows/likes, fallback to popular meals (high-rated meals)
+  if (uniqueMeals.length === 0) {
+    const allAvailableMeals = await ctx.db
+      .query('meals')
+      .filter((q) => q.eq(q.field('status'), 'available'))
+      .collect();
+    
+    // Get meals with chef and review data
+    const mealsWithData = await Promise.all(
+      allAvailableMeals.map(async (meal: MealDoc) => {
+        const chef = await ctx.db.get(meal.chefId);
+        const reviews = await ctx.db
+          .query('reviews')
+          .filter((q) => q.eq(q.field('mealId'), meal._id))
+          .collect();
+        
+        const avgRating = reviews.length > 0 
+          ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
+          : meal.rating || 0;
+        
+        return { meal, avgRating, reviewCount: reviews.length };
+      })
+    );
+    
+    // Sort by rating and review count, take top meals
+    uniqueMeals = mealsWithData
+      .sort((a, b) => {
+        const scoreA = a.avgRating * 10 + a.reviewCount;
+        const scoreB = b.avgRating * 10 + b.reviewCount;
+        return scoreB - scoreA;
+      })
+      .slice(0, limit * 2) // Get more than needed for filtering
+      .map((item) => item.meal);
+  }
 
   // Get chef and review data
   const mealsWithChefData = await Promise.all(

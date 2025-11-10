@@ -2,10 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode, ErrorSeverity } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from "@/lib/auth/session";
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { mattermostService } from '@/lib/mattermost';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -184,21 +186,23 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         };
         // await mattermostService.setUserTheme(mattermostUser.id, sampleTheme);
       } else {
-        console.error('Failed to create or find Mattermost user for complete:', data.email);
+        logger.error('Failed to create or find Mattermost user for complete:', data.email);
       }
     } catch (err) {
-      console.error('Mattermost user setup error:', data.email, err);
+      logger.error('Mattermost user setup error:', data.email, err);
     }
     // --- END MATTERMOST USER SETUP ---
 
     // Save Mattermost completion to database
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.staff.updateMattermostSetup, {
       userId: data.userId,
       mattermostUsername: data.username,
       mattermostEmail: data.email,
       setupCompleted: true,
       setupCompletedAt: Date.now(),
+      sessionToken: sessionToken || undefined
     });
 
     // Send welcome message to the employee
@@ -263,7 +267,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error) {
-    console.error('Mattermost completion error:', error);
+    logger.error('Mattermost completion error:', error);
     
     throw ErrorFactory.custom(
       ErrorCode.INTERNAL_ERROR,

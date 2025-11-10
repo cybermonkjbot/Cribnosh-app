@@ -59,13 +59,16 @@
  *     security: []
  */
 
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { Id } from '@/convex/_generated/dataModel';
 import { api } from '@/convex/_generated/api';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/images/dish/{dish_id}
 // Group: images
@@ -76,8 +79,12 @@ export async function GET(request: NextRequest, { params }: { params: { dish_id:
     return ResponseFactory.validationError('Missing dish_id');
   }
   const convex = getConvexClient();
+  const sessionToken = getSessionTokenFromRequest(request);
   // Use the correct API function to get the meal by ID
-  const meal = await convex.query(api.queries.meals.get, { mealId: dish_id as Id<'meals'> });
+  const meal = await convex.query(api.queries.meals.get, {
+    mealId: dish_id as Id<'meals'>,
+    sessionToken: sessionToken || undefined
+  });
   if (!meal) {
     return ResponseFactory.notFound('Dish not found');
   }

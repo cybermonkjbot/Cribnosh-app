@@ -1,10 +1,12 @@
-import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { calculateDistanceKm } from '@/lib/apple-maps/service';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { errorHandler, withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -229,7 +231,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     const startTime = Date.now();
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Search chefs using the query and location
     const searchResults = await convex.query(api.queries.chefs.searchChefsByQuery, {
@@ -239,6 +242,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       radiusKm: radius,
       cuisine,
       limit,
+      sessionToken: sessionToken || undefined
     });
 
     // Transform search results to include distance calculations
@@ -289,7 +293,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Search completed successfully');
 
   } catch (error) {
-    console.error('Error searching chefs:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error searching chefs:', error);
     return errorHandler.handleError(error);
   }
 }

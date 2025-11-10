@@ -51,6 +51,9 @@
 
 import { NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://cribnosh.com';
 

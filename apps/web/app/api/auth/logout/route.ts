@@ -2,14 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
-import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 // Endpoint: /v1/auth/logout
 // Group: auth
 
@@ -21,7 +19,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *     description: Logout user by invalidating session token (cookies) or clearing JWT token. Works for both web (cookies) and mobile (JWT) clients.
  *     tags: [Authentication]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *       - cookieAuth: []
  *     responses:
  *       200:
@@ -61,24 +59,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClient();
     let userId: string | null = null;
     
-    // Check for JWT token in Authorization header (mobile apps)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.replace('Bearer ', '');
-        const payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-        userId = payload.user_id;
-        // For JWT tokens, we just validate and allow logout
-        // The mobile app will handle token deletion client-side
-      } catch (error) {
-        // Invalid JWT token, but we'll still return success to allow client-side cleanup
-        console.log('[LOGOUT] Invalid JWT token, allowing client-side cleanup');
-      }
-    }
-    
     // Check for session token in cookies (web apps)
     const cookieToken = request.cookies.get('convex-auth-token')?.value;
-    if (cookieToken && !userId) {
+    if (cookieToken) {
       const user = await convex.query(api.queries.users.getUserBySessionToken, { sessionToken: cookieToken });
       if (user) {
         userId = user._id;
@@ -104,7 +87,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   } catch (error: unknown) {
     // Even if there's an error, return success to allow client-side cleanup
     // Mobile apps rely on client-side token deletion
-    console.error('[LOGOUT] Error:', getErrorMessage(error, 'Logout error'));
+    logger.error('[LOGOUT] Error:', getErrorMessage(error, 'Logout error'));
     const response = ResponseFactory.success({ message: 'Logged out successfully.' });
     const cookieToken = request.cookies.get('convex-auth-token')?.value;
     if (cookieToken) {

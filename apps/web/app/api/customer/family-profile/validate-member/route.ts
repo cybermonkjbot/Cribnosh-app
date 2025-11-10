@@ -1,29 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
-function getAuthPayload(request: NextRequest): JWTPayload {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('Invalid or missing token');
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    throw new Error('Invalid or expired token');
-  }
-}
 
 /**
  * @swagger
@@ -64,10 +48,7 @@ function getAuthPayload(request: NextRequest): JWTPayload {
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const payload = getAuthPayload(request);
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse('Only customers can validate family members', 'FORBIDDEN', 403);
-    }
+    await getAuthenticatedCustomer(request);
 
     // Parse and validate request body
     let body: Record<string, unknown>;
@@ -84,11 +65,13 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return createSpecErrorResponse('Valid email is required', 'BAD_REQUEST', 400);
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Check if user exists by email
     const existingUser = await convex.query(api.queries.users.getUserByEmail, {
       email: email.toLowerCase().trim(),
+      sessionToken: sessionToken || undefined
     });
 
     if (existingUser) {
@@ -108,10 +91,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'No account found for this email'
     );
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-    if (errorMessage === 'Invalid or missing token' || errorMessage === 'Invalid or expired token') {
-      return createSpecErrorResponse(errorMessage, 'UNAUTHORIZED', 401);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
     }
+    const errorMessage = getErrorMessage(error);
     return createSpecErrorResponse(
       errorMessage || 'Failed to validate member',
       'INTERNAL_ERROR',

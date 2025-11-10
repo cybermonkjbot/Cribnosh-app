@@ -1,7 +1,9 @@
 'use client';
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { WaitlistEntryCard } from '@/components/staff/WaitlistEntryCard';
+import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GlassButton } from '@/components/ui/glass-button';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -9,10 +11,10 @@ import { GlassInput } from '@/components/ui/glass-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WaitlistEntrySkeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
-import { Filter, Mail, Plus, RefreshCw, Search, Users } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Filter, Mail, Plus, RefreshCw, Search, Users } from 'lucide-react';
+import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface WaitlistEntry {
@@ -37,7 +39,7 @@ interface AddLeadFormData {
 
 export default function StaffWaitlistPage() {
   const { user: adminUser, loading: adminLoading } = useAdminUser();
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuthContext();
   const [activeTab, setActiveTab] = useState('add');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
@@ -45,6 +47,10 @@ export default function StaffWaitlistPage() {
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize] = useState(10); // Entries per page
   const [staffMember, setStaffMember] = useState<{ roles?: string[]; status?: string; email?: string } | null>(null);
   const [localStaffLoading, setLocalStaffLoading] = useState(true);
   const [formData, setFormData] = useState<AddLeadFormData>({
@@ -62,7 +68,7 @@ export default function StaffWaitlistPage() {
       // Fallback to admin user if available
       setStaffMember({
         email: adminUser.email,
-        roles: adminUser.roles || [],
+        roles: adminUser.role ? [adminUser.role] : [],
         status: adminUser.status || 'active',
       });
       setLocalStaffLoading(false);
@@ -88,14 +94,35 @@ export default function StaffWaitlistPage() {
     }
   }, [staffUser, staffAuthLoading, adminUser, adminLoading]);
 
-  // Load waitlist entries
-  const loadEntries = useCallback(async () => {
+  // Use ref to track latest filter values to avoid stale closures
+  const filtersRef = useRef({ statusFilter, searchTerm, pageSize });
+  useEffect(() => {
+    filtersRef.current = { statusFilter, searchTerm, pageSize };
+  }, [statusFilter, searchTerm, pageSize]);
+
+  // Load waitlist entries with pagination
+  const loadEntries = useCallback(async (page: number) => {
     if (!staffMember) return;
     
     setIsLoadingEntries(true);
     setEntriesError(null);
     try {
-      const response = await staffFetch('/api/staff/waitlist', {
+      // Build query parameters using ref to get latest values
+      const { statusFilter: currentStatus, searchTerm: currentSearch, pageSize: currentPageSize } = filtersRef.current;
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: currentPageSize.toString(),
+      });
+      
+      if (currentStatus !== 'all') {
+        params.append('status', currentStatus);
+      }
+      
+      if (currentSearch) {
+        params.append('search', currentSearch);
+      }
+
+      const response = await staffFetch(`/api/staff/waitlist?${params.toString()}`, {
         method: 'GET',
       });
 
@@ -107,11 +134,10 @@ export default function StaffWaitlistPage() {
       const data = await response.json();
       if (data.success) {
         setEntries(data.data.entries || []);
+        setTotalEntries(data.data.total || 0);
+        setTotalPages(data.data.totalPages || 1);
+        setCurrentPage(data.data.page || 1);
         setEntriesError(null);
-        toast.success(`Loaded ${data.data.entries.length} waitlist entries`, {
-          description: 'Entries refreshed successfully',
-          duration: 2000,
-        });
       } else {
         throw new Error(data.message || 'Failed to load waitlist entries');
       }
@@ -128,12 +154,21 @@ export default function StaffWaitlistPage() {
     }
   }, [staffMember]);
 
-  // Load entries on component mount
+  // Reset to first page when filters change
   useEffect(() => {
     if (staffMember) {
-      loadEntries();
+      setCurrentPage(1);
     }
-  }, [staffMember, loadEntries]);
+  }, [staffMember, statusFilter, searchTerm]);
+
+  // Load entries when page or filters change
+  useEffect(() => {
+    if (!staffMember || currentPage <= 0) return;
+    
+    loadEntries(currentPage);
+    // loadEntries uses refs for filters, so we don't need to include it in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staffMember, currentPage, statusFilter, searchTerm]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -181,7 +216,8 @@ export default function StaffWaitlistPage() {
         
         setFormData({ email: '' });
         // Reload entries to show the new one
-        loadEntries();
+        setCurrentPage(1); // Reset to first page to see the new entry
+        loadEntries(1);
         setActiveTab('view');
         
         // Clear success message after 5 seconds
@@ -207,73 +243,43 @@ export default function StaffWaitlistPage() {
     }
   };
 
-  // Filter entries based on search and status
-  const filteredEntries = entries.filter(entry => {
-    const matchesSearch = !searchTerm || 
-      entry.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (entry.name && entry.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Entries are already filtered server-side, no need for client-side filtering
+  const filteredEntries = entries;
 
   // --- Conditional UI states ---
-  let content = null;
-  if (adminLoading || staffAuthLoading) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading waitlist management...</div>
-      </div>
-    );
-  } else if (!staffUser && !adminUser) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Please log in to access waitlist management.</div>
-      </div>
-    );
-  } else if (localStaffLoading) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Loading waitlist management...</div>
-      </div>
-    );
-  } else if (staffMember === null) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Staff member not found.</div>
-      </div>
-    );
-  } else if (!staffMember.roles?.includes('staff') && !staffMember.roles?.includes('admin')) {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Access denied: You do not have staff access.</div>
-      </div>
-    );
-  } else if (staffMember.status && staffMember.status !== 'active') {
-    content = (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-500 font-satoshi">Your staff account is not active. Please contact support.</div>
-      </div>
-    );
+  // Auth is handled at layout level, no page-level checks needed
+  // Wait for staff member data to load
+  if (!staffMember && (adminLoading || staffAuthLoading || localStaffLoading)) {
+    return null; // Layout handles loading state
+  }
+
+  if (staffMember === null) {
+    return <UnauthenticatedState type="unauthenticated" role="staff" message="Staff member not found." />;
   }
 
   // --- Main waitlist UI ---
-  if (!content) {
-    content = (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+  return (
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-white">
         {/* Background accents */}
         <div className="pointer-events-none select-none absolute -top-24 -left-24 w-[420px] h-[420px] rounded-full bg-[#F23E2E]/5 blur-3xl z-0" />
         <div className="pointer-events-none select-none absolute bottom-0 right-0 w-[320px] h-[320px] rounded-full bg-[#F23E2E]/3 blur-2xl z-0" />
         
         <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+          {/* Back Button */}
+          <div className="mb-6">
+            <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Link>
+          </div>
+
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold font-asgard text-gray-900 mb-2">
               Waitlist Management
             </h1>
             <p className="text-gray-600 font-satoshi">
-              Add leads directly to the waitlist and manage existing entries
+              Add leads directly to the waitlist and manage entries you added
             </p>
           </div>
 
@@ -350,7 +356,7 @@ export default function StaffWaitlistPage() {
                       Waitlist Entries
                     </h2>
                     <p className="text-gray-600 font-satoshi">
-                      View and manage existing waitlist entries
+                      View and manage waitlist entries you added
                     </p>
                   </div>
 
@@ -381,7 +387,7 @@ export default function StaffWaitlistPage() {
                       </Select>
                     </div>
                     <GlassButton 
-                      onClick={loadEntries} 
+                      onClick={() => loadEntries(currentPage)} 
                       variant="outline" 
                       disabled={isLoadingEntries}
                       icon={<RefreshCw className="w-4 h-4" />}
@@ -398,7 +404,7 @@ export default function StaffWaitlistPage() {
                           <p className="font-semibold">Error loading waitlist entries:</p>
                           <p>{entriesError}</p>
                           <button
-                            onClick={loadEntries}
+                            onClick={() => loadEntries(currentPage)}
                             className="text-sm underline hover:no-underline"
                           >
                             Try again
@@ -427,13 +433,68 @@ export default function StaffWaitlistPage() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between text-sm text-gray-600 font-satoshi">
                         <span>
-                          Showing {filteredEntries.length} of {entries.length} entries
-                          {(searchTerm || statusFilter !== 'all') && ' (filtered)'}
+                          Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalEntries)} of {totalEntries} entries you added
                         </span>
                       </div>
                       {filteredEntries.map((entry) => (
                         <WaitlistEntryCard key={entry._id} entry={entry} />
                       ))}
+                      
+                      {/* Pagination Controls */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-200/50">
+                          <div className="flex items-center gap-2">
+                            <GlassButton
+                              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                              disabled={currentPage === 1 || isLoadingEntries}
+                              variant="outline"
+                              icon={<ChevronLeft className="w-4 h-4" />}
+                            >
+                              Previous
+                            </GlassButton>
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                let pageNum: number;
+                                if (totalPages <= 5) {
+                                  pageNum = i + 1;
+                                } else if (currentPage <= 3) {
+                                  pageNum = i + 1;
+                                } else if (currentPage >= totalPages - 2) {
+                                  pageNum = totalPages - 4 + i;
+                                } else {
+                                  pageNum = currentPage - 2 + i;
+                                }
+                                
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    disabled={isLoadingEntries}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-satoshi transition-colors ${
+                                      currentPage === pageNum
+                                        ? 'bg-[#F23E2E] text-white'
+                                        : 'bg-white/70 hover:bg-white/90 text-gray-700'
+                                    } ${isLoadingEntries ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <GlassButton
+                              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                              disabled={currentPage === totalPages || isLoadingEntries}
+                              variant="outline"
+                              icon={<ChevronRight className="w-4 h-4" />}
+                            >
+                              Next
+                            </GlassButton>
+                          </div>
+                          <div className="text-sm text-gray-600 font-satoshi">
+                            Page {currentPage} of {totalPages}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -442,8 +503,5 @@ export default function StaffWaitlistPage() {
           </Tabs>
         </div>
       </div>
-    );
-  }
-
-  return content;
+  );
 }

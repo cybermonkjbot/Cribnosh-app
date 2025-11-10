@@ -11,7 +11,7 @@ import * as Linking from 'expo-linking';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
-import { StatusBar } from 'react-native';
+import { Platform, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -162,7 +162,11 @@ export default function RootLayout() {
               />
               <Stack.Screen name="+not-found" />
             </Stack>
-            <StatusBar translucent backgroundColor="transparent" barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+            <StatusBar 
+              translucent={Platform.OS === 'android' ? true : undefined}
+              backgroundColor={Platform.OS === 'android' ? 'transparent' : undefined}
+              barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
+            />
           </ThemeProvider>
         </BottomSheetModalProvider>
         <GlobalToastContainer />

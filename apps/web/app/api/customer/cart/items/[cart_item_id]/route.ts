@@ -1,14 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Helper function to handle route parameters
 type RouteParams = {
@@ -117,35 +116,35 @@ const withCartItemId = (handler: (req: NextRequest, cartItemId: string) => Promi
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 // Wrap handlers with proper route parameter handling
 export const PUT = withAPIMiddleware(
   withErrorHandling(
     withCartItemId(async (request, cart_item_id) => {
-      const { quantity } = await request.json();
-      if (!quantity) {
-        return ResponseFactory.validationError('Missing quantity.');
+      try {
+        const { userId } = await getAuthenticatedCustomer(request);
+        const { quantity } = await request.json();
+        if (!quantity) {
+          return ResponseFactory.validationError('Missing quantity.');
+        }
+        
+        const convex = getConvexClientFromRequest(request);
+        const sessionToken = getSessionTokenFromRequest(request);
+        const item = await convex.mutation(api.mutations.orders.updateCartItem, {
+          userId,
+          itemId: cart_item_id,
+          quantity,
+          sessionToken: sessionToken || undefined
+        });
+        
+        return ResponseFactory.success({ item });
+      } catch (error: unknown) {
+        if (isAuthenticationError(error) || isAuthorizationError(error)) {
+          return handleConvexError(error, request);
+        }
+        throw error;
       }
-      
-      const token = request.headers.get('authorization')?.split(' ')[1];
-      if (!token) {
-        return ResponseFactory.unauthorized('No token provided.');
-      }
-      
-      const payload = jwt.verify(token, JWT_SECRET) as { user_id: Id<'users'>; roles: string[] };
-      if (!payload.roles?.includes('customer')) {
-        return ResponseFactory.forbidden('Forbidden: Only customers can update cart items.');
-      }
-      
-      const convex = getConvexClient();
-      const item = await convex.mutation(api.mutations.orders.updateCartItem, {
-        userId: payload.user_id,
-        itemId: cart_item_id,
-        quantity,
-      });
-      
-      return ResponseFactory.success({ item });
     })
   )
 );
@@ -204,28 +203,29 @@ export const PUT = withAPIMiddleware(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export const DELETE = withAPIMiddleware(
   withErrorHandling(
     withCartItemId(async (request, cart_item_id) => {
-      const token = request.headers.get('authorization')?.split(' ')[1];
-      if (!token) {
-        return ResponseFactory.unauthorized('No token provided.');
+      try {
+        const { userId } = await getAuthenticatedCustomer(request);
+        
+        const convex = getConvexClientFromRequest(request);
+        const sessionToken = getSessionTokenFromRequest(request);
+        const success = await convex.mutation(api.mutations.orders.removeFromCart, {
+          userId,
+          itemId: cart_item_id,
+          sessionToken: sessionToken || undefined
+        });
+        
+        return ResponseFactory.success({ success });
+      } catch (error: unknown) {
+        if (isAuthenticationError(error) || isAuthorizationError(error)) {
+          return handleConvexError(error, request);
+        }
+        throw error;
       }
-      
-      const payload = jwt.verify(token, JWT_SECRET) as { user_id: Id<'users'>; roles: string[] };
-      if (!payload.roles?.includes('customer')) {
-        return ResponseFactory.forbidden('Forbidden: Only customers can remove cart items.');
-      }
-      
-      const convex = getConvexClient();
-      const success = await convex.mutation(api.mutations.orders.removeFromCart, {
-        userId: payload.user_id,
-        itemId: cart_item_id,
-      });
-      
-      return ResponseFactory.success({ success });
     })
   )
 );

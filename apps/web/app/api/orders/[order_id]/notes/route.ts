@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
 
 interface AddNoteRequest {
   note: string;
@@ -131,25 +130,13 @@ interface AddNoteRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Extract order_id from URL
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Extract order_id from URL
     const url = new URL(request.url);
     const match = url.pathname.match(/\/orders\/([^\/]+)\/notes/);
     const order_id = match ? match[1] : undefined;
@@ -166,23 +153,27 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Validate note type permissions
-    if (noteType === 'internal_note' && !payload.roles?.some(role => ['admin', 'staff'].includes(role))) {
+    if (noteType === 'internal_note' && !user.roles?.some((role: string) => ['admin', 'staff'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Only admin and staff can add internal notes.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to add notes to this specific order
-    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
+    if (user.roles?.includes('customer') && order.customer_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only add notes to your own orders.');
     }
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only add notes to your own orders.');
     }
 
@@ -194,16 +185,17 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Add note to order
     const updatedOrder = await convex.mutation(api.mutations.orders.addOrderNote, {
       orderId: order._id,
-      addedBy: payload.user_id || '',
+      addedBy: userId || '',
       note,
       noteType,
       metadata: {
-        addedByRole: payload.roles?.[0] || 'unknown',
+        addedByRole: user.roles?.[0] || 'unknown',
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
-    console.log(`Note added to order ${order_id} by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    logger.log(`Note added to order ${order_id} by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({
       success: true,
@@ -212,8 +204,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         id: Date.now().toString(), // Temporary ID for response
         note,
         noteType,
-        addedBy: payload.user_id,
-        addedByRole: payload.roles?.[0] || 'unknown',
+        addedBy: userId,
+        addedByRole: user.roles?.[0] || 'unknown',
         addedAt: new Date().toISOString(),
         metadata: metadata || {}
       },
@@ -221,29 +213,19 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Add order note error:', error);
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to add note to order.') 
-    );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Add order note error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to add note to order.'));
   }
 }
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Extract order_id from URL
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Extract order_id from URL
     const url = new URL(request.url);
     const match = url.pathname.match(/\/orders\/([^\/]+)\/notes/);
     const order_id = match ? match[1] : undefined;
@@ -252,31 +234,38 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing order_id parameter.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details first to verify permissions
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to view this specific order
-    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
+    if (user.roles?.includes('customer') && order.customer_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
 
     // Get order notes
-    const notes = await convex.query(api.queries.orders.getOrderNotes, { orderId: order_id });
+    const notes = await convex.query(api.queries.orders.getOrderNotes, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
 
     // Filter notes based on user role
     let filteredNotes = notes;
-    if (payload.roles?.includes('customer')) {
+    if (user.roles?.includes('customer')) {
       // Customers can only see customer notes and chef notes
       filteredNotes = notes.filter((note: { noteType?: string }) => note.noteType !== 'internal_note');
-    } else if (payload.roles?.includes('chef')) {
+    } else if (user.roles?.includes('chef')) {
       // Chefs can only see chef notes and customer notes
       filteredNotes = notes.filter((note: { noteType?: string }) => note.noteType !== 'internal_note');
     }
@@ -300,9 +289,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: unknown) {
-    console.error('Get order notes error:', error);
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order notes.') 
-    );
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get order notes error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order notes.'));
   }
 }
 

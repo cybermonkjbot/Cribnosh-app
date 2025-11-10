@@ -8,6 +8,7 @@ import {
   ErrorFactory,
   ErrorCode
 } from '../../../apps/web/lib/errors/convex-exports';
+import { requireAuth, isAdmin, isStaff, isHROrAdmin } from '../utils/auth';
 
 // Helper: check for overlapping logs (simple version)
 async function hasOverlap(ctx: MutationCtx, staffId: string, bucket: string, timestamp: number) {
@@ -19,9 +20,7 @@ async function hasOverlap(ctx: MutationCtx, staffId: string, bucket: string, tim
   return existing.some(log => log.timestamp === timestamp);
 }
 
-function isAdminOrHR(user: any): boolean {
-  return user && (user.role === 'admin' || user.role === 'hr' || user.role === 'human_resources');
-}
+// Use centralized auth utilities instead
 
 export const createTimelog = mutation({
   args: {
@@ -30,19 +29,22 @@ export const createTimelog = mutation({
     bucket: v.string(),
     logs: v.array(v.any()),
     timestamp: v.number(),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
-    const { user, staffId, bucket, logs, timestamp } = args;
-    // Resolve actor's user id
-    const actorUser = await ctx.runQuery(api.queries.users.getUserByEmail, { email: user });
-    if (!actorUser) return { status: 'error', error: 'Actor not found' };
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    const { staffId, bucket, logs, timestamp } = args;
+    
     // Access control: get staff
     const staff = await ctx.db.get(staffId);
     if (!staff) return { status: 'error', error: 'Staff not found' };
-    // Real role check for admin/HR
-    if (user !== (staff as any)?.email && !isAdminOrHR(actorUser)) {
-      return { status: 'error', error: 'Not authorized' };
+    
+    // Users can only create timelogs for themselves unless they're staff/admin
+    if (!isAdmin(user) && !isStaff(user) && staffId !== user._id) {
+      return { status: 'error', error: 'Access denied' };
     }
     // Validation
     if (!bucket || !logs.length) return { status: 'error', error: 'Missing required fields' };
@@ -52,14 +54,14 @@ export const createTimelog = mutation({
     }
     // Insert with audit fields
     await ctx.db.insert('timelogs', {
-      user,
+      user: user.email,
       staffId,
       bucket,
       logs,
       timestamp,
-      createdBy: actorUser._id,
+      createdBy: user._id,
       createdAt: Date.now(),
-      changeLog: [{ action: 'create', by: actorUser._id, at: Date.now() }],
+      changeLog: [{ action: 'create', by: user._id, at: Date.now() }],
     });
     return { status: 'ok' };
   },
@@ -73,18 +75,25 @@ export const updateTimelog = mutation({
     bucket: v.string(),
     logs: v.array(v.any()),
     timestamp: v.number(),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx, args) => {
-    const { timelogId, user, staffId, bucket, logs, timestamp } = args;
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    const { timelogId, staffId, bucket, logs, timestamp } = args;
     const timelog = await ctx.db.get(timelogId);
     if (!timelog) return { status: 'error', error: 'Timelog not found' };
-    // Resolve actor
-    const actorUser = await ctx.runQuery(api.queries.users.getUserByEmail, { email: user });
-    if (!actorUser) return { status: 'error', error: 'Actor not found' };
+    
     // Only creator or admin/HR can update
-    if (timelog.createdBy !== actorUser._id && !isAdminOrHR(actorUser)) {
-      return { status: 'error', error: 'Not authorized' };
+    if (timelog.createdBy !== user._id && !isAdmin(user) && !isHROrAdmin(user)) {
+      return { status: 'error', error: 'Access denied' };
+    }
+    
+    // Users can only update timelogs for themselves unless they're staff/admin
+    if (!isAdmin(user) && !isStaff(user) && staffId !== user._id) {
+      return { status: 'error', error: 'Access denied' };
     }
     // Validation
     if (!bucket || !logs.length) return { status: 'error', error: 'Missing required fields' };
@@ -92,15 +101,15 @@ export const updateTimelog = mutation({
     // Update and log
     const newChangeLog = [
       ...(timelog.changeLog || []),
-      { action: 'update', by: actorUser._id, at: Date.now(), details: { staffId, bucket, logs, timestamp } },
+      { action: 'update', by: user._id, at: Date.now(), details: { staffId, bucket, logs, timestamp } },
     ];
     await ctx.db.patch(timelogId, {
-      user,
+      user: user.email,
       staffId,
       bucket,
       logs,
       timestamp,
-      updatedBy: actorUser._id,
+      updatedBy: user._id,
       updatedAt: Date.now(),
       changeLog: newChangeLog,
     });
@@ -112,12 +121,21 @@ export const patchTimelog = mutation({
   args: {
     timelogId: v.id('timelogs'),
     updates: v.any(), // Flexible updates object
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { timelogId, updates } = args;
     const timelog = await ctx.db.get(timelogId);
     if (!timelog) return { status: 'error', error: 'Timelog not found' };
+    
+    // Only creator or admin/HR can patch
+    if (timelog.createdBy !== user._id && !isAdmin(user) && !isHROrAdmin(user)) {
+      return { status: 'error', error: 'Access denied' };
+    }
     
     // Validation: don't allow changing audit fields
     if (updates.createdBy || updates.createdAt) {
@@ -127,7 +145,7 @@ export const patchTimelog = mutation({
     // Update and log
     const newChangeLog = [
       ...(timelog.changeLog || []),
-      { action: 'patch', by: 'system', at: Date.now(), details: updates },
+      { action: 'patch', by: user._id, at: Date.now(), details: updates },
     ];
     
     await ctx.db.patch(timelogId, {
@@ -143,12 +161,21 @@ export const patchTimelog = mutation({
 export const deleteTimelog = mutation({
   args: {
     timelogId: v.id('timelogs'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { timelogId } = args;
     const timelog = await ctx.db.get(timelogId);
     if (!timelog) return { status: 'error', error: 'Timelog not found' };
+    
+    // Only creator or admin/HR can delete
+    if (timelog.createdBy !== user._id && !isAdmin(user) && !isHROrAdmin(user)) {
+      return { status: 'error', error: 'Access denied' };
+    }
     
     // Now delete
     await ctx.db.delete(timelogId);

@@ -34,13 +34,17 @@
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { emailAdminConfigManager } from '@/lib/email/admin-config';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // GET /api/admin/email-config/export - Export email configurations
 export async function GET(request: NextRequest) {
@@ -72,7 +76,7 @@ export async function GET(request: NextRequest) {
       return ResponseFactory.validationError('Invalid format. Supported formats: json, yaml');
     }
   } catch (error) {
-    console.error('Error exporting email configurations:', error);
+    logger.error('Error exporting email configurations:', error);
     return ResponseFactory.error('Failed to export email configurations', 'CUSTOM_ERROR', 500);
   }
 }

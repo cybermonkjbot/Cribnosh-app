@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
-import { Id } from '@/convex/_generated/dataModel';
 import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { getConvexClient } from '@/lib/conxed-client';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/files/[storageId]
@@ -26,13 +27,26 @@ export async function GET(
 
     const convex = getConvexClient();
 
+    // Validate storage ID format (Convex storage IDs start with 'kg' or 'j')
+    if (!storageId.match(/^(kg|j)[a-z0-9]+$/)) {
+      logger.warn(`Invalid storage ID format: ${storageId}`);
+      return new NextResponse('Invalid storage ID format', { status: 400 });
+    }
+
     // Get the file URL from Convex storage using the getVideoUrl query
     // (it works for any storage ID, not just videos)
-    const fileUrl = await convex.query(api.queries.videoPosts.getVideoUrl, {
-      storageId: storageId as Id<'_storage'>,
-    });
+    const storageIdTyped = storageId as Id<'_storage'>;
+    // Type assertion to avoid deep type instantiation issue
+    const fileUrl = (await convex.query(
+      // @ts-ignore - TypeScript has issues with deep type instantiation for Convex queries
+      api.queries.videoPosts.getVideoUrl,
+      {
+        storageId: storageIdTyped
+      }
+    )) as string | null;
 
     if (!fileUrl) {
+      logger.warn(`File not found for storage ID: ${storageId}`);
       return new NextResponse('File not found', { status: 404 });
     }
 
@@ -47,7 +61,7 @@ export async function GET(
     
     return response;
   } catch (error) {
-    console.error('Error serving file:', error);
+    logger.error('Error serving file:', error);
     return new NextResponse('Internal server error', { status: 500 });
   }
 }

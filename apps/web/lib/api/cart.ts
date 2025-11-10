@@ -1,7 +1,8 @@
 /**
  * Cart API Client Functions
  * Functions for interacting with the cart API endpoints
- */
+ */import { logger } from '@/lib/utils/logger';
+
 
 interface CartItem {
   _id: string;
@@ -61,53 +62,51 @@ interface APIError {
 }
 
 /**
- * Get JWT token from session token
- * This helper function gets a JWT token for authenticated API requests
+ * Get sessionToken from cookies (client-side)
+ * SessionToken is automatically sent with cookies, but this helper can be used
+ * if headers need to be set explicitly
  */
-async function getJWTToken(): Promise<string | null> {
+function getSessionTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
   try {
-    // Get JWT token from endpoint that converts session tokens (from cookies) to JWT tokens
-    const response = await fetch('/api/auth/token/get-jwt', {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.data?.token) {
-        return data.data.token;
-      }
-    }
-
-    return null;
+    const match = document.cookie.match(/(^| )convex-auth-token=([^;]+)/);
+    return match ? match[2] : null;
   } catch (error) {
-    console.error('Error getting JWT token:', error);
+    logger.error('Error reading sessionToken from cookie:', error);
     return null;
   }
 }
 
 /**
  * Make authenticated API request
+ * SessionToken is automatically sent via cookies (credentials: 'include')
+ * Headers are optional - only needed if backend requires explicit header
  */
 async function authenticatedFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const token = await getJWTToken();
+  // SessionToken is automatically sent via cookies
+  // Optionally add header if needed (backend supports both cookie and header)
+  const sessionToken = getSessionTokenFromCookie();
   
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> || {}),
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  // Optionally add sessionToken header (backend supports both cookie and header)
+  // Cookies are automatically sent with credentials: 'include'
+  if (sessionToken) {
+    // Backend supports both cookie and header, so we can add header for explicit auth
+    // headers['X-Session-Token'] = sessionToken;
+    // OR: headers['Authorization'] = `Bearer ${sessionToken}`;
   }
 
   return fetch(url, {
     ...options,
     headers,
-    credentials: 'include',
+    credentials: 'include', // Automatically sends cookies including sessionToken
   });
 }
 
@@ -129,7 +128,7 @@ export async function getCart(): Promise<CartResponse> {
 
     return await response.json();
   } catch (error) {
-    console.error('Error fetching cart:', error);
+    logger.error('Error fetching cart:', error);
     throw error;
   }
 }
@@ -159,7 +158,7 @@ export async function addToCart(
 
     return await response.json();
   } catch (error) {
-    console.error('Error adding item to cart:', error);
+    logger.error('Error adding item to cart:', error);
     throw error;
   }
 }
@@ -191,7 +190,7 @@ export async function updateCartItem(
 
     return await response.json();
   } catch (error) {
-    console.error('Error updating cart item:', error);
+    logger.error('Error updating cart item:', error);
     throw error;
   }
 }
@@ -219,7 +218,7 @@ export async function removeCartItem(
 
     return await response.json();
   } catch (error) {
-    console.error('Error removing cart item:', error);
+    logger.error('Error removing cart item:', error);
     throw error;
   }
 }
@@ -238,7 +237,7 @@ export async function clearCart(): Promise<void> {
       items.map((item) => removeCartItem(item._id))
     );
   } catch (error) {
-    console.error('Error clearing cart:', error);
+    logger.error('Error clearing cart:', error);
     throw error;
   }
 }

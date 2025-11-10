@@ -30,8 +30,6 @@ export const getTimeTrackingReports = query({
 export const getTimeTrackingStats = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    // Stats query - no filtering needed for now
-    
     // Get all users for stats
     const allUsers = await ctx.db.query("users").collect();
     const activeUsers = allUsers.filter((user) => {
@@ -39,26 +37,100 @@ export const getTimeTrackingStats = query({
       return userDoc.isActive !== false;
     }).length;
     
+    // Get all work sessions to calculate real stats
+    const allWorkSessions = await ctx.db.query("workSessions").collect();
+    
+    // Calculate total hours from completed sessions
+    const completedSessions = allWorkSessions.filter(session => 
+      session.status === 'completed' && session.duration
+    );
+    const totalHoursInMinutes = completedSessions.reduce((sum, session) => {
+      return sum + (session.duration || 0) / (1000 * 60); // Convert milliseconds to minutes
+    }, 0);
+    
+    // Convert to hours for display (frontend expects minutes for formatDuration)
+    const totalHours = totalHoursInMinutes / 60;
+    
+    // Calculate average hours per user
+    const averageHoursPerUser = activeUsers > 0 ? totalHours / activeUsers : 0;
+    
+    // Calculate productivity score (based on average hours vs expected 8 hours per day)
+    // This is a simplified calculation - adjust as needed
+    const expectedHoursPerUser = 8 * 5; // 8 hours per day, 5 days per week
+    const productivityScore = activeUsers > 0 
+      ? Math.min(100, Math.round((averageHoursPerUser / expectedHoursPerUser) * 100 * 10) / 10)
+      : 0;
+    
+    // Calculate top performers based on total hours
+    const userHoursMap = new Map<string, { hours: number; sessions: number }>();
+    
+    completedSessions.forEach(session => {
+      const userId = session.staffId;
+      const minutes = (session.duration || 0) / (1000 * 60); // Convert to minutes
+      const current = userHoursMap.get(userId) || { hours: 0, sessions: 0 };
+      userHoursMap.set(userId, {
+        hours: current.hours + (minutes / 60), // Store in hours for calculations
+        sessions: current.sessions + 1
+      });
+    });
+    
+    // Get top performers with user names
+    const topPerformers = Array.from(userHoursMap.entries())
+      .map(([userId, data]) => {
+        const user = allUsers.find(u => u._id === userId);
+        const userName = (user as { name?: string; email?: string })?.name || 
+                        (user as { email?: string })?.email || 
+                        'Unknown User';
+        // Calculate productivity based on hours worked
+        const productivity = data.hours > 0 
+          ? Math.min(100, Math.round((data.hours / expectedHoursPerUser) * 100 * 10) / 10)
+          : 0;
+        
+        return {
+          userId,
+          userName,
+          totalHours: Math.round(data.hours * 60), // Return in minutes for formatDuration function
+          productivity
+        };
+      })
+      .sort((a, b) => b.totalHours - a.totalHours)
+      .slice(0, 5);
+    
+    // Get recent activity from work sessions (last 5 clock-ins)
+    const recentSessions = allWorkSessions
+      .filter(session => session.clockInTime)
+      .sort((a, b) => b.clockInTime - a.clockInTime)
+      .slice(0, 5);
+    
+    const recentActivity = recentSessions.map(session => {
+      const user = allUsers.find(u => u._id === session.staffId);
+      const userName = (user as { name?: string; email?: string })?.name || 
+                      (user as { email?: string })?.email || 
+                      'Unknown User';
+      
+      let action = 'Started time tracking';
+      if (session.status === 'completed') {
+        action = 'Completed time tracking';
+      } else if (session.status === 'paused') {
+        action = 'Paused time tracking';
+      }
+      
+      return {
+        userId: session.staffId,
+        userName,
+        action,
+        timestamp: session.clockInTime
+      };
+    });
+    
     return {
       totalUsers: allUsers.length,
       activeUsers: activeUsers,
-      totalHours: 168.5,
-      averageHoursPerUser: 8.4,
-      productivityScore: 87.5,
-      topPerformers: [
-        { userId: "user1", userName: "John Doe", totalHours: 45.5, productivity: 92.3 },
-        { userId: "user2", userName: "Jane Smith", totalHours: 42.0, productivity: 89.1 },
-        { userId: "user3", userName: "Mike Johnson", totalHours: 38.5, productivity: 85.7 },
-        { userId: "user4", userName: "Sarah Wilson", totalHours: 35.0, productivity: 82.4 },
-        { userId: "user5", userName: "David Brown", totalHours: 32.5, productivity: 79.8 },
-      ],
-      recentActivity: [
-        { userId: "user1", userName: "John Doe", action: "Started time tracking", timestamp: Date.now() - 3600000 },
-        { userId: "user2", userName: "Jane Smith", action: "Completed project task", timestamp: Date.now() - 7200000 },
-        { userId: "user3", userName: "Mike Johnson", action: "Paused time tracking", timestamp: Date.now() - 10800000 },
-        { userId: "user4", userName: "Sarah Wilson", action: "Generated report", timestamp: Date.now() - 14400000 },
-        { userId: "user5", userName: "David Brown", action: "Updated time entry", timestamp: Date.now() - 18000000 },
-      ],
+      totalHours: Math.round(totalHoursInMinutes), // Return in minutes for formatDuration function
+      averageHoursPerUser: Math.round(averageHoursPerUser * 10) / 10,
+      productivityScore: Math.round(productivityScore * 10) / 10,
+      topPerformers,
+      recentActivity,
     };
   },
 });
@@ -78,19 +150,12 @@ export const getDepartments = query({
       }
     });
     
-    // Default departments if none exist
-    const defaultDepartments = [
-      "Engineering",
-      "Design", 
-      "Marketing",
-      "Sales",
-      "Support"
-    ];
+    // Return empty array if no departments exist - no fallback demo data
+    if (departmentNames.size === 0) {
+      return [];
+    }
     
-    // Use default departments if no users have departments set
-    const departmentList = departmentNames.size > 0 
-      ? Array.from(departmentNames)
-      : defaultDepartments;
+    const departmentList = Array.from(departmentNames);
     
     // Calculate stats for each department
     const departmentsWithStats = await Promise.all(
@@ -100,9 +165,19 @@ export const getDepartments = query({
           .filter((q) => q.eq(q.field("department"), deptName))
           .collect();
         
-        // Calculate total hours for this department - timelogs don't have department field directly
-        // This would need to be calculated from workSessions or user department assignments
-        const totalHours = 0; // TODO: Calculate from actual time tracking data
+        // Calculate total hours for this department from actual time tracking data
+        // Get work sessions for users in this department
+        const userIds = new Set(users.map(u => u._id));
+        const allWorkSessions = await ctx.db.query("workSessions").collect();
+        
+        // Filter work sessions to only those for users in this department
+        const workSessions = allWorkSessions.filter(session => 
+          userIds.has(session.staffId)
+        );
+        
+        const totalHours = workSessions.reduce((sum, session) => {
+          return sum + (session.duration || 0) / (1000 * 60 * 60); // Convert milliseconds to hours
+        }, 0);
         
         return {
           id: deptName.toLowerCase().replace(/\s+/g, "-"),

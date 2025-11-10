@@ -1,12 +1,12 @@
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest } from 'next/server';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 /**
  * @swagger
  * /admin/orders/mark-non-refundable:
@@ -119,10 +119,8 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 interface MarkNonRefundableRequest {
   orderId: string;
@@ -135,30 +133,8 @@ interface MarkNonRefundableRequest {
 async function handlePOST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    interface JWTPayload {
-      role?: string;
-      userId?: string;
-      user_id?: string;
-      email?: string;
-      [key: string]: unknown;
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has admin permissions
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Admin access required.');
-    }
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
 
     const body: MarkNonRefundableRequest = await request.json();
     const { orderId, reason, description, effectiveImmediately = false, metadata } = body;
@@ -167,10 +143,14 @@ async function handlePOST(request: NextRequest) {
       return ResponseFactory.validationError('Missing required fields: orderId, reason, and description are required.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
@@ -194,21 +174,22 @@ async function handlePOST(request: NextRequest) {
     // Update refund eligibility
     const updatedOrder = await convex.mutation(api.mutations.orders.updateRefundEligibility, {
       orderId: order._id,
-      updatedBy: (payload.user_id || payload.userId) as Id<"users">,
+      updatedBy: userId,
       reason: `Admin override: ${description}`,
       metadata: {
         adminReason: reason,
         adminDescription: description,
         effectiveImmediately,
-        adminUserId: payload.user_id,
+        adminUserId: userId,
         adminOverride: true,
         originalRefundEligibleUntil: order.refund_eligible_until,
         originalIsRefundable: order.is_refundable,
         ...metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
-    console.log(`Order ${orderId} marked as non-refundable by admin ${payload.user_id}: ${reason} - ${description}`);
+    logger.log(`Order ${orderId} marked as non-refundable by admin ${userId}: ${reason} - ${description}`);
 
     return ResponseFactory.success({
       success: true,
@@ -219,7 +200,10 @@ async function handlePOST(request: NextRequest) {
       description: description
     }, 'Order marked as non-refundable successfully');
   } catch (error: unknown) {
-    console.error('Error marking order as non-refundable:', error);
+    logger.error('Error marking order as non-refundable:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError('Failed to mark order as non-refundable');
   }
 }

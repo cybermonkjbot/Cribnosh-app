@@ -2,10 +2,13 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -15,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Get the most popular meals from a specific kitchen/chef sorted by rating and review count
  *     tags: [Customer, Kitchens, Meals]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId
@@ -55,13 +58,17 @@ async function handleGET(
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get chef ID from kitchen
     const chefId = await convex.query(
-      (api as { queries: { kitchens: { getChefByKitchenId: unknown } } }).queries.kitchens.getChefByKitchenId as never,
-      { kitchenId }
-    );
+      api.queries.kitchens.getChefByKitchenId as any,
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
+    ) as string | undefined;
 
     if (!chefId) {
       return ResponseFactory.notFound('Chef not found for this kitchen');
@@ -69,18 +76,22 @@ async function handleGET(
 
     // Get popular meals by chef with user preferences
     const meals = await convex.query(
-      (api as { queries: { meals: { getPopularByChefId: unknown } } }).queries.meals.getPopularByChefId as never,
+      api.queries.meals.getPopularByChefId as any,
       {
         chefId,
-        userId,
+        userId: userId as any,
         limit,
+        sessionToken: sessionToken || undefined
       }
-    );
+    ) as unknown[];
 
     return ResponseFactory.success({ meals }, 'Popular meals retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get popular meals error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get popular meals error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve popular meals')
     );

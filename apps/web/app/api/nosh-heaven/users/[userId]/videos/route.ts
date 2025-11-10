@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -71,18 +75,23 @@ async function handleGET(
       return ResponseFactory.validationError('User ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const videos = await convex.query((api as any).queries.videoPosts.getVideosByCreator, {
       creatorId: userId,
       limit,
       cursor,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(videos, 'User videos retrieved successfully');
 
-  } catch (error: any) {
-    console.error('User videos retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve user videos');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('User videos retrieval error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve user videos'));
   }
 }
 

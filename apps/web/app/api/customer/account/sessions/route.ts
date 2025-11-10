@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -64,35 +63,21 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
-
-    const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get sessions from the sessions table
-    const sessions = await convex.query(api.queries.sessions.getSessionsByUserId, {
-      userId: userId,
-    });
+    const sessions = (await convex.query(api.queries.sessions.getSessionsByUserId, {
+      userId: userId as any,
+      sessionToken: sessionToken || undefined
+    })) as any[];
 
     // Filter active sessions (expiresAt > now)
     const now = Date.now();
@@ -138,7 +123,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
     // Sort by creation time (newest first)
-    formattedSessions.sort((a, b) => {
+    formattedSessions.sort((a: { created_at: string }, b: { created_at: string }) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
@@ -146,7 +131,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       sessions: formattedSessions,
     });
   } catch (error: unknown) {
-    console.error('[GET_SESSIONS] Error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('[GET_SESSIONS] Error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch sessions.'));
   }
 }

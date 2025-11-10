@@ -43,9 +43,12 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { Id } from '@/convex/_generated/dataModel';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/chef/{profile_id}
 // Group: chef
@@ -65,7 +68,11 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Invalid profile_id');
   }
   const convex = getConvexClient();
-  const chef = await convex.query(api.queries.chefs.getChefById, { chefId });
+  const sessionToken = getSessionTokenFromRequest(request);
+  const chef = await convex.query(api.queries.chefs.getChefById, {
+    chefId,
+    sessionToken: sessionToken || undefined
+  });
   if (!chef) {
     return ResponseFactory.notFound('Chef not found');
   }

@@ -18,10 +18,12 @@
 
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Endpoint: /v1/customer/menus/menus/{menu_id}
@@ -65,21 +67,28 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.validationError('Missing menu_id');
   }
   
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
   
   // Extract userId from request (optional for public endpoints)
   const userId = extractUserIdFromRequest(request);
   
   try {
     // Get all meals with user preferences and find the one with matching ID
-    const meals = await convex.query((api as any).queries.meals.getAll, { userId });
+    const meals = await convex.query((api as any).queries.meals.getAll, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     const menu = Array.isArray(meals) ? meals.find(m => m._id === menu_id) : null;
     if (!menu) {
       return ResponseFactory.notFound('Menu not found');
     }
     return ResponseFactory.success(menu);
-  } catch (error) {
-    console.error('Error fetching menu:', error);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error fetching menu:', error);
     return ResponseFactory.validationError('Invalid menu_id');
   }
 }

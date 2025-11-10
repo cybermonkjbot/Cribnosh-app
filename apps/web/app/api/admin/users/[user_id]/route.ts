@@ -3,12 +3,12 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -90,7 +90,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   patch:
  *     summary: Update User (Admin)
  *     description: Partially update user information. Only accessible by administrators. Changes are logged for audit purposes.
@@ -176,7 +176,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   put:
  *     summary: Replace User Data (Admin)
  *     description: Completely replace user information. Only accessible by administrators. Protected fields are automatically excluded.
@@ -262,7 +262,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   delete:
  *     summary: Delete User (Admin)
  *     description: Permanently delete a user account. Only accessible by administrators. This action is logged for audit purposes.
@@ -314,10 +314,8 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 function extractUserIdFromUrl(request: NextRequest): Id<'users'> | undefined {
   const url = new URL(request.url);
@@ -327,124 +325,97 @@ function extractUserIdFromUrl(request: NextRequest): Id<'users'> | undefined {
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const user_id = extractUserIdFromUrl(request);
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
     }
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getById, { userId: user_id });
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await convex.query(api.queries.users.getById, {
+      userId: user_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }
-    const { password, sessionToken, sessionExpiry, ...safeUser } = user;
+    const { password, sessionExpiry, ...safeUser } = user;
     return ResponseFactory.success({ user: safeUser });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch user.'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can update users.');
-    }
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
     const user_id = extractUserIdFromUrl(request);
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
     }
     const updates = await request.json();
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.users.updateUser, {
       userId: user_id,
       ...updates,
+      sessionToken: sessionToken || undefined
     });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'update_user',
       details: { user_id, updates },
-      adminId: payload.user_id as Id<'users'>,
+      adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update user.'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can delete users.');
-    }
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
     const user_id = extractUserIdFromUrl(request);
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
     }
-    const convex = getConvexClient();
-    await convex.mutation(api.mutations.users.deleteUser, { userId: user_id });
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    await convex.mutation(api.mutations.users.deleteUser, {
+      userId: user_id,
+      sessionToken: sessionToken || undefined
+    });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'delete_user',
       details: { user_id },
-      adminId: payload.user_id as Id<'users'>,
+      adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete user.'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can update users.');
-    }
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
     const user_id = extractUserIdFromUrl(request);
     if (!user_id) {
       return ResponseFactory.validationError('Missing user_id');
@@ -455,20 +426,26 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
     delete newUserData.password;
     delete newUserData.sessionToken;
     delete newUserData.sessionExpiry;
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.users.updateUser, {
       userId: user_id,
       ...newUserData,
+      sessionToken: sessionToken || undefined
     });
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'replace_user',
       details: { user_id, newUserData },
-      adminId: payload.user_id as Id<'users'>,
+      adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to replace user.'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

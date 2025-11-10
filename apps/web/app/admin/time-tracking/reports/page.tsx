@@ -1,37 +1,33 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Clock, 
-  Users,
-  Calendar,
-  Download,
-  Filter,
-  BarChart2,
-  PieChart,
-  TrendingUp,
-  TrendingDown,
+import { useMutation, useQuery } from 'convex/react';
+import {
   Activity,
-  FileSpreadsheet,
-  Eye,
+  BarChart2,
+  Calendar,
+  Clock,
   Clock as ClockIcon,
-  User,
-  CheckCircle,
-  AlertTriangle,
+  Download,
+  Eye,
+  FileSpreadsheet,
+  Filter,
   Search,
-  Trash2
+  Trash2,
+  TrendingUp,
+  User,
+  Users
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useEffect, useState } from 'react';
+import { useAdminUser } from '../../AdminUserProvider';
 
 interface TimeTrackingReport {
   _id: string;
@@ -110,14 +106,18 @@ interface TimeTrackingStats {
 }
 
 export default function TimeTrackingReportsPage() {
+  const { sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   // New report form
   const [newReport, setNewReport] = useState({
@@ -133,7 +133,7 @@ export default function TimeTrackingReportsPage() {
   // Fetch data - all args are optional, so empty object is fine
   const reports = useQuery(api.queries.timeTracking.getTimeTrackingReports, {});
   const stats = useQuery(api.queries.timeTracking.getTimeTrackingStats, {});
-  const users = useQuery(api.queries.users.getUsersForAdmin, {});
+  const users = useQuery(api.queries.users.getUsersForAdmin, sessionToken ? { sessionToken } : "skip");
   const departments = useQuery(api.queries.timeTracking.getDepartments, {});
 
   // Mutations
@@ -149,6 +149,7 @@ export default function TimeTrackingReportsPage() {
 
     setIsGenerating(true);
     try {
+      setError(null);
       await generateReport({
         name: newReport.name,
         type: newReport.type,
@@ -171,9 +172,8 @@ export default function TimeTrackingReportsPage() {
         projects: []
       });
       setSuccess('Report generated successfully');
-      setError(null);
     } catch (err) {
-      setError('Failed to generate report');
+      setError(err instanceof Error ? err.message : 'Failed to generate report');
     } finally {
       setIsGenerating(false);
     }
@@ -182,26 +182,59 @@ export default function TimeTrackingReportsPage() {
   const handleDeleteReport = async (reportId: string) => {
     if (confirm('Are you sure you want to delete this report?')) {
       try {
+        setError(null);
+        setIsDeleting(reportId);
         // Type assertion needed because Convex generates types that expect Id<"reports">
         // but the reportId from the query is a string
         await deleteReport({ reportId: reportId as unknown as Id<"reports"> });
         setSuccess('Report deleted successfully');
-        setError(null);
       } catch (err) {
-        setError('Failed to delete report');
+        setError(err instanceof Error ? err.message : 'Failed to delete report');
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
 
   const handleDownloadReport = async (reportId: string) => {
     try {
-      await downloadReport({ reportId });
-      setSuccess('Report download started');
       setError(null);
+      setIsDownloading(reportId);
+      const result = await downloadReport({ reportId });
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        link.download = `time-tracking-report-${reportId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Report downloaded successfully');
+      } else {
+        setSuccess('Report download started');
+      }
     } catch (err) {
-      setError('Failed to download report');
+      setError(err instanceof Error ? err.message : 'Failed to download report');
+    } finally {
+      setIsDownloading(null);
     }
   };
+
+  // Auto-dismiss success/error messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const filteredReports = reports?.filter((report: any) => {
     const matchesSearch = 
@@ -245,7 +278,7 @@ export default function TimeTrackingReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -387,7 +420,7 @@ export default function TimeTrackingReportsPage() {
             <Button 
               onClick={handleGenerateReport} 
               disabled={isGenerating}
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
               {isGenerating ? 'Generating...' : 'Generate Report'}
             </Button>

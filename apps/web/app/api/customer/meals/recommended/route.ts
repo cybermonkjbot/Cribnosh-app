@@ -2,10 +2,13 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -15,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Get personalized meal recommendations based on user preferences, likes, and follows
  *     tags: [Customer, Meals, Recommendations]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: limit
@@ -41,13 +44,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.unauthorized('Authentication required for personalized recommendations');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get personalized recommendations
-    const recommendations = await convex.query((api as { queries: { mealRecommendations: { getRecommended: unknown } } }).queries.mealRecommendations.getRecommended as never, {
-      userId,
+    const recommendations = await convex.query(api.queries.mealRecommendations.getRecommended, {
+      userId: userId as any,
       limit,
-    });
+      sessionToken: sessionToken || undefined
+    }) as unknown[];
 
     return ResponseFactory.success({ 
       recommendations,
@@ -56,7 +61,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }, 'Recommendations retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get recommendations error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get recommendations error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve recommendations')
     );

@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -89,22 +89,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'chef' && payload.role !== 'admin') {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedChef(request);if (user.roles?.[0] !== 'chef' && user.roles?.[0] !== 'admin') {
       return ResponseFactory.forbidden('Forbidden: Only chefs or admins can upload images.');
     }
     const formData = await request.formData();
@@ -121,6 +111,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Store file in Convex file storage
     const buffer = Buffer.from(await file.arrayBuffer());
     const convex = getConvexClient();
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // First, generate an upload URL
     const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
@@ -131,7 +122,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
       },
-      body: buffer,
+      body: buffer
     });
     
     if (!uploadRes.ok) {
@@ -146,8 +137,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const fileUrl = `/api/files/${storageId}`;
     
     // Update chef profile with the storage ID
-    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
-    const chef = chefs.find((c: any) => c.userId === payload.user_id);
+    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+      sessionToken: sessionToken || undefined
+    });
+    const chef = chefs.find((c: any) => c.userId === userId);
     
     if (!chef) {
       return ResponseFactory.notFound('Chef profile not found.');
@@ -158,11 +151,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       chefId: chef.chefId, 
       updates: { 
         image: fileUrl
-      } 
+      },
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, fileUrl });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to upload image.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

@@ -1,8 +1,10 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -44,9 +46,12 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
-    const config = await convex.query(api.queries.admin.getRegionalAvailabilityConfig, {});
+    const config = await convex.query(api.queries.admin.getRegionalAvailabilityConfig, {
+      sessionToken: sessionToken || undefined
+    });
     
     return ResponseFactory.success({
       enabled: config.enabled,
@@ -55,7 +60,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       supportedCountries: config.supportedCountries,
     });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get regional availability configuration'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

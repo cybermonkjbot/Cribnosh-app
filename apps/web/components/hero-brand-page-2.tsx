@@ -13,8 +13,8 @@ interface HeroBrandPage2Props {
 }
 
 // Add a simple useInView hook with proper type safety
-function useInView<T extends HTMLElement = HTMLElement>(threshold = 0.1): [React.RefObject<T>, boolean] {
-  const ref = useRef<T>(null);
+function useInView<T extends HTMLElement = HTMLElement>(threshold = 0.1): [React.RefObject<T | null>, boolean] {
+  const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
 
   useEffect(() => {

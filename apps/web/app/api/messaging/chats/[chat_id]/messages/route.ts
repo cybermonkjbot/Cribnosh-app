@@ -74,12 +74,12 @@ import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextRequestWithParams } from '@/types/next';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -160,8 +160,14 @@ async function handleGET(request: NextRequestWithParams<{ chat_id: string }>): P
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '20', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
-  const convex = getConvexClient();
-  const result = await convex.query(api.queries.chats.listMessagesForChat, { chatId, limit, offset });
+  const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
+  const result = await convex.query(api.queries.chats.listMessagesForChat, {
+    chatId,
+    limit,
+    offset,
+    sessionToken: sessionToken || undefined
+  });
   return ResponseFactory.success(result);
 }
 
@@ -218,36 +224,31 @@ export const GET = withAPIMiddleware(withErrorHandling((req: NextRequest) => han
 async function handlePOST(request: NextRequestWithParams<{ chat_id: string }>): Promise<NextResponse> {
   const { params } = request;
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const { chat_id } = params;
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const { chat_id } = params;
     const { content, fileUrl, fileType, fileName, fileSize, metadata } = await request.json();
     if (!content && !fileUrl) {
       return ResponseFactory.validationError('Message content or file required');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const message = await convex.mutation(api.mutations.chats.sendMessage, {
       chatId: chat_id as Id<'chats'>,
-      senderId: payload.user_id,
+      senderId: userId,
       content: content || '',
       fileUrl,
       fileType,
       fileName,
       fileSize,
       metadata,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success(message);
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to send message.' );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

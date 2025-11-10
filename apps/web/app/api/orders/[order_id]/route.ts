@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
 
 interface UpdateOrderRequest {
   deliveryAddress?: {
@@ -143,26 +142,14 @@ interface UpdateOrderRequest {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePATCH(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to update orders
-    if (!payload.roles?.some(role => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);    // Check if user has permission to update orders
+    if (!user.roles?.some((role: string) => ['admin', 'staff', 'chef', 'customer'].includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -177,19 +164,23 @@ async function handlePATCH(request: NextRequest) {
 
     const body: UpdateOrderRequest = await request.json();
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to update this specific order
-    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
+    if (user.roles?.includes('customer') && order.customer_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own orders.');
     }
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only update your own orders.');
     }
 
@@ -201,23 +192,27 @@ async function handlePATCH(request: NextRequest) {
     // Update order
     const updatedOrder = await convex.mutation(api.mutations.orders.updateOrder, {
       orderId: order._id,
-      updatedBy: payload.user_id || '',
+      updatedBy: userId || '',
       deliveryAddress: body.deliveryAddress,
       specialInstructions: body.specialInstructions,
       deliveryTime: body.deliveryTime,
       estimatedPrepTime: body.estimatedPrepTime,
       chefNotes: body.chefNotes,
       metadata: {
-        updatedByRole: payload.roles?.[0] || 'unknown',
+        updatedByRole: user.roles?.[0] || 'unknown',
         ...body.metadata
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
 
-    console.log(`Order ${order_id} updated by ${payload.user_id} (${payload.roles?.join(',') || 'unknown'})`);
+    logger.log(`Order ${order_id} updated by ${userId} (${user.roles?.join(',') || 'unknown'})`);
 
     return ResponseFactory.success({});
   } catch (error: unknown) {
-    console.error('Error updating order:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error updating order:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update order'));
   }
 }
@@ -405,25 +400,13 @@ async function handlePATCH(request: NextRequest) {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Extract order_id from URL
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Extract order_id from URL
     const url = new URL(request.url);
     const match = url.pathname.match(/\/orders\/([^\/]+)/);
     const order_id = match ? match[1] : undefined;
@@ -432,19 +415,23 @@ async function handleGET(request: NextRequest) {
       return ResponseFactory.validationError('Missing order_id parameter.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order details
-    const order = await convex.query(api.queries.orders.getOrderById, { orderId: order_id });
+    const order = await convex.query(api.queries.orders.getOrderById, {
+      orderId: order_id,
+      sessionToken: sessionToken || undefined
+    });
     if (!order) {
       return ResponseFactory.notFound('Order not found.');
     }
 
     // Verify user has permission to view this specific order
-    if (payload.roles?.includes('customer') && order.customer_id !== payload.user_id) {
+    if (user.roles?.includes('customer') && order.customer_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
-    if (payload.roles?.includes('chef') && order.chef_id !== payload.user_id) {
+    if (user.roles?.includes('chef') && order.chef_id !== userId) {
       return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
     }
 
@@ -475,7 +462,10 @@ async function handleGET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Order get error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Order get error:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get order.'));
   }
 }

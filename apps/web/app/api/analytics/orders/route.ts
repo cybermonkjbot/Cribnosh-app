@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -182,26 +183,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
+    // Get authenticated user from session token
+    const { user } = await getAuthenticatedUser(request);
     // Check if user has permission to access analytics
-    if (!['admin', 'staff'].includes(payload.role)) {
+    if (!user.roles || (!user.roles.includes('admin') && !user.roles.includes('staff'))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -214,7 +204,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const groupBy = searchParams.get('groupBy') || 'day'; // day, week, month, chef, status
     const limit = parseInt(searchParams.get('limit') || '100');
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get order analytics based on filters
     const analytics = await convex.query(api.queries.analytics.getOrderAnalytics, {
@@ -224,7 +215,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       customerId: customerId ? (customerId as any) : undefined,
       status: status || undefined,
       groupBy: (groupBy === 'day' || groupBy === 'week' || groupBy === 'month' || groupBy === 'chef' || groupBy === 'status') ? groupBy : 'day',
-      limit
+      limit,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({
@@ -243,7 +235,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     });
 
   } catch (error: any) {
-    console.error('Get order analytics error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get order analytics error:', error);
     return ResponseFactory.internalError(error.message || 'Failed to get order analytics.' 
     );
   }

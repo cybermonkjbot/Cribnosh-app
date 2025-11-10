@@ -59,6 +59,7 @@ import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 // import { ShakeDebugger } from './ShakeDebugger';
 import { CuisineCategoriesDrawer } from "./CuisineCategoriesDrawer";
+import { CuisineCategoryDrawer } from "./CuisineCategoryDrawer";
 import { CuisinesDrawer } from "./CuisinesDrawer";
 import { ShakeToEatFlow } from "./ShakeToEatFlow";
 import { SpecialOffersDrawer } from "./SpecialOffersDrawer";
@@ -73,11 +74,13 @@ import { TopKebabs } from "./TopKebabs";
 // Customer API imports
 import {
   useAddToCartMutation,
+  useGetActiveOffersQuery,
   useGetCartQuery,
   useGetCuisinesQuery,
   useGetPopularChefsQuery,
   useGetPopularMealsQuery,
   useGetUserBehaviorQuery,
+  useGetWeatherQuery,
 } from "@/store/customerApi";
 import { Chef, Cuisine } from "@/types/customer";
 
@@ -89,352 +92,6 @@ import {
   showWarning,
 } from "../../lib/GlobalToastManager";
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
-
-// Mock data for new sections
-const mockCuisines = [
-  {
-    id: "1",
-    name: "Nigerian",
-    image: {
-      uri: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=400&fit=crop",
-    },
-    restaurantCount: 24,
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Italian",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop",
-    },
-    restaurantCount: 18,
-    isActive: false,
-  },
-  {
-    id: "3",
-    name: "Chinese",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop",
-    },
-    restaurantCount: 15,
-    isActive: false,
-  },
-  {
-    id: "4",
-    name: "Indian",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=400&fit=crop",
-    },
-    restaurantCount: 12,
-    isActive: false,
-  },
-];
-
-const mockKitchens: {
-  id: string;
-  name: string;
-  cuisine: string;
-  sentiment:
-    | "bussing"
-    | "mid"
-    | "notIt"
-    | "fire"
-    | "slaps"
-    | "decent"
-    | "meh"
-    | "trash"
-    | "elite"
-    | "solid"
-    | "average"
-    | "skip";
-  deliveryTime: string;
-  distance: string;
-  image: any;
-  isLive?: boolean;
-  liveViewers?: number;
-}[] = [
-  {
-    id: "1",
-    name: "Amara's Kitchen",
-    cuisine: "Nigerian",
-    sentiment: "elite",
-    deliveryTime: "25 min",
-    distance: "0.8 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
-    },
-    isLive: true,
-    liveViewers: 156,
-  },
-  {
-    id: "2",
-    name: "Bangkok Bites",
-    cuisine: "Thai",
-    sentiment: "fire",
-    deliveryTime: "30 min",
-    distance: "1.2 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: false,
-  },
-  {
-    id: "3",
-    name: "Marrakech Delights",
-    cuisine: "Moroccan",
-    sentiment: "slaps",
-    deliveryTime: "35 min",
-    distance: "1.5 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: true,
-    liveViewers: 89,
-  },
-  {
-    id: "4",
-    name: "Seoul Street",
-    cuisine: "Korean",
-    sentiment: "solid",
-    deliveryTime: "28 min",
-    distance: "1.0 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    isLive: false,
-  },
-  {
-    id: "5",
-    name: "Nonna's Table",
-    cuisine: "Italian",
-    sentiment: "bussing",
-    deliveryTime: "32 min",
-    distance: "1.3 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: false,
-  },
-  {
-    id: "6",
-    name: "Tokyo Dreams",
-    cuisine: "Japanese",
-    sentiment: "decent",
-    deliveryTime: "22 min",
-    distance: "0.6 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: true,
-    liveViewers: 234,
-  },
-  {
-    id: "7",
-    name: "Mumbai Spice",
-    cuisine: "Indian",
-    sentiment: "average",
-    deliveryTime: "40 min",
-    distance: "1.8 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    isLive: false,
-  },
-  {
-    id: "8",
-    name: "Parisian Bistro",
-    cuisine: "French",
-    sentiment: "mid",
-    deliveryTime: "45 min",
-    distance: "2.1 mi",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isLive: true,
-    liveViewers: 67,
-  },
-];
-
-const mockMeals: {
-  id: string;
-  name: string;
-  kitchen: string;
-  price: string;
-  originalPrice?: string;
-  image: any;
-  isPopular?: boolean;
-  isNew?: boolean;
-  sentiment:
-    | "bussing"
-    | "mid"
-    | "notIt"
-    | "fire"
-    | "slaps"
-    | "decent"
-    | "meh"
-    | "trash"
-    | "elite"
-    | "solid"
-    | "average"
-    | "skip";
-  deliveryTime: string;
-}[] = [
-  {
-    id: "1",
-    name: "Jollof Rice",
-    kitchen: "Amara's Kitchen",
-    price: "£12",
-    originalPrice: "£15",
-    image: {
-      uri: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
-    },
-    isPopular: true,
-    sentiment: "elite",
-    deliveryTime: "25 min",
-  },
-  {
-    id: "2",
-    name: "Green Curry",
-    kitchen: "Bangkok Bites",
-    price: "£14",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isNew: true,
-    sentiment: "fire",
-    deliveryTime: "30 min",
-  },
-  {
-    id: "3",
-    name: "Lamb Tagine",
-    kitchen: "Marrakech Delights",
-    price: "£18",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isPopular: true,
-    sentiment: "slaps",
-    deliveryTime: "35 min",
-  },
-  {
-    id: "4",
-    name: "Bulgogi Bowl",
-    kitchen: "Seoul Street",
-    price: "£16",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    sentiment: "solid",
-    deliveryTime: "28 min",
-  },
-  {
-    id: "5",
-    name: "Truffle Risotto",
-    kitchen: "Nonna's Table",
-    price: "£22",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isPopular: true,
-    sentiment: "bussing",
-    deliveryTime: "32 min",
-  },
-  {
-    id: "6",
-    name: "Sushi Platter",
-    kitchen: "Tokyo Dreams",
-    price: "£25",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    isNew: true,
-    sentiment: "decent",
-    deliveryTime: "22 min",
-  },
-  {
-    id: "7",
-    name: "Pounded Yam",
-    kitchen: "Amara's Kitchen",
-    price: "£10",
-    image: {
-      uri: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
-    },
-    sentiment: "average",
-    deliveryTime: "25 min",
-  },
-  {
-    id: "8",
-    name: "Pad Thai",
-    kitchen: "Bangkok Bites",
-    price: "£13",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    sentiment: "mid",
-    deliveryTime: "30 min",
-  },
-  {
-    id: "9",
-    name: "Butter Chicken",
-    kitchen: "Mumbai Spice",
-    price: "£15",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    isPopular: true,
-    sentiment: "meh",
-    deliveryTime: "40 min",
-  },
-  {
-    id: "10",
-    name: "Coq au Vin",
-    kitchen: "Parisian Bistro",
-    price: "£20",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    sentiment: "notIt",
-    deliveryTime: "45 min",
-  },
-];
-
-const mockOffers = [
-  {
-    id: "1",
-    title: "First Order Discount",
-    description: "Get 20% off your first order from any kitchen",
-    discount: "20%",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    validUntil: "Dec 31",
-    isLimited: true,
-    remainingTime: "2 days left",
-  },
-  {
-    id: "2",
-    title: "Weekend Special",
-    description: "Free delivery on orders over £25 this weekend",
-    discount: "Free Delivery",
-    image: {
-      uri: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-    },
-    validUntil: "Dec 15",
-    remainingTime: "5 days left",
-  },
-  {
-    id: "3",
-    title: "Lunch Rush",
-    description: "15% off all lunch orders between 12-2 PM",
-    discount: "15%",
-    image: {
-      uri: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop",
-    },
-    validUntil: "Dec 20",
-    isLimited: true,
-    remainingTime: "1 day left",
-  },
-];
 
 export function MainScreen() {
   const { 
@@ -451,6 +108,8 @@ export function MainScreen() {
     isSessionExpired,
     clearSessionExpired,
     checkTokenExpiration,
+    token,
+    refreshAuthState,
   } = useAuthContext();
 
   // Customer API hooks
@@ -493,6 +152,15 @@ export function MainScreen() {
     }
   );
 
+  const {
+    data: offersData,
+  } = useGetActiveOffersQuery(
+    { target: "all" },
+    {
+      skip: !isAuthenticated, // Only fetch when authenticated
+    }
+  );
+
   const { error: cartError, refetch: refetchCart } = useGetCartQuery(
     undefined,
     {
@@ -502,9 +170,23 @@ export function MainScreen() {
 
   const [addToCart] = useAddToCartMutation();
 
-
   // Location hook for map functionality
   const locationState = useUserLocation();
+
+  // Fetch weather data when location is available
+  const {
+    data: weatherData,
+  } = useGetWeatherQuery(
+    locationState.location
+      ? {
+          latitude: locationState.location.latitude,
+          longitude: locationState.location.longitude,
+        }
+      : { latitude: 0, longitude: 0 }, // Dummy values to skip query
+    {
+      skip: !locationState.location, // Skip if no location
+    }
+  );
 
   // Data transformation functions
   const transformCuisinesData = useCallback((apiCuisines: Cuisine[] | undefined) => {
@@ -609,6 +291,73 @@ export function MainScreen() {
     return []; // Return empty array instead of mock data
   }, [chefsData, transformChefsData]);
 
+  // Transform API offer data to component format
+  const transformOfferData = useCallback((apiOffer: any) => {
+    if (!apiOffer) return null;
+
+    // Format discount value
+    let discountText = "";
+    if (apiOffer.discount_type === "percentage") {
+      discountText = `${apiOffer.discount_value}%`;
+    } else if (apiOffer.discount_type === "fixed_amount") {
+      discountText = `£${(apiOffer.discount_value / 100).toFixed(2)}`;
+    } else if (apiOffer.discount_type === "free_delivery") {
+      discountText = "Free Delivery";
+    }
+
+    // Format valid until date
+    const formatDateWithoutYear = (dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    const calculateRemainingTime = (dateString: string) => {
+      const now = new Date();
+      const end = new Date(dateString);
+      const diff = end.getTime() - now.getTime();
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      if (days > 0) return `${days} day${days > 1 ? 's' : ''} left`;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} left`;
+      return 'Expiring soon';
+    };
+
+    const validUntil = formatDateWithoutYear(apiOffer.ends_at);
+    const remainingTime = calculateRemainingTime(apiOffer.ends_at);
+
+    return {
+      id: apiOffer.offer_id || apiOffer._id || "",
+      title: apiOffer.title || "Special Offer",
+      description: apiOffer.description || "",
+      discount: discountText,
+      image: {
+        uri: apiOffer.background_image_url || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
+      },
+      validUntil,
+      isLimited: apiOffer.offer_type === "limited_time",
+      remainingTime,
+    };
+  }, []);
+
+  // Process offers from API
+  const offers = useMemo(() => {
+    // Check if offersData has the expected structure
+    if (offersData?.success && offersData.data) {
+      // Handle both array and object with offers property
+      const offersArray = Array.isArray(offersData.data) 
+        ? offersData.data 
+        : offersData.data.offers || [];
+      
+      if (Array.isArray(offersArray)) {
+        const transformedOffers = offersArray
+          .map(transformOfferData)
+          .filter((offer): offer is NonNullable<ReturnType<typeof transformOfferData>> => offer !== null);
+        return transformedOffers;
+      }
+    }
+    return []; // Return empty array instead of mockOffers
+  }, [offersData, transformOfferData]);
+
   // Helper function to normalize cuisine names for filtering
   const normalizeCuisineForFilter = useCallback((cuisineName: string): string => {
     // Normalize cuisine name to match filter category format
@@ -709,6 +458,7 @@ export function MainScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
   const [isNotificationsSheetVisible, setIsNotificationsSheetVisible] = useState(false);
+  const isFirstMapLoad = useRef(true);
 
   // Handle API errors with toast notifications
   useEffect(() => {
@@ -747,11 +497,15 @@ export function MainScreen() {
     | "specialOffers"
     | "cuisineCategories"
     | "cuisines"
+    | "cuisineCategory"
     | null
   >(null);
 
   // Filter state for Top Kebabs drawer
   const [topKebabsFilters, setTopKebabsFilters] = useState<string[]>([]);
+  
+  // Selected cuisine category for category drawer
+  const [selectedCuisineCategory, setSelectedCuisineCategory] = useState<any>(null);
   
   // Handle filter changes for Top Kebabs
   const handleTopKebabsFilterChange = useCallback((filterId: string) => {
@@ -805,8 +559,6 @@ export function MainScreen() {
   // Fetch user behavior data from API
   const {
     data: userBehaviorData,
-    isLoading: userBehaviorLoading,
-    error: userBehaviorError,
   } = useGetUserBehaviorQuery(
     undefined,
     {
@@ -1234,18 +986,9 @@ export function MainScreen() {
 
   // Handlers for new sections
   const handleCuisinePress = useCallback((cuisine: any) => {
-    // Create a mock kitchen based on the cuisine
-    const mockKitchen = {
-      id: `cuisine-${cuisine.id}`,
-      name: `${cuisine.name} Kitchen`,
-      cuisine: `${cuisine.name} cuisine`,
-      deliveryTime: "25-40 Mins",
-      distance: "1.5km away",
-      image: cuisine.image,
-      sentiment: "fire" as const,
-    };
-    setSelectedKitchen(mockKitchen);
-    setIsKitchenMainScreenVisible(true);
+    // Open category drawer for this cuisine instead of kitchen sheet
+    setSelectedCuisineCategory(cuisine);
+    setActiveDrawer("cuisineCategory");
   }, []);
 
   const handleFeaturedKitchenPress = useCallback((kitchen: any) => {
@@ -1318,19 +1061,28 @@ export function MainScreen() {
         );
         
         setMapChefs(result.chefs);
-        showSuccess(`Loaded ${result.chefs.length} nearby chefs`, "Map Updated");
+        
+        // Only show notification for updates when map is visible, not initial load
+        if (!isFirstMapLoad.current && isMapVisible) {
+          showSuccess(`Loaded ${result.chefs.length} nearby chefs`, "Map Updated");
+        }
+        
+        // Mark that initial load is complete
+        isFirstMapLoad.current = false;
       } catch (error) {
         console.error('Failed to load nearby chefs:', error);
         showError('Failed to load chefs', 'Unable to load nearby chefs. Please try again.');
         // Fallback to empty array on error
         setMapChefs([]);
+        // Mark initial load as complete even on error
+        isFirstMapLoad.current = false;
       }
     };
 
     if (isAuthenticated) {
       loadNearbyChefs();
     }
-  }, [isAuthenticated, locationState.location]);
+  }, [isAuthenticated, locationState.location, isMapVisible]);
 
   const handleMealPress = useCallback((meal: any) => {
     // Ensure we have a valid meal ID - use _id if id is missing
@@ -1425,6 +1177,13 @@ export function MainScreen() {
     setIsMealDetailsVisible(true);
   }, []);
 
+  const handleSimilarMealPress = useCallback((mealId: string) => {
+    // Update selected meal with new mealId - MealItemDetails will automatically fetch the data
+    setSelectedMeal({ id: mealId, data: undefined });
+    // Ensure modal is visible (in case it was closed)
+    setIsMealDetailsVisible(true);
+  }, []);
+
   const handleOfferPress = useCallback((offer: any) => {
     // In a real app, this would navigate to offer details
   }, []);
@@ -1468,6 +1227,7 @@ export function MainScreen() {
 
   const handleCloseDrawer = useCallback(() => {
     setActiveDrawer(null);
+    setSelectedCuisineCategory(null);
   }, []);
 
   // Sign-in handlers
@@ -1500,8 +1260,12 @@ export function MainScreen() {
 
   // Handle kitchen name press from meal details
   const handleKitchenNamePressFromMeal = useCallback((kitchenName: string, kitchenId?: string, foodcreatorId?: string) => {
-    // Try to find kitchen in mockKitchens by name
-    const foundKitchen = mockKitchens.find(k => k.name === kitchenName || k.name === `${kitchenName}'s Kitchen`);
+    // Try to find kitchen in kitchens data by name or ID
+    const foundKitchen = kitchens.find(k => 
+      k.name === kitchenName || 
+      k.name === `${kitchenName}'s Kitchen` ||
+      k.id === kitchenId
+    );
     
     // Create kitchen object with all necessary properties
     const kitchen: any = foundKitchen 
@@ -1530,14 +1294,28 @@ export function MainScreen() {
     setIsKitchenMainScreenVisible(true);
     // Close meal details modal
     setIsMealDetailsVisible(false);
-  }, []);
+  }, [kitchens]);
 
   const handleDrawerAddToCart = useCallback(
     async (id: string) => {
-      if (!isAuthenticated) {
+      // Check authentication and token validity
+      if (!isAuthenticated || !token) {
         showWarning(
           "Authentication Required",
           "Please sign in to add items to cart"
+        );
+        navigateToSignIn();
+        return;
+      }
+
+      // Check if token is expired and refresh auth state if needed
+      const isExpired = checkTokenExpiration();
+      if (isExpired) {
+        // Refresh auth state to update isAuthenticated
+        await refreshAuthState();
+        showWarning(
+          "Session Expired",
+          "Please sign in again to add items to cart"
         );
         navigateToSignIn();
         return;
@@ -1557,21 +1335,14 @@ export function MainScreen() {
         showError("Failed to add item to cart", "Please try again");
       }
     },
-    [isAuthenticated, addToCart]
+    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart]
   );
 
   const handleDrawerItemPress = useCallback((id: string) => {
     // In a real app, this would navigate to item details
   }, []);
 
-  // Pull trigger component with progress tracking
-  const pullTriggerComponent = showPullTrigger ? (
-    <PullToNoshHeavenTrigger
-      isVisible={true}
-      onTrigger={handleNoshHeavenTrigger}
-      pullProgress={pullProgress}
-    />
-  ) : null;
+  // Pull trigger visibility is now handled inline in the ScrollView content
 
   // Performance monitoring integration
   const { PerformanceMonitor, getPerformanceConfig } =
@@ -1584,12 +1355,20 @@ export function MainScreen() {
       const context: OrderingContext = {
         timeContext,
         userBehavior,
-        currentLocation: { latitude: 51.5074, longitude: -0.1278 }, // Mock location
-        weather: { condition: "sunny", temperature: 22 }, // Mock weather
+        currentLocation: locationState.location ? {
+          latitude: locationState.location.latitude,
+          longitude: locationState.location.longitude,
+        } : undefined, // Use real location from locationState
+        weather: weatherData?.success && weatherData.data
+          ? {
+              condition: weatherData.data.condition,
+              temperature: weatherData.data.temperature,
+            }
+          : undefined, // Use real weather data from API
         appState: "active",
       };
     return getOrderedSectionsWithHidden(context);
-  }, [userBehavior]);
+  }, [userBehavior, locationState.location, weatherData?.success, weatherData?.data]);
 
   // Update ordered sections state only when memoized value changes
   useEffect(() => {
@@ -1600,8 +1379,16 @@ export function MainScreen() {
       const context: OrderingContext = {
         timeContext,
         userBehavior,
-        currentLocation: { latitude: 51.5074, longitude: -0.1278 },
-        weather: { condition: "sunny", temperature: 22 },
+        currentLocation: locationState.location ? {
+          latitude: locationState.location.latitude,
+          longitude: locationState.location.longitude,
+        } : undefined, // Use real location from locationState
+        weather: weatherData?.success && weatherData.data
+          ? {
+              condition: weatherData.data.condition,
+              temperature: weatherData.data.temperature,
+            }
+          : undefined, // Use real weather data from API
         appState: "active",
       };
       const sections = getOrderedSectionsWithHidden(context);
@@ -1609,7 +1396,7 @@ export function MainScreen() {
     }, 10 * 60 * 1000); // Update every 10 minutes
 
     return () => clearInterval(interval);
-  }, [orderedSectionsMemoized, userBehavior]);
+  }, [orderedSectionsMemoized, userBehavior, locationState.location, weatherData?.success, weatherData?.data]);
 
   // Update performance config periodically (reduced frequency for better performance)
   useEffect(() => {
@@ -1777,24 +1564,28 @@ export function MainScreen() {
 
               {/* <SharedOrderingButton /> */}
               
+              {/* OrderAgainSection - Always render to maintain hook consistency */}
+              {/* The component itself handles visibility based on activeCategoryFilter */}
+              <OrderAgainSection
+                isHeaderSticky={isHeaderSticky}
+                isAuthenticated={isAuthenticated}
+                shouldShow={activeCategoryFilter === 'all'}
+                onItemPress={(item) => {
+                  // Navigate to meal details from order item
+                  handleMealPress({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    kitchen: '', // Order items don't have kitchen info
+                    image: { uri: item.image },
+                  });
+                }}
+              />
+              
               {/* Conditional Rendering: Normal View vs Filtered View */}
               {activeCategoryFilter === 'all' ? (
                 // Normal View - Show all sections when filter is 'all'
                 <>
-                  <OrderAgainSection
-                    isHeaderSticky={isHeaderSticky}
-                    isAuthenticated={isAuthenticated}
-                    onItemPress={(item) => {
-                      // Navigate to meal details from order item
-                      handleMealPress({
-                        id: item.id,
-                        name: item.name,
-                        price: item.price,
-                        kitchen: '', // Order items don't have kitchen info
-                        image: { uri: item.image },
-                      });
-                    }}
-                  />
                   <CuisinesSection 
                     onCuisinePress={handleCuisinePress} 
                     onSeeAllPress={handleOpenCuisinesDrawer}
@@ -1929,6 +1720,22 @@ export function MainScreen() {
                   )}
                 </>
               )}
+
+              {/* Pull to Nosh Heaven Trigger - Only show at the very end when content is loaded */}
+              {showPullTrigger && 
+               !cuisinesLoading && 
+               !chefsLoading && 
+               !mealsLoading && 
+               !refreshing && 
+               isAtBottom && (
+                <View style={{ paddingVertical: 40, paddingHorizontal: 16 }}>
+                  <PullToNoshHeavenTrigger
+                    isVisible={true}
+                    onTrigger={handleNoshHeavenTrigger}
+                    pullProgress={pullProgress}
+                  />
+                </View>
+              )}
             </Animated.View>
           </Animated.ScrollView>
         ) : (
@@ -1942,23 +1749,6 @@ export function MainScreen() {
             onScroll={scrollHandler}
             isAuthenticated={isAuthenticated}
           />
-        )}
-
-        {/* Pull to Nosh Heaven Trigger - positioned to avoid overlap */}
-        {pullTriggerComponent && (
-          <View
-            style={{
-              position: "absolute",
-              bottom: 140, // Increased spacing to avoid overlap with bottom tabs and search drawer
-              left: 0,
-              right: 0,
-              alignItems: "center",
-              zIndex: 1000,
-              paddingHorizontal: 16,
-            }}
-          >
-            {pullTriggerComponent}
-          </View>
         )}
 
         {/* Generating Suggestions Loader */}
@@ -2060,7 +1850,7 @@ export function MainScreen() {
         {activeDrawer === "popularMeals" && (
           <PopularMealsDrawer
             onBack={handleCloseDrawer}
-            meals={mockMeals}
+            meals={meals}
             onMealPress={handleMealPress}
           />
         )}
@@ -2070,7 +1860,7 @@ export function MainScreen() {
         {activeDrawer === "specialOffers" && (
           <SpecialOffersDrawer
             onBack={handleCloseDrawer}
-            offers={mockOffers}
+            offers={offers}
             onOfferPress={handleOfferPress}
           />
         )}
@@ -2087,6 +1877,14 @@ export function MainScreen() {
             onCuisinePress={handleCuisinePress}
           />
         )}
+        {activeDrawer === "cuisineCategory" && selectedCuisineCategory && (
+          <CuisineCategoryDrawer
+            cuisine={selectedCuisineCategory}
+            onBack={handleCloseDrawer}
+            onAddToCart={handleDrawerAddToCart}
+            onItemPress={handleDrawerItemPress}
+          />
+        )}
       </Modal>
 
       {/* Add MealItemDetails Modal */}
@@ -2100,6 +1898,7 @@ export function MainScreen() {
       >
         {selectedMeal && (
           <MealItemDetails
+            key={selectedMeal.id}
             mealId={selectedMeal.id}
             mealData={selectedMeal.data}
             onBack={() => setIsMealDetailsVisible(false)}
@@ -2108,6 +1907,7 @@ export function MainScreen() {
               setIsMealDetailsVisible(false);
             }}
             onKitchenNamePress={handleKitchenNamePressFromMeal}
+            onSimilarMealPress={handleSimilarMealPress}
           />
         )}
       </Modal>

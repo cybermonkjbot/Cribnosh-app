@@ -2,6 +2,10 @@ import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { monitoringService, MetricData } from '@/lib/monitoring/monitor';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -120,7 +124,7 @@ import { monitoringService, MetricData } from '@/lib/monitoring/monitor';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   post:
  *     summary: Record System Metrics
  *     description: Record system metrics and performance data. This endpoint allows recording various types of metrics including API performance, business metrics, and custom application metrics for monitoring and analytics.
@@ -259,7 +263,7 @@ import { monitoringService, MetricData } from '@/lib/monitoring/monitor';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 export async function GET(request: NextRequest) {
@@ -276,7 +280,7 @@ export async function GET(request: NextRequest) {
     
     return ResponseFactory.success({});
   } catch (error) {
-    console.error('Failed to get metrics:', error);
+    logger.error('Failed to get metrics:', error);
     return ResponseFactory.internalError('Failed to get metrics');
   }
 }
@@ -330,7 +334,7 @@ export async function POST(request: NextRequest) {
         return ResponseFactory.validationError('Invalid action');
     }
   } catch (error) {
-    console.error('Failed to record metrics:', error);
+    logger.error('Failed to record metrics:', error);
     return ResponseFactory.internalError('Failed to record metrics');
   }
 } 

@@ -2,7 +2,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useGetCuisineCategoriesQuery } from '@/store/customerApi';
 import { Image } from 'expo-image';
 import React, { useCallback, useMemo } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { showError } from '../../lib/GlobalToastManager';
 import { CuisineCategoriesSectionEmpty } from './CuisineCategoriesSectionEmpty';
 import { CuisineCategoriesSectionSkeleton } from './CuisineCategoriesSectionSkeleton';
@@ -102,12 +102,12 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
 
   // Determine loading state
   const isLoading = propIsLoading || (useBackend && backendLoading && isAuthenticated);
-  const renderCuisineCard = (cuisine: Cuisine, index: number) => (
+  const renderCuisineCard = (cuisine: Cuisine) => (
     <TouchableOpacity
       key={cuisine.id}
       style={{
-        width: '48%',
-        aspectRatio: 1,
+        width: 160,
+        height: 160,
         borderRadius: 16,
         overflow: 'hidden',
         backgroundColor: cuisine.isActive 
@@ -117,7 +117,7 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
         borderColor: cuisine.isActive 
           ? 'rgba(239, 68, 68, 0.3)' 
           : 'rgba(255, 255, 255, 0.15)',
-        marginBottom: 12,
+        marginRight: 12,
       }}
       onPress={() => onCuisinePress?.(cuisine)}
       activeOpacity={0.8}
@@ -237,15 +237,17 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
         </View>
       )}
       
-      {/* Grid Layout */}
-      <View style={{
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        paddingHorizontal: 12,
-      }}>
+      {/* Horizontal Scrolling Layout */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 12,
+          paddingRight: 24,
+        }}
+      >
         {cuisines.map(renderCuisineCard)}
-      </View>
+      </ScrollView>
     </View>
   );
 }; 

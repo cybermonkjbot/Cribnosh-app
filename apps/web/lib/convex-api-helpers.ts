@@ -4,15 +4,15 @@ import type { FunctionReference } from "convex/server";
 import { getConvexClient } from "./conxed-client";
 
 // Type-safe accessor for api.queries
-// Uses unknown as intermediate type (better than any) and asserts to proper structure
+// Uses any as intermediate type for dynamic access
 export function getApiQueries() {
-  return (api as unknown as { queries: Record<string, Record<string, FunctionReference<"query", "public", unknown, unknown>>> }).queries;
+  return (api as any).queries;
 }
 
 // Type-safe accessor for api.mutations
-// Uses unknown as intermediate type (better than any) and asserts to proper structure
+// Uses any as intermediate type for dynamic access
 export function getApiMutations() {
-  return (api as unknown as { mutations: Record<string, Record<string, FunctionReference<"mutation", "public", unknown, unknown>>> }).mutations;
+  return (api as any).mutations;
 }
 
 // Type-safe query helper
@@ -24,7 +24,7 @@ export async function convexQuery<
   args: Args
 ): Promise<Result> {
   const client = getConvexClient();
-  return await client.query(queryRef, args);
+  return await client.query(queryRef as any, args);
 }
 
 // Type-safe mutation helper
@@ -36,5 +36,5 @@ export async function convexMutation<
   args: Args
 ): Promise<Result> {
   const client = getConvexClient();
-  return await client.mutation(mutationRef, args);
+  return await client.mutation(mutationRef as any, args);
 }

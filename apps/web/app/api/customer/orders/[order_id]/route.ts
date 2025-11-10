@@ -1,12 +1,12 @@
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 // Endpoint: /v1/customer/orders/{order_id}
 // Group: customer
@@ -139,7 +139,7 @@ import { withAPIMiddleware } from '@/lib/api/middleware';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest, { params }: { params: { order_id: string } }) {
   const { order_id } = params;
@@ -150,31 +150,19 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
     ]);
   }
 
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  let payload: JWTPayload;
-  
   try {
-    const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-    payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token');
-  }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-  if (!payload.roles?.includes('customer')) {
-    return ResponseFactory.forbidden('Only customers can access their orders');
-  }
-
-  const convex = getConvexClient();
-  const order = await convex.query(api.queries.orders.getById, { order_id: order_id });
-  
-  if (!order || order.customer_id !== payload.user_id) {
-    return ResponseFactory.notFound('Order not found or not owned by customer');
-  }
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const order = await convex.query(api.queries.orders.getById, {
+      order_id: order_id,
+      sessionToken: sessionToken || undefined
+    });
+    
+    if (!order || order.customer_id !== userId) {
+      return ResponseFactory.notFound('Order not found or not owned by customer');
+    }
 
   // Map to standardized response format
   const orderData = {
@@ -191,7 +179,13 @@ async function handleGET(request: NextRequest, { params }: { params: { order_id:
     orderItems: order.order_items || [],
   };
 
-  return ResponseFactory.success(orderData, 'Order retrieved successfully');
+    return ResponseFactory.success(orderData, 'Order retrieved successfully');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch order.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET));

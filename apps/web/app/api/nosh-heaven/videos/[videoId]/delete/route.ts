@@ -1,7 +1,11 @@
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiFunction, getConvexClient } from '@/lib/conxed-client';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getApiFunction, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -12,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Soft delete a video post (sets status to 'removed')
  *     tags: [Nosh Heaven, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -43,32 +47,29 @@ async function handleDELETE(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const getUserByToken = getApiFunction('queries/users', 'getUserByToken');
-    const user = await convex.query(getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Delete video post (soft delete - sets status to 'removed')
-    const deleteVideoPost = getApiFunction('mutations/videoPosts', 'deleteVideoPost');
+    const deleteVideoPost = getApiFunction('mutations/videoPosts', 'deleteVideoPost') as any;
     await convex.mutation(deleteVideoPost, {
       videoId: videoId as any,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Video deleted successfully');
 
   } catch (error: unknown) {
-    console.error('Error in video delete:', error);
-    const message = error instanceof Error ? error.message : 'Failed to delete video';
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error in video delete:', error);
+    const message = getErrorMessage(error, 'Failed to delete video');
     
     // Handle specific error cases
     if (message.includes('not authorized')) {

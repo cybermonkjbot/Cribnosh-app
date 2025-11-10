@@ -13,8 +13,7 @@ import {
 import { useGetRecentDishesQuery } from "@/store/customerApi";
 
 // Global toast imports
-import { showError, showInfo } from "../../lib/GlobalToastManager";
-import { OrderAgainSectionEmpty } from "./OrderAgainSectionEmpty";
+import { showError } from "../../lib/GlobalToastManager";
 import { OrderAgainSectionSkeleton } from "./OrderAgainSectionSkeleton";
 
 interface OrderItem {
@@ -28,38 +27,14 @@ interface OrderItem {
 interface OrderAgainSectionProps {
   isHeaderSticky?: boolean;
   isAuthenticated?: boolean;
+  shouldShow?: boolean; // Controls visibility while maintaining hook consistency
   onItemPress?: (item: OrderItem) => void;
 }
-
-const mockOrderItems: OrderItem[] = [
-  {
-    id: "1",
-    name: "Hosomaki roll",
-    price: "£19",
-    image:
-      "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=120&h=120&fit=crop",
-    hasBussinBadge: true,
-  },
-  {
-    id: "2",
-    name: "Hosomaki roll",
-    price: "£19",
-    image:
-      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=120&h=120&fit=crop",
-  },
-  {
-    id: "3",
-    name: "Hosomaki roll",
-    price: "£19",
-    image:
-      "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=120&h=120&fit=crop",
-    hasBussinBadge: true,
-  },
-];
 
 export function OrderAgainSection({
   isHeaderSticky = false,
   isAuthenticated = false,
+  shouldShow = true, // Default to showing
   onItemPress,
 }: OrderAgainSectionProps) {
   const horizontalScrollRef = useRef<ScrollView>(null);
@@ -71,7 +46,6 @@ export function OrderAgainSection({
     data: recentDishesData,
     isLoading: dishesLoading,
     error: dishesError,
-    refetch: refetchDishes,
   } = useGetRecentDishesQuery(
     { limit: 10 },
     {
@@ -90,7 +64,7 @@ export function OrderAgainSection({
     }));
   }, []);
 
-  // Process dishes data from API or fallback to mock data
+  // Process dishes data from API - return empty array if no data
   const orderItems = useMemo(() => {
     if (recentDishesData?.success && recentDishesData.data?.dishes && isAuthenticated) {
       const dishes = recentDishesData.data.dishes;
@@ -98,8 +72,8 @@ export function OrderAgainSection({
       return transformedData;
     }
 
-    // Fallback to mock data when not authenticated or no API results
-    return mockOrderItems;
+    // Return empty array instead of mock data when not authenticated or no API results
+    return [];
   }, [recentDishesData, isAuthenticated, transformDishesData]);
 
   // Handle dishes API errors
@@ -109,17 +83,8 @@ export function OrderAgainSection({
     }
   }, [dishesError, isAuthenticated]);
 
-  // Show skeleton while loading
-  if (dishesLoading && isAuthenticated) {
-    return <OrderAgainSectionSkeleton itemCount={3} />;
-  }
-
-  // Hide section if no orders (don't show empty state)
-  if (orderItems.length === 0 && isAuthenticated) {
-    return null;
-  }
-
   // Handle entrance and exit animations based on header state
+  // IMPORTANT: This hook must be called before any early returns to maintain hook consistency
   useEffect(() => {
     if (!isHeaderSticky) {
       // Header is normal - animate in
@@ -157,6 +122,21 @@ export function OrderAgainSection({
       ]).start();
     }
   }, [isHeaderSticky, fadeAnim, slideAnim]);
+
+  // Hide section if shouldShow is false (after all hooks are called)
+  if (!shouldShow) {
+    return null;
+  }
+
+  // Show skeleton while loading (after all hooks are called)
+  if (dishesLoading && isAuthenticated) {
+    return <OrderAgainSectionSkeleton itemCount={3} />;
+  }
+
+  // Hide section completely if no orders (after all hooks are called)
+  if (orderItems.length === 0) {
+    return null;
+  }
 
   return (
     <Animated.View

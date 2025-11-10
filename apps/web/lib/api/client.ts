@@ -3,6 +3,7 @@
  */
 
 import { fetchWithRetry, CircuitBreaker } from './retry';
+import { logger } from '@/lib/utils/logger';
 
 export interface APIClientOptions {
   baseURL?: string;
@@ -179,7 +180,7 @@ export async function checkAPIHealth(endpoint: string): Promise<boolean> {
     
     return response.ok;
   } catch (error) {
-    console.error(`Health check failed for ${endpoint}:`, error);
+    logger.error(`Health check failed for ${endpoint}:`, error);
     return false;
   }
 }

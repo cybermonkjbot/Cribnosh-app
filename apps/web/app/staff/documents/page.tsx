@@ -7,15 +7,16 @@ import { Id } from '@/convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
 import { useRef, useState } from 'react';
 
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { AuthWrapper } from "@/components/layout/AuthWrapper";
-import { Link } from '@/components/link';
+import { BackButton } from '@/components/staff/BackButton';
+import { PageContainer } from '@/components/staff/PageContainer';
+import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from "@/convex/_generated/api";
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import {
   AlertCircle,
-  ArrowLeft,
   Calendar,
   CheckCircle,
   Clock,
@@ -36,10 +37,11 @@ interface Document {
 }
 
 export default function StaffDocumentsPage() {
-  // Auth is handled by middleware, no client-side checks needed
+  // Auth is handled by layout via session-based authentication (session token in cookies)
+  // Middleware (proxy.ts) validates session token server-side, no client-side checks needed
 
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
-  const documents = useQuery(api.queries.users.getUserDocuments, staffUser?.email ? { email: staffUser.email } : "skip");
+  const { staff: staffUser, sessionToken } = useStaffAuthContext();
+  const documents = useQuery(api.queries.users.getUserDocuments, staffUser?.email && sessionToken ? { email: staffUser.email, sessionToken } : "skip");
   const addDocument = useMutation(api.mutations.documents.uploadDocument);
   
   // State for file upload
@@ -52,88 +54,10 @@ export default function StaffDocumentsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (staffAuthLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-        {/* Back Button */}
-        <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 shadow-xl max-w-md w-full">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
-            </div>
-            <h2 className="text-2xl font-bold font-asgard text-gray-900 mb-4">Loading Documents</h2>
-            <p className="text-gray-700 font-satoshi">Please wait while we retrieve your documents...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!staffUser) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-        {/* Back Button */}
-        <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 shadow-xl max-w-md w-full">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-gray-400" />
-            </div>
-            <h2 className="text-2xl font-bold font-asgard text-gray-900 mb-4">Authentication Required</h2>
-            <p className="text-gray-700 font-satoshi mb-6">You need to be signed in to access your documents.</p>
-            <div className="space-y-3">
-              <Link href="/staff/login">
-                <button className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-satoshi font-medium transition-colors">
-                  Sign In
-                </button>
-              </Link>
-              <Link href="/staff/portal">
-                <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-satoshi font-medium hover:bg-gray-50 transition-colors">
-                  Return to Portal
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
+  // Auth is handled at layout level, no page-level checks needed
+  // Wait for documents data to load
   if (!documents) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-        {/* Back Button */}
-        <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/staff/portal" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200/60 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-colors font-satoshi text-sm font-medium shadow-sm">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 shadow-xl max-w-md w-full">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
-            </div>
-            <h2 className="text-2xl font-bold font-asgard text-gray-900 mb-4">Loading Documents</h2>
-            <p className="text-gray-700 font-satoshi">Please wait while we retrieve your documents...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <UnauthenticatedState type="loading" role="staff" message="Loading your documents..." />;
   }
   // Define the document type from the database
   interface DatabaseDocument {
@@ -189,7 +113,7 @@ export default function StaffDocumentsPage() {
   const getStatusIcon = (status: DocumentStatus) => {
     const statusIcons = {
       'approved': <CheckCircle className="w-5 h-5 text-green-500" />,
-      'pending': <Clock className="w-5 h-5 text-amber-500" />,
+      'pending': <Clock className="w-5 h-5 text-[#F23E2E]" />,
       'rejected': <AlertCircle className="w-5 h-5 text-red-500" />
     } as const;
     return statusIcons[status] || <FileText className="w-5 h-5 text-gray-500" />;
@@ -199,7 +123,7 @@ export default function StaffDocumentsPage() {
   const getStatusColor = (status: DocumentStatus): string => {
     const statusColors: Record<DocumentStatus, string> = {
       'approved': 'text-green-400',
-      'pending': 'text-amber-400',
+      'pending': 'text-[#F23E2E]',
       'rejected': 'text-red-400'
     };
     return statusColors[status] || 'text-gray-400';
@@ -211,7 +135,7 @@ export default function StaffDocumentsPage() {
       'contract': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       'policy': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
       'form': 'bg-green-500/20 text-green-400 border-green-500/30',
-      'certificate': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+      'certificate': 'bg-[#F23E2E]/20 text-[#F23E2E] border-[#F23E2E]/30',
       'payroll': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
       'benefits': 'bg-pink-500/20 text-pink-400 border-pink-500/30'
     };
@@ -302,13 +226,13 @@ export default function StaffDocumentsPage() {
       
       // Save metadata in Convex
       if (data.fileUrl) {
-        await addDocument({
-          userEmail: staffUser?.email || '',
+        await addDocument({userEmail: staffUser?.email || '',
           name: file.name,
           type: type as Document['type'],
           size: `${(file.size / 1024).toFixed(2)} KB`,
           description,
           storageId: data.storageId,
+          sessionToken: sessionToken || undefined
         });
       }
       
@@ -332,29 +256,9 @@ export default function StaffDocumentsPage() {
 
   return (
     <AuthWrapper role="staff">
-          <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-amber-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-asgard text-gray-900">HR Documents</h1>
-                <p className="text-sm text-gray-800">Access your employment documents</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-purple-600" />
-              <span className="text-sm text-gray-600">Documents</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-white/95 backdrop-blur-sm">
+        <PageContainer>
+          <BackButton href="/staff/portal" className="mb-4" />
         {/* Upload Form */}
         <GlassCard className="p-6 mb-8">
           <form onSubmit={handleUpload} className="flex flex-col sm:flex-row items-center gap-4">
@@ -408,8 +312,8 @@ export default function StaffDocumentsPage() {
               <button 
                 type="submit" 
                 disabled={uploading || !file} 
-                className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg 
-                  hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500
+                className="w-full px-4 py-2 bg-[#F23E2E] text-white rounded-lg 
+                  hover:bg-[#ed1d12] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F23E2E]
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploading ? (
@@ -447,12 +351,12 @@ export default function StaffDocumentsPage() {
           {/* Pending Documents Stat */}
           <GlassCard className="p-6">
             <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-amber-100">
-                <Clock className="w-6 h-6 text-amber-600" />
+              <div className="p-2 rounded-lg bg-[#F23E2E]/10">
+                <Clock className="w-6 h-6 text-[#F23E2E]" />
               </div>
               <div>
                 <p className="text-sm text-white/60">Pending</p>
-                <p className="text-xl font-medium text-amber-400">
+                <p className="text-xl font-medium text-[#F23E2E]">
                   {filteredDocs.filter((d: DocumentWithEmail) => d.status === 'pending').length}
                 </p>
               </div>
@@ -496,7 +400,7 @@ export default function StaffDocumentsPage() {
                 <select 
                   value={type}
                   onChange={(e) => setType(e.target.value as Document['type'] | '')}
-                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none pr-8"
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#F23E2E] appearance-none pr-8"
                 >
                   <option value="">All Types</option>
                   <option value="contract">Contracts</option>
@@ -517,7 +421,7 @@ export default function StaffDocumentsPage() {
                 <select 
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as DocumentStatus | '')}
-                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none pr-8"
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#F23E2E] appearance-none pr-8"
                 >
                   <option value="">All Status</option>
                   <option value="approved">Approved</option>
@@ -565,7 +469,7 @@ export default function StaffDocumentsPage() {
                         </span>
                         <span className="text-xs text-white/60">{doc.size}</span>
                         <span className="text-xs text-white/60 flex items-center">
-                          <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
+                          <Calendar className="w-3 h-3 mr-1 shrink-0" />
                           {new Date(doc.uploadDate).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
@@ -580,7 +484,7 @@ export default function StaffDocumentsPage() {
                                 : 'text-white/60'
                             }`}
                           >
-                            <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
+                            <Calendar className="w-3 h-3 mr-1 shrink-0" />
                             Expires: {new Date(doc.expiryDate).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'short',
@@ -634,7 +538,7 @@ export default function StaffDocumentsPage() {
                 </div>
               </div>
               <div className="flex items-start space-x-3">
-                <Clock className="w-5 h-5 text-amber-500 mt-0.5" />
+                <Clock className="w-5 h-5 text-[#F23E2E] mt-0.5" />
                 <div>
                   <p className="text-white font-medium">Pending Benefits Enrollment</p>
                   <p className="text-sm text-white/60">Complete your benefits enrollment form to activate your coverage.</p>
@@ -643,7 +547,7 @@ export default function StaffDocumentsPage() {
             </div>
           </GlassCard>
         </div>
-      </div>
+      </PageContainer>
     </div>
     </AuthWrapper>
   );

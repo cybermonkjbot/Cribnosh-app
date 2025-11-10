@@ -1,16 +1,19 @@
 ﻿"use client";
 
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
-import React, { useState } from 'react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { useState } from 'react';
 
 
+import { EmptyState } from '@/components/admin/empty-state';
+import { Button } from '@/components/ui/button';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { useMutation, useQuery } from 'convex/react';
-import { AnimatePresence, motion } from 'motion/react';
-import { Edit, FileText, Globe, Image, Plus, Search, Trash, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useMutation, useQuery } from 'convex/react';
+import { Edit, FileText, Globe, Image, Plus, Search, Trash } from 'lucide-react';
+import { motion } from 'motion/react';
 
 
 interface ContentItem {
@@ -45,7 +48,8 @@ interface ContentFormData {
 }
 
 export default function AdminContentPage() {
-  // Auth is handled by middleware, no client-side checks needed
+  // Auth is handled by layout, no client-side checks needed
+  const { user, sessionToken } = useAdminUser();
   const { toast } = useToast();
 
   const [selectedType, setSelectedType] = useState<ContentItem['type'] | 'all'>('all');
@@ -53,6 +57,10 @@ export default function AdminContentPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; contentId: Id<"content"> | null }>({
+    isOpen: false,
+    contentId: null,
+  });
   const [formData, setFormData] = useState<ContentFormData>({
     title: '',
     type: 'blog',
@@ -67,7 +75,10 @@ export default function AdminContentPage() {
     },
   });
 
-  const contentItems = useQuery(api.queries.admin.getContentItems) as ContentItem[] | undefined;
+  const contentItems = useQuery(
+    api.queries.admin.getContentItems,
+    sessionToken ? { sessionToken } : "skip"
+  ) as ContentItem[] | undefined;
   const createContent = useMutation(api.mutations.admin.createContent);
   const updateContent = useMutation(api.mutations.admin.updateContent);
   const deleteContent = useMutation(api.mutations.admin.deleteContent);
@@ -152,21 +163,25 @@ export default function AdminContentPage() {
   };
 
   const handleDelete = async (contentId: Id<"content">) => {
-    if (confirm('Are you sure you want to delete this content?')) {
-      try {
-        await deleteContent({ contentId });
-        toast({
-          title: "Success",
-          description: "Content deleted successfully!",
-          variant: "success"
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Error deleting content. Please try again.",
-          variant: "destructive"
-        });
-      }
+    setDeleteConfirm({ isOpen: true, contentId });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.contentId) return;
+    try {
+      await deleteContent({ contentId: deleteConfirm.contentId });
+      toast({
+        title: "Success",
+        description: "Content deleted successfully!",
+        variant: "success"
+      });
+      setDeleteConfirm({ isOpen: false, contentId: null });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error deleting content. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -235,41 +250,32 @@ export default function AdminContentPage() {
   };
 
   return (
-    <AuthWrapper role="admin">
-          <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-asgard text-gray-900">
           Content Management
         </h1>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+        <Button
           onClick={handleCreateNew}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-satoshi"
+          size="lg"
+          className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
         >
           <Plus className="w-4 h-4" />
           New Content
-        </motion.button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {(contentTypes || []).map(({ type, icon: Icon, label }: { type: string; icon: any; label: string }) => (
-          <motion.button
+          <Button
             key={type}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
             onClick={() => setSelectedType(type === selectedType ? 'all' : type as ContentItem['type'])}
-            className={`p-4 rounded-xl border transition-colors font-satoshi ${
-              type === selectedType
-                ? 'bg-primary-500 text-white border-primary-600'
-                : 'bg-white/50 backdrop-blur-sm border-gray-200/30 hover:bg-gray-100/50'
-            }`}
+            variant={type === selectedType ? "default" : "outline"}
+            className={type === selectedType ? "bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white" : "bg-white/50 backdrop-blur-sm border-gray-200/30 hover:bg-gray-100/50"}
           >
-            <div className="flex items-center gap-3">
-              <Icon className="w-5 h-5" />
-              <span className="font-medium">{label}</span>
-            </div>
-          </motion.button>
+            <Icon className="w-5 h-5" />
+            <span className="font-medium">{label}</span>
+          </Button>
         ))}
       </div>
 
@@ -334,8 +340,8 @@ export default function AdminContentPage() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full font-satoshi ${
-                    item.status === 'published' ? 'bg-green-200 text-green-800' :
-                    item.status === 'draft' ? 'bg-yellow-200 text-yellow-800' :
+                    item.status === 'published' ? 'bg-[#F23E2E]/10 text-[#F23E2E]' :
+                    item.status === 'draft' ? 'bg-gray-200 text-gray-800' :
                     'bg-gray-200 text-gray-800'
                   }`}>
                     {item.status}
@@ -351,7 +357,7 @@ export default function AdminContentPage() {
                   </button>
                   <button
                     onClick={() => handleDelete(item._id)}
-                    className="p-1 text-gray-600 hover:text-red-600 transition-colors"
+                    className="p-1 text-gray-600 hover:text-gray-900 transition-colors"
                     aria-label="Delete content"
                   >
                     <Trash className="w-4 h-4" />
@@ -371,64 +377,46 @@ export default function AdminContentPage() {
               
               <div className="flex gap-2">
                 {item.status === 'draft' && (
-                  <button
+                  <Button
                     onClick={() => handlePublish(item._id)}
-                    className="flex-1 px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-satoshi"
+                    size="sm"
+                    className="flex-1 bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                   >
                     Publish
-                  </button>
+                  </Button>
                 )}
                 {item.status === 'published' && (
-                  <button
+                  <Button
                     onClick={() => handleArchive(item._id)}
-                    className="flex-1 px-3 py-1 bg-gray-600 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors font-satoshi"
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
                   >
                     Archive
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   onClick={() => handleEdit(item)}
-                  className="flex-1 px-3 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors font-satoshi"
+                  size="sm"
+                  className="flex-1 bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                 >
                   Edit
-                </button>
+                </Button>
               </div>
             </motion.div>
           ))}
         </div>
       )}
 
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold font-asgard text-gray-900">
-                    {editingContent ? 'Edit Content' : 'Create New Content'}
-                  </h2>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6 space-y-6">
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold font-asgard text-gray-900">
+              {editingContent ? 'Edit Content' : 'Create New Content'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-800 mb-2 font-satoshi">
@@ -549,7 +537,7 @@ export default function AdminContentPage() {
                         <button
                           type="button"
                           onClick={() => removeTag(index)}
-                          className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-satoshi"
+                          className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-satoshi"
                         >
                           Remove
                         </button>
@@ -581,28 +569,37 @@ export default function AdminContentPage() {
                     min="0"
                   />
                 </div>
-              </div>
-              
-              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors font-satoshi"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-satoshi"
-                >
-                  {editingContent ? 'Update' : 'Create'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+            >
+              {editingContent ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, contentId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Content"
+        message="Are you sure you want to delete this content? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="error"
+      />
     </div>
-    </AuthWrapper>
+    </div>
   );
 }
 

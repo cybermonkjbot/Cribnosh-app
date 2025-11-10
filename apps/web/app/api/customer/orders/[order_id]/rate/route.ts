@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendReviewNotification } from '@/lib/services/email-service';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -111,7 +111,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       404:
  *         description: Order not found
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(
   request: NextRequest,
@@ -121,34 +121,7 @@ async function handlePOST(
     const { order_id } = params;
     
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { user_id?: string; roles?: string[] };
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { user_id?: string; roles?: string[] };
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can rate orders',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     if (!order_id) {
       return createSpecErrorResponse(
@@ -202,8 +175,8 @@ async function handlePOST(
       }
     }
 
-    const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query order and verify ownership
     const order = await convex.query(api.queries.orders.getById, { order_id });
@@ -249,8 +222,8 @@ async function handlePOST(
       );
     }
 
-    // Create review with order_id and categories
-    const reviewId = await convex.mutation(api.mutations.reviews.create, {
+    // Create review with chef rating update - this consolidates review creation and chef rating update
+    const reviewResult = await convex.mutation(api.mutations.reviews.createReviewWithChefRatingUpdate, {
       user_id: userId,
       meal_id: undefined,
       chef_id: orderData.chef_id as Id<'chefs'> | undefined,
@@ -263,21 +236,12 @@ async function handlePOST(
     });
 
     const reviewData = {
-      review_id: reviewId,
+      review_id: reviewResult.reviewId,
       order_id,
       rating,
       review: review || null,
       created_at: new Date().toISOString(),
     };
-
-    // Update chef's average rating
-    if (orderData.chef_id) {
-      await convex.mutation(api.mutations.chefRatings.updateChefAverageRating, {
-        chefId: orderData.chef_id as Id<'chefs'>,
-      }).catch((error) => {
-        console.error('Failed to update chef rating:', error);
-      });
-    }
 
     // Send notification to chef about the review
     if (orderData.chef_id) {
@@ -286,11 +250,17 @@ async function handlePOST(
       }).catch(() => null);
 
       if (chef) {
-        const userData = await convex.query(api.queries.users.getById, { userId });
+        const userData = await convex.query(api.queries.users.getById, { 
+          userId,
+          sessionToken: sessionToken || undefined
+        });
         const customerName = userData?.name || 'A customer';
 
         // Get chef's user email
-        const chefUser = await convex.query(api.queries.users.getById, { userId: chef.userId }).catch(() => null);
+        const chefUser = await convex.query(api.queries.users.getById, { 
+          userId: chef.userId,
+          sessionToken: sessionToken || undefined
+        }).catch(() => null);
         if (chefUser?.email) {
           sendReviewNotification(
             chefUser.email,
@@ -298,7 +268,7 @@ async function handlePOST(
             rating,
             review || undefined
           ).catch((error) => {
-            console.error('Failed to send review notification:', error);
+            logger.error('Failed to send review notification:', error);
           });
         }
       }
@@ -309,6 +279,9 @@ async function handlePOST(
       'Thank you for your rating!'
     );
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to submit rating';
     return createSpecErrorResponse(
       errorMessage,

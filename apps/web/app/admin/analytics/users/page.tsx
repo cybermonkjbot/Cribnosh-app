@@ -1,25 +1,26 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Users, 
-  TrendingUp,
-  TrendingDown,
-  MapPin,
-  Clock,
-  BarChart2,
-  PieChart,
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from '@/convex/_generated/api';
+import { formatCurrency } from '@/lib/utils/number-format';
+import { useQuery } from 'convex/react';
+import {
   Activity,
-  UserPlus,
+  BarChart2,
+  Clock,
+  MapPin,
+  PieChart,
+  TrendingDown,
+  TrendingUp,
   UserCheck,
-  UserX
+  UserPlus,
+  UserX,
+  Users
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface UserData {
   totalUsers: number;
@@ -59,7 +60,7 @@ export default function UserAnalyticsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -86,7 +87,7 @@ export default function UserAnalyticsPage() {
         <Button
           variant={viewMode === 'overview' ? 'default' : 'outline'}
           onClick={() => setViewMode('overview')}
-          className={viewMode === 'overview' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'overview' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <BarChart2 className="w-4 h-4 mr-2" />
           Overview
@@ -94,7 +95,7 @@ export default function UserAnalyticsPage() {
         <Button
           variant={viewMode === 'growth' ? 'default' : 'outline'}
           onClick={() => setViewMode('growth')}
-          className={viewMode === 'growth' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'growth' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <TrendingUp className="w-4 h-4 mr-2" />
           Growth
@@ -102,7 +103,7 @@ export default function UserAnalyticsPage() {
         <Button
           variant={viewMode === 'segments' ? 'default' : 'outline'}
           onClick={() => setViewMode('segments')}
-          className={viewMode === 'segments' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'segments' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <PieChart className="w-4 h-4 mr-2" />
           Segments
@@ -110,7 +111,7 @@ export default function UserAnalyticsPage() {
         <Button
           variant={viewMode === 'locations' ? 'default' : 'outline'}
           onClick={() => setViewMode('locations')}
-          className={viewMode === 'locations' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90' : ''}
+          className={viewMode === 'locations' ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
         >
           <MapPin className="w-4 h-4 mr-2" />
           Locations
@@ -212,7 +213,7 @@ export default function UserAnalyticsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Lifetime Value</span>
-                  <span className="text-sm font-medium">£{userAnalytics?.userLifetimeValue || 0}</span>
+                  <span className="text-sm font-medium">{formatCurrency(userAnalytics?.userLifetimeValue || 0, { currency: 'GBP' })}</span>
                 </div>
               </CardContent>
             </Card>

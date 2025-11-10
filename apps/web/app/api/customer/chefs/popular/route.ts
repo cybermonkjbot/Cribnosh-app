@@ -1,10 +1,13 @@
 import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
 
 // Type definitions for data structures
 interface ChefLocationData {
@@ -175,17 +178,22 @@ interface ReviewData {
  *     security: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const convex = getConvexClient();
-  const apiQueries = getApiQueries();
+  try {
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const apiQueries = getApiQueries();
   
   type ChefsLocationsQuery = FunctionReference<"query", "public", Record<string, never>, ChefLocationData[]>;
   type UsersQuery = FunctionReference<"query", "public", Record<string, never>, UserData[]>;
   type ReviewsQuery = FunctionReference<"query", "public", Record<string, never>, ReviewData[]>;
   
   const [chefs, users, reviews] = await Promise.all([
-    convex.query((apiQueries.chefs.getAllChefLocations as unknown as ChefsLocationsQuery), {}) as Promise<ChefLocationData[]>,
-    convex.query((apiQueries.users.getAllUsers as unknown as UsersQuery), {}) as Promise<UserData[]>,
-    convex.query((apiQueries.reviews.getAll as unknown as ReviewsQuery), {}) as Promise<ReviewData[]>
+    convex.query((apiQueries.chefs.getAllChefLocations as unknown as ChefsLocationsQuery), {
+    }) as Promise<ChefLocationData[]>,
+    convex.query((apiQueries.users.getAllUsers as unknown as UsersQuery), {
+    }) as Promise<UserData[]>,
+    convex.query((apiQueries.reviews.getAll as unknown as ReviewsQuery), {
+    }) as Promise<ReviewData[]>
   ]);
   
   // Aggregate review counts and avg ratings per chef
@@ -247,9 +255,15 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       profile_image_url: chefUser?.avatar || null,
     };
   });
-  // Sort by avg_rating desc, then total_reviews desc
-  chefStats.sort((a: any, b: any) => b.avg_rating - a.avg_rating || b.total_reviews - a.total_reviews);
-  return ResponseFactory.success({ chefs: chefStats });
+    // Sort by avg_rating desc, then total_reviews desc
+    chefStats.sort((a: any, b: any) => b.avg_rating - a.avg_rating || b.total_reviews - a.total_reviews);
+    return ResponseFactory.success({ chefs: chefStats });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 

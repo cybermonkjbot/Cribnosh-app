@@ -287,11 +287,10 @@ http.route({
         },
       });
       
-      // Return 1x1 transparent pixel
-      const pixel = Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-        "base64"
-      );
+      // Return 1x1 transparent pixel (base64 decoded without Node.js Buffer)
+      const base64String = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+      const binaryString = atob(base64String);
+      const pixel = Uint8Array.from(binaryString, (char) => char.charCodeAt(0));
       
       return new Response(pixel, {
         status: 200,

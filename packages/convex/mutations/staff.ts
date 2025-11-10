@@ -1,13 +1,10 @@
 import { v } from 'convex/values';
-import { mutation, MutationCtx } from '../_generated/server';
-import { 
-  withConvexErrorHandling, 
-  validateConvexArgs, 
-  safeConvexOperation,
-  ErrorFactory,
-  ErrorCode
+import {
+    ErrorFactory
 } from '../../../apps/web/lib/errors/convex-exports';
 import { Id } from '../_generated/dataModel';
+import { mutation, MutationCtx } from '../_generated/server';
+import { isAdmin, isStaff, requireAdmin, requireAuth, requireStaff } from '../utils/auth';
 
 // Staff Email Campaign Mutations
 export const createStaffEmailCampaign = mutation({
@@ -22,9 +19,13 @@ export const createStaffEmailCampaign = mutation({
       v.literal("converted_users"),
       v.literal("all_users")
     ),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.id("staffEmailCampaigns"),
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     // Get recipient count based on type
     let recipientCount = 0;
 
@@ -76,9 +77,13 @@ export const createStaffEmailCampaign = mutation({
 export const sendStaffEmailCampaign = mutation({
   args: {
     campaignId: v.id("staffEmailCampaigns"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     const campaign = await ctx.db.get(args.campaignId);
     if (!campaign) {
       throw new Error("Campaign not found");
@@ -161,9 +166,13 @@ export const sendStaffEmailCampaign = mutation({
 export const deleteStaffEmailCampaign = mutation({
   args: {
     campaignId: v.id("staffEmailCampaigns"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     await ctx.db.delete(args.campaignId);
     return { success: true };
   },
@@ -177,9 +186,18 @@ export const createWorkEmailRequest = mutation({
     reason: v.string(),
     department: v.string(),
     position: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.id("workEmailRequests"),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can only create requests for themselves
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     const requestId = await ctx.db.insert('workEmailRequests', {
       ...args,
       status: 'pending',
@@ -293,12 +311,12 @@ export const updateWorkEmailRequestStatus = mutation({
     reviewedBy: v.id("users"),
     reviewNotes: v.optional(v.string()),
     approvedEmail: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
-    if (!hasAuthPermission(ctx.auth, 'isAdmin', 'isManagement', 'isDeveloper', 'isCompliance')) {
-      throw ErrorFactory.authorization('Permission denied: Only admins, management, developer, or compliance can approve or reject work email requests.');
-    }
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { requestId, ...updates } = args;
     // Permission check
     const admin = await ctx.db.get(updates.reviewedBy);
@@ -359,9 +377,17 @@ export const createLeaveRequest = mutation({
     reason: v.string(),
     emergencyContact: v.optional(v.string()),
     isHalfDay: v.optional(v.boolean()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.id("leaveRequests"),
   handler: async (ctx: MutationCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can only create leave requests for themselves
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     const requestId = await ctx.db.insert('leaveRequests', {
       ...args,
       status: 'pending',
@@ -391,12 +417,12 @@ export const updateLeaveRequestStatus = mutation({
     status: v.union(v.literal("approved"), v.literal("rejected")),
     reviewedBy: v.id("users"),
     reviewNotes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
-    if (!hasAuthPermission(ctx.auth, 'isAdmin', 'isManagement', 'isDeveloper', 'isCompliance', 'canApproveLeave', 'permissions')) {
-      throw ErrorFactory.authorization('Permission denied: You do not have permission to approve leave requests.');
-    }
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { requestId, ...updates } = args;
     // Permission check
     const admin = await ctx.db.get(updates.reviewedBy);
@@ -457,9 +483,12 @@ export const generateWorkId = mutation({
     photoUrl: v.optional(v.string()),
     issuedBy: v.id("users"),
     expiresInDays: v.optional(v.number()), // Default to 365 days if not provided
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { expiresInDays = 365, ...workIdData } = args;
     
     // Generate unique work ID number
@@ -513,9 +542,12 @@ export const updateWorkId = mutation({
     photoUrl: v.optional(v.string()),
     digitalVersion: v.optional(v.string()),
     printableVersion: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { workId, ...updates } = args;
     
     await ctx.db.patch(workId, updates);
@@ -529,12 +561,12 @@ export const revokeWorkId = mutation({
     workId: v.id("workIds"),
     revokedBy: v.id("users"),
     revocationReason: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
-    if (!hasAuthPermission(ctx.auth, 'isAdmin')) {
-      throw ErrorFactory.authorization('Permission denied: Only admins can revoke Work IDs.');
-    }
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { workId, ...revocationData } = args;
     // Permission check
     const admin = await ctx.db.get(revocationData.revokedBy as any);
@@ -583,12 +615,12 @@ export const renewWorkId = mutation({
     workId: v.id("workIds"),
     renewedBy: v.id("users"),
     expiresInDays: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
-    if (!hasAuthPermission(ctx.auth, 'isAdmin')) {
-      throw ErrorFactory.authorization('Permission denied: Only admins can renew Work IDs.');
-    }
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { workId, renewedBy, expiresInDays = 365 } = args;
     // Permission check
     const admin = await ctx.db.get(renewedBy as any);
@@ -641,12 +673,12 @@ export const bulkUpdateWorkEmailRequestStatus = mutation({
     status: v.union(v.literal("approved"), v.literal("rejected")),
     reviewedBy: v.id("users"),
     reviewNotes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
-    if (!hasAuthPermission(ctx.auth, 'isAdmin')) {
-      throw ErrorFactory.authorization('Permission denied: Only admins can bulk update work email requests.');
-    }
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { requestIds, ...updates } = args;
     
     for (const requestId of requestIds) {
@@ -678,12 +710,12 @@ export const bulkUpdateLeaveRequestStatus = mutation({
     status: v.union(v.literal("approved"), v.literal("rejected")),
     reviewedBy: v.id("users"),
     reviewNotes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx: MutationCtx, args) => {
-    if (!hasAuthPermission(ctx.auth, 'isAdmin')) {
-      throw ErrorFactory.authorization('Permission denied: Only admins can bulk update leave requests.');
-    }
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { requestIds, ...updates } = args;
     
     for (const requestId of requestIds) {
@@ -710,8 +742,14 @@ export const bulkUpdateLeaveRequestStatus = mutation({
 });
 
 export const generateOnboardingCode = mutation({
-  args: { email: v.string(), onboarding: v.optional(v.any()) },
+  args: { 
+    email: v.string(), 
+    onboarding: v.optional(v.any()),
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     // Generate a 6-digit code using Math.random (V8-compatible)
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const now = Date.now();
@@ -746,8 +784,13 @@ export const validateOnboardingCode = mutation({
 });
 
 export const markOnboardingCodeUsed = mutation({
-  args: { code: v.string() },
+  args: { 
+    code: v.string(),
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const codeDoc = await ctx.db.query('onboardingCodes').filter(q => q.eq(q.field('code'), args.code)).first();
     if (!codeDoc) return false;
     await ctx.db.patch(codeDoc._id, { status: 'used' });
@@ -761,8 +804,12 @@ export const createStaffAssignment = mutation({
     department: v.string(),
     position: v.string(),
     assignedAt: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     return await ctx.db.insert("staffAssignments", args);
   },
 });
@@ -772,8 +819,12 @@ export const updateStaffAssignment = mutation({
     assignmentId: v.id("staffAssignments"),
     department: v.optional(v.string()),
     position: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     const { assignmentId, ...updates } = args;
     await ctx.db.patch(assignmentId, updates);
     return null;
@@ -787,26 +838,15 @@ export const updateMattermostSetup = mutation({
     mattermostEmail: v.string(),
     setupCompleted: v.boolean(),
     setupCompletedAt: v.number(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    // Check if user is admin or the user themselves
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email!))
-      .first();
-
-    if (!currentUser) {
-      throw new Error("User not found");
-    }
-
-    // Allow if admin or if updating own profile
-    if (currentUser._id !== args.userId && !currentUser.roles?.includes('admin')) {
-      throw new Error("Not authorized");
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can update their own Mattermost setup, admins can update any
+    if (!isAdmin(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
     }
 
     // Update the user's Mattermost setup
@@ -853,22 +893,11 @@ export const createOnboardingRecord = mutation({
         lifeInsurance: v.boolean(),
       })),
     }),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email!))
-      .first();
-
-    if (!currentUser || !currentUser.roles?.includes('admin')) {
-      throw new Error("Not authorized");
-    }
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
 
     // Update the user with onboarding data
     await ctx.db.patch(args.userId, {
@@ -887,6 +916,74 @@ export const createOnboardingRecord = mutation({
     });
 
     return { success: true };
+  },
+});
+
+/**
+ * Create or update staff onboarding - consolidates user onboarding update and onboarding record creation
+ * This mutation handles both updating the user's onboarding field and setting staff-specific fields
+ */
+export const createOrUpdateStaffOnboarding = mutation({
+  args: {
+    userId: v.id("users"),
+    onboardingData: v.object({
+      department: v.string(),
+      position: v.string(),
+      startDate: v.string(),
+      employmentType: v.string(),
+      salary: v.optional(v.string()),
+      emergencyContact: v.optional(v.object({
+        name: v.string(),
+        relationship: v.string(),
+        phone: v.string(),
+        email: v.string(),
+      })),
+      taxInfo: v.optional(v.object({
+        ssn: v.string(),
+        filingStatus: v.string(),
+        allowances: v.number(),
+      })),
+      bankingInfo: v.optional(v.object({
+        bankName: v.string(),
+        accountNumber: v.string(),
+        routingNumber: v.string(),
+        accountType: v.string(),
+      })),
+      benefits: v.optional(v.object({
+        healthInsurance: v.boolean(),
+        dentalInsurance: v.boolean(),
+        visionInsurance: v.boolean(),
+        retirementPlan: v.boolean(),
+        lifeInsurance: v.boolean(),
+      })),
+    }),
+    sessionToken: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    userId: v.id("users"),
+  }),
+  handler: async (ctx, args) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+
+    // Update the user with onboarding data - this consolidates both updateUserOnboarding and createOnboardingRecord
+    await ctx.db.patch(args.userId, {
+      onboarding: args.onboardingData,
+      department: args.onboardingData.department,
+      position: args.onboardingData.position,
+      startDate: args.onboardingData.startDate,
+      employmentType: args.onboardingData.employmentType,
+      salary: args.onboardingData.salary,
+      emergencyContact: args.onboardingData.emergencyContact,
+      taxInfo: args.onboardingData.taxInfo,
+      bankingInfo: args.onboardingData.bankingInfo,
+      benefits: args.onboardingData.benefits,
+      roles: ["staff"],
+      lastModified: Date.now(),
+    });
+
+    return { success: true, userId: args.userId };
   },
 });
 

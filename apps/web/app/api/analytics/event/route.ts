@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient, getApiFunction } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getApiFunction, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 interface AnalyticsEvent {
   type: string;
@@ -102,8 +106,9 @@ interface AnalyticsEvent {
 export async function POST(req: NextRequest) {
   try {
     const { events } = await req.json();
-    const convex = getConvexClient();
-    const saveAnalyticsEvent = getApiFunction('mutations/analytics', 'saveAnalyticsEvent');
+    const convex = getConvexClientFromRequest(req)
+    const sessionToken = getSessionTokenFromRequest(req);;
+    const saveAnalyticsEvent = getApiFunction('mutations/analytics', 'saveAnalyticsEvent') as any;
 
     // Process events in parallel with a concurrency limit
     const BATCH_SIZE = 5;
@@ -119,7 +124,8 @@ export async function POST(req: NextRequest) {
               x: event.x,
               y: event.y,
               ...event.extra
-            }
+            },
+            sessionToken: sessionToken || undefined
           })
         )
       );
@@ -127,7 +133,10 @@ export async function POST(req: NextRequest) {
 
     return ResponseFactory.success({ success: true });
   } catch (error) {
-    console.error('Analytics event error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
+    logger.error('Analytics event error:', error);
     return ResponseFactory.error(
       (error as Error).message,
       'ANALYTICS_ERROR',

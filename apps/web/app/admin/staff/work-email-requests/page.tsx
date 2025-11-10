@@ -1,16 +1,16 @@
 ﻿"use client";
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+// Auth is handled by layout, no need for AuthWrapper
 import { GlassCard } from '@/components/ui/glass-card';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
+import { AdminPageSkeleton, RequestListSkeleton } from '@/components/admin/skeletons';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
 import { CheckCircle, Loader2, Mail, XCircle } from 'lucide-react';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { AdminPageSkeleton, RequestListSkeleton } from '@/components/admin/skeletons';
-import { EmptyState } from '@/components/admin/empty-state';
 
 export default function AdminStaffWorkEmailRequestsPage() {
   
@@ -27,8 +27,11 @@ export default function AdminStaffWorkEmailRequestsPage() {
     [key: string]: unknown;
   }
 
-  const { user: adminUser, loading: adminLoading } = useAdminUser();
-  const requests = useQuery(api.queries.staff.getAllWorkEmailRequests, { status: 'pending' }) as WorkEmailRequest[] | undefined;
+  const { user: adminUser, loading: adminLoading, sessionToken } = useAdminUser();
+  const requests = useQuery(
+    api.queries.staff.getAllWorkEmailRequests,
+    sessionToken ? { status: 'pending', sessionToken } : "skip"
+  ) as WorkEmailRequest[] | undefined;
   const approveRequest = useMutation(api.mutations.staff.updateWorkEmailRequestStatus);
   const rejectRequest = useMutation(api.mutations.staff.updateWorkEmailRequestStatus);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -82,16 +85,14 @@ export default function AdminStaffWorkEmailRequestsPage() {
   
   if (adminLoading) {
     return (
-      <AuthWrapper role="admin">
+      <div>
         <AdminPageSkeleton title="Loading Work Email Requests" description="Preparing your work email requests..." />
-      </AuthWrapper>
+      </div>
     );
   }
 
   return (
-    <AuthWrapper role="admin">
-          <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
-      <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
         <GlassCard className="p-8">
           <h1 className="text-2xl font-asgard text-gray-900 mb-6 flex items-center gap-2">
             <Mail className="w-6 h-6 text-[#F23E2E]" /> Work Email Requests
@@ -191,6 +192,6 @@ export default function AdminStaffWorkEmailRequestsPage() {
         </GlassCard>
       </div>
     </div>
-    </AuthWrapper>
+    </div>
   );
 } 

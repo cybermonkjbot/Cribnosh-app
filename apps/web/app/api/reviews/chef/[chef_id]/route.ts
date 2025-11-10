@@ -1,9 +1,9 @@
-import { getConvexClient } from '@/lib/conxed-client';
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
 import { api } from '@/convex/_generated/api';
-import { NextResponse } from 'next/server';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Endpoint: /v1/reviews/chef/{chef_id}
 // Group: reviews
@@ -112,31 +112,43 @@ import { NextResponse } from 'next/server';
  *     security: []
  */
 export async function GET(request: NextRequest, { params }: { params: { chef_id: string } }): Promise<NextResponse> {
-  const { chef_id } = params;
-  if (!chef_id) {
-    return ResponseFactory.validationError('Missing chef_id');
+  try {
+    const { chef_id } = params;
+    if (!chef_id) {
+      return ResponseFactory.validationError('Missing chef_id');
+    }
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allReviews = await convex.query(api.queries.reviews.getAll, {
+      sessionToken: sessionToken || undefined
+    });
+    // Filter reviews for this chef
+    const chefReviews = allReviews.filter((r: any) => r.chef_id === chef_id);
+    const total_reviews = chefReviews.length;
+    const avg_rating = total_reviews > 0 ? chefReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / total_reviews : 0;
+    // Fetch all users for customer info join
+    const allUsers = await convex.query(api.queries.users.getAll, {
+      sessionToken: sessionToken || undefined
+    });
+    const reviews = chefReviews.map((r: any) => {
+      const customer = allUsers.find((u: any) => u._id === r.user_id) || {};
+      return {
+        rating: r.rating,
+        comment: r.comment || null,
+        review_id: r._id,
+        created_at: r.createdAt ? new Date(r.createdAt).toISOString() : null,
+        customer: {
+          customer_id: (customer as any)._id || '',
+          first_name: (customer as any).first_name || null,
+          last_name: (customer as any).last_name || null,
+        },
+      };
+    });
+    return ResponseFactory.success({ chef_id, avg_rating, total_reviews, reviews });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
-  const convex = getConvexClient();
-  const allReviews = await convex.query(api.queries.reviews.getAll, {});
-  // Filter reviews for this chef
-  const chefReviews = allReviews.filter((r: any) => r.chef_id === chef_id);
-  const total_reviews = chefReviews.length;
-  const avg_rating = total_reviews > 0 ? chefReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / total_reviews : 0;
-  // Fetch all users for customer info join
-  const allUsers = await convex.query(api.queries.users.getAll, {});
-  const reviews = chefReviews.map((r: any) => {
-    const customer = allUsers.find((u: any) => u._id === r.user_id) || {};
-    return {
-      rating: r.rating,
-      comment: r.comment || null,
-      review_id: r._id,
-      created_at: r.createdAt ? new Date(r.createdAt).toISOString() : null,
-      customer: {
-        customer_id: (customer as any)._id || '',
-        first_name: (customer as any).first_name || null,
-        last_name: (customer as any).last_name || null,
-      },
-    };
-  });
-  return ResponseFactory.success({ chef_id, avg_rating, total_reviews, reviews });
 } 

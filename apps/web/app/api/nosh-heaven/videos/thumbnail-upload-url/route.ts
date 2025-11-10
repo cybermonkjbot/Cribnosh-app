@@ -1,10 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { generateThumbnailUploadUrl, validateThumbnailFile } from '@/lib/s3-config';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { generateThumbnailUploadUrl, validateThumbnailFile } from '@/lib/s3-config';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -14,7 +18,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Creates a presigned URL for uploading video thumbnails to S3
  *     tags: [Nosh Heaven, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -90,18 +94,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError(validation.error || 'Invalid thumbnail file');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Check if user is a chef or food creator
@@ -111,7 +109,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify video ownership
-    const video = await convex.query((api as any).queries.videoPosts.getVideoById, { videoId });
+    const video = await convex.query((api as any).queries.videoPosts.getVideoById, {
+      videoId,
+      sessionToken: sessionToken || undefined
+    });
     if (!video) {
       return ResponseFactory.notFound('Video not found');
     }
@@ -129,9 +130,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       publicUrl: uploadData.publicUrl,
     }, 'Thumbnail upload URL generated successfully');
 
-  } catch (error: any) {
-    console.error('Thumbnail upload URL generation error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to generate thumbnail upload URL');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Thumbnail upload URL generation error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to generate thumbnail upload URL'));
   }
 }
 

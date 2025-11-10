@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { EmailProvider, EmailPayload, EmailResult } from '../types';
+import { logger } from '@/lib/utils/logger';
 
 export class SMTPProvider implements EmailProvider {
   private transporter!: nodemailer.Transporter;
@@ -39,7 +40,7 @@ export class SMTPProvider implements EmailProvider {
       await this.transporter.verify();
       return true;
     } catch (error) {
-      console.error('SMTP provider verification failed:', error);
+      logger.error('SMTP provider verification failed:', error);
       return false;
     }
   }

@@ -1,11 +1,13 @@
-import { query } from '../_generated/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
+import { query } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 
 // Get current active session for a staff member
 export const getActiveSession = query({
   args: {
     staffId: v.id('users'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.union(v.object({
     _id: v.id('workSessions'),
@@ -23,7 +25,15 @@ export const getActiveSession = query({
     updatedBy: v.optional(v.id('users')),
   }), v.null()),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { staffId } = args;
+    
+    // Users can only get their own active session unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user) && !isStaff(user)) {
+      throw new Error('Access denied');
+    }
     
     const activeSession = await ctx.db
       .query('workSessions')
@@ -42,6 +52,7 @@ export const getWorkSessions = query({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     _id: v.id('workSessions'),
@@ -59,7 +70,15 @@ export const getWorkSessions = query({
     updatedBy: v.optional(v.id('users')),
   })),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { staffId, startDate, endDate, limit = 50 } = args;
+    
+    // Users can only get their own work sessions unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user) && !isStaff(user)) {
+      throw new Error('Access denied');
+    }
     
     let query = ctx.db
       .query('workSessions')
@@ -88,6 +107,7 @@ export const getWeeklyHours = query({
     staffId: v.id('users'),
     weekStart: v.number(), // Start of week timestamp
     weekEnd: v.number(),   // End of week timestamp
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     totalHours: v.number(),
@@ -110,7 +130,15 @@ export const getWeeklyHours = query({
     })),
   }),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { staffId, weekStart, weekEnd } = args;
+    
+    // Users can only get their own weekly hours unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user) && !isStaff(user)) {
+      throw new Error('Access denied');
+    }
     
     const sessions = await ctx.db
       .query('workSessions')
@@ -139,6 +167,7 @@ export const getWeeklyHours = query({
 export const getTodaySessions = query({
   args: {
     staffId: v.id('users'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     _id: v.id('workSessions'),
@@ -156,7 +185,15 @@ export const getTodaySessions = query({
     updatedBy: v.optional(v.id('users')),
   })),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { staffId } = args;
+    
+    // Users can only get their own today's sessions unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user) && !isStaff(user)) {
+      throw new Error('Access denied');
+    }
     
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
@@ -180,6 +217,7 @@ export const getTodaySessions = query({
 export const getThisWeekSessions = query({
   args: {
     staffId: v.id('users'),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     _id: v.id('workSessions'),
@@ -197,7 +235,15 @@ export const getThisWeekSessions = query({
     updatedBy: v.optional(v.id('users')),
   })),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { staffId } = args;
+    
+    // Users can only get their own this week's sessions unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user) && !isStaff(user)) {
+      throw new Error('Access denied');
+    }
     
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -226,6 +272,7 @@ export const getThisWeekSessions = query({
 export const getWorkSessionById = query({
   args: {
     sessionId: v.string(),
+    sessionToken: v.optional(v.string())
   },
   returns: v.union(v.object({
     _id: v.id('workSessions'),
@@ -243,6 +290,9 @@ export const getWorkSessionById = query({
     updatedBy: v.optional(v.id('users')),
   }), v.null()),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { sessionId } = args;
     
     // Get the session by ID
@@ -252,8 +302,11 @@ export const getWorkSessionById = query({
       return null;
     }
     
-    // Since auth is handled by middleware, we assume the user is already authenticated
-    // and authorized to access this session
+    // Users can only get their own sessions unless they're staff/admin
+    if (session.staffId !== user._id && !isAdmin(user) && !isStaff(user)) {
+      throw new Error('Access denied');
+    }
+    
     return session;
   },
 });
@@ -272,6 +325,7 @@ export const listSessionsAdmin = query({
     endDate: v.optional(v.number()),
     skip: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     total: v.number(),
@@ -292,6 +346,9 @@ export const listSessionsAdmin = query({
     })),
   }),
   handler: async (ctx, args) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     const { staffId, status, startDate, endDate, skip = 0, limit = 50 } = args;
 
     let q: any = ctx.db.query('workSessions');
@@ -353,6 +410,7 @@ export const getYearToDateHours = query({
   args: {
     staffId: v.id('users'),
     year: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     totalHours: v.number(),
@@ -361,7 +419,15 @@ export const getYearToDateHours = query({
     year: v.number(),
   }),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const { staffId, year } = args;
+    
+    // Users can only get their own year-to-date hours unless they're staff/admin
+    if (staffId !== user._id && !isAdmin(user) && !isStaff(user)) {
+      throw new Error('Access denied');
+    }
     
     const currentYear = new Date().getFullYear();
     const targetYear = year || currentYear;
@@ -396,6 +462,7 @@ export const getYearToDateHours = query({
 export const getAdminYearToDateHoursSummary = query({
   args: {
     year: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     year: v.number(),
@@ -408,6 +475,9 @@ export const getAdminYearToDateHoursSummary = query({
     totalSessions: v.number(),
   }),
   handler: async (ctx, args) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     const currentYear = new Date().getFullYear();
     const targetYear = args.year || currentYear;
     const startOfYear = new Date(targetYear, 0, 1).getTime();

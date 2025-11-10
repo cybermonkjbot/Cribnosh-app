@@ -6,11 +6,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { GradientBackground } from '@/components/ui/GradientBackground';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuperButton } from '@/components/ui/SuperButton';
 import { useGetFamilyProfileQuery, useUpdateMemberBudgetMutation } from '@/store/customerApi';
 import { useToast } from '@/lib/ToastContext';
@@ -67,19 +67,21 @@ export default function MemberBudgetScreen() {
   };
 
   return (
-    <GradientBackground>
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          title: 'Budget Settings',
+        }}
+      />
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ChevronLeft size={24} color="#E6FFE8" />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-        </View>
+        <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
+        
+        <ScreenHeader title="Budget Settings" onBack={() => router.back()} />
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.title}>Budget Settings</Text>
           <Text style={styles.description}>
-            Set spending limits for {member?.name}. Leave empty to remove limits.
+            Set spending limits for {member?.name || 'this member'}. Leave empty to remove limits.
           </Text>
 
           <View style={styles.inputGroup}>
@@ -119,75 +121,65 @@ export default function MemberBudgetScreen() {
           </View>
         </ScrollView>
 
+        <View style={styles.buttonContainer}>
         <SuperButton
           title={isLoading ? 'Updating...' : 'Save Budget'}
           onPress={handleSubmit}
           backgroundColor="#094327"
           textColor="white"
         />
+        </View>
       </SafeAreaView>
-    </GradientBackground>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  backText: {
-    color: '#E6FFE8',
-    fontSize: 16,
-    marginLeft: 8,
+    backgroundColor: '#FAFFFA',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingTop: 24,
     paddingBottom: 100,
   },
-  title: {
-    color: '#E6FFE8',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    marginTop: 20,
-  },
   description: {
-    color: '#C0DCC0',
+    color: '#6B7280',
     fontSize: 16,
     marginBottom: 24,
     lineHeight: 24,
+    fontFamily: 'Inter',
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
-    color: '#E6FFE8',
+    color: '#094327',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+    fontFamily: 'Inter',
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 12,
-    color: '#E6FFE8',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    color: '#111827',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(230, 255, 232, 0.2)',
+    borderColor: '#E5E7EB',
+    fontFamily: 'Inter',
+  },
+  buttonContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: '#FAFFFA',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
 });
 

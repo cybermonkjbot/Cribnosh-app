@@ -1,16 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
-
-interface AdminJWTPayload {
-  role: string;
-  user_id: string;
-}
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -142,32 +138,15 @@ interface AdminJWTPayload {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 async function handlePOST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: AdminJWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'string') {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-      payload = verified as AdminJWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (payload.role !== 'admin') {
-      return ResponseFactory.forbidden('Forbidden: Only admins can broadcast real-time events.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const { event, data } = await request.json();
     if (!event) {
       return ResponseFactory.error('event is required.', 'CUSTOM_ERROR', 422);
@@ -178,16 +157,21 @@ async function handlePOST(request: NextRequest) {
       data,
       synced: false,
       timestamp: Date.now(),
+      sessionToken: sessionToken || undefined
     });
     
     // Audit log
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'broadcast_realtime',
       details: { event, data, changeId },
-      adminId: payload.user_id as Id<'users'>,
+      adminId: userId as Id<'users'>,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true, message: 'Event broadcasted via Convex', event, changeId });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to broadcast event.';
     return ResponseFactory.internalError(errorMessage);
   }

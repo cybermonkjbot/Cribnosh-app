@@ -1,9 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -51,8 +55,12 @@ async function handleGET(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    const convex = getConvexClient();
-    const video = await convex.query((api as any).queries.videoPosts.getVideoById, { videoId });
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const video = await convex.query((api as any).queries.videoPosts.getVideoById, {
+      videoId,
+      sessionToken: sessionToken || undefined
+    });
 
     if (!video) {
       return ResponseFactory.notFound('Video not found');
@@ -60,9 +68,12 @@ async function handleGET(
 
     return ResponseFactory.success(video, 'Video retrieved successfully');
 
-  } catch (error: any) {
-    console.error('Video retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve video');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Video retrieval error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve video'));
   }
 }
 
@@ -74,7 +85,7 @@ async function handleGET(
  *     description: Updates an existing video post
  *     tags: [Nosh Heaven, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -135,18 +146,13 @@ async function handlePUT(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
 
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Update video post
@@ -158,13 +164,17 @@ async function handlePUT(
       cuisine: body.cuisine,
       difficulty: body.difficulty,
       visibility: body.visibility,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Video updated successfully');
 
-  } catch (error: any) {
-    console.error('Video update error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to update video');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Video update error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update video'));
   }
 }
 
@@ -176,7 +186,7 @@ async function handlePUT(
  *     description: Soft deletes a video post
  *     tags: [Nosh Heaven, Videos]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -205,30 +215,29 @@ async function handleDELETE(
       return ResponseFactory.validationError('Video ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
 
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Delete video post
     await convex.mutation((api as any).mutations.videoPosts.deleteVideoPost, {
       videoId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Video deleted successfully');
 
-  } catch (error: any) {
-    console.error('Video deletion error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to delete video');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Video deletion error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete video'));
   }
 }
 

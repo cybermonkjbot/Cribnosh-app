@@ -1,41 +1,42 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import type { Id } from '@/convex/_generated/dataModel';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
+import { TimeTrackingTableSkeleton } from '@/components/admin/skeletons';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Clock, 
-  Users, 
-  Calendar, 
-  Filter, 
-  Search,
-  Play,
-  Pause,
-  CheckCircle,
+import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Activity,
   AlertTriangle,
-  Edit,
-  Trash,
+  BarChart3,
+  Calendar,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
-  BarChart3,
+  Clock,
   Download,
-  User,
-  Timer,
+  Edit,
+  Filter,
+  Pause,
+  PieChart,
+  Play,
   Target,
-  Activity,
-  PieChart
+  Trash,
+  TrendingUp,
+  User,
+  Users
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
 import { motion } from 'motion/react';
-import { TimeTrackingTableSkeleton } from '@/components/admin/skeletons';
+import { useEffect, useMemo, useState } from 'react';
 
 type Session = {
   _id: Id<'workSessions'>;
@@ -48,6 +49,7 @@ type Session = {
 };
 
 export default function AdminTimeTrackingPage() {
+  const { sessionToken } = useAdminUser();
   const [staffId, setStaffId] = useState<string>('');
   const [status, setStatus] = useState<string>('all');
   const [start, setStart] = useState<string>('');
@@ -55,6 +57,12 @@ export default function AdminTimeTrackingPage() {
   const [page, setPage] = useState<number>(0);
   const [limit, setLimit] = useState<number>(50);
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; sessionId: Id<'workSessions'> | null }>({
+    isOpen: false,
+    sessionId: null,
+  });
 
   const filters = useMemo(() => ({
     staffId: staffId ? (staffId as Id<'users'>) : undefined,
@@ -63,19 +71,47 @@ export default function AdminTimeTrackingPage() {
     endDate: end ? new Date(end).getTime() : undefined,
     skip: page * limit,
     limit,
-  }), [staffId, status, start, end, page, limit]);
+    sessionToken: sessionToken || undefined,
+  }), [staffId, status, start, end, page, limit, sessionToken]);
 
-  const list = useQuery(api.queries.workSessions.listSessionsAdmin, filters) as
+  const list = useQuery(api.queries.workSessions.listSessionsAdmin, sessionToken ? filters : "skip") as
     | { total: number; results: Session[] }
     | undefined;
 
   const adjustSession = useMutation(api.mutations.workSessions.adjustSession);
   const deleteSession = useMutation(api.mutations.workSessions.deleteSession);
 
+  const confirmDelete = async () => {
+    if (!deleteConfirm.sessionId) return;
+    try {
+      setError(null);
+      await deleteSession({ sessionId: deleteConfirm.sessionId });
+      setSuccess('Session deleted successfully');
+      setDeleteConfirm({ isOpen: false, sessionId: null });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete session');
+    }
+  };
+
   useEffect(() => {
     // Reset pagination when filters change
     setPage(0);
   }, [staffId, status, start, end]);
+
+  // Auto-dismiss success/error messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   // Calculate analytics from the data
   const analytics = useMemo(() => {
@@ -135,11 +171,12 @@ export default function AdminTimeTrackingPage() {
   }, [list?.results]);
 
   const getStatusBadge = (status: Session['status']) => {
+    // Use brand color for active/completed, neutral dark for others
     const variants = {
-      active: 'bg-green-100 text-green-800 border-green-200',
-      completed: 'bg-blue-100 text-blue-800 border-blue-200',
-      paused: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      adjusted: 'bg-purple-100 text-purple-800 border-purple-200'
+      active: 'bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/20',
+      completed: 'bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/20',
+      paused: 'bg-gray-100 text-gray-800 border-gray-200',
+      adjusted: 'bg-gray-100 text-gray-800 border-gray-200'
     };
     return variants[status] || variants.completed;
   };
@@ -156,7 +193,21 @@ export default function AdminTimeTrackingPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
+      {/* Error and Success Messages */}
+      {error && (
+        <Alert variant="destructive" className="bg-gray-50 border-gray-200">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="font-satoshi">{error}</AlertDescription>
+        </Alert>
+      )}
+      {success && (
+        <Alert className="bg-[#F23E2E]/10 border-[#F23E2E]/30">
+          <CheckCircle className="h-4 w-4 text-[#F23E2E]" />
+          <AlertDescription className="font-satoshi text-[#F23E2E]">{success}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Enhanced Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -188,57 +239,57 @@ export default function AdminTimeTrackingPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 font-satoshi">Today's Hours</p>
-                  <p className="text-3xl font-bold text-blue-900 font-asgard">{analytics.todayHours}h</p>
+                  <p className="text-sm font-medium text-gray-900 font-satoshi">Today's Hours</p>
+                  <p className="text-3xl font-bold text-gray-900 font-asgard">{analytics.todayHours}h</p>
                 </div>
-                <div className="p-3 bg-blue-200 rounded-full">
-                  <Clock className="w-6 h-6 text-blue-600" />
+                <div className="p-3 bg-gray-200 rounded-full">
+                  <Clock className="w-6 h-6 text-gray-900" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600 font-satoshi">Active Sessions</p>
-                  <p className="text-3xl font-bold text-green-900 font-asgard">{analytics.activeSessions}</p>
+                  <p className="text-sm font-medium text-gray-900 font-satoshi">Active Sessions</p>
+                  <p className="text-3xl font-bold text-gray-900 font-asgard">{analytics.activeSessions}</p>
                 </div>
-                <div className="p-3 bg-green-200 rounded-full">
-                  <Activity className="w-6 h-6 text-green-600" />
+                <div className="p-3 bg-gray-200 rounded-full">
+                  <Activity className="w-6 h-6 text-gray-900" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600 font-satoshi">This Week</p>
-                  <p className="text-3xl font-bold text-purple-900 font-asgard">{analytics.weekHours}h</p>
+                  <p className="text-sm font-medium text-gray-900 font-satoshi">This Week</p>
+                  <p className="text-3xl font-bold text-gray-900 font-asgard">{analytics.weekHours}h</p>
                 </div>
-                <div className="p-3 bg-purple-200 rounded-full">
-                  <TrendingUp className="w-6 h-6 text-purple-600" />
+                <div className="p-3 bg-gray-200 rounded-full">
+                  <TrendingUp className="w-6 h-6 text-gray-900" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-600 font-satoshi">Staff Members</p>
-                  <p className="text-3xl font-bold text-orange-900 font-asgard">{analytics.staffCount}</p>
+                  <p className="text-sm font-medium text-gray-900 font-satoshi">Staff Members</p>
+                  <p className="text-3xl font-bold text-gray-900 font-asgard">{analytics.staffCount}</p>
                 </div>
-                <div className="p-3 bg-orange-200 rounded-full">
-                  <Users className="w-6 h-6 text-orange-600" />
+                <div className="p-3 bg-gray-200 rounded-full">
+                  <Users className="w-6 h-6 text-gray-900" />
                 </div>
               </div>
             </CardContent>
@@ -546,12 +597,20 @@ export default function AdminTimeTrackingPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={async () => {
-                                  await adjustSession({ sessionId: s._id, updates: { status: 'adjusted' } });
+                                  try {
+                                    setError(null);
+                                    await adjustSession({ sessionId: s._id, updates: { status: 'adjusted' } });
+                                    setSuccess('Session status updated successfully');
+                                  } catch (err) {
+                                    setError(err instanceof Error ? err.message : 'Failed to update session');
+                                  }
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    adjustSession({ sessionId: s._id, updates: { status: 'adjusted' } });
+                                    adjustSession({ sessionId: s._id, updates: { status: 'adjusted' } })
+                                      .then(() => setSuccess('Session status updated successfully'))
+                                      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to update session'));
                                   }
                                 }}
                                 className="text-xs"
@@ -566,15 +625,23 @@ export default function AdminTimeTrackingPage() {
                                 size="sm"
                                 onClick={async () => {
                                   if (!s.clockOutTime) return;
-                                  const newOut = s.clockOutTime + 5 * 60 * 1000;
-                                  await adjustSession({ sessionId: s._id, updates: { clockOutTime: newOut } });
+                                  try {
+                                    setError(null);
+                                    const newOut = s.clockOutTime + 5 * 60 * 1000;
+                                    await adjustSession({ sessionId: s._id, updates: { clockOutTime: newOut } });
+                                    setSuccess('Session time adjusted successfully');
+                                  } catch (err) {
+                                    setError(err instanceof Error ? err.message : 'Failed to adjust session time');
+                                  }
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
                                     if (s.clockOutTime) {
                                       const newOut = s.clockOutTime + 5 * 60 * 1000;
-                                      adjustSession({ sessionId: s._id, updates: { clockOutTime: newOut } });
+                                      adjustSession({ sessionId: s._id, updates: { clockOutTime: newOut } })
+                                        .then(() => setSuccess('Session time adjusted successfully'))
+                                        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to adjust session time'));
                                     }
                                   }
                                 }}
@@ -587,20 +654,8 @@ export default function AdminTimeTrackingPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={async () => {
-                                  if (confirm('Are you sure you want to delete this session?')) {
-                                    await deleteSession({ sessionId: s._id });
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    if (confirm('Are you sure you want to delete this session?')) {
-                                      deleteSession({ sessionId: s._id });
-                                    }
-                                  }
-                                }}
-                                className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => setDeleteConfirm({ isOpen: true, sessionId: s._id })}
+                                className="text-xs text-gray-900 hover:text-[#F23E2E] hover:bg-gray-50"
                                 aria-label="Delete session"
                                 tabIndex={0}
                               >
@@ -661,61 +716,6 @@ export default function AdminTimeTrackingPage() {
 
         {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white/90 backdrop-blur-lg border border-white/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-asgard">
-                  <BarChart3 className="w-5 h-5" />
-                  Time Trends
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-satoshi text-gray-600">Today vs Yesterday</span>
-                    <span className="font-semibold text-gray-900">+12%</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-satoshi text-gray-600">This Week vs Last Week</span>
-                    <span className="font-semibold text-gray-900">+8%</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-satoshi text-gray-600">This Month vs Last Month</span>
-                    <span className="font-semibold text-gray-900">+15%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/90 backdrop-blur-lg border border-white/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-asgard">
-                  <AlertCircle className="w-5 h-5" />
-                  Alerts & Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm font-satoshi text-yellow-800">
-                      <strong>Overtime Alert:</strong> 3 staff members have exceeded 40 hours this week
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm font-satoshi text-green-800">
-                      <strong>Good News:</strong> Average session length increased by 20% this month
-                    </p>
-                  </div>
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm font-satoshi text-blue-800">
-                      <strong>Insight:</strong> Peak productivity hours are 10 AM - 2 PM
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           <Card className="bg-white/90 backdrop-blur-lg border border-white/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-asgard">
@@ -742,6 +742,17 @@ export default function AdminTimeTrackingPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ConfirmationDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, sessionId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Session"
+        message="Are you sure you want to delete this session? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="error"
+      />
     </div>
   );
 }

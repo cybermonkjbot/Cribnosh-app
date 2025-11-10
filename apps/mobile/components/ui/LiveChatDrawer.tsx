@@ -1,11 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useSupportChat } from '../../hooks/useSupportChat';
 import { useToast } from '../../lib/ToastContext';
+import { useTopPosition } from '../../utils/positioning';
 import { SupportMessage as SupportMessageType } from '../../types/customer';
 import { Avatar } from './Avatar';
 import { CribNoshLogo } from './CribNoshLogo';
@@ -327,6 +328,7 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
   const { showToast } = useToast();
   const { user } = useAuthContext();
   const scrollViewRef = useRef<ScrollView>(null);
+  const topPosition = useTopPosition(0);
   
   // Use support chat hook
   const {
@@ -447,16 +449,20 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
       statusBarTranslucent={true}
       presentationStyle="fullScreen"
     >
-      <LinearGradient
-        colors={[COLORS.gradient.start, COLORS.gradient.end]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          flex: 1,
-          paddingTop: 50, // Account for status bar
-          zIndex: 99999,
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
+        <LinearGradient
+          colors={[COLORS.gradient.start, COLORS.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            flex: 1,
+            paddingTop: topPosition,
+            zIndex: 99999,
+          }}
+        >
         <Animated.View style={[animatedContainerStyle, { flex: 1 }]}>
           {/* Header */}
           <View style={{
@@ -554,7 +560,9 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
                 <Text style={{ color: COLORS.gray[500], fontSize: 16, textAlign: 'center' }}>
                   {agent 
-                    ? `Hi! ${agent.name} is here to help. Send a message to get started.`
+                    ? agent.name === 'CribNosh AI' || agent.id === 'ai'
+                      ? 'Hi! CribNosh AI is here to help. Send a message to get started.'
+                      : `Hi! A member of our support team is here to help. Send a message to get started.`
                     : 'Starting a new conversation...'
                   }
                 </Text>
@@ -591,6 +599,7 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
           <ChatInput onSend={handleSendMessage} isSending={isSendingMessage} />
         </Animated.View>
       </LinearGradient>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

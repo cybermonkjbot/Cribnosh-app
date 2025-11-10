@@ -31,7 +31,12 @@ export const activateReferralProgram = action({
 });
 
 export const loginAndCreateSession = action({
-  args: { email: v.string(), password: v.string() },
+  args: { 
+    email: v.string(), 
+    password: v.string(),
+    userAgent: v.optional(v.string()), // User agent for session tracking
+    ipAddress: v.optional(v.string()), // IP address for session tracking
+  },
   handler: async (ctx, args) => {
     // Find user by email
     const user = await ctx.runQuery(api.queries.users.getUserByEmail, { email: args.email });
@@ -63,14 +68,16 @@ export const loginAndCreateSession = action({
       console.error('Error during password verification for user:', args.email, error);
       return { error: 'Invalid credentials' };
     }
-    // Generate a secure session token
-    const sessionToken = randomBytes(32).toString('hex');
-    // Set session to expire in 1 year for long-term persistence
-    const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
-    const sessionExpiry = Date.now() + ONE_YEAR_MS;
-    // Store session token and expiry in user record via mutation
-    await ctx.runMutation(api.mutations.users.setSessionToken, { userId: user._id, sessionToken, sessionExpiry });
-    return { sessionToken };
+    // Generate and set session token atomically using Convex mutation
+    // This is more performant and uses base64url encoding for better security
+    const ONE_YEAR_DAYS = 365;
+    const sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
+      userId: user._id,
+      expiresInDays: ONE_YEAR_DAYS,
+      userAgent: args.userAgent,
+      ipAddress: args.ipAddress,
+    });
+    return { sessionToken: sessionResult.sessionToken };
   }
 });
 

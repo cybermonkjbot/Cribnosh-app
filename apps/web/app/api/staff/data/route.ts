@@ -1,9 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withStaffAuth } from '@/lib/api/staff-middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -166,16 +169,23 @@ import { withStaffAuth } from '@/lib/api/staff-middleware';
  *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest, user: any) {
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
   
-  // Fetch user document by userId
-  const staff = await convex.query(api.queries.users.getById, { userId: user._id });
+  // Fetch user document by userId - pass session token for authentication
+  const staff = await convex.query(api.queries.users.getById, { 
+    userId: user._id,
+    sessionToken: sessionToken || undefined
+  });
   if (!staff) {
     return ResponseFactory.notFound('Staff user not found');
   }
 
-  // Fetch staff assignment (department, position) from staffAssignments table
-  const assignment = await convex.query(api.queries.staff.getStaffAssignmentByUser, { userId: user._id });
+  // Fetch staff assignment (department, position) from staffAssignments table - pass session token for authentication
+  const assignment = await convex.query(api.queries.staff.getStaffAssignmentByUser, { 
+    userId: user._id,
+    sessionToken: sessionToken || undefined
+  });
   
   // Return only relevant staff fields
   const {

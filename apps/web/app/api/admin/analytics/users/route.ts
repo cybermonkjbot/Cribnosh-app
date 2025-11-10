@@ -1,24 +1,19 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
-
-interface AdminJWTPayload {
-  roles: string[];
-  user_id: string;
-}
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 
 interface UserGrowthData {
   date: string;
   total_users: number;
   new_users: number;
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 /**
  * @swagger
@@ -128,43 +123,31 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: AdminJWTPayload;
-    try {
-      const verified = jwt.verify(token, JWT_SECRET);
-      if (typeof verified === 'string') {
-        return ResponseFactory.unauthorized('Invalid token format.');
-      }
-      payload = verified as AdminJWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start') ? Number(searchParams.get('start')) : undefined;
     const end = searchParams.get('end') ? Number(searchParams.get('end')) : undefined;
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     // Calculate stats
     const total_users = users.length;
-    const customers = users.filter((u) => u.roles?.includes('customer')).length;
-    const chefs = users.filter((u) => u.roles?.includes('chef')).length;
-    const admins = users.filter((u) => u.roles?.includes('admin')).length;
-    const active_users = users.filter((u) => u.status === 'active').length;
+    const customers = users.filter((u: any) => u.roles?.includes('customer')).length;
+    const chefs = users.filter((u: any) => u.roles?.includes('chef')).length;
+    const admins = users.filter((u: any) => u.roles?.includes('admin')).length;
+    const active_users = users.filter((u: any) => u.status === 'active').length;
     // User growth (by day)
     const user_growth: UserGrowthData[] = [];
     const growthMap: Record<string, { total_users: number, new_users: number }> = {};
-    users.forEach((u) => {
+    users.forEach((u: any) => {
       const date = u._creationTime ? new Date(u._creationTime).toISOString().slice(0, 10) : null;
       if (date) {
         if (!growthMap[date]) growthMap[date] = { total_users: 0, new_users: 0 };
@@ -192,6 +175,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       period
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch user analytics.';
     return ResponseFactory.internalError(errorMessage);
   }

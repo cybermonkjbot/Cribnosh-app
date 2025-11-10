@@ -2,12 +2,12 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -127,7 +127,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
@@ -138,23 +138,22 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   if (!chef_id) {
     return ResponseFactory.validationError('Missing chef_id');
   }
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
   try {
-    // Auth: get admin user_id from JWT
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret') as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
     const userId = chef_id as Id<'users'>;
-    await convex.mutation(api.mutations.users.updateUser, { userId, status: 'inactive', roles: ['chef'] });
-    const chef = await convex.query(api.queries.users.getById, { userId });
+    await convex.mutation(api.mutations.users.updateUser, {
+      userId,
+      status: 'inactive',
+      roles: ['chef'],
+      sessionToken: sessionToken || undefined
+    });
+    const chef = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!chef) {
       return ResponseFactory.notFound('Chef not found');
     }
@@ -162,7 +161,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'reject_chef',
       details: { chef_id },
-      adminId: payload.user_id,
+      adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     // Compose ChefProfileResponse (minimal)
     const [first_name, ...rest] = (chef.name || '').split(' ');
@@ -183,6 +183,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       profile_image_url: chef.avatar || null,
     });
   } catch (e: unknown) {
+    if (isAuthenticationError(e) || isAuthorizationError(e)) {
+      return handleConvexError(e, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(e, 'Failed to reject chef'));
   }
 }

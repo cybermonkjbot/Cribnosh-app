@@ -4,6 +4,7 @@
  */
 
 import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { logger } from '@/lib/utils/logger';
 
 let stripePromise: Promise<Stripe | null> | null = null;
 
@@ -16,7 +17,7 @@ export function getStripe(): Promise<Stripe | null> {
     const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     
     if (!publishableKey) {
-      console.warn('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set');
+      logger.warn('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set');
       stripePromise = Promise.resolve(null);
     } else {
       stripePromise = loadStripe(publishableKey);

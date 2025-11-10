@@ -78,6 +78,7 @@ export {
   deleteSession as deleteUserSession
 } from './sessions';
 
+export * from './specialOffers';
 export * from './staff';
 export * from './timelogs';
 export * from './users';
@@ -162,3 +163,6 @@ export * from './eventChefRequests';
 
 // Export blog mutations
 export * from './blog';
+
+// Export compliance mutations
+export * from './compliance';

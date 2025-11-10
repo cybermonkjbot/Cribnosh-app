@@ -13,10 +13,11 @@ export class AppleSignInErrorHandler {
    * Handles Apple Sign-In errors and provides user-friendly messages
    */
   static handleError(error: any): AppleSignInError {
-    console.error('Apple Sign-In error details:', error);
-
-    // Check if this is a user cancellation (most common case)
+    // Check if this is a user cancellation (most common case) first
+    // to avoid logging user cancellations as errors
     if (this.isUserCancellation(error)) {
+      // Log user cancellations at debug level, not error level
+      console.log('Apple Sign-In cancelled by user');
       return {
         code: 'USER_CANCELLED',
         message: 'Sign-in was cancelled by user',
@@ -24,6 +25,9 @@ export class AppleSignInErrorHandler {
         isUserCancellation: true
       };
     }
+
+    // Only log actual errors (not user cancellations) at error level
+    console.error('Apple Sign-In error details:', error);
 
     // Handle specific Apple Authentication error codes
     if (error.code) {

@@ -2,9 +2,13 @@ import { withErrorHandling, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { calculateDistanceKm } from '@/lib/apple-maps/service';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -166,11 +170,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Chef ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get chef details
     const chefData = await convex.query(api.queries.chefs.getChefById, { 
-      chefId: chef_id as any
+      chefId: chef_id as any,
+      sessionToken: sessionToken || undefined
     });
 
     if (!chefData) {
@@ -224,7 +230,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     return ResponseFactory.success(chefDetails, 'Chef details retrieved successfully');
 
   } catch (error) {
-    console.error('Error getting chef details:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error getting chef details:', error);
     return errorHandler.handleError(error);
   }
 }

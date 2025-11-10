@@ -1,33 +1,32 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { AdminFilterBar } from '@/components/admin/admin-filter-bar';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { sanitizeContent, validateContent } from '@/lib/utils/content-sanitizer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileText, 
-  Search, 
-  Filter,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
+import { useMutation, useQuery } from 'convex/react';
+import {
   Calendar,
-  User,
-  Tag,
-  Globe,
-  Clock,
   CheckCircle,
-  XCircle
+  Clock,
+  Edit,
+  Eye,
+  FileText,
+  Globe,
+  Plus,
+  Tag,
+  Trash2,
+  User
 } from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useState } from 'react';
 
 interface BlogPost {
   _id: Id<"blogPosts">;
@@ -71,20 +70,24 @@ export default function BlogManagementPage() {
     status: 'draft' as const,
     featuredImage: '',
     seoTitle: '',
-    seoDescription: ''
+    seoDescription: '',
   });
 
-  // Fetch data
-  const blogPosts = useQuery(api.queries.content.getBlogPosts);
-  const categories = useQuery(api.queries.content.getBlogCategories);
-
+  const sessionToken = useSessionToken();
+  
+  // Queries
+  const blogPosts = useQuery(
+    api.queries.blog.getBlogPosts, 
+    sessionToken ? {} as { search?: string; status?: string; category?: string; limit?: number } : "skip"
+  );
+  
   // Mutations
-  const createPost = useMutation(api.mutations.content.createBlogPost);
-  const updatePost = useMutation(api.mutations.content.updateBlogPost);
-  const deletePost = useMutation(api.mutations.content.deleteBlogPost);
-  const publishPost = useMutation(api.mutations.content.publishBlogPost);
-
-  const handleCreatePost = async () => {
+  const createPost = useMutation(api.mutations.blogPosts.createBlogPost);
+  const updatePost = useMutation(api.mutations.blogPosts.updateBlogPost);
+  const deletePost = useMutation(api.mutations.blogPosts.deleteBlogPost);
+  const publishPost = useMutation(api.mutations.blogPosts.publishBlogPost);
+  
+  const handleSavePost = async () => {
     if (!newPost.title.trim() || !newPost.content.trim()) {
       setError('Title and content are required');
       return;
@@ -111,10 +114,10 @@ export default function BlogManagementPage() {
     }
 
     try {
-      await createPost({
-        ...sanitizedPost,
+      await createPost({...sanitizedPost,
         slug: sanitizedPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        readTime: Math.ceil(sanitizedPost.content.split(' ').length / 200)
+        readTime: Math.ceil(sanitizedPost.content.split(' ').length / 200),
+        sessionToken: sessionToken || undefined
       });
       
       setNewPost({
@@ -138,7 +141,9 @@ export default function BlogManagementPage() {
 
   const handleUpdatePost = async (postId: Id<"blogPosts">, updates: Partial<BlogPost>) => {
     try {
-      await updatePost({ postId, ...updates });
+      await updatePost({postId, ...updates,
+    sessionToken: sessionToken || undefined
+  });
       setSuccess('Blog post updated successfully');
       setError(null);
       setIsEditing(null);
@@ -150,7 +155,9 @@ export default function BlogManagementPage() {
   const handleDeletePost = async (postId: Id<"blogPosts">) => {
     if (confirm('Are you sure you want to delete this blog post?')) {
       try {
-        await deletePost({ postId });
+        await deletePost({postId,
+    sessionToken: sessionToken || undefined
+  });
         setSuccess('Blog post deleted successfully');
         setError(null);
       } catch (err) {
@@ -161,7 +168,9 @@ export default function BlogManagementPage() {
 
   const handlePublishPost = async (postId: Id<"blogPosts">) => {
     try {
-      await publishPost({ postId });
+      await publishPost({postId,
+    sessionToken: sessionToken || undefined
+  });
       setSuccess('Blog post published successfully');
       setError(null);
     } catch (err) {
@@ -172,23 +181,25 @@ export default function BlogManagementPage() {
   const filteredPosts = blogPosts?.filter((post: any) => {
     const matchesSearch = 
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.tags.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.tags?.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || post.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' || 
+      (post.categories && Array.isArray(post.categories) && post.categories.includes(categoryFilter)) ||
+      (post.category === categoryFilter);
     
     return matchesSearch && matchesStatus && matchesCategory;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
       case 'recent':
-        return b.updatedAt - a.updatedAt;
+        return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
       case 'title':
         return a.title.localeCompare(b.title);
       case 'views':
-        return b.views - a.views;
+        return (b.views || b.viewCount || 0) - (a.views || a.viewCount || 0);
       case 'likes':
-        return b.likes - a.likes;
+        return (b.likes || b.likeCount || 0) - (a.likes || a.likeCount || 0);
       default:
         return 0;
     }
@@ -207,10 +218,18 @@ export default function BlogManagementPage() {
     }
   };
 
-  const uniqueCategories = Array.from(new Set(blogPosts?.map((post: any) => post.category) || []));
+  const uniqueCategories = Array.from(new Set(
+    blogPosts?.flatMap((post: any) => 
+      post.categories && Array.isArray(post.categories) 
+        ? post.categories 
+        : post.category 
+          ? [post.category] 
+          : []
+    ) || []
+  ));
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -414,7 +433,7 @@ export default function BlogManagementPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreatePost} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90">
+              <Button onClick={handleSavePost} className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white">
                 Create Post
               </Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
@@ -426,54 +445,56 @@ export default function BlogManagementPage() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-          <Input
-            placeholder="Search blog posts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {uniqueCategories.map((category: any) => (
-              <SelectItem key={category} value={category}>{category}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recent">Recent</SelectItem>
-            <SelectItem value="title">Title</SelectItem>
-            <SelectItem value="views">Views</SelectItem>
-            <SelectItem value="likes">Likes</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <AdminFilterBar
+        searchPlaceholder="Search blog posts..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        filters={[
+          {
+            key: 'status',
+            label: 'Status',
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: [
+              { value: 'all', label: 'All Status' },
+              { value: 'draft', label: 'Draft' },
+              { value: 'published', label: 'Published' },
+              { value: 'archived', label: 'Archived' },
+            ],
+          },
+          {
+            key: 'category',
+            label: 'Category',
+            value: categoryFilter,
+            onChange: setCategoryFilter,
+            options: [
+              { value: 'all', label: 'All Categories' },
+              ...uniqueCategories.map((category: any) => ({
+                value: category,
+                label: category,
+              })),
+            ],
+          },
+          {
+            key: 'sort',
+            label: 'Sort by',
+            value: sortBy,
+            onChange: setSortBy,
+            options: [
+              { value: 'recent', label: 'Recent' },
+              { value: 'title', label: 'Title' },
+              { value: 'views', label: 'Views' },
+              { value: 'likes', label: 'Likes' },
+            ],
+          },
+        ]}
+        onClearAll={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setCategoryFilter('all');
+          setSortBy('recent');
+        }}
+      />
 
       {/* Blog Posts List */}
       <div className="space-y-4">
@@ -490,7 +511,7 @@ export default function BlogManagementPage() {
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       <User className="w-4 h-4" />
-                      {post.author}
+                      {post.author?.name || post.author || 'Unknown'}
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
@@ -498,11 +519,11 @@ export default function BlogManagementPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      {post.readTime} min read
+                      {post.readTime || Math.ceil((post.content?.split(' ').length || 0) / 200)} min read
                     </div>
                     <div className="flex items-center gap-1">
                       <Eye className="w-4 h-4" />
-                      {post.views} views
+                      {post.views || post.viewCount || 0} views
                     </div>
                   </div>
                 </div>
@@ -557,15 +578,19 @@ export default function BlogManagementPage() {
               <div className="flex items-center gap-6 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
                   <span>Category:</span>
-                  <Badge variant="outline">{post.category}</Badge>
+                  <Badge variant="outline">
+                    {post.categories && Array.isArray(post.categories) && post.categories.length > 0
+                      ? post.categories.join(', ')
+                      : post.category || 'Uncategorized'}
+                  </Badge>
                 </div>
                 <div className="flex items-center gap-1">
                   <span>Likes:</span>
-                  <span className="font-medium">{post.likes}</span>
+                  <span className="font-medium">{post.likes || post.likeCount || 0}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span>Comments:</span>
-                  <span className="font-medium">{post.comments}</span>
+                  <span className="font-medium">{post.comments || post.commentCount || 0}</span>
                 </div>
                 {post.publishedAt && (
                   <div className="flex items-center gap-1">

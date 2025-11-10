@@ -1,19 +1,24 @@
 "use client";
 
-import { AuthWrapper } from '@/components/layout/AuthWrapper';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
+import { UsersTableSkeleton } from '@/components/admin/skeletons';
+import { UserFilterBar } from '@/components/admin/user-filter-bar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { useMutation, useQuery } from 'convex/react';
-import { AnimatePresence, motion } from 'motion/react';
-import { Edit, Search, Trash, UserPlus, X, Users, Filter, Shield, Mail, Calendar, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { UsersTableSkeleton } from '@/components/admin/skeletons';
+import { useMutation, useQuery } from 'convex/react';
+import { Calendar, Edit, Mail, Shield, Trash, UserPlus, Users } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface User {
   _id: Id<"users">;
@@ -51,10 +56,22 @@ interface CreateUserData {
 }
 
 export default function AdminUsers() {
-  // Auth is handled by middleware, no client-side checks needed
+  // Auth is handled by layout via session-based authentication (session token in cookies)
+  // Middleware (proxy.ts) validates session token server-side, no client-side checks needed
+  const router = useRouter();
   const { toast } = useToast();
+  const { user, sessionToken } = useAdminUser();
 
-  const users = useQuery(api.queries.users.getAllUsers) as User[] | undefined;
+  // Authentication is handled by layout, so user is guaranteed to be authenticated here
+  // Pass sessionToken if available (for development debug cookie), otherwise rely on httpOnly cookie
+  const queryArgs = user ? (sessionToken ? { sessionToken } : {}) : "skip";
+  const usersQuery = useQuery(api.queries.users.getAllUsers, queryArgs);
+  
+  // Transform users data: map roles array to role string for display
+  const users = usersQuery ? (usersQuery as any[]).map((u: any) => ({
+    ...u,
+    role: u.roles?.find((r: string) => ['admin', 'moderator', 'chef', 'staff'].includes(r)) || u.roles?.[0] || 'user'
+  })) as User[] : undefined;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin' | 'moderator' | 'chef'>('all');
@@ -70,6 +87,10 @@ export default function AdminUsers() {
   const [formErrors, setFormErrors] = useState<Partial<UserFormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId: Id<"users"> | null }>({
+    isOpen: false,
+    userId: null,
+  });
 
   const createUser = useMutation(api.mutations.users.createUser);
   const updateUser = useMutation(api.mutations.users.updateUser);
@@ -246,24 +267,28 @@ export default function AdminUsers() {
   };
 
   const handleDelete = async (userId: Id<"users">) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      setIsDeleting(userId);
-      try {
-        await deleteUser({ userId });
-        toast({
-          title: "Success",
-          description: "User deleted successfully!",
-          variant: "success"
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete user. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsDeleting(null);
-      }
+    setDeleteConfirm({ isOpen: true, userId });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.userId) return;
+    setIsDeleting(deleteConfirm.userId);
+    try {
+      await deleteUser({ userId: deleteConfirm.userId });
+      toast({
+        title: "Success",
+        description: "User deleted successfully!",
+        variant: "success"
+      });
+      setDeleteConfirm({ isOpen: false, userId: null });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -286,7 +311,7 @@ export default function AdminUsers() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Enhanced Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -309,6 +334,7 @@ export default function AdminUsers() {
           <Button 
             variant="outline" 
             size="lg"
+            onClick={() => router.push('/admin/users/permissions')}
             className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white"
           >
             <Shield className="w-4 h-4 mr-2" />
@@ -317,7 +343,7 @@ export default function AdminUsers() {
           <Button 
             size="lg"
             onClick={handleCreateNew}
-            className="bg-primary-600 hover:bg-primary-700 text-white shadow-lg"
+            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white shadow-lg"
           >
             <UserPlus className="w-4 h-4 mr-2" />
             Add User
@@ -330,71 +356,17 @@ export default function AdminUsers() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl"
       >
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-5 h-5 text-primary-600" />
-          <h3 className="text-lg font-semibold font-asgard text-gray-900">Search & Filters</h3>
-        </div>
-        
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-          <div className="space-y-2">
-            <label htmlFor="user-search" className="text-sm font-medium font-satoshi text-gray-700">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" aria-hidden="true" />
-              <Input
-                id="user-search"
-                type="text"
-                placeholder="Search users by name or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white/80 border-gray-200"
-                aria-label="Search users by name or email"
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="role-filter" className="text-sm font-medium font-satoshi text-gray-700">Role</label>
-            <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as 'all' | 'user' | 'admin' | 'moderator' | 'chef')}>
-              <SelectTrigger id="role-filter" className="bg-white/80 border-gray-200" aria-label="Filter by role">
-                <SelectValue placeholder="All roles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="user">User</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="moderator">Moderator</SelectItem>
-                <SelectItem value="chef">Chef</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="status-filter" className="text-sm font-medium font-satoshi text-gray-700">Status</label>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | 'active' | 'inactive' | 'suspended')}>
-              <SelectTrigger id="status-filter" className="bg-white/80 border-gray-200" aria-label="Filter by status">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium font-satoshi text-gray-700">Total Users</label>
-            <div className="p-3 bg-primary-50 rounded-lg border border-primary-200">
-              <span className="text-2xl font-bold font-asgard text-primary-600">
-                {filteredUsers?.length || 0}
-              </span>
-              <p className="text-xs text-primary-600 font-satoshi">Users</p>
-            </div>
-          </div>
-        </div>
+        <UserFilterBar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          roleFilter={roleFilter}
+          onRoleFilterChange={(value: string) => setRoleFilter(value as 'all' | 'user' | 'admin' | 'moderator' | 'chef')}
+          statusFilter={statusFilter}
+          onStatusFilterChange={(value: string) => setStatusFilter(value as 'all' | 'active' | 'inactive' | 'suspended')}
+          totalCount={users?.length || 0}
+          filteredCount={filteredUsers?.length}
+        />
       </motion.div>
 
       {/* Enhanced Users Table */}
@@ -405,20 +377,24 @@ export default function AdminUsers() {
         className="bg-white/90 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl overflow-hidden"
       >
         {filteredUsers?.length === 0 && users ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <Users className="w-12 h-12 text-gray-500 mb-3" />
-            <p className="text-gray-700 font-satoshi mb-3">No users found matching your filters.</p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery('');
-                setStatusFilter('all');
-                setRoleFilter('all');
-              }}
-              className="text-primary-600 hover:text-primary-700"
-            >
-              Clear filters
-            </Button>
+          <div className="flex flex-col items-center justify-center h-64 p-12">
+            <EmptyState
+              icon={Users}
+              title={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' ? "No users found" : "No users yet"}
+              description={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' 
+                ? "Try adjusting your search or filter criteria to see more results."
+                : "Users will appear here once they are added to the system."}
+              action={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' ? {
+                label: "Clear filters",
+                onClick: () => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setRoleFilter('all');
+                },
+                variant: "secondary"
+              } : undefined}
+              variant={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' ? "filtered" : "no-data"}
+            />
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -517,15 +493,15 @@ export default function AdminUsers() {
       </motion.div>
 
       {/* User Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto sm:max-w-lg">
-            <div className="p-6">
-              <h2 className="text-xl font-bold font-asgard text-gray-900 mb-4">
-                {editingUser ? 'Edit User' : 'Add New User'}
-              </h2>
-              
-              <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4" role="form" aria-label="User form">
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold font-asgard text-gray-900">
+              {editingUser ? 'Edit User' : 'Add New User'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4" role="form" aria-label="User form">
                 <div>
                   <label htmlFor="user-name" className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
                     Name
@@ -649,32 +625,40 @@ export default function AdminUsers() {
                   </Select>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <Button
-                    type="submit"
-                    className="flex-1 min-h-[44px]"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? 'Saving...' : (editingUser ? 'Update User' : 'Create User')}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowModal(false);
-                      clearForm();
-                    }}
-                    className="flex-1 min-h-[44px]"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowModal(false);
+                  clearForm();
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : (editingUser ? 'Update User' : 'Create User')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, userId: null })}
+        onConfirm={confirmDelete}
+        title="Delete User"
+        message="Are you sure you want to delete this user? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="error"
+        isLoading={isDeleting !== null}
+      />
     </div>
   );
 }

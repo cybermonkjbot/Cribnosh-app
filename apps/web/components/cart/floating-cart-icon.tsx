@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useCartItemCount } from "@/hooks/use-cart";
@@ -9,6 +10,15 @@ import { CartPopup } from "./cart-popup";
 export function FloatingCartIcon() {
   const [isOpen, setIsOpen] = useState(false);
   const itemCount = useCartItemCount();
+  const pathname = usePathname();
+  
+  // Don't show on admin or staff routes
+  const isAdminRoute = pathname?.startsWith('/admin') ?? false;
+  const isStaffRoute = pathname?.startsWith('/staff') ?? false;
+  
+  if (isAdminRoute || isStaffRoute) {
+    return null;
+  }
 
   return (
     <>

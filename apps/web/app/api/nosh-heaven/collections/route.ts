@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -13,7 +17,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Creates a new video collection/playlist
  *     tags: [Nosh Heaven, Collections]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -81,18 +85,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('name and videoIds array are required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Create collection
@@ -102,15 +100,19 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       isPublic: body.isPublic !== false, // Default to true
       videoIds: body.videoIds,
       coverImageUrl: body.coverImageUrl,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success({
       collectionId,
     }, 'Collection created successfully', 201);
 
-  } catch (error: any) {
-    console.error('Collection creation error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to create collection');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Collection creation error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to create collection'));
   }
 }
 
@@ -171,18 +173,23 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const cursor = searchParams.get('cursor') || undefined;
     const publicOnly = searchParams.get('publicOnly') !== 'false';
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const collections = await convex.query((api as any).queries.videoCollections.getCollections, {
       limit,
       cursor,
       publicOnly,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(collections, 'Collections retrieved successfully');
 
-  } catch (error: any) {
-    console.error('Collections retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve collections');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Collections retrieval error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve collections'));
   }
 }
 

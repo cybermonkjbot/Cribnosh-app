@@ -43,9 +43,12 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/reviews/popular-picks
 // Group: reviews
@@ -69,16 +72,25 @@ import { NextRequest, NextResponse } from 'next/server';
  *     security: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const convex = getConvexClient();
-  
-  // Extract userId from request (optional for public endpoints)
-  const userId = extractUserIdFromRequest(request);
+  try {
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    
+    // Extract userId from request (optional for public endpoints)
+    const userId = extractUserIdFromRequest(request);
   
   // Get all reviews, meals, and chefs using the correct query references
   // Apply user preferences to meals
-  const reviews = await convex.query((api as any).queries.reviews.getAll, {});
-  const meals = await convex.query((api as any).queries.meals.getAll, { userId });
-  const chefs = await convex.query((api as any).queries.chefs.getAll, {});
+  const reviews = await convex.query((api as any).queries.reviews.getAll, {
+    sessionToken: sessionToken || undefined
+  });
+  const meals = await convex.query((api as any).queries.meals.getAll, {
+    userId,
+    sessionToken: sessionToken || undefined
+  });
+  const chefs = await convex.query((api as any).queries.chefs.getAll, {
+    sessionToken: sessionToken || undefined
+  });
 
   // Aggregate reviews by meal_id
   const mealReviewMap: Record<string, { total: number; count: number; meal: any }> = {};
@@ -103,7 +115,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     .sort((a, b) => b.reviewCount - a.reviewCount || b.avgRating - a.avgRating)
     .slice(0, 10);
 
-  return ResponseFactory.success({ popular: popularMeals });
+    return ResponseFactory.success({ popular: popularMeals });
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
+  }
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 

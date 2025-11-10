@@ -1,11 +1,15 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { LiveSession } from '@/convex/types/livestream';
+import type { LiveSession } from '../../../../../../packages/convex/types/livestream';
 import { withSensitiveRateLimit } from '@/lib/api/sensitive-middleware';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // Define the interface to match the mutation's expected arguments
 interface StartLiveSessionRequest {
@@ -142,7 +146,7 @@ interface StartLiveSessionRequest {
  */
 async function handlePOST(req: NextRequest) {
   try {
-    const client = getConvexClient();
+    const client = getConvexClientFromRequest(req);
     const body: StartLiveSessionRequest = await req.json();
 
     const { title, description, mealId, location, tags } = body;
@@ -169,7 +173,10 @@ async function handlePOST(req: NextRequest) {
 
     return ResponseFactory.success(result);
   } catch (error) {
-    console.error('Error starting live session:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, req);
+    }
+    logger.error('Error starting live session:', error);
     return ResponseFactory.error('Internal Server Error', 'CUSTOM_ERROR', 500);
   }
 }

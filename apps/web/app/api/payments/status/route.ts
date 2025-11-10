@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
  * /payments/status:
@@ -153,23 +153,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
 
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
@@ -179,7 +168,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required parameter: orderId or paymentIntentId.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     let order = null;
     let paymentIntent = null;
 
@@ -191,7 +180,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       }
 
       // Verify user has permission to view this order
-      if (payload.role === 'customer' && order.customer_id !== payload.user_id) {
+      if (user.roles?.[0] === 'customer' && order.customer_id !== userId) {
         return ResponseFactory.forbidden('Forbidden: You can only view your own orders.');
       }
 
@@ -206,7 +195,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
       } catch (stripeError: any) {
-        console.error('Failed to retrieve payment intent:', stripeError);
+        logger.error('Failed to retrieve payment intent:', stripeError);
         return ResponseFactory.internalError('Failed to retrieve payment information.');
       }
     }
@@ -229,7 +218,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
           description: refund.description
         }));
       } catch (stripeError: any) {
-        console.error('Failed to retrieve refunds:', stripeError);
+        logger.error('Failed to retrieve refunds:', stripeError);
         // Don't fail the request if refund retrieval fails
       }
     }
@@ -259,9 +248,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       refunds
     }, 'Payment status retrieved successfully');
 
-  } catch (error: any) {
-    console.error('Payment status check error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to check payment status.');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Payment status check error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to check payment status.';
+    return ResponseFactory.internalError(errorMessage);
   }
 }
 

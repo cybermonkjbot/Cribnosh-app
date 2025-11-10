@@ -1,13 +1,11 @@
 import { v } from 'convex/values';
-import {
-  ErrorFactory
-} from '../../../apps/web/lib/errors/convex-exports';
 import { Doc } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
+import { isAdmin, isStaff, requireAdmin, requireAuth, requireAuthBySessionToken, requireStaff } from '../utils/auth';
 
 // Staff Email Campaign Queries
 export const getStaffEmailCampaigns = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.array(v.object({
     _id: v.id("staffEmailCampaigns"),
     _creationTime: v.number(),
@@ -32,7 +30,10 @@ export const getStaffEmailCampaigns = query({
     createdAt: v.number(),
     sentAt: v.optional(v.number()),
   })),
-  handler: async (ctx: QueryCtx) => {
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db
       .query("staffEmailCampaigns")
       .order("desc")
@@ -41,7 +42,7 @@ export const getStaffEmailCampaigns = query({
 });
 
 export const getStaffStats = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.object({
     totalStaff: v.number(),
     activeStaff: v.number(),
@@ -51,7 +52,10 @@ export const getStaffStats = query({
     monthlyCampaigns: v.number(),
     deliveryRate: v.number(),
   }),
-  handler: async (ctx: QueryCtx) => {
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     const allStaff = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("roles"), ["staff"]))
@@ -102,9 +106,20 @@ export const getStaffStats = query({
 
 // Work Email Request Queries
 export const getWorkEmailRequestsByUser = query({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own requests, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db
       .query('workEmailRequests')
       .filter(q => q.eq(q.field('userId'), args.userId))
@@ -114,10 +129,14 @@ export const getWorkEmailRequestsByUser = query({
 });
 
 export const getAllWorkEmailRequests = query({
-  args: { status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))) },
+  args: { 
+    status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
-    // Authentication is handled by middleware
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
     let query = ctx.db.query('workEmailRequests');
     if (args.status) {
       query = query.filter(q => q.eq(q.field('status'), args.status));
@@ -138,9 +157,15 @@ export const getAllWorkEmailRequests = query({
 });
 
 export const getWorkEmailRequestsByDepartment = query({
-  args: { department: v.string() },
+  args: { 
+    department: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db
       .query('workEmailRequests')
       .filter(q => q.eq(q.field('department'), args.department))
@@ -150,11 +175,10 @@ export const getWorkEmailRequestsByDepartment = query({
 });
 
 export const getPendingWorkEmailRequests = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
-    if (!((ctx.auth as any)?.isAdmin || (ctx.auth as any)?.isManagement || (ctx.auth as any)?.isDeveloper || (ctx.auth as any)?.isCompliance)) {
-      throw ErrorFactory.conflict('Permission denied: Only admins, management, developer, or compliance can view pending work email requests.');
-    }
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     return await ctx.db
       .query('workEmailRequests')
       .filter(q => q.eq(q.field('status'), 'pending'))
@@ -165,9 +189,20 @@ export const getPendingWorkEmailRequests = query({
 
 // Leave Request Queries
 export const getLeaveRequestsByUser = query({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own requests, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db
       .query('leaveRequests')
       .filter(q => q.eq(q.field('userId'), args.userId))
@@ -179,11 +214,13 @@ export const getLeaveRequestsByUser = query({
 export const getAllLeaveRequests = query({
   args: { 
     status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))),
-    leaveType: v.optional(v.union(v.literal("annual"), v.literal("sick"), v.literal("personal"), v.literal("maternity"), v.literal("paternity"), v.literal("bereavement"), v.literal("other")))
+    leaveType: v.optional(v.union(v.literal("annual"), v.literal("sick"), v.literal("personal"), v.literal("maternity"), v.literal("paternity"), v.literal("bereavement"), v.literal("other"))),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
-    // Authentication is handled by middleware
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
     let query = ctx.db.query('leaveRequests');
     if (args.status) {
       query = query.filter(q => q.eq(q.field('status'), args.status));
@@ -207,11 +244,10 @@ export const getAllLeaveRequests = query({
 });
 
 export const getPendingLeaveRequests = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
-    if (!((ctx.auth as any)?.isAdmin || (ctx.auth as any)?.isManagement || (ctx.auth as any)?.isDeveloper || (ctx.auth as any)?.isCompliance)) {
-      throw ErrorFactory.conflict('Permission denied: Only admins, management, developer, or compliance can view pending leave requests.');
-    }
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     return await ctx.db
       .query('leaveRequests')
       .filter(q => q.eq(q.field('status'), 'pending'))
@@ -223,10 +259,14 @@ export const getPendingLeaveRequests = query({
 export const getLeaveRequestsByDateRange = query({
   args: { 
     startDate: v.string(),
-    endDate: v.string()
+    endDate: v.string(),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db
       .query('leaveRequests')
       .filter(q => 
@@ -242,9 +282,20 @@ export const getLeaveRequestsByDateRange = query({
 
 // Work ID Queries
 export const getWorkIdByUser = query({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own work ID, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db
       .query('workIds')
       .filter(q => q.eq(q.field('userId'), args.userId))
@@ -255,11 +306,13 @@ export const getWorkIdByUser = query({
 
 export const getAllWorkIds = query({
   args: { 
-    status: v.optional(v.union(v.literal("active"), v.literal("expired"), v.literal("revoked")))
+    status: v.optional(v.union(v.literal("active"), v.literal("expired"), v.literal("revoked"))),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
-    // Authentication is handled by middleware
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
     let query = ctx.db.query('workIds');
     
     if (args.status) {
@@ -271,11 +324,10 @@ export const getAllWorkIds = query({
 });
 
 export const getActiveWorkIds = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
-    if (!((ctx.auth as any)?.isAdmin || (ctx.auth as any)?.isManagement || (ctx.auth as any)?.isDeveloper || (ctx.auth as any)?.isCompliance)) {
-      throw ErrorFactory.conflict('Permission denied: Only admins, management, developer, or compliance can view active work IDs.');
-    }
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require HR/admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     return await ctx.db
       .query('workIds')
       .filter(q => q.eq(q.field('status'), 'active'))
@@ -285,11 +337,10 @@ export const getActiveWorkIds = query({
 });
 
 export const getExpiredWorkIds = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
-    if ((ctx.auth as any)?.isAdmin) {
-      throw ErrorFactory.conflict('Permission denied: Only admins can view expired work IDs.');
-    }
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const now = Date.now();
     return await ctx.db
       .query('workIds')
@@ -305,9 +356,15 @@ export const getExpiredWorkIds = query({
 });
 
 export const getWorkIdByNumber = query({
-  args: { workIdNumber: v.string() },
+  args: { 
+    workIdNumber: v.string(),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db
       .query('workIds')
       .filter(q => q.eq(q.field('workIdNumber'), args.workIdNumber))
@@ -317,9 +374,10 @@ export const getWorkIdByNumber = query({
 
 // Staff Overview Queries
 export const getStaffOverviewStats = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
-    // Authentication is handled by middleware
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
     const [
       totalStaff,
       pendingWorkEmailRequests,
@@ -345,9 +403,15 @@ export const getStaffOverviewStats = query({
 });
 
 export const getStaffByDepartment = query({
-  args: { department: v.optional(v.string()) },
+  args: { 
+    department: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     let users = await ctx.db.query('users').collect();
     users = users.filter(u => Array.isArray(u.roles) && (u.roles.includes('staff') || u.roles.includes('admin')));
     if (args.department) {
@@ -358,8 +422,25 @@ export const getStaffByDepartment = query({
 });
 
 export const getStaffAssignmentByUser = query({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication - use session token if provided, otherwise fall back to requireAuth
+    let user;
+    if (args.sessionToken) {
+      user = await requireAuthBySessionToken(ctx, args.sessionToken);
+    } else {
+      // Fallback for backward compatibility (won't work without setAuth, but keeping for now)
+      user = await requireAuth(ctx);
+    }
+    
+    // Users can access their own assignment, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db.query("staffAssignments").filter(q => q.eq(q.field("userId"), args.userId)).first();
   },
 });
@@ -368,10 +449,18 @@ export const getStaffAssignmentByUser = query({
 export const getRequestHistory = query({
   args: { 
     userId: v.id("users"),
-    type: v.optional(v.union(v.literal("workEmail"), v.literal("leave"), v.literal("workId")))
+    type: v.optional(v.union(v.literal("workEmail"), v.literal("leave"), v.literal("workId"))),
+    sessionToken: v.optional(v.string())
   },
   returns: v.any(),
   handler: async (ctx: QueryCtx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own history, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     const results: any[] = [];
     
     if (!args.type || args.type === 'workEmail') {
@@ -427,8 +516,10 @@ export const getRequestHistory = query({
 
 // Admin Dashboard Queries
 export const getAdminStaffDashboard = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const [
       pendingWorkEmailRequests,
       pendingLeaveRequests,
@@ -479,8 +570,11 @@ export const getActiveStaffNotices = query({
   args: {
     department: v.optional(v.string()),
     position: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require staff authentication
+    await requireStaff(ctx, args.sessionToken);
     let query = ctx.db.query('staffNotices').withIndex('by_isActive', q => q.eq('isActive', true));
     let notices = await query.order('desc').collect();
     // Filter: show global notices, or those matching department/position

@@ -151,7 +151,6 @@ export function AddCardSheet({
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Card Details Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Card Details</Text>
             <View style={styles.cardFieldContainer}>
               <CardField
                 postalCodeEnabled={false}
@@ -183,9 +182,6 @@ export function AddCardSheet({
             <View style={styles.setDefaultContainer}>
               <View style={styles.setDefaultLeft}>
                 <Text style={styles.setDefaultTitle}>Set as default payment method</Text>
-                <Text style={styles.setDefaultSubtitle}>
-                  This card will be used by default for future payments
-                </Text>
               </View>
               <Switch
                 value={setAsDefault}
@@ -218,7 +214,7 @@ export function AddCardSheet({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 20,
   },
   header: {
@@ -245,14 +241,6 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
-  },
-  sectionTitle: {
-    fontFamily: 'Archivo',
-    fontWeight: '600',
-    fontSize: 18,
-    lineHeight: 24,
-    color: '#094327',
-    marginBottom: 16,
   },
   cardFieldContainer: {
     marginBottom: 12,
@@ -290,14 +278,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#111827',
-    marginBottom: 4,
-  },
-  setDefaultSubtitle: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#6B7280',
   },
   addCardButton: {
     backgroundColor: '#094327',

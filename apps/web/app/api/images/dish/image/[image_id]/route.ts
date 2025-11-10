@@ -47,13 +47,13 @@
 
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 // Endpoint: /v1/images/dish/image/{image_id}
 // Group: images
@@ -99,7 +99,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *     description: Delete a specific dish image (chef or admin only)
  *     tags: [Images]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: image_id
@@ -157,18 +157,8 @@ export async function GET(request: NextRequest, { params }: { params: { image_id
 
 export async function DELETE(request: NextRequest, { params }: { params: { image_id: string } }): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const { image_id } = params;
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);const { image_id } = params;
     const convex = getConvexClient();
     // Find the meal containing this image
     const meals = await convex.query(api.queries.meals.getAll);
@@ -183,7 +173,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { image
       return ResponseFactory.notFound('Image not found in any dish.');
     }
     // Only allow if user is the chef
-    if (meal.chefId !== payload.user_id && payload.role !== 'admin') {
+    if (meal.chefId !== userId && user.roles?.[0] !== 'admin') {
       return ResponseFactory.forbidden('Forbidden: Only the chef or admin can delete this image.');
     }
     // Remove image from meal's images array in Convex
@@ -197,7 +187,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { image
     // Note: Convex file storage handles cleanup automatically
     // No need to manually delete files as they're managed by Convex
     return ResponseFactory.success({ success: true });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to delete image.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }

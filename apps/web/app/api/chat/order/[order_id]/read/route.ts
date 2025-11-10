@@ -3,9 +3,11 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -132,7 +134,7 @@ import { NextResponse } from 'next/server';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
@@ -143,33 +145,37 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   if (!order_id) {
     return ResponseFactory.validationError('Missing order_id');
   }
-  // Auth: get user from JWT
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: any;
-  try {
-    payload = jwt.verify(token, process.env.JWT_SECRET || 'cribnosh-dev-secret');
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
-  }
+  // Get authenticated user from session token
+  const { userId, user } = await getAuthenticatedUser(request);
   const convex = getConvexClient();
-  const chatsResult = await convex.query(api.queries.chats.listConversationsForUser, { userId: payload.user_id });
+  const sessionToken = getSessionTokenFromRequest(request);
+  const chatsResult = await convex.query(api.queries.chats.listConversationsForUser, {
+    userId: userId,
+    sessionToken: sessionToken || undefined
+  });
   const chat = chatsResult.chats.find((c: any) => c.metadata && c.metadata.order_id === order_id);
   if (!chat) {
     return ResponseFactory.notFound('Chat not found for order_id');
   }
   // Only allow if user is a participant or admin
-  const isParticipant = Array.isArray(chat.participants) && chat.participants.includes(payload.user_id);
-  if (!isParticipant && payload.role !== 'admin') {
+  const isParticipant = Array.isArray(chat.participants) && chat.participants.includes(userId);
+  if (!isParticipant && user.roles?.[0] !== 'admin') {
     return ResponseFactory.forbidden('Forbidden: Not a participant or admin.');
   }
-  const messagesResult = await convex.query(api.queries.chats.listMessagesForChat, { chatId: chat._id });
+  const messagesResult = await convex.query(api.queries.chats.listMessagesForChat, {
+    chatId: chat._id,
+    sessionToken: sessionToken || undefined
+  });
   const chatMessages = messagesResult.messages.filter((m: any) => !m.isRead);
   for (const msg of chatMessages) {
-    await convex.mutation(api.mutations.chats.editMessage, { chatId: chat._id, messageId: msg._id, userId: msg.senderId, metadata: { ...msg.metadata, isRead: true } });
+    await convex.mutation(api.mutations.chats.editMessage, {
+      chatId: chat._id,
+      messageId: msg._id,
+      userId: msg.senderId,
+      metadata: { ...msg.metadata,
+      isRead: true },
+      sessionToken: sessionToken || undefined
+    });
   }
   // Return schema-compliant response
   return ResponseFactory.success({

@@ -1,9 +1,13 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { stripe } from '@/lib/stripe';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -103,11 +107,11 @@ export async function POST(request: NextRequest) {
     }
     event = stripe.webhooks.constructEvent(body, sig!, STRIPE_WEBHOOK_SECRET!);
   } catch (err: any) {
-    console.error('Stripe webhook signature verification failed:', err.message);
+    logger.error('Stripe webhook signature verification failed:', err.message);
     return ResponseFactory.validationError('Webhook signature verification failed');
   }
 
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
 
   switch (event.type) {
     case 'payment_intent.succeeded': {
@@ -178,7 +182,7 @@ export async function POST(request: NextRequest) {
       break;
     }
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      logger.log(`Unhandled event type ${event.type}`);
   }
 
   return ResponseFactory.success({ received: true });

@@ -2,12 +2,37 @@ import { v } from 'convex/values';
 import { mutation, MutationCtx } from '../_generated/server';
 
 /**
+ * Convert bytes to base64url encoding (URL-safe base64 without padding)
+ * This is more performant and secure than hex encoding:
+ * - Shorter tokens (43 chars vs 64 chars for 32 bytes) = 33% reduction in size
+ * - URL-safe (can be used in URLs without encoding)
+ * - Better entropy per character (6 bits vs 4 bits for hex)
+ * - Industry standard (used in JWT, OAuth tokens, etc.)
+ */
+function toBase64Url(bytes: Uint8Array): string {
+  // Convert bytes to binary string
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  // Convert to base64, then to base64url: replace + with -, / with _, and remove padding
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
  * Generate a secure random token using crypto.getRandomValues (available in V8 runtime)
+ * Uses base64url encoding for better performance and URL safety
  */
 function generateSecureToken(): string {
+  // Generate 32 bytes of cryptographically secure random data
+  // This provides 256 bits of entropy, which is more than sufficient for session tokens
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  // Use base64url encoding for better performance and URL safety
+  return toBase64Url(array);
 }
 
 /**

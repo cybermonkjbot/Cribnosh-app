@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -13,7 +17,7 @@ import { withErrorHandling } from '@/lib/errors';
  *     description: Follows a user to see their content in the feed
  *     tags: [Nosh Heaven, Users, Social]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -53,30 +57,28 @@ async function handlePOST(
       return ResponseFactory.validationError('User ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Follow user
     await convex.mutation((api as any).mutations.userFollows.followUser, {
       followingId: userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'User followed successfully');
 
-  } catch (error: any) {
-    console.error('User follow error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to follow user');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('User follow error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to follow user'));
   }
 }
 
@@ -88,7 +90,7 @@ async function handlePOST(
  *     description: Unfollows a user
  *     tags: [Nosh Heaven, Users, Social]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -117,30 +119,28 @@ async function handleDELETE(
       return ResponseFactory.validationError('User ID is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Unfollow user
     await convex.mutation((api as any).mutations.userFollows.unfollowUser, {
       followingId: userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'User unfollowed successfully');
 
-  } catch (error: any) {
-    console.error('User unfollow error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to unfollow user');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('User unfollow error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to unfollow user'));
   }
 }
 

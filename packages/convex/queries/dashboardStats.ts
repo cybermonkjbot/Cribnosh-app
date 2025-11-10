@@ -46,12 +46,25 @@ export const getDashboardFooterStats = query({
       .first();
 
     // Get active users (users with sessions in last 15 minutes)
+    const now = Date.now();
+    const fifteenMinutesAgo = now - (15 * 60 * 1000);
     const activeSessions = await ctx.db
       .query("sessions")
-      .filter(q => q.gt(q.field("expiresAt"), Date.now()))
+      .filter(q => q.gt(q.field("expiresAt"), now))
       .collect();
 
     const activeUsers = new Set(activeSessions.map(session => session.userId)).size;
+    
+    // Get previous period active users for trend calculation
+    const previousActiveSessions = await ctx.db
+      .query("sessions")
+      .filter(q => q.and(
+        q.gte(q.field("expiresAt"), fifteenMinutesAgo - (15 * 60 * 1000)),
+        q.lt(q.field("expiresAt"), fifteenMinutesAgo)
+      ))
+      .collect();
+    
+    const previousActiveUsers = new Set(previousActiveSessions.map(session => session.userId)).size;
 
     // Get live streams
     const liveStreams = await ctx.db
@@ -78,7 +91,6 @@ export const getDashboardFooterStats = query({
       : 0;
 
     // Get revenue data
-    const now = Date.now();
     const todayStart = new Date().setHours(0, 0, 0, 0);
     const weekStart = now - (7 * 24 * 60 * 60 * 1000);
     const monthStart = now - (30 * 24 * 60 * 60 * 1000);
@@ -113,25 +125,31 @@ export const getDashboardFooterStats = query({
       ? ((weekRevenue - previousWeekRevenue) / previousWeekRevenue) * 100 
       : 0;
 
-    // Get performance metrics (mock data for now)
+    // Get performance metrics from system health data
+    const latestHealth = await ctx.db
+      .query("systemHealth")
+      .filter(q => q.eq(q.field("service"), "main"))
+      .order("desc")
+      .first();
+    
     const performance = {
-      cpuUsage: 45 + Math.random() * 20,
-      memoryUsage: 60 + Math.random() * 15,
-      diskUsage: 75 + Math.random() * 10,
-      networkLatency: 50 + Math.random() * 30,
+      cpuUsage: latestHealth?.cpuUsage || 0,
+      memoryUsage: latestHealth?.memoryUsage || 0,
+      diskUsage: latestHealth?.diskUsage || 0,
+      networkLatency: latestHealth?.networkLatency || 0,
     };
 
     return {
       systemStatus: {
         status: systemHealth?.status || "operational",
-        uptime: 99.9,
-        responseTime: systemHealth?.responseTime || 120,
+        uptime: systemHealth?.uptime || 0,
+        responseTime: systemHealth?.responseTime || 0,
         lastChecked: Date.now(),
       },
       activeUsers: {
         count: activeUsers,
-        trend: "up",
-        change: 5.2, // Mock change percentage
+        trend: previousActiveUsers < activeUsers ? "up" : previousActiveUsers > activeUsers ? "down" : "stable",
+        change: previousActiveUsers > 0 ? ((activeUsers - previousActiveUsers) / previousActiveUsers) * 100 : 0,
       },
       liveStreams: {
         count: liveStreams.length,
@@ -351,8 +369,8 @@ export const getDashboardSummary = query({
       ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length 
       : 0;
 
-    // Get system uptime (mock for now)
-    const systemUptime = 99.9;
+    // Get system uptime from system health data
+    const systemUptime = systemHealth?.uptime || 0;
 
     // Get alert counts
     const [criticalAlerts, warningAlerts, infoAlerts] = await Promise.all([

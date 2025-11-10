@@ -1,5 +1,5 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { query } from "../_generated/server";
 
 // Helper function to get meal name
 async function getMealName(ctx: any, mealId: any): Promise<string | null> {
@@ -478,7 +478,7 @@ export const getRevenueAnalytics = query({
       ))
       .collect();
 
-    // Calculate metrics
+    // Calculate basic metrics
     const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
     const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
     const revenueGrowth = previousRevenue > 0 
@@ -486,22 +486,61 @@ export const getRevenueAnalytics = query({
       : 0;
     const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
 
-    // Analyze revenue by source (simplified - could be enhanced with more detailed tracking)
-    const revenueBySource: Record<string, number> = {};
-    orders.forEach(order => {
-      const source = "direct"; // Default source since it's not in the schema
-      revenueBySource[source] = (revenueBySource[source] || 0) + (order.total_amount || 0);
+    // Get payment analytics data from backend
+    const paymentAnalyticsData = await ctx.db
+      .query("paymentAnalyticsData")
+      .withIndex("by_timestamp", (q) => q.gte("timestamp", startTime).lte("timestamp", Date.now()))
+      .collect();
+
+    // Calculate refunds from payment analytics
+    const refundEvents = paymentAnalyticsData.filter(e => 
+      e.eventType === "charge.refunded" || e.eventType === "refund.succeeded"
+    );
+    const refunds = refundEvents.reduce((sum, e) => sum + e.amount, 0) / 100; // Convert from cents to dollars
+
+    // Calculate payment methods from backend analytics
+    const paymentMethodData: Record<string, { revenue: number; count: number }> = {};
+    const successfulPayments = paymentAnalyticsData.filter(e => e.eventType === "payment_intent.succeeded");
+    
+    successfulPayments.forEach((event) => {
+      const method = event.paymentMethod || "unknown";
+      if (!paymentMethodData[method]) {
+        paymentMethodData[method] = { revenue: 0, count: 0 };
+      }
+      paymentMethodData[method].revenue += event.amount / 100; // Convert from cents to dollars
+      paymentMethodData[method].count += 1;
     });
 
-    const topRevenueSources = Object.entries(revenueBySource)
-      .map(([source, revenue]) => ({
-        source,
-        revenue,
-        percentage: (revenue / totalRevenue) * 100,
-        amount: revenue,
+    const paymentMethods = Object.entries(paymentMethodData)
+      .map(([method, data]) => ({
+        method,
+        revenue: data.revenue,
+        percentage: totalRevenue > 0 ? (data.revenue / totalRevenue) * 100 : 0,
       }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // Calculate monthly revenue data from actual orders
+    const monthlyRevenueMap: Record<string, { revenue: number; sortKey: string }> = {};
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    orders.forEach(order => {
+      const orderDate = new Date(order.createdAt);
+      const year = orderDate.getFullYear();
+      const month = orderDate.getMonth();
+      const monthLabel = `${monthNames[month]} ${year.toString().slice(-2)}`;
+      const sortKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      
+      if (!monthlyRevenueMap[monthLabel]) {
+        monthlyRevenueMap[monthLabel] = { revenue: 0, sortKey };
+      }
+      monthlyRevenueMap[monthLabel].revenue += order.total_amount || 0;
+    });
+
+    const monthlyRevenueData = Object.entries(monthlyRevenueMap)
+      .map(([month, data]) => ({ month, revenue: data.revenue, sortKey: data.sortKey }))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+      .map(({ month, revenue }) => ({ month, revenue }))
+      .slice(-12); // Get last 12 months
 
     // Generate daily revenue data
     const dailyRevenue = [];
@@ -523,6 +562,74 @@ export const getRevenueAnalytics = query({
       });
     }
 
+    // Calculate revenue by location from delivery addresses
+    const locationRevenue: Record<string, number> = {};
+    orders.forEach(order => {
+      const city = order.delivery_address?.city || "Unknown";
+      locationRevenue[city] = (locationRevenue[city] || 0) + (order.total_amount || 0);
+    });
+
+    const revenueByLocation = Object.entries(locationRevenue)
+      .map(([location, revenue]) => ({
+        location,
+        revenue,
+        percentage: totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10); // Top 10 locations
+
+    // Calculate top products from order items
+    const productRevenue: Record<string, { revenue: number; orders: number; name: string }> = {};
+    orders.forEach(order => {
+      if (order.order_items && Array.isArray(order.order_items)) {
+        order.order_items.forEach((item: any) => {
+          const productName = item.name || "Unknown Product";
+          const itemRevenue = (item.price || 0) * (item.quantity || 0);
+          
+          if (!productRevenue[productName]) {
+            productRevenue[productName] = { revenue: 0, orders: 0, name: productName };
+          }
+          productRevenue[productName].revenue += itemRevenue;
+          productRevenue[productName].orders += item.quantity || 0;
+        });
+      }
+    });
+
+    const topProducts = Object.values(productRevenue)
+      .map(product => ({
+        product: product.name,
+        revenue: product.revenue,
+        orders: product.orders,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10); // Top 10 products
+
+    // Analyze revenue by source (using order source if available, otherwise default to "direct")
+    const revenueBySource: Record<string, number> = {};
+    orders.forEach(order => {
+      // If there's a source field in the future, use it. For now, default to "direct"
+      const source = "direct";
+      revenueBySource[source] = (revenueBySource[source] || 0) + (order.total_amount || 0);
+    });
+
+    const topRevenueSources = Object.entries(revenueBySource)
+      .map(([source, revenue]) => ({
+        source,
+        revenue,
+        percentage: totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    // Calculate net revenue (total revenue minus refunds)
+    const netRevenue = totalRevenue - refunds;
+    const profitMargin = totalRevenue > 0 ? ((netRevenue / totalRevenue) * 100) : 0;
+
+    // Since taxes and fees aren't explicitly stored in orders, we'll set them to 0
+    // These can be calculated separately if tax/fee fields are added to the schema
+    const taxes = 0;
+    const fees = 0;
+
     return {
       totalRevenue,
       revenueGrowth,
@@ -530,41 +637,17 @@ export const getRevenueAnalytics = query({
       totalOrders: orders.length,
       orderGrowth: previousOrders.length > 0 ? ((orders.length - previousOrders.length) / previousOrders.length) * 100 : 0,
       monthlyRevenue: totalRevenue,
-      refunds: totalRevenue * 0.02, // 2% refund rate
-      taxes: totalRevenue * 0.12, // 12% tax rate
-      fees: totalRevenue * 0.04, // 4% processing fees
-      netRevenue: totalRevenue * 0.82, // 82% net revenue
-      profitMargin: 82.0,
-      paymentMethods: [
-        { method: "Credit Card", percentage: 65.0, revenue: totalRevenue * 0.65, amount: totalRevenue * 0.65 },
-        { method: "PayPal", percentage: 20.0, revenue: totalRevenue * 0.20, amount: totalRevenue * 0.20 },
-        { method: "Apple Pay", percentage: 10.0, revenue: totalRevenue * 0.10, amount: totalRevenue * 0.10 },
-        { method: "Google Pay", percentage: 5.0, revenue: totalRevenue * 0.05, amount: totalRevenue * 0.05 },
-      ],
-      monthlyRevenueData: [
-        { month: "Jan", revenue: totalRevenue * 0.8, growth: 0 },
-        { month: "Feb", revenue: totalRevenue * 0.85, growth: 6.25 },
-        { month: "Mar", revenue: totalRevenue * 0.9, growth: 5.88 },
-        { month: "Apr", revenue: totalRevenue * 0.88, growth: -2.22 },
-        { month: "May", revenue: totalRevenue * 0.95, growth: 7.95 },
-        { month: "Jun", revenue: totalRevenue, growth: 5.26 },
-      ],
-      dailyRevenueData: dailyRevenue.map(d => ({ day: d.date, date: d.date, revenue: d.revenue, orders: d.orders })),
+      refunds,
+      taxes,
+      fees,
+      netRevenue,
+      profitMargin,
+      paymentMethods,
+      monthlyRevenueData,
+      dailyRevenueData: dailyRevenue.map(d => ({ day: d.date, revenue: d.revenue, orders: d.orders })),
       revenueBySource: topRevenueSources,
-      revenueByLocation: [
-        { location: "New York", revenue: totalRevenue * 0.20, percentage: 20.0, amount: totalRevenue * 0.20 },
-        { location: "Los Angeles", revenue: totalRevenue * 0.16, percentage: 16.0, amount: totalRevenue * 0.16 },
-        { location: "Chicago", revenue: totalRevenue * 0.12, percentage: 12.0, amount: totalRevenue * 0.12 },
-        { location: "Houston", revenue: totalRevenue * 0.10, percentage: 10.0, amount: totalRevenue * 0.10 },
-        { location: "Phoenix", revenue: totalRevenue * 0.08, percentage: 8.0, amount: totalRevenue * 0.08 },
-      ],
-      topProducts: [
-        { product: "Signature Dish", name: "Signature Dish", revenue: totalRevenue * 0.24, orders: Math.floor(orders.length * 0.18) },
-        { product: "Chef Special", name: "Chef Special", revenue: totalRevenue * 0.20, orders: Math.floor(orders.length * 0.15) },
-        { product: "Daily Special", name: "Daily Special", revenue: totalRevenue * 0.16, orders: Math.floor(orders.length * 0.13) },
-        { product: "Appetizer", name: "Appetizer", revenue: totalRevenue * 0.12, orders: Math.floor(orders.length * 0.11) },
-        { product: "Dessert", name: "Dessert", revenue: totalRevenue * 0.08, orders: Math.floor(orders.length * 0.07) },
-      ],
+      revenueByLocation,
+      topProducts,
       topRevenueSources,
       dailyRevenue,
     };
@@ -941,13 +1024,32 @@ function generatePerformanceReport(orders: any[], includeDetails: boolean) {
 function generateTrendsReport(orders: any[], includeDetails: boolean) {
   const dailyTrends = groupOrdersByDay(orders);
   
+  // Calculate trend direction from actual data
+  let trendDirection: 'up' | 'down' | 'stable' = 'stable';
+  if (dailyTrends.details && dailyTrends.details.length >= 2) {
+    const sortedDetails = [...dailyTrends.details].sort((a: any, b: any) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    const firstHalf = sortedDetails.slice(0, Math.floor(sortedDetails.length / 2));
+    const secondHalf = sortedDetails.slice(Math.floor(sortedDetails.length / 2));
+    
+    const firstHalfAvg = firstHalf.reduce((sum: number, day: any) => sum + day.revenue, 0) / firstHalf.length;
+    const secondHalfAvg = secondHalf.reduce((sum: number, day: any) => sum + day.revenue, 0) / secondHalf.length;
+    
+    if (secondHalfAvg > firstHalfAvg * 1.05) {
+      trendDirection = 'up';
+    } else if (secondHalfAvg < firstHalfAvg * 0.95) {
+      trendDirection = 'down';
+    }
+  }
+  
   return {
     reportType: 'trends',
     summary: {
       totalDays: dailyTrends.summary.totalDays,
       averageOrdersPerDay: dailyTrends.summary.averageOrdersPerDay,
       averageRevenuePerDay: dailyTrends.summary.averageRevenuePerDay,
-      trendDirection: 'up' // Calculate based on data
+      trendDirection
     },
     details: includeDetails ? dailyTrends.details : undefined
   };
@@ -1014,13 +1116,25 @@ function generateChefsReport(orders: any[], includeDetails: boolean) {
 function generateDeliveryReport(orders: any[], includeDetails: boolean) {
   const deliveredOrders = orders.filter(order => order.order_status === 'delivered' || order.order_status === 'completed');
   
+  // Calculate average delivery time from actual delivery data
+  const ordersWithDeliveryTime = deliveredOrders.filter(order => 
+    order.delivered_at && order.createdAt
+  );
+  
+  const averageDeliveryTime = ordersWithDeliveryTime.length > 0
+    ? ordersWithDeliveryTime.reduce((sum, order) => {
+        const deliveryTime = (order.delivered_at - order.createdAt) / (1000 * 60); // Convert to minutes
+        return sum + deliveryTime;
+      }, 0) / ordersWithDeliveryTime.length
+    : 0;
+  
   return {
     reportType: 'delivery',
     summary: {
       totalOrders: orders.length,
       deliveredOrders: deliveredOrders.length,
       deliveryRate: orders.length > 0 ? (deliveredOrders.length / orders.length) * 100 : 0,
-      averageDeliveryTime: 0 // Calculate from delivery data
+      averageDeliveryTime
     },
     details: includeDetails ? deliveredOrders : undefined
   };
@@ -1065,22 +1179,9 @@ export const getReports = query({
 export const getReportTemplates = query({
   args: {},
   handler: async (ctx: any) => {
-    return [
-      { 
-        _id: '1', 
-        name: 'User Activity Template', 
-        description: 'Template for user activity reports',
-        type: 'user_activity',
-        isActive: true
-      },
-      { 
-        _id: '2', 
-        name: 'Revenue Template', 
-        description: 'Template for revenue reports',
-        type: 'revenue',
-        isActive: true
-      },
-    ];
+    // Return empty array since there's no report templates table in the schema
+    // If report templates are needed, they should be stored in a database table
+    return [];
   },
 });
 
@@ -1113,7 +1214,7 @@ export const getUserAnalytics = query({
         .query("orders")
         .filter((q: any) => q.gte(q.field("createdAt"), rangeStart))
         .collect()
-        .then((orders: any[]) => new Set(orders.map((order: any) => order.userId)).size);
+        .then((orders: any[]) => new Set(orders.map((order: any) => order.customer_id)).size);
 
       // Calculate new user signups
       const newUserSignups = currentUsers.length;
@@ -1183,7 +1284,7 @@ export const getUserAnalytics = query({
             q.lt(q.field("createdAt"), dayEnd)
           ))
           .collect()
-          .then((orders: any[]) => new Set(orders.map((order: any) => order.userId)).size);
+          .then((orders: any[]) => new Set(orders.map((order: any) => order.customer_id)).size);
 
         dailyActiveUsers.push({
           day: days[new Date(dayStart).getDay()],
@@ -1199,7 +1300,7 @@ export const getUserAnalytics = query({
         .collect()
         .then((orders: any[]) => {
           const userOrderCounts = orders.reduce((acc: Record<string, number>, order: any) => {
-            acc[order.userId] = (acc[order.userId] || 0) + 1;
+            acc[order.customer_id] = (acc[order.customer_id] || 0) + 1;
             return acc;
           }, {} as Record<string, number>);
           return Object.values(userOrderCounts).filter((count: number) => count >= 5).length;

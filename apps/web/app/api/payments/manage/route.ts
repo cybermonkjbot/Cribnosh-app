@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { stripe } from '@/lib/stripe';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
  * /payments/manage:
@@ -126,10 +128,8 @@ import jwt from 'jsonwebtoken';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 interface PaymentCaptureRequest {
   paymentIntentId: string;
@@ -152,22 +152,11 @@ interface PaymentMethodUpdateRequest {
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
 
     // Check if user has permission to manage payments
-    if (!['admin', 'staff'].includes(payload.role)) {
+    if (!user.roles || !['admin', 'staff'].some(role => user.roles?.includes(role))) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -178,27 +167,31 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Missing required parameter: action.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     switch (action) {
       case 'capture':
-        return await handleCapture(request, payload, convex);
+        return await handleCapture(request, userId, user, convex, sessionToken);
       case 'void':
-        return await handleVoid(request, payload, convex);
+        return await handleVoid(request, userId, user, convex, sessionToken);
       case 'update-payment-method':
-        return await handleUpdatePaymentMethod(request, payload, convex);
+        return await handleUpdatePaymentMethod(request, userId, user, convex);
       default:
         return ResponseFactory.validationError('Invalid action specified.');
     }
 
-  } catch (error: any) {
-    console.error('Payment management error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to process payment management request.' 
-    );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Payment management error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process payment management request.';
+    return ResponseFactory.internalError(errorMessage);
   }
 }
 
-async function handleCapture(request: NextRequest, payload: any, convex: any): Promise<NextResponse> {
+async function handleCapture(request: NextRequest, userId: string, user: any, convex: any, sessionToken: string | null): Promise<NextResponse> {
   if (!stripe) {
     return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
   }
@@ -221,8 +214,8 @@ async function handleCapture(request: NextRequest, payload: any, convex: any): P
     // Prepare capture data
     const captureData: any = {
       metadata: {
-        capturedBy: payload.user_id,
-        capturedByRole: payload.role,
+        capturedBy: userId,
+        capturedByRole: user.roles?.[0],
         ...metadata
       }
     };
@@ -244,7 +237,8 @@ async function handleCapture(request: NextRequest, payload: any, convex: any): P
 
     // Update order status in database
     const orders = await convex.query(api.queries.orders.listByCustomer, { 
-      customer_id: paymentIntent.metadata?.userId || 'unknown' 
+      customer_id: paymentIntent.metadata?.userId || 'unknown',
+      sessionToken: sessionToken || undefined
     });
     
     const order = orders.find((o: any) => o.payment_id === paymentIntentId);
@@ -254,20 +248,21 @@ async function handleCapture(request: NextRequest, payload: any, convex: any): P
         paymentIntentId,
         status: 'confirmed',
         amount: capturedPayment.amount / 100,
-        currency: capturedPayment.currency
+        currency: capturedPayment.currency,
+        sessionToken: sessionToken || undefined
       });
     }
 
-    console.log(`Payment captured: ${paymentIntentId} by ${payload.user_id} (${payload.role})`);
+    logger.log(`Payment captured: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error capturing payment:', error);
+    logger.error('Error capturing payment:', error);
     return ResponseFactory.internalError('Failed to capture payment');
   }
 }
 
-async function handleVoid(request: NextRequest, payload: any, convex: any) {
+async function handleVoid(request: NextRequest, userId: string, user: any, convex: any, sessionToken: string | null) {
   if (!stripe) {
     return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
   }
@@ -292,7 +287,8 @@ async function handleVoid(request: NextRequest, payload: any, convex: any) {
 
     // Update order status in database
     const orders = await convex.query(api.queries.orders.listByCustomer, { 
-      customer_id: paymentIntent.metadata?.userId || 'unknown' 
+      customer_id: paymentIntent.metadata?.userId || 'unknown',
+      sessionToken: sessionToken || undefined
     });
     
     const order = orders.find((o: any) => o.payment_id === paymentIntentId);
@@ -302,20 +298,21 @@ async function handleVoid(request: NextRequest, payload: any, convex: any) {
         paymentIntentId,
         status: 'canceled',
         amount: voidedPayment.amount / 100,
-        currency: voidedPayment.currency
+        currency: voidedPayment.currency,
+        sessionToken: sessionToken || undefined
       });
     }
 
-    console.log(`Payment voided: ${paymentIntentId} by ${payload.user_id} (${payload.role})`);
+    logger.log(`Payment voided: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error voiding payment:', error);
+    logger.error('Error voiding payment:', error);
     return ResponseFactory.internalError('Failed to void payment');
   }
 }
 
-async function handleUpdatePaymentMethod(request: NextRequest, payload: any, convex: any) {
+async function handleUpdatePaymentMethod(request: NextRequest, userId: string, user: any, convex: any) {
   if (!stripe) {
     return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
   }
@@ -332,17 +329,17 @@ async function handleUpdatePaymentMethod(request: NextRequest, payload: any, con
     const updatedPayment = await stripe!.paymentIntents.update(paymentIntentId, {
       payment_method: paymentMethodId,
       metadata: {
-        updatedBy: payload.user_id,
-        updatedByRole: payload.role,
+        updatedBy: userId,
+        updatedByRole: user.roles?.[0],
         ...metadata
       }
     });
 
-    console.log(`Payment method updated: ${paymentIntentId} by ${payload.user_id} (${payload.role})`);
+    logger.log(`Payment method updated: ${paymentIntentId} by ${userId} (${user.roles?.[0]})`);
 
     return ResponseFactory.success({});
   } catch (error: any) {
-    console.error('Error updating payment method:', error);
+    logger.error('Error updating payment method:', error);
     return ResponseFactory.internalError('Failed to update payment method');
   }
 }

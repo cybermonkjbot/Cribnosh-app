@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withStaffAuth } from '@/lib/api/staff-middleware';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -13,7 +15,7 @@ import { withStaffAuth } from '@/lib/api/staff-middleware';
  *     description: Allow staff to directly add leads to the waitlist without email verification
  *     tags: [Staff, Waitlist]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -98,7 +100,7 @@ async function handlePOST(request: NextRequest, user: any): Promise<NextResponse
       return ResponseFactory.badRequest('Invalid email format.');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
     // Add directly to waitlist using the mutation
     const result = await convex.mutation(api.mutations.waitlist.addToWaitlist, {
@@ -140,7 +142,10 @@ async function handlePOST(request: NextRequest, user: any): Promise<NextResponse
     }, 'Lead successfully added to waitlist');
 
   } catch (error: unknown) {
-    console.error('[STAFF WAITLIST] Error:', error);
+    logger.error('[STAFF WAITLIST] Error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(
       error instanceof Error ? error.message : 'Failed to add lead to waitlist.'
     );
@@ -155,7 +160,7 @@ async function handlePOST(request: NextRequest, user: any): Promise<NextResponse
  *     description: Retrieve waitlist entries for staff viewing
  *     tags: [Staff, Waitlist]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: status
@@ -239,22 +244,32 @@ async function handleGET(request: NextRequest, user: any): Promise<NextResponse>
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || undefined;
     const limit = parseInt(searchParams.get('limit') || '50');
+    const page = parseInt(searchParams.get('page') || '1');
+    const offset = (page - 1) * limit;
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
 
-    // Get waitlist entries
-    const entries = await convex.query(api.queries.waitlist.getWaitlistEntries, {
+    // Get waitlist entries - filter by entries added by this staff member
+    const result = await convex.query(api.queries.waitlist.getWaitlistEntries, {
       status: status === 'all' ? undefined : status,
       search,
       limit,
+      offset,
+      addedBy: user._id, // Only show entries added by this staff member
     });
 
     return ResponseFactory.success({
-      entries,
-      total: entries.length,
+      entries: result.entries,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit),
     }, 'Waitlist entries retrieved successfully');
 
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(
       error instanceof Error ? error.message : 'Failed to retrieve waitlist entries.'
     );

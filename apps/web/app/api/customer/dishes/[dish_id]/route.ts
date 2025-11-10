@@ -2,10 +2,13 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -15,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     description: Get detailed information about a specific dish by ID
  *     tags: [Customer]
  *     parameters:
- *       - in: query
+ *       - in: path
  *         name: dish_id
  *         required: true
  *         schema:
@@ -128,22 +131,32 @@ import { NextRequest, NextResponse } from 'next/server';
  *               $ref: '#/components/schemas/Error'
  *     security: []
  */
-async function handleGET(request: NextRequest): Promise<NextResponse> {
+async function handleGET(
+  request: NextRequest,
+  { params }: { params: { dish_id: string } }
+): Promise<NextResponse> {
   try {
-    const { searchParams } = new URL(request.url);
-    const dish_id = searchParams.get('dish_id');
+    // Extract dish_id from URL path parameter
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const dishIdIndex = pathParts.indexOf('dishes') + 1;
+    const dish_id = pathParts[dishIdIndex] || params?.dish_id;
     
     if (!dish_id) {
       return ResponseFactory.validationError('Missing dish_id parameter');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
     
     // Get all meals with user preferences and filter by ID
-    const meals = await convex.query((api as any).queries.meals.getAll, { userId });
+    const meals = await convex.query((api as any).queries.meals.getAll, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     const dish = meals.find((m: any) => m._id === dish_id);
     
     if (!dish) {
@@ -152,12 +165,21 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ dish });
   } catch (error: unknown) {
-    console.error('Error fetching dish:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error fetching dish:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch dish.'));
   }
 }
 
-// Wrap the handler with middleware
+// Wrap the handler with middleware to extract params from URL
 export const GET = withAPIMiddleware(
-  withErrorHandling(handleGET)
+  withErrorHandling(async (request: NextRequest) => {
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const dishIdIndex = pathParts.indexOf('dishes') + 1;
+    const dishId = pathParts[dishIdIndex];
+    return handleGET(request, { params: { dish_id: dishId } });
+  })
 );

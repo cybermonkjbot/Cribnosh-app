@@ -15,7 +15,7 @@ export interface AdminUser {
   };
 }
 
-const AdminUserContext = createContext<{ user: AdminUser | null, loading: boolean, refreshUser: () => Promise<void> }>({ user: null, loading: true, refreshUser: async () => {} });
+const AdminUserContext = createContext<{ user: AdminUser | null, loading: boolean, sessionToken: string | null, refreshUser: () => Promise<void> }>({ user: null, loading: true, sessionToken: null, refreshUser: async () => {} });
 
 export function useAdminUser() {
   return useContext(AdminUserContext);
@@ -24,9 +24,11 @@ export function useAdminUser() {
 export function AdminUserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
 
-  // Check for session token in cookies (client only)
+  // Authentication is session-based: the session token (convex-auth-token) is readable
+  // in production so we can read it from JavaScript for Convex queries.
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const getCookie = (name: string) => {
@@ -36,13 +38,18 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
         return null;
       };
       
-      const sessionToken = getCookie('convex-auth-token');
-      console.log('[AdminUserProvider] Session token found:', !!sessionToken);
+      // Try to get the session token cookie (works in both dev and production now)
+      const token = getCookie('convex-auth-token') || 
+                    (process.env.NODE_ENV !== 'production' ? getCookie('convex-auth-token-debug') : null);
+      
+      setSessionToken(token || null);
+      console.log('[AdminUserProvider] Session token found:', !!token);
       setHasCheckedStorage(true);
     }
   }, []);
 
   // Listen for cookie changes (refresh when cookie is set)
+  // Works in both dev and production since cookie is now readable
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const checkCookie = () => {
@@ -53,8 +60,11 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
           return null;
         };
         
-        const sessionToken = getCookie('convex-auth-token');
-        if (sessionToken && !user) {
+        // Check for session token cookie (works in both dev and production)
+        const token = getCookie('convex-auth-token') || 
+                      (process.env.NODE_ENV !== 'production' ? getCookie('convex-auth-token-debug') : null);
+        setSessionToken(token || null);
+        if (token && !user) {
           console.log('[AdminUserProvider] Cookie detected, refreshing user data');
           setHasCheckedStorage(true);
         }
@@ -93,13 +103,13 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Fetch user data from API
+    // Fetch user data from API (server validates session token and returns user data)
     async function fetchUser() {
       try {
         console.log('[AdminUserProvider] Fetching user data from /api/admin/me');
         const response = await fetch('/api/admin/me', {
           method: 'GET',
-          credentials: 'include', // Include cookies
+          credentials: 'include', // Include cookies (session token)
         });
 
         console.log('[AdminUserProvider] Response status:', response.status);
@@ -155,8 +165,9 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
   const contextValue = useMemo(() => ({
     user,
     loading,
+    sessionToken,
     refreshUser
-  }), [user, loading, refreshUser]);
+  }), [user, loading, sessionToken, refreshUser]);
 
   return (
     <AdminUserContext.Provider value={contextValue}>

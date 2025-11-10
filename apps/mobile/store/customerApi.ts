@@ -148,11 +148,12 @@ import {
   UpdateMemberBudgetRequest,
   UpdateMemberPreferencesRequest,
   UpdateMemberRequest,
+  UpdatePhoneEmailRequest,
+  UpdatePhoneEmailResponse,
   UploadProfileImageResponse,
   ValidateFamilyMemberEmailRequest,
   ValidateFamilyMemberEmailResponse,
 } from "@/types/customer";
-import { isTokenExpired } from "@/utils/jwtUtils";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
 
@@ -162,42 +163,131 @@ import * as SecureStore from "expo-secure-store";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseUrlNoTrailing,
-  prepareHeaders: async (headers) => {
-    const token = await SecureStore.getItemAsync("cribnosh_token");
-    if (token) {
-      // Check if token is expired before adding to headers
-      if (isTokenExpired(token)) {
-        // Clear expired token
-        await SecureStore.deleteItemAsync("cribnosh_token");
-        await SecureStore.deleteItemAsync("cribnosh_user");
-        // Don't add the expired token to headers
-        console.log("Token expired, cleared from storage");
+  prepareHeaders: async (headers, api) => {
+    // Extract endpoint info for logging
+    const endpoint = (api as any)?.endpoint || (api as any)?.type || 'unknown';
+    console.log("[Customer API] prepareHeaders called for endpoint:", endpoint);
+    
+    try {
+      const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+      console.log("[Customer API] SessionToken exists:", !!sessionToken);
+      console.log("[Customer API] SessionToken length:", sessionToken?.length || 0);
+      
+      if (sessionToken) {
+        // Send sessionToken in X-Session-Token header (preferred) or as Bearer token
+        headers.set("X-Session-Token", sessionToken);
+        // Alternative: headers.set("authorization", `Bearer ${sessionToken}`);
+        console.log("[Customer API] X-Session-Token header set for endpoint:", endpoint);
       } else {
-        headers.set("authorization", `Bearer ${token}`);
+        console.log("[Customer API] No sessionToken found in SecureStore for endpoint:", endpoint);
       }
+    } catch (error) {
+      console.error("[Customer API] Error accessing SecureStore for endpoint:", endpoint, error);
+      // Continue without token - will result in 401 which is handled by error handler
     }
+    
     headers.set("accept", "application/json");
     headers.set("content-type", "application/json");
     return headers;
   },
 });
 
+/**
+ * Check if an endpoint requires authentication
+ * Public endpoints that don't require auth should be listed here
+ */
+const requiresAuthentication = (url: string): boolean => {
+  // Public endpoints that don't require authentication
+  const publicEndpoints = [
+    '/auth/',
+    '/public/',
+    '/health',
+    '/ping',
+  ];
+  
+  // Check if URL matches any public endpoint
+  return !publicEndpoints.some(endpoint => url.includes(endpoint));
+};
+
+/**
+ * Fast check for session token existence (no async needed, just check SecureStore)
+ * This is called BEFORE making any API call to fail fast if no token exists
+ */
+const checkAuthentication = async (url: string): Promise<{ hasAuth: boolean; error?: any }> => {
+  // Check if endpoint requires authentication
+  if (!requiresAuthentication(url)) {
+    return { hasAuth: true }; // Public endpoint, no auth needed
+  }
+  
+  // Fast check: Fail immediately if no token exists (no API call)
+  try {
+    const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+    if (!sessionToken) {
+      return {
+        hasAuth: false,
+        error: {
+          status: 401,
+          data: {
+            success: false,
+            error: {
+              code: '401',
+              message: 'Authentication required. Please sign in.',
+            },
+          },
+        },
+      };
+    }
+    return { hasAuth: true };
+  } catch (error) {
+    console.error("[Customer API] Error checking authentication:", error);
+    return {
+      hasAuth: false,
+      error: {
+        status: 401,
+        data: {
+          success: false,
+          error: {
+            code: '401',
+            message: 'Authentication required. Please sign in.',
+          },
+        },
+      },
+    };
+  }
+};
+
 // Custom baseQuery wrapper to handle non-JSON responses (e.g., HTML 404 pages)
 const baseQuery = async (args: any, api: any, extraOptions: any) => {
+  // Fast authentication check BEFORE making API call
+  const url = typeof args === 'string' ? args : args?.url || '';
+  const authCheck = await checkAuthentication(url);
+  
+  if (!authCheck.hasAuth) {
+    // Return error immediately without making API call
+    // Clear expired/invalid sessionToken
+    await SecureStore.deleteItemAsync("cribnosh_session_token").catch(() => {});
+    await SecureStore.deleteItemAsync("cribnosh_user").catch(() => {});
+    
+    // Handle 401 error (dynamic import to avoid circular deps)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { handle401Error } = require("@/utils/authErrorHandler");
+    handle401Error(authCheck.error);
+    
+    // RTK Query expects { error: { status, data } } format
+    return { error: authCheck.error };
+  }
+  
   // For FormData requests, don't set content-type (let browser set it with boundary)
   if (args.body instanceof FormData) {
     // Create a custom fetchBaseQuery that doesn't set content-type
     const customBaseQuery = fetchBaseQuery({
       baseUrl: API_CONFIG.baseUrlNoTrailing,
       prepareHeaders: async (headers) => {
-        const token = await SecureStore.getItemAsync("cribnosh_token");
-        if (token) {
-          if (isTokenExpired(token)) {
-            await SecureStore.deleteItemAsync("cribnosh_token");
-            await SecureStore.deleteItemAsync("cribnosh_user");
-          } else {
-            headers.set("authorization", `Bearer ${token}`);
-          }
+        const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");
+        if (sessionToken) {
+          // Send sessionToken in X-Session-Token header
+          headers.set("X-Session-Token", sessionToken);
+          // Alternative: headers.set("authorization", `Bearer ${sessionToken}`);
         }
         headers.set("accept", "application/json");
         // Don't set content-type for FormData - let browser set it with boundary
@@ -216,7 +306,7 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
       const errorData = result.error.data;
 
       if (errorStatus === 401 || errorStatus === "401") {
-        await SecureStore.deleteItemAsync("cribnosh_token");
+        await SecureStore.deleteItemAsync("cribnosh_session_token");
         await SecureStore.deleteItemAsync("cribnosh_user");
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { handle401Error } = require("@/utils/authErrorHandler");
@@ -305,8 +395,8 @@ const baseQuery = async (args: any, api: any, extraOptions: any) => {
       errorCode === 401 ||
       errorCode === "401"
     ) {
-      // Clear expired/invalid tokens
-      await SecureStore.deleteItemAsync("cribnosh_token");
+      // Clear expired/invalid sessionToken
+      await SecureStore.deleteItemAsync("cribnosh_session_token");
       await SecureStore.deleteItemAsync("cribnosh_user");
 
       // Use the global 401 handler (dynamic import to avoid circular deps)
@@ -379,6 +469,7 @@ export const customerApi = createApi({
     "CustomOrders",
     "Videos",
     "KitchenFavorites",
+    "DishFavorites",
     "KitchenMeals",
     "KitchenCategories",
     "KitchenTags",
@@ -429,6 +520,22 @@ export const customerApi = createApi({
         url: "/images/customer/profile",
         method: "POST",
         body: formData,
+      }),
+      invalidatesTags: ["CustomerProfile"],
+    }),
+
+    /**
+     * Update customer phone or email with OTP verification
+     * POST /customer/profile/update-phone-email
+     */
+    updatePhoneEmail: builder.mutation<
+      UpdatePhoneEmailResponse,
+      UpdatePhoneEmailRequest
+    >({
+      query: (data) => ({
+        url: "/customer/profile/update-phone-email",
+        method: "POST",
+        body: data,
       }),
       invalidatesTags: ["CustomerProfile"],
     }),
@@ -1467,6 +1574,34 @@ export const customerApi = createApi({
     }),
 
     /**
+     * Get random meals for shake-to-eat feature
+     * GET /customer/meals/random
+     */
+    getRandomMeals: builder.query<
+      {
+        success: boolean;
+        data: {
+          meals: any[];
+          count: number;
+          limit: number;
+        };
+      },
+      { limit?: number; userId?: string }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+        if (params.userId) searchParams.append("userId", params.userId);
+        const queryString = searchParams.toString();
+        return {
+          url: `/customer/meals/random${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SearchResults"],
+    }),
+
+    /**
      * Get takeaway items
      * Uses search with category filter for takeaway items
      */
@@ -1512,6 +1647,36 @@ export const customerApi = createApi({
         };
       },
       providesTags: ["SearchResults"],
+    }),
+
+    /**
+     * Get weather data by location
+     * GET /weather
+     */
+    getWeather: builder.query<
+      {
+        success: boolean;
+        data: {
+          condition: string;
+          temperature: number;
+          description?: string;
+          humidity?: number;
+          windSpeed?: number;
+        };
+      },
+      { latitude: number; longitude: number }
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("latitude", params.latitude.toString());
+        searchParams.append("longitude", params.longitude.toString());
+        return {
+          url: `/weather?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      // Cache weather for 10 minutes
+      keepUnusedDataFor: 600,
     }),
 
     /**
@@ -2361,7 +2526,7 @@ export const customerApi = createApi({
 
     /**
      * Get customer live streaming data
-     * GET /api/live-streaming/customer
+     * GET /live-streaming/customer
      */
     getLiveStreams: builder.query<GetLiveStreamsResponse, PaginationParams>({
       query: (params = {}) => {
@@ -2371,7 +2536,7 @@ export const customerApi = createApi({
 
         const queryString = searchParams.toString();
         return {
-          url: `/api/live-streaming/customer${queryString ? `?${queryString}` : ""}`,
+          url: `/live-streaming/customer${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -2380,11 +2545,11 @@ export const customerApi = createApi({
 
     /**
      * Get live session details with meal
-     * GET /api/live-streaming/sessions/{sessionId}
+     * GET /live-streaming/sessions/{sessionId}
      */
     getLiveSession: builder.query<GetLiveSessionDetailsResponse, string>({
       query: (sessionId) => ({
-        url: `/api/live-streaming/sessions/${sessionId}`,
+        url: `/live-streaming/sessions/${sessionId}`,
         method: "GET",
       }),
       providesTags: (result, error, sessionId) => [
@@ -2783,6 +2948,11 @@ export const customerApi = createApi({
         url: "/customer/forkprint/score",
         method: "GET",
       }),
+      transformResponse: (response: any) => {
+        // Ensure we return the response as-is (RTK Query will handle it)
+        // The response should be { success: true, data: {...} }
+        return response;
+      },
       providesTags: ["CustomerProfile"],
     }),
 
@@ -2862,11 +3032,11 @@ export const customerApi = createApi({
 
     /**
      * Get featured video for a kitchen
-     * GET /api/nosh-heaven/kitchens/{kitchenId}/featured-video
+     * GET /nosh-heaven/kitchens/{kitchenId}/featured-video
      */
     getKitchenFeaturedVideo: builder.query<any, { kitchenId: string }>({
       query: ({ kitchenId }) => ({
-        url: `/api/nosh-heaven/kitchens/${kitchenId}/featured-video`,
+        url: `/nosh-heaven/kitchens/${kitchenId}/featured-video`,
         method: "GET",
       }),
       providesTags: ["Videos"],
@@ -2874,11 +3044,11 @@ export const customerApi = createApi({
 
     /**
      * Get video by ID
-     * GET /api/nosh-heaven/videos/{videoId}
+     * GET /nosh-heaven/videos/{videoId}
      */
     getVideoById: builder.query<any, { videoId: string }>({
       query: ({ videoId }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}`,
+        url: `/nosh-heaven/videos/${videoId}`,
         method: "GET",
       }),
       providesTags: (result, error, { videoId }) => [
@@ -2888,7 +3058,7 @@ export const customerApi = createApi({
 
     /**
      * Get video feed (paginated)
-     * GET /api/nosh-heaven/videos
+     * GET /nosh-heaven/videos
      */
     getVideoFeed: builder.query<
       { videos: any[]; nextCursor?: string },
@@ -2899,7 +3069,7 @@ export const customerApi = createApi({
         if (limit) params.append("limit", limit.toString());
         if (cursor) params.append("cursor", cursor);
         return {
-          url: `/api/nosh-heaven/videos${params.toString() ? `?${params.toString()}` : ""}`,
+          url: `/nosh-heaven/videos${params.toString() ? `?${params.toString()}` : ""}`,
           method: "GET",
         };
       },
@@ -2908,7 +3078,7 @@ export const customerApi = createApi({
 
     /**
      * Get trending videos
-     * GET /api/nosh-heaven/trending
+     * GET /nosh-heaven/trending
      */
     getTrendingVideos: builder.query<
       any[],
@@ -2919,7 +3089,7 @@ export const customerApi = createApi({
         if (limit) params.append("limit", limit.toString());
         if (timeRange) params.append("timeRange", timeRange);
         return {
-          url: `/api/nosh-heaven/trending${params.toString() ? `?${params.toString()}` : ""}`,
+          url: `/nosh-heaven/trending${params.toString() ? `?${params.toString()}` : ""}`,
           method: "GET",
         };
       },
@@ -2928,7 +3098,7 @@ export const customerApi = createApi({
 
     /**
      * Search videos
-     * GET /api/nosh-heaven/search/videos
+     * GET /nosh-heaven/search/videos
      */
     searchVideos: builder.query<
       { videos: any[]; nextCursor?: string },
@@ -2952,7 +3122,7 @@ export const customerApi = createApi({
         if (limit) params.append("limit", limit.toString());
         if (cursor) params.append("cursor", cursor);
         return {
-          url: `/api/nosh-heaven/search/videos?${params.toString()}`,
+          url: `/nosh-heaven/search/videos?${params.toString()}`,
           method: "GET",
         };
       },
@@ -2972,7 +3142,7 @@ export const customerApi = createApi({
         if (limit) params.append("limit", limit.toString());
         if (cursor) params.append("cursor", cursor);
         return {
-          url: `/api/nosh-heaven/users/${userId}/videos${params.toString() ? `?${params.toString()}` : ""}`,
+          url: `/nosh-heaven/users/${userId}/videos${params.toString() ? `?${params.toString()}` : ""}`,
           method: "GET",
         };
       },
@@ -2994,7 +3164,7 @@ export const customerApi = createApi({
         if (publicOnly !== undefined)
           params.append("publicOnly", publicOnly.toString());
         return {
-          url: `/api/nosh-heaven/collections${params.toString() ? `?${params.toString()}` : ""}`,
+          url: `/nosh-heaven/collections${params.toString() ? `?${params.toString()}` : ""}`,
           method: "GET",
         };
       },
@@ -3007,7 +3177,7 @@ export const customerApi = createApi({
      */
     likeVideo: builder.mutation<void, { videoId: string }>({
       query: ({ videoId }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}/like`,
+        url: `/nosh-heaven/videos/${videoId}/like`,
         method: "POST",
       }),
       invalidatesTags: (result, error, { videoId }) => [
@@ -3022,7 +3192,7 @@ export const customerApi = createApi({
      */
     unlikeVideo: builder.mutation<void, { videoId: string }>({
       query: ({ videoId }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}/like`,
+        url: `/nosh-heaven/videos/${videoId}/like`,
         method: "DELETE",
       }),
       invalidatesTags: (result, error, { videoId }) => [
@@ -3049,7 +3219,7 @@ export const customerApi = createApi({
       }
     >({
       query: ({ videoId, platform }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}/share`,
+        url: `/nosh-heaven/videos/${videoId}/share`,
         method: "POST",
         body: platform ? { platform } : undefined,
       }),
@@ -3078,7 +3248,7 @@ export const customerApi = createApi({
       }
     >({
       query: ({ videoId, reason, description, timestamp }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}/report`,
+        url: `/nosh-heaven/videos/${videoId}/report`,
         method: "POST",
         body: { reason, description, timestamp },
       }),
@@ -3101,7 +3271,7 @@ export const customerApi = createApi({
       }
     >({
       query: ({ videoId, watchDuration, completionRate, deviceInfo }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}/view`,
+        url: `/nosh-heaven/videos/${videoId}/view`,
         method: "POST",
         body: { watchDuration, completionRate, deviceInfo },
       }),
@@ -3120,7 +3290,7 @@ export const customerApi = createApi({
         if (limit) params.append("limit", limit.toString());
         if (cursor) params.append("cursor", cursor);
         return {
-          url: `/api/nosh-heaven/videos/${videoId}/comments${params.toString() ? `?${params.toString()}` : ""}`,
+          url: `/nosh-heaven/videos/${videoId}/comments${params.toString() ? `?${params.toString()}` : ""}`,
           method: "GET",
         };
       },
@@ -3138,7 +3308,7 @@ export const customerApi = createApi({
       { videoId: string; content: string; parentCommentId?: string }
     >({
       query: ({ videoId, content, parentCommentId }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}/comments`,
+        url: `/nosh-heaven/videos/${videoId}/comments`,
         method: "POST",
         body: { content, parentCommentId },
       }),
@@ -3157,7 +3327,7 @@ export const customerApi = createApi({
       { videoId: string; commentId: string; content: string }
     >({
       query: ({ videoId, commentId, content }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}/comments/${commentId}`,
+        url: `/nosh-heaven/videos/${videoId}/comments/${commentId}`,
         method: "PUT",
         body: { content },
       }),
@@ -3175,7 +3345,7 @@ export const customerApi = createApi({
       { videoId: string; commentId: string }
     >({
       query: ({ videoId, commentId }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}/comments/${commentId}`,
+        url: `/nosh-heaven/videos/${videoId}/comments/${commentId}`,
         method: "DELETE",
       }),
       invalidatesTags: (result, error, { videoId }) => [
@@ -3208,7 +3378,7 @@ export const customerApi = createApi({
       }
     >({
       query: (body) => ({
-        url: "/api/nosh-heaven/videos",
+        url: "/nosh-heaven/videos",
         method: "POST",
         body,
       }),
@@ -3232,7 +3402,7 @@ export const customerApi = createApi({
       }
     >({
       query: ({ videoId, ...body }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}`,
+        url: `/nosh-heaven/videos/${videoId}`,
         method: "PUT",
         body,
       }),
@@ -3248,7 +3418,7 @@ export const customerApi = createApi({
      */
     deleteVideoPost: builder.mutation<void, { videoId: string }>({
       query: ({ videoId }) => ({
-        url: `/api/nosh-heaven/videos/${videoId}`,
+        url: `/nosh-heaven/videos/${videoId}`,
         method: "DELETE",
       }),
       invalidatesTags: (result, error, { videoId }) => [
@@ -3266,7 +3436,7 @@ export const customerApi = createApi({
       { fileName: string; fileSize: number; contentType: string }
     >({
       query: (body) => ({
-        url: "/api/nosh-heaven/videos/upload-url",
+        url: "/nosh-heaven/videos/upload-url",
         method: "POST",
         body,
       }),
@@ -3281,7 +3451,7 @@ export const customerApi = createApi({
       Record<string, never>
     >({
       query: () => ({
-        url: "/api/nosh-heaven/videos/convex-upload-url",
+        url: "/nosh-heaven/videos/convex-upload-url",
         method: "POST",
       }),
     }),
@@ -3300,7 +3470,7 @@ export const customerApi = createApi({
       }
     >({
       query: (body) => ({
-        url: "/api/nosh-heaven/videos/thumbnail-upload-url",
+        url: "/nosh-heaven/videos/thumbnail-upload-url",
         method: "POST",
         body,
       }),
@@ -3312,7 +3482,7 @@ export const customerApi = createApi({
      */
     followUser: builder.mutation<void, { userId: string }>({
       query: ({ userId }) => ({
-        url: `/api/nosh-heaven/users/${userId}/follow`,
+        url: `/nosh-heaven/users/${userId}/follow`,
         method: "POST",
       }),
       invalidatesTags: (result, error, { userId }) => [
@@ -3326,7 +3496,7 @@ export const customerApi = createApi({
      */
     unfollowUser: builder.mutation<void, { userId: string }>({
       query: ({ userId }) => ({
-        url: `/api/nosh-heaven/users/${userId}/follow`,
+        url: `/nosh-heaven/users/${userId}/follow`,
         method: "DELETE",
       }),
       invalidatesTags: (result, error, { userId }) => [
@@ -3343,7 +3513,7 @@ export const customerApi = createApi({
       { kitchenId: string }
     >({
       query: ({ kitchenId }) => ({
-        url: `/api/customer/kitchens/${kitchenId}/favorite`,
+        url: `/customer/kitchens/${kitchenId}/favorite`,
         method: "GET",
       }),
       providesTags: (result, error, { kitchenId }) => [
@@ -3357,7 +3527,7 @@ export const customerApi = createApi({
      */
     addKitchenFavorite: builder.mutation<void, { kitchenId: string }>({
       query: ({ kitchenId }) => ({
-        url: `/api/customer/kitchens/${kitchenId}/favorite`,
+        url: `/customer/kitchens/${kitchenId}/favorite`,
         method: "POST",
       }),
       invalidatesTags: (result, error, { kitchenId }) => [
@@ -3371,11 +3541,56 @@ export const customerApi = createApi({
      */
     removeKitchenFavorite: builder.mutation<void, { kitchenId: string }>({
       query: ({ kitchenId }) => ({
-        url: `/api/customer/kitchens/${kitchenId}/favorite`,
+        url: `/customer/kitchens/${kitchenId}/favorite`,
         method: "DELETE",
       }),
       invalidatesTags: (result, error, { kitchenId }) => [
         { type: "KitchenFavorites", id: kitchenId },
+      ],
+    }),
+
+    /**
+     * Check if dish/meal is favorited
+     * GET /api/customer/dishes/{dishId}/favorite
+     */
+    getDishFavoriteStatus: builder.query<
+      { isFavorited: boolean; favoriteId?: string },
+      { dishId: string }
+    >({
+      query: ({ dishId }) => ({
+        url: `/customer/dishes/${dishId}/favorite`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { dishId }) => [
+        { type: "DishFavorites", id: dishId },
+      ],
+    }),
+
+    /**
+     * Add dish/meal to favorites
+     * POST /api/customer/dishes/{dishId}/favorite
+     */
+    addDishFavorite: builder.mutation<void, { dishId: string }>({
+      query: ({ dishId }) => ({
+        url: `/customer/dishes/${dishId}/favorite`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { dishId }) => [
+        { type: "DishFavorites", id: dishId },
+      ],
+    }),
+
+    /**
+     * Remove dish/meal from favorites
+     * DELETE /api/customer/dishes/{dishId}/favorite
+     */
+    removeDishFavorite: builder.mutation<void, { dishId: string }>({
+      query: ({ dishId }) => ({
+        url: `/customer/dishes/${dishId}/favorite`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { dishId }) => [
+        { type: "DishFavorites", id: dishId },
       ],
     }),
 
@@ -3402,7 +3617,7 @@ export const customerApi = createApi({
           dietary.forEach((d) => params.append("dietary", d));
         }
         return {
-          url: `/api/customer/kitchens/${kitchenId}/meals${params.toString() ? `?${params.toString()}` : ""}`,
+          url: `/customer/kitchens/${kitchenId}/meals${params.toString() ? `?${params.toString()}` : ""}`,
           method: "GET",
         };
       },
@@ -3433,7 +3648,7 @@ export const customerApi = createApi({
         }
         if (limit) params.append("limit", limit.toString());
         return {
-          url: `/api/customer/kitchens/${kitchenId}/meals/search?${params.toString()}`,
+          url: `/customer/kitchens/${kitchenId}/meals/search?${params.toString()}`,
           method: "GET",
         };
       },
@@ -3454,7 +3669,7 @@ export const customerApi = createApi({
         const params = new URLSearchParams();
         if (limit) params.append("limit", limit.toString());
         return {
-          url: `/api/customer/kitchens/${kitchenId}/meals/popular${params.toString() ? `?${params.toString()}` : ""}`,
+          url: `/customer/kitchens/${kitchenId}/meals/popular${params.toString() ? `?${params.toString()}` : ""}`,
           method: "GET",
         };
       },
@@ -3472,7 +3687,7 @@ export const customerApi = createApi({
       { kitchenId: string }
     >({
       query: ({ kitchenId }) => ({
-        url: `/api/customer/kitchens/${kitchenId}/categories`,
+        url: `/customer/kitchens/${kitchenId}/categories`,
         method: "GET",
       }),
       providesTags: (result, error, { kitchenId }) => [
@@ -3496,7 +3711,7 @@ export const customerApi = createApi({
       { kitchenId: string }
     >({
       query: ({ kitchenId }) => ({
-        url: `/api/customer/kitchens/${kitchenId}`,
+        url: `/customer/kitchens/${kitchenId}`,
         method: "GET",
       }),
       providesTags: (result, error, { kitchenId }) => [
@@ -3513,7 +3728,7 @@ export const customerApi = createApi({
       { kitchenId: string }
     >({
       query: ({ kitchenId }) => ({
-        url: `/api/customer/kitchens/${kitchenId}/tags`,
+        url: `/customer/kitchens/${kitchenId}/tags`,
         method: "GET",
       }),
       providesTags: (result, error, { kitchenId }) => [
@@ -3692,7 +3907,7 @@ export const customerApi = createApi({
 
     /**
      * Get chef meals
-     * GET /api/chef/meals
+     * GET /chef/meals
      */
     getChefMeals: builder.query<
       {
@@ -3728,7 +3943,7 @@ export const customerApi = createApi({
           searchParams.append("offset", params.offset.toString());
         const queryString = searchParams.toString();
         return {
-          url: `/api/chef/meals${queryString ? `?${queryString}` : ""}`,
+          url: `/chef/meals${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -3736,14 +3951,14 @@ export const customerApi = createApi({
 
     /**
      * Start live session
-     * POST /api/functions/startLiveSession
+     * POST /functions/startLiveSession
      */
     startLiveSession: builder.mutation<
       { sessionId: string; channelName: string; status: string },
       { title: string; description: string; mealId: string; tags?: string[] }
     >({
       query: (data) => ({
-        url: "/api/functions/startLiveSession",
+        url: "/functions/startLiveSession",
         method: "POST",
         body: data,
       }),
@@ -3760,6 +3975,7 @@ export const {
   useGetCustomerProfileQuery,
   useUpdateCustomerProfileMutation,
   useUploadProfileImageMutation,
+  useUpdatePhoneEmailMutation,
   useSetupTwoFactorMutation,
   useDisableTwoFactorMutation,
 } = customerApi;
@@ -3884,9 +4100,11 @@ export const { useGetActiveOffersQuery } = customerApi;
 // Meals
 export const {
   useGetPopularMealsQuery,
+  useGetRandomMealsQuery,
   useGetTakeawayItemsQuery,
   useGetTooFreshItemsQuery,
   useGetTopKebabsQuery,
+  useGetWeatherQuery,
 } = customerApi;
 
 // Search
@@ -3929,6 +4147,13 @@ export const {
   useGetKitchenFavoriteStatusQuery,
   useAddKitchenFavoriteMutation,
   useRemoveKitchenFavoriteMutation,
+} = customerApi;
+
+// Dish/Meal Favorites
+export const {
+  useGetDishFavoriteStatusQuery,
+  useAddDishFavoriteMutation,
+  useRemoveDishFavoriteMutation,
 } = customerApi;
 
 // Kitchen Meals

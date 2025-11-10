@@ -1,14 +1,14 @@
 // Implements POST, PUT for /admin/reviews/{review_id}/approval
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
-import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -88,7 +88,7 @@ import { Id } from '@/convex/_generated/dataModel';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   put:
  *     summary: Update Review Approval Status (Admin)
  *     description: Update the approval status of a review. This is an alias for the POST endpoint with identical functionality.
@@ -164,10 +164,8 @@ import { Id } from '@/convex/_generated/dataModel';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
 
 function extractReviewIdFromUrl(request: NextRequest): Id<'reviews'> | undefined {
   const url = new URL(request.url);
@@ -177,20 +175,8 @@ function extractReviewIdFromUrl(request: NextRequest): Id<'reviews'> | undefined
 
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can approve/reject reviews.');
-    }
+    // Get authenticated admin from session token
+    const { userId } = await getAuthenticatedAdmin(request);
     const review_id = extractReviewIdFromUrl(request);
     if (!review_id) {
       return ResponseFactory.validationError('Missing review_id');
@@ -199,20 +185,26 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (!status) {
       return ResponseFactory.validationError('Missing status');
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     await convex.mutation(api.mutations.reviews.updateReview, {
       reviewId: review_id,
       status,
-      approvalNotes: approvalNotes || ''
+      approvalNotes: approvalNotes || '',
+      sessionToken: sessionToken || undefined
     });
     await convex.mutation(api.mutations.admin.insertAdminLog, {
       action: 'review_approval',
       details: { review_id, status, notes: approvalNotes },
-      adminId: payload.user_id
+      adminId: userId,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to approve/reject review.'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 

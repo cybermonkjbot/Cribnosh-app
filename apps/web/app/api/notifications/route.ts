@@ -1,14 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { NextResponse } from 'next/server';
-import type { JWTPayload } from '@/types/convex-contexts';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -129,31 +127,24 @@ const MAX_LIMIT = 100;
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Pagination
     const { searchParams } = new URL(request.url);
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
     // Fetch notifications for this user
-    const allNotifications = await convex.query(api.queries.notifications.getAll, {});
-    const userId = payload.user_id || payload.userId;
-    const userRole = payload.role;
+    const allNotifications = await convex.query(api.queries.notifications.getAll, {
+      sessionToken: sessionToken || undefined
+    });
+    const userRole = user.roles?.[0];
     type Notification = { userId?: string; global?: boolean; role?: string; createdAt?: number; [key: string]: unknown };
     const userNotifications = allNotifications.filter((n: Notification) => 
       n.userId === userId || n.global || n.role === userRole
@@ -170,25 +161,17 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
 async function handlePATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Mark all notifications as read for this user
-    const userId = payload.user_id || payload.userId;
     if (!userId) {
       return ResponseFactory.unauthorized('Missing user ID in token.');
     }
     await convex.mutation(api.mutations.notifications.markAllAsRead, { 
-      userId: userId as unknown as import('@/convex/_generated/dataModel').Id<"users">
+      userId: userId as unknown as import('@/convex/_generated/dataModel').Id<"users">,
+      sessionToken: sessionToken || undefined
     });
     return ResponseFactory.success({ success: true });
   } catch (error: unknown) {
@@ -199,24 +182,19 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
 
 async function handleBulkMarkRead(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
     const { notification_ids } = await request.json();
     if (!Array.isArray(notification_ids) || notification_ids.length === 0) {
       return ResponseFactory.error('notification_ids array is required.', 'CUSTOM_ERROR', 422);
     }
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     for (const notificationId of notification_ids) {
-      await convex.mutation(api.mutations.notifications.markAsRead, { notificationId });
+      await convex.mutation(api.mutations.notifications.markAsRead, {
+        notificationId,
+        sessionToken: sessionToken || undefined
+      });
     }
     return ResponseFactory.success({ success: true, marked: notification_ids.length });
   } catch (error: unknown) {
@@ -227,22 +205,16 @@ async function handleBulkMarkRead(request: NextRequest): Promise<NextResponse> {
 
 async function handleExport(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);
+    if (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       return ResponseFactory.forbidden('Forbidden: Only admins can send notifications.');
     }
-    const convex = getConvexClient();
-    const allNotifications = await convex.query(api.queries.notifications.getAll, {});
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const allNotifications = await convex.query(api.queries.notifications.getAll, {
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.jsonDownload(allNotifications, 'notifications-export.json');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to export notifications.';

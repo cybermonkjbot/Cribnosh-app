@@ -29,7 +29,7 @@ type StaffEmailCampaign = Doc<"staffEmailCampaigns">;
 type StaffEmailCampaignsArray = Array<StaffEmailCampaign> | undefined;
 
 export default function StaffEmailsPage() {
-  const { loading: adminLoading } = useAdminUser();
+  const { loading: adminLoading, sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreating, setIsCreating] = useState(false);
@@ -47,9 +47,14 @@ export default function StaffEmailsPage() {
   });
 
   // Fetch data
-  // @ts-expect-error - TypeScript limitation with complex Convex validators
-  const campaigns = useQuery(api.queries.staff.getStaffEmailCampaigns) as StaffEmailCampaignsArray;
-  const staffStats = useQuery(api.queries.staff.getStaffStats) as {
+  const campaigns = useQuery(
+    api.queries.staff.getStaffEmailCampaigns,
+    sessionToken ? { sessionToken } : "skip"
+  ) as StaffEmailCampaignsArray;
+  const staffStats = useQuery(
+    api.queries.staff.getStaffStats,
+    sessionToken ? { sessionToken } : "skip"
+  ) as {
     totalStaff: number;
     activeStaff: number;
     totalUsers: number;
@@ -166,7 +171,7 @@ export default function StaffEmailsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

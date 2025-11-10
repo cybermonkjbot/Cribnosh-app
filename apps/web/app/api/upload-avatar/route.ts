@@ -1,8 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { ErrorFactory, ErrorCode } from '@/lib/errors';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -75,7 +79,7 @@ import { ErrorFactory, ErrorCode } from '@/lib/errors';
  *                   type: string
  *                   example: "Convex upload error"
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 export async function POST(request: NextRequest) {
@@ -97,6 +101,7 @@ export async function POST(request: NextRequest) {
     
     try {
       const convex = getConvexClient();
+      const sessionToken = getSessionTokenFromRequest(request);
       // 1. Generate a Convex upload URL
       const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
       
@@ -107,7 +112,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': file.type || 'application/octet-stream',
         },
-        body: buffer,
+        body: buffer
       });
       
       if (!uploadRes.ok) {
@@ -124,12 +129,12 @@ export async function POST(request: NextRequest) {
       const fileUrl = `/api/files/${storageId}`;
       return ResponseFactory.success({ url: fileUrl, storageId });
     } catch (e) {
-      console.error('Convex upload error:', e);
+      logger.error('Convex upload error:', e);
       const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
       return ResponseFactory.error(`Failed to upload image: ${errorMessage}`, 'CUSTOM_ERROR', 500);
     }
   } catch (error) {
-    console.error('Error processing upload:', error);
+    logger.error('Error processing upload:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return ResponseFactory.error(`Error processing file upload: ${errorMessage}`, 'CUSTOM_ERROR', 500);
   }

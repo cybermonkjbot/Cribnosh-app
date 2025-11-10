@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { processRefund } from '@/lib/services/payment-service';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -79,7 +79,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       404:
  *         description: Order not found
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(
   request: NextRequest,
@@ -89,34 +89,7 @@ async function handlePOST(
     const { order_id } = params;
     
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { user_id?: string; roles?: string[] };
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { user_id?: string; roles?: string[] };
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can cancel orders',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     if (!order_id) {
       return createSpecErrorResponse(
@@ -145,11 +118,14 @@ async function handlePOST(
       );
     }
 
-    const convex = getConvexClient();
-    const userId = payload.user_id as Id<'users'>;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query order and verify ownership
-    const order = await convex.query(api.queries.orders.getById, { order_id });
+    const order = await convex.query(api.queries.orders.getById, {
+      order_id,
+      sessionToken: sessionToken || undefined
+    });
     
     if (!order) {
       return createSpecErrorResponse(
@@ -183,6 +159,7 @@ async function handlePOST(
     await convex.mutation(api.mutations.orders.updateStatus, {
       order_id: order_id,
       status: 'cancelled',
+      sessionToken: sessionToken || undefined
     });
 
     // Get currency from order or payment, default to GBP
@@ -210,6 +187,7 @@ async function handlePOST(
               reason: 'requested_by_customer',
               processedBy: userId,
               description: `Refund for cancelled order: ${order_id}`,
+              sessionToken: sessionToken || undefined
             });
 
             // Add refund to customer balance if credit refund
@@ -221,11 +199,12 @@ async function handlePOST(
               description: `Refund from order cancellation: ${order_id}`,
               status: 'completed',
               order_id: orderData._id,
+              sessionToken: sessionToken || undefined
             });
           }
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error('Refund processing failed:', errorMessage);
+          logger.error('Refund processing failed:', errorMessage);
           // Continue with cancellation even if refund fails
           // Customer can contact support for manual refund
         }
@@ -242,6 +221,7 @@ async function handlePOST(
           description: `Refund from order cancellation: ${order_id}`,
           status: 'pending',
           order_id: orderData._id,
+          sessionToken: sessionToken || undefined
         });
       }
     }
@@ -256,6 +236,9 @@ async function handlePOST(
       'Order cancellation request submitted'
     );
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to cancel order';
     return createSpecErrorResponse(
       errorMessage,

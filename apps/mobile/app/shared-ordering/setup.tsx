@@ -37,20 +37,6 @@ export default function SharedOrderingSetup() {
 
   const presetAmounts = ["10", "20", "50", "Unlimited"];
 
-  // Mock data fallback for when API returns empty or fails
-  const mockCustomOrders: CustomOrder[] = [
-    {
-      _id: "mock_custom_order_1",
-      userId: "mock_user_1",
-      requirements: "Gluten-free pasta with vegan cheese",
-      serving_size: 2,
-      custom_order_id: "CUST-MOCK-001",
-      status: "pending",
-      dietary_restrictions: "gluten-free, vegan",
-      createdAt: new Date().toISOString(),
-    },
-  ];
-
   const handleAmountSelect = (value: string) => {
     setSelectedAmount(value);
     if (value === "Unlimited") {
@@ -74,11 +60,13 @@ export default function SharedOrderingSetup() {
     try {
       setIsCreatingOrder(true);
 
-      // Create custom order via API
+      // Create custom order via API - dietary restrictions will be added in meal-options screen
+      // This is a two-step flow: setup → meal-options, so we create order first, then update with dietary restrictions
       const customOrderData = await createCustomOrder({
         requirements: `Shared ordering for £${amount || "unlimited"}`,
         serving_size: parseInt(amount) || 0,
         budget: amount === "Unlimited" ? undefined : parseFloat(amount) * 100, // Convert to pence
+        desired_delivery_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Default to tomorrow
       }).unwrap();
 
       showToast({

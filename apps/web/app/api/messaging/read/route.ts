@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -38,7 +42,7 @@ export async function POST(request: NextRequest) {
       data: { messageId: body.messageId }
     });
   } catch (error) {
-    console.error('Error in messaging read:', error);
+    logger.error('Error in messaging read:', error);
     return ResponseFactory.error('Failed to mark message as read', 'MESSAGING_READ_ERROR', 500);
   }
 }

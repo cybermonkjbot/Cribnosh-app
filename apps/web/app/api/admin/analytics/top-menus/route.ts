@@ -1,13 +1,11 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -90,35 +88,32 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { roles?: string[] } | string;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { roles?: string[] } | string;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (typeof payload === 'string' || !payload.roles || !Array.isArray(payload.roles) || !payload.roles.includes('admin')) {
-      return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-    }
-    const convex = getConvexClient();
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     // Use correct queries for orders
-    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {});
-    const users = await convex.query(api.queries.users.getAllUsers, {});
+    const chefs = await convex.query(api.queries.chefs.getAllChefLocations, {
+      sessionToken: sessionToken || undefined
+    });
+    const users = await convex.query(api.queries.users.getAllUsers, {
+      sessionToken: sessionToken || undefined
+    });
     // Aggregate orders per dish across all chefs
     const dishStats: Record<string, { orders: number; revenue: number; chefId: string }> = {};
     for (const chef of chefs) {
-      const orders = await convex.query(api.queries.orders.listByChef, { chef_id: chef.chefId });
-      orders.forEach((o) => {
+      const orders = await convex.query(api.queries.orders.listByChef, {
+        chef_id: chef.chefId,
+        sessionToken: sessionToken || undefined
+      });
+      orders.forEach((o: any) => {
         if (o.order_items && Array.isArray(o.order_items)) {
-          o.order_items.forEach((item) => {
+          o.order_items.forEach((item: any) => {
             const dishId = String(item.dish_id || '');
             if (dishId) {
               if (!dishStats[dishId]) dishStats[dishId] = { orders: 0, revenue: 0, chefId: chef.chefId };
@@ -132,8 +127,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     }
     const topMenus = Object.entries(dishStats)
       .map(([menuId, stats]) => {
-        const chef = chefs.find((c) => c.chefId === stats.chefId);
-        const user = chef ? users.find((u) => u._id === chef.userId) : null;
+        const chef = chefs.find((c: any) => c.chefId === stats.chefId);
+        const user = chef ? users.find((u: any) => u._id === chef.userId) : null;
         return chef && user
           ? {
               menu_id: menuId,
@@ -150,7 +145,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       .sort((a, b) => b!.orders - a!.orders)
       .slice(0, 5);
     return ResponseFactory.success({ topMenus });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch top menus.';
     return ResponseFactory.internalError(errorMessage);
   }

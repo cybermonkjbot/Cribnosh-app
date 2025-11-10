@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { withErrorHandling, ErrorFactory, errorHandler } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -81,28 +81,26 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-  }
-  const token = authHeader.replace('Bearer ', '');
-  let payload: JWTPayload;
   try {
-    const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-    payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
-    return ResponseFactory.unauthorized('Invalid or expired token.');
+    // Get authenticated admin from session token
+    await getAuthenticatedAdmin(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const users = await convex.query(api.queries.users.getRecentUsers, {
+      limit: 20,
+      sessionToken: sessionToken || undefined
+    });
+    return ResponseFactory.success(users);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
-  if (!payload.roles?.includes('admin')) {
-    return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
-  }
-  const convex = getConvexClient();
-  const users = await convex.query(api.queries.users.getRecentUsers, { limit: 20 });
-  return ResponseFactory.success(users);
 }
 
 export const GET = withAPIMiddleware(withErrorHandling(handleGET)); 

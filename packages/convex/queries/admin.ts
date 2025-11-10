@@ -1033,8 +1033,19 @@ export const getDeliveryStats = query({
     });
     
     const completedToday = todayDeliveries.length;
-    const averageDeliveryTime = drivers.length > 0 
-      ? drivers.reduce((sum, driver) => sum + (driver.experience || 0), 0) / drivers.length 
+    
+    // Calculate average delivery time from actual delivery data
+    const completedDeliveriesWithTimes = deliveries.filter(delivery => 
+      delivery.status === 'delivered' && 
+      delivery.actualPickupTime && 
+      delivery.actualDeliveryTime
+    );
+    
+    const averageDeliveryTime = completedDeliveriesWithTimes.length > 0
+      ? completedDeliveriesWithTimes.reduce((sum, delivery) => {
+          const deliveryTime = (delivery.actualDeliveryTime! - delivery.actualPickupTime!) / (1000 * 60); // Convert to minutes
+          return sum + deliveryTime;
+        }, 0) / completedDeliveriesWithTimes.length
       : 0;
     
     const totalDeliveries = deliveries.length;
@@ -1096,8 +1107,8 @@ export const getAllDeliveriesWithDetails = query({
           },
           rating: driver.rating || 0,
           totalDeliveries: driver.totalDeliveries || 0,
-          completedDeliveries: driver.totalDeliveries || 0, // Using totalDeliveries as completed
-          averageDeliveryTime: driver.experience || 0, // Using experience as proxy
+          completedDeliveries: driver.totalDeliveries || 0,
+          averageDeliveryTime: 0, // Calculate from actual delivery data if needed
           isAvailable: driver.availability === 'available',
           currentOrder: undefined, // Not in current schema
           createdAt: driver.createdAt,

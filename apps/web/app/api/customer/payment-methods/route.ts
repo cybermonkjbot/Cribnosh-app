@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { validatePaymentMethod } from '@/lib/services/payment-service';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -67,60 +66,27 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       401:
  *         description: Unauthorized - invalid or missing token
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { user_id?: string; roles?: string[] };
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { user_id?: string; roles?: string[] };
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can access payment methods',
-        'FORBIDDEN',
-        403
-      );
-    }
-
-    const convex = getConvexClient();
-    const userIdRaw = payload.user_id;
-
-    if (!userIdRaw) {
-      return createSpecErrorResponse(
-        'User ID not found in token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const userId: Id<'users'> = userIdRaw as Id<'users'>;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query payment methods from database
     const paymentMethods = await convex.query(api.queries.paymentMethods.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(paymentMethods);
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch payment methods';
     return createSpecErrorResponse(
       errorMessage,
@@ -208,39 +174,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
  *       422:
  *         description: Payment method could not be processed
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: { user_id?: string; roles?: string[] };
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { user_id?: string; roles?: string[] };
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can add payment methods',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     // Parse and validate request body
     let body: { payment_method_id?: string; type?: string; set_as_default?: boolean; last4?: string; brand?: string; exp_month?: number; exp_year?: number };
@@ -274,18 +213,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const convex = getConvexClient();
-    const userIdRaw = payload.user_id;
-
-    if (!userIdRaw) {
-      return createSpecErrorResponse(
-        'User ID not found in token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const userId: Id<'users'> = userIdRaw as Id<'users'>;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Validate payment method with payment provider (Stripe)
     let validatedPaymentMethod: { valid: boolean; type: string; card: { last4: string; brand: string; exp_month: number; exp_year: number; } | null };
@@ -330,12 +259,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       brand: type === 'card' ? (brand || undefined) : undefined,
       exp_month: type === 'card' ? (exp_month || undefined) : undefined,
       exp_year: type === 'card' ? (exp_year || undefined) : undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Get the created payment method
     const createdPaymentMethod = await convex.query(api.queries.paymentMethods.getById, {
       paymentMethodId,
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!createdPaymentMethod) {
@@ -362,6 +293,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       'Payment method added successfully'
     );
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to add payment method';
     return createSpecErrorResponse(
       errorMessage,

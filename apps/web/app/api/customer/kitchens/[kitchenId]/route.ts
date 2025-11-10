@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -14,7 +17,7 @@ import { getErrorMessage } from '@/types/errors';
  *     description: Get kitchen details including chef name and kitchen name for a specific kitchen
  *     tags: [Customer, Kitchens]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: kitchenId
@@ -41,12 +44,16 @@ async function handleGET(
       return ResponseFactory.validationError('Kitchen ID is required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get kitchen details (including chef name)
     const kitchenDetails = await convex.query(
       (api as any).queries.kitchens.getKitchenDetails,
-      { kitchenId }
+      {
+      kitchenId,
+      sessionToken: sessionToken || undefined
+    }
     );
 
     if (!kitchenDetails) {
@@ -56,7 +63,10 @@ async function handleGET(
     return ResponseFactory.success(kitchenDetails, 'Kitchen details retrieved successfully');
 
   } catch (error: unknown) {
-    console.error('Get kitchen details error:', error);
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get kitchen details error:', error);
     return ResponseFactory.internalError(
       getErrorMessage(error, 'Failed to retrieve kitchen details')
     );

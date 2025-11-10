@@ -1,9 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withStaffAuth } from '@/lib/api/staff-middleware';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -124,19 +127,31 @@ import { withStaffAuth } from '@/lib/api/staff-middleware';
  *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest, user: any) {
-  const convex = getConvexClient();
+  const convex = getConvexClientFromRequest(request);
+  const sessionToken = getSessionTokenFromRequest(request);
+  
   // Fetch user document by userId
-  const staff = await convex.query(api.queries.users.getById, { userId: user._id });
+  const staff = await convex.query(api.queries.users.getById, { 
+    userId: user._id,
+    ...(sessionToken && { sessionToken })
+  });
   if (!staff) {
     return ResponseFactory.notFound('Staff user not found');
   }
   // Fetch staff assignment (department, position) from staffAssignments table
-  const assignment = await convex.query(api.queries.staff.getStaffAssignmentByUser, { userId: user._id });
+  const assignment = await convex.query(api.queries.staff.getStaffAssignmentByUser, { 
+    userId: user._id,
+    ...(sessionToken && { sessionToken })
+  });
   // Use undefined instead of null for optional parameters
   const department = assignment?.department || staff.department || undefined;
   const position = assignment?.position || staff.position || undefined;
   // Fetch active staff notices
-  const notices = await convex.query(api.queries.staff.getActiveStaffNotices, { department, position });
+  const notices = await convex.query(api.queries.staff.getActiveStaffNotices, { 
+    department, 
+    position,
+    ...(sessionToken && { sessionToken })
+  });
   return ResponseFactory.success({ notices });
 }
 

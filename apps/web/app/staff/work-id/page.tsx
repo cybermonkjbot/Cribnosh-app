@@ -1,19 +1,20 @@
 "use client";
+import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
+import { BackButton } from '@/components/staff/BackButton';
+import { PageContainer } from '@/components/staff/PageContainer';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from '@/convex/_generated/api';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useQuery } from 'convex/react';
-import { ArrowLeft, Badge, Download, Printer, QrCode } from 'lucide-react';
-import Link from 'next/link';
+import { Badge, Download, Printer, QrCode } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 declare module 'qrcode';
 
 export default function WorkIdPage() {
-  const { staff, loading } = useStaffAuth();
-  const staffId = staff?.email || null;
+  const { staff, loading, sessionToken } = useStaffAuthContext();
+  const staffId = staff?._id || null;
   const workId = useQuery(api.queries.staff.getWorkIdByUser, 
-    staffId ? { userId: staffId as any } : "skip"
+    staffId ? { userId: staffId, sessionToken: sessionToken || undefined } : "skip"
   );
   const [printMode, setPrintMode] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -75,30 +76,21 @@ export default function WorkIdPage() {
 
   if (loading || !staffId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
+      <div className="min-h-screen flex items-center justify-center bg-white/95 backdrop-blur-sm">
         <div className="text-center text-gray-500 font-satoshi">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 ${printMode ? 'print:bg-white' : ''}`}> 
-      <div className="bg-white/80 backdrop-blur-sm border-b border-amber-200 print:hidden">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-4">
-            <Link href="/staff/portal" className="p-2 text-gray-600 hover:text-gray-900 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-xl font-asgard text-gray-900">Your Work ID</h1>
-          </div>
-        </div>
-      </div>
-      <div className="max-w-xl mx-auto px-4 py-8">
+    <div className={`min-h-screen bg-white/95 backdrop-blur-sm ${printMode ? 'print:bg-white' : ''}`}> 
+      <PageContainer maxWidth="xl">
+        <BackButton href="/staff/portal" className="mb-4 print:hidden" />
         {workId ? (
           <GlassCard className="p-8 relative">
             <div className="flex flex-col items-center">
               {workId.photoUrl && (
-                <img src={workId.photoUrl} alt="Staff Photo" className="w-24 h-24 rounded-full object-cover mb-4 border-4 border-amber-200" />
+                <img src={workId.photoUrl} alt="Staff Photo" className="w-24 h-24 rounded-full object-cover mb-4 border-4 border-[#F23E2E]/20" />
               )}
               <h2 className="text-2xl font-asgard text-gray-900 mb-1">{workId.name}</h2>
               <div className="text-sm font-satoshi text-gray-700 mb-2">{workId.position} &bull; {workId.department}</div>
@@ -107,7 +99,7 @@ export default function WorkIdPage() {
                 <span className="text-xs font-satoshi text-gray-500">Work ID: <span className="font-medium text-gray-900">{workId.workIdNumber}</span></span>
               </div>
               <div className="flex items-center gap-2 mb-4">
-                <Badge className="w-5 h-5 text-amber-600" />
+                <Badge className="w-5 h-5 text-[#F23E2E]" />
                 <span className={`text-xs font-satoshi px-2 py-1 rounded ${workId.status === 'active' ? 'bg-green-100 text-green-700' : workId.status === 'expired' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-700'}`}>{workId.status.charAt(0).toUpperCase() + workId.status.slice(1)}</span>
               </div>
               <div className="flex flex-col items-center mb-4">
@@ -118,14 +110,14 @@ export default function WorkIdPage() {
                 {qrUrl ? (
                   <img ref={qrRef} src={qrUrl} alt="QR Code" className="w-32 h-32 mb-2" />
                 ) : (
-                  <QrCode className="w-16 h-16 text-amber-600 mb-2" />
+                  <QrCode className="w-16 h-16 text-[#F23E2E] mb-2" />
                 )}
                 <span className="text-xs font-satoshi text-gray-500">Scan for verification</span>
               </div>
               <div className="flex gap-4 mt-4 print:hidden">
                 <button
                   onClick={handlePrint}
-                  className="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-lg font-satoshi hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="inline-flex items-center px-4 py-2 bg-[#F23E2E] text-white rounded-lg font-satoshi hover:bg-[#ed1d12] focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
                   aria-label="Print Work ID"
                 >
                   <Printer className="w-5 h-5 mr-2" /> Print
@@ -146,14 +138,14 @@ export default function WorkIdPage() {
             <p className="text-gray-700 font-satoshi mb-4">You do not have a digital Work ID yet. If you believe this is an error, please contact HR or request one below.</p>
             <button
               onClick={handleRequestWorkId}
-              className="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-lg font-satoshi hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="inline-flex items-center px-4 py-2 bg-[#F23E2E] text-white rounded-lg font-satoshi hover:bg-[#ed1d12] focus:outline-none focus:ring-2 focus:ring-[#F23E2E]"
               aria-label="Request Work ID"
             >
               <Badge className="w-5 h-5 mr-2" /> Request Work ID
             </button>
           </GlassCard>
         )}
+        </PageContainer>
       </div>
-    </div>
-  );
+    );
 } 

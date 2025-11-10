@@ -1,21 +1,22 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
 import { GlassCard } from '@/components/ui/glass-card';
+import { api } from '@/convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { useEffect, useState } from 'react';
 
-import { Clock, Play, Square, Timer, MapPin, Calendar } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Calendar, Clock, MapPin, Play, Square, Timer } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 
 import { Id } from '@/convex/_generated/dataModel';
 
 interface ClockInCardProps {
   staffId: Id<"users">;
   staffName: string;
+  sessionToken: string | null;
 }
 
-export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
+export function ClockInCard({ staffId, staffName, sessionToken }: ClockInCardProps) {
   const [notes, setNotes] = useState('');
   const [endOfDayNotes, setEndOfDayNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,9 +28,12 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
 
   const clockIn = useMutation(api.mutations.workSessions.clockIn);
   const clockOut = useMutation(api.mutations.workSessions.clockOut);
-  const activeSession = useQuery(api.queries.workSessions.getActiveSession, { 
-    staffId 
-  });
+  const activeSession = useQuery(
+    api.queries.workSessions.getActiveSession, 
+    staffId && sessionToken
+      ? { staffId, sessionToken }
+      : ('skip' as const)
+  );
 
   // Update current time every second
   useEffect(() => {
@@ -48,6 +52,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
         staffId,
         notes: notes.trim(),
         location: 'Office', // Could be made configurable
+        sessionToken: sessionToken || undefined,
       });
 
       if (result.status === 'success') {
@@ -71,6 +76,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
       const result = await clockOut({
         staffId,
         notes: notes.trim(),
+        sessionToken: sessionToken || undefined,
       });
 
       if (result.status === 'success') {
@@ -131,12 +137,12 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
   return (
     <GlassCard className="p-6 sm:p-8 relative overflow-hidden">
       {/* Subtle background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-amber-50/30 pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-br from-blue-50/30 via-transparent to-amber-50/30 pointer-events-none" />
       
       {/* Header section with improved layout */}
       <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-start justify-between mb-6 sm:mb-8 gap-4 sm:gap-0">
         <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
             <Clock className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -171,7 +177,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
           >
             <div className="text-center">
               <motion.div 
-                className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"
+                className="w-20 h-20 bg-linear-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
@@ -210,7 +216,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
             <motion.button
               onClick={handleClockIn}
               disabled={isLoading || !notes.trim()}
-              className={`w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 sm:py-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-base sm:text-lg ${
+              className={`w-full bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 sm:py-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-base sm:text-lg ${
                 shouldShake && (!notes.trim() || notes.trim().length < MIN_NOTES_LENGTH) ? 'animate-shake' : ''
               }`}
               whileHover={{ scale: 1.02 }}
@@ -262,7 +268,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
           >
             <div className="text-center">
               <motion.div 
-                className="w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"
+                className="w-20 h-20 bg-linear-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"
                 animate={{ 
                   boxShadow: ["0 4px 6px -1px rgba(0, 0, 0, 0.1)", "0 10px 15px -3px rgba(0, 0, 0, 0.1)", "0 4px 6px -1px rgba(0, 0, 0, 0.1)"]
                 }}
@@ -273,7 +279,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Currently Working</h3>
               
               {/* Enhanced duration display */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 mb-4 border border-green-200/50">
+              <div className="bg-linear-to-r from-green-50 to-emerald-50 rounded-2xl p-6 mb-4 border border-green-200/50">
                 <div className="text-4xl font-mono text-green-600 mb-2 tracking-wider">
                   {activeSession && formatDuration(activeSession.clockInTime)}
                 </div>
@@ -311,7 +317,7 @@ export function ClockInCard({ staffId, staffName }: ClockInCardProps) {
             <motion.button
               onClick={handleClockOut}
               disabled={isLoading || !endOfDayNotes.trim()}
-              className={`w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 sm:py-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-base sm:text-lg ${
+              className={`w-full bg-linear-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 sm:py-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-base sm:text-lg ${
                 shouldShake && (!endOfDayNotes.trim() || endOfDayNotes.trim().length < MIN_NOTES_LENGTH) ? 'animate-shake' : ''
               }`}
               whileHover={{ scale: 1.02 }}

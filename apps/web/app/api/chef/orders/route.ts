@@ -3,17 +3,11 @@ import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import { Id } from '@/convex/_generated/dataModel';
-import jwt from 'jsonwebtoken';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextResponse } from 'next/server';
-
-interface TokenPayload {
-  user_id: Id<'users'>;
-  roles: string[];
-}
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedChef } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
 
 /**
  * @swagger
@@ -156,24 +150,25 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
-    if (!payload.roles?.includes('chef')) {
-      return ResponseFactory.forbidden('Forbidden: Only chefs can access their orders.');
-    }
+    // Get authenticated chef from session token
+    const { userId } = await getAuthenticatedChef(request);
+    
     const convex = getConvexClient();
-    const orders = await convex.query(api.queries.orders.listByChef, { chef_id: payload.user_id });
+    const sessionToken = getSessionTokenFromRequest(request);
+    const orders = await convex.query(api.queries.orders.listByChef, {
+      chef_id: userId,
+      sessionToken: sessionToken || undefined
+    });
     return ResponseFactory.success({ orders });
-  } catch (error: any) {
-    return ResponseFactory.internalError(error.message || 'Failed to fetch chef orders.' );
+  } catch (error: unknown) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return ResponseFactory.unauthorized(error.message);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch chef orders.'));
   }
 }
 

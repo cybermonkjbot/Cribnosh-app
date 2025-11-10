@@ -84,6 +84,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { monitoringService, AlertRule } from '@/lib/monitoring/monitor';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -283,7 +287,7 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('Failed to get alerts:', error);
+    logger.error('Failed to get alerts:', error);
     
     return ResponseFactory.internalError('Failed to get alerts');
   }
@@ -347,7 +351,7 @@ export async function POST(request: NextRequest) {
         return ResponseFactory.error('Invalid action', 'INVALID_ACTION', 400);
     }
   } catch (error) {
-    console.error('Failed to manage alerts:', error);
+    logger.error('Failed to manage alerts:', error);
     
     return ResponseFactory.internalError('Failed to manage alerts');
   }
@@ -365,7 +369,7 @@ export async function PUT(request: NextRequest) {
       message: 'Alert rule updated successfully',
     });
   } catch (error) {
-    console.error('Failed to update alert rule:', error);
+    logger.error('Failed to update alert rule:', error);
     
     return ResponseFactory.internalError('Failed to update alert rule');
   }
@@ -395,7 +399,7 @@ export async function DELETE(request: NextRequest) {
       return ResponseFactory.error('Missing ruleId or alertId parameter', 'MISSING_PARAMETER', 400);
     }
   } catch (error) {
-    console.error('Failed to delete/resolve:', error);
+    logger.error('Failed to delete/resolve:', error);
     
     return ResponseFactory.internalError('Failed to delete/resolve');
   }

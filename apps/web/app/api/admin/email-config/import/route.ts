@@ -58,13 +58,17 @@
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { emailAdminConfigManager } from '@/lib/email/admin-config';
+import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 // POST /api/admin/email-config/import - Import email configurations
 export async function POST(request: NextRequest) {
@@ -101,7 +105,7 @@ export async function POST(request: NextRequest) {
       imported: configData.length,
     });
   } catch (error) {
-    console.error('Error importing email configurations:', error);
+    logger.error('Error importing email configurations:', error);
     return ResponseFactory.error('Failed to import email configurations', 'CUSTOM_ERROR', 500);
   }
 }

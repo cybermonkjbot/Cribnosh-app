@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
-import jwt from 'jsonwebtoken';
+import { getErrorMessage } from '@/types/errors';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -52,50 +52,27 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       401:
  *         description: Unauthorized - invalid or missing token
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can access dietary preferences',
-        'FORBIDDEN',
-        403
-      );
-    }
-
-    const convex = getConvexClient();
-    const userId = payload.user_id;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Query dietary preferences from database
     const preferences = await convex.query(api.queries.dietaryPreferences.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(preferences);
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to fetch dietary preferences'),
       'INTERNAL_ERROR',
@@ -174,39 +151,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
  *       401:
  *         description: Unauthorized - invalid or missing token
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can update dietary preferences',
-        'FORBIDDEN',
-        403
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
     // Parse and validate request body
     let body: Record<string, unknown>;
@@ -231,20 +181,23 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const convex = getConvexClient();
-    const userId = payload.user_id;
+    const convex = getConvexClientFromRequest(request);
 
+    const sessionToken = getSessionTokenFromRequest(request);
+    
     // Update dietary preferences in database
     await convex.mutation(api.mutations.dietaryPreferences.updateByUserId, {
       userId,
       preferences,
       religious_requirements,
       health_driven,
+      sessionToken: sessionToken || undefined
     });
 
     // Get updated preferences
     const updatedPreferences = await convex.query(api.queries.dietaryPreferences.getByUserId, {
       userId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(
@@ -252,6 +205,9 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       'Dietary preferences updated successfully'
     );
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to update dietary preferences'),
       'INTERNAL_ERROR',

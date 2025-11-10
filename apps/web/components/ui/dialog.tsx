@@ -6,6 +6,19 @@ import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+// Body scroll lock effect
+function useBodyScrollLock(locked: boolean) {
+  React.useEffect(() => {
+    if (locked) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalStyle;
+      };
+    }
+  }, [locked]);
+}
+
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -54,6 +67,16 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  
+  // Lock body scroll when dialog content is mounted (open)
+  React.useEffect(() => {
+    setIsOpen(true);
+    return () => setIsOpen(false);
+  }, []);
+  
+  useBodyScrollLock(isOpen);
+  
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />

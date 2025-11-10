@@ -40,7 +40,7 @@ const transformVideoToMeal = (video: VideoPost): MealData => {
 
 export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>([]);
   const [videoCursor, setVideoCursor] = useState<string | undefined>(undefined);
 
@@ -194,10 +194,24 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
 
   const handleAddToCart = useCallback(
     async (mealId: string) => {
-      if (!isAuthenticated) {
+      // Check authentication and token validity
+      if (!isAuthenticated || !token) {
         showWarning(
           'Authentication Required',
           'Please sign in to add items to cart'
+        );
+        navigateToSignIn();
+        return;
+      }
+
+      // Check if token is expired and refresh auth state if needed
+      const isExpired = checkTokenExpiration();
+      if (isExpired) {
+        // Refresh auth state to update isAuthenticated
+        await refreshAuthState();
+        showWarning(
+          'Session Expired',
+          'Please sign in again to add items to cart'
         );
         navigateToSignIn();
         return;
@@ -217,7 +231,7 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
         showError('Failed to add item to cart', 'Please try again');
       }
     },
-    [isAuthenticated, addToCart]
+    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart]
   );
 
   const handleKitchenPress = useCallback(

@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withErrorHandling } from '@/lib/errors';
 import { ResponseFactory } from '@/lib/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
-import type { JWTPayload } from '@/types/convex-contexts';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { createSpecErrorResponse } from '@/lib/api/spec-error-response';
 import { sendAccountDeletionEmail } from '@/lib/services/email-service';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { logger } from '@/lib/utils/logger';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -51,45 +50,21 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *       400:
  *         description: Account deletion already in progress
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleDELETE(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createSpecErrorResponse(
-        'Invalid or missing token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
 
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return createSpecErrorResponse(
-        'Invalid or expired token',
-        'UNAUTHORIZED',
-        401
-      );
-    }
-
-    if (!payload.roles?.includes('customer')) {
-      return createSpecErrorResponse(
-        'Only customers can delete their account',
-        'FORBIDDEN',
-        403
-      );
-    }
-
-    const convex = getConvexClient();
-    const userId = payload.user_id;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Check if user exists
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return createSpecErrorResponse(
         'Account not found',
@@ -119,6 +94,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     await convex.mutation(api.mutations.accountDeletions.create, {
       userId,
       deletion_will_complete_at: deletionWillCompleteAt,
+      sessionToken: sessionToken || undefined
     });
 
     // Send email confirmation about account deletion (async)
@@ -127,7 +103,7 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
         user.email,
         new Date(deletionWillCompleteAt).toISOString()
       ).catch((error) => {
-        console.error('Failed to send account deletion email:', error);
+        logger.error('Failed to send account deletion email:', error);
       });
     }
 
@@ -142,6 +118,9 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
       'Account deletion request has been submitted. You will receive an email confirmation shortly.'
     );
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return createSpecErrorResponse(
       getErrorMessage(error, 'Failed to process account deletion request'),
       'INTERNAL_ERROR',

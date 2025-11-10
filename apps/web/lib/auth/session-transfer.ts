@@ -8,9 +8,13 @@ type TransferPayload = {
 };
 
 function getSecret(): string {
-  const secret = process.env.SESSION_TRANSFER_SECRET || process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || '';
+  const secret = process.env.SESSION_TRANSFER_SECRET 
+    || process.env.NEXTAUTH_SECRET 
+    || process.env.AUTH_SECRET 
+    || process.env.JWT_SECRET 
+    || '';
   if (!secret) {
-    throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'SESSION_TRANSFER_SECRET is not set');
+    throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'SESSION_TRANSFER_SECRET (or JWT_SECRET/NEXTAUTH_SECRET/AUTH_SECRET) is not set');
   }
   return secret;
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { columns } from '@/components/admin/payroll/columns';
 import { DataTable } from '@/components/admin/payroll/data-table';
@@ -48,17 +49,27 @@ interface PayPeriod {
 
 export default function PayrollAdminPage() {
   const { toast } = useToast();
+  const { sessionToken } = useAdminUser();
   const [isPayPeriodDialogOpen, setIsPayPeriodDialogOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   
   // Fetch payroll data with proper typing
   const payPeriodsRaw = useQuery(api.payroll.periods.getPayPeriods, { limit: 5 });
-  const staffProfilesRaw = useQuery(api.payroll.admin.getStaffPayrollProfiles, {});
+  const staffProfilesRaw = useQuery(
+    api.payroll.admin.getStaffPayrollProfiles, 
+    sessionToken ? { sessionToken } : "skip"
+  );
   
   const payPeriods = useMemo(() => payPeriodsRaw || [], [payPeriodsRaw]);
   const staffProfiles = useMemo(() => staffProfilesRaw || [], [staffProfilesRaw]);
-  const ytdHoursSummary = useQuery(api.payroll.admin.getYearToDateHoursSummary, { year: selectedYear }) || null;
-  const settings = useQuery(api.payroll.admin.getPayrollSettings) as {
+  const ytdHoursSummary = useQuery(
+    api.payroll.admin.getYearToDateHoursSummary, 
+    sessionToken ? { year: selectedYear, sessionToken } : "skip"
+  ) || null;
+  const settings = useQuery(
+    api.payroll.admin.getPayrollSettings,
+    sessionToken ? { sessionToken } : "skip"
+  ) as {
     payFrequency?: string;
     standardWorkWeek?: number;
     overtimeMultiplier?: number;
@@ -149,7 +160,7 @@ export default function PayrollAdminPage() {
   }, [payPeriods]);
 
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Enhanced Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -177,7 +188,7 @@ export default function PayrollAdminPage() {
           <Button 
             size="lg"
             onClick={() => setIsPayPeriodDialogOpen(true)}
-            className="bg-primary-600 hover:bg-primary-700 text-white shadow-lg"
+            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white shadow-lg"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Pay Period
@@ -319,28 +330,28 @@ export default function PayrollAdminPage() {
           <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-gray-200 p-1 rounded-xl">
             <TabsTrigger 
               value="periods" 
-              className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
+              className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Pay Periods
             </TabsTrigger>
             <TabsTrigger 
               value="staff" 
-              className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
+              className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"
             >
               <Users className="w-4 h-4 mr-2" />
               Staff
             </TabsTrigger>
             <TabsTrigger 
               value="analytics" 
-              className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
+              className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
             </TabsTrigger>
             <TabsTrigger 
               value="settings" 
-              className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
+              className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
@@ -354,7 +365,7 @@ export default function PayrollAdminPage() {
                 <h3 className="text-xl font-bold font-asgard text-gray-900">Pay Periods</h3>
                 <Button 
                   onClick={() => setIsPayPeriodDialogOpen(true)}
-                  className="bg-primary-600 hover:bg-primary-700"
+                  className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   New Period

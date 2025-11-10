@@ -2,6 +2,10 @@ import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -147,7 +151,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Apple Maps geocoding error:', errorText);
+      logger.error('Apple Maps geocoding error:', errorText);
       throw ErrorFactory.custom(ErrorCode.EXTERNAL_SERVICE_ERROR, `Apple Maps geocoding failed: ${response.status}`);
     }
 
@@ -191,7 +195,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }, 'Geocoding successful');
 
   } catch (error) {
-    console.error('Geocoding error:', error);
+    logger.error('Geocoding error:', error);
     return errorHandler.handleError(error);
   }
 }

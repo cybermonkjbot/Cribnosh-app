@@ -8,35 +8,73 @@ import React, { useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useGetUserConnectionsQuery } from '@/store/customerApi';
 import { CartButton } from '../CartButton';
 import { Input } from '../Input';
-const avatars = [
-    { uri: require('@/assets/images/demo/avatar-1.png') },
-    { uri: require('@/assets/images/demo/avatar-2.png') },
-    { uri: require('@/assets/images/demo/avatar-3.png') },
-    { uri: require('@/assets/images/demo/avatar-4.png') },
-    { uri: require('@/assets/images/demo/avatar-5.png') },
-]
-
-const groupMembers = [
-    { name: 'Fola', avatarUri: require('@/assets/images/demo/avatar-1.png'), top: 0, left: 0 },
-    { name: 'Josh', avatarUri: require('@/assets/images/demo/avatar-2.png'), top: 50, left: 50 },
-    { name: 'Sarah', avatarUri: require('@/assets/images/demo/avatar-3.png'), top: 100, left: 100 },
-    { name: 'Mike', avatarUri: require('@/assets/images/demo/avatar-4.png'), top: 150, left: 150 },
-    { name: 'Emma', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 200, left: 200 },
-    { name: 'Alex', avatarUri: require('@/assets/images/demo/avatar-5.png'), top: 250, left: 250 },
-];
 
 type GroupOrderBottomSheetProps = {
   isOpen?: boolean;
   onClose?: () => void;
   setIsOpen?: (isOpen: boolean) => void;
+  groupMembers?: Array<{
+    name: string;
+    avatarUri: any;
+    top?: number;
+    left?: number;
+  }>;
+  avatars?: Array<{ uri: any }>;
+  totalAmount?: string;
 }
-export default function GroupOrderBottomSheet({isOpen, setIsOpen, onClose}: GroupOrderBottomSheetProps) {
+export default function GroupOrderBottomSheet({
+  isOpen, 
+  setIsOpen, 
+  onClose,
+  groupMembers: propGroupMembers,
+  avatars: propAvatars,
+  totalAmount = "0"
+}: GroupOrderBottomSheetProps) {
+  const { isAuthenticated } = useAuthContext();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['25%', '95%', '100%'], []);
   const router = useRouter();
   const [isSheetOpen, setIsSheetOpen] = React.useState(isOpen);
+
+  // Fetch real connections/friends from API if no props provided
+  const {
+    data: connectionsData,
+    isLoading: isLoadingConnections,
+  } = useGetUserConnectionsQuery(undefined, {
+    skip: !isAuthenticated || !!propGroupMembers,
+  });
+
+  // Use provided group members or fetch from API, or empty array
+  const groupMembers = useMemo(() => {
+    if (propGroupMembers && propGroupMembers.length > 0) {
+      return propGroupMembers;
+    }
+    // If no props, try to use connections data
+    if (connectionsData?.success && connectionsData.data && Array.isArray(connectionsData.data)) {
+      return connectionsData.data.slice(0, 6).map((connection: any, index: number) => ({
+        name: connection.user_name || connection.name || 'Unknown User',
+        avatarUri: connection.avatar_url || connection.picture || undefined, // No fallback - use default avatar component
+        top: (index % 3) * 50,
+        left: (index % 2) * 50,
+      }));
+    }
+    return []; // Return empty array if no data
+  }, [propGroupMembers, connectionsData]);
+
+  // Use provided avatars or generate from group members
+  const avatars = useMemo(() => {
+    if (propAvatars && propAvatars.length > 0) {
+      return propAvatars;
+    }
+    // Generate avatars from group members
+    return groupMembers.slice(0, 5).map(member => ({
+      uri: member.avatarUri,
+    }));
+  }, [propAvatars, groupMembers]);
 
 
 React.useEffect(() => {
@@ -158,7 +196,7 @@ React.useEffect(() => {
                 </View>
                </ScrollView>
                <View style={styles.floatingButtons}>
-                <GroupTotalSpendCard amount="3000" avatars={avatars} />
+                <GroupTotalSpendCard amount={totalAmount} avatars={avatars} />
                 <SwipeButton onSwipeSuccess={() => console.log('yes')} />
                 <CartButton quantity={4} onPress={handleNavigate} />
               </View>

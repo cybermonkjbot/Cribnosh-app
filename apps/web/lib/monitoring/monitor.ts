@@ -1,5 +1,6 @@
 import { getConvexClient } from '../conxed-client';
 import { api } from '@/convex/_generated/api';
+import { logger } from '@/lib/utils/logger';
 
 // Simple in-memory cache for monitoring data
 class MonitoringCache {
@@ -207,7 +208,7 @@ class MonitoringService {
       // Update aggregated metrics
       await this.updateAggregatedMetrics(data);
     } catch (error) {
-      console.error('Failed to record metric:', error);
+      logger.error('Failed to record metric:', error);
     }
   }
 
@@ -376,7 +377,7 @@ class MonitoringService {
             break;
         }
       } catch (error) {
-        console.error(`Failed to send ${channel} alert:`, error);
+        logger.error(`Failed to send ${channel} alert:`, error);
       }
     }
   }
@@ -388,7 +389,7 @@ class MonitoringService {
       const apiKey = process.env.RESEND_API_KEY;
       
       if (!apiKey) {
-        console.error('Email API key not configured');
+        logger.error('Email API key not configured');
         return;
       }
 
@@ -432,9 +433,9 @@ class MonitoringService {
         }
       }
 
-      console.log(`Email alert sent successfully for rule: ${rule.name}`);
+      logger.log(`Email alert sent successfully for rule: ${rule.name}`);
     } catch (error) {
-      console.error('Failed to send email alert:', error);
+      logger.error('Failed to send email alert:', error);
     }
   }
 
@@ -444,7 +445,7 @@ class MonitoringService {
       const webhookUrl = process.env.SLACK_WEBHOOK_URL;
       
       if (!webhookUrl) {
-        console.error('Slack webhook URL not configured');
+        logger.error('Slack webhook URL not configured');
         return;
       }
 
@@ -506,9 +507,9 @@ class MonitoringService {
         throw new Error(`Slack webhook responded with status: ${response.status}`);
       }
 
-      console.log(`Slack alert sent successfully for rule: ${rule.name}`);
+      logger.log(`Slack alert sent successfully for rule: ${rule.name}`);
     } catch (error) {
-      console.error('Failed to send Slack alert:', error);
+      logger.error('Failed to send Slack alert:', error);
     }
   }
 
@@ -518,7 +519,7 @@ class MonitoringService {
       const webhookUrls = rule.webhookUrls || [process.env.ALERT_WEBHOOK_URL];
 
       if (!webhookUrls.length || !webhookUrls[0]) {
-        console.error('No webhook URLs configured');
+        logger.error('No webhook URLs configured');
         return;
       }
 
@@ -568,15 +569,15 @@ class MonitoringService {
             throw new Error(`Webhook responded with status: ${response.status}`);
           }
 
-          console.log(`Webhook alert sent successfully to: ${url}`);
+          logger.log(`Webhook alert sent successfully to: ${url}`);
         } catch (error) {
-          console.error(`Failed to send webhook alert to ${url}:`, error);
+          logger.error(`Failed to send webhook alert to ${url}:`, error);
         }
       });
 
       await Promise.allSettled(webhookPromises);
     } catch (error) {
-      console.error('Failed to send webhook alert:', error);
+      logger.error('Failed to send webhook alert:', error);
     }
   }
 
@@ -602,7 +603,7 @@ class MonitoringService {
 
       monitoringCache.set(key, aggregated, 3600000); // 1 hour
     } catch (error) {
-      console.error('Failed to update aggregated metrics:', error);
+      logger.error('Failed to update aggregated metrics:', error);
     }
   }
 
@@ -636,7 +637,7 @@ class MonitoringService {
         version: process.env.npm_package_version || '1.0.0',
       };
     } catch (error) {
-      console.error('Failed to get system health:', error);
+      logger.error('Failed to get system health:', error);
       return {
         status: 'unhealthy',
         checks: {
@@ -664,7 +665,7 @@ class MonitoringService {
         const testQuery = await convex.query(api.queries.users.getAll, {});
         return true;
       } catch (error) {
-        console.error('Database health check failed:', error);
+        logger.error('Database health check failed:', error);
         return false;
       }
     } catch (error) {
@@ -682,7 +683,7 @@ class MonitoringService {
       await stripe.balance.retrieve();
       return true;
     } catch (error) {
-      console.error('Stripe health check failed:', error);
+      logger.error('Stripe health check failed:', error);
       return false;
     }
   }
@@ -694,7 +695,7 @@ class MonitoringService {
       const agoraAppCertificate = process.env.AGORA_APP_CERTIFICATE;
       
       if (!agoraAppId || !agoraAppCertificate) {
-        console.warn('Agora credentials not configured');
+        logger.warn('Agora credentials not configured');
         return false;
       }
       
@@ -711,7 +712,7 @@ class MonitoringService {
       
       return token && token.length > 0;
     } catch (error) {
-      console.error('Agora health check failed:', error);
+      logger.error('Agora health check failed:', error);
       return false;
     }
   }
@@ -732,7 +733,7 @@ class MonitoringService {
       
       return healthyServices >= 2;
     } catch (error) {
-      console.error('External APIs health check failed:', error);
+      logger.error('External APIs health check failed:', error);
       return false;
     }
   }
@@ -796,7 +797,7 @@ class MonitoringService {
         request_rate: await this.calculateRequestRate(),
       };
     } catch (error) {
-      console.error('Failed to get performance metrics:', error);
+      logger.error('Failed to get performance metrics:', error);
       return {
         api_response_time: 0,
         database_query_time: 0,

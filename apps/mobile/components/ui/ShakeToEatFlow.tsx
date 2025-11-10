@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   Modal,
@@ -11,20 +11,21 @@ import {
   View
 } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useAnimatedReaction,
-  useDerivedValue,
-  interpolate,
-  withTiming,
-  withSpring,
-  withRepeat,
-  withDelay,
   Easing,
+  interpolate,
   runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useShakeDetection } from '@/hooks/useShakeDetection';
+import { useGetRandomMealsQuery } from '@/store/customerApi';
 import { CONFIG } from '../../constants/config';
 import { Mascot } from '../Mascot';
 
@@ -54,14 +55,23 @@ const MOODS = [
 { id: 'quick', emoji: '⏰', label: 'Quick', gradient: ['#094327', '#FF3B30'], description: 'Fast & easy' },
 ];
 
-// Enhanced meals with more personality
-const SAMPLE_MEALS = [
-{ name: 'Jollof Supreme', emoji: '👑', origin: 'Nigerian Classic', vibe: 'Royal feast' },
-{ name: 'Spiced Shawarma', emoji: '🌪️', origin: 'Middle Eastern', vibe: 'Street magic' },
-{ name: 'Suya Fire', icon: 'flame', origin: 'Nigerian Street', vibe: 'Bold & spicy' },
-{ name: 'Truffle Pasta', emoji: '🍝', origin: 'Italian Luxe', vibe: 'Sophisticated' },
-{ name: 'Curry Storm', emoji: '🌶️', origin: 'Indian Fusion', vibe: 'Flavor explosion' },
-{ name: 'Taco Fiesta', emoji: '🎉', origin: 'Mexican Street', vibe: 'Party vibes' },
+// Meal type for ShakeToEat flow
+type ShakeMeal = {
+  name: string;
+  emoji?: string;
+  icon?: string;
+  origin: string;
+  vibe: string;
+};
+
+// Fallback meals if API fails (minimal set for random selection)
+const FALLBACK_MEALS: ShakeMeal[] = [
+  { name: 'Jollof Supreme', emoji: '👑', origin: 'Nigerian Classic', vibe: 'Royal feast' },
+  { name: 'Spiced Shawarma', emoji: '🌪️', origin: 'Middle Eastern', vibe: 'Street magic' },
+  { name: 'Suya Fire', icon: 'flame', origin: 'Nigerian Street', vibe: 'Bold & spicy' },
+  { name: 'Truffle Pasta', emoji: '🍝', origin: 'Italian Luxe', vibe: 'Sophisticated' },
+  { name: 'Curry Storm', emoji: '🌶️', origin: 'Indian Fusion', vibe: 'Flavor explosion' },
+  { name: 'Taco Fiesta', emoji: '🎉', origin: 'Mexican Street', vibe: 'Party vibes' },
 ];
 
 interface ShakeToEatFlowProps {
@@ -72,11 +82,85 @@ onStart?: () => void;
 }
 
 export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: ShakeToEatFlowProps) {
+  const { isAuthenticated, user } = useAuthContext();
   const [currentStep, setCurrentStep] = useState<FlowStep>('idle');
   const [selectedMood, setSelectedMood] = useState<typeof MOODS[0] | null>(null);
-  const [selectedMeal, setSelectedMeal] = useState<typeof SAMPLE_MEALS[0] | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<ShakeMeal | null>(null);
   const [isInCooldown, setIsInCooldown] = useState(false);
   const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const availableMealsRef = useRef<ShakeMeal[]>(FALLBACK_MEALS);
+
+  // Fetch random meals from API for shake-to-eat feature
+  const {
+    data: randomMealsData,
+  } = useGetRandomMealsQuery(
+    {
+      limit: 20,
+      userId: user?.id || user?._id || undefined,
+    },
+    {
+      skip: !isAuthenticated,
+    }
+  );
+
+  // Transform API meals to ShakeMeal format
+  const transformMealToShakeFormat = useCallback((apiMeal: any): ShakeMeal | null => {
+    if (!apiMeal?.meal) return null;
+    
+    const meal = apiMeal.meal;
+    const chef = apiMeal.chef;
+    
+    // Determine emoji/icon based on cuisine or sentiment
+    const getMealEmoji = (cuisine: string, sentiment: string) => {
+      const cuisineEmojis: Record<string, string> = {
+        'Nigerian': '👑',
+        'Italian': '🍝',
+        'Indian': '🌶️',
+        'Mexican': '🎉',
+        'Middle Eastern': '🌪️',
+        'Japanese': '🍣',
+        'Thai': '🍜',
+      };
+      return cuisineEmojis[cuisine] || '🍽️';
+    };
+
+    const cuisine = chef?.cuisine || meal?.cuisine || 'Various';
+    const sentiment = meal?.sentiment || chef?.sentiment || 'solid';
+    
+    return {
+      name: meal.name || 'Delicious Meal',
+      emoji: getMealEmoji(cuisine, sentiment),
+      origin: cuisine,
+      vibe: sentiment === 'elite' ? 'Royal feast' : 
+            sentiment === 'fire' ? 'Bold & spicy' :
+            sentiment === 'bussing' ? 'Flavor explosion' :
+            'Delicious',
+    };
+  }, []);
+
+  // Get available meals from API or fallback
+  useMemo(() => {
+    if (randomMealsData?.success && randomMealsData.data?.meals && Array.isArray(randomMealsData.data.meals)) {
+      const transformedMeals = randomMealsData.data.meals
+        .map((meal: any) => {
+          // Transform meal format - random meals query returns meals with chef data
+          const mealData = meal.meal || meal;
+          const chefData = meal.chef;
+          
+          return transformMealToShakeFormat({ meal: mealData, chef: chefData });
+        })
+        .filter((meal): meal is ShakeMeal => meal !== null);
+      
+      // Update ref with transformed meals if available, otherwise fallback
+      const meals = transformedMeals.length > 0 ? transformedMeals : FALLBACK_MEALS;
+      availableMealsRef.current = meals; // Update ref for worklet access
+      return meals;
+    }
+    
+    // Use fallback meals if API not available or not authenticated
+    availableMealsRef.current = FALLBACK_MEALS;
+    return FALLBACK_MEALS;
+  }, [randomMealsData, transformMealToShakeFormat]);
 
   // Enhanced animation system with more states
   const masterOpacity = useSharedValue(0);
@@ -92,7 +176,7 @@ export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: 
   const shakeIconScale = useSharedValue(1);
 
 // Reset animations and state
-const resetAnimations = () => {
+const resetAnimations = useCallback(() => {
   masterOpacity.value = 0;
   slideY.value = 50;
   scale.value = 0.9;
@@ -104,7 +188,7 @@ const resetAnimations = () => {
   sparkleOpacity.value = 0;
   shakeOverlayOpacity.value = 0;
   shakeIconScale.value = 1;
-};
+}, [masterOpacity, slideY, scale, pulseScale, rotateValue, glowOpacity, particleOpacity, energyScale, sparkleOpacity, shakeOverlayOpacity, shakeIconScale]); // Shared values are stable but included for linter
 
 // Reset step when modal closes
 useEffect(() => {
@@ -114,7 +198,7 @@ useEffect(() => {
     setSelectedMeal(null);
     resetAnimations();
   }
-}, [isVisible, currentStep]);
+}, [isVisible, currentStep, resetAnimations]);
 
 // Cleanup cooldown timeout on unmount
 useEffect(() => {
@@ -166,18 +250,18 @@ useEffect(() => {
     // Show overlay with animation - concurrent updates
     shakeOverlayOpacity.value = withTiming(1, { duration: 300 });
     shakeIconScale.value = withSpring(1.1, {
-      tension: 100,
-      friction: 6,
+      stiffness: 100,
+      damping: 6,
     });
   } else {
     // Hide overlay with animation - concurrent updates
     shakeOverlayOpacity.value = withTiming(0, { duration: 200 });
     shakeIconScale.value = withSpring(1, {
-      tension: 100,
-      friction: 6,
+      stiffness: 100,
+      damping: 6,
     });
   }
-}, [isSustainedShaking, isShaking]);
+}, [isSustainedShaking, isShaking, shakeOverlayOpacity, shakeIconScale]);
 
 // Early return moved after all hooks
 
@@ -191,12 +275,12 @@ const startWakeUpAnimation = () => {
     easing: Easing.out(Easing.cubic),
   });
   slideY.value = withSpring(0, {
-    tension: 60,
-    friction: 8,
+    stiffness: 60,
+    damping: 8,
   });
   scale.value = withSpring(1, {
-    tension: 80,
-    friction: 6,
+    stiffness: 80,
+    damping: 6,
   });
   
   // Glow effect - after entrance (using delay)
@@ -267,14 +351,14 @@ const handleMoodSelect = (mood: typeof MOODS[0]) => {
 const startMoodLockedAnimation = () => {
   // Confirmation animation - concurrent updates
   scale.value = withSpring(1.1, {
-    tension: 120,
-    friction: 4,
+    stiffness: 120,
+    damping: 4,
   }, (finished) => {
     'worklet';
     if (finished) {
       scale.value = withSpring(1, {
-        tension: 100,
-        friction: 6,
+        stiffness: 100,
+        damping: 6,
       });
     }
   });
@@ -333,9 +417,13 @@ const startFoodDiscoveryAnimation = () => {
   }, (finished) => {
     'worklet';
     if (finished) {
-      // Select meal after spin
-      const randomMeal = SAMPLE_MEALS[Math.floor(Math.random() * SAMPLE_MEALS.length)];
-      runOnJS(setSelectedMeal)(randomMeal);
+      // Select random meal from available meals (API or fallback)
+      // Use ref to access meals in worklet context
+      const meals = availableMealsRef.current;
+      if (meals && meals.length > 0) {
+        const randomMeal = meals[Math.floor(Math.random() * meals.length)];
+        runOnJS(setSelectedMeal)(randomMeal);
+      }
       
       setTimeout(() => {
         runOnJS(setCurrentStep)('magic-moment');
@@ -347,22 +435,22 @@ const startFoodDiscoveryAnimation = () => {
   // Concurrent updates
   masterOpacity.value = withTiming(1, { duration: 600 });
   scale.value = withSpring(1, {
-    tension: 100,
-    friction: 8,
+    stiffness: 100,
+    damping: 8,
   });
 };
 
 const startMagicMomentAnimation = () => {
   // Celebration animation - sequence
   scale.value = withSpring(1.2, {
-    tension: 150,
-    friction: 3,
+    stiffness: 150,
+    damping: 3,
   }, (finished) => {
     'worklet';
     if (finished) {
       scale.value = withSpring(1, {
-        tension: 100,
-        friction: 6,
+        stiffness: 100,
+        damping: 6,
       });
     }
   });
@@ -427,8 +515,8 @@ const handleClose = () => {
   resetFlow();
 };
 
-// Render methods for each step
-const renderWakeUp = () => {
+// Render components for each step
+const WakeUpStep = () => {
   const spinInterpolate = useDerivedValue(() => {
     return `${interpolate(rotateValue.value, [0, 1], [0, 360])}deg`;
   });
@@ -581,7 +669,7 @@ const renderWakeUp = () => {
   );
 };
 
-const renderMoodReveal = () => {
+const MoodRevealStep = () => {
   const moodRevealAnimatedStyle = useAnimatedStyle(() => {
     return {
       opacity: masterOpacity.value,
@@ -698,7 +786,7 @@ const renderMoodReveal = () => {
   );
 };
 
-const renderFoodDiscovery = () => {
+const FoodDiscoveryStep = () => {
   const spinInterpolate = useDerivedValue(() => {
     return `${interpolate(rotateValue.value, [0, 1], [0, 1800])}deg`; // 5 full rotations
   });
@@ -783,7 +871,7 @@ const renderFoodDiscovery = () => {
   );
 };
 
-const renderMagicMoment = () => {
+const MagicMomentStep = () => {
   const magicParticleAnimatedStyle = useAnimatedStyle(() => {
     return {
       opacity: particleOpacity.value,
@@ -897,19 +985,10 @@ const renderMagicMoment = () => {
   );
 };
 
-const renderAILaunch = () => {
+const AILaunchStep = () => {
   const aiLaunchAnimatedStyle = useAnimatedStyle(() => {
     return {
       opacity: masterOpacity.value,
-    };
-  });
-
-  const sparkleAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: sparkleOpacity.value,
-      transform: [{
-        scale: interpolate(sparkleOpacity.value, [0, 1], [0.8, 1.2]),
-      }],
     };
   });
 
@@ -962,56 +1041,185 @@ const renderAILaunch = () => {
           </Text>
 
           {/* Loading indicator */}
-          <View style={{
-            flexDirection: 'row',
-            marginTop: 40,
-            alignItems: 'center',
-          }}>
-            {[0, 1, 2].map((i) => {
-              const loadingDotAnimatedStyle = useAnimatedStyle(() => {
-                return {
-                  opacity: interpolate(pulseScale.value, [1, 1.1], [0.3, 1]),
-                  transform: [{
-                    scale: interpolate(pulseScale.value, [1, 1.1], [1, 1.5]),
-                  }],
-                };
-              });
-              
-              return (
-                <Animated.View
-                  key={i}
-                  style={[
-                    {
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: '#E6FFE8',
-                      marginHorizontal: 6,
-                    },
-                    loadingDotAnimatedStyle,
-                  ]}
-                />
-              );
-            })}
-          </View>
+          <LoadingDots />
         </Animated.View>
       </View>
     </View>
   );
 };
 
+const LoadingDots = () => {
+  const loadingDotAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(pulseScale.value, [1, 1.1], [0.3, 1]),
+      transform: [{
+        scale: interpolate(pulseScale.value, [1, 1.1], [1, 1.5]),
+      }],
+    };
+  });
+
+  return (
+    <View style={{
+      flexDirection: 'row',
+      marginTop: 40,
+      alignItems: 'center',
+    }}>
+      {[0, 1, 2].map((i) => (
+        <Animated.View
+          key={i}
+          style={[
+            {
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: '#E6FFE8',
+              marginHorizontal: 6,
+            },
+            loadingDotAnimatedStyle,
+          ]}
+        />
+      ))}
+    </View>
+  );
+};
+
+const ShakeProgressOverlay = () => {
+  const shakeOverlayAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: shakeOverlayOpacity.value,
+    };
+  });
+
+  const shakeIconAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: shakeIconScale.value }],
+    };
+  });
+
+  return (
+    <Animated.View style={[
+      {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999,
+      },
+      shakeOverlayAnimatedStyle,
+    ]}>
+      <Animated.View style={[
+        {
+          backgroundColor: 'white',
+          borderRadius: 20,
+          padding: 30,
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 10,
+        },
+        shakeIconAnimatedStyle,
+      ]}>
+        {/* Mascot with dynamic emotions */}
+        <Animated.View style={[
+          { marginBottom: 20 },
+          shakeIconAnimatedStyle,
+        ]}>
+          <Mascot 
+            emotion={
+              !isSustainedShaking ? 'default' :
+              sustainedShakeProgress < 0.3 ? 'hungry' :
+              sustainedShakeProgress < 0.7 ? 'excited' :
+              'happy'
+            }
+            size={60}
+          />
+        </Animated.View>
+        
+        {/* Progress Text */}
+        <Text style={{
+          fontSize: 18,
+          fontWeight: '600',
+          color: '#094327',
+          marginBottom: 15,
+          textAlign: 'center',
+        }}>
+          {isSustainedShaking ? 'Keep Shaking!' : 'Start Shaking!'}
+        </Text>
+        
+        {/* Grace Period Indicator */}
+        {isSustainedShaking && !isShaking && (
+          <Text style={{
+            fontSize: 14,
+            color: '#FF6B35',
+            textAlign: 'center',
+            marginBottom: 10,
+            fontStyle: 'italic',
+          }}>
+            ⏰ Resume shaking within 1.5s to continue...
+          </Text>
+        )}
+        
+        {/* Progress Bar */}
+        <View style={{
+          width: 200,
+          height: 8,
+          backgroundColor: '#E5E7EB',
+          borderRadius: 4,
+          overflow: 'hidden',
+          marginBottom: 10,
+        }}>
+          <View 
+            style={{
+              height: '100%',
+              backgroundColor: '#22C55E',
+              borderRadius: 4,
+              width: `${sustainedShakeProgress * 100}%`,
+            }} 
+          />
+        </View>
+        
+        {/* Progress Percentage */}
+        <Text style={{
+          fontSize: 14,
+          color: '#687076',
+          fontWeight: '500',
+        }}>
+          {Math.round(sustainedShakeProgress * 100)}% Complete
+        </Text>
+        
+        {/* Instructions */}
+        <Text style={{
+          fontSize: 12,
+          color: '#9CA3AF',
+          textAlign: 'center',
+          marginTop: 10,
+          lineHeight: 16,
+        }}>
+          Shake continuously for 3 seconds{'\n'}to discover your perfect meal
+        </Text>
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
 const renderContent = () => {
   switch (currentStep) {
     case 'wake-up':
-      return renderWakeUp();
+      return <WakeUpStep />;
     case 'mood-reveal':
-      return renderMoodReveal();
+      return <MoodRevealStep />;
     case 'food-discovery':
-      return renderFoodDiscovery();
+      return <FoodDiscoveryStep />;
     case 'magic-moment':
-      return renderMagicMoment();
+      return <MagicMomentStep />;
     case 'ai-launch':
-      return renderAILaunch();
+      return <AILaunchStep />;
     default:
       return null;
   }
@@ -1099,130 +1307,7 @@ return (
     )}
 
         {/* Shake Progress Overlay - Shows during sustained shaking */}
-    {(isSustainedShaking || isShaking) && (() => {
-      const shakeOverlayAnimatedStyle = useAnimatedStyle(() => {
-        return {
-          opacity: shakeOverlayOpacity.value,
-        };
-      });
-
-      const shakeIconAnimatedStyle = useAnimatedStyle(() => {
-        return {
-          transform: [{ scale: shakeIconScale.value }],
-        };
-      });
-
-      return (
-        <Animated.View style={[
-          {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          },
-          shakeOverlayAnimatedStyle,
-        ]}>
-          <Animated.View style={[
-            {
-              backgroundColor: 'white',
-              borderRadius: 20,
-              padding: 30,
-              alignItems: 'center',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.3,
-              shadowRadius: 20,
-              elevation: 10,
-            },
-            shakeIconAnimatedStyle,
-          ]}>
-            {/* Mascot with dynamic emotions */}
-            <Animated.View style={[
-              { marginBottom: 20 },
-              shakeIconAnimatedStyle,
-            ]}>
-            <Mascot 
-              emotion={
-                !isSustainedShaking ? 'default' :
-                sustainedShakeProgress < 0.3 ? 'hungry' :
-                sustainedShakeProgress < 0.7 ? 'excited' :
-                'happy'
-              }
-              size={60}
-            />
-          </Animated.View>
-          
-          {/* Progress Text */}
-          <Text style={{
-            fontSize: 18,
-            fontWeight: '600',
-            color: '#094327',
-            marginBottom: 15,
-            textAlign: 'center',
-          }}>
-            {isSustainedShaking ? 'Keep Shaking!' : 'Start Shaking!'}
-          </Text>
-          
-          {/* Grace Period Indicator */}
-          {isSustainedShaking && !isShaking && (
-            <Text style={{
-              fontSize: 14,
-              color: '#FF6B35',
-              textAlign: 'center',
-              marginBottom: 10,
-              fontStyle: 'italic',
-            }}>
-              ⏰ Resume shaking within 1.5s to continue...
-            </Text>
-          )}
-          
-          {/* Progress Bar */}
-          <View style={{
-            width: 200,
-            height: 8,
-            backgroundColor: '#E5E7EB',
-            borderRadius: 4,
-            overflow: 'hidden',
-            marginBottom: 10,
-          }}>
-            <View 
-              style={{
-                height: '100%',
-                backgroundColor: '#22C55E',
-                borderRadius: 4,
-                width: `${sustainedShakeProgress * 100}%`,
-              }} 
-            />
-          </View>
-          
-          {/* Progress Percentage */}
-          <Text style={{
-            fontSize: 14,
-            color: '#687076',
-            fontWeight: '500',
-          }}>
-            {Math.round(sustainedShakeProgress * 100)}% Complete
-          </Text>
-          
-          {/* Instructions */}
-          <Text style={{
-            fontSize: 12,
-            color: '#9CA3AF',
-            textAlign: 'center',
-            marginTop: 10,
-            lineHeight: 16,
-          }}>
-            Shake continuously for 3 seconds{'\n'}to discover your perfect meal
-          </Text>
-          </Animated.View>
-        </Animated.View>
-      );
-    })()}
+    {(isSustainedShaking || isShaking) && <ShakeProgressOverlay />}
 
     {/* Modal with enhanced presentation */}
     <Modal

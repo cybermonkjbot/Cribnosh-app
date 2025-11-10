@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -202,7 +206,7 @@ import { ResponseFactory } from '@/lib/api';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 export async function GET(request: NextRequest) {
   try {
@@ -211,7 +215,7 @@ export async function GET(request: NextRequest) {
       data: []
     });
   } catch (error) {
-    console.error('Error in live streaming viewers:', error);
+    logger.error('Error in live streaming viewers:', error);
     return ResponseFactory.error('Failed to retrieve live viewers', 'LIVE_STREAMING_VIEWERS_ERROR', 500);
   }
 }

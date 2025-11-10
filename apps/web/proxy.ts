@@ -89,11 +89,37 @@ export async function proxy(request: NextRequest) {
   // Set security headers
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set(
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=(), interest-cohort=()'
   );
+  
+  // HSTS header in production only
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload'
+    );
+  }
+  
+  // Content Security Policy (adjust as needed for your app)
+  const connectSrc = isDevelopment
+    ? "'self' https: http://localhost:5600 wss://*.convex.cloud wss://wandering-finch-293.convex.cloud"
+    : "'self' https: wss://*.convex.cloud wss://wandering-finch-293.convex.cloud";
+  
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Adjust based on your needs
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' data:",
+    `connect-src ${connectSrc}`,
+    "frame-ancestors 'none'",
+  ].join('; ');
+  
+  response.headers.set('Content-Security-Policy', csp);
 
   // Paths that should never be cached
   const NEVER_CACHE_PATHS = [

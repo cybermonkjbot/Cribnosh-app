@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { useQuery } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
+import { useQuery } from 'convex/react';
+import { useParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
 type Session = {
   _id: Id<'workSessions'>;
@@ -20,6 +21,7 @@ function endOfDay(ts: number) { const d = new Date(ts); d.setHours(23,59,59,999)
 
 export default function AdminStaffDetailPage() {
   const params = useParams();
+  const { sessionToken } = useAdminUser();
   const staffId = (params?.id as string) as Id<'users'>;
   const [monthOffset, setMonthOffset] = useState(0);
 
@@ -28,12 +30,16 @@ export default function AdminStaffDetailPage() {
   const rangeStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).getTime();
   const rangeEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
 
-  const sessions = useQuery(api.queries.workSessions.listSessionsAdmin, {
-    staffId,
-    startDate: rangeStart,
-    endDate: rangeEnd,
-    limit: 1000,
-  });
+  const sessions = useQuery(
+    api.queries.workSessions.listSessionsAdmin,
+    sessionToken ? {
+      staffId,
+      startDate: rangeStart,
+      endDate: rangeEnd,
+      limit: 1000,
+      sessionToken,
+    } : "skip"
+  );
 
   const days = useMemo(() => {
     const firstDay = new Date(rangeStart);
@@ -52,7 +58,7 @@ export default function AdminStaffDetailPage() {
   }, [sessions, rangeStart, rangeEnd]);
 
   return (
-    <main className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       <h1 className="text-2xl font-asgard">Staff Details</h1>
       <div className="border-b">
         <nav className="flex gap-4 text-sm">

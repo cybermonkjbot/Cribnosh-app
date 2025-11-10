@@ -1,15 +1,13 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
-import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -24,46 +22,39 @@ async function handlePOST(
   { params }: { params: { group_order_id: string } }
 ): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can close group orders.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     
     const { group_order_id } = params;
     if (!group_order_id) {
       return ResponseFactory.validationError('group_order_id is required.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const groupOrder = await convex.query(api.queries.groupOrders.getById, {
       group_order_id,
+      sessionToken: sessionToken || undefined
     });
     
     if (!groupOrder) {
       return ResponseFactory.notFound('Group order not found.');
     }
     
-    if (groupOrder.created_by !== payload.user_id) {
+    if (groupOrder.created_by !== userId) {
       return ResponseFactory.forbidden('Only the creator can close the group order.');
     }
     
     const result = await convex.mutation(api.mutations.groupOrders.close, {
       group_order_id: groupOrder._id as Id<'group_orders'>,
-      closed_by: payload.user_id as Id<'users'>,
+      closed_by: userId as Id<'users'>,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success(result, 'Group order closed successfully');
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to close group order.'));
   }
 }

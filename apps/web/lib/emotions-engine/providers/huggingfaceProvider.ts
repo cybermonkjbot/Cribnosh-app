@@ -1,5 +1,6 @@
 // Uses fetch (native in Node 18+ and Bun)
 import { EmotionsEngineRequest } from '../types';
+import { logger } from '@/lib/utils/logger';
 
 export async function queryHuggingFace(
   systemPrompt: string,
@@ -49,7 +50,7 @@ export async function queryHuggingFace(
       throw new Error('Unexpected response format from HuggingFace');
     }
   } catch (err: any) {
-    console.error('HuggingFace API error:', err);
+    logger.error('HuggingFace API error:', err);
     return JSON.stringify({ 
       response_type: 'fallback', 
       message: 'HuggingFace error: ' + (err?.message || 'Unknown error') 

@@ -1,30 +1,33 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, 
-  CheckCircle,
-  XCircle,
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import {
   AlertTriangle,
-  FileText,
-  Users,
-  Database,
-  Lock,
-  Eye,
-  Download,
   Calendar,
+  CheckCircle,
   Clock,
-  Settings
+  Database,
+  Download,
+  Eye,
+  FileText,
+  Lock,
+  Settings,
+  Shield,
+  Users,
+  XCircle
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface GDPRCompliance {
   dataProcessing: {
@@ -89,10 +92,23 @@ export default function GDPRCompliancePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [resolvingIssueId, setResolvingIssueId] = useState<string | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [resolutionText, setResolutionText] = useState('');
+  const [activeTab, setActiveTab] = useState<'open' | 'resolved'>('open');
+
+  // Get session token from admin auth provider
+  const { sessionToken } = useAdminUser();
 
   // Fetch GDPR compliance data
   const gdprData = useQuery((api as any).queries.compliance.getGDPRCompliance);
   const auditLogs = useQuery((api as any).queries.compliance.getComplianceLogs);
+  const resolvedIssuesQuery = useQuery(
+    (api as any).queries.compliance.getResolvedComplianceIssues,
+    sessionToken ? { issueType: 'gdpr', limit: 50 } : 'skip'
+  );
+  const resolvedIssues: any[] = Array.isArray(resolvedIssuesQuery) ? resolvedIssuesQuery : [];
 
   // Mutations
   const updateCompliance = useMutation((api as any).mutations.compliance.updateGDPRCompliance);
@@ -102,7 +118,10 @@ export default function GDPRCompliancePage() {
   const handleUpdateCompliance = async (updates: Partial<GDPRCompliance>) => {
     setIsUpdating(true);
     try {
-      await updateCompliance(updates);
+      await updateCompliance({
+        ...updates,
+        sessionToken: sessionToken || undefined,
+      });
       setSuccess('Compliance settings updated successfully');
       setError(null);
     } catch (err) {
@@ -112,11 +131,29 @@ export default function GDPRCompliancePage() {
     }
   };
 
-  const handleResolveIssue = async (issueId: string) => {
+  const handleResolveClick = (issueId: string) => {
+    setResolvingIssueId(issueId);
+    setResolutionNotes('');
+    setResolutionText('');
+    setResolveDialogOpen(true);
+  };
+
+  const handleResolveIssue = async () => {
+    if (!resolvingIssueId) return;
+    
     try {
-      await resolveIssue({ issueId });
+      await resolveIssue({ 
+        issueId: resolvingIssueId,
+        resolution: resolutionText || undefined,
+        notes: resolutionNotes || undefined,
+        sessionToken: sessionToken || undefined,
+      });
       setSuccess('Issue resolved successfully');
       setError(null);
+      setResolveDialogOpen(false);
+      setResolvingIssueId(null);
+      setResolutionNotes('');
+      setResolutionText('');
     } catch (err) {
       setError('Failed to resolve issue');
     }
@@ -124,8 +161,23 @@ export default function GDPRCompliancePage() {
 
   const handleGenerateReport = async () => {
     try {
-      await generateReport({ type: 'gdpr' });
-      setSuccess('Compliance report generated successfully');
+      const result = await generateReport({ 
+        reportType: 'gdpr',
+        sessionToken: sessionToken || undefined,
+      });
+      
+      if (result?.downloadUrl) {
+        // Trigger download
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        link.download = `gdpr-compliance-report-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('Compliance report downloaded successfully');
+      } else {
+        setSuccess('Compliance report generated successfully');
+      }
       setError(null);
     } catch (err) {
       setError('Failed to generate report');
@@ -165,51 +217,61 @@ export default function GDPRCompliancePage() {
       title: 'Data Processing',
       icon: Database,
       items: [
-        { label: 'Lawful Basis Defined', value: gdprData?.dataProcessing.lawfulBasis.length || 0, max: 6 },
-        { label: 'Data Categories', value: gdprData?.dataProcessing.dataCategories.length || 0, max: 8 },
-        { label: 'Processing Purposes', value: gdprData?.dataProcessing.processingPurposes.length || 0, max: 5 },
-        { label: 'Retention Policies', value: gdprData?.dataProcessing.dataRetention.length || 0, max: 6 }
+        { label: 'Lawful Basis Defined', value: gdprData?.dataProcessing?.lawfulBasis?.length || 0, max: 6 },
+        { label: 'Data Categories', value: gdprData?.dataProcessing?.dataCategories?.length || 0, max: 8 },
+        { label: 'Processing Purposes', value: gdprData?.dataProcessing?.processingPurposes?.length || 0, max: 5 },
+        { label: 'Retention Policies', value: gdprData?.dataProcessing?.dataRetention?.length || 0, max: 6 }
       ]
     },
     {
       title: 'User Rights',
       icon: Users,
       items: [
-        { label: 'Right to Access', value: gdprData?.userRights.rightToAccess ? 1 : 0, max: 1 },
-        { label: 'Right to Rectification', value: gdprData?.userRights.rightToRectification ? 1 : 0, max: 1 },
-        { label: 'Right to Erasure', value: gdprData?.userRights.rightToErasure ? 1 : 0, max: 1 },
-        { label: 'Right to Portability', value: gdprData?.userRights.rightToPortability ? 1 : 0, max: 1 },
-        { label: 'Right to Restrict', value: gdprData?.userRights.rightToRestrictProcessing ? 1 : 0, max: 1 },
-        { label: 'Right to Object', value: gdprData?.userRights.rightToObject ? 1 : 0, max: 1 }
+        { label: 'Right to Access', value: gdprData?.userRights?.rightToAccess ? 1 : 0, max: 1 },
+        { label: 'Right to Rectification', value: gdprData?.userRights?.rightToRectification ? 1 : 0, max: 1 },
+        { label: 'Right to Erasure', value: gdprData?.userRights?.rightToErasure ? 1 : 0, max: 1 },
+        { label: 'Right to Portability', value: gdprData?.userRights?.rightToPortability ? 1 : 0, max: 1 },
+        { label: 'Right to Restrict', value: gdprData?.userRights?.rightToRestrictProcessing ? 1 : 0, max: 1 },
+        { label: 'Right to Object', value: gdprData?.userRights?.rightToObject ? 1 : 0, max: 1 }
       ]
     },
     {
       title: 'Data Protection',
       icon: Lock,
       items: [
-        { label: 'Encryption', value: gdprData?.dataProtection.encryption ? 1 : 0, max: 1 },
-        { label: 'Access Controls', value: gdprData?.dataProtection.accessControls ? 1 : 0, max: 1 },
-        { label: 'Data Minimization', value: gdprData?.dataProtection.dataMinimization ? 1 : 0, max: 1 },
-        { label: 'Purpose Limitation', value: gdprData?.dataProtection.purposeLimitation ? 1 : 0, max: 1 },
-        { label: 'Storage Limitation', value: gdprData?.dataProtection.storageLimitation ? 1 : 0, max: 1 },
-        { label: 'Accuracy', value: gdprData?.dataProtection.accuracy ? 1 : 0, max: 1 }
+        { label: 'Encryption', value: gdprData?.dataProtection?.encryption ? 1 : 0, max: 1 },
+        { label: 'Access Controls', value: gdprData?.dataProtection?.accessControls ? 1 : 0, max: 1 },
+        { label: 'Data Minimization', value: gdprData?.dataProtection?.dataMinimization ? 1 : 0, max: 1 },
+        { label: 'Purpose Limitation', value: gdprData?.dataProtection?.purposeLimitation ? 1 : 0, max: 1 },
+        { label: 'Storage Limitation', value: gdprData?.dataProtection?.storageLimitation ? 1 : 0, max: 1 },
+        { label: 'Accuracy', value: gdprData?.dataProtection?.accuracy ? 1 : 0, max: 1 }
       ]
     },
     {
       title: 'Consent Management',
       icon: FileText,
       items: [
-        { label: 'Explicit Consent', value: gdprData?.consentManagement.explicitConsent ? 1 : 0, max: 1 },
-        { label: 'Consent Withdrawal', value: gdprData?.consentManagement.consentWithdrawal ? 1 : 0, max: 1 },
-        { label: 'Consent Records', value: gdprData?.consentManagement.consentRecords ? 1 : 0, max: 1 },
-        { label: 'Age Verification', value: gdprData?.consentManagement.ageVerification ? 1 : 0, max: 1 },
-        { label: 'Parental Consent', value: gdprData?.consentManagement.parentalConsent ? 1 : 0, max: 1 }
+        { label: 'Explicit Consent', value: gdprData?.consentManagement?.explicitConsent ? 1 : 0, max: 1 },
+        { label: 'Consent Withdrawal', value: gdprData?.consentManagement?.consentWithdrawal ? 1 : 0, max: 1 },
+        { label: 'Consent Records', value: gdprData?.consentManagement?.consentRecords ? 1 : 0, max: 1 },
+        { label: 'Age Verification', value: gdprData?.consentManagement?.ageVerification ? 1 : 0, max: 1 },
+        { label: 'Parental Consent', value: gdprData?.consentManagement?.parentalConsent ? 1 : 0, max: 1 }
+      ]
+    },
+    {
+      title: 'Breach Management',
+      icon: AlertTriangle,
+      items: [
+        { label: 'Breach Detection', value: gdprData?.breachManagement?.breachDetection ? 1 : 0, max: 1 },
+        { label: 'Breach Notification', value: gdprData?.breachManagement?.breachNotification ? 1 : 0, max: 1 },
+        { label: 'Breach Records', value: gdprData?.breachManagement?.breachRecords ? 1 : 0, max: 1 },
+        { label: 'DPO Notification', value: gdprData?.breachManagement?.dpoNotification ? 1 : 0, max: 1 }
       ]
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-[18px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -227,7 +289,7 @@ export default function GDPRCompliancePage() {
           </Button>
           <Button
             onClick={() => {/* Open settings */}}
-            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90"
+            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
           >
             <Settings className="w-4 h-4 mr-2" />
             Settings
@@ -309,25 +371,25 @@ export default function GDPRCompliancePage() {
             <div>
               <h4 className="font-medium text-gray-900 mb-2">DPO Status</h4>
               <div className="flex items-center gap-2 mb-4">
-                {gdprData?.dpo.appointed ? (
+                {gdprData?.dpo?.appointed ? (
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 ) : (
                   <XCircle className="w-5 h-5 text-red-600" />
                 )}
-                <span className={gdprData?.dpo.appointed ? 'text-green-600' : 'text-red-600'}>
-                  {gdprData?.dpo.appointed ? 'DPO Appointed' : 'No DPO Appointed'}
+                <span className={gdprData?.dpo?.appointed ? 'text-green-600' : 'text-red-600'}>
+                  {gdprData?.dpo?.appointed ? 'DPO Appointed' : 'No DPO Appointed'}
                 </span>
               </div>
-              {gdprData?.dpo.appointed && (
+              {gdprData?.dpo?.appointed && (
                 <div className="space-y-2">
                   <div>
                     <label className="text-sm font-medium text-gray-700">Contact Details</label>
-                    <p className="text-sm text-gray-600">{gdprData.dpo.contactDetails}</p>
+                    <p className="text-sm text-gray-600">{gdprData?.dpo?.contactDetails}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Responsibilities</label>
                     <ul className="text-sm text-gray-600 list-disc list-inside">
-                      {gdprData.dpo.responsibilities.map((responsibility: any, index: number) => (
+                      {gdprData?.dpo?.responsibilities?.map((responsibility: any, index: number) => (
                         <li key={index}>{responsibility}</li>
                       ))}
                     </ul>
@@ -366,60 +428,168 @@ export default function GDPRCompliancePage() {
           <CardDescription>Track and resolve GDPR compliance issues</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {gdprData?.issues?.map((issue: any) => (
-              <div key={issue.id} className="flex items-start justify-between p-4 border rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-medium text-gray-900">{issue.title}</h4>
-                    <Badge className={getSeverityColor(issue.severity)}>
-                      {issue.severity}
-                    </Badge>
-                    <Badge className={getStatusColor(issue.status)}>
-                      {issue.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{issue.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      Due: {new Date(issue.dueDate).toLocaleDateString()}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'open' | 'resolved')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="open">
+                Open Issues ({gdprData?.issues?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="resolved">
+                Resolved ({resolvedIssues?.length || 0})
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="open" className="space-y-4 mt-4">
+              {gdprData?.issues?.map((issue: any) => (
+                <div key={issue.id} className="flex items-start justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-medium text-gray-900">{issue.title}</h4>
+                      <Badge className={getSeverityColor(issue.severity)}>
+                        {issue.severity}
+                      </Badge>
+                      <Badge className={getStatusColor(issue.status)}>
+                        {issue.status}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {issue.status === 'open' ? 'Overdue' : 'In Progress'}
+                    <p className="text-sm text-gray-600 mb-2">{issue.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Due: {new Date(issue.dueDate).toLocaleDateString()}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {issue.status === 'open' ? 'Overdue' : 'In Progress'}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-2 ml-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedIssue(issue.id)}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  {issue.status !== 'resolved' && (
+                  <div className="flex gap-2 ml-4">
                     <Button
                       size="sm"
-                      onClick={() => handleResolveIssue(issue.id)}
-                      className="bg-green-600 hover:bg-green-700"
+                      variant="outline"
+                      onClick={() => setSelectedIssue(issue.id)}
                     >
-                      Resolve
+                      <Eye className="w-4 h-4" />
                     </Button>
-                  )}
+                    {issue.status !== 'resolved' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleResolveClick(issue.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Resolve
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {(!gdprData?.issues || gdprData.issues.length === 0) && (
-              <div className="text-center py-8 text-gray-500">
-                <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
-                <p>No compliance issues found</p>
-              </div>
-            )}
-          </div>
+              ))}
+              {(!gdprData?.issues || gdprData.issues.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
+                  <p>No open compliance issues found</p>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="resolved" className="space-y-4 mt-4">
+              {resolvedIssues?.map((resolution: any) => (
+                <div key={resolution.id || resolution._id} className="flex items-start justify-between p-4 border rounded-lg bg-green-50/50">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-medium text-gray-900">Issue: {resolution.issueId}</h4>
+                      <Badge className="bg-green-100 text-green-800">
+                        Resolved
+                      </Badge>
+                    </div>
+                    {resolution.resolution && (
+                      <p className="text-sm text-gray-700 mb-2 font-medium">
+                        Resolution: {resolution.resolution}
+                      </p>
+                    )}
+                    {resolution.notes && (
+                      <p className="text-sm text-gray-600 mb-2">
+                        Notes: {resolution.notes}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        Resolved by: {resolution.resolvedByName || 'Unknown'}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(resolution.resolvedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!resolvedIssues || resolvedIssues.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p>No resolved issues found</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
+
+      {/* Resolution Dialog */}
+      <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resolve Compliance Issue</DialogTitle>
+            <DialogDescription>
+              Provide details about how this issue was resolved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="resolution">Resolution Summary *</Label>
+              <Textarea
+                id="resolution"
+                placeholder="Describe how this issue was resolved..."
+                value={resolutionText}
+                onChange={(e) => setResolutionText(e.target.value)}
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="notes">Additional Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any additional notes or context..."
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResolveDialogOpen(false);
+                setResolvingIssueId(null);
+                setResolutionNotes('');
+                setResolutionText('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResolveIssue}
+              disabled={!resolutionText.trim()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Resolve Issue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Audit Logs */}
       <Card>

@@ -1,15 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
-import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -24,20 +21,7 @@ async function handlePOST(
   { params }: { params: { group_order_id: string } }
 ): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can join group orders.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     
     const { group_order_id } = params;
     if (!group_order_id) {
@@ -53,17 +37,20 @@ async function handlePOST(
       return ResponseFactory.validationError('order_items must be a non-empty array if provided.');
     }
     
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Get group order
     let groupOrder;
     if (share_token) {
       groupOrder = await convex.query(api.queries.groupOrders.getByShareToken, {
         share_token,
+        sessionToken: sessionToken || undefined
       });
     } else {
       groupOrder = await convex.query(api.queries.groupOrders.getById, {
         group_order_id,
+        sessionToken: sessionToken || undefined
       });
     }
     
@@ -74,7 +61,7 @@ async function handlePOST(
     // Join the group order
     const result = await convex.mutation(api.mutations.groupOrders.join, {
       group_order_id: groupOrder._id as any,
-      user_id: payload.user_id as any,
+      user_id: userId as any,
       order_items: order_items ? order_items.map((item: any) => ({
         dish_id: item.dish_id as any,
         name: item.name,
@@ -83,10 +70,14 @@ async function handlePOST(
         special_instructions: item.special_instructions,
       })) : undefined,
       initial_budget_contribution: initial_budget_contribution || undefined,
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success(result, 'Successfully joined group order');
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to join group order.'));
   }
 }

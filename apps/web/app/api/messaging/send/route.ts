@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 /**
  * @swagger
  * /api/messaging/send:
@@ -58,8 +58,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *         description: Internal server error
  */
 export const POST = withErrorHandling(async (request: NextRequest) => {
-  const convex = getConvexClient();
-  
   try {
     const body = await request.json();
     const { content, chatId, replyTo, attachments } = body;
@@ -69,14 +67,11 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       return ResponseFactory.error('Content and chatId are required', 'VALIDATION_ERROR', 400);
     }
     
-    // Get user from JWT token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return ResponseFactory.error('Authorization token required', 'AUTH_ERROR', 401);
-    }
+    // Get authenticated user from session token
+    const { userId } = await getAuthenticatedUser(request);
     
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const userId = decoded.userId;
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     
     // Send message
     const messageId = await convex.mutation(api.mutations.chats.sendMessage, {
@@ -86,7 +81,8 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       metadata: {
         replyTo,
         attachments: attachments || []
-      }
+      },
+      sessionToken: sessionToken || undefined
     });
     
     return ResponseFactory.success({
@@ -98,8 +94,11 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         timestamp: new Date().toISOString()
       }
     });
-  } catch (error) {
-    console.error('Error in messaging send:', error);
-    return ResponseFactory.error('Failed to send message', 'MESSAGING_SEND_ERROR', 500);
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Error in messaging send:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to send message.'));
   }
 });

@@ -2,10 +2,28 @@ import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
+import { isAdmin, isStaff, requireAdmin, requireAuth, requireAuthBySessionToken, requireStaff } from '../utils/auth';
 
 export const getById = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication - use session token if provided, otherwise fall back to requireAuth
+    let user;
+    if (args.sessionToken) {
+      user = await requireAuthBySessionToken(ctx, args.sessionToken);
+    } else {
+      // Fallback for backward compatibility (won't work without setAuth, but keeping for now)
+      user = await requireAuth(ctx);
+    }
+    
+    // Users can access their own data, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db.get(args.userId);
   },
 });
@@ -21,43 +39,76 @@ export const getUserByEmail = query({
 });
 
 export const getUserByPhone = query({
-  args: { phone: v.string() },
-  handler: async (ctx: QueryCtx, args: { phone: string }) => {
-    return await ctx.db
+  args: { 
+    phone: v.string(),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx: QueryCtx, args: { phone: string; sessionToken?: string }) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    const foundUser = await ctx.db
       .query('users')
       .withIndex('by_phone', (q) => q.eq('phone_number', args.phone))
       .first();
+    
+    // Users can access their own data, staff/admin can access any
+    if (foundUser && !isAdmin(user) && !isStaff(user) && foundUser._id !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    return foundUser;
   },
 });
 
 export const getUserByOAuthProvider = query({
   args: { 
     provider: v.union(v.literal('google'), v.literal('apple')),
-    providerId: v.string() 
+    providerId: v.string(),
+    sessionToken: v.optional(v.string())
   },
-  handler: async (ctx: QueryCtx, args: { provider: 'google' | 'apple', providerId: string }) => {
+  handler: async (ctx: QueryCtx, args: { provider: 'google' | 'apple', providerId: string; sessionToken?: string }) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const users = await ctx.db.query('users').collect();
     
     // Find user by OAuth provider ID
-    return users.find(user => 
+    const foundUser = users.find(user => 
       user.oauthProviders?.some(oauth => 
         oauth.provider === args.provider && 
         oauth.providerId === args.providerId
       )
     );
+    
+    // Users can access their own data, staff/admin can access any
+    if (foundUser && !isAdmin(user) && !isStaff(user) && foundUser._id !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    return foundUser;
   },
 });
 
 export const getAllUsers = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db.query('users').collect();
   },
 });
 
 export const getUsersByRole = query({
-  args: { roles: v.array(v.string()) },
-  handler: async (ctx: QueryCtx, args: { roles: string[] }) => {
+  args: { 
+    roles: v.array(v.string()),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx: QueryCtx, args: { roles: string[]; sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     const users = await ctx.db.query('users').collect();
     return users.filter(u => {
       const userRoles = (u as any).roles as string[] | undefined;
@@ -69,8 +120,14 @@ export const getUsersByRole = query({
 });
 
 export const getUsersByStatus = query({
-  args: { status: v.string() },
-  handler: async (ctx: QueryCtx, args: { status: string }) => {
+  args: { 
+    status: v.string(),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx: QueryCtx, args: { status: string; sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db
       .query('users')
       .filter(q => q.eq(q.field('status'), args.status))
@@ -79,8 +136,14 @@ export const getUsersByStatus = query({
 });
 
 export const getRecentUsers = query({
-  args: { limit: v.optional(v.number()) },
-  handler: async (ctx: QueryCtx, args: { limit?: number }) => {
+  args: { 
+    limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx: QueryCtx, args: { limit?: number; sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     const users = await ctx.db.query('users').collect();
     const sorted = users.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
     return sorted.slice(0, args.limit || 10);
@@ -88,16 +151,42 @@ export const getRecentUsers = query({
 });
 
 export const getAllStaff = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args: { sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     const users = await ctx.db.query('users').collect();
-    return users.filter(u => Array.isArray(u.roles) && u.roles.includes('staff')).map(u => ({ _id: u._id, name: u.name, email: u.email }));
+    return users.filter(u => Array.isArray(u.roles) && u.roles.includes('staff')).map(u => ({ 
+      _id: u._id, 
+      name: u.name, 
+      email: u.email,
+      role: u.roles?.find((r: string) => ['staff', 'admin', 'moderator'].includes(r)) || u.roles?.[0] || 'staff',
+      status: u.status || 'active'
+    }));
   },
 });
 
 export const getUserDocuments = query({
-  args: { email: v.string() },
-  handler: async (ctx: QueryCtx, args: { email: string }) => {
+  args: { 
+    email: v.string(),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx: QueryCtx, args: { email: string; sessionToken?: string }) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get user by email to check ownership
+    const targetUser = await ctx.db
+      .query('users')
+      .filter(q => q.eq(q.field('email'), args.email))
+      .first();
+    
+    // Users can access their own documents, staff/admin can access any
+    if (targetUser && !isAdmin(user) && !isStaff(user) && targetUser._id !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db
       .query('documents')
       .filter(q => q.eq(q.field('userEmail'), args.email))
@@ -106,15 +195,35 @@ export const getUserDocuments = query({
 });
 
 export const getAllDocuments = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args: { sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db.query('documents').collect();
   },
 });
 
 export const getUserNotifications = query({
-  args: { userId: v.id("users"), roles: v.optional(v.array(v.string())) },
+  args: { 
+    userId: v.id("users"), 
+    roles: v.optional(v.array(v.string())),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication - use session token if provided, otherwise fall back to requireAuth
+    let user;
+    if (args.sessionToken) {
+      user = await requireAuthBySessionToken(ctx, args.sessionToken);
+    } else {
+      // Fallback for backward compatibility (won't work without setAuth, but keeping for now)
+      user = await requireAuth(ctx);
+    }
+    
+    // Users can access their own notifications, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     // User-specific notifications
     const userNotifs = await ctx.db
       .query("notifications")
@@ -142,8 +251,19 @@ export const getUserNotifications = query({
 });
 
 export const countUnreadNotifications = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own notifications, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     const notifs = await ctx.db.query('notifications')
       .withIndex('by_user', q => q.eq('userId', args.userId))
       .collect();
@@ -152,7 +272,10 @@ export const countUnreadNotifications = query({
 });
 
 export const getUserReferralStats = query({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.object({
     referralCount: v.number(),
     rewards: v.any(),
@@ -161,10 +284,17 @@ export const getUserReferralStats = query({
     referralHistory: v.array(v.any())
   }),
   handler: async (ctx, args) => {
+    // Require authentication
+    const authUser = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own stats, staff/admin can access any
+    if (!isAdmin(authUser) && !isStaff(authUser) && args.userId !== authUser._id) {
+      throw new Error('Access denied');
+    }
     try {
-      const user = await ctx.db.get(args.userId);
-      if (!user) throw new Error("User not found");
-      const userData = user as { referralCount?: number; rewards?: unknown; affiliateStatus?: string; referralLink?: string | null; referralHistory?: unknown[] };
+      const targetUser = await ctx.db.get(args.userId);
+      if (!targetUser) throw new Error("User not found");
+      const userData = targetUser as { referralCount?: number; rewards?: unknown; affiliateStatus?: string; referralLink?: string | null; referralHistory?: unknown[] };
       return {
         referralCount: userData.referralCount || 0,
         rewards: userData.rewards || {},
@@ -207,7 +337,10 @@ export const getReferralLeaderboard = query({
 });
 
 export const getUserReferralHistory = query({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
   returns: v.array(v.object({
     _id: v.id("referrals"),
     referredUserId: v.optional(v.id("users")),
@@ -218,6 +351,13 @@ export const getUserReferralHistory = query({
     status: v.optional(v.string())
   })),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own history, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     try {
       // Fetch referrals using index for performance
       const referrals = await ctx.db
@@ -256,6 +396,7 @@ export const getUserReferralHistoryPaginated = query({
   args: {
     userId: v.id("users"),
     paginationOpts: paginationOptsValidator,
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     page: v.array(v.any()),
@@ -263,6 +404,13 @@ export const getUserReferralHistoryPaginated = query({
     continueCursor: v.union(v.string(), v.null())
   }),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own history, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
     try {
       const q = ctx.db
         .query("referrals")
@@ -310,35 +458,79 @@ export const getStripeCustomerId = query({
 });
 
 export const getUserProfile = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own profile, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db.get(args.userId);
   },
 });
 
 export const getDietaryPreferences = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own preferences, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    const targetUser = await ctx.db.get(args.userId);
     return {
-      tags: user?.preferences?.dietary || [],
+      tags: targetUser?.preferences?.dietary || [],
       allergies: [] // allergies field doesn't exist in schema, using empty array
     };
   },
 });
 
 export const getFavoriteCuisines = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    return user?.preferences?.cuisine || [];
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own preferences, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    const targetUser = await ctx.db.get(args.userId);
+    return targetUser?.preferences?.cuisine || [];
   },
 });
 
 // Get user by ID (alias for getById for consistency)
 export const getUserById = query({
-  args: { userId: v.id('users') },
+  args: { 
+    userId: v.id('users'),
+    sessionToken: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can access their own data, staff/admin can access any
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     return await ctx.db.get(args.userId);
   },
 });
@@ -371,24 +563,33 @@ export const getUserByToken = query({
 
 // Get all users (alias for getAllUsers for consistency)
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args: { sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     return await ctx.db.query('users').collect();
   },
 });
 
 // Get total user count for admin sidebar
 export const getTotalUserCount = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args: { sessionToken?: string }) => {
+    // Require staff/admin authentication
+    await requireStaff(ctx, args.sessionToken);
+    
     const users = await ctx.db.query('users').collect();
     return users.length;
   },
 });
 
 export const getUsersForAdmin = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args: { sessionToken?: string }) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     const users = await ctx.db
       .query('users')
       .filter(q => q.eq(q.field('status'), 'active'))

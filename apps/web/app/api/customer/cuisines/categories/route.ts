@@ -1,12 +1,15 @@
 import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { withCaching } from '@/lib/api/cache';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
-import { getApiQueries, getConvexClient } from '@/lib/conxed-client';
+import { getApiQueries, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 // Type definitions for meal and chef data structures
 interface MealData {
@@ -76,7 +79,7 @@ interface ChefData {
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
@@ -151,14 +154,23 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       })
       .sort((a, b) => b.kitchen_count - a.kitchen_count); // Sort by kitchen count descending
     
-    return ResponseFactory.success({
+    const response = ResponseFactory.success({
       categories,
       total: categories.length,
     });
+    
+    // Add cache headers - categories don't change frequently, cache for 1 hour
+    response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=3600');
+    
+    return response;
   } catch (error: unknown) {
-    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch cuisine categories.'));
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to process request.'));
   }
 }
 
-export const GET = withAPIMiddleware(withErrorHandling(handleGET));
+export const GET = withAPIMiddleware(withErrorHandling(withCaching(handleGET, { ttl: 3600 })));
 

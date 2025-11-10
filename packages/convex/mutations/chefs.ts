@@ -1,10 +1,11 @@
 import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
 import { mutation } from "../_generated/server";
+import { requireAuth, requireStaff, requireAdmin, isAdmin, isStaff } from '../utils/auth';
 
 export const createChef = mutation(
   async (
-    { db },
+    ctx,
     args: {
       userId: Id<'users'>;
       name?: string;
@@ -15,8 +16,17 @@ export const createChef = mutation(
       bio?: string;
       specialties?: string[];
       status?: 'active' | 'inactive' | 'suspended';
+      sessionToken?: string;
     }
   ) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can only create chef profiles for themselves
+    if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
     // Map old args to schema
     if (!args.userId) throw new Error('userId is required');
     const bio = args.bio || '';
@@ -34,7 +44,7 @@ export const createChef = mutation(
       status,
       location: { city, coordinates },
     };
-    const id = await db.insert("chefs", chefDoc);
+    const id = await ctx.db.insert("chefs", chefDoc);
     return id;
   }
 );
@@ -96,9 +106,13 @@ export const updateChef = mutation({
       v.literal('active'),
       v.literal('inactive'),
       v.literal('suspended')
-    )
+    ),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // Require staff/admin authentication for status updates
+    await requireStaff(ctx, args.sessionToken);
+    
     await ctx.db.patch(args.chefId, {
       status: args.status
     });
@@ -121,32 +135,26 @@ export const update = mutation({
         coordinates: v.optional(v.array(v.number())),
       })),
     }),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     // Get the chef to verify ownership or admin access
     const chef = await ctx.db.get(args.chefId);
     if (!chef) {
       throw new Error("Chef not found");
     }
 
-    // Check if user is admin or the chef themselves
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email!))
-      .first();
-
-    if (!user) {
-      throw new Error("User not found");
+    // Users can update their own chef profile, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error("Access denied");
     }
-
-    // Allow if admin or if updating own chef profile
-    if (chef.userId !== user._id && !user.roles?.includes('admin')) {
-      throw new Error("Not authorized");
+    
+    // Only admins can update status
+    if (args.updates.status && !isAdmin(user)) {
+      throw new Error("Only admins can update chef status");
     }
 
     // Prepare updates, ensuring required location fields are present if location is being updated
@@ -191,32 +199,21 @@ export const updateAvailability = mutation({
       advanceBookingDays: v.optional(v.number()),
       specialInstructions: v.optional(v.string()),
     }),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     // Get the chef to verify ownership
     const chef = await ctx.db.get(args.chefId);
     if (!chef) {
       throw new Error("Chef not found");
     }
 
-    // Check if user is the chef themselves
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email!))
-      .first();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Only allow chefs to update their own availability
-    if (chef.userId !== user._id) {
-      throw new Error("Not authorized");
+    // Users can update their own availability, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error("Access denied");
     }
 
     // Apply updates

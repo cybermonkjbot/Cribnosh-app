@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
+import { getUserFromRequest } from '@/lib/auth/session';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * @swagger
@@ -55,9 +59,11 @@ async function handleGET(
       return ResponseFactory.validationError('Video ID and Comment ID are required');
     }
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
     const comment = await convex.query((api as any).queries.videoComments.getCommentById, {
       commentId,
+      sessionToken: sessionToken || undefined
     });
 
     if (!comment) {
@@ -66,9 +72,12 @@ async function handleGET(
 
     return ResponseFactory.success(comment, 'Comment retrieved successfully');
 
-  } catch (error: any) {
-    console.error('Comment retrieval error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to retrieve comment');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Comment retrieval error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to retrieve comment'));
   }
 }
 
@@ -80,7 +89,7 @@ async function handleGET(
  *     description: Updates an existing comment
  *     tags: [Nosh Heaven, Videos, Comments]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -135,31 +144,30 @@ async function handlePUT(
       return ResponseFactory.validationError('Comment content is required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
+    const sessionToken = getSessionTokenFromRequest(request);
+    
     // Update comment
     await convex.mutation((api as any).mutations.videoComments.updateComment, {
       commentId,
       content: body.content.trim(),
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Comment updated successfully');
 
-  } catch (error: any) {
-    console.error('Comment update error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to update comment');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Comment update error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update comment'));
   }
 }
 
@@ -171,7 +179,7 @@ async function handlePUT(
  *     description: Deletes an existing comment
  *     tags: [Nosh Heaven, Videos, Comments]
  *     security:
- *       - Bearer: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: videoId
@@ -206,30 +214,28 @@ async function handleDELETE(
       return ResponseFactory.validationError('Video ID and Comment ID are required');
     }
 
-    // Get user from token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getUserByToken, { token });
-
+    // Get user from session token
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      return ResponseFactory.unauthorized('Invalid token');
+      return ResponseFactory.unauthorized('Missing or invalid session token');
     }
 
     // Delete comment
     await convex.mutation((api as any).mutations.videoComments.deleteComment, {
       commentId,
+      sessionToken: sessionToken || undefined
     });
 
     return ResponseFactory.success(null, 'Comment deleted successfully');
 
-  } catch (error: any) {
-    console.error('Comment deletion error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to delete comment');
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Comment deletion error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to delete comment'));
   }
 }
 

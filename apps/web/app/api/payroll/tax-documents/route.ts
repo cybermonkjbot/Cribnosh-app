@@ -48,13 +48,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
-
+import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { getErrorMessage } from '@/types/errors';
+import { logger } from '@/lib/utils/logger';
 interface GenerateTaxDocumentRequest {
   documentType: 'p60' | 'p45' | 'p11d' | 'self_assessment' | 'payslip' | 'payslip_ng' | 'tax_clearance' | 'nhf_certificate' | 'nhis_certificate' | 'pension_certificate';
   employeeId: string;
@@ -104,7 +104,7 @@ interface GenerateTaxDocumentRequest {
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *   get:
  *     summary: Get tax documents
  *     description: Retrieve available tax documents with optional filtering
@@ -166,26 +166,14 @@ interface GenerateTaxDocumentRequest {
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to generate tax documents
-    if (!['admin', 'staff'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to generate tax documents
+    if (!['admin', 'staff'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -208,7 +196,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Invalid document type for Nigeria');
     } 
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Generate tax document based on type
     const taxDocument = await convex.mutation(api.mutations.payroll.generateTaxDocument, {
@@ -223,7 +212,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         end: new Date().getTime()
       },
       amount: includeDetails ? 1000 : undefined,
-      notes: includeDetails ? `Generated tax document` : undefined
+      notes: includeDetails ? `Generated tax document` : undefined,
+      sessionToken: sessionToken || undefined
     });
 
     // Format response based on requested format
@@ -247,38 +237,28 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         contentType = 'application/json';
         break;
       default:
-        responseData = await convertTaxDocumentToPDF(taxDocument, body);
+        responseData = await convertTaxDocumentToPDF(taxDocument, body, request);
         contentType = 'application/pdf';
     }
 
     const filename = `tax-document-${documentType}-${country}-${employeeId}-${taxYear}.${format}`;
     return ResponseFactory.fileDownload(responseData, filename, contentType);
 
-  } catch (error: any) {
-    console.error('Generate tax document error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to generate tax document.' 
-    );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Generate tax document error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to generate tax document.'));
   }
 }
 
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-
-    // Check if user has permission to view tax documents
-    if (!['admin', 'staff'].includes(payload.role)) {
+    // Get authenticated user from session token
+    const { userId, user } = await getAuthenticatedUser(request);// Check if user has permission to view tax documents
+    if (!['admin', 'staff'].includes(user.roles?.[0])) {
       return ResponseFactory.forbidden('Forbidden: Insufficient permissions.');
     }
 
@@ -288,10 +268,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const country = searchParams.get('country');
     const documentType = searchParams.get('documentType');
 
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
 
     // Get available tax documents
-    const taxDocuments = await convex.query(api.queries.payroll.getTaxDocuments, {});
+    const taxDocuments = await convex.query(api.queries.payroll.getTaxDocuments, {
+      sessionToken: sessionToken || undefined
+    });
 
     return ResponseFactory.success({
       success: true,
@@ -305,10 +288,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       generatedAt: new Date().toISOString()
     });
 
-  } catch (error: any) {
-    console.error('Get tax documents error:', error);
-    return ResponseFactory.internalError(error.message || 'Failed to get tax documents.' 
-    );
+  } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
+    logger.error('Get tax documents error:', error);
+    return ResponseFactory.internalError(getErrorMessage(error, 'Failed to get tax documents.'));
   }
 }
 
@@ -439,9 +424,9 @@ function generateTaxDocumentHTML(data: any): string {
 }
 
 // Helper function to convert tax document to PDF
-async function convertTaxDocumentToPDF(taxDocument: any, requestBody: any): Promise<string> {
+async function convertTaxDocumentToPDF(taxDocument: any, requestBody: any, request: NextRequest): Promise<string> {
   try {
-    const convex = getConvexClient();
+    const convex = getConvexClientFromRequest(request);
     
     // Generate comprehensive tax document data
     const documentData = {
@@ -470,7 +455,7 @@ async function convertTaxDocumentToPDF(taxDocument: any, requestBody: any): Prom
     
     return htmlContent;
   } catch (error) {
-    console.error('Failed to generate payroll report:', error);
+    logger.error('Failed to generate payroll report:', error);
     return JSON.stringify({ error: 'Failed to generate payroll report' });
   }
 }

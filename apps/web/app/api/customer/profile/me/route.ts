@@ -1,15 +1,13 @@
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling, apiErrorHandler } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
+import { withErrorHandling } from '@/lib/errors';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
-import type { JWTPayload } from '@/types/convex-contexts';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { getErrorMessage } from '@/types/errors';
-import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -98,30 +96,21 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cribnosh-dev-secret';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
-    const convex = getConvexClient();
-    const user = await convex.query(api.queries.users.getById, { userId: payload.user_id });
+    const { userId } = await getAuthenticatedCustomer(request);
+    const convex = getConvexClientFromRequest(request);
+    const sessionToken = getSessionTokenFromRequest(request);
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }
-    const { password, sessionToken, sessionExpiry, ...safeUser } = user;
+    const { password, sessionExpiry, ...safeUser } = user;
     
     // Transform address from backend format (zipCode) to frontend format (postal_code)
     if (safeUser.address && safeUser.address.zipCode) {
@@ -134,6 +123,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     
     return ResponseFactory.success({ user: safeUser });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to fetch user.'));
   }
 }
@@ -228,30 +220,16 @@ export const GET = withAPIMiddleware(withErrorHandling(handleGET));
  *       500:
  *         description: Internal server error
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  */
 async function handlePUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseFactory.unauthorized('Missing or invalid Authorization header.');
-    }
-    const token = authHeader.replace('Bearer ', '');
-    let payload: JWTPayload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch {
-      return ResponseFactory.unauthorized('Invalid or expired token.');
-    }
-    if (!payload.roles?.includes('customer')) {
-      return ResponseFactory.forbidden('Forbidden: Only customers can access this endpoint.');
-    }
+    const { userId } = await getAuthenticatedCustomer(request);
     
     const body = await request.json();
     const { name, email, phone, picture, preferences, address } = body;
     
-    const convex = getConvexClient();
-    const userId = payload.user_id;
+    const convex = getConvexClientFromRequest(request);
     
     // Build update object
     const updates: any = {};
@@ -276,19 +254,25 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       };
     }
     
+    const sessionToken = getSessionTokenFromRequest(request);
+    
     // Update user via Convex mutation
     await convex.mutation(api.mutations.users.updateUser, {
       userId: userId as any,
       ...updates,
+      sessionToken: sessionToken || undefined
     });
     
     // Fetch updated user
-    const user = await convex.query(api.queries.users.getById, { userId });
+    const user = await convex.query(api.queries.users.getById, {
+      userId,
+      sessionToken: sessionToken || undefined
+    });
     if (!user) {
       return ResponseFactory.notFound('User not found.');
     }
     
-    const { password, sessionToken, sessionExpiry, ...safeUser } = user;
+    const { password, sessionExpiry, ...safeUser } = user;
     
     // Transform address from backend format (zipCode) to frontend format (postal_code)
     if (safeUser.address && safeUser.address.zipCode) {
@@ -304,6 +288,9 @@ async function handlePUT(request: NextRequest): Promise<NextResponse> {
       message: "Profile updated successfully"
     });
   } catch (error: unknown) {
+    if (isAuthenticationError(error) || isAuthorizationError(error)) {
+      return handleConvexError(error, request);
+    }
     return ResponseFactory.internalError(getErrorMessage(error, 'Failed to update profile.'));
   }
 }

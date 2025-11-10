@@ -1,5 +1,7 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
+import { requireAuth, requireAdmin, isAdmin } from "../utils/auth";
+import { getComplianceIssueById } from "../config/complianceIssues";
 
 export const updateGDPRCompliance = mutation({
   args: {
@@ -28,8 +30,15 @@ export const updateGDPRCompliance = mutation({
       analyticsData: v.string(),
     })),
     modifiedBy: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    if (!isAdmin(user)) {
+      throw new Error('Access denied: Admin access required');
+    }
+    
     const settingId = "gdpr-compliance";
     
     // Check if GDPR compliance setting already exists
@@ -95,8 +104,15 @@ export const updateSecurityCompliance = mutation({
       keyManagement: v.string(),
     })),
     modifiedBy: v.id("users"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    if (!isAdmin(user)) {
+      throw new Error('Access denied: Admin access required');
+    }
+    
     const settingId = "security-compliance";
     
     // Check if security compliance setting already exists
@@ -158,8 +174,12 @@ export const reportSecurityIncident = mutation({
     ),
     affectedUsers: v.optional(v.number()),
     details: v.optional(v.any()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require authentication (any authenticated user can report incidents)
+    await requireAuth(ctx, args.sessionToken);
+    
     await ctx.db.insert("adminActivity", {
       type: "security_incident",
       description: `Security incident reported: ${args.description}`,
@@ -190,8 +210,17 @@ export const processDataRequest = mutation({
       v.literal("completed"),
       v.literal("rejected")
     ),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Users can only process their own data requests unless they're admin
+    if (args.userId !== user._id && !isAdmin(user)) {
+      throw new Error('Access denied');
+    }
+    
     await ctx.db.insert("adminActivity", {
       type: "data_request",
       description: `Data request processed: ${args.description}`,
@@ -210,35 +239,88 @@ export const processDataRequest = mutation({
 export const resolveComplianceIssue = mutation({
   args: {
     issueId: v.string(),
-    resolution: v.string(),
-    resolvedBy: v.string(),
+    resolution: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    // In a real app, this would update the compliance issue in the database
-    console.log("Resolving compliance issue:", {
+    // Require admin authentication
+    const user = await requireAdmin(ctx, args.sessionToken);
+    
+    // Check if issue is already resolved
+    const existingResolution = await ctx.db
+      .query("complianceIssueResolutions")
+      .withIndex("by_issue_id", (q: any) => q.eq("issueId", args.issueId))
+      .filter((q: any) => q.eq(q.field("status"), "resolved"))
+      .first();
+    
+    if (existingResolution) {
+      throw new Error('Issue is already resolved');
+    }
+    
+    // Determine issue type from configuration
+    const issueConfig = getComplianceIssueById(args.issueId);
+    const issueType = issueConfig ? "gdpr" : "gdpr"; // Default to GDPR, can be extended for other types
+    
+    // Create or update resolution record
+    const now = Date.now();
+    const resolutionId = await ctx.db.insert("complianceIssueResolutions", {
       issueId: args.issueId,
-      resolution: args.resolution,
-      resolvedBy: args.resolvedBy,
+      issueType: issueType as "gdpr" | "security" | "data_retention" | "audit_logging",
+      status: "resolved",
+      resolution: args.resolution || (issueConfig ? `Resolved: ${issueConfig.title}` : "Issue resolved by administrator"),
+      resolvedBy: user._id,
+      resolvedAt: now,
+      notes: args.notes,
     });
     
-    return { success: true };
+    // Log the activity
+    await ctx.db.insert("adminActivity", {
+      type: "compliance_issue_resolved",
+      description: `Compliance issue ${args.issueId} resolved`,
+      timestamp: now,
+      userId: user._id,
+      metadata: {
+        entityType: "compliance_issue",
+        entityId: args.issueId,
+        details: {
+          issueId: args.issueId,
+          resolution: args.resolution,
+          notes: args.notes,
+        },
+      },
+    });
+    
+    return { success: true, resolutionId };
   },
 });
 
 export const generateComplianceReport = mutation({
   args: {
     reportType: v.string(),
-    dateRange: v.object({
+    dateRange: v.optional(v.object({
       start: v.number(),
       end: v.number(),
-    }),
+    })),
     format: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
+    // Default date range to last 30 days if not provided
+    const now = Date.now();
+    const defaultDateRange = {
+      start: now - (30 * 24 * 60 * 60 * 1000), // 30 days ago
+      end: now,
+    };
+    const dateRange = args.dateRange || defaultDateRange;
+    
     // In a real app, this would generate a comprehensive compliance report
     console.log("Generating compliance report:", {
       reportType: args.reportType,
-      dateRange: args.dateRange,
+      dateRange: dateRange,
       format: args.format || "pdf",
     });
     
@@ -255,8 +337,12 @@ export const getSecurityLogs = mutation({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     // In a real app, this would fetch security logs from the database
     console.log("Fetching security logs:", args);
     
@@ -291,8 +377,12 @@ export const resolveVulnerability = mutation({
     vulnerabilityId: v.string(),
     resolution: v.string(),
     resolvedBy: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     // In a real app, this would update the vulnerability status
     console.log("Resolving vulnerability:", {
       vulnerabilityId: args.vulnerabilityId,
@@ -309,8 +399,12 @@ export const updateSecurityIncident = mutation({
     incidentId: v.string(),
     status: v.string(),
     notes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     // In a real app, this would update the security incident
     console.log("Updating security incident:", {
       incidentId: args.incidentId,
@@ -330,8 +424,12 @@ export const generateSecurityReport = mutation({
       end: v.number(),
     }),
     format: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
+    
     // In a real app, this would generate a comprehensive security report
     console.log("Generating security report:", {
       reportType: args.reportType,

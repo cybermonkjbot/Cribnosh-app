@@ -3,24 +3,15 @@
 import { GlassNavbar } from "@/components/admin/glass-navbar";
 import { api } from '@/convex/_generated/api';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useMutation, useQuery } from 'convex/react';
 import { Bell } from "lucide-react";
 import { motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { StaffAuthProvider, useStaffAuthContext } from './staff-auth-context';
 
-// Add useHasMounted hook
-function useHasMounted() {
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  return hasMounted;
-}
-
-export default function StaffLayout({
+function StaffLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -29,17 +20,43 @@ export default function StaffLayout({
   const pathname = usePathname();
   const isLoginPage = pathname === "/staff/login";
   const [showNotifications, setShowNotifications] = useState(false);
-  const { staff: staffUser, loading: staffAuthLoading } = useStaffAuth();
+  const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   const userId = staffUser?._id;
   const userRoles = staffUser?.roles;
-  const queryArgs = userId && userRoles ? { userId, roles: userRoles } : 'skip';
-  const staffNotifications = useQuery(api.queries.users.getUserNotifications, queryArgs as any);
+  
+  const queryArgs = staffUser && staffUser._id && sessionToken
+    ? { userId: staffUser._id, roles: staffUser.roles, sessionToken }
+    : "skip";
+  const queryFn = api.queries.users.getUserNotifications as any;
+  const staffNotifications = useQuery(queryFn, queryArgs as any);
   const markNotificationRead = useMutation(api.mutations.users.markNotificationRead);
+  
+  // Helper to mark notification as read with session token
+  const handleMarkNotificationRead = async (notificationId: any) => {
+    if (!sessionToken) return;
+    await markNotificationRead({ 
+      notificationId, 
+      sessionToken 
+    });
+  };
   const unreadCount = staffNotifications?.filter((n: any) => !n.read).length || 0;
   const { isMobile } = useMobileDevice();
-  const hasMounted = useHasMounted();
 
-  if (!hasMounted) return null;
+  // All hooks must be called before any conditional returns (Rules of Hooks)
+  // If user data is not available after loading, redirect to login
+  // This handles edge cases where middleware might have missed something
+  useEffect(() => {
+    if (!isLoginPage && !staffAuthLoading && !staffUser) {
+      router.replace('/staff/login');
+    }
+  }, [isLoginPage, staffAuthLoading, staffUser, router]);
+
+  // If account is inactive, redirect to login
+  useEffect(() => {
+    if (!isLoginPage && staffUser && staffUser.status && staffUser.status !== 'active') {
+      router.replace('/staff/login');
+    }
+  }, [isLoginPage, staffUser, router]);
 
   const handleLogout = async () => {
     try {
@@ -53,20 +70,40 @@ export default function StaffLayout({
     }
   };
 
-  // Determine environment for indicator
-  const isProduction = process.env.NODE_ENV === 'production';
-  const envLabel = isProduction ? 'Production' : 'Development';
-  const envColor = isProduction ? 'bg-green-500' : 'bg-yellow-400';
-  const envText = isProduction ? 'text-green-700' : 'text-yellow-700';
-
+  // Early return for login page (after all hooks are called)
   if (isLoginPage) {
     return <>{children}</>;
   }
 
-  // No client-side session check needed; middleware handles auth
+  // Authentication is handled server-side by middleware (proxy.ts)
+  // Middleware validates session token and redirects unauthenticated users to login
+  // If we reach this point, the user is authenticated (middleware verified)
+  // We only need to wait for user data to load, then redirect if account is inactive
+  
+  // Show loading state while fetching user data
+  if (staffAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white/95 backdrop-blur-sm">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F23E2E] mx-auto mb-4"></div>
+          <p className="text-gray-600 font-satoshi">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user data is not available, don't render (redirect is in progress)
+  if (!staffUser) {
+    return null;
+  }
+
+  // If account is inactive, don't render (redirect is in progress)
+  if (staffUser.status && staffUser.status !== 'active') {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
+    <div className="min-h-screen bg-white/95 backdrop-blur-sm">
       {/* Enhanced Navbar */}
       <motion.div
         initial={{ y: -100 }}
@@ -98,7 +135,7 @@ export default function StaffLayout({
       {/* Notifications Modal */}
       {showNotifications && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-amber-200 relative">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-200/60 relative">
             <button
               onClick={() => setShowNotifications(false)}
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-2xl font-bold"
@@ -107,7 +144,7 @@ export default function StaffLayout({
               ×
             </button>
             <h2 className="text-xl font-bold font-asgard text-gray-900 mb-4 flex items-center gap-2">
-              <Bell className="w-6 h-6 text-amber-600" /> Notifications
+              <Bell className="w-6 h-6 text-[#F23E2E]" /> Notifications
             </h2>
             {(!staffNotifications || staffNotifications.length === 0) ? (
               <p className="text-gray-700 font-satoshi">No notifications.</p>
@@ -118,12 +155,12 @@ export default function StaffLayout({
                     key={notification._id}
                     className={`flex items-center justify-between p-4 rounded-xl border font-satoshi ${
                       notification.type === 'success'
-                        ? 'bg-green-100 border-green-300 text-green-800'
+                        ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
                         : notification.type === 'warning'
-                        ? 'bg-amber-100 border-amber-300 text-amber-800'
+                        ? 'bg-gray-100 border-gray-300 text-gray-800'
                         : notification.type === 'error'
-                        ? 'bg-red-100 border-red-300 text-red-800'
-                        : 'bg-blue-100 border-blue-300 text-blue-800'
+                        ? 'bg-gray-100 border-gray-300 text-gray-800'
+                        : 'bg-gray-100 border-gray-300 text-gray-800'
                     }`}
                   >
                     <div className="flex-1">
@@ -132,8 +169,8 @@ export default function StaffLayout({
                     </div>
                     {!notification.read && (
                       <button
-                        onClick={async () => await markNotificationRead({ notificationId: notification._id })}
-                        className="ml-4 text-xs text-amber-700 hover:text-amber-900 underline"
+                        onClick={async () => await handleMarkNotificationRead(notification._id)}
+                        className="ml-4 text-xs text-[#F23E2E] hover:text-[#ed1d12] underline"
                         aria-label="Mark as read"
                       >
                         Mark as read
@@ -146,23 +183,18 @@ export default function StaffLayout({
           </div>
         </div>
       )}
-
-      {/* Staff Status Indicator - Glassmorphism for key component */}
-      {!isMobile && (
-        <motion.div
-          initial={{ opacity: 0, x: 100 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="fixed top-20 right-4 z-40"
-        >
-          <div className="bg-white/80 backdrop-blur-lg rounded-xl p-3 border border-white/20 shadow-lg">
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full animate-pulse ${envColor}`}></div>
-              <span className={`text-xs font-medium font-satoshi ${envText}`}>{envLabel} Mode</span>
-            </div>
-          </div>
-        </motion.div>
-      )}
     </div>
+  );
+}
+
+export default function StaffLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <StaffAuthProvider>
+      <StaffLayoutContent>{children}</StaffLayoutContent>
+    </StaffAuthProvider>
   );
 } 
