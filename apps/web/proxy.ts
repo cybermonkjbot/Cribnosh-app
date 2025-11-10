@@ -55,21 +55,37 @@ export async function proxy(request: NextRequest) {
         ((isUK && isCom) || (!isUK && isCoUk)) && 
         !pathname.startsWith('/api/session/handoff')) {
       
-      // Construct URL explicitly to avoid localhost:3000 issues
-      const targetHost = isUK ? 'cribnosh.co.uk' : 'cribnosh.com';
-      const url = new URL(`https://${targetHost}${pathname}${request.nextUrl.search}`);
+      try {
+        // Construct URL explicitly to avoid localhost:3000 issues
+        const targetHost = isUK ? 'cribnosh.co.uk' : 'cribnosh.com';
+        // Ensure pathname is properly encoded and safe
+        const safePathname = pathname || '/';
+        const safeSearch = request.nextUrl.search || '';
+        const url = new URL(`https://${targetHost}${safePathname}${safeSearch}`);
 
+        // Session continuity: pass short‑lived transfer token via query and point to handoff endpoint
+        const sessionToken = request.cookies.get('convex-auth-token')?.value;
+        if (sessionToken) {
+          try {
+            const xfer = await createSessionTransferToken(sessionToken);
+            url.pathname = '/api/session/handoff';
+            url.searchParams.set('xfer', xfer);
+            // Encode the next path properly
+            const nextPath = safePathname + safeSearch;
+            url.searchParams.set('next', nextPath);
+          } catch (error) {
+            // If session transfer fails, redirect without session (user will need to log in again)
+            console.error('Failed to create session transfer token:', error);
+            // Continue with redirect without session handoff
+          }
+        }
 
-      // Session continuity: pass short‑lived transfer token via query and point to handoff endpoint
-      const sessionToken = request.cookies.get('convex-auth-token')?.value;
-      if (sessionToken) {
-        const xfer = await createSessionTransferToken(sessionToken);
-        url.pathname = '/api/session/handoff';
-        url.searchParams.set('xfer', xfer);
-        url.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
+        return NextResponse.redirect(url, { status: 307 });
+      } catch (error) {
+        // If URL construction fails, log and continue without redirect
+        console.error('Failed to construct redirect URL:', error);
+        // Fall through to normal request handling
       }
-
-      return NextResponse.redirect(url, { status: 307 });
     }
   }
 

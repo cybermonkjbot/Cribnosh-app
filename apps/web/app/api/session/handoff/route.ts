@@ -56,13 +56,52 @@ export async function GET(req: NextRequest) {
 
   // Redirect to intended next path on this domain
   const next = req.nextUrl.searchParams.get('next') || '/';
-  const url = new URL(next, `${req.nextUrl.protocol}//${req.nextUrl.host}`);
   
-  // Ensure we're redirecting to the correct domain based on country
-  // This prevents redirect loops by ensuring the handoff completes the domain switch
-  logger.log('Session handoff redirecting to:', url.toString());
+  // Get the hostname from the request, ensuring we use the actual domain
+  const hostname = req.headers.get('host') || req.nextUrl.host;
+  // Remove port if present (e.g., localhost:3000)
+  const cleanHost = hostname.split(':')[0];
   
-  return NextResponse.redirect(url, { status: 302 });
+  try {
+    // Construct URL explicitly to avoid localhost:3000 issues
+    // If next is a relative path, construct absolute URL
+    let url: URL;
+    if (next.startsWith('http://') || next.startsWith('https://')) {
+      // Already absolute, but ensure it's on the correct domain
+      url = new URL(next);
+      // If it's localhost, replace with the actual host
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        url.hostname = cleanHost;
+        url.protocol = 'https:';
+        url.port = '';
+      }
+    } else {
+      // Relative path, construct absolute URL
+      const protocol = req.nextUrl.protocol === 'http:' && !hostname.includes('localhost') ? 'https:' : req.nextUrl.protocol;
+      url = new URL(next, `${protocol}//${cleanHost}`);
+    }
+    
+    // Ensure we're redirecting to the correct domain based on country
+    // This prevents redirect loops by ensuring the handoff completes the domain switch
+    logger.log('Session handoff redirecting to:', url.toString());
+    
+    return NextResponse.redirect(url, { status: 302 });
+  } catch (error) {
+    logger.log('Error constructing redirect URL in session handoff:', error);
+    // Fallback: redirect to home page on the current domain
+    try {
+      // Try to use the clean host
+      const fallbackUrl = new URL(`https://${cleanHost}/`);
+      return NextResponse.redirect(fallbackUrl, { status: 302 });
+    } catch (fallbackError) {
+      // If even the fallback fails, use a safe default
+      logger.log('Fallback redirect also failed:', fallbackError);
+      // Use a hardcoded safe domain as last resort
+      const safeHost = cleanHost.includes('cribnosh.co.uk') ? 'cribnosh.co.uk' : 'cribnosh.com';
+      const safeUrl = new URL(`https://${safeHost}/`);
+      return NextResponse.redirect(safeUrl, { status: 302 });
+    }
+  }
 }
 
 
