@@ -2,6 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/conxed-client';
 import { ErrorCode, ErrorFactory } from '@/lib/errors';
 import { MonitoringService } from '@/lib/monitoring/monitoring.service';
+import { calculateEcoImpact } from '@/lib/utils/ecoImpact';
 import { dispatchToProvider } from '../providers/dispatch';
 import { DishRecommendation, EmotionsEngineRequest, EmotionsEngineResponse, Provider } from '../types';
 import { chooseProvider } from './providerSelection';
@@ -152,7 +153,6 @@ async function lookupDishes(
         let ecoImpact: string | undefined;
         if (filters?.tag === 'too-fresh') {
           try {
-            const { calculateEcoImpact } = require('../../../../packages/convex/utils/ecoImpact');
             const category = meal.category || meal.tags?.[0] || 'Other';
             const impact = calculateEcoImpact(category, 1);
             ecoImpact = impact.formatted;
@@ -292,8 +292,6 @@ export async function runInference(
         let ecoImpact: string | undefined;
         if (filters.tag === 'too-fresh') {
           try {
-            // Import eco impact calculation utility
-            const { calculateEcoImpact } = require('../../../../packages/convex/utils/ecoImpact');
             const category = meal.category || meal.tags?.[0] || 'Other';
             const impact = calculateEcoImpact(category, 1);
             ecoImpact = impact.formatted;

@@ -471,7 +471,6 @@ export default function AdminSystem() {
         </div>
       </motion.div>
     </div>
-    </div>
   );
 }
 

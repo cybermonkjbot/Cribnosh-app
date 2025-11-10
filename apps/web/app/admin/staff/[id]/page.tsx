@@ -106,7 +106,7 @@ export default function AdminStaffDetailPage() {
           })}
         </div>
       </section>
-    </main>
+    </div>
   );
 }
 
