@@ -390,7 +390,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <MultiStepLoader loading={loading} />
       {/* CSS Variables for responsive design */}
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         :root {
           --viewport-height: ${viewportHeight};
           --safe-area-top: ${safeAreaTop};
@@ -605,7 +605,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           padding-left: env(safe-area-inset-left);
           padding-right: env(safe-area-inset-right);
         }
-      `}</style>
+      `}} />
 
       {/* Main Layout Structure */}
       <div>

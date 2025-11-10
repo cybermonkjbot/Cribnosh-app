@@ -246,14 +246,13 @@ export default function WaitlistDetail() {
     return (
       <div className="container mx-auto py-6 space-y-[18px]">
         <div className="text-center py-12">
-            <ClipboardList className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Entry Not Found</h2>
-            <p className="text-gray-600 mb-4">The waitlist entry you're looking for doesn't exist.</p>
-            <Button onClick={() => router.push('/admin/waitlist')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Waitlist
-            </Button>
-          </div>
+          <ClipboardList className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Entry Not Found</h2>
+          <p className="text-gray-600 mb-4">The waitlist entry you're looking for doesn't exist.</p>
+          <Button onClick={() => router.push('/admin/waitlist')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Waitlist
+          </Button>
         </div>
       </div>
     );

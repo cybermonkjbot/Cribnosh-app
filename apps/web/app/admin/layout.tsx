@@ -118,11 +118,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
+              className="pt-20 sm:pt-24 lg:pt-0"
             >
-              {/* Main content, with responsive top padding */}
-              <main className="pt-20 sm:pt-24 lg:pt-0">
-                {children}
-              </main>
+              {children}
             </motion.div>
           </main>
         </div>

@@ -689,6 +689,91 @@
         }
       }
     },
+    "/api/weather": {
+      "get": {
+        "summary": "Get Weather Data by Location",
+        "description": "Get current weather conditions for a given latitude and longitude",
+        "tags": [
+          "Weather"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "latitude",
+            "required": true,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Latitude coordinate",
+            "example": 51.5074
+          },
+          {
+            "in": "query",
+            "name": "longitude",
+            "required": true,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Longitude coordinate",
+            "example": -0.1278
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Weather data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "condition": {
+                          "type": "string",
+                          "example": "sunny"
+                        },
+                        "temperature": {
+                          "type": "number",
+                          "example": 22
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Clear sky"
+                        },
+                        "humidity": {
+                          "type": "number",
+                          "example": 65
+                        },
+                        "windSpeed": {
+                          "type": "number",
+                          "example": 15
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error - missing latitude or longitude"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/waitlist": {
       "get": {
         "summary": "Get Waitlist Entries (Admin)",
@@ -892,7 +977,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -1010,6 +1095,109 @@
         }
       }
     },
+    "/users/{id}": {
+      "get": {
+        "summary": "Get User by ID",
+        "description": "Retrieve user information by ID. Users can access their own data, and drivers can access customer data for their orders.",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Unique identifier of the user",
+            "example": "j1234567890abcdef"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "description": "User profile (excluding sensitive fields)",
+                          "properties": {
+                            "_id": {
+                              "type": "string",
+                              "description": "User ID",
+                              "example": "j1234567890abcdef"
+                            },
+                            "email": {
+                              "type": "string",
+                              "format": "email",
+                              "example": "user@example.com"
+                            },
+                            "fullName": {
+                              "type": "string",
+                              "example": "John Doe"
+                            },
+                            "phone": {
+                              "type": "string",
+                              "example": "+1234567890"
+                            },
+                            "roles": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "example": [
+                                "customer"
+                              ]
+                            },
+                            "_creationTime": {
+                              "type": "number",
+                              "description": "Account creation timestamp",
+                              "example": 1640995200000
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication"
+          },
+          "403": {
+            "description": "Forbidden - user not authorized to access this data"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/upload-avatar": {
       "post": {
         "summary": "Upload User Avatar",
@@ -1116,7 +1304,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -1221,7 +1409,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           },
           {
             "cookieAuth": []
@@ -1391,7 +1579,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -1994,7 +2182,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "requestBody": {
@@ -3526,6 +3714,44 @@
         "security": []
       }
     },
+    "/api/security/reports/{...path}": {
+      "get": {
+        "summary": "GET /api/security/reports/{...path}",
+        "description": "Handle GET requests to /api/security/reports/{...path}",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/reviews": {
       "get": {
         "summary": "Get All Reviews",
@@ -3674,7 +3900,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -4295,9 +4521,123 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
+      }
+    },
+    "/api/reports/time-tracking/{reportId}": {
+      "get": {
+        "summary": "GET /api/reports/time-tracking/{reportId}",
+        "description": "Handle GET requests to /api/reports/time-tracking/{reportId}",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{reportId}/download": {
+      "get": {
+        "summary": "GET /api/reports/{reportId}/download",
+        "description": "Handle GET requests to /api/reports/{reportId}/download",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payroll/tax-documents/{documentId}/download": {
+      "get": {
+        "summary": "GET /api/payroll/tax-documents/{documentId}/download",
+        "description": "Handle GET requests to /api/payroll/tax-documents/{documentId}/download",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/payments/status": {
@@ -4516,7 +4856,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -4659,7 +4999,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -4851,7 +5191,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -5040,7 +5380,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -5180,7 +5520,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -5256,7 +5596,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -5393,7 +5733,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -5582,7 +5922,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -5670,7 +6010,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -5746,7 +6086,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -5907,7 +6247,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -6097,7 +6437,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -6279,7 +6619,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -6455,7 +6795,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -6609,7 +6949,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -6760,7 +7100,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -6913,7 +7253,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -7099,7 +7439,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -7347,7 +7687,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -7538,7 +7878,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -7721,7 +8061,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -7905,7 +8245,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -8075,7 +8415,118 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/orders/{id}/status": {
+      "post": {
+        "summary": "Update Order/Delivery Status",
+        "description": "Update the delivery status of an order (picked_up, in_transit, delivered). Only drivers can update status.",
+        "tags": [
+          "Driver",
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the order to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "picked_up",
+                      "in_transit",
+                      "delivered"
+                    ],
+                    "description": "New delivery status"
+                  },
+                  "location": {
+                    "type": "object",
+                    "description": "Current driver location",
+                    "properties": {
+                      "latitude": {
+                        "type": "number"
+                      },
+                      "longitude": {
+                        "type": "number"
+                      },
+                      "accuracy": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Optional notes about the status update"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "assignment": {
+                          "type": "object",
+                          "description": "Updated assignment details"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid status or order cannot be updated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can update order status"
+          },
+          "404": {
+            "description": "Order or assignment not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
           }
         ]
       }
@@ -8256,7 +8707,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -8431,7 +8882,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -8533,7 +8984,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -8611,7 +9062,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -8679,7 +9130,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -8694,7 +9145,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "requestBody": {
@@ -8859,7 +9310,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "requestBody": {
@@ -8977,7 +9428,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "requestBody": {
@@ -9078,7 +9529,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "responses": {
@@ -9394,7 +9845,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -9562,7 +10013,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -9619,7 +10070,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -9767,7 +10218,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -10028,7 +10479,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -10415,7 +10866,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "requestBody": {
@@ -10517,7 +10968,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -10610,7 +11061,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -10878,7 +11329,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -11098,7 +11549,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -11414,7 +11865,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -12009,7 +12460,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -12083,7 +12534,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -12512,7 +12963,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -13036,7 +13487,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -13308,7 +13759,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -13588,7 +14039,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -13949,7 +14400,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -14323,7 +14774,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -14511,7 +14962,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -14634,7 +15085,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -14837,7 +15288,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -14954,6 +15405,214 @@
                 }
               }
             }
+          }
+        },
+        "security": []
+      }
+    },
+    "/legal/terms-of-service": {
+      "get": {
+        "summary": "Get Terms of Service",
+        "description": "Get the terms of service content for the platform",
+        "tags": [
+          "Legal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Terms of service retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "example": "Terms of Service"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "Formatted HTML or markdown content"
+                        },
+                        "lastUpdated": {
+                          "type": "number",
+                          "description": "Last update timestamp"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": []
+      }
+    },
+    "/legal/refund-policy": {
+      "get": {
+        "summary": "Get Refund Policy",
+        "description": "Get the refund policy content for the platform",
+        "tags": [
+          "Legal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Refund policy retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "example": "Refund Policy"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "Formatted HTML or markdown content"
+                        },
+                        "lastUpdated": {
+                          "type": "number",
+                          "description": "Last update timestamp"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": []
+      }
+    },
+    "/legal/privacy-policy": {
+      "get": {
+        "summary": "Get Privacy Policy",
+        "description": "Get the privacy policy content for the platform",
+        "tags": [
+          "Legal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Privacy policy retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "example": "Privacy Policy"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "Formatted HTML or markdown content"
+                        },
+                        "lastUpdated": {
+                          "type": "number",
+                          "description": "Last update timestamp"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": []
+      }
+    },
+    "/legal/community-guidelines": {
+      "get": {
+        "summary": "Get Community Guidelines",
+        "description": "Get the community guidelines content for the platform",
+        "tags": [
+          "Legal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Community guidelines retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "example": "Community Guidelines"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "Formatted HTML or markdown content"
+                        },
+                        "lastUpdated": {
+                          "type": "number",
+                          "description": "Last update timestamp"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
           }
         },
         "security": []
@@ -15240,7 +15899,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -15372,7 +16031,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -15656,6 +16315,75 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/help/faqs": {
+      "get": {
+        "summary": "Get Help FAQs",
+        "description": "Get frequently asked questions and help content",
+        "tags": [
+          "Help"
+        ],
+        "responses": {
+          "200": {
+            "description": "FAQs retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "categories": {
+                          "type": "array",
+                          "description": "Categorized FAQ items",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "category": {
+                                "type": "string",
+                                "example": "Getting Started"
+                              },
+                              "questions": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "question": {
+                                      "type": "string",
+                                      "example": "How do I create an account?"
+                                    },
+                                    "answer": {
+                                      "type": "string",
+                                      "example": "You can create an account by..."
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": []
       }
     },
     "/health": {
@@ -16569,7 +17297,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -17226,7 +17954,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -17799,7 +18527,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -17986,7 +18714,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -18214,7 +18942,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -19175,11 +19903,229 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
     },
+    "/files/upload-url": {
+      "post": {
+        "summary": "Generate File Upload URL",
+        "description": "Generate a presigned upload URL for file uploads. Returns a URL that can be used to upload files directly to Convex storage.",
+        "tags": [
+          "Files"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fileName",
+                  "contentType"
+                ],
+                "properties": {
+                  "fileName": {
+                    "type": "string",
+                    "description": "Name of the file to upload",
+                    "example": "document.pdf"
+                  },
+                  "contentType": {
+                    "type": "string",
+                    "description": "MIME type of the file",
+                    "example": "application/pdf"
+                  },
+                  "fileSize": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Size of the file in bytes",
+                    "example": 1024000
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "nullable": true,
+                    "description": "Additional file metadata"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "description": "Presigned upload URL",
+                          "example": "https://convex-storage.example.com/upload/..."
+                        },
+                        "objectKey": {
+                          "type": "string",
+                          "description": "Unique object key for the file",
+                          "example": "files/u1234567890abcdef/uuid-document.pdf"
+                        },
+                        "storageType": {
+                          "type": "string",
+                          "description": "Storage provider type",
+                          "example": "convex"
+                        },
+                        "expiresAt": {
+                          "type": "number",
+                          "description": "URL expiration timestamp",
+                          "example": 1640995200000
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing fileName or contentType"
+          },
+          "401": {
+            "description": "Unauthorized - authentication required"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/files/confirm-upload": {
+      "post": {
+        "summary": "Confirm File Upload",
+        "description": "Confirm that a file upload has been completed and update the file record status. This should be called after uploading a file to the upload URL.",
+        "tags": [
+          "Files"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "storageId",
+                  "fileName",
+                  "contentType"
+                ],
+                "properties": {
+                  "storageId": {
+                    "type": "string",
+                    "description": "Storage ID returned from the upload response",
+                    "example": "k1234567890abcdef"
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "description": "Name of the uploaded file",
+                    "example": "document.pdf"
+                  },
+                  "contentType": {
+                    "type": "string",
+                    "description": "MIME type of the file",
+                    "example": "application/pdf"
+                  },
+                  "fileSize": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Size of the file in bytes",
+                    "example": 1024000
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "nullable": true,
+                    "description": "Additional file metadata"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File upload confirmed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "fileId": {
+                          "type": "string",
+                          "description": "File record ID",
+                          "example": "k1234567890abcdef"
+                        },
+                        "fileUrl": {
+                          "type": "string",
+                          "description": "URL to access the file",
+                          "example": "/api/files/k1234567890abcdef"
+                        },
+                        "storageId": {
+                          "type": "string",
+                          "description": "Storage ID",
+                          "example": "k1234567890abcdef"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing required fields"
+          },
+          "401": {
+            "description": "Unauthorized - authentication required"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/files/{storageId}": {},
     "/emotions-engine": {
       "post": {
         "summary": "Emotions Engine Processing",
@@ -19541,6 +20487,1530 @@
         "security": []
       }
     },
+    "/api/driver/vehicles/years": {
+      "get": {
+        "summary": "Get Vehicle Years",
+        "description": "Get available vehicle years (last 30 years)",
+        "tags": [
+          "Driver"
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicle years retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "2024"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "2024"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/driver/vehicles/types": {
+      "get": {
+        "summary": "Get Vehicle Types",
+        "description": "Get all available vehicle types for driver registration",
+        "tags": [
+          "Driver"
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicle types retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "car"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Car"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/driver/vehicles/models": {
+      "get": {
+        "summary": "Get Vehicle Models",
+        "description": "Get vehicle models for a specific vehicle type",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "vehicleType",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Vehicle type (car, motorcycle, bicycle, scooter, van, truck)",
+            "example": "car"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicle models retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "toyota-corolla"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Toyota Corolla"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - vehicleType is required"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/driver/register": {
+      "post": {
+        "summary": "Register Driver",
+        "description": "Register a new driver with complete profile information",
+        "tags": [
+          "Driver"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "firstName",
+                  "lastName",
+                  "email",
+                  "phoneNumber",
+                  "vehicleType",
+                  "vehicleModel",
+                  "vehicleYear",
+                  "licensePlate",
+                  "driversLicense",
+                  "vehicleRegistration",
+                  "insurance",
+                  "bankName",
+                  "bankCode",
+                  "accountNumber",
+                  "accountName"
+                ],
+                "properties": {
+                  "sessionToken": {
+                    "type": "string",
+                    "description": "Optional session token for authenticated users"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "John"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john.doe@example.com"
+                  },
+                  "phoneNumber": {
+                    "type": "string",
+                    "example": "+44 7123 456789"
+                  },
+                  "vehicleType": {
+                    "type": "string",
+                    "example": "Car"
+                  },
+                  "vehicleModel": {
+                    "type": "string",
+                    "example": "Toyota Corolla"
+                  },
+                  "vehicleYear": {
+                    "type": "string",
+                    "example": "2020"
+                  },
+                  "licensePlate": {
+                    "type": "string",
+                    "example": "AB12 CDE"
+                  },
+                  "driversLicense": {
+                    "type": "string",
+                    "description": "URL or file ID of driver's license document"
+                  },
+                  "driversLicenseFileId": {
+                    "type": "string",
+                    "description": "Optional file ID for driver's license"
+                  },
+                  "vehicleRegistration": {
+                    "type": "string",
+                    "description": "URL or file ID of vehicle registration document"
+                  },
+                  "vehicleRegistrationFileId": {
+                    "type": "string",
+                    "description": "Optional file ID for vehicle registration"
+                  },
+                  "insurance": {
+                    "type": "string",
+                    "description": "URL or file ID of insurance document"
+                  },
+                  "insuranceFileId": {
+                    "type": "string",
+                    "description": "Optional file ID for insurance"
+                  },
+                  "bankName": {
+                    "type": "string",
+                    "example": "HSBC"
+                  },
+                  "bankCode": {
+                    "type": "string",
+                    "example": "000004"
+                  },
+                  "accountNumber": {
+                    "type": "string",
+                    "example": "1234567890"
+                  },
+                  "accountName": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "workType": {
+                    "type": "string",
+                    "enum": [
+                      "independent",
+                      "supplier"
+                    ],
+                    "example": "independent"
+                  },
+                  "supplierId": {
+                    "type": "string",
+                    "description": "Required if workType is 'supplier'"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Driver registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "driverId": {
+                          "type": "string",
+                          "example": "j1234567890abcdef"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": "j0987654321fedcba"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "409": {
+            "description": "Driver with this email already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/driver/profile/me": {
+      "get": {
+        "summary": "Get Driver Profile",
+        "description": "Get the current driver's profile information (user + driver profile combined)",
+        "tags": [
+          "Driver"
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "description": "User profile (excluding sensitive fields)"
+                        },
+                        "driver": {
+                          "type": "object",
+                          "description": "Driver profile",
+                          "properties": {
+                            "_id": {
+                              "type": "string",
+                              "description": "Driver ID"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "vehicle": {
+                              "type": "string"
+                            },
+                            "vehicleType": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "availability": {
+                              "type": "string"
+                            },
+                            "rating": {
+                              "type": "number"
+                            },
+                            "totalDeliveries": {
+                              "type": "number"
+                            },
+                            "totalEarnings": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can access this endpoint"
+          },
+          "404": {
+            "description": "Driver profile not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/performance/analytics": {
+      "get": {
+        "summary": "Get Driver Performance Analytics",
+        "description": "Get performance analytics for the current driver including efficiency, safety, and customer metrics",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "metricType",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "efficiency",
+                "safety",
+                "customer"
+              ]
+            },
+            "description": "Type of metric to retrieve"
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "90d"
+              ]
+            },
+            "description": "Time period for analytics",
+            "default": "30d"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Performance analytics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "score": {
+                          "type": "number",
+                          "description": "Overall performance score"
+                        },
+                        "trend": {
+                          "type": "number",
+                          "description": "Trend percentage (positive or negative)"
+                        },
+                        "ordersCompleted": {
+                          "type": "number",
+                          "description": "Number of orders completed"
+                        },
+                        "averageRating": {
+                          "type": "number",
+                          "description": "Average customer rating"
+                        },
+                        "completionRate": {
+                          "type": "number",
+                          "description": "Order completion rate percentage"
+                        },
+                        "onTimeDeliveryRate": {
+                          "type": "number",
+                          "description": "On-time delivery rate percentage"
+                        },
+                        "customerFeedbackCount": {
+                          "type": "number",
+                          "description": "Number of customer feedback entries"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can access this endpoint"
+          },
+          "404": {
+            "description": "Driver profile not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/payouts/request": {
+      "post": {
+        "summary": "Request Payout",
+        "description": "Request a payout for the current driver. Validates bank details and creates a payout request.",
+        "tags": [
+          "Driver"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount",
+                  "bankDetails"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "description": "Amount to request for payout",
+                    "example": 150.5
+                  },
+                  "bankDetails": {
+                    "type": "object",
+                    "required": [
+                      "accountNumber",
+                      "bankName",
+                      "accountName"
+                    ],
+                    "properties": {
+                      "accountNumber": {
+                        "type": "string",
+                        "description": "Bank account number"
+                      },
+                      "bankName": {
+                        "type": "string",
+                        "description": "Bank name"
+                      },
+                      "accountName": {
+                        "type": "string",
+                        "description": "Account holder name"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payout request submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "payoutId": {
+                          "type": "string",
+                          "description": "Payout request ID"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Payout request submitted successfully"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error - invalid amount or bank details"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can request payouts"
+          },
+          "404": {
+            "description": "Driver profile not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/payouts/history": {
+      "get": {
+        "summary": "Get Driver Payout History",
+        "description": "Get paginated list of payout requests and their statuses for the current driver",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of payouts to return"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Number of payouts to skip"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "processing",
+                "completed",
+                "failed",
+                "cancelled"
+              ]
+            },
+            "description": "Filter payouts by status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payout history retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "payouts": {
+                          "type": "array",
+                          "description": "Array of payout requests",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "_id": {
+                                "type": "string",
+                                "description": "Payout request ID"
+                              },
+                              "amount": {
+                                "type": "number",
+                                "description": "Payout amount"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "processing",
+                                  "completed",
+                                  "failed",
+                                  "cancelled"
+                                ],
+                                "description": "Payout status"
+                              },
+                              "requestedAt": {
+                                "type": "number",
+                                "description": "Request timestamp"
+                              },
+                              "processedAt": {
+                                "type": "number",
+                                "nullable": true,
+                                "description": "Processing completion timestamp"
+                              },
+                              "bankDetails": {
+                                "type": "object",
+                                "description": "Bank account details"
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of payouts"
+                        },
+                        "limit": {
+                          "type": "number"
+                        },
+                        "offset": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can access this endpoint"
+          },
+          "404": {
+            "description": "Driver profile not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/orders": {
+      "get": {
+        "summary": "Get Driver Orders",
+        "description": "Get paginated list of orders assigned to the current driver",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of orders to return"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Number of orders to skip"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "assigned",
+                "accepted",
+                "picked_up",
+                "in_transit",
+                "delivered",
+                "failed",
+                "cancelled"
+              ]
+            },
+            "description": "Filter orders by assignment status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "orders": {
+                          "type": "array",
+                          "description": "Array of driver orders with assignment details"
+                        },
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of orders"
+                        },
+                        "limit": {
+                          "type": "number"
+                        },
+                        "offset": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can access this endpoint"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/orders/{id}": {
+      "get": {
+        "summary": "Get Driver Order Details",
+        "description": "Get detailed information about a specific order assigned to the driver",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the order to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "order": {
+                          "type": "object",
+                          "description": "Order details"
+                        },
+                        "assignment": {
+                          "type": "object",
+                          "description": "Delivery assignment details"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can access this endpoint"
+          },
+          "404": {
+            "description": "Order or assignment not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/orders/{id}/decline": {
+      "post": {
+        "summary": "Decline Order Assignment",
+        "description": "Decline a delivery assignment for the current driver",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the order to decline"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order declined successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "assignment": {
+                          "type": "object",
+                          "description": "Updated assignment details"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - order cannot be declined"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can decline orders"
+          },
+          "404": {
+            "description": "Order or assignment not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/orders/{id}/accept": {
+      "post": {
+        "summary": "Accept Order Assignment",
+        "description": "Accept a delivery assignment for the current driver",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the order to accept"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order accepted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "assignment": {
+                          "type": "object",
+                          "description": "Updated assignment details"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - order cannot be accepted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can accept orders"
+          },
+          "404": {
+            "description": "Order or assignment not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/earnings": {
+      "get": {
+        "summary": "Get Driver Earnings",
+        "description": "Get earnings for the current driver with optional date range",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "startDate",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Start date timestamp (Unix timestamp in milliseconds)"
+          },
+          {
+            "in": "query",
+            "name": "endDate",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "End date timestamp (Unix timestamp in milliseconds)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Earnings retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "earnings": {
+                          "type": "object",
+                          "properties": {
+                            "totalEarnings": {
+                              "type": "number",
+                              "description": "Total earnings in the period"
+                            },
+                            "completedDeliveries": {
+                              "type": "number",
+                              "description": "Number of completed deliveries"
+                            },
+                            "dailyEarnings": {
+                              "type": "object",
+                              "description": "Earnings grouped by day"
+                            },
+                            "weeklyEarnings": {
+                              "type": "object",
+                              "description": "Earnings grouped by week"
+                            },
+                            "monthlyEarnings": {
+                              "type": "object",
+                              "description": "Earnings grouped by month"
+                            },
+                            "period": {
+                              "type": "object",
+                              "properties": {
+                                "startDate": {
+                                  "type": "number"
+                                },
+                                "endDate": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can access this endpoint"
+          },
+          "404": {
+            "description": "Driver profile not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/earnings/advanced": {
+      "get": {
+        "summary": "Get Advanced Driver Earnings",
+        "description": "Get detailed earnings breakdown including tips, bonuses, incentives, goals, and performance metrics",
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "90d",
+                "all"
+              ]
+            },
+            "description": "Time period for earnings",
+            "default": "30d"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Advanced earnings retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total_earnings": {
+                          "type": "number",
+                          "description": "Total earnings in the period"
+                        },
+                        "weekly_earnings": {
+                          "type": "number",
+                          "description": "Weekly earnings"
+                        },
+                        "monthly_earnings": {
+                          "type": "number",
+                          "description": "Monthly earnings"
+                        },
+                        "earnings_breakdown": {
+                          "type": "object",
+                          "properties": {
+                            "base_earnings": {
+                              "type": "number",
+                              "description": "Base delivery earnings"
+                            },
+                            "tips": {
+                              "type": "number",
+                              "description": "Tips received"
+                            },
+                            "bonuses": {
+                              "type": "number",
+                              "description": "Bonuses earned"
+                            },
+                            "incentives": {
+                              "type": "number",
+                              "description": "Incentives earned"
+                            }
+                          }
+                        },
+                        "earnings_trend": {
+                          "type": "number",
+                          "description": "Earnings trend percentage (positive or negative)"
+                        },
+                        "goals": {
+                          "type": "object",
+                          "properties": {
+                            "weekly_target": {
+                              "type": "number",
+                              "description": "Weekly earnings target"
+                            },
+                            "monthly_target": {
+                              "type": "number",
+                              "description": "Monthly earnings target"
+                            },
+                            "weekly_progress": {
+                              "type": "number",
+                              "description": "Weekly progress percentage"
+                            },
+                            "monthly_progress": {
+                              "type": "number",
+                              "description": "Monthly progress percentage"
+                            }
+                          }
+                        },
+                        "performance": {
+                          "type": "object",
+                          "properties": {
+                            "average_order_value": {
+                              "type": "number",
+                              "description": "Average order value"
+                            },
+                            "orders_completed": {
+                              "type": "number",
+                              "description": "Number of orders completed"
+                            },
+                            "average_rating": {
+                              "type": "number",
+                              "description": "Average customer rating"
+                            },
+                            "completion_rate": {
+                              "type": "number",
+                              "description": "Order completion rate percentage"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can access this endpoint"
+          },
+          "404": {
+            "description": "Driver profile not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/driver/documents": {
+      "get": {
+        "summary": "Get Driver Documents",
+        "description": "Get all documents for the current driver",
+        "tags": [
+          "Driver"
+        ],
+        "responses": {
+          "200": {
+            "description": "Documents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "documents": {
+                          "type": "array",
+                          "description": "Array of driver documents",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "description": "Document type (license, registration, insurance, photo)"
+                              },
+                              "url": {
+                                "type": "string",
+                                "description": "Document URL"
+                              },
+                              "verified": {
+                                "type": "boolean",
+                                "description": "Whether document is verified"
+                              },
+                              "verifiedAt": {
+                                "type": "number",
+                                "nullable": true,
+                                "description": "Verification timestamp"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can access this endpoint"
+          },
+          "404": {
+            "description": "Driver profile not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/driver/banks": {
+      "get": {
+        "summary": "Get UK Banks",
+        "description": "Get all available UK banks for driver registration",
+        "tags": [
+          "Driver"
+        ],
+        "responses": {
+          "200": {
+            "description": "Banks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "example": "000004"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "HSBC"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/driver/banks/verify": {
+      "post": {
+        "summary": "Verify Bank Account",
+        "description": "Verify a UK bank account using Stripe Financial Connections API",
+        "tags": [
+          "Driver"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "accountNumber",
+                  "bankCode"
+                ],
+                "properties": {
+                  "accountNumber": {
+                    "type": "string",
+                    "description": "10-digit UK bank account number",
+                    "example": "1234567890"
+                  },
+                  "bankCode": {
+                    "type": "string",
+                    "description": "UK bank sort code (6 digits)",
+                    "example": "000004"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accountName": {
+                          "type": "string",
+                          "example": "John Doe"
+                        },
+                        "verified": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/delivery/track": {
       "post": {
         "summary": "Update Delivery Status",
@@ -19735,7 +22205,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -20228,7 +22698,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -20338,7 +22808,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -20395,7 +22865,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -20441,7 +22911,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -20502,7 +22972,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -20650,7 +23120,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -20813,7 +23283,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -21816,7 +24286,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -21955,6 +24425,55 @@
         }
       }
     },
+    "/api/customer/profile/update-phone-email": {
+      "post": {
+        "summary": "POST /api/customer/profile/update-phone-email",
+        "description": "Handle POST requests to /api/customer/profile/update-phone-email",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Request payload"
+              }
+            }
+          }
+        }
+      }
+    },
     "/customer/profile/me": {
       "get": {
         "summary": "Get Customer Profile",
@@ -22082,7 +24601,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -22167,7 +24686,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -22242,7 +24761,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -22434,7 +24953,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -22588,7 +25107,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -22709,7 +25228,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -22906,7 +25425,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -23207,7 +25726,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -23313,7 +25832,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -23691,7 +26210,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -23738,7 +26257,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -23762,6 +26281,86 @@
         }
       }
     },
+    "/api/customer/meals/random": {
+      "get": {
+        "summary": "Get Random Meals for Shake-to-Eat Feature",
+        "description": "Get a random selection of available meals, optionally filtered by user preferences. Used for the shake-to-eat feature.",
+        "tags": [
+          "Customer",
+          "Meals",
+          "Random"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 50
+            },
+            "description": "Number of random meals to return"
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional user ID for preference-based filtering"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Random meals retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "meals": {
+                          "type": "array",
+                          "description": "Array of random meals with chef data",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/api/customer/kitchens/{kitchenId}": {
       "get": {
         "summary": "Get kitchen details by ID",
@@ -23772,7 +26371,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -23809,7 +26408,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -23879,7 +26478,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -23955,7 +26554,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -24033,7 +26632,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -24080,7 +26679,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -24153,7 +26752,7 @@
         ],
         "security": [
           {
-            "Bearer": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -24444,7 +27043,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -24534,7 +27133,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -24609,7 +27208,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -25007,7 +27606,7 @@
         ],
         "parameters": [
           {
-            "in": "query",
+            "in": "path",
             "name": "dish_id",
             "required": true,
             "schema": {
@@ -25176,6 +27775,74 @@
         "security": []
       }
     },
+    "/api/customer/dishes/{dishId}/favorite": {
+      "get": {
+        "summary": "Check if dish/meal is favorited",
+        "description": "Check if the current user has favorited a dish/meal",
+        "tags": [
+          "Customer",
+          "Dishes",
+          "Favorites"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dishId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the dish/meal"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Favorite status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "isFavorited": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "favoriteId": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Favorite status retrieved successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Dish not found"
+          }
+        }
+      }
+    },
     "/customer/dietary-preferences": {
       "get": {
         "summary": "Get customer's dietary preferences",
@@ -25245,7 +27912,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -25302,7 +27969,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -26948,7 +29615,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27073,7 +29740,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27221,7 +29888,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27361,7 +30028,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27419,7 +30086,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27552,7 +30219,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27640,7 +30307,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27754,7 +30421,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27827,7 +30494,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -27887,7 +30554,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -28056,7 +30723,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -28115,7 +30782,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -28190,7 +30857,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -28255,7 +30922,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -28325,7 +30992,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -28497,7 +31164,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -28859,7 +31526,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -28976,7 +31643,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -29491,7 +32158,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -29699,7 +32366,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -29805,6 +32472,44 @@
         "security": []
       }
     },
+    "/api/compliance/reports/{...path}": {
+      "get": {
+        "summary": "GET /api/compliance/reports/{...path}",
+        "description": "Handle GET requests to /api/compliance/reports/{...path}",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/chef/status": {
       "get": {
         "summary": "Get Chef Status",
@@ -29872,7 +32577,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -30020,7 +32725,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -30232,7 +32937,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -30408,7 +33113,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -30821,7 +33526,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -31009,7 +33714,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -31115,7 +33820,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -31377,7 +34082,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -31875,7 +34580,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -31998,7 +34703,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -32114,7 +34819,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -32270,7 +34975,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -32376,7 +35081,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -32485,7 +35190,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -32776,7 +35481,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -32959,7 +35664,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -33060,7 +35765,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -33253,7 +35958,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -33311,7 +36016,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -33570,7 +36275,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -33630,7 +36335,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -33934,7 +36639,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -34485,7 +37190,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -34675,7 +37380,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -34878,7 +37583,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -35327,7 +38032,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -35498,7 +38203,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -37631,7 +40336,7 @@
                 "properties": {
                   "verificationToken": {
                     "type": "string",
-                    "description": "Temporary verification token from login"
+                    "description": "Temporary verification sessionResult.sessionToken from login"
                   },
                   "code": {
                     "type": "string",
@@ -37657,9 +40362,9 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "token": {
+                        "sessionResult.sessionToken": {
                           "type": "string",
-                          "description": "JWT authentication token"
+                          "description": "JWT authentication sessionResult.sessionToken"
                         },
                         "user": {
                           "type": "object",
@@ -37735,61 +40440,6 @@
           }
         },
         "security": []
-      }
-    },
-    "/auth/token/refresh-jwt": {
-      "post": {
-        "summary": "Refresh JWT Token",
-        "description": "Get a new JWT token with updated user roles from the database. This ensures the token reflects the current user roles, including automatic addition of 'customer' role if missing.",
-        "tags": [
-          "Authentication"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Token refreshed successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "token": {
-                          "type": "string",
-                          "description": "New JWT token with updated roles"
-                        },
-                        "user": {
-                          "type": "object",
-                          "description": "Updated user information"
-                        }
-                      }
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Success"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - invalid or expired token"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
       }
     },
     "/auth/token/refresh": {
@@ -38540,10 +41190,10 @@
                           "description": "Test OTP (development only)",
                           "example": "123456"
                         },
-                        "token": {
+                        "sessionToken": {
                           "type": "string",
-                          "description": "JWT token (for verify action)",
-                          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                          "description": "Session token (for verify action)",
+                          "example": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6"
                         },
                         "user": {
                           "type": "object",
@@ -38711,9 +41361,6 @@
         },
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "cookieAuth": []
           }
         ]
@@ -38728,7 +41375,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           },
           {
             "cookieAuth": []
@@ -38789,7 +41436,7 @@
     "/auth/login": {
       "post": {
         "summary": "User Login",
-        "description": "Authenticate user with email and password, returns JWT token",
+        "description": "Authenticate user with email and password, returns session token",
         "tags": [
           "Authentication"
         ],
@@ -39130,9 +41777,9 @@
                           "description": "Test OTP (development only)",
                           "example": "123456"
                         },
-                        "token": {
+                        "sessionResult.sessionToken": {
                           "type": "string",
-                          "description": "JWT token (for verify action)",
+                          "description": "JWT sessionResult.sessionToken (for verify action)",
                           "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                         },
                         "user": {
@@ -39278,7 +41925,7 @@
     "/auth/apple-signin": {
       "post": {
         "summary": "Apple OAuth Sign-in",
-        "description": "Authenticate user using Apple Sign-In (identity token or authorization code)",
+        "description": "Authenticate user using Apple Sign-In (identity sessionResult.sessionToken or authorization code)",
         "tags": [
           "Authentication"
         ],
@@ -39291,7 +41938,7 @@
                 "properties": {
                   "identityToken": {
                     "type": "string",
-                    "description": "Apple identity token (preferred method)",
+                    "description": "Apple identity sessionResult.sessionToken (preferred method)",
                     "example": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
                   },
                   "authorizationCode": {
@@ -39346,9 +41993,9 @@
                           "type": "string",
                           "example": "Authentication successful"
                         },
-                        "token": {
+                        "sessionResult.sessionToken": {
                           "type": "string",
-                          "description": "JWT authentication token",
+                          "description": "JWT authentication sessionResult.sessionToken",
                           "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                         },
                         "user": {
@@ -39413,7 +42060,7 @@
             }
           },
           "401": {
-            "description": "Invalid Apple token",
+            "description": "Invalid Apple sessionResult.sessionToken",
             "content": {
               "application/json": {
                 "schema": {
@@ -39436,6 +42083,7 @@
         "security": []
       }
     },
+    "/api/auth/apple/callback": {},
     "/api/async-tasks": {
       "get": {
         "summary": "GET /api/async-tasks",
@@ -40425,7 +43073,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -40693,7 +43341,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -41023,7 +43671,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -41171,7 +43819,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -41296,7 +43944,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -41408,7 +44056,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -41580,7 +44228,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -41698,7 +44346,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -41826,7 +44474,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -41971,7 +44619,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -42116,7 +44764,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -42202,7 +44850,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -42354,7 +45002,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -42524,7 +45172,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -42653,7 +45301,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -42780,7 +45428,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -42897,7 +45545,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -43097,7 +45745,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -43324,7 +45972,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -43520,7 +46168,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -43704,7 +46352,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -43881,7 +46529,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -44131,7 +46779,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -44404,7 +47052,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -44572,7 +47220,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -44891,7 +47539,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -45535,7 +48183,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -45628,7 +48276,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -45689,7 +48337,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -45893,7 +48541,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -46053,7 +48701,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -46284,7 +48932,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -46480,7 +49128,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -46647,7 +49295,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -46744,7 +49392,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -46950,7 +49598,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -47151,7 +49799,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -47293,7 +49941,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -47433,7 +50081,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -47842,7 +50490,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       },
@@ -47939,7 +50587,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -48098,7 +50746,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -48230,7 +50878,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -48390,7 +51038,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -48511,7 +51159,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -48631,7 +51279,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -48780,7 +51428,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -48890,7 +51538,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -49035,7 +51683,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -49218,7 +51866,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -49540,7 +52188,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -49705,7 +52353,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -49843,7 +52491,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -49971,7 +52619,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }
@@ -50097,7 +52745,7 @@
         },
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ]
       }

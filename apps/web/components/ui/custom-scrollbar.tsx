@@ -62,7 +62,7 @@ export function CustomScrollbar() {
       </motion.div>
 
       {/* Hide default scrollbar */}
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         ::-webkit-scrollbar {
           width: 0px;
           background: transparent;
@@ -70,7 +70,7 @@ export function CustomScrollbar() {
         * {
           scrollbar-width: none;
         }
-      `}</style>
+      `}} />
     </>
   );
 } 
