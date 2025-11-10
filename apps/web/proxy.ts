@@ -55,11 +55,9 @@ export async function proxy(request: NextRequest) {
         ((isUK && isCom) || (!isUK && isCoUk)) && 
         !pathname.startsWith('/api/session/handoff')) {
       
-      const url = new URL(request.url);
-      // Preserve path and query; swap host to target apex domain
-      url.host = isUK ? 'cribnosh.co.uk' : 'cribnosh.com';
-      url.protocol = 'https:';
-      url.port = '';
+      // Construct URL explicitly to avoid localhost:3000 issues
+      const targetHost = isUK ? 'cribnosh.co.uk' : 'cribnosh.com';
+      const url = new URL(`https://${targetHost}${pathname}${request.nextUrl.search}`);
 
 
       // Session continuity: pass short‑lived transfer token via query and point to handoff endpoint
