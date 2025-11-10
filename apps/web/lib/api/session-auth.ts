@@ -290,6 +290,33 @@ export async function getAuthenticatedChef(
 }
 
 /**
+ * Get authenticated driver from session token (cookie or header)
+ * 
+ * Extracts session token from cookie or headers, validates it,
+ * checks session expiry, and ensures the user has the `driver` role.
+ * 
+ * @param request - Next.js request object
+ * @returns Promise resolving to authenticated driver info
+ * @throws AuthenticationError if session token is missing or invalid
+ * @throws AuthorizationError if user doesn't have driver role
+ */
+export async function getAuthenticatedDriver(
+  request: NextRequest
+): Promise<AuthenticatedUser> {
+  const { user } = await getAuthenticatedUserBase(request);
+
+  // Check if user has driver role
+  if (!user.roles || !user.roles.includes('driver')) {
+    throw new AuthorizationError('Forbidden: Only drivers can access this endpoint');
+  }
+
+  return {
+    userId: user._id,
+    user,
+  };
+}
+
+/**
  * Get authenticated admin from session token (cookie or header)
  * 
  * Extracts session token from cookie or headers, validates it,

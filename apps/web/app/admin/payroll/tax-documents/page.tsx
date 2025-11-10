@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { useSessionToken } from '@/hooks/useSessionToken';
 import { formatCurrency } from '@/lib/utils/number-format';
 import { useMutation, useQuery } from 'convex/react';
 import {
@@ -81,7 +82,10 @@ interface TaxDocumentTemplate {
 }
 
 export default function TaxDocumentsPage() {
-  const { sessionToken } = useAdminUser();
+  const { sessionToken: adminSessionToken } = useAdminUser();
+  const cookieSessionToken = useSessionToken();
+  // Use cookie sessionToken if available (works in dev), otherwise fall back to admin context
+  const sessionToken = cookieSessionToken || adminSessionToken;
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -132,12 +136,13 @@ export default function TaxDocumentsPage() {
       await generateDocument({
         documentType: newDocument.documentType,
         employeeId: newDocument.employeeId as Id<"users">,
-        taxYear: newDocument.taxYear,
+        taxYear: parseInt(newDocument.taxYear, 10),
         period: {
           start: new Date(newDocument.period.start).getTime(),
           end: new Date(newDocument.period.end).getTime()
         },
-        notes: newDocument.notes
+        notes: newDocument.notes,
+        sessionToken: sessionToken || undefined
       });
       
       setNewDocument({
@@ -163,7 +168,7 @@ export default function TaxDocumentsPage() {
       try {
         setError(null);
         setIsDeleting(documentId);
-        await deleteDocument({ documentId });
+        await deleteDocument({ documentId, sessionToken: sessionToken || undefined });
         setSuccess('Tax document deleted successfully');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete tax document');
@@ -177,15 +182,15 @@ export default function TaxDocumentsPage() {
     try {
       setError(null);
       setIsDownloading(documentId);
-      const result = await downloadDocument({ documentId });
+      const result = await downloadDocument({ documentId, sessionToken: sessionToken || undefined });
       
       if (result?.downloadUrl) {
         // Trigger download
         const link = document.createElement('a');
         link.href = result.downloadUrl;
-        const document = taxDocuments?.find((d: any) => d._id === documentId);
-        const fileName = document 
-          ? `${document.documentType}-${document.taxYear}-${document.metadata?.employeeName || 'employee'}.pdf`
+        const taxDoc = taxDocuments?.find((d: any) => d._id === documentId);
+        const fileName = taxDoc 
+          ? `${taxDoc.documentType}-${taxDoc.taxYear}-${taxDoc.metadata?.employeeName || 'employee'}.pdf`
           : `tax-document-${documentId}.pdf`;
         link.download = fileName.replace(/[^a-z0-9.-]/gi, '_');
         document.body.appendChild(link);
@@ -232,8 +237,8 @@ export default function TaxDocumentsPage() {
 
   const filteredDocuments = taxDocuments?.filter((document: any) => {
     const matchesSearch = 
-      document.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      document.documentType.toLowerCase().includes(searchTerm.toLowerCase());
+      (document.employeeName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (document.documentType?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
     const matchesType = typeFilter === 'all' || document.documentType === typeFilter;
     const matchesStatus = statusFilter === 'all' || document.status === statusFilter;
@@ -245,11 +250,11 @@ export default function TaxDocumentsPage() {
       case 'recent':
         return b.generatedAt - a.generatedAt;
       case 'name':
-        return a.employeeName.localeCompare(b.employeeName);
+        return (a.employeeName || '').localeCompare(b.employeeName || '');
       case 'type':
-        return a.documentType.localeCompare(b.documentType);
+        return (a.documentType || '').localeCompare(b.documentType || '');
       case 'status':
-        return a.status.localeCompare(b.status);
+        return (a.status || '').localeCompare(b.status || '');
       default:
         return 0;
     }

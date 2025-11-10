@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Platform,
   ScrollView,
   Share,
   Text,
@@ -72,6 +73,9 @@ import { showError, showInfo } from "../../lib/GlobalToastManager";
 
 // Location hook
 import { useUserLocation } from "@/hooks/useUserLocation";
+
+// BlurEffect for Android fallback
+import { BlurEffect } from "@/utils/blurEffects";
 
 // Error boundary for icon components
 const SafeIcon = ({
@@ -1742,15 +1746,28 @@ export function BottomSearchDrawer({
                 },
               ]}
             >
-              <BlurView
-                intensity={blurIntensityState}
-                tint="light"
-                style={{
-                  flex: 1,
-                  borderTopLeftRadius: 20,
-                  borderTopRightRadius: 20,
-                }}
-              />
+              {Platform.OS === 'ios' ? (
+                <BlurView
+                  intensity={blurIntensityState}
+                  tint="light"
+                  style={{
+                    flex: 1,
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                  }}
+                />
+              ) : (
+                <BlurEffect
+                  intensity={blurIntensityState}
+                  tint="light"
+                  useGradient={true}
+                  style={{
+                    flex: 1,
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                  }}
+                />
+              )}
             </Animated.View>
             {/* Red stain overlay - always present but varies in intensity */}
             <Animated.View

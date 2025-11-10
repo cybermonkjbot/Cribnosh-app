@@ -1,6 +1,6 @@
 // components/ui/GlobalToastContainer.tsx
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { globalToastManager } from '../../lib/GlobalToastManager';
 import SimpleToast from './SimpleToast';
 
@@ -32,7 +32,16 @@ export const GlobalToastContainer: React.FC = () => {
   };
 
   return (
-    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'box-none', zIndex: 999999 }}>
+    <View style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      pointerEvents: 'box-none',
+      zIndex: 999999,
+      ...(Platform.OS === 'android' ? { elevation: 999999 } : {}),
+    }}>
       {toasts.map((toast) => (
         <SimpleToast
           key={toast.id}

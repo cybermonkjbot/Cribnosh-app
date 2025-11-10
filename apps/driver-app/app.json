@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "Cribnosh Driver",
+    "slug": "cribnosh-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/icons/shortlogo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#9C1314"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone for voice calls with customers."
+      },
+      "bundleIdentifier": "com.cribnosh.driver"
+    },
+    "android": {
+      "permissions": [
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.cribnosh.driver"
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
+    "scheme": "cribnosh-driver",
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icons/shortlogo.png",
+          "color": "#9C1314",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for voice calls with customers."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c93333d4-88c5-4dcc-901a-5c7469ad1949"
+      },
+      "appId": "c93333d4-88c5-4dcc-901a-5c7469ad1949"
+    },
+    "owner": "cribnosh"
+  }
+}

@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useSupportChat } from '../../hooks/useSupportChat';
 import { useToast } from '../../lib/ToastContext';
+import { useTopPosition } from '../../utils/positioning';
 import { SupportMessage as SupportMessageType } from '../../types/customer';
 import { Avatar } from './Avatar';
 import { CribNoshLogo } from './CribNoshLogo';
@@ -327,6 +328,7 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
   const { showToast } = useToast();
   const { user } = useAuthContext();
   const scrollViewRef = useRef<ScrollView>(null);
+  const topPosition = useTopPosition(0);
   
   // Use support chat hook
   const {
@@ -457,7 +459,7 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
           end={{ x: 1, y: 1 }}
           style={{
             flex: 1,
-            paddingTop: 50, // Account for status bar
+            paddingTop: topPosition,
             zIndex: 99999,
           }}
         >
