@@ -190,7 +190,6 @@ export default function AdminStaffWorkEmailRequestsPage() {
             </div>
           )}
         </GlassCard>
-      </div>
     </div>
   );
 } 
