@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from "convex/react";
 import { Download, Edit, Eye, FileText, Plus, Shield, Upload, Users } from "lucide-react";
 import { motion } from 'motion/react';
+import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 
 interface StaffUser {
@@ -268,10 +269,10 @@ export default function AdminStaffPage() {
                             size="sm"
                             asChild
                           >
-                            <a href={`/admin/staff/${user._id}`}>
+                            <Link href={`/admin/staff/${user._id}`}>
                               <Eye className="w-3 h-3 mr-1" />
                               View
-                            </a>
+                            </Link>
                           </Button>
                           <Button
                             variant="outline"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Award, ShieldCheck, Home, ChefHat } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
@@ -12,6 +13,7 @@ const CertifiedKitchensFloat = () => {
     return null;
   }
 
+  const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -79,7 +81,7 @@ const CertifiedKitchensFloat = () => {
     if (isMobile) {
       setIsExpanded(!isExpanded);
     } else {
-      window.location.href = '/certification';
+      router.push('/certification');
     }
   };
 

@@ -34,7 +34,8 @@ import {
   X
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 interface GlassSidebarProps {
@@ -45,7 +46,6 @@ interface GlassSidebarProps {
 
 export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const { user, loading, sessionToken } = useAdminUser();
   const [isClient, setIsClient] = useState(false);
@@ -328,12 +328,6 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
     }
   ];
 
-  const handleNavClick = (href: string) => {
-    router.push(href);
-    if (isMobile && onClose) {
-      onClose();
-    }
-  };
 
   const toggleExpanded = (itemName: string) => {
     setExpandedItems(prev => {
@@ -398,57 +392,107 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
             return (
               <li key={item.name}>
                 <div className="flex items-center">
-                  <button
-                    onClick={() => hasSubItems ? toggleExpanded(item.name) : handleNavClick(item.href)}
-                    className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${
-                      isActive || hasActiveSubItem
-                        ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg transition-colors ${
-                      isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
-                    }`}>
-                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                        isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
-                      }`} />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`font-medium font-satoshi text-sm sm:text-base truncate flex-1 min-w-0 ${
-                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-700 group-hover:text-gray-900'
-                        }`} title={item.name}>
-                          {item.name}
-                        </span>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {item.badge && (
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              item.badge === 'New' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {item.badge}
-                            </span>
-                          )}
-                          {hasSubItems && (
-                            <motion.div
-                              animate={{ rotate: isExpanded ? 90 : 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="flex-shrink-0"
-                            >
-                              <ChevronRight className="w-4 h-4 text-gray-400" />
-                            </motion.div>
-                          )}
-                        </div>
+                  {hasSubItems ? (
+                    <button
+                      onClick={() => toggleExpanded(item.name)}
+                      className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${
+                        isActive || hasActiveSubItem
+                          ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg transition-colors ${
+                        isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
+                      }`}>
+                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
+                        }`} />
                       </div>
-                      <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${
-                        isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
-                      }`} title={item.description}>
-                        {item.description}
-                      </p>
-                    </div>
-                  </button>
+                      
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`font-medium font-satoshi text-sm sm:text-base truncate flex-1 min-w-0 ${
+                            isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-700 group-hover:text-gray-900'
+                          }`} title={item.name}>
+                            {item.name}
+                          </span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {item.badge && (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                item.badge === 'New' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {item.badge}
+                              </span>
+                            )}
+                            {hasSubItems && (
+                              <motion.div
+                                animate={{ rotate: isExpanded ? 90 : 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex-shrink-0"
+                              >
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              </motion.div>
+                            )}
+                          </div>
+                        </div>
+                        <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${
+                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
+                        }`} title={item.description}>
+                          {item.description}
+                        </p>
+                      </div>
+                    </button>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      onClick={() => {
+                        if (isMobile && onClose) {
+                          onClose();
+                        }
+                      }}
+                      className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${
+                        isActive || hasActiveSubItem
+                          ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg transition-colors ${
+                        isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
+                      }`}>
+                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
+                        }`} />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`font-medium font-satoshi text-sm sm:text-base truncate flex-1 min-w-0 ${
+                            isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-700 group-hover:text-gray-900'
+                          }`} title={item.name}>
+                            {item.name}
+                          </span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {item.badge && (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                item.badge === 'New' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${
+                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
+                        }`} title={item.description}>
+                          {item.description}
+                        </p>
+                      </div>
+                    </Link>
+                  )}
                 </div>
                 
                 {/* Sub-items with animation */}
@@ -472,8 +516,13 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.15 }}
                           >
-                            <button
-                              onClick={() => handleNavClick(subItem.href)}
+                            <Link
+                              href={subItem.href}
+                              onClick={() => {
+                                if (isMobile && onClose) {
+                                  onClose();
+                                }
+                              }}
                               className={`w-full group flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-200 min-h-[40px] min-w-0 overflow-hidden ${
                                 isSubActive
                                   ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'

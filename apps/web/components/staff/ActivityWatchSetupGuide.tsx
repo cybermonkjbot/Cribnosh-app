@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Download, 
@@ -26,6 +27,7 @@ interface ActivityWatchSetupGuideProps {
 type SetupStep = 'overview' | 'download' | 'install' | 'configure' | 'verify' | 'complete';
 
 export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatchSetupGuideProps) {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<SetupStep>('overview');
   const [completedSteps, setCompletedSteps] = useState<Set<SetupStep>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
@@ -470,7 +472,7 @@ echo "Sync completed at $(date)"`}</pre>
   const handleFinishSetup = () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('activityWatchSetupComplete', 'true');
-      window.location.href = '/staff/time-tracking';
+      router.push('/staff/time-tracking');
     }
   };
 
