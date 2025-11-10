@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import Link from "next/link";
+import Image from "next/image";
 import { ContainerTextFlip } from "@/components/ui/containedtextflip";
 import { cn } from "@/lib/utils";
 import Head from "next/head";
@@ -45,6 +46,9 @@ export function HeroBrandPage2({
   const [isMobile, setIsMobile] = useState(false);
   const [isIframeLoaded, setIsIframeLoaded] = useState(false);
   const [shouldRenderIframe, setShouldRenderIframe] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [iframeError, setIframeError] = useState(false);
+  const [iframeLoadTimeout, setIframeLoadTimeout] = useState(false);
   const iphoneRef = useRef<HTMLDivElement>(null);
   const iframeUrl = useMemo(() => 'https://my.spline.design/iphoneprocopy-pV22kwixcmjbCyehvGuZGps0/', []);
   
@@ -87,20 +91,46 @@ export function HeroBrandPage2({
   
   useEffect(() => {
     // Lazy-load iframe when in viewport
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     const observer = new window.IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           setShouldRenderIframe(true);
           observer.disconnect();
+          
+          // Set a timeout to detect if iframe fails to load
+          timeoutId = setTimeout(() => {
+            setIframeLoadTimeout((prev) => {
+              if (!isIframeLoaded) {
+                return true;
+              }
+              return prev;
+            });
+          }, 10000); // 10 second timeout
         }
       },
       { threshold: 0.1 }
     );
+    
     if (iphoneRef.current) {
       observer.observe(iphoneRef.current);
     }
-    return () => observer.disconnect();
-  }, []);
+    
+    return () => {
+      observer.disconnect();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isIframeLoaded]);
+  
+  // Update error state when timeout is triggered
+  useEffect(() => {
+    if (iframeLoadTimeout && !isIframeLoaded) {
+      setIframeError(true);
+    }
+  }, [iframeLoadTimeout, isIframeLoaded]);
 
   // Primary section movement (slower)
   const y = useTransform(scrollYProgress, [0, 1], [0, -150]);
@@ -191,7 +221,20 @@ export function HeroBrandPage2({
                 )}
                 style={{ willChange: "opacity, transform" }}
               >
-                {shouldRenderIframe ? (
+                {iframeError || iframeLoadTimeout ? (
+                  // Fallback to static image if iframe fails
+                  <div className="relative w-[90%] h-[90%] rounded-xl overflow-hidden shadow-2xl">
+                    <Image
+                      src="/mobilemockstatic.png"
+                      alt="CribNosh Mobile App"
+                      width={600}
+                      height={1300}
+                      className="w-full h-full object-contain object-center"
+                      priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/5 via-transparent to-transparent pointer-events-none" />
+                  </div>
+                ) : shouldRenderIframe ? (
                   <Suspense fallback={
                     <div className="w-[90%] h-[90%] rounded-xl bg-white/10 animate-pulse" />
                   }>
@@ -203,11 +246,15 @@ export function HeroBrandPage2({
                       )}
                       style={{ border: 'none', willChange: "opacity, transform" }}
                       title="CribNosh App Preview"
-                      onLoad={() => setIsIframeLoaded(true)}
+                      onLoad={() => {
+                        setIsIframeLoaded(true);
+                        setIframeLoadTimeout(false);
+                        setIframeError(false);
+                      }}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       sandbox="allow-scripts allow-same-origin allow-forms"
                     />
-                    {!isIframeLoaded && (
+                    {!isIframeLoaded && !iframeError && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-16 h-16 border-4 border-[#ff3b30] border-t-transparent rounded-full animate-spin" />
                       </div>
@@ -327,12 +374,24 @@ export function HeroBrandPage2({
                   className="mt-12 flex justify-center px-4"
                 >
                   <div className="relative w-72 aspect-[9/19.5] rounded-3xl overflow-hidden shadow-2xl transform -rotate-3 hover:-rotate-4 transition-transform duration-300">
-                    <img
-                      src="/mobilemockstatic.png"
-                      alt="CribNosh Mobile App"
-                      className="w-full h-full object-cover object-center"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/5 via-transparent to-transparent" />
+                    {!imageError ? (
+                      <Image
+                        src="/mobilemockstatic.png"
+                        alt="CribNosh Mobile App"
+                        width={288}
+                        height={624}
+                        className="w-full h-full object-cover object-center"
+                        priority
+                        onError={() => setImageError(true)}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#ff3b30]/20 to-[#ff5e54]/20 flex items-center justify-center">
+                        <div className="text-white/60 text-sm text-center px-4">
+                          CribNosh Mobile App
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/5 via-transparent to-transparent pointer-events-none" />
                   </div>
                 </motion.div>
               )}

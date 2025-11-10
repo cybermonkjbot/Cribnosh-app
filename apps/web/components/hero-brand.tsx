@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
 import Link from "next/link";
+import Image from "next/image";
 import { ContainerTextFlip } from "@/components/ui/containedtextflip";
 import { CategoryPreview } from "@/components/ui/category-preview";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ export function HeroBrand({ className }: { className?: string }) {
   const [touchTimeout, setTouchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [autoSwitchPaused, setAutoSwitchPaused] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [imageError, setImageError] = useState(false);
   
   // Handle iPhone interactions
   const handleIPhoneInteractionStart = () => {
@@ -326,12 +328,24 @@ export function HeroBrand({ className }: { className?: string }) {
                       className="mt-12 flex justify-center px-4"
                     >
                       <div className="relative w-72 aspect-[9/19.5] rounded-3xl overflow-hidden shadow-2xl transform rotate-2 hover:rotate-3 transition-transform duration-300">
-                        <img
-                          src="/mobilemockstatic.png"
-                          alt="CribNosh Mobile App"
-                          className="w-full h-full object-cover object-center"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/5 via-transparent to-transparent" />
+                        {!imageError ? (
+                          <Image
+                            src="/mobilemockstatic.png"
+                            alt="CribNosh Mobile App"
+                            width={288}
+                            height={624}
+                            className="w-full h-full object-cover object-center"
+                            priority
+                            onError={() => setImageError(true)}
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-[#ff3b30]/20 to-[#ff5e54]/20 flex items-center justify-center">
+                            <div className="text-white/60 text-sm text-center px-4">
+                              CribNosh Mobile App
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/5 via-transparent to-transparent pointer-events-none" />
                       </div>
                     </motion.div>
                   )}
