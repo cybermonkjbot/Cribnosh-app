@@ -55,17 +55,25 @@ ENV DISABLE_TRY_IT="true"
 # Build the app using Node.js (Next.js requires Node.js worker threads)
 RUN npm run build
 
-FROM oven/bun:1.2.17-alpine AS production
+FROM node:20-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Reuse artifacts and modules from builder; do NOT reinstall in production
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/bun.lock ./bun.lock
-COPY --from=builder /app/node_modules ./node_modules
+# Copy standalone output from builder
+# Next.js standalone output includes everything needed to run the server
+# The structure depends on monorepo setup - check for both possible locations
+COPY --from=builder /app/.next/standalone ./
 
-# Next.js outputs (adjust if you have a custom output)
-COPY --from=builder /app/.next ./.next
+# Handle monorepo structure: if standalone is nested, move it to root
+RUN if [ -d "./apps/web" ]; then \
+      cp -r ./apps/web/* ./ && \
+      rm -rf ./apps; \
+    fi
+
+# Copy static files - these need to be at .next/static relative to server.js
+COPY --from=builder /app/.next/static ./.next/static
+
+# Copy public directory
 COPY --from=builder /app/public ./public
 
 # Install curl for health checks
@@ -76,4 +84,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
 EXPOSE 3000
-CMD ["bun", "run", "start"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Use the standalone server instead of next start
+# The server.js should be in the root after copying standalone output
+CMD ["node", "server.js"]
