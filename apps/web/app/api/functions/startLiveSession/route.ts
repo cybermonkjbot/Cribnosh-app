@@ -1,6 +1,6 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import type { LiveSession } from '../../../../../../packages/convex/types/livestream';
+import type { LiveSession } from '@/types/livestream';
 import { withSensitiveRateLimit } from '@/lib/api/sensitive-middleware';
 import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
