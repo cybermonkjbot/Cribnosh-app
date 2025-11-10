@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import { useQuery } from 'convex/react';
+// TODO: Use API endpoint for terms of service when available
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -10,7 +9,8 @@ import { Colors } from '../constants/Colors';
 
 export default function TermsOfServiceScreen() {
   const router = useRouter();
-  const termsOfService = useQuery(api.legalContent.getTermsOfService, {});
+  // TODO: Use API endpoint for terms of service when available
+  const termsOfService = null as any;
 
   const handleBack = () => {
     router.back();

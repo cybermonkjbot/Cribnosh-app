@@ -1,9 +1,11 @@
 /**
- * Convex API Wrapper
- * Provides typed access to Cribnosh Convex queries and mutations
+ * Convex API Wrapper (DEPRECATED)
+ * This file is kept for backward compatibility but no longer imports from Convex.
+ * All functionality should use RTK Query API endpoints from store/driverApi.ts instead.
+ * 
+ * @deprecated Use RTK Query hooks from store/driverApi.ts instead
  */
 
-import { api as convexApi } from '../../packages/convex/convex/_generated/api';
-
-export const api = convexApi;
+// Stub object to prevent import errors
+export const api = {} as any;
 

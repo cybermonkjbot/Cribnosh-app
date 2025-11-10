@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from "../lib/convexApi";
-import { useSessionAwareQuery } from '../hooks/useSessionAwareConvex';
+// TODO: Use API endpoints for performance analytics when available
 import { Colors } from '../constants/Colors';
 import { SkeletonStatCard } from '../components/SkeletonComponents';
 import { ThemedText } from '../components/ThemedText';
@@ -20,18 +19,10 @@ export default function PerformanceAnalyticsScreen() {
   // Get driver ID from context
   const driverId = driver?._id;
 
-  // Fetch performance data from Convex
-  const efficiencyData = useSessionAwareQuery(api.driverPerformance.getDriverPerformanceAnalytics, 
-    driverId ? { driverId: driverId, metricType: "efficiency" } : "skip"
-  );
-
-  const safetyData = useSessionAwareQuery(api.driverPerformance.getDriverPerformanceAnalytics, 
-    driverId ? { driverId: driverId, metricType: "safety" } : "skip"
-  );
-
-  const customerData = useSessionAwareQuery(api.driverPerformance.getDriverPerformanceAnalytics, 
-    driverId ? { driverId: driverId, metricType: "customer" } : "skip"
-  );
+  // TODO: Use API endpoints for performance analytics when available
+  const efficiencyData = null as any;
+  const safetyData = null as any;
+  const customerData = null as any;
 
   const periods = [
     { value: '7d', label: 'Last 7 Days' },

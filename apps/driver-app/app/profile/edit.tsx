@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import { useMutation, useQuery } from 'convex/react';
+import { useGetCurrentUserQuery, useUpdateDriverProfileMutation } from '../../store/driverApi';
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import {
@@ -190,8 +189,9 @@ export default function DriverProfileEditScreen() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewType, setPreviewType] = useState<'driversLicense' | 'vehicleRegistration' | 'insurance'>('driversLicense');
   
-  // Fetch user data separately since driver only has userId reference
-  const user = useQuery(api.auth.getUserById, driver?.userId ? { userId: driver.userId } : "skip");
+  // Fetch user data using RTK Query
+  const { data: currentUserData } = useGetCurrentUserQuery(undefined, { skip: !driver?.userId });
+  const user = currentUserData?.data?.user || currentUserData?.data || null;
   
   // Helper function to parse vehicle details from JSON string or use direct fields
   const parseVehicleData = (driver: any) => {
@@ -243,7 +243,7 @@ export default function DriverProfileEditScreen() {
     accountName: '',
   });
 
-  const updateDriverMutation = useMutation(api.drivers.updateDriverProfile);
+  const [updateDriverMutation, { isLoading: isUpdating }] = useUpdateDriverProfileMutation();
 
   // Update form data when user data loads
   useEffect(() => {
@@ -279,23 +279,20 @@ export default function DriverProfileEditScreen() {
     setIsLoading(true);
     try {
       const result = await updateDriverMutation({
-        driverId: driver._id,
-        updates: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          vehicleType: formData.vehicleType,
-          vehicleModel: formData.vehicleModel,
-          vehicleYear: formData.vehicleYear,
-          licensePlate: formData.licensePlate,
-          driversLicense: formData.driversLicense,
-          vehicleRegistration: formData.vehicleRegistration,
-          insurance: formData.insurance,
-          bankName: formData.bankName,
-          accountNumber: formData.accountNumber,
-          accountName: formData.accountName,
-        }
-      });
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        vehicleType: formData.vehicleType,
+        vehicleModel: formData.vehicleModel,
+        vehicleYear: formData.vehicleYear,
+        licensePlate: formData.licensePlate,
+        driversLicense: formData.driversLicense,
+        vehicleRegistration: formData.vehicleRegistration,
+        insurance: formData.insurance,
+        bankName: formData.bankName,
+        accountNumber: formData.accountNumber,
+        accountName: formData.accountName,
+      }).unwrap();
 
       if (result.success) {
         Alert.alert('Success', 'Profile updated successfully!');
@@ -303,9 +300,9 @@ export default function DriverProfileEditScreen() {
       } else {
         Alert.alert('Error', result.message || 'Failed to update profile');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Profile update error:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      Alert.alert('Error', error?.data?.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }

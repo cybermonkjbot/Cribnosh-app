@@ -52,7 +52,7 @@ export default function AboutScreen() {
           <View style={styles.appHeader}>
             <View style={styles.appIcon}>
               <Image 
-                source={require('../assets/depictions/logo.png')} 
+                source={require('../assets/images/white-greenlogo.png')} 
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -67,10 +67,10 @@ export default function AboutScreen() {
 
         {/* App Description */}
         <ThemedView style={styles.section} lightColor={Colors.light.background} darkColor={Colors.dark.background}>
-          <ThemedText type="subtitle" style={styles.sectionTitle} lightColor={Colors.light.text} darkColor={Colors.dark.text}>About FuelFinder</ThemedText>
+          <ThemedText type="subtitle" style={styles.sectionTitle} lightColor={Colors.light.text} darkColor={Colors.dark.text}>About Cribnosh</ThemedText>
           <ThemedText style={styles.description} lightColor={Colors.light.text} darkColor={Colors.dark.text}>
-            FuelFinder is a revolutionary fuel delivery platform that connects drivers with customers 
-            who need fuel delivered to their location. Our driver app provides a seamless experience 
+            Cribnosh is a revolutionary meal delivery platform that connects drivers with customers 
+            who need meals delivered to their location. Our driver app provides a seamless experience 
             for managing deliveries, tracking earnings, and growing your business.
           </ThemedText>
         </ThemedView>
@@ -89,7 +89,7 @@ export default function AboutScreen() {
         {/* Copyright */}
         <View style={styles.copyrightSection}>
           <ThemedText style={styles.copyrightText} lightColor={Colors.light.icon} darkColor={Colors.dark.icon}>
-            © 2024 FuelFinder. All rights reserved.
+            © 2024 Cribnosh. All rights reserved.
           </ThemedText>
         </View>
       </ScrollView>

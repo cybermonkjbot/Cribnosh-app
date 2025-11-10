@@ -7,9 +7,10 @@
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/icons/shortlogo.png",
+      "image": "./assets/images/white-greenlogo.png",
+      "imageWidth": 250,
       "resizeMode": "contain",
-      "backgroundColor": "#9C1314"
+      "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -39,8 +40,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icons/shortlogo.png",
-          "color": "#9C1314",
+          "icon": "./assets/images/white-greenlogo.png",
+          "color": "#ff3b30",
           "defaultChannel": "default"
         }
       ],
@@ -49,7 +50,9 @@
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for voice calls with customers."
         }
-      ]
+      ],
+      "expo-web-browser",
+      "expo-asset"
     ],
     "extra": {
       "router": {},

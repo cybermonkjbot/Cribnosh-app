@@ -708,6 +708,5 @@ export default function AdminSettings() {
           </div>
         </motion.div>
       </div>
-    </div>
   );
 }

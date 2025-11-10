@@ -599,7 +599,6 @@ export default function AdminContentPage() {
         type="error"
       />
     </div>
-    </div>
   );
 }
 

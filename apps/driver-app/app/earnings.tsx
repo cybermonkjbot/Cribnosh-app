@@ -238,7 +238,7 @@ export default function EarningsScreen() {
             style={styles.payoutButton} 
             onPress={handleRequestPayout}
           >
-            <Ionicons name="cash-outline" size={24} color="#FFFFFF" />
+            <Ionicons name="cash-outline" size={24} color={Colors.light.background} />
             <Text style={styles.payoutButtonText}>
               Request Payout ({formatCurrency(earningsData.pendingEarnings)})
             </Text>
@@ -252,7 +252,7 @@ export default function EarningsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.background,
   },
   loadingContainer: {
     flex: 1,
@@ -403,14 +403,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#9C1314',
+    backgroundColor: Colors.light.primary,
     margin: 16,
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
   },
   payoutButtonText: {
-    color: '#FFFFFF',
+    color: Colors.light.background,
     fontSize: 16,
     fontWeight: '600',
   },

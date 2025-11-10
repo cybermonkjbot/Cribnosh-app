@@ -1,7 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import type { Id } from '../../packages/convex/_generated/dataModel';
-import { useMutation } from 'convex/react';
+// TODO: Use API endpoints for file upload when available
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useImperativeHandle, forwardRef, useState } from 'react';
@@ -18,7 +16,7 @@ import { logger } from '../utils/Logger';
 
 interface DocumentUploadProps {
   documentType: 'driversLicense' | 'vehicleRegistration' | 'insurance';
-  onUploadComplete?: (fileUrl: string, fileId: Id<"fileRecords">) => void;
+  onUploadComplete?: (fileUrl: string, fileId: string) => void;
   onUploadError?: (error: string) => void;
   onFileSelected?: (hasFile: boolean) => void;
   suppressAlerts?: boolean;
@@ -49,10 +47,12 @@ export const DocumentUpload = forwardRef<DocumentUploadRef, DocumentUploadProps>
 
   // Convex mutations for file upload
   // Note: Using documents.generateUploadUrl from Cribnosh Convex
-  const generateUploadUrl = useMutation(api.mutations.documents.generateUploadUrl);
+  // TODO: Use API endpoint for generating upload URL when available
+  const generateUploadUrl = null as any;
   // TODO: Replace confirmUpload with appropriate Cribnosh mutation if available
   // For now, using a placeholder - may need to use files.uploadFile or similar
-  const confirmUpload = useMutation(api.mutations.files.uploadFile);
+  // TODO: Use API endpoint for confirming upload when available
+  const confirmUpload = null as any;
 
   const getDocumentInfo = () => {
     switch (documentType) {

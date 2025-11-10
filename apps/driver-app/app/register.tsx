@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
 import { Colors } from '../constants/Colors';
-import { useAction, useMutation, useQuery } from 'convex/react';
+// TODO: Use API endpoints when available
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DocumentUpload, DocumentUploadRef } from '../components/DocumentUpload';
 import { logger } from '../utils/Logger';
@@ -13,6 +12,7 @@ import { VehicleTypePickerSheet } from '../components/VehicleTypePickerSheet';
 import { VehicleModelPickerSheet } from '../components/VehicleModelPickerSheet';
 import { VehicleYearPickerSheet } from '../components/VehicleYearPickerSheet';
 import { BankPickerSheet } from '../components/BankPickerSheet';
+import { CribNoshLogo } from '../components/CribNoshLogo';
 
 export default function DriverRegisterScreen() {
   const router = useRouter();
@@ -163,14 +163,10 @@ export default function DriverRegisterScreen() {
   });
 
   // Fetch vehicle data for dropdowns (after formData is initialized)
-  const vehicleTypes = useQuery(api.vehicles.getVehicleTypes);
-  const vehicleModels = useQuery(
-    api.vehicles.getVehicleModels,
-    selectedVehicleTypeId 
-      ? { vehicleTypeId: selectedVehicleTypeId as any }
-      : "skip"
-  );
-  const vehicleYears = useQuery(api.vehicles.getVehicleYears);
+  // TODO: Use API endpoints for vehicle types/models/years when available
+  const vehicleTypes = null as any;
+  const vehicleModels = null as any;
+  const vehicleYears = null as any;
 
   const steps = [
     { title: 'Personal Info', subtitle: 'Tell us about yourself' },
@@ -900,24 +896,33 @@ export default function DriverRegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
           </TouchableOpacity>
           <View style={styles.logoContainer}>
-            <Image 
-              source={require('../assets/depictions/logo.png')} 
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <CribNoshLogo size={120} variant="default" />
           </View>
           <View style={styles.headerSpacer} />
         </View>
 
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
+          <View style={styles.progressHeader}>
+            <View>
+              <Text style={styles.progressTitle}>{steps[currentStep].title}</Text>
+              <Text style={styles.progressSubtitle}>{steps[currentStep].subtitle}</Text>
+            </View>
+            <Text style={styles.progressSubtitle}>
+              {currentStep + 1} / {steps.length}
+            </Text>
+          </View>
           <View style={styles.progressBar}>
             <View 
               style={[
@@ -926,13 +931,15 @@ export default function DriverRegisterScreen() {
               ]} 
             />
           </View>
-          <Text style={styles.progressText}>
-            Step {currentStep + 1} of {steps.length}
-          </Text>
         </View>
 
         {/* Step Content */}
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {renderStepContent()}
         </ScrollView>
 
@@ -952,7 +959,8 @@ export default function DriverRegisterScreen() {
             {!isLoading && <Ionicons name="arrow-forward" size={20} color={Colors.light.background} />}
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
 
       {/* Vehicle Type Picker Sheet */}
       <VehicleTypePickerSheet
@@ -1001,11 +1009,13 @@ export default function DriverRegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: Colors.light.background,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
   },
   header: {
     flexDirection: 'row',
@@ -1028,54 +1038,79 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
   },
-  logo: {
-    width: 120,
-    height: 32,
-  },
   headerSpacer: {
     width: 40,
   },
   progressContainer: {
-    marginBottom: 32,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    backgroundColor: Colors.light.background,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  progressTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  progressSubtitle: {
+    fontSize: 14,
+    color: Colors.light.icon,
+    fontWeight: '500',
   },
   progressBar: {
-    height: 4,
+    height: 6,
     backgroundColor: Colors.light.secondary,
-    borderRadius: 2,
+    borderRadius: 3,
     marginBottom: 8,
+    overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.light.primary,
-    borderRadius: 2,
+    borderRadius: 3,
   },
-  progressText: {
-    fontSize: 12,
+  progressDescription: {
+    fontSize: 14,
     color: Colors.light.icon,
-    textAlign: 'center',
+    marginTop: 8,
   },
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
   stepContent: {
-    gap: 24,
+    gap: 20,
   },
   inputContainer: {
     gap: 8,
+    marginBottom: 4,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 4,
   },
   textInput: {
     backgroundColor: Colors.light.background,
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
     color: Colors.light.text,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: Colors.light.secondary,
+    minHeight: 50,
   },
   textInputError: {
     borderColor: Colors.light.error,
@@ -1100,13 +1135,14 @@ const styles = StyleSheet.create({
   selectButton: {
     backgroundColor: Colors.light.background,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: Colors.light.secondary,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 50,
   },
   placeholderText: {
     color: Colors.light.icon,
@@ -1146,14 +1182,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.light.text,
     marginBottom: 8,
   },
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.light.icon,
     marginBottom: 24,
+    lineHeight: 22,
   },
   documentContainer: {
     marginBottom: 16,
@@ -1178,24 +1216,35 @@ const styles = StyleSheet.create({
     color: Colors.light.icon,
   },
   footer: {
-    paddingVertical: 24,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+    backgroundColor: Colors.light.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.secondary,
   },
   nextButton: {
     backgroundColor: Colors.light.primary,
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   nextButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
+    backgroundColor: Colors.light.icon,
   },
   nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: Colors.light.background,
   },
   infoBox: {

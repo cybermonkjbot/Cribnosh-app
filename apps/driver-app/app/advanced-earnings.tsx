@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from "convex/react";
-import { api } from "../lib/convexApi";
+// TODO: Use API endpoints for advanced earnings when available
 import { Colors } from '../constants/Colors';
 import { SkeletonStatCard } from '../components/SkeletonComponents';
 import { ThemedText } from '../components/ThemedText';
@@ -50,10 +49,8 @@ export default function AdvancedEarningsScreen() {
   // Get driver ID from context
   const driverId = driver?._id;
 
-  // Fetch earnings data from Convex
-  const advancedEarnings = useQuery(api.driverPerformance.getDriverAdvancedEarnings, 
-    driverId ? { driverId: driverId } : "skip"
-  );
+  // TODO: Use API endpoints for advanced earnings when available
+  const advancedEarnings = null as any;
 
   const periods = [
     { value: '7d', label: 'Last 7 Days' },

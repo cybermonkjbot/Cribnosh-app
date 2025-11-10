@@ -5,6 +5,8 @@ import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Id } from '../../packages/convex/_generated/dataModel';
 import { CallUI } from '../components/CallUI';
+import { GlassCard } from '../components/GlassCard';
+import { ShimmerEffect } from '../components/ShimmerEffect';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { Colors } from '../constants/Colors';
@@ -202,11 +204,9 @@ export default function OrderDetailsScreen() {
   const [isIncomingCall, setIsIncomingCall] = useState(false);
 
   // Get customer details for calling
+  // TODO: Use API endpoint when available
   const customerId = order?.customer_id || order?.customerId;
-  const customerDetails = useSessionAwareQuery(
-    api.queries.users.getUserById,
-    customerId ? { userId: customerId as Id<"users"> } : "skip"
-  );
+  const customerDetails = null; // Placeholder - use API endpoint when available
 
   const handleCallCustomer = async () => {
     if (!order) return;
@@ -363,7 +363,10 @@ export default function OrderDetailsScreen() {
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Order Status */}
-          <View style={styles.statusCard}>
+          <View style={styles.statusCardWrapper}>
+            <GlassCard style={styles.statusCard}>
+              <View style={styles.statusCardContent}>
+                <ShimmerEffect />
             <View style={styles.statusHeader}>
               <View style={[styles.statusIcon, { backgroundColor: getStatusColor(order.status) + '20' }]}>
                 <Ionicons 
@@ -380,10 +383,15 @@ export default function OrderDetailsScreen() {
               </View>
             </View>
             <ThemedText style={styles.orderTime}>Ordered at {new Date(order._creationTime || order.createdAt || Date.now()).toLocaleString()}</ThemedText>
+              </View>
+            </GlassCard>
           </View>
 
           {/* Customer Information */}
-          <View style={styles.sectionCard}>
+          <View style={styles.sectionCardWrapper}>
+            <GlassCard style={styles.sectionCard}>
+              <View style={styles.sectionCardContent}>
+                <ShimmerEffect />
             <ThemedText style={styles.sectionTitle}>Customer Information</ThemedText>
             <View style={styles.customerInfo}>
               <View style={styles.customerDetail}>
@@ -394,13 +402,18 @@ export default function OrderDetailsScreen() {
               </View>
               <View style={styles.customerDetail}>
                 <Ionicons name="call" size={20} color={Colors.light.icon} />
-                <ThemedText style={styles.customerDetailText}>Contact via app</ThemedText>
+                <ThemedText style={styles.customerDetailText}>Contact via app                </ThemedText>
               </View>
             </View>
+              </View>
+            </GlassCard>
           </View>
 
           {/* Order Details */}
-          <View style={styles.sectionCard}>
+          <View style={styles.sectionCardWrapper}>
+            <GlassCard style={styles.sectionCard}>
+              <View style={styles.sectionCardContent}>
+                <ShimmerEffect />
             <ThemedText style={styles.sectionTitle}>Order Details</ThemedText>
             <View style={styles.orderDetails}>
               {order.order_items && order.order_items.length > 0 ? (
@@ -423,10 +436,15 @@ export default function OrderDetailsScreen() {
                 <ThemedText style={styles.orderTotalValue}>£{(order.total_amount || 0).toFixed(2)}</ThemedText>
               </View>
             </View>
+              </View>
+            </GlassCard>
           </View>
 
           {/* Delivery Information */}
-          <View style={styles.sectionCard}>
+          <View style={styles.sectionCardWrapper}>
+            <GlassCard style={styles.sectionCard}>
+              <View style={styles.sectionCardContent}>
+                <ShimmerEffect />
             <ThemedText style={styles.sectionTitle}>Delivery Information</ThemedText>
             <View style={styles.deliveryInfo}>
               <View style={styles.deliveryDetail}>
@@ -452,19 +470,29 @@ export default function OrderDetailsScreen() {
                 </View>
               </View>
             </View>
+              </View>
+            </GlassCard>
           </View>
 
           {/* Special Instructions */}
           {order.ratingComment && (
-            <View style={styles.sectionCard}>
-              <ThemedText style={styles.sectionTitle}>Comments</ThemedText>
-              <ThemedText style={styles.specialInstructions}>{order.ratingComment}</ThemedText>
+            <View style={styles.sectionCardWrapper}>
+              <GlassCard style={styles.sectionCard}>
+                <View style={styles.sectionCardContent}>
+                  <ShimmerEffect />
+                  <ThemedText style={styles.sectionTitle}>Comments</ThemedText>
+                  <ThemedText style={styles.specialInstructions}>{order.ratingComment}</ThemedText>
+                </View>
+              </GlassCard>
             </View>
           )}
 
           {/* Assignment Details */}
           {assignment && (
-            <View style={styles.sectionCard}>
+            <View style={styles.sectionCardWrapper}>
+              <GlassCard style={styles.sectionCard}>
+                <View style={styles.sectionCardContent}>
+                  <ShimmerEffect />
               <ThemedText style={styles.sectionTitle}>Assignment Details</ThemedText>
               <View style={styles.orderDetails}>
                 <View style={styles.orderDetailRow}>
@@ -488,6 +516,8 @@ export default function OrderDetailsScreen() {
                   </View>
                 )}
               </View>
+                </View>
+              </GlassCard>
             </View>
           )}
         </ScrollView>
@@ -575,16 +605,16 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  statusCard: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 20,
+  statusCardWrapper: {
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  },
+  statusCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  statusCardContent: {
+    padding: 20,
+    position: 'relative',
   },
   statusHeader: {
     flexDirection: 'row',
@@ -615,16 +645,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.icon,
   },
-  sectionCard: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 20,
+  sectionCardWrapper: {
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+  },
+  sectionCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  sectionCardContent: {
+    padding: 20,
+    position: 'relative',
   },
   sectionTitle: {
     fontSize: 16,
@@ -762,7 +792,7 @@ const styles = StyleSheet.create({
   },
   acceptButton: {
     flex: 2,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
     borderRadius: 12,
     paddingVertical: 16,
     flexDirection: 'row',

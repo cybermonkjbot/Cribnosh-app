@@ -10,8 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery } from "convex/react";
-import { api } from '../lib/convexApi';
+// TODO: Use API endpoint for help/FAQs when available
 import { Colors } from '../constants/Colors';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
@@ -22,7 +21,8 @@ export default function HelpScreen() {
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   // Fetch driver FAQs from backend
-  const faqItems = useQuery(api.driverSupport.getDriverFAQs);
+  // TODO: Use API endpoint for help/FAQs when available
+  const faqItems = null as any;
 
   const handleBack = () => {
     router.back();

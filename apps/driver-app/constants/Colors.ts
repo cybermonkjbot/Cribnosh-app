@@ -1,7 +1,7 @@
-// Cribnosh Brand Colors
-const primaryBrand = '#9C1314'; // rgb(156, 19, 20) - Main brand color (Cribnosh orange-red)
-const primaryBrandDark = '#7A0F10'; // Darker shade for hover states
-const primaryBrandLight = '#B81A1C'; // Lighter shade for highlights
+// Cribnosh Brand Colors - Matching web app brand color
+const primaryBrand = '#ff3b30'; // rgb(255, 59, 48) - Main brand color (Cribnosh red)
+const primaryBrandDark = '#ed1d12'; // Darker shade for hover states (matching web app primary-600)
+const primaryBrandLight = '#ff5e54'; // Lighter shade for highlights (matching web app)
 
 const tintColorLight = primaryBrand;
 const tintColorDark = primaryBrand;
@@ -25,6 +25,12 @@ export const Colors = {
     surface: '#F9FAFB', // Very light gray for cards/surfaces
     border: '#E5E7EB', // Light gray for borders
     success: '#10B981', // Green for success states
+    // Glass morphism colors
+    glassBackground: 'rgba(255, 255, 255, 0.7)',
+    glassBorder: 'rgba(255, 255, 255, 0.3)',
+    glassShadow: 'rgba(0, 0, 0, 0.1)',
+    // Shimmer colors
+    shimmer: 'rgba(255, 59, 48, 0.1)', // Cribnosh red tint
   },
   dark: {
     text: '#F9FAFB',
@@ -42,5 +48,11 @@ export const Colors = {
     warning: '#F59E0B', // Amber for warnings
     error: '#EF4444', // Red for errors
     surface: '#1F2937', // Dark gray for cards/surfaces
+    // Glass morphism colors
+    glassBackground: 'rgba(31, 41, 55, 0.7)',
+    glassBorder: 'rgba(255, 255, 255, 0.1)',
+    glassShadow: 'rgba(0, 0, 0, 0.3)',
+    // Shimmer colors
+    shimmer: 'rgba(255, 59, 48, 0.15)', // Cribnosh red tint
   },
 };

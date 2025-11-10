@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import { useQuery } from 'convex/react';
+// TODO: Use API endpoint for community guidelines when available
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -10,7 +9,8 @@ import { Colors } from '../constants/Colors';
 
 export default function CommunityGuidelinesScreen() {
   const router = useRouter();
-  const communityGuidelines = useQuery(api.legalContent.getCommunityGuidelines, {});
+  // TODO: Use API endpoint for community guidelines when available
+  const communityGuidelines = null as any;
 
   const handleBack = () => {
     router.back();

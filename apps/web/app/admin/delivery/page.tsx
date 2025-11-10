@@ -766,6 +766,5 @@ export default function DeliveryManagementPage() {
           </Alert>
         )}
       </div>
-    </div>
   );
 }

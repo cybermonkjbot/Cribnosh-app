@@ -39,7 +39,7 @@ export default function DriverWelcomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.loadingContainer}>
         <Image 
-          source={require('../assets/depictions/logo.png')} 
+          source={require('../assets/images/white-greenlogo.png')} 
           style={styles.logo}
           resizeMode="contain"
         />

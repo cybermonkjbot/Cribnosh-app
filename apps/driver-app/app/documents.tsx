@@ -1,6 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import type { Id } from '../../packages/convex/_generated/dataModel';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -16,9 +14,7 @@ import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
 import { IconName } from '../utils/Logger';
-import { useSessionAwareQuery } from '../hooks/useSessionAwareConvex';
 import * as ImagePicker from 'expo-image-picker';
-import { useMutation } from 'convex/react';
 import { useGetDriverDocumentsQuery, useUploadDriverDocumentMutation } from '../store/driverApi';
 
 export default function DocumentsScreen() {
@@ -42,11 +38,10 @@ export default function DocumentsScreen() {
   // RTK Query mutation for document upload
   const [uploadDriverDocument, { isLoading: isUploading }] = useUploadDriverDocumentMutation();
 
-  // Convex mutations for file upload (may need to keep for file storage)
-  // TODO: Replace with Cribnosh mutations or use RTK Query for file upload
-  const generateUploadUrl = useMutation(api.fileStorage?.generateUploadUrl || null);
-  const confirmUpload = useMutation(api.fileStorage?.confirmUpload || null);
-  const updateDriverProfile = useMutation(api.drivers?.updateDriverProfile || null);
+  // TODO: Use API endpoints for file upload when available
+  const generateUploadUrl = null as any;
+  const confirmUpload = null as any;
+  const updateDriverProfile = null as any;
 
   const handleBack = () => {
     router.back();

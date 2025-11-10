@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
-import { useQuery } from 'convex/react';
+// TODO: Use API endpoint for privacy policy when available
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -10,7 +9,8 @@ import { Colors } from '../constants/Colors';
 
 export default function PrivacyPolicyScreen() {
   const router = useRouter();
-  const privacyPolicy = useQuery(api.legalContent.getPrivacyPolicy, {});
+  // TODO: Use API endpoint for privacy policy when available
+  const privacyPolicy = null as any;
 
   const handleBack = () => {
     router.back();

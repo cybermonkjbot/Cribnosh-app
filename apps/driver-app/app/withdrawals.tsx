@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../lib/convexApi';
 import { Colors } from '../constants/Colors';
-import { useMutation, useQuery } from 'convex/react';
+import { useGetDriverEarningsQuery, useRequestPayoutMutation } from '../store/driverApi';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -27,18 +26,17 @@ export default function WithdrawalsScreen() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
 
-  // Fetch driver earnings data
-  const earningsData = useQuery(
-    api.driverEarnings.getDriverEarningsSummary,
-    driver ? { driverId: driver._id } : 'skip'
+  // Fetch driver earnings data using RTK Query
+  const { data: earningsData } = useGetDriverEarningsQuery(
+    undefined,
+    { skip: !driver }
   );
-  const payoutHistory = useQuery(
-    api.driverEarnings.getDriverPayoutHistory,
-    driver ? { driverId: driver._id } : 'skip'
-  );
+  
+  // TODO: Use API endpoint for payout history when available
+  const payoutHistory = null as any;
 
-  // Mutations
-  const requestPayout = useMutation(api.driverEarnings.requestPayout);
+  // RTK Query mutation for payout request
+  const [requestPayout, { isLoading: isRequestingPayout }] = useRequestPayoutMutation();
 
   const handleBack = () => {
     router.back();
