@@ -93,3 +93,9 @@ export {
   getUsersByStatus, getUsersForAdmin
 } from './users';
 
+// Export vehicles queries
+export * from './vehicles';
+
+// Export banks queries
+export * from './banks';
+

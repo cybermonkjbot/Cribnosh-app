@@ -1,24 +1,21 @@
 import { useEffect, useRef } from 'react';
-import { useSessionAwareQuery } from './useSessionAwareConvex';
-import { api } from '../lib/convexApi';
-import type { Id } from '../../packages/convex/_generated/dataModel';
 import { callingService } from '../services/callingService';
 
 interface UseCallMonitoringProps {
-  orderId: Id<"orders"> | null;
-  userId: Id<"users"> | null;
-  onIncomingCall?: (callId: Id<"callSessions">) => void;
+  orderId: string | null;
+  userId: string | null;
+  onIncomingCall?: (callId: string) => void;
 }
 
 /**
  * Hook to monitor for incoming calls using Convex real-time subscriptions
  */
 export function useCallMonitoring({ orderId, userId, onIncomingCall }: UseCallMonitoringProps) {
-  const previousCallIdRef = useRef<Id<"callSessions"> | null>(null);
+  const previousCallIdRef = useRef<string | null>(null);
 
   // TODO: Replace with Cribnosh call system if available
   // For now, return null as call system may not be implemented
-  const activeCall = null;
+  const activeCall: any = null;
 
   useEffect(() => {
     if (!activeCall || !orderId || !userId) return;

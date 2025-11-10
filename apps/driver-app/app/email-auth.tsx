@@ -70,8 +70,6 @@ export default function DriverEmailAuthScreen() {
         Alert.alert('Error', result.message || 'Invalid email or password. Please try again.');
       }
     } catch (error: any) {
-      logger.error('Login error:', error);
-      
       // Check if it's a network error
       if (error?.status === 'FETCH_ERROR' || error?.error === 'TypeError: Network request failed') {
         Alert.alert(
@@ -87,6 +85,7 @@ export default function DriverEmailAuthScreen() {
       
       // For 401 errors, show error with option to create account
       // The API doesn't distinguish between "user not found" and "wrong password" for security
+      // Don't log 401 errors as they are expected (invalid credentials)
       if (status === 401 || errorMessage.toLowerCase().includes('invalid credentials')) {
         Alert.alert(
           'Invalid Credentials',
@@ -109,10 +108,12 @@ export default function DriverEmailAuthScreen() {
         setIsNewUser(true);
         setPassword('');
       } else if (errorMessage) {
-        // Other error
+        // Other error - only log unexpected errors
+        logger.error('Unexpected login error:', error);
         Alert.alert('Error', errorMessage);
       } else {
-        // Unknown error
+        // Unknown error - log unexpected errors
+        logger.error('Unknown login error:', error);
         Alert.alert('Error', 'An unexpected error occurred. Please try again.');
       }
     } finally {

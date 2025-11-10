@@ -13,6 +13,14 @@ import { VehicleModelPickerSheet } from '../components/VehicleModelPickerSheet';
 import { VehicleYearPickerSheet } from '../components/VehicleYearPickerSheet';
 import { BankPickerSheet } from '../components/BankPickerSheet';
 import { CribNoshLogo } from '../components/CribNoshLogo';
+import { 
+  useGetVehicleTypesQuery,
+  useGetVehicleModelsQuery,
+  useGetVehicleYearsQuery,
+  useGetBanksQuery,
+  useVerifyBankAccountMutation,
+  useRegisterDriverMutation,
+} from '../store/driverApi';
 
 export default function DriverRegisterScreen() {
   const router = useRouter();
@@ -22,13 +30,6 @@ export default function DriverRegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
   const [phoneValidationError, setPhoneValidationError] = useState<string | null>(null);
-  // TODO: Replace with Cribnosh mutations/queries
-  // const registerDriver = useMutation(api.mutations.drivers.registerDriver);
-  const registerDriver = null; // Placeholder - may need to create endpoint
-  
-  // TODO: Replace with Cribnosh action/query
-  // const verifyBankAccount = useAction(api.actions.banks.verifyBankAccount);
-  const verifyBankAccount = null; // Placeholder - may need to create endpoint
   
   // Sheet visibility states
   const [showVehicleTypeSheet, setShowVehicleTypeSheet] = useState(false);
@@ -40,11 +41,6 @@ export default function DriverRegisterScreen() {
   // Fetch suppliers for selection (may not exist in Cribnosh)
   // const suppliers = useQuery(api.queries.marketplace.getAllSuppliers);
   const suppliers = null; // Placeholder
-  
-  // TODO: Replace with Cribnosh queries
-  // Fetch banks (may need to create endpoint)
-  // const banks = useQuery(api.queries.banks.getBanks);
-  const banks = null; // Placeholder
   
   // Store selected vehicle type ID and model ID
   const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string>('');
@@ -62,30 +58,35 @@ export default function DriverRegisterScreen() {
     insurance: false,
   });
   
-  // Helper function to normalize phone number to +234 format
+  // Helper function to normalize phone number to +44 format (UK)
   const normalizePhoneNumber = (value: string): string => {
     if (!value) return '';
     // Remove all spaces, dashes, parentheses
     const cleaned = value.replace(/[\s\-\(\)]/g, '');
     
-    // If it starts with +234, return as is
-    if (cleaned.startsWith('+234')) {
+    // If it starts with +44, return as is
+    if (cleaned.startsWith('+44')) {
       return cleaned;
     }
     
-    // If it starts with 234 (without +), add +
-    if (cleaned.startsWith('234')) {
+    // If it starts with 44 (without +), add +
+    if (cleaned.startsWith('44')) {
       return '+' + cleaned;
     }
     
-    // If it starts with 0 (local format), replace 0 with +234
+    // If it starts with 0 (local format), replace 0 with +44
     if (cleaned.startsWith('0')) {
-      return '+234' + cleaned.substring(1);
+      return '+44' + cleaned.substring(1);
     }
     
-    // If it's 10 digits starting with 7, 8, or 9 (local format without 0), add +234
-    if (/^[789]\d{9}$/.test(cleaned)) {
-      return '+234' + cleaned;
+    // If it's 10 digits starting with 7 (UK mobile), add +44
+    if (/^7\d{9}$/.test(cleaned)) {
+      return '+44' + cleaned;
+    }
+    
+    // If it's 10 digits starting with 1 or 2 (UK landline), add +44
+    if (/^[12]\d{9}$/.test(cleaned)) {
+      return '+44' + cleaned;
     }
     
     return cleaned;
@@ -100,9 +101,12 @@ export default function DriverRegisterScreen() {
     // Normalize the phone number
     const normalized = normalizePhoneNumber(value);
     
-    // Check if it matches phone number pattern after normalization
-    // Nigerian phone numbers: +234 followed by 10 digits starting with 7, 8, or 9
-    return /^\+234[789]\d{9}$/.test(normalized);
+    // Check if it matches UK phone number pattern after normalization
+    // UK phone numbers: +44 followed by 10 digits
+    // Mobile: +44 7xxx xxxxxx (10 digits starting with 7)
+    // Landline: +44 followed by area code and number (10 digits total)
+    // Common formats: +44 2x xxxx xxxx, +44 1xxx xxxxxx, +44 3xxx xxxxxx, etc.
+    return /^\+44\d{10}$/.test(normalized);
   };
 
   // Get prefill data from route params or user context
@@ -110,11 +114,11 @@ export default function DriverRegisterScreen() {
   const getPrefilledPhoneNumber = (): string => {
     const paramPhone = params.phoneNumber as string;
     if (paramPhone && isValidPhoneNumber(paramPhone)) {
-      // Normalize to +234 format
+      // Normalize to +44 format
       return normalizePhoneNumber(paramPhone);
     }
     if (user?.phone && isValidPhoneNumber(user.phone)) {
-      // Normalize to +234 format
+      // Normalize to +44 format
       return normalizePhoneNumber(user.phone);
     }
     return '';
@@ -162,11 +166,24 @@ export default function DriverRegisterScreen() {
     supplierId: '',
   });
 
-  // Fetch vehicle data for dropdowns (after formData is initialized)
-  // TODO: Use API endpoints for vehicle types/models/years when available
-  const vehicleTypes = null as any;
-  const vehicleModels = null as any;
-  const vehicleYears = null as any;
+  // API hooks
+  const { data: vehicleTypesData } = useGetVehicleTypesQuery();
+  const { data: vehicleYearsData } = useGetVehicleYearsQuery();
+  const { data: banksData } = useGetBanksQuery();
+  const [verifyBankAccount] = useVerifyBankAccountMutation();
+  const [registerDriver] = useRegisterDriverMutation();
+  
+  // Get vehicle models based on selected type
+  const { data: vehicleModelsData } = useGetVehicleModelsQuery(
+    formData.vehicleType || '',
+    { skip: !formData.vehicleType }
+  );
+  
+  // Extract data from API responses
+  const vehicleTypes = vehicleTypesData?.data || [];
+  const vehicleModels = vehicleModelsData?.data || [];
+  const vehicleYears = vehicleYearsData?.data || [];
+  const banks = banksData?.data || [];
 
   const steps = [
     { title: 'Personal Info', subtitle: 'Tell us about yourself' },
@@ -192,67 +209,72 @@ export default function DriverRegisterScreen() {
       if (value.trim() === '') {
         setPhoneValidationError(null); // Clear error if field is empty
       } else if (!isValidPhoneNumber(value)) {
-        setPhoneValidationError('Please enter a valid Nigerian phone number (e.g., +2348102414599 or 08102414599)');
+        setPhoneValidationError('Please enter a valid UK phone number (e.g., +44 7123 456789 or 07123 456789)');
       } else {
         setPhoneValidationError(null); // Clear error if valid
       }
     }
     
-    // Auto-verify account when account number is entered and bank is selected
-    if (field === 'accountNumber' && value.length === 10 && formData.bankCode) {
-      handleAccountVerification(value, formData.bankCode);
-    }
+           // Validate account format when account number is entered and bank is selected
+           // Note: Stripe doesn't provide account name verification for UK accounts without user interaction
+           // This only validates the format - account name must be entered manually
+           if (field === 'accountNumber' && value.length === 10 && formData.bankCode) {
+             handleAccountVerification(value, formData.bankCode);
+           }
   };
   
   const handleBankSelect = (bankCode: string, bankName: string) => {
     setFormData(prev => ({ ...prev, bankCode, bankName }));
     
-    // Auto-verify if account number is already 10 digits
+    // Validate account format if account number is already 10 digits
+    // Note: Stripe doesn't provide account name verification for UK accounts without user interaction
+    // This only validates the format - account name must be entered manually
     if (formData.accountNumber.length === 10) {
       handleAccountVerification(formData.accountNumber, bankCode);
     }
   };
   
-  const handleAccountVerification = async (accountNumber: string, bankCode: string) => {
-    if (!accountNumber || accountNumber.length !== 10 || !bankCode) {
-      return;
-    }
-    
-    setIsVerifyingAccount(true);
-    try {
-      const result = await verifyBankAccount({
-        accountNumber,
-        bankCode,
-      });
-      
-      if (result.success && result.accountName) {
-        setFormData(prev => ({ 
-          ...prev, 
-          accountName: result.accountName || '',
-          accountNumber,
-        }));
-      } else {
-        // Verification failed - clear account name and show error
-        setFormData(prev => ({ 
-          ...prev, 
-          accountName: '',
-        }));
-        const errorMessage = result.error || 'Unable to verify account. Please check the account number and bank code.';
-        Alert.alert('Verification Failed', errorMessage);
-      }
-    } catch (error) {
-      logger.error('Account verification error:', error);
-      // Clear account name on error
-      setFormData(prev => ({ 
-        ...prev, 
-        accountName: '',
-      }));
-      const errorMessage = error instanceof Error ? error.message : 'Failed to verify account. Please try again.';
-      Alert.alert('Verification Error', errorMessage);
-    } finally {
-      setIsVerifyingAccount(false);
-    }
-  };
+         const handleAccountVerification = async (accountNumber: string, bankCode: string) => {
+           if (!accountNumber || accountNumber.length !== 10 || !bankCode) {
+             return;
+           }
+           
+           setIsVerifyingAccount(true);
+           try {
+             const result = await verifyBankAccount({
+               accountNumber,
+               bankCode,
+             }).unwrap();
+             
+             // Stripe doesn't provide account name verification for UK accounts without user interaction
+             // The API validates the format only
+             // Account name must be entered manually by the user
+             if (result.success) {
+               // Format validated successfully
+               // Don't auto-fill account name - user must enter it manually
+               // The account will be verified when used for payouts via Stripe
+             } else {
+               // Format validation failed
+               setFormData(prev => ({ 
+                 ...prev, 
+                 accountName: '',
+               }));
+               const errorMessage = result.error || 'Invalid account number or sort code format. Please check and try again.';
+               Alert.alert('Validation Failed', errorMessage);
+             }
+           } catch (error: any) {
+             logger.error('Account verification error:', error);
+             // Clear account name on error
+             setFormData(prev => ({ 
+               ...prev, 
+               accountName: '',
+             }));
+             const errorMessage = error?.data?.message || error?.message || 'Failed to validate account. Please check the account number and sort code.';
+             Alert.alert('Validation Error', errorMessage);
+           } finally {
+             setIsVerifyingAccount(false);
+           }
+         };
 
   // Update form data when params or user data changes
   useEffect(() => {
@@ -281,7 +303,7 @@ export default function DriverRegisterScreen() {
         return {
           ...prev,
           // Only update phone if we have a valid phone number and it's not already set from backend
-          // Normalize phone numbers to +234 format
+          // Normalize phone numbers to +44 format
           phoneNumber: newPhoneNumber,
           // Only update email if we have backend email and it's not already set
           email: params.email as string || (backendHasEmail ? (user?.email || prev.email) : prev.email),
@@ -390,9 +412,9 @@ export default function DriverRegisterScreen() {
     // Phone validation - normalize phone number and validate
     if (formData.phoneNumber) {
       const normalizedPhone = normalizePhoneNumber(formData.phoneNumber);
-      // Validate normalized phone number (must be +234 followed by 10 digits starting with 7, 8, or 9)
+      // Validate normalized phone number (must be +44 followed by 10 digits)
       if (!isValidPhoneNumber(formData.phoneNumber)) {
-        errors.push('Please enter a valid Nigerian phone number');
+        errors.push('Please enter a valid UK phone number');
       }
     }
     
@@ -439,47 +461,51 @@ export default function DriverRegisterScreen() {
 
     setIsLoading(true);
     try {
-      // Normalize phone number to +234 format (handles local format like 08102414599)
-      const normalizedPhoneNumber = normalizePhoneNumber(formData.phoneNumber);
-      
-      // Register driver using Convex
-      // Pass session token if available so backend can identify existing user
-      const result = await registerDriver({
-        sessionToken: sessionToken || undefined,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phoneNumber: normalizedPhoneNumber,
-        email: formData.email,
-        vehicleType: formData.vehicleType,
-        vehicleModel: formData.vehicleModel,
-        vehicleYear: formData.vehicleYear,
-        licensePlate: formData.licensePlate,
-        driversLicense: formData.driversLicense,
-        vehicleRegistration: formData.vehicleRegistration,
-        insurance: formData.insurance,
-        bankName: formData.bankName,
-        bankCode: formData.bankCode,
-        accountNumber: formData.accountNumber,
-        accountName: formData.accountName,
-        supplierId: formData.workType === 'supplier' ? formData.supplierId : undefined,
-      });
-      
-      if (result.success) {
-        // Navigate to registration success screen
-        router.push({
-          pathname: '/registration-success',
-          params: {
-            driverId: result.driverId,
-            userId: result.userId,
-            },
-        });
-      } else {
-        Alert.alert(
-          'Registration Failed', 
-          result.message || 'An error occurred during registration. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }
+           // Normalize phone number to +44 format (handles local format like 07123 456789)
+           const normalizedPhoneNumber = normalizePhoneNumber(formData.phoneNumber);
+           
+           // Register driver using API
+           // Pass session token if available so backend can identify existing user
+           const result = await registerDriver({
+             sessionToken: sessionToken || undefined,
+             firstName: formData.firstName,
+             lastName: formData.lastName,
+             phoneNumber: normalizedPhoneNumber,
+             email: formData.email,
+             vehicleType: formData.vehicleType,
+             vehicleModel: formData.vehicleModel,
+             vehicleYear: formData.vehicleYear,
+             licensePlate: formData.licensePlate,
+             driversLicense: formData.driversLicense,
+             driversLicenseFileId: formData.driversLicenseFileId,
+             vehicleRegistration: formData.vehicleRegistration,
+             vehicleRegistrationFileId: formData.vehicleRegistrationFileId,
+             insurance: formData.insurance,
+             insuranceFileId: formData.insuranceFileId,
+             bankName: formData.bankName,
+             bankCode: formData.bankCode,
+             accountNumber: formData.accountNumber,
+             accountName: formData.accountName,
+             workType: formData.workType as 'independent' | 'supplier' | undefined,
+             supplierId: formData.workType === 'supplier' ? formData.supplierId : undefined,
+           }).unwrap();
+           
+           if (result.success) {
+             // Navigate to registration success screen
+             router.push({
+               pathname: '/registration-success',
+               params: {
+                 driverId: result.driverId,
+                 userId: result.userId || '',
+                 },
+             });
+           } else {
+             Alert.alert(
+               'Registration Failed', 
+               'An error occurred during registration. Please try again.',
+               [{ text: 'OK' }]
+             );
+           }
     } catch (error) {
       logger.error('Registration error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -552,7 +578,7 @@ export default function DriverRegisterScreen() {
                   hasBackendPhone && styles.textInputDisabled,
                   phoneValidationError && styles.textInputError
                 ]}
-                placeholder="+234 800 000 0000"
+                placeholder="+44 7123 456789"
                 placeholderTextColor={Colors.light.icon}
                 value={formData.phoneNumber}
                 onChangeText={(value) => handleInputChange('phoneNumber', value)}

@@ -9,9 +9,8 @@ import { ShimmerEffect } from '../components/ShimmerEffect';
 import { SkeletonOrderCard } from '../components/SkeletonComponents';
 import { Colors } from '../constants/Colors';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
-// Note: Available orders should use RTK Query when endpoint is available
-// import { useGetDriverOrdersQuery } from '../store/driverApi';
 import { driverNotificationService } from '../services/notificationService';
+import { useGetAvailableOrdersQuery } from '../store/driverApi';
 import { logger } from '../utils/Logger';
 
 export default function DriverDashboardScreen() {
@@ -58,9 +57,12 @@ export default function DriverDashboardScreen() {
     }
   }, [authLoading, driver, user, isAuthenticated, sessionToken, router]);
 
-  // TODO: Fetch available orders using RTK Query when endpoint is available
-  // For now, using empty array as placeholder
-  const availableOrdersData: any[] = [];
+  // Fetch available orders (orders assigned to driver with status=assigned)
+  const { data: availableOrdersResponse, isLoading: isLoadingOrders } = useGetAvailableOrdersQuery(
+    { limit: 50 },
+    { skip: !driver }
+  );
+  const availableOrdersData = availableOrdersResponse?.data?.orders || [];
   
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -76,8 +78,8 @@ export default function DriverDashboardScreen() {
   // Show skeleton while data is loading or driver is not authenticated
   // Show skeleton if:
   // 1. Auth is still loading, OR
-  // 2. Driver exists but queries haven't loaded yet (they're undefined while loading)
-  if (authLoading || (driver && availableOrdersData === undefined)) {
+  // 2. Driver exists but orders are still loading
+  if (authLoading || (driver && isLoadingOrders)) {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView style={{ flex: 1 }}>

@@ -325,3 +325,109 @@ export const uploadDocument = mutation({
     return await ctx.db.get(args.driverId);
   },
 });
+
+/**
+ * Register a new driver with complete profile information
+ */
+export const registerDriver = mutation({
+  args: {
+    // User information
+    userId: v.optional(v.id("users")),
+    firstName: v.string(),
+    lastName: v.string(),
+    email: v.string(),
+    phoneNumber: v.string(),
+    // Vehicle information
+    vehicleType: v.string(),
+    vehicleModel: v.string(),
+    vehicleYear: v.string(),
+    licensePlate: v.string(),
+    // Documents
+    driversLicense: v.string(), // URL or file ID
+    driversLicenseFileId: v.optional(v.string()),
+    vehicleRegistration: v.string(), // URL or file ID
+    vehicleRegistrationFileId: v.optional(v.string()),
+    insurance: v.string(), // URL or file ID
+    insuranceFileId: v.optional(v.string()),
+    // Bank information
+    bankName: v.string(),
+    bankCode: v.string(),
+    accountNumber: v.string(),
+    accountName: v.string(),
+    // Work type
+    workType: v.optional(v.union(
+      v.literal('independent'),
+      v.literal('supplier')
+    )),
+    supplierId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    
+    // Check if driver already exists with this email
+    const existingDriver = await ctx.db
+      .query('drivers')
+      .filter(q => q.eq(q.field('email'), args.email))
+      .first();
+    
+    if (existingDriver) {
+      throw new Error('A driver with this email already exists');
+    }
+
+    // Prepare documents array
+    const documents = [
+      {
+        type: 'driversLicense',
+        url: args.driversLicense,
+        fileId: args.driversLicenseFileId,
+        verified: false,
+      },
+      {
+        type: 'vehicleRegistration',
+        url: args.vehicleRegistration,
+        fileId: args.vehicleRegistrationFileId,
+        verified: false,
+      },
+      {
+        type: 'insurance',
+        url: args.insurance,
+        fileId: args.insuranceFileId,
+        verified: false,
+      },
+    ];
+
+    // Create driver record
+    const driverId = await ctx.db.insert('drivers', {
+      userId: args.userId,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      name: `${args.firstName} ${args.lastName}`,
+      email: args.email,
+      phone: args.phoneNumber,
+      vehicleType: args.vehicleType,
+      vehicleModel: args.vehicleModel,
+      vehicleYear: args.vehicleYear,
+      licensePlate: args.licensePlate,
+      documents,
+      bankName: args.bankName,
+      bankCode: args.bankCode,
+      accountNumber: args.accountNumber,
+      accountName: args.accountName,
+      workType: args.workType || 'independent',
+      supplierId: args.supplierId,
+      status: 'pending',
+      availability: 'offline',
+      rating: 0,
+      totalDeliveries: 0,
+      totalEarnings: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      driverId,
+      userId: args.userId,
+    };
+  },
+});

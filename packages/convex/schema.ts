@@ -559,17 +559,39 @@ export default defineSchema({
     .index("by_event_type", ["eventType"]),
   // Drivers table
   drivers: defineTable({
-    name: v.string(),
+    // User information
+    userId: v.optional(v.id("users")),
+    firstName: v.string(),
+    lastName: v.string(),
+    name: v.string(), // Full name (firstName + lastName)
     email: v.string(),
     phone: v.optional(v.string()),
-    vehicle: v.string(),
-    vehicleType: v.union(
-      v.literal('car'),
-      v.literal('motorcycle'),
-      v.literal('bicycle'),
-      v.literal('scooter'),
-      v.literal('van')
-    ),
+    // Vehicle information
+    vehicleType: v.string(), // e.g., "Car", "Motorcycle", "Bicycle", "Scooter", "Van"
+    vehicleModel: v.string(), // e.g., "Toyota Corolla", "Honda CB500F"
+    vehicleYear: v.string(), // e.g., "2020"
+    licensePlate: v.string(), // UK license plate format
+    // Documents
+    documents: v.optional(v.array(v.object({
+      type: v.string(), // "driversLicense", "vehicleRegistration", "insurance"
+      url: v.string(),
+      fileId: v.optional(v.string()),
+      verified: v.boolean(),
+      verifiedAt: v.optional(v.number()),
+    }))),
+    // Bank information
+    bankName: v.optional(v.string()),
+    bankCode: v.optional(v.string()),
+    accountNumber: v.optional(v.string()),
+    accountName: v.optional(v.string()),
+    // Work type
+    workType: v.optional(v.union(
+      v.literal('independent'),
+      v.literal('supplier')
+    )),
+    supplierId: v.optional(v.string()),
+    // Legacy fields (for backward compatibility)
+    vehicle: v.optional(v.string()),
     licenseNumber: v.optional(v.string()),
     experience: v.optional(v.number()),
     status: v.union(
@@ -595,12 +617,6 @@ export default defineSchema({
     rating: v.optional(v.number()),
     totalDeliveries: v.optional(v.number()),
     totalEarnings: v.optional(v.number()),
-    documents: v.optional(v.array(v.object({
-      type: v.string(),
-      url: v.string(),
-      verified: v.boolean(),
-      verifiedAt: v.optional(v.number()),
-    }))),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })

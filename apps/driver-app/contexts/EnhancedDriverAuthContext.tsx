@@ -5,6 +5,7 @@ import {
   useGetDriverProfileQuery,
   usePhoneLoginMutation,
   useSendDriverOTPMutation,
+  useLogoutMutation,
 } from '../store/driverApi';
 import type { Driver } from '../types/driver';
 import { logger } from '../utils/Logger';
@@ -109,6 +110,7 @@ export function EnhancedDriverAuthProvider({ children }: EnhancedDriverAuthProvi
   // RTK Query mutations for auth
   const [sendDriverOTPAPI] = useSendDriverOTPMutation();
   const [phoneLoginAPI] = usePhoneLoginMutation();
+  const [logoutMutation] = useLogoutMutation();
   
   // Get current user using RTK Query API endpoint
   const { data: currentUserData, isLoading: isLoadingUser, error: userError } = useGetCurrentUserQuery(
@@ -396,9 +398,17 @@ export function EnhancedDriverAuthProvider({ children }: EnhancedDriverAuthProvi
 
   const logout = async () => {
     try {
-      // TODO: Call logout API endpoint if available
-      // For now, just clear local state
       logger.info('Logging out driver');
+      
+      // Call logout API endpoint if session token exists
+      if (sessionToken) {
+        try {
+          await logoutMutation().unwrap();
+        } catch (error: any) {
+          // Log error but continue with local logout even if API call fails
+          logger.error('Logout API error (continuing with local logout):', error);
+        }
+      }
     } catch (error: any) {
       logger.error('Logout error', error);
     } finally {

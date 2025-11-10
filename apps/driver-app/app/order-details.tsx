@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { Id } from '../../packages/convex/_generated/dataModel';
 import { CallUI } from '../components/CallUI';
 import { GlassCard } from '../components/GlassCard';
 import { ShimmerEffect } from '../components/ShimmerEffect';
@@ -12,12 +11,10 @@ import { ThemedView } from '../components/ThemedView';
 import { Colors } from '../constants/Colors';
 import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
 import { useCallMonitoring } from '../hooks/useCallMonitoring';
-import { useSessionAwareQuery } from '../hooks/useSessionAwareConvex';
-import { api } from '../lib/convexApi';
 import { driverOrderNotificationService } from '../services/OrderNotificationService';
 import { callingService } from '../services/callingService';
 import { NavigationService } from '../services/navigationService';
-import { useAcceptOrderMutation, useDeclineOrderMutation, useGetDriverOrderQuery } from '../store/driverApi';
+import { useAcceptOrderMutation, useDeclineOrderMutation, useGetDriverOrderQuery, useGetUserByIdQuery } from '../store/driverApi';
 import { logger } from '../utils/Logger';
 
 export default function OrderDetailsScreen() {
@@ -39,8 +36,8 @@ export default function OrderDetailsScreen() {
 
   // Monitor for incoming calls
   const { activeCall } = useCallMonitoring({
-    orderId: order?._id ? (order._id as unknown as Id<"orders">) : null,
-    userId: user?._id ? (user._id as unknown as Id<"users">) : null,
+    orderId: order?._id ? order._id : null,
+    userId: user?._id ? user._id : null,
     onIncomingCall: (callId) => {
       setIsIncomingCall(true);
       setShowCallUI(true);
@@ -128,13 +125,15 @@ export default function OrderDetailsScreen() {
                         if (deliveryLocation) {
                           const location = typeof deliveryLocation === 'string' 
                             ? { address: deliveryLocation }
-                            : deliveryLocation;
+                            : 'latitude' in deliveryLocation && 'longitude' in deliveryLocation
+                            ? deliveryLocation
+                            : { address: (deliveryLocation as any)?.address || (deliveryLocation as any)?.street || 'Customer Location' };
                           
                           await NavigationService.navigateToCustomer(
                             {
-                              latitude: location.latitude || 0,
-                              longitude: location.longitude || 0,
-                              address: location.address || 'Customer Location',
+                              latitude: 'latitude' in location ? (location.latitude || 0) : 0,
+                              longitude: 'longitude' in location ? (location.longitude || 0) : 0,
+                              address: 'address' in location ? location.address : 'Customer Location',
                             },
                             'Customer Location'
                           );
@@ -204,9 +203,9 @@ export default function OrderDetailsScreen() {
   const [isIncomingCall, setIsIncomingCall] = useState(false);
 
   // Get customer details for calling
-  // TODO: Use API endpoint when available
   const customerId = order?.customer_id || order?.customerId;
-  const customerDetails = null; // Placeholder - use API endpoint when available
+  const { data: customerData } = useGetUserByIdQuery(customerId || '', { skip: !customerId });
+  const customerDetails = customerData?.data?.user || null;
 
   const handleCallCustomer = async () => {
     if (!order) return;
@@ -233,8 +232,8 @@ export default function OrderDetailsScreen() {
               try {
               const result = await callingService.initiateCall(
                 order._id,
-                driver.userId as Id<"users">,
-                order.customerId,
+                driver.userId || '',
+                order?.customerId || order?.customer_id || '',
                 customerDetails.fullName || customerDetails.email || 'Customer',
                 customerDetails.phone // Pass phone for fallback
               );
@@ -368,21 +367,21 @@ export default function OrderDetailsScreen() {
               <View style={styles.statusCardContent}>
                 <ShimmerEffect />
             <View style={styles.statusHeader}>
-              <View style={[styles.statusIcon, { backgroundColor: getStatusColor(order.status) + '20' }]}>
+              <View style={[styles.statusIcon, { backgroundColor: getStatusColor((order?.status || order?.order_status || 'unknown') as string) + '20' }]}>
                 <Ionicons 
                   name="car" 
                   size={24} 
-                  color={getStatusColor(order.status)} 
+                  color={getStatusColor((order?.status || order?.order_status || 'unknown') as string)} 
                 />
               </View>
               <View style={styles.statusInfo}>
                 <ThemedText style={styles.statusTitle}>Order #{order.order_id || order._id?.slice(-8) || 'N/A'}</ThemedText>
-                <ThemedText style={[styles.statusValue, { color: getStatusColor(assignment?.status || order.order_status || order.status) }]}>
-                  {getStatusText(assignment?.status || order.order_status || order.status)}
+                <ThemedText style={[styles.statusValue, { color: getStatusColor(assignment?.status || order?.order_status || order?.status || 'unknown') }]}>
+                  {getStatusText(assignment?.status || order?.order_status || order?.status || 'unknown')}
                 </ThemedText>
               </View>
             </View>
-            <ThemedText style={styles.orderTime}>Ordered at {new Date(order._creationTime || order.createdAt || Date.now()).toLocaleString()}</ThemedText>
+            <ThemedText style={styles.orderTime}>Ordered at {new Date(order?._creationTime || order?.createdAt || Date.now()).toLocaleString()}</ThemedText>
               </View>
             </GlassCard>
           </View>
@@ -416,7 +415,7 @@ export default function OrderDetailsScreen() {
                 <ShimmerEffect />
             <ThemedText style={styles.sectionTitle}>Order Details</ThemedText>
             <View style={styles.orderDetails}>
-              {order.order_items && order.order_items.length > 0 ? (
+              {order?.order_items && order.order_items.length > 0 ? (
                 order.order_items.map((item: any, index: number) => (
                   <View key={index} style={styles.orderDetailRow}>
                     <ThemedText style={styles.orderDetailLabel}>{item.name || item.dish_id || 'Item'}</ThemedText>
@@ -433,7 +432,7 @@ export default function OrderDetailsScreen() {
               )}
               <View style={[styles.orderDetailRow, styles.orderTotalRow]}>
                 <ThemedText style={styles.orderTotalLabel}>Total Amount</ThemedText>
-                <ThemedText style={styles.orderTotalValue}>£{(order.total_amount || 0).toFixed(2)}</ThemedText>
+                <ThemedText style={styles.orderTotalValue}>£{(order?.total_amount || 0).toFixed(2)}</ThemedText>
               </View>
             </View>
               </View>
@@ -453,9 +452,9 @@ export default function OrderDetailsScreen() {
                   <ThemedText style={styles.deliveryLocation}>Delivery Location</ThemedText>
                   <ThemedText style={styles.deliveryAddress}>
                     {assignment?.delivery_location?.address 
-                      || (typeof order.delivery_address === 'string' 
+                      || (typeof order?.delivery_address === 'string' 
                         ? order.delivery_address 
-                        : order.delivery_address?.address || 'Location not specified')}
+                        : (order?.delivery_address as any)?.address || (order?.delivery_address as any)?.street || 'Location not specified')}
                   </ThemedText>
                 </View>
               </View>
@@ -475,7 +474,7 @@ export default function OrderDetailsScreen() {
           </View>
 
           {/* Special Instructions */}
-          {order.ratingComment && (
+          {order?.ratingComment && (
             <View style={styles.sectionCardWrapper}>
               <GlassCard style={styles.sectionCard}>
                 <View style={styles.sectionCardContent}>

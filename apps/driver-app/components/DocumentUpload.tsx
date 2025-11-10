@@ -1,17 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-// TODO: Use API endpoints for file upload when available
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useCallback, useImperativeHandle, forwardRef, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { Colors } from '../constants/Colors';
+import { useConfirmUploadMutation, useGenerateUploadUrlMutation } from '../store/driverApi';
 import { logger } from '../utils/Logger';
 
 interface DocumentUploadProps {
@@ -45,14 +45,9 @@ export const DocumentUpload = forwardRef<DocumentUploadRef, DocumentUploadProps>
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
 
-  // Convex mutations for file upload
-  // Note: Using documents.generateUploadUrl from Cribnosh Convex
-  // TODO: Use API endpoint for generating upload URL when available
-  const generateUploadUrl = null as any;
-  // TODO: Replace confirmUpload with appropriate Cribnosh mutation if available
-  // For now, using a placeholder - may need to use files.uploadFile or similar
-  // TODO: Use API endpoint for confirming upload when available
-  const confirmUpload = null as any;
+  // RTK Query mutations for file upload
+  const [generateUploadUrl] = useGenerateUploadUrlMutation();
+  const [confirmUpload] = useConfirmUploadMutation();
 
   const getDocumentInfo = () => {
     switch (documentType) {
@@ -140,22 +135,22 @@ export const DocumentUpload = forwardRef<DocumentUploadRef, DocumentUploadProps>
     setUploading(true);
 
     try {
-      // Step 1: Generate upload URL
-      const uploadData = await generateUploadUrl({
+      // Step 1: Generate upload URL using RTK Query
+      const uploadUrlResult = await generateUploadUrl({
         fileName: selectedFile.name,
-        fileType: selectedFile.type,
+        contentType: selectedFile.type,
         fileSize: selectedFile.size,
-        category: `driver_${documentType}`,
-        metadata: {},
-      });
+        metadata: { documentType, category: `driver_${documentType}` },
+      }).unwrap();
 
       // Step 2: Upload file to Convex storage
-      const response = await fetch(uploadData.uploadUrl, {
+      const fileBlob = await fetch(selectedFile.uri).then(res => res.blob());
+      const response = await fetch(uploadUrlResult.data.url, {
         method: 'POST',
         headers: {
           'Content-Type': selectedFile.type,
         },
-        body: await fetch(selectedFile.uri).then(res => res.blob()),
+        body: fileBlob,
       });
 
       if (!response.ok) {
@@ -189,29 +184,34 @@ export const DocumentUpload = forwardRef<DocumentUploadRef, DocumentUploadProps>
         throw new Error('Storage ID not found in upload response');
       }
 
-      // Step 3: Confirm upload completion
-      const result = await confirmUpload({
-        fileId: storageId as any, // Storage ID from upload response
-        recordId: uploadData.fileId, // File record ID from generateUploadUrl
-      });
+      // Step 3: Confirm upload completion using RTK Query
+      const confirmResult = await confirmUpload({
+        storageId,
+        fileName: selectedFile.name,
+        contentType: selectedFile.type,
+        fileSize: selectedFile.size,
+        metadata: { documentType, category: `driver_${documentType}` },
+      }).unwrap();
 
-      if (result.success) {
+      if (confirmResult.success) {
         // Use the file URL from confirmUpload result
-        const fileUrl = result.fileUrl || '';
+        const fileUrl = confirmResult.data.fileUrl || '';
+        const fileId = confirmResult.data.fileId || storageId;
         
         setUploaded(true);
         setSelectedFile(null);
         onFileSelected?.(false);
         
-        onUploadComplete?.(fileUrl, uploadData.fileId);
+        onUploadComplete?.(fileUrl, fileId);
         if (!shouldSuppressAlerts) {
           Alert.alert('Success', 'Document uploaded successfully!');
         }
       } else {
-        throw new Error(result.error || 'Upload confirmation failed');
+        throw new Error(confirmResult.message || 'Upload confirmation failed');
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || 'Upload failed';
+      logger.error('Document upload error:', error);
       onUploadError?.(errorMessage);
       if (!shouldSuppressAlerts) {
         Alert.alert('Error', errorMessage);

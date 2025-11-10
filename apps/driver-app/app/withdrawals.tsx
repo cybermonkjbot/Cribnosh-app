@@ -1,8 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/Colors';
-import { useGetDriverEarningsQuery, useRequestPayoutMutation } from '../store/driverApi';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,11 +11,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
+import { PersistentBottomSheet } from '../components/PersistentBottomSheet';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
+import { Colors } from '../constants/Colors';
+import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
+import { useGetDriverEarningsQuery, useGetDriverPayoutHistoryQuery, useRequestPayoutMutation } from '../store/driverApi';
 import { logger } from '../utils/Logger';
-import { PersistentBottomSheet } from '../components/PersistentBottomSheet';
 
 export default function WithdrawalsScreen() {
   const router = useRouter();
@@ -32,8 +32,12 @@ export default function WithdrawalsScreen() {
     { skip: !driver }
   );
   
-  // TODO: Use API endpoint for payout history when available
-  const payoutHistory = null as any;
+  // Fetch payout history using RTK Query
+  const { data: payoutHistoryData, isLoading: isLoadingPayoutHistory } = useGetDriverPayoutHistoryQuery(
+    { limit: 50, offset: 0 },
+    { skip: !driver }
+  );
+  const payoutHistory = payoutHistoryData?.data?.payouts || [];
 
   // RTK Query mutation for payout request
   const [requestPayout, { isLoading: isRequestingPayout }] = useRequestPayoutMutation();
@@ -383,7 +387,7 @@ export default function WithdrawalsScreen() {
           {/* Withdrawal History */}
           <ThemedView style={styles.sectionCard}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Withdrawal History</ThemedText>
-            {!payoutHistory ? (
+            {isLoadingPayoutHistory ? (
               <View style={styles.loadingHistory}>
                 <ActivityIndicator size="small" color={Colors.light.primary} />
                 <ThemedText style={styles.loadingHistoryText}>Loading history...</ThemedText>
