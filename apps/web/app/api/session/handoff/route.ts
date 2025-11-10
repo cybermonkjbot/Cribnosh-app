@@ -43,10 +43,11 @@ export async function GET(req: NextRequest) {
   if (!payload) return ResponseFactory.validationError("Invalid transfer token");
 
   // Set the convex-auth-token from payload
+  // httpOnly is false in production so JavaScript can read it for Convex queries
   const cookieStore = await cookies();
   const isProd = process.env.NODE_ENV === 'production';
   cookieStore.set('convex-auth-token', payload.t, {
-    httpOnly: true,
+    httpOnly: false, // Allow JavaScript to read in production for Convex queries
     sameSite: 'lax',
     secure: isProd,
     path: '/',

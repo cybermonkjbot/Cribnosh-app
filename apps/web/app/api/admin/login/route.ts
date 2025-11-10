@@ -190,17 +190,19 @@ export async function POST(request: NextRequest) {
     
     // Set the Convex session token in cookies for middleware authentication
     // Set cookie to expire in 1 year for long-term persistence
+    // httpOnly is false in production so JavaScript can read it for Convex queries
     const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60; // 1 year in seconds
+    const isProd = process.env.NODE_ENV === 'production';
     response.cookies.set('convex-auth-token', result.sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false, // Allow JavaScript to read in production for Convex queries
+      secure: isProd,
       sameSite: 'strict', // Changed from 'lax' to 'strict' to match staff login
       maxAge: ONE_YEAR_SECONDS, // 1 year for persistent login
       path: '/',
     });
     
-    // Also set a non-httpOnly cookie for debugging in development
-    if (process.env.NODE_ENV !== 'production') {
+    // Also set a non-httpOnly cookie for debugging in development (for backward compatibility)
+    if (!isProd) {
       response.cookies.set('convex-auth-token-debug', result.sessionToken, {
         httpOnly: false,
         secure: false,
