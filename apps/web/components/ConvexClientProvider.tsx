@@ -16,8 +16,8 @@ function getConvexClient(): ConvexReactClient {
   
   if (!convexUrl) {
     console.error("NEXT_PUBLIC_CONVEX_URL is not set. Please check your environment variables.");
-    // Use dev URL as fallback
-    const fallbackUrl = "https://wandering-finch-293.convex.cloud";
+    // Use production URL as fallback
+    const fallbackUrl = "https://moonlit-stork-467.convex.cloud";
     console.warn(`Using fallback Convex URL: ${fallbackUrl}`);
     convexClientInstance = new ConvexReactClient(fallbackUrl);
     return convexClientInstance;

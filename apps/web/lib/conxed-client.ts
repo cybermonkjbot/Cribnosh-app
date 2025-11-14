@@ -12,8 +12,8 @@ export function getConvexClient() {
       // In development, use a fallback URL if available
       // In production, this should be set
       const fallbackUrl = process.env.NODE_ENV === 'development' 
-        ? 'https://wandering-finch-293.convex.cloud'
-        : null;
+        ? 'https://moonlit-stork-467.convex.cloud'
+        : 'https://moonlit-stork-467.convex.cloud';
       
       if (!fallbackUrl) {
         throw new Error(

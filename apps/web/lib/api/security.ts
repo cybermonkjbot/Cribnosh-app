@@ -63,7 +63,7 @@ export class SecurityMiddleware {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https: blob:",
-        "connect-src 'self' https://api.convex.cloud https://api.resend.com https://api.notion.com wss://*.convex.cloud wss://wandering-finch-293.convex.cloud",
+        "connect-src 'self' https://api.convex.cloud https://api.resend.com https://api.notion.com wss://*.convex.cloud wss://moonlit-stork-467.convex.cloud",
         "frame-src 'none'",
         "object-src 'none'",
         "base-uri 'self'",

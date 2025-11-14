@@ -120,8 +120,8 @@ export async function proxy(request: NextRequest) {
   
   // Content Security Policy (adjust as needed for your app)
   const connectSrc = isDevelopment
-    ? "'self' https: http://localhost:5600 wss://*.convex.cloud wss://wandering-finch-293.convex.cloud"
-    : "'self' https: wss://*.convex.cloud wss://wandering-finch-293.convex.cloud";
+    ? "'self' https: http://localhost:5600 wss://*.convex.cloud wss://moonlit-stork-467.convex.cloud"
+    : "'self' https: wss://*.convex.cloud wss://moonlit-stork-467.convex.cloud";
   
   const csp = [
     "default-src 'self'",
