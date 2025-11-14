@@ -13,6 +13,30 @@
       },
       "AGORA_APP_CERTIFICATE": {
         "description": "Agora App Certificate for live streaming"
+      },
+      "OPENAI_API_KEY": {
+        "description": "OpenAI API key for AI chat features"
+      },
+      "OPENWEATHERMAP_API_KEY": {
+        "description": "OpenWeatherMap API key for weather data (optional)"
+      },
+      "SMS_API_KEY": {
+        "description": "SMS service API key for OTP functionality"
+      },
+      "SMS_USERNAME": {
+        "description": "SMS service username (if required by provider)"
+      },
+      "SMS_PASSWORD": {
+        "description": "SMS service password (if required by provider)"
+      },
+      "SMS_TOKEN": {
+        "description": "SMS service token (alternative to username/password)"
+      },
+      "SMS_SENDER_ID": {
+        "description": "SMS sender ID (defaults to 'CribNosh')"
+      },
+      "RESEND_FROM_EMAIL": {
+        "description": "Default from email address for automated emails"
       }
     }
   }

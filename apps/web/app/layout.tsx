@@ -224,12 +224,6 @@ export default async function RootLayout({
         
         {/* Other meta tags */}
         <meta name="msapplication-TileColor" content="#ffffff" />
-        <link 
-          rel="preload" 
-          href="https://my.spline.design/iphoneprocopy-pV22kwixcmjbCyehvGuZGps0/" 
-          as="fetch" 
-          crossOrigin="anonymous" 
-        />
         
         {/* PWA manifest */}
         <link rel="manifest" href="/site.webmanifest" />

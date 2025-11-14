@@ -86,8 +86,19 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      // Hide the default splash screen
-      SplashScreen.hideAsync();
+      // Hide the default splash screen with error handling
+      // On iOS, the native splash screen might not be registered yet, so we add a small delay
+      const hideSplash = async () => {
+        // Small delay to ensure native module is ready on iOS
+        await new Promise(resolve => setTimeout(resolve, 100));
+        try {
+          await SplashScreen.hideAsync();
+        } catch (error) {
+          // Silently handle the error - the splash screen will auto-hide anyway
+          console.warn('SplashScreen.hideAsync error:', error);
+        }
+      };
+      hideSplash();
     }
   }, [fontsLoaded, fontError]);
 

@@ -26,15 +26,11 @@
  *     security: []
  */
 
+import { ResponseFactory } from '@/lib/api';
+import { verifySessionTransferToken } from '@/lib/auth/session-transfer';
+import { logger } from '@/lib/utils/logger';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { verifySessionTransferToken } from '@/lib/auth/session-transfer';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
-import { logger } from '@/lib/utils/logger';
 
 export async function GET(req: NextRequest) {
   const xfer = req.nextUrl.searchParams.get('xfer');
@@ -55,7 +51,12 @@ export async function GET(req: NextRequest) {
   });
 
   // Redirect to intended next path on this domain
-  const next = req.nextUrl.searchParams.get('next') || '/';
+  let next = req.nextUrl.searchParams.get('next') || '/';
+    // If an API route is specified, fallback to home page
+  if (next.startsWith('/api/')) {
+    logger.log('Session handoff: API route detected in next parameter, redirecting to home instead');
+    next = '/';
+  }
   
   // Get the hostname from the request, ensuring we use the actual domain
   const hostname = req.headers.get('host') || req.nextUrl.host;
@@ -69,6 +70,10 @@ export async function GET(req: NextRequest) {
     if (next.startsWith('http://') || next.startsWith('https://')) {
       // Already absolute, but ensure it's on the correct domain
       url = new URL(next);
+      // Prevent redirecting to API routes even in absolute URLs
+      if (url.pathname.startsWith('/api/')) {
+        url.pathname = '/';
+      }
       // If it's localhost, replace with the actual host
       if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
         url.hostname = cleanHost;

@@ -7444,6 +7444,117 @@
         ]
       }
     },
+    "/orders/{order_id}/status": {
+      "post": {
+        "summary": "Update Order/Delivery Status",
+        "description": "Update the delivery status of an order (picked_up, in_transit, delivered). Only drivers can update status.",
+        "tags": [
+          "Driver",
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the order to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "picked_up",
+                      "in_transit",
+                      "delivered"
+                    ],
+                    "description": "New delivery status"
+                  },
+                  "location": {
+                    "type": "object",
+                    "description": "Current driver location",
+                    "properties": {
+                      "latitude": {
+                        "type": "number"
+                      },
+                      "longitude": {
+                        "type": "number"
+                      },
+                      "accuracy": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Optional notes about the status update"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "assignment": {
+                          "type": "object",
+                          "description": "Updated assignment details"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid status or order cannot be updated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - only drivers can update order status"
+          },
+          "404": {
+            "description": "Order or assignment not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/orders/{order_id}/notify": {
       "post": {
         "summary": "Send Order Notification",
@@ -8411,117 +8522,6 @@
                 }
               }
             }
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/orders/{id}/status": {
-      "post": {
-        "summary": "Update Order/Delivery Status",
-        "description": "Update the delivery status of an order (picked_up, in_transit, delivered). Only drivers can update status.",
-        "tags": [
-          "Driver",
-          "Orders"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ID of the order to update"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "status"
-                ],
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "picked_up",
-                      "in_transit",
-                      "delivered"
-                    ],
-                    "description": "New delivery status"
-                  },
-                  "location": {
-                    "type": "object",
-                    "description": "Current driver location",
-                    "properties": {
-                      "latitude": {
-                        "type": "number"
-                      },
-                      "longitude": {
-                        "type": "number"
-                      },
-                      "accuracy": {
-                        "type": "number"
-                      }
-                    }
-                  },
-                  "notes": {
-                    "type": "string",
-                    "description": "Optional notes about the status update"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Order status updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "assignment": {
-                          "type": "object",
-                          "description": "Updated assignment details"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - invalid status or order cannot be updated"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden - only drivers can update order status"
-          },
-          "404": {
-            "description": "Order or assignment not found"
-          },
-          "500": {
-            "description": "Internal server error"
           }
         },
         "security": [

@@ -2,15 +2,13 @@ import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
 import { Webhook } from 'svix';
-import { ConvexHttpClient } from 'convex/browser';
+import { fetchMutation } from 'convex/nextjs';
 import { api } from '@/convex/_generated/api';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
 import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
 import { getSessionTokenFromRequest } from '@/lib/conxed-client';
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
  * @swagger
@@ -274,7 +272,7 @@ export async function POST(request: NextRequest) {
       };
 
       // Record the event in Convex with enhanced analytics
-      await convex.mutation(api.mutations.emailAnalytics.recordEmailEvent, {
+      await fetchMutation(api.mutations.emailAnalytics.recordEmailEvent, {
         emailId,
         templateId,
         recipientEmail,
@@ -295,7 +293,7 @@ export async function POST(request: NextRequest) {
       };
 
       // Record the event in Convex
-      await convex.mutation(api.mutations.emailAnalytics.recordEmailEvent, {
+      await fetchMutation(api.mutations.emailAnalytics.recordEmailEvent, {
         emailId: eventId,
         templateId: 'system',
         recipientEmail: 'system@resend.com',

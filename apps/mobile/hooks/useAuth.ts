@@ -86,9 +86,11 @@ export const useAuth = () => {
           };
         }
 
-        if (result.success && result.data.success && result.data.token && result.data.user) {
+        // Check for both token and sessionToken for compatibility
+        const authToken = result.data.token || result.data.sessionToken;
+        if (result.success && result.data.success && authToken && result.data.user) {
           return {
-            token: result.data.token,
+            token: authToken,
             user: result.data.user,
           };
         } else {

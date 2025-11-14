@@ -45,5 +45,6 @@
   "exclude": [
     "node_modules",
     ".next"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

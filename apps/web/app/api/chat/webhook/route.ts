@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getConvexClient, api, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { api, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import crypto from 'crypto';
-import { ConvexHttpClient } from 'convex/browser';
+import { fetchMutation } from 'convex/nextjs';
 import { Id } from '@/convex/_generated/dataModel';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
@@ -160,28 +160,27 @@ async function verifyWebhookSignature(
 }
 
 async function processWebhookEvent(eventData: WebhookEventData, request: NextRequest) {
-  const convex = getConvexClient();
   const sessionToken = getSessionTokenFromRequest(request);
   
   switch (eventData.type) {
     case 'message.created':
-      await handleMessageCreated(convex, eventData, sessionToken);
+      await handleMessageCreated(eventData, sessionToken);
       break;
     case 'channel.created':
-      await handleChannelCreated(convex, eventData, sessionToken);
+      await handleChannelCreated(eventData, sessionToken);
       break;
     case 'user.created':
-      await handleUserCreated(convex, eventData, sessionToken);
+      await handleUserCreated(eventData, sessionToken);
       break;
     default:
       logger.log('Unknown event type:', eventData.type);
   }
 }
 
-async function handleMessageCreated(convex: ConvexHttpClient, eventData: WebhookEventData, sessionToken: string | null) {
+async function handleMessageCreated(eventData: WebhookEventData, sessionToken: string | null) {
   try {
     // Track message creation in analytics
-    await convex.mutation(api.mutations.analytics.trackEvent, {
+    await fetchMutation(api.mutations.analytics.trackEvent, {
       eventType: 'message_created',
       timestamp: Date.now(),
       metadata: {
@@ -193,7 +192,7 @@ async function handleMessageCreated(convex: ConvexHttpClient, eventData: Webhook
 
     // Create notification if needed
     if (eventData.messageType === 'ai') {
-      await convex.mutation(api.mutations.notifications.create, {
+      await fetchMutation(api.mutations.notifications.create, {
         type: 'ai_response',
         message: 'The AI has responded to your message',
         userId: eventData.userId as Id<'users'>,
@@ -206,10 +205,10 @@ async function handleMessageCreated(convex: ConvexHttpClient, eventData: Webhook
   }
 }
 
-async function handleChannelCreated(convex: ConvexHttpClient, eventData: WebhookEventData, sessionToken: string | null) {
+async function handleChannelCreated(eventData: WebhookEventData, sessionToken: string | null) {
   try {
     // Track channel creation in analytics
-    await convex.mutation(api.mutations.analytics.trackEvent, {
+    await fetchMutation(api.mutations.analytics.trackEvent, {
       eventType: 'channel_created',
       timestamp: Date.now(),
       metadata: {
@@ -221,7 +220,7 @@ async function handleChannelCreated(convex: ConvexHttpClient, eventData: Webhook
     });
 
     // Create system notification
-    await convex.mutation(api.mutations.notifications.create, {
+    await fetchMutation(api.mutations.notifications.create, {
       type: 'channel_created',
       message: `Channel "${eventData.name}" has been created`,
       userId: eventData.createdBy as Id<'users'>,
@@ -233,10 +232,10 @@ async function handleChannelCreated(convex: ConvexHttpClient, eventData: Webhook
   }
 }
 
-async function handleUserCreated(convex: ConvexHttpClient, eventData: WebhookEventData, sessionToken: string | null) {
+async function handleUserCreated(eventData: WebhookEventData, sessionToken: string | null) {
   try {
     // Track user creation in analytics
-    await convex.mutation(api.mutations.analytics.trackEvent, {
+    await fetchMutation(api.mutations.analytics.trackEvent, {
       eventType: 'user_created',
       timestamp: Date.now(),
       metadata: {
@@ -248,7 +247,7 @@ async function handleUserCreated(convex: ConvexHttpClient, eventData: WebhookEve
     });
 
     // Send welcome notification
-    await convex.mutation(api.mutations.notifications.create, {
+    await fetchMutation(api.mutations.notifications.create, {
       type: 'welcome',
       message: 'Welcome to CribNosh Chat! Start a conversation!',
       userId: eventData.userId as Id<'users'>,

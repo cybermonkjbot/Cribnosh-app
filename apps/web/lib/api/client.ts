@@ -147,7 +147,7 @@ export class EnhancedAPIClient {
 export const apiClients = {
   // Internal API client
   internal: new EnhancedAPIClient({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || '',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://cribnosh.com/api',
     timeout: 15000,
     retries: 3
   }),

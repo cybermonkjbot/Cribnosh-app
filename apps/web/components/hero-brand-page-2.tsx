@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
-import Link from "next/link";
-import Image from "next/image";
 import { ContainerTextFlip } from "@/components/ui/containedtextflip";
 import { cn } from "@/lib/utils";
-import Head from "next/head";
 import { clsx } from "clsx";
+import { motion, useScroll, useTransform } from "motion/react";
+import Image from "next/image";
+import Link from "next/link";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 interface HeroBrandPage2Props {
   className?: string;
@@ -32,11 +31,6 @@ function useInView<T extends HTMLElement = HTMLElement>(threshold = 0.1): [React
   return [ref, inView];
 }
 
-// Lazy-load iframe as a component
-const SplineIframe = React.lazy(() => Promise.resolve({
-  default: (props: React.IframeHTMLAttributes<HTMLIFrameElement>) => <iframe {...props} />
-}));
-
 export function HeroBrandPage2({ 
   className,
   onInteractionStart,
@@ -44,13 +38,7 @@ export function HeroBrandPage2({
 }: HeroBrandPage2Props): React.ReactElement {
   const { scrollYProgress } = useScroll();
   const [isMobile, setIsMobile] = useState(false);
-  const [isIframeLoaded, setIsIframeLoaded] = useState(false);
-  const [shouldRenderIframe, setShouldRenderIframe] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [iframeError, setIframeError] = useState(false);
-  const [iframeLoadTimeout, setIframeLoadTimeout] = useState(false);
-  const iphoneRef = useRef<HTMLDivElement>(null);
-  const iframeUrl = useMemo(() => 'https://my.spline.design/iphoneprocopy-pV22kwixcmjbCyehvGuZGps0/', []);
   
   // Memoize event handlers
   const handleInteractionStart = useCallback(() => {
@@ -67,70 +55,12 @@ export function HeroBrandPage2({
   }, []);
 
   useEffect(() => {
-    // Preload the iframe content with proper CORS handling
-    const preloadIframe = () => {
-      if (document.head.querySelector(`link[href="${iframeUrl}"]`)) return;
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'document';
-      link.href = iframeUrl;
-      link.crossOrigin = 'anonymous';
-      document.head.appendChild(link);
-    };
-
-    preloadIframe();
-  }, [iframeUrl]);
-
-  useEffect(() => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => {
       window.removeEventListener('resize', checkMobile);
     };
   }, [checkMobile]);
-  
-  useEffect(() => {
-    // Lazy-load iframe when in viewport
-    let timeoutId: NodeJS.Timeout | null = null;
-    
-    const observer = new window.IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setShouldRenderIframe(true);
-          observer.disconnect();
-          
-          // Set a timeout to detect if iframe fails to load
-          timeoutId = setTimeout(() => {
-            setIframeLoadTimeout((prev) => {
-              if (!isIframeLoaded) {
-                return true;
-              }
-              return prev;
-            });
-          }, 10000); // 10 second timeout
-        }
-      },
-      { threshold: 0.1 }
-    );
-    
-    if (iphoneRef.current) {
-      observer.observe(iphoneRef.current);
-    }
-    
-    return () => {
-      observer.disconnect();
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isIframeLoaded]);
-  
-  // Update error state when timeout is triggered
-  useEffect(() => {
-    if (iframeLoadTimeout && !isIframeLoaded) {
-      setIframeError(true);
-    }
-  }, [iframeLoadTimeout, isIframeLoaded]);
 
   // Primary section movement (slower)
   const y = useTransform(scrollYProgress, [0, 1], [0, -150]);
@@ -152,13 +82,6 @@ export function HeroBrandPage2({
 
   return (
     <>
-      <Head>
-        <link 
-          rel="preload" 
-          href={iframeUrl}
-          as="fetch"
-        />
-      </Head>
       <motion.section 
         ref={sectionRef}
         className={cn(
@@ -210,58 +133,33 @@ export function HeroBrandPage2({
             "grid gap-12 items-center",
             isMobile ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"
           )}>
-            {/* Left column - 3D iPhone (hidden on mobile) */}
+            {/* Left column - Mobile App Image (hidden on mobile) */}
             {!isMobile && (
               <div
-                ref={iphoneRef}
                 className={clsx(
-                  "relative h-[600px] sm:h-[700px] lg:h-[700px] w-full overflow-hidden order-2 lg:order-1",
+                  "relative h-[600px] sm:h-[700px] lg:h-[800px] w-full overflow-visible order-2 lg:order-1",
                   "flex items-center justify-center",
                   className
                 )}
                 style={{ willChange: "opacity, transform" }}
               >
-                {iframeError || iframeLoadTimeout ? (
-                  // Fallback to static image if iframe fails
-                  <div className="relative w-[90%] h-[90%] rounded-xl overflow-hidden shadow-2xl">
-                    <Image
-                      src="/mobilemockstatic.png"
-                      alt="CribNosh Mobile App"
-                      width={600}
-                      height={1300}
-                      className="w-full h-full object-contain object-center"
-                      priority
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/5 via-transparent to-transparent pointer-events-none" />
-                  </div>
-                ) : shouldRenderIframe ? (
-                  <Suspense fallback={
-                    <div className="w-[90%] h-[90%] rounded-xl bg-white/10 animate-pulse" />
-                  }>
-                    <SplineIframe
-                      src={iframeUrl}
-                      className={cn(
-                        "w-[120%] h-[120%] rounded-xl transform translate-y-[5%]",
-                        !isIframeLoaded && "opacity-0"
-                      )}
-                      style={{ border: 'none', willChange: "opacity, transform" }}
-                      title="CribNosh App Preview"
-                      onLoad={() => {
-                        setIsIframeLoaded(true);
-                        setIframeLoadTimeout(false);
-                        setIframeError(false);
-                      }}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      sandbox="allow-scripts allow-same-origin allow-forms"
-                    />
-                    {!isIframeLoaded && !iframeError && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 border-4 border-[#ff3b30] border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                  </Suspense>
+                {!imageError ? (
+                  <Image
+                    src="/mobilemockstatic.png"
+                    alt="CribNosh Mobile App"
+                    width={1200}
+                    height={2600}
+                    className="w-auto h-full object-contain object-center"
+                    style={{ transform: 'scale(2.1)', transformOrigin: 'center' }}
+                    priority
+                    onError={() => setImageError(true)}
+                  />
                 ) : (
-                  <div className="w-[90%] h-[90%] rounded-xl bg-white/10 animate-pulse" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#ff3b30]/20 to-[#ff5e54]/20 flex items-center justify-center">
+                    <div className="text-white/60 text-sm text-center px-4">
+                      CribNosh Mobile App
+                    </div>
+                  </div>
                 )}
               </div>
             )}

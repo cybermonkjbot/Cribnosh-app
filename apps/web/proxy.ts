@@ -1,7 +1,7 @@
 import { getUserFromRequest } from "@/lib/auth/session";
+import { createSessionTransferToken } from '@/lib/auth/session-transfer';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createSessionTransferToken } from '@/lib/auth/session-transfer';
 
 export async function proxy(request: NextRequest) {
   // Extract real client IP from Cloudflare header
@@ -50,10 +50,10 @@ export async function proxy(request: NextRequest) {
     // 1. We have country detection AND
     // 2. User is UK but on .com domain (redirect to .co.uk)
     // 3. User is NOT UK but on .co.uk domain (redirect to .com)
-    // 4. NOT already on a session handoff path (prevents loops)
+    // 4. NOT an API route (API calls should work across all countries without redirects)
     if (country && 
         ((isUK && isCom) || (!isUK && isCoUk)) && 
-        !pathname.startsWith('/api/session/handoff')) {
+        !pathname.startsWith('/api/')) {
       
       try {
         // Construct URL explicitly to avoid localhost:3000 issues

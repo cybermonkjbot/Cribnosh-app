@@ -9,30 +9,51 @@ import { requireAuth, requireAdmin, requireStaff, isAdmin, isStaff } from '../ut
 
 /**
  * Initialize profile tracking records for a new user
+ * Errors are caught and logged but don't fail user creation
  */
 async function initializeUserProfile(ctx: MutationCtx, userId: Id<'users'>) {
-  // Initialize Nosh Points (0 points)
-  await ctx.runMutation(api.mutations.noshPoints.initializePoints, {
-    userId,
-  });
+  try {
+    // Initialize Nosh Points (0 points)
+    await ctx.runMutation(api.mutations.noshPoints.initializePoints, {
+      userId,
+    });
+  } catch (error) {
+    console.error('Failed to initialize Nosh Points:', error);
+    // Continue with other initializations
+  }
 
-  // Initialize ForkPrint score (0 score)
-  await ctx.runMutation(api.mutations.forkPrint.updateScore, {
-    userId,
-    pointsDelta: 0,
-  });
+  try {
+    // Initialize ForkPrint score (0 score)
+    await ctx.runMutation(api.mutations.forkPrint.updateScore, {
+      userId,
+      pointsDelta: 0,
+    });
+  } catch (error) {
+    console.error('Failed to initialize ForkPrint score:', error);
+    // Continue with other initializations
+  }
 
-  // Initialize nutrition goal (2000 calories/day)
-  await ctx.runMutation(api.mutations.nutrition.setNutritionGoal, {
-    userId,
-    dailyGoal: 2000,
-    goalType: 'daily',
-  });
+  try {
+    // Initialize nutrition goal (2000 calories/day)
+    await ctx.runMutation(api.mutations.nutrition.setNutritionGoal, {
+      userId,
+      dailyGoal: 2000,
+      goalType: 'daily',
+    });
+  } catch (error) {
+    console.error('Failed to initialize nutrition goal:', error);
+    // Continue with other initializations
+  }
 
-  // Initialize streak (0 streak)
-  await ctx.runMutation(api.mutations.streaks.initializeStreak, {
-    userId,
-  });
+  try {
+    // Initialize streak (0 streak)
+    await ctx.runMutation(api.mutations.streaks.initializeStreak, {
+      userId,
+    });
+  } catch (error) {
+    console.error('Failed to initialize streak:', error);
+    // Continue - user creation should still succeed
+  }
 }
 
 export const create = mutation({
@@ -953,74 +974,173 @@ export const createOrUpdateOAuthUser = mutation({
   },
   returns: v.any(),
   handler: async (ctx: MutationCtx, args) => {
-    const now = Date.now();
-    
-    // Check if user already exists by OAuth provider ID
-    const allUsers = await ctx.db.query('users').collect();
-    const existingUser = allUsers.find(user => 
-      user.oauthProviders?.some(oauth => 
-        oauth.provider === args.provider && 
-        oauth.providerId === args.providerId
-      )
-    );
-    
-    if (existingUser) {
-      // Update existing user's OAuth info
-      const updatedOAuthProviders = existingUser.oauthProviders?.map(oauth => 
-        oauth.provider === args.provider 
-          ? { ...oauth, ...args, verified: args.verified ?? true }
-          : oauth
-      ) || [{ ...args, verified: args.verified ?? true }];
-      
-      await ctx.db.patch(existingUser._id, {
-        oauthProviders: updatedOAuthProviders,
-        primaryOAuthProvider: args.provider,
-        lastModified: now,
-        lastLogin: now,
-      });
-      
-      return { userId: existingUser._id, isNewUser: false };
-    }
-    
-    // Check if user exists by email
-    const userByEmail = await ctx.db
-      .query('users')
-      .filter(q => q.eq(q.field('email'), args.email))
-      .first();
-    
-    if (userByEmail) {
-      // Link OAuth to existing account
-      const updatedOAuthProviders = [
-        ...(userByEmail.oauthProviders || []),
-        { ...args, verified: args.verified ?? true }
-      ];
-      
-      await ctx.db.patch(userByEmail._id, {
-        oauthProviders: updatedOAuthProviders,
-        primaryOAuthProvider: args.provider,
-        lastModified: now,
-        lastLogin: now,
-      });
-      
-      return { userId: userByEmail._id, isNewUser: false };
-    }
-    
-    // Create new user
-    const userId = await ctx.db.insert('users', {
-      name: args.name,
+    console.log('[createOrUpdateOAuthUser] Mutation called with args:', {
+      provider: args.provider,
+      providerId: args.providerId,
       email: args.email,
-      password: '', // No password for OAuth users
-      roles: ['customer'],
-      status: 'active',
-      oauthProviders: [{ ...args, verified: args.verified ?? true }],
-      primaryOAuthProvider: args.provider,
-      lastModified: now,
-      lastLogin: now,
+      name: args.name,
+      hasPicture: !!args.picture,
+      verified: args.verified,
     });
-
-    // Initialize profile tracking records for new user
-    await initializeUserProfile(ctx, userId);
     
-    return { userId, isNewUser: true };
+    try {
+      const now = Date.now();
+      
+      // Validate required fields
+      if (!args.provider || !args.providerId || !args.email || !args.name) {
+        const errorMsg = `Missing required fields: provider=${args.provider}, providerId=${args.providerId}, email=${args.email}, name=${args.name}`;
+        console.error('[createOrUpdateOAuthUser] Validation error:', errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      // Check if user already exists by OAuth provider ID
+      let existingUser;
+      try {
+        console.log('[createOrUpdateOAuthUser] Querying users by OAuth provider...');
+        const allUsers = await ctx.db.query('users').collect();
+        console.log(`[createOrUpdateOAuthUser] Found ${allUsers.length} total users`);
+        existingUser = allUsers.find(user => 
+          user.oauthProviders?.some(oauth => 
+            oauth.provider === args.provider && 
+            oauth.providerId === args.providerId
+          )
+        );
+        if (existingUser) {
+          console.log('[createOrUpdateOAuthUser] Found existing user by OAuth provider:', existingUser._id);
+        } else {
+          console.log('[createOrUpdateOAuthUser] No existing user found by OAuth provider');
+        }
+      } catch (queryError) {
+        console.error('[createOrUpdateOAuthUser] Error querying users by OAuth provider:', queryError);
+        throw new Error(`Failed to query users: ${queryError instanceof Error ? queryError.message : String(queryError)}`);
+      }
+      
+      if (existingUser) {
+        // Update existing user's OAuth info
+        try {
+          const updatedOAuthProviders = existingUser.oauthProviders?.map(oauth => 
+            oauth.provider === args.provider 
+              ? { ...oauth, ...args, verified: args.verified ?? true }
+              : oauth
+          ) || [{ ...args, verified: args.verified ?? true }];
+          
+          await ctx.db.patch(existingUser._id, {
+            oauthProviders: updatedOAuthProviders,
+            primaryOAuthProvider: args.provider,
+            lastModified: now,
+            lastLogin: now,
+          });
+          
+          return { userId: existingUser._id, isNewUser: false };
+        } catch (patchError) {
+          console.error('Error updating existing OAuth user:', patchError);
+          throw new Error(`Failed to update OAuth user: ${patchError instanceof Error ? patchError.message : String(patchError)}`);
+        }
+      }
+      
+      // Check if user exists by email
+      let userByEmail;
+      try {
+        console.log('[createOrUpdateOAuthUser] Querying user by email:', args.email);
+        userByEmail = await ctx.db
+          .query('users')
+          .filter(q => q.eq(q.field('email'), args.email))
+          .first();
+        if (userByEmail) {
+          console.log('[createOrUpdateOAuthUser] Found existing user by email:', userByEmail._id);
+        } else {
+          console.log('[createOrUpdateOAuthUser] No existing user found by email');
+        }
+      } catch (emailQueryError) {
+        console.error('[createOrUpdateOAuthUser] Error querying user by email:', emailQueryError);
+        throw new Error(`Failed to query user by email: ${emailQueryError instanceof Error ? emailQueryError.message : String(emailQueryError)}`);
+      }
+      
+      if (userByEmail) {
+        // Link OAuth to existing account
+        try {
+          const updatedOAuthProviders = [
+            ...(userByEmail.oauthProviders || []),
+            { ...args, verified: args.verified ?? true }
+          ];
+          
+          await ctx.db.patch(userByEmail._id, {
+            oauthProviders: updatedOAuthProviders,
+            primaryOAuthProvider: args.provider,
+            lastModified: now,
+            lastLogin: now,
+          });
+          
+          return { userId: userByEmail._id, isNewUser: false };
+        } catch (patchError) {
+          console.error('Error linking OAuth to existing user:', patchError);
+          throw new Error(`Failed to link OAuth provider: ${patchError instanceof Error ? patchError.message : String(patchError)}`);
+        }
+      }
+      
+      // Create new user
+      let userId: Id<'users'>;
+      try {
+        const userData = {
+          name: args.name,
+          email: args.email,
+          password: '', // No password for OAuth users
+          roles: ['customer'],
+          status: 'active' as const,
+          oauthProviders: [{ ...args, verified: args.verified ?? true }],
+          primaryOAuthProvider: args.provider,
+          lastModified: now,
+          lastLogin: now,
+        };
+        
+        console.log('[createOrUpdateOAuthUser] Creating new OAuth user with data:', {
+          name: userData.name,
+          email: userData.email,
+          provider: userData.primaryOAuthProvider,
+          hasOAuthProviders: !!userData.oauthProviders?.length,
+        });
+        
+        userId = await ctx.db.insert('users', userData);
+        console.log('[createOrUpdateOAuthUser] Successfully created user:', userId);
+      } catch (insertError) {
+        console.error('Failed to insert user:', insertError);
+        const errorMessage = insertError instanceof Error ? insertError.message : String(insertError);
+        const errorStack = insertError instanceof Error ? insertError.stack : undefined;
+        console.error('Insert error details:', { errorMessage, errorStack, args });
+        throw new Error(`Failed to create user: ${errorMessage}`);
+      }
+
+      // Initialize profile tracking records for new user
+      // This is non-blocking - errors are caught and logged but don't fail user creation
+      try {
+        await initializeUserProfile(ctx, userId);
+      } catch (initError) {
+        console.error('Failed to initialize user profile (non-fatal):', initError);
+        // Continue - user creation succeeded, profile initialization can be retried later
+      }
+      
+      return { userId, isNewUser: true };
+    } catch (error) {
+      // Ensure all errors are properly formatted with messages
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error('[createOrUpdateOAuthUser] ERROR:', {
+        message: errorMessage,
+        stack: errorStack,
+        errorType: error?.constructor?.name,
+        errorKeys: error && typeof error === 'object' ? Object.keys(error) : [],
+        args: {
+          provider: args.provider,
+          providerId: args.providerId,
+          email: args.email,
+          name: args.name,
+        },
+      });
+      
+      // Re-throw with a descriptive message
+      const finalError = new Error(`OAuth user creation/update failed: ${errorMessage}`);
+      console.error('[createOrUpdateOAuthUser] Throwing error:', finalError.message);
+      throw finalError;
+    }
   },
 });
