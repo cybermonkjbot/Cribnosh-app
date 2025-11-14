@@ -99,7 +99,46 @@ Based on the codebase analysis, these variables are **actively being used**:
    - **Default**: `"CribNosh <onboarding@cribnosh.com>"` (if not set)
    - **Example**: `CribNosh <noreply@cribnosh.com>`
 
-#### 12. **`NEXT_PUBLIC_BASE_URL`** (Used for webhook/notification URLs)
+#### 12. **`APPLE_CLIENT_ID`** (Required for Apple Sign-In - mobile app)
+   - **Status**: ❌ **MISSING** from `convex.json` - Add this
+   - **Used in**: 
+     - `actions/users.ts` - `customerAppleSignIn` action (for proper token verification)
+   - **Description**: Apple OAuth client ID (Service ID) for Apple Sign-In
+   - **Where to get**: Apple Developer Portal → Certificates, Identifiers & Profiles → Services IDs
+   - **Example**: `com.cribnosh.service`
+   - **Note**: Currently using simplified JWT decode. For production token verification, this is required.
+
+#### 13. **`APPLE_TEAM_ID`** (Required for Apple Sign-In - mobile app)
+   - **Status**: ❌ **MISSING** from `convex.json` - Add this
+   - **Used in**: 
+     - `actions/users.ts` - `customerAppleSignIn` action (for proper token verification)
+   - **Description**: Apple Developer Team ID
+   - **Where to get**: Apple Developer Portal → Membership
+   - **Example**: `ABC123DEF4`
+   - **Note**: Required for generating Apple client secret for token verification
+
+#### 14. **`APPLE_KEY_ID`** (Required for Apple Sign-In - mobile app)
+   - **Status**: ❌ **MISSING** from `convex.json` - Add this
+   - **Used in**: 
+     - `actions/users.ts` - `customerAppleSignIn` action (for proper token verification)
+   - **Description**: Apple Key ID for signing JWT tokens
+   - **Where to get**: Apple Developer Portal → Keys → Create a new key
+   - **Example**: `78U8CYGFZY`
+   - **Note**: Required for generating Apple client secret for token verification
+
+#### 15. **`APPLE_PRIVATE_KEY`** (Required for Apple Sign-In - mobile app)
+   - **Status**: ❌ **MISSING** from `convex.json` - Add this
+   - **Used in**: 
+     - `actions/users.ts` - `customerAppleSignIn` action (for proper token verification)
+   - **Description**: Apple private key (.p8 file content) for signing JWT tokens
+   - **Where to get**: Apple Developer Portal → Keys → Download the .p8 file
+   - **Example**: `-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQg...\n-----END PRIVATE KEY-----`
+   - **Note**: 
+     - This is the content of the .p8 file (not the file path)
+     - Keep this secure - never commit to version control
+     - Required for generating Apple client secret for token verification
+
+#### 16. **`NEXT_PUBLIC_BASE_URL`** (Used for webhook/notification URLs)
    - **Status**: ⚠️ **Note**: This is a Next.js variable, but used in Convex
    - **Used in**: 
      - `mutations/users.ts` - Referral links
@@ -156,6 +195,18 @@ Add these to your `convex.json` production variables section:
       },
       "RESEND_FROM_EMAIL": {
         "description": "Default from email address for automated emails"
+      },
+      "APPLE_CLIENT_ID": {
+        "description": "Apple OAuth client ID (Service ID) for Apple Sign-In"
+      },
+      "APPLE_TEAM_ID": {
+        "description": "Apple Developer Team ID for Apple Sign-In"
+      },
+      "APPLE_KEY_ID": {
+        "description": "Apple Key ID for signing JWT tokens"
+      },
+      "APPLE_PRIVATE_KEY": {
+        "description": "Apple private key (.p8 file content) for signing JWT tokens"
       }
     }
   }
@@ -199,6 +250,7 @@ OPENAI_API_KEY=sk-...
    - `AGORA_APP_ID` & `AGORA_APP_CERTIFICATE` - Live streaming
    - `OPENAI_API_KEY` - AI chat (throws error if missing)
    - `SMS_API_KEY` - OTP/SMS functionality
+   - `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` - Apple Sign-In (for mobile app)
 
 2. **Important (Features degrade gracefully)**:
    - `OPENWEATHERMAP_API_KEY` - Weather features (returns defaults if missing)

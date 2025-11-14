@@ -7,7 +7,8 @@ import {
   storeAuthData,
   StoredUser,
 } from "../utils/authUtils";
-import { useLogoutMutation } from "../store/authApi";
+import { getConvexClient, clearSessionToken } from "../lib/convexClient";
+import { api } from "../../../packages/convex/_generated/api.js";
 
 export interface UseAuthStateReturn {
   // State
@@ -38,7 +39,6 @@ export const useAuthState = (): UseAuthStateReturn => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [logoutMutation] = useLogoutMutation();
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -112,9 +112,22 @@ export const useAuthState = (): UseAuthStateReturn => {
     try {
       setError(null);
 
-      // Call logout API endpoint
+      // Get session token and call Convex logout action
       try {
-        await logoutMutation().unwrap();
+        const { getSessionToken } = await import("../lib/convexClient");
+        const sessionToken = await getSessionToken();
+        
+        if (sessionToken) {
+          const convex = getConvexClient();
+          try {
+            await convex.action(api.actions.users.customerLogout, {
+              sessionToken,
+            });
+          } catch (apiError) {
+            // Even if API call fails, continue with local logout
+            console.warn("Logout API call failed, continuing with local logout:", apiError);
+          }
+        }
       } catch (apiError) {
         // Even if API call fails, continue with local logout
         console.warn("Logout API call failed, continuing with local logout:", apiError);
@@ -122,6 +135,7 @@ export const useAuthState = (): UseAuthStateReturn => {
 
       // Clear stored data
       await clearAuthData();
+      await clearSessionToken();
 
       // Update state
       setAuthState({
@@ -137,8 +151,12 @@ export const useAuthState = (): UseAuthStateReturn => {
         err instanceof Error ? err.message : "Failed to logout";
       setError(errorMessage);
       console.error("Logout error:", err);
+      
+      // Even if there's an error, clear local storage
+      await clearAuthData();
+      await clearSessionToken();
     }
-  }, [logoutMutation]);
+  }, []);
 
   const refreshAuthState = useCallback(async () => {
     try {

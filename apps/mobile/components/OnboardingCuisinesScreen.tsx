@@ -1,49 +1,50 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Fish, Milk, Wheat, Nut, Egg, Shell, Bean } from 'lucide-react-native';
+import { ChefHat, UtensilsCrossed, Fish, Beef, Sushi, Pizza, Hamburger, Grape, Apple, Cookie } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CribNoshLogo } from './ui/CribNoshLogo';
 
-interface OnboardingAllergyScreenProps {
-  onNext?: (allergyDescription: string, selectedAllergies: string[]) => void;
+interface OnboardingCuisinesScreenProps {
+  onNext?: (selectedCuisines: string[]) => void;
   onSkip?: () => void;
   onBack?: () => void;
   backgroundImage?: any;
 }
 
-export const OnboardingAllergyScreen: React.FC<OnboardingAllergyScreenProps> = ({
+export const OnboardingCuisinesScreen: React.FC<OnboardingCuisinesScreenProps> = ({
   onNext,
   onSkip,
   onBack,
   backgroundImage,
 }) => {
   const insets = useSafeAreaInsets();
-  const [allergyDescription, setAllergyDescription] = useState('');
-  const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
 
-  const allergies = [
-    { id: 'Peanuts', label: 'Peanuts', icon: Nut },
-    { id: 'TreeNuts', label: 'Tree Nuts', icon: Nut },
-    { id: 'Dairy', label: 'Dairy', icon: Milk },
-    { id: 'Eggs', label: 'Eggs', icon: Egg },
-    { id: 'Fish', label: 'Fish', icon: Fish },
-    { id: 'Shellfish', label: 'Shellfish', icon: Shell },
-    { id: 'Soy', label: 'Soy', icon: Bean },
-    { id: 'Wheat', label: 'Wheat', icon: Wheat },
-    { id: 'Gluten', label: 'Gluten', icon: Wheat },
+  const cuisines = [
+    { id: 'Italian', label: 'Italian', icon: ChefHat },
+    { id: 'Chinese', label: 'Chinese', icon: UtensilsCrossed },
+    { id: 'Indian', label: 'Indian', icon: Grape },
+    { id: 'Mexican', label: 'Mexican', icon: Beef },
+    { id: 'Japanese', label: 'Japanese', icon: Fish },
+    { id: 'Thai', label: 'Thai', icon: Cookie },
+    { id: 'American', label: 'American', icon: Hamburger },
+    { id: 'Mediterranean', label: 'Mediterranean', icon: Apple },
+    { id: 'Sushi', label: 'Sushi', icon: Sushi },
+    { id: 'Pizza', label: 'Pizza', icon: Pizza },
+    { id: 'Burgers', label: 'Burgers', icon: Hamburger },
   ];
 
-  const handleAllergyToggle = (allergyId: string) => {
-    setSelectedAllergies(prev => 
-      prev.includes(allergyId)
-        ? prev.filter(id => id !== allergyId)
-        : [...prev, allergyId]
+  const handleCuisineToggle = (cuisineId: string) => {
+    setSelectedCuisines(prev => 
+      prev.includes(cuisineId)
+        ? prev.filter(id => id !== cuisineId)
+        : [...prev, cuisineId]
     );
   };
 
   const handleNext = () => {
-    onNext?.(allergyDescription, selectedAllergies);
+    onNext?.(selectedCuisines);
   };
 
   return (
@@ -88,26 +89,26 @@ export const OnboardingAllergyScreen: React.FC<OnboardingAllergyScreenProps> = (
               Tell us what you like, skip what you don&apos;t.
             </Text>
             
-            {/* Allergy Question */}
-            <Text style={styles.allergyQuestion}>
-              Do you have any Allergies we can help you avoid?
+            {/* Cuisine Question */}
+            <Text style={styles.cuisineQuestion}>
+              What cuisines do you love?
             </Text>
             
-            {/* Allergy Chips Section */}
+            {/* Cuisine Chips Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Select your allergies</Text>
-              <View style={styles.allergiesContainer}>
-                {allergies.map((allergy) => {
-                  const IconComponent = allergy.icon;
-                  const isSelected = selectedAllergies.includes(allergy.id);
+              <Text style={styles.sectionTitle}>Select your favorite cuisines</Text>
+              <View style={styles.cuisinesContainer}>
+                {cuisines.map((cuisine) => {
+                  const IconComponent = cuisine.icon;
+                  const isSelected = selectedCuisines.includes(cuisine.id);
                   return (
                     <TouchableOpacity
-                      key={allergy.id}
+                      key={cuisine.id}
                       style={[
-                        styles.allergyChip,
-                        isSelected && styles.allergyChipActive,
+                        styles.cuisineChip,
+                        isSelected && styles.cuisineChipActive,
                       ]}
-                      onPress={() => handleAllergyToggle(allergy.id)}
+                      onPress={() => handleCuisineToggle(cuisine.id)}
                       activeOpacity={0.7}
                     >
                       <View style={styles.chipIcon}>
@@ -117,29 +118,15 @@ export const OnboardingAllergyScreen: React.FC<OnboardingAllergyScreenProps> = (
                         />
                       </View>
                       <Text style={[
-                        styles.allergyChipText,
-                        isSelected && styles.allergyChipTextActive,
+                        styles.cuisineChipText,
+                        isSelected && styles.cuisineChipTextActive,
                       ]}>
-                        {allergy.label}
+                        {cuisine.label}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-            </View>
-            
-            {/* Allergy Description Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Describe your allergy (optional)</Text>
-              <TextInput
-                style={styles.textInput}
-                value={allergyDescription}
-                onChangeText={setAllergyDescription}
-                placeholder="Add any additional allergy information..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={3}
-              />
             </View>
           </ScrollView>
           
@@ -248,7 +235,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 32,
   },
-  allergyQuestion: {
+  cuisineQuestion: {
     fontFamily: 'Poppins',
     fontStyle: 'normal',
     fontWeight: '600',
@@ -269,12 +256,12 @@ const styles = StyleSheet.create({
     color: '#02120A',
     marginBottom: 16,
   },
-  allergiesContainer: {
+  cuisinesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
-  allergyChip: {
+  cuisineChip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -287,7 +274,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  allergyChipActive: {
+  cuisineChipActive: {
     backgroundColor: '#FF3B30',
     borderColor: '#FF3B30',
     shadowColor: '#FF3B30',
@@ -299,7 +286,7 @@ const styles = StyleSheet.create({
   chipIcon: {
     marginRight: 2,
   },
-  allergyChipText: {
+  cuisineChipText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
@@ -307,22 +294,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.01,
     textAlign: 'center',
   },
-  allergyChipTextActive: {
+  cuisineChipTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
-  },
-  textInput: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    padding: 16,
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '400',
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#1F2937',
-    minHeight: 80,
-    textAlignVertical: 'top',
   },
   floatingButtonContainer: {
     position: 'absolute',
@@ -368,4 +342,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnboardingAllergyScreen;
+export default OnboardingCuisinesScreen;
+

@@ -210,15 +210,6 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
               <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          
-          {/* Go Live Button */}
-          <TouchableOpacity 
-            style={styles.goLiveButton} 
-            onPress={() => setShowLiveStreamSetup(true)}
-          >
-            <Radio size={20} color="#FFFFFF" />
-            <Text style={styles.goLiveButtonText}>Go Live</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Hero Effect - Gradient overlay to hide camera controls when live stream setup is visible */}
@@ -417,8 +408,14 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
             {isRecording && <View style={styles.recordingIndicator} />}
           </TouchableOpacity>
           
-          {/* Right side - Additional options could go here */}
-          <View style={styles.rightControls} />
+          {/* Right side - Go Live Button */}
+          <TouchableOpacity 
+            style={styles.goLiveButton} 
+            onPress={() => setShowLiveStreamSetup(true)}
+          >
+            <Radio size={20} color="#FFFFFF" />
+            <Text style={styles.goLiveButtonText}>Go Live</Text>
+          </TouchableOpacity>
         </View>
       </CameraView>
     </View>
@@ -611,21 +608,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     opacity: 0.8,
   },
-  rightControls: {
-    width: 80,
-    height: 80,
-  },
   goLiveButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FF3B30',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    zIndex: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,

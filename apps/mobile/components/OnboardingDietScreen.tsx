@@ -1,6 +1,6 @@
-import { Apple, Flame, Wheat } from 'lucide-react-native';
+import { Apple, Flame, Wheat, Leaf, Fish, Beef, Egg, Heart, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CribNoshLogo } from './ui/CribNoshLogo';
 
@@ -21,8 +21,14 @@ export const OnboardingDietScreen: React.FC<OnboardingDietScreenProps> = ({
 
   const preferences = [
     { id: 'Vegan', label: 'Vegan', icon: Apple, color: '#EF4444' },
+    { id: 'Vegetarian', label: 'Vegetarian', icon: Leaf, color: '#6B7280' },
     { id: 'GlutenFree', label: 'Gluten Free', icon: Wheat, color: '#6B7280' },
+    { id: 'Keto', label: 'Keto', icon: Beef, color: '#6B7280' },
     { id: 'Spicy', label: 'Spicy', icon: Flame, color: '#6B7280' },
+    { id: 'Halal', label: 'Halal', icon: Fish, color: '#6B7280' },
+    { id: 'HighProtein', label: 'High Protein', icon: Egg, color: '#6B7280' },
+    { id: 'LowCarb', label: 'Low Carb', icon: Zap, color: '#6B7280' },
+    { id: 'Healthy', label: 'Healthy', icon: Heart, color: '#6B7280' },
   ];
 
   const handlePreferenceSelect = (preferenceId: string) => {
@@ -40,14 +46,18 @@ export const OnboardingDietScreen: React.FC<OnboardingDietScreenProps> = ({
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        {/* CribNosh Logo - positioned in upper center */}
+        {/* CribNosh Logo - positioned in upper left */}
         <View style={styles.logoContainer}>
           <CribNoshLogo size={172} variant="default" />
         </View>
         
         {/* Onboarding Content Card */}
         <View style={[styles.cardContainer, { bottom: 0 }]}>
-          <View style={[styles.contentCard, { height: 500 + insets.bottom }]}>
+          <ScrollView 
+            style={styles.contentCard}
+            contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Setup your Cribnosh experience</Text>
@@ -86,20 +96,21 @@ export const OnboardingDietScreen: React.FC<OnboardingDietScreenProps> = ({
                     <TouchableOpacity
                       key={preference.id}
                       style={[
-                        styles.preferenceButton,
-                        {
-                          backgroundColor: isSelected ? preference.color : '#E5E7EB',
-                        },
+                        styles.preferenceChip,
+                        isSelected && styles.preferenceChipActive,
                       ]}
                       onPress={() => handlePreferenceSelect(preference.id)}
+                      activeOpacity={0.7}
                     >
-                      <IconComponent 
-                        color={isSelected ? '#FFFFFF' : '#6B7280'} 
-                        size={20} 
-                      />
+                      <View style={styles.chipIcon}>
+                        <IconComponent 
+                          color={isSelected ? '#FFFFFF' : '#6B7280'} 
+                          size={14} 
+                        />
+                      </View>
                       <Text style={[
-                        styles.preferenceText,
-                        { color: isSelected ? '#FFFFFF' : '#6B7280' }
+                        styles.preferenceChipText,
+                        isSelected && styles.preferenceChipTextActive,
                       ]}>
                         {preference.label}
                       </Text>
@@ -108,14 +119,13 @@ export const OnboardingDietScreen: React.FC<OnboardingDietScreenProps> = ({
                 })}
               </View>
             </View>
-            
-            {/* Continue Button */}
+          </ScrollView>
+          
+          {/* Floating Continue Button */}
+          <View style={[styles.floatingButtonContainer, { paddingBottom: insets.bottom }]}>
             <TouchableOpacity style={styles.continueButton} onPress={handleNext}>
               <Text style={styles.continueButtonText}>Continue</Text>
             </TouchableOpacity>
-            
-            {/* Bottom spacing to push content above safe area */}
-            <View style={{ height: insets.bottom }} />
           </View>
         </View>
       </ImageBackground>
@@ -137,9 +147,8 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     position: 'absolute',
-    left: '50%',
+    left: 24,
     top: 90,
-    transform: [{ translateX: -86 }], // Half of logo width (172/2)
     zIndex: 1,
   },
   cardContainer: {
@@ -147,9 +156,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    height: '70%',
     zIndex: 2,
   },
   contentCard: {
+    flex: 1,
     width: '100%',
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 30,
@@ -165,6 +176,25 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -177,7 +207,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 28,
     lineHeight: 36,
-    color: '#064E3B',
+    color: '#02120A',
     flex: 1,
     marginRight: 16,
   },
@@ -191,7 +221,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
     lineHeight: 20,
-    color: '#064E3B',
+    color: '#02120A',
   },
   description: {
     fontFamily: 'SF Pro',
@@ -211,7 +241,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 18,
     lineHeight: 24,
-    color: '#064E3B',
+    color: '#02120A',
     marginBottom: 16,
   },
   textInput: {
@@ -229,27 +259,48 @@ const styles = StyleSheet.create({
   },
   preferencesContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  preferenceButton: {
-    flex: 1,
+  preferenceChip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    gap: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: 36,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  preferenceText: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
-    fontWeight: '600',
+  preferenceChipActive: {
+    backgroundColor: '#FF3B30',
+    borderColor: '#FF3B30',
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  chipIcon: {
+    marginRight: 2,
+  },
+  preferenceChipText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
     lineHeight: 18,
+    letterSpacing: -0.01,
+    textAlign: 'center',
+  },
+  preferenceChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   continueButton: {
-    backgroundColor: '#064E3B',
+    backgroundColor: '#094327',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,

@@ -37,11 +37,11 @@ These variables are **not currently used** in the codebase but may be needed for
    - **Where to get**: https://console.cloud.google.com/apis/credentials
    - **Example**: `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=123456789-abc.apps.googleusercontent.com`
 
-5. **`EXPO_PUBLIC_CONVEX_URL`** (Optional - if using Convex directly)
-   - **Status**: ❌ Not in codebase yet
-   - **Description**: Convex deployment URL
+5. **`EXPO_PUBLIC_CONVEX_URL`** (Required - for direct Convex communication)
+   - **Status**: ✅ **REQUIRED** - Now used for email authentication
+   - **Description**: Convex deployment URL for direct backend communication
    - **Where to get**: https://dashboard.convex.dev
-   - **Example**: `EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud`
+   - **Example**: `EXPO_PUBLIC_CONVEX_URL=https://wandering-finch-293.convex.cloud`
 
 6. **`EXPO_PUBLIC_APPLE_MAPS_API_KEY`** (Optional - if using Apple Maps directly)
    - **Status**: ❌ Not in codebase yet
@@ -61,6 +61,9 @@ Add these to your `.env` file:
 ```bash
 # Required for payments
 EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key_here
+
+# Required for direct Convex communication (email auth)
+EXPO_PUBLIC_CONVEX_URL=https://wandering-finch-293.convex.cloud
 ```
 
 ## Complete .env Template
@@ -90,9 +93,9 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
 # EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your_google_web_client_id_here
 
 # =============================================================================
-# CONVEX (Optional)
+# CONVEX (Required - for direct Convex communication)
 # =============================================================================
-# EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+EXPO_PUBLIC_CONVEX_URL=https://wandering-finch-293.convex.cloud
 
 # =============================================================================
 # APPLE MAPS (Optional)

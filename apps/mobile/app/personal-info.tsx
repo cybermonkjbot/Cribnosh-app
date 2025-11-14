@@ -1,12 +1,7 @@
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { AddressSelectionSheet } from '@/components/ui/AddressSelectionSheet';
 import { ProfileUpdateOTPModal } from '@/components/ui/ProfileUpdateOTPModal';
-import {
-  useGetCustomerProfileQuery,
-  useUpdateCustomerProfileMutation,
-  useUploadProfileImageMutation,
-  useUpdatePhoneEmailMutation,
-} from '@/store/customerApi';
+import { useProfile } from '@/hooks/useProfile';
 import { CustomerAddress } from '@/types/customer';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
@@ -46,15 +41,18 @@ export default function PersonalInfoScreen() {
   const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
   const [addressSheetMode, setAddressSheetMode] = useState<'home' | 'work' | null>(null);
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | undefined>();
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileData, setProfileData] = useState<any>(null);
 
-  // Fetch profile data from API
-  const { data: profileData, isLoading } = useGetCustomerProfileQuery(undefined, {
-    skip: false,
-  });
-
-  const [updateProfile] = useUpdateCustomerProfileMutation();
-  const [uploadProfileImage] = useUploadProfileImageMutation();
-  const [updatePhoneEmail] = useUpdatePhoneEmailMutation();
+  // Use profile hook for Convex actions
+  const {
+    getCustomerProfile,
+    updateCustomerProfile,
+    uploadProfileImage,
+    sendPhoneEmailOTP,
+    verifyPhoneEmailOTP,
+    isLoading: profileLoading,
+  } = useProfile();
 
   // Form state
   const [name, setName] = useState('');
@@ -73,30 +71,43 @@ export default function PersonalInfoScreen() {
   const originalPhone = useRef<string>('');
 
 
-  // Initialize form from API data
+  // Fetch profile data on mount
   useEffect(() => {
-    if (profileData?.data?.user) {
-      const user = profileData.data.user;
-      setName(user.name || '');
-      const userEmail = user.email || '';
-      const userPhone = user.phone || user.phone_number || '';
-      setEmail(userEmail);
-      setPhone(userPhone);
-      originalEmail.current = userEmail;
-      originalPhone.current = userPhone;
-      setAddress(user.address);
-      // Convert relative image URLs to absolute URLs
-      const imageUrl = user.picture || user.avatar;
-      const absoluteImageUrl = getAbsoluteImageUrl(imageUrl);
-      console.log('Profile image URL:', {
-        original: imageUrl,
-        absolute: absoluteImageUrl,
-        userPicture: user.picture,
-        userAvatar: user.avatar,
-      });
-      setSelectedProfileImage(absoluteImageUrl);
-    }
-  }, [profileData]);
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true);
+        const result = await getCustomerProfile();
+        if (result.success && result.data?.user) {
+          setProfileData({ data: { user: result.data.user } });
+          const user = result.data.user;
+          setName(user.name || '');
+          const userEmail = user.email || '';
+          const userPhone = user.phone || user.phone_number || '';
+          setEmail(userEmail);
+          setPhone(userPhone);
+          originalEmail.current = userEmail;
+          originalPhone.current = userPhone;
+          setAddress(user.address);
+          // Convert relative image URLs to absolute URLs
+          const imageUrl = user.picture || user.avatar;
+          const absoluteImageUrl = getAbsoluteImageUrl(imageUrl);
+          console.log('Profile image URL:', {
+            original: imageUrl,
+            absolute: absoluteImageUrl,
+            userPicture: user.picture,
+            userAvatar: user.avatar,
+          });
+          setSelectedProfileImage(absoluteImageUrl);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [getCustomerProfile]);
 
   const handleBack = () => {
     router.back();
@@ -154,25 +165,14 @@ export default function PersonalInfoScreen() {
         try {
           // Detect image type from URI
           let imageType = 'image/jpeg';
-          let fileName = 'profile.jpg';
           if (selectedProfileImage.includes('.png')) {
             imageType = 'image/png';
-            fileName = 'profile.png';
           } else if (selectedProfileImage.includes('.webp')) {
             imageType = 'image/webp';
-            fileName = 'profile.webp';
           }
 
-          // Create FormData for image upload
-          const formData = new FormData();
-          formData.append('file', {
-            uri: selectedProfileImage,
-            type: imageType,
-            name: fileName,
-          } as any);
-
-          // Upload image
-          const uploadResult = await uploadProfileImage(formData).unwrap();
+          // Upload image using Convex action
+          const uploadResult = await uploadProfileImage(selectedProfileImage, imageType);
           imageUrl = uploadResult.data?.profile_image_url || uploadResult.data?.profile_image;
           
           if (!imageUrl) {
@@ -218,14 +218,13 @@ export default function PersonalInfoScreen() {
         updateData.address = address;
       }
 
-      await updateProfile(updateData).unwrap();
+      await updateCustomerProfile(updateData);
       
-      showToast({
-        type: 'success',
-        title: 'Profile Updated',
-        message: 'Your personal information has been updated successfully.',
-        duration: 3000,
-      });
+      // Refresh profile data
+      const refreshedResult = await getCustomerProfile();
+      if (refreshedResult.success && refreshedResult.data?.user) {
+        setProfileData({ data: { user: refreshedResult.data.user } });
+      }
       
       router.back();
     } catch (error: any) {
@@ -247,28 +246,34 @@ export default function PersonalInfoScreen() {
   };
 
   const handleSendOTP = async (value: string) => {
-    const result = await updatePhoneEmail({
-      type: otpModalType,
-      action: 'send',
-      [otpModalType]: value,
-    }).unwrap();
+    const result = await sendPhoneEmailOTP(
+      otpModalType,
+      otpModalType === 'phone' ? value : undefined,
+      otpModalType === 'email' ? value : undefined
+    );
     return result.data;
   };
 
   const handleOTPVerified = async (otp: string) => {
     const value = otpModalType === 'phone' ? pendingPhone : pendingEmail;
-    await updatePhoneEmail({
-      type: otpModalType,
-      action: 'verify',
-      [otpModalType]: value,
+    await verifyPhoneEmailOTP(
+      otpModalType,
       otp,
-    }).unwrap();
+      otpModalType === 'phone' ? value : undefined,
+      otpModalType === 'email' ? value : undefined
+    );
 
     // Update original values
     if (otpModalType === 'phone') {
       originalPhone.current = pendingPhone;
     } else {
       originalEmail.current = pendingEmail;
+    }
+
+    // Refresh profile data
+    const refreshedResult = await getCustomerProfile();
+    if (refreshedResult.success && refreshedResult.data?.user) {
+      setProfileData({ data: { user: refreshedResult.data.user } });
     }
 
     // Close modal and continue with save
@@ -297,7 +302,7 @@ export default function PersonalInfoScreen() {
     return parts.join(', ') || 'No address';
   };
 
-  if (isLoading) {
+  if (isLoading || profileLoading) {
     return (
       <>
         <Stack.Screen

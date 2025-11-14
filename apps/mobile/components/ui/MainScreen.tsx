@@ -635,12 +635,12 @@ export function MainScreen() {
         // Set shared value first to prevent race conditions with scroll handler
         isHeaderStickyShared.value = false;
         
+        // Update ref and state immediately for responsive pointerEvents
+        updateHeaderStickyState(false);
+        
         // Scroll to top with smooth animation
         // The scroll handler will detect the position change and update accordingly
         scrollViewRef.current.scrollTo({ y: 0, animated: true });
-
-        // Update React state immediately to keep it in sync
-        setIsHeaderSticky(false);
 
         // Use consistent animation timing for smooth transitions
         const animationDuration = 200; // Match scroll handler duration
@@ -665,7 +665,18 @@ export function MainScreen() {
     stickyHeaderOpacity,
     normalHeaderOpacity,
     categoryChipsOpacity,
+    updateHeaderStickyState,
   ]);
+
+  // Ensure initial state is correct - start with normal header (not sticky)
+  // This prevents both headers from being non-interactive on initial render
+  useEffect(() => {
+    // Initialize to non-sticky state if not already set
+    if (isHeaderStickyShared.value !== false) {
+      isHeaderStickyShared.value = false;
+      updateHeaderStickyState(false);
+    }
+  }, [isHeaderStickyShared, updateHeaderStickyState]);
 
   // Cleanup effect to reset states and prevent crashes
   useEffect(() => {
@@ -822,8 +833,8 @@ export function MainScreen() {
           if (shouldBeSticky !== isHeaderStickyShared.value) {
             // Only update if state actually changed
             isHeaderStickyShared.value = shouldBeSticky;
-            // Sync to React state immediately (runOnJS is necessary for Expo 54)
-            runOnJS(setIsHeaderSticky)(shouldBeSticky);
+            // Sync to React state immediately using the callback to also update ref
+            runOnJS(updateHeaderStickyState)(shouldBeSticky);
 
             // Simplified animations
             if (shouldBeSticky) {
@@ -838,7 +849,7 @@ export function MainScreen() {
           } else if (isAtTop && isHeaderStickyShared.value) {
             // Force reset to normal state when truly at top and currently sticky
             isHeaderStickyShared.value = false;
-            runOnJS(setIsHeaderSticky)(false);
+            runOnJS(updateHeaderStickyState)(false);
             stickyHeaderOpacity.value = withTiming(0, { duration: 200 });
             normalHeaderOpacity.value = withTiming(1, { duration: 200 });
             categoryChipsOpacity.value = withTiming(0, { duration: 200 });
@@ -902,9 +913,15 @@ export function MainScreen() {
       isAtBottomShared,
       pullProgress,
       pullTranslation,
+      updateHeaderStickyState,
     ]
   );
 
+  // Callback to update state - ensures consistent state updates
+  const updateHeaderStickyState = useCallback((isSticky: boolean) => {
+    setIsHeaderSticky(isSticky);
+  }, []);
+  
   // Expo 54: Keep useAnimatedReaction as backup to ensure state stays in sync
   // This ensures state updates happen even if scroll handler misses an update
   useAnimatedReaction(
@@ -913,9 +930,11 @@ export function MainScreen() {
       'worklet';
       // Only update if value actually changed to avoid unnecessary calls
       if (previous !== undefined && previous !== isSticky) {
-        runOnJS(setIsHeaderSticky)(isSticky);
+        // Update state for pointerEvents
+        runOnJS(updateHeaderStickyState)(isSticky);
       }
-    }
+    },
+    [isHeaderStickyShared, updateHeaderStickyState]
   );
 
   // Animated styles for headers with safety checks
@@ -1442,6 +1461,7 @@ export function MainScreen() {
               left: 0,
               right: 0,
               zIndex: 1000,
+              // Ensure sticky header is interactive when sticky, with safety fallback
               pointerEvents: isHeaderSticky ? "auto" : "none",
             },
             stickyHeaderStyle,
@@ -1459,7 +1479,9 @@ export function MainScreen() {
               left: 0,
               right: 0,
               zIndex: 999,
-              pointerEvents: isHeaderSticky ? "none" : "auto",
+              // Ensure normal header is interactive when not sticky
+              // Safety: if sticky state is undefined/null, default to interactive
+              pointerEvents: !isHeaderSticky ? "auto" : "none",
             },
             normalHeaderStyle,
           ]}

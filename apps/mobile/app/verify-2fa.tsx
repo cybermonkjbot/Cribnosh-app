@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import { useVerify2FAMutation } from '@/store/authApi';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '../lib/ToastContext';
+import { useAuth } from '@/hooks/useAuth';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -33,7 +33,8 @@ export default function Verify2FAScreen() {
   const params = useLocalSearchParams();
   const { showToast } = useToast();
   const { login } = useAuthContext();
-  const [verify2FA, { isLoading }] = useVerify2FAMutation();
+  const { handleVerify2FA } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   
   const verificationToken = params.verificationToken as string;
   const [code, setCode] = useState('');
@@ -90,11 +91,9 @@ export default function Verify2FAScreen() {
       return;
     }
     
+    setIsLoading(true);
     try {
-      const result = await verify2FA({
-        verificationToken,
-        code: code.trim(),
-      }).unwrap();
+      const result = await handleVerify2FA(verificationToken, code.trim());
       
       if (result.data?.token && result.data?.user) {
         // Store authentication data
@@ -136,6 +135,8 @@ export default function Verify2FAScreen() {
       // Clear code on error
       setCode('');
       inputRefs.current[0]?.focus();
+    } finally {
+      setIsLoading(false);
     }
   };
   

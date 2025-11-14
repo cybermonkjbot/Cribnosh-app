@@ -108,13 +108,27 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     const convex = getConvexClient();
     const sessionToken = getSessionTokenFromRequest(request);
-    const user = await convex.query(api.queries.users.getUserByEmail, {
-      email,
-      sessionToken: sessionToken || undefined
-    });
+    
+    let user;
+    try {
+      user = await convex.query(api.queries.users.getUserByEmail, {
+        email
+      });
+    } catch (error) {
+      logger.error('[LOGIN] Error fetching user by email:', email, error);
+      return ResponseFactory.internalError('Failed to authenticate. Please try again.');
+    }
+    
     if (!user) {
       return ResponseFactory.unauthorized('Invalid credentials.');
     }
+    
+    // Check if user has a password field
+    if (!user.password) {
+      logger.error('[LOGIN] User has no password field:', email, 'User ID:', user._id);
+      return ResponseFactory.unauthorized('Invalid credentials.');
+    }
+    
     // Password check (scrypt + salt)
     try {
       const [salt, storedHash] = user.password.split(':');
@@ -136,20 +150,37 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (!userRoles.includes('customer')) {
       userRoles = [...userRoles, 'customer'];
       // Update user roles in database
-      await convex.mutation(api.mutations.users.updateUserRoles, {
-        userId: user._id,
-        roles: userRoles,
-        sessionToken: sessionToken || undefined
-      });
+      try {
+        await convex.mutation(api.mutations.users.updateUserRoles, {
+          userId: user._id,
+          roles: userRoles,
+          sessionToken: sessionToken || undefined
+        });
+      } catch (error) {
+        // Log but don't fail login if role update fails
+        logger.warn('[LOGIN] Failed to update user roles for user:', email, 'User ID:', user._id, error);
+        // Continue with existing roles
+      }
     }
     
     // Check if user has 2FA enabled
     if (user.twoFactorEnabled && user.twoFactorSecret) {
       // Create verification session for 2FA
-      const verificationToken = await convex.mutation(api.mutations.verificationSessions.createVerificationSession, {
-        userId: user._id,
-        sessionToken: sessionToken || undefined
-      });
+      let verificationToken;
+      try {
+        verificationToken = await convex.mutation(api.mutations.verificationSessions.createVerificationSession, {
+          userId: user._id,
+          sessionToken: sessionToken || undefined
+        });
+        
+        if (!verificationToken) {
+          logger.error('[LOGIN] Failed to create 2FA verification session for user:', email, 'User ID:', user._id);
+          return ResponseFactory.internalError('Failed to create 2FA verification session. Please try again.');
+        }
+      } catch (error) {
+        logger.error('[LOGIN] Error creating 2FA verification session for user:', email, 'User ID:', user._id, error);
+        return ResponseFactory.internalError('Failed to create 2FA verification session. Please try again.');
+      }
       
       // Return verification token instead of JWT
       return ResponseFactory.success({
@@ -161,11 +192,22 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     // No 2FA required - create session token using Convex mutation
-    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
-      userId: user._id,
-      expiresInDays: 30, // 30 days expiry,
-      sessionToken: sessionToken || undefined
-    });
+    let sessionResult;
+    try {
+      sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+        userId: user._id,
+        expiresInDays: 30, // 30 days expiry,
+        sessionToken: sessionToken || undefined
+      });
+      
+      if (!sessionResult || !sessionResult.sessionToken) {
+        logger.error('[LOGIN] Failed to create session token for user:', email, 'User ID:', user._id);
+        return ResponseFactory.internalError('Failed to create session. Please try again.');
+      }
+    } catch (error) {
+      logger.error('[LOGIN] Error creating session token for user:', email, 'User ID:', user._id, error);
+      return ResponseFactory.internalError('Failed to create session. Please try again.');
+    }
     
     // Set session token cookie
     const isProd = process.env.NODE_ENV === 'production';
@@ -190,6 +232,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     return response;
   } catch (error: unknown) {
+    logger.error('[LOGIN] Unexpected error during login:', error);
     return ResponseFactory.internalError(getErrorMessage(error, 'Login failed.'));
   }
 }

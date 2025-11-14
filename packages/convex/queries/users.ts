@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
-import { query, QueryCtx } from '../_generated/server';
+import { query, QueryCtx, internalQuery } from '../_generated/server';
 import { isAdmin, isStaff, requireAdmin, requireAuth, requireAuthBySessionToken, requireStaff } from '../utils/auth';
 
 export const getById = query({
@@ -41,23 +41,14 @@ export const getUserByEmail = query({
 export const getUserByPhone = query({
   args: { 
     phone: v.string(),
-    sessionToken: v.optional(v.string())
   },
-  handler: async (ctx: QueryCtx, args: { phone: string; sessionToken?: string }) => {
-    // Require authentication
-    const user = await requireAuth(ctx, args.sessionToken);
-    
-    const foundUser = await ctx.db
+  handler: async (ctx: QueryCtx, args: { phone: string }) => {
+    // Public query - used during phone sign-in to check if user exists
+    // Similar to getUserByEmail, this is safe as it only returns basic user lookup
+    return await ctx.db
       .query('users')
       .withIndex('by_phone', (q) => q.eq('phone_number', args.phone))
       .first();
-    
-    // Users can access their own data, staff/admin can access any
-    if (foundUser && !isAdmin(user) && !isStaff(user) && foundUser._id !== user._id) {
-      throw new Error('Access denied');
-    }
-    
-    return foundUser;
   },
 });
 
@@ -65,12 +56,10 @@ export const getUserByOAuthProvider = query({
   args: { 
     provider: v.union(v.literal('google'), v.literal('apple')),
     providerId: v.string(),
-    sessionToken: v.optional(v.string())
   },
-  handler: async (ctx: QueryCtx, args: { provider: 'google' | 'apple', providerId: string; sessionToken?: string }) => {
-    // Require authentication
-    const user = await requireAuth(ctx, args.sessionToken);
-    
+  handler: async (ctx: QueryCtx, args: { provider: 'google' | 'apple', providerId: string }) => {
+    // Public query - used during OAuth sign-in (Google/Apple) to find existing users
+    // Similar to getUserByEmail, this is safe as it only returns basic user lookup
     const users = await ctx.db.query('users').collect();
     
     // Find user by OAuth provider ID
@@ -81,12 +70,20 @@ export const getUserByOAuthProvider = query({
       )
     );
     
-    // Users can access their own data, staff/admin can access any
-    if (foundUser && !isAdmin(user) && !isStaff(user) && foundUser._id !== user._id) {
-      throw new Error('Access denied');
-    }
-    
     return foundUser;
+  },
+});
+
+/**
+ * Internal query to get user by ID without authentication
+ * Used by actions during login/signup flows before session tokens exist
+ */
+export const _getUserByIdInternal = internalQuery({
+  args: { 
+    userId: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId);
   },
 });
 

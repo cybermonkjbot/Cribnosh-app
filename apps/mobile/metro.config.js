@@ -78,8 +78,13 @@ config.resolver.nodeModulesPaths = [
   workspaceNodeModulesPath,
 ];
 
-// Watch folders - only watch the mobile app and workspace root
-config.watchFolders = [projectRoot, workspaceRoot];
+// Add watchFolders to include the packages directory for monorepo support
+// This allows Metro to watch and resolve files from the convex package
+config.watchFolders = [
+  projectRoot,
+  workspaceRoot,
+  path.join(workspaceRoot, 'packages', 'convex'),
+];
 
 // Ensure Metro only processes files within the mobile app directory
 config.projectRoot = projectRoot;
