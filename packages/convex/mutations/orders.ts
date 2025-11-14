@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
-import { mutation, internalMutation } from '../_generated/server';
-import { Id } from '../_generated/dataModel';
+import { mutation, internalMutation, MutationCtx } from '../_generated/server';
+import { Id, Doc } from '../_generated/dataModel';
 import { api } from '../_generated/api';
 import { requireAuth, requireResourceAccess, isAdmin, isStaff } from '../utils/auth';
 
@@ -126,6 +126,7 @@ export const createOrderWithValidation = mutation({
       postcode: v.string(),
       country: v.string(),
     })),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require authentication
@@ -249,8 +250,19 @@ export const createOrderWithPayment = mutation({
       postcode: v.string(),
       country: v.string(),
     })),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Ensure user can only create orders for themselves unless they're staff/admin
+    if (!isAdmin(user) && !isStaff(user)) {
+      if (args.customer_id !== user._id.toString()) {
+        throw new Error('You can only create orders for yourself');
+      }
+    }
+    
     // Check regional availability if delivery address is provided
     if (args.delivery_address) {
       const { checkRegionAvailability } = await import('../queries/admin');
@@ -340,12 +352,12 @@ export const createOrderForSeed = internalMutation({
 /**
  * Handle order completion - trigger profile updates
  */
-async function handleOrderCompletion(ctx: any, orderId: Id<'orders'>, userId: Id<'users'>) {
+async function handleOrderCompletion(ctx: MutationCtx, orderId: Id<'orders'>, userId: Id<'users'>) {
   const order = await ctx.db.get(orderId);
   if (!order) return;
 
   // Create meal logs from order items
-  const orderItems = (order.order_items || []).map((item: any) => ({
+  const orderItems = (order.order_items || []).map((item) => ({
     mealId: item.dish_id,
     quantity: item.quantity,
   }));
@@ -1496,7 +1508,7 @@ export const sendOrderMessage = mutation({
 });
 
 // Helper function for automatic driver assignment
-async function autoAssignDriverToOrder(ctx: any, orderId: Id<"orders">, order: any) {
+async function autoAssignDriverToOrder(ctx: MutationCtx, orderId: Id<"orders">, order: Doc<"orders">) {
   // Get delivery location from order
   const deliveryLocation = order.delivery_address;
   if (!deliveryLocation) {
@@ -1508,9 +1520,9 @@ async function autoAssignDriverToOrder(ctx: any, orderId: Id<"orders">, order: a
   if (typeof deliveryLocation === 'string') {
     // Parse address string to get coordinates (you might want to use a geocoding service)
     // For now, we'll use default coordinates
-  } else if (deliveryLocation.latitude && deliveryLocation.longitude) {
-    latitude = deliveryLocation.latitude;
-    longitude = deliveryLocation.longitude;
+  } else if (deliveryLocation && typeof deliveryLocation === 'object' && 'latitude' in deliveryLocation && 'longitude' in deliveryLocation) {
+    latitude = (deliveryLocation as { latitude: number; longitude: number }).latitude;
+    longitude = (deliveryLocation as { latitude: number; longitude: number }).longitude;
   } else {
     throw new Error('Invalid delivery location format');
   }
@@ -1518,8 +1530,8 @@ async function autoAssignDriverToOrder(ctx: any, orderId: Id<"orders">, order: a
   // Get available drivers near the delivery location
   const availableDrivers = await ctx.db
     .query("drivers")
-    .filter((q: any) => q.eq(q.field("status"), "active"))
-    .filter((q: any) => q.eq(q.field("availability"), "available"))
+    .filter((q) => q.eq(q.field("status"), "active"))
+    .filter((q) => q.eq(q.field("availability"), "available"))
     .collect();
 
   if (availableDrivers.length === 0) {
@@ -1527,15 +1539,16 @@ async function autoAssignDriverToOrder(ctx: any, orderId: Id<"orders">, order: a
   }
 
   // Calculate distance and score each driver
-  const scoredDrivers = availableDrivers.map((driver: any) => {
+  const scoredDrivers = availableDrivers.map((driver) => {
     if (!driver.currentLocation) {
       return { driver, score: 0, distance: Infinity };
     }
 
+    const driverLocation = driver.currentLocation as { latitude: number; longitude: number };
     const distance = calculateDistance(
       latitude, longitude,
-      driver.currentLocation.latitude,
-      driver.currentLocation.longitude
+      driverLocation.latitude,
+      driverLocation.longitude
     );
 
     // Score based on distance (closer = higher score) and rating
@@ -1547,7 +1560,7 @@ async function autoAssignDriverToOrder(ctx: any, orderId: Id<"orders">, order: a
   });
 
   // Sort by score (highest first) and select the best driver
-  scoredDrivers.sort((a: any, b: any) => b.score - a.score);
+  scoredDrivers.sort((a, b) => b.score - a.score);
   const bestDriver = scoredDrivers[0];
 
   if (bestDriver.score === 0) {

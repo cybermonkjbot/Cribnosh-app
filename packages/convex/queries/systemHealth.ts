@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { api } from "../_generated/api";
-import { query } from "../_generated/server";
+import { query, QueryCtx } from "../_generated/server";
 
 // Helper function to get payment service status
-async function getPaymentServiceStatus(ctx: any): Promise<string> {
+async function getPaymentServiceStatus(ctx: QueryCtx): Promise<string> {
   try {
     const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
       startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
@@ -27,7 +27,7 @@ async function getPaymentServiceStatus(ctx: any): Promise<string> {
 }
 
 // Helper function to get payment uptime
-async function getPaymentUptime(ctx: any): Promise<number> {
+async function getPaymentUptime(ctx: QueryCtx): Promise<number> {
   try {
     const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
       startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
@@ -46,7 +46,7 @@ async function getPaymentUptime(ctx: any): Promise<number> {
 }
 
 // Helper function to get payment service details
-async function getPaymentServiceDetails(ctx: any): Promise<string> {
+async function getPaymentServiceDetails(ctx: QueryCtx): Promise<string> {
   try {
     const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
       startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
@@ -161,7 +161,7 @@ export const getSystemHealth = query({
                          healthScore >= 80 ? "degraded" : "critical";
 
     // Format alerts
-    const formattedAlerts = alerts.map((alert: any) => ({
+    const formattedAlerts = alerts.map((alert) => ({
       id: alert._id,
       type: alert.type || "system",
       message: alert.message || "System alert",
@@ -293,7 +293,7 @@ export const getSystemAlerts = query({
       .order("desc")
       .take(args.limit || 50);
 
-    return alerts.map((alert: any) => ({
+    return alerts.map((alert) => ({
       id: alert._id,
       type: alert.type || "system",
       message: alert.message || "System alert",

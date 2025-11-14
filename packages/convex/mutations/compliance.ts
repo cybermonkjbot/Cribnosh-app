@@ -1,4 +1,4 @@
-import { mutation } from "../_generated/server";
+import { mutation, MutationCtx } from "../_generated/server";
 import { v } from "convex/values";
 import { requireAuth, requireAdmin, isAdmin } from "../utils/auth";
 import { getComplianceIssueById } from "../config/complianceIssues";
@@ -32,7 +32,7 @@ export const updateGDPRCompliance = mutation({
     modifiedBy: v.id("users"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     const user = await requireAuth(ctx, args.sessionToken);
     if (!isAdmin(user)) {
@@ -44,7 +44,7 @@ export const updateGDPRCompliance = mutation({
     // Check if GDPR compliance setting already exists
     const existingSetting = await ctx.db
       .query("complianceSettings")
-      .withIndex("by_setting_id", (q: any) => q.eq("settingId", settingId))
+      .withIndex("by_setting_id", (q) => q.eq("settingId", settingId))
       .first();
 
     const now = Date.now();
@@ -106,7 +106,7 @@ export const updateSecurityCompliance = mutation({
     modifiedBy: v.id("users"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     const user = await requireAuth(ctx, args.sessionToken);
     if (!isAdmin(user)) {
@@ -118,7 +118,7 @@ export const updateSecurityCompliance = mutation({
     // Check if security compliance setting already exists
     const existingSetting = await ctx.db
       .query("complianceSettings")
-      .withIndex("by_setting_id", (q: any) => q.eq("settingId", settingId))
+      .withIndex("by_setting_id", (q) => q.eq("settingId", settingId))
       .first();
 
     const now = Date.now();
@@ -176,7 +176,7 @@ export const reportSecurityIncident = mutation({
     details: v.optional(v.any()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require authentication (any authenticated user can report incidents)
     await requireAuth(ctx, args.sessionToken);
     
@@ -212,7 +212,7 @@ export const processDataRequest = mutation({
     ),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
     
@@ -243,15 +243,15 @@ export const resolveComplianceIssue = mutation({
     notes: v.optional(v.string()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     const user = await requireAdmin(ctx, args.sessionToken);
     
     // Check if issue is already resolved
     const existingResolution = await ctx.db
       .query("complianceIssueResolutions")
-      .withIndex("by_issue_id", (q: any) => q.eq("issueId", args.issueId))
-      .filter((q: any) => q.eq(q.field("status"), "resolved"))
+      .withIndex("by_issue_id", (q) => q.eq("issueId", args.issueId))
+      .filter((q) => q.eq(q.field("status"), "resolved"))
       .first();
     
     if (existingResolution) {
@@ -305,7 +305,7 @@ export const generateComplianceReport = mutation({
     format: v.optional(v.string()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
     
@@ -339,7 +339,7 @@ export const getSecurityLogs = mutation({
     limit: v.optional(v.number()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
     
@@ -379,7 +379,7 @@ export const resolveVulnerability = mutation({
     resolvedBy: v.string(),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
     
@@ -401,7 +401,7 @@ export const updateSecurityIncident = mutation({
     notes: v.optional(v.string()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
     
@@ -426,7 +426,7 @@ export const generateSecurityReport = mutation({
     format: v.optional(v.string()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
     

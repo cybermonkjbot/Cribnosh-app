@@ -1,6 +1,7 @@
-import { mutation } from "../_generated/server";
+import { mutation, MutationCtx } from "../_generated/server";
 import { v } from "convex/values";
 import { sanitizeContent } from "../../../apps/web/lib/utils/content-sanitizer";
+import { requireAdmin } from "../utils/auth";
 
 export const createContent = mutation({
   args: {
@@ -15,8 +16,11 @@ export const createContent = mutation({
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
     slug: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     // Generate slug if not provided
     const slug = args.slug || args.title
       .toLowerCase()
@@ -26,7 +30,7 @@ export const createContent = mutation({
     // Check if slug already exists
     const existing = await ctx.db
       .query("content")
-      .filter((q: any) => q.eq(q.field("slug"), slug))
+      .filter((q) => q.eq(q.field("slug"), slug))
       .first();
     
     if (existing) {
@@ -79,14 +83,29 @@ export const updateContent = mutation({
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
     slug: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const content = await ctx.db.get(args.contentId);
     if (!content) {
       throw new Error("Content not found");
     }
     
-    const updateData: any = {
+    const updateData: {
+      updatedAt: number;
+      title?: string;
+      content?: string;
+      excerpt?: string;
+      tags?: string[];
+      status?: "draft" | "published" | "archived";
+      publishDate?: number;
+      featuredImage?: string;
+      seoTitle?: string;
+      seoDescription?: string;
+      slug?: string;
+    } = {
       updatedAt: Date.now(),
     };
     
@@ -107,7 +126,7 @@ export const updateContent = mutation({
       // Check if new slug already exists
       const existing = await ctx.db
         .query("content")
-        .filter((q: any) => q.eq(q.field("slug"), args.slug))
+        .filter((q) => q.eq(q.field("slug"), args.slug))
         .first();
       
       if (existing && existing._id !== args.contentId) {
@@ -138,8 +157,11 @@ export const updateContent = mutation({
 export const deleteContent = mutation({
   args: {
     contentId: v.id("content"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const content = await ctx.db.get(args.contentId);
     if (!content) {
       throw new Error("Content not found");
@@ -166,8 +188,11 @@ export const deleteContent = mutation({
 export const publishContent = mutation({
   args: {
     contentId: v.id("content"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const content = await ctx.db.get(args.contentId);
     if (!content) {
       throw new Error("Content not found");
@@ -198,8 +223,11 @@ export const publishContent = mutation({
 export const archiveContent = mutation({
   args: {
     contentId: v.id("content"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const content = await ctx.db.get(args.contentId);
     if (!content) {
       throw new Error("Content not found");
@@ -240,8 +268,11 @@ export const createBlogPost = mutation({
     seoDescription: v.optional(v.string()),
     slug: v.optional(v.string()),
     categoryId: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const slug = args.slug || args.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -280,8 +311,11 @@ export const updateBlogPost = mutation({
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
     slug: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { contentId, ...updates } = args;
     await ctx.db.patch(contentId, {
       ...updates,
@@ -296,8 +330,11 @@ export const updateBlogPost = mutation({
 export const deleteBlogPost = mutation({
   args: {
     contentId: v.id("content"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     await ctx.db.delete(args.contentId);
     return { success: true };
   },
@@ -306,8 +343,11 @@ export const deleteBlogPost = mutation({
 export const publishBlogPost = mutation({
   args: {
     contentId: v.id("content"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     await ctx.db.patch(args.contentId, {
       status: "published",
       publishDate: Date.now(),
@@ -346,8 +386,11 @@ export const createRecipe = mutation({
       v.literal("archived")
     ),
     featuredImage: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const recipeId = await ctx.db.insert("recipes", {
       title: args.title,
       description: args.description,
@@ -397,8 +440,11 @@ export const updateRecipe = mutation({
       v.literal("archived")
     )),
     featuredImage: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { recipeId, ...updates } = args;
     await ctx.db.patch(recipeId, {
       ...updates,
@@ -412,8 +458,11 @@ export const updateRecipe = mutation({
 export const deleteRecipe = mutation({
   args: {
     recipeId: v.id("recipes"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     await ctx.db.delete(args.recipeId);
     return { success: true };
   },
@@ -422,8 +471,11 @@ export const deleteRecipe = mutation({
 export const publishRecipe = mutation({
   args: {
     recipeId: v.id("recipes"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     await ctx.db.patch(args.recipeId, {
       status: "published",
       updatedAt: Date.now(),
@@ -452,8 +504,11 @@ export const createStaticPage = mutation({
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     slug: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const slug = args.slug || args.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -499,8 +554,11 @@ export const updateStaticPage = mutation({
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     slug: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     const { pageId, ...updates } = args;
     await ctx.db.patch(pageId, {
       ...updates,
@@ -515,8 +573,11 @@ export const updateStaticPage = mutation({
 export const deleteStaticPage = mutation({
   args: {
     pageId: v.id("staticPages"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     await ctx.db.delete(args.pageId);
     return { success: true };
   },
@@ -525,8 +586,11 @@ export const deleteStaticPage = mutation({
 export const publishStaticPage = mutation({
   args: {
     pageId: v.id("staticPages"),
+    sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.sessionToken);
     await ctx.db.patch(args.pageId, {
       status: "published",
       publishDate: Date.now(),

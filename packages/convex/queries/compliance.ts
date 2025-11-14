@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { query, QueryCtx } from "../_generated/server";
 import {
   GDPR_COMPLIANCE_ISSUES,
   generateIssueFromConfig,
@@ -17,7 +17,7 @@ import {
 
 export const getGDPRCompliance = query({
   args: {},
-  handler: async (ctx: any) => {
+  handler: async (ctx: QueryCtx) => {
     // Analyze actual implementations in the codebase
     
     // 1. DATA PROCESSING - Analyze what data categories are actually processed
@@ -368,7 +368,7 @@ export const getGDPRCompliance = query({
 
 export const getSecurityCompliance = query({
   args: {},
-  handler: async (ctx: any) => {
+  handler: async (ctx: QueryCtx) => {
     // Get security compliance settings from database
     const securitySetting = await ctx.db
       .query("complianceSettings")
@@ -529,7 +529,7 @@ export const getComplianceLogs = query({
     type: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const limit = args.limit || 50;
     
     try {
@@ -582,7 +582,7 @@ export const getFoodCertifications = query({
     userId: v.optional(v.id("users")),
     status: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     try {
       // Get real food certifications from documents table
       let query = ctx.db.query("documents");
@@ -662,7 +662,7 @@ export const getPolicyAcceptance = query({
     userId: v.optional(v.id("users")),
     policyType: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     try {
       // Get real policy acceptance data from adminActivity table
       let query = ctx.db.query("adminActivity");
@@ -725,7 +725,7 @@ export const getResolvedComplianceIssues = query({
     issueType: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const limit = args.limit || 50;
     
     try {
@@ -775,7 +775,7 @@ export const getSecurityLogs = query({
     endDate: v.optional(v.number()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const limit = args.limit || 50;
     
     try {

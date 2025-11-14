@@ -1,4 +1,4 @@
-import { query } from "../_generated/server";
+import { query, QueryCtx } from "../_generated/server";
 import { v } from "convex/values";
 
 export const getCities = query({
@@ -6,16 +6,16 @@ export const getCities = query({
     search: v.optional(v.string()),
     status: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     let cities = await ctx.db.query("cities").collect();
     
     if (args.status) {
-      cities = cities.filter((city: any) => city.status === args.status);
+      cities = cities.filter((city) => city.status === args.status);
     }
     
     if (args.search) {
       const searchLower = args.search.toLowerCase();
-      cities = cities.filter((city: any) => 
+      cities = cities.filter((city) => 
         city.name.toLowerCase().includes(searchLower) ||
         city.state?.toLowerCase().includes(searchLower) ||
         city.country.toLowerCase().includes(searchLower)
@@ -30,21 +30,21 @@ export const getCities = query({
     const chefCountsByCity = new Map<string, number>();
     const orderCountsByCity = new Map<string, number>();
     
-    chefs.forEach((chef: any) => {
-      const cityName = chef.location?.city || chef.city;
+    chefs.forEach((chef) => {
+      const cityName = (chef.location as { city?: string } | undefined)?.city || (chef as { city?: string }).city;
       if (cityName) {
         chefCountsByCity.set(cityName, (chefCountsByCity.get(cityName) || 0) + 1);
       }
     });
     
-    orders.forEach((order: any) => {
-      const cityName = order.delivery_address?.city;
+    orders.forEach((order) => {
+      const cityName = (order.delivery_address as { city?: string } | undefined)?.city;
       if (cityName) {
         orderCountsByCity.set(cityName, (orderCountsByCity.get(cityName) || 0) + 1);
       }
     });
     
-    return cities.map((city: any) => ({
+    return cities.map((city) => ({
       _id: city._id,
       name: city.name,
       state: city.state,
@@ -64,11 +64,11 @@ export const getCities = query({
 
 export const getCityStats = query({
   args: {},
-  handler: async (ctx: any) => {
+  handler: async (ctx: QueryCtx) => {
     const cities = await ctx.db.query("cities").collect();
-    const active = cities.filter((city: any) => city.status === 'active').length;
-    const inactive = cities.filter((city: any) => city.status === 'inactive').length;
-    const comingSoon = cities.filter((city: any) => city.status === 'coming_soon').length;
+    const active = cities.filter((city) => city.status === 'active').length;
+    const inactive = cities.filter((city) => city.status === 'inactive').length;
+    const comingSoon = cities.filter((city) => city.status === 'coming_soon').length;
     
     return {
       total: cities.length,
@@ -82,7 +82,7 @@ export const getCityStats = query({
 // Additional functions needed by frontend
 export const getCountries = query({
   args: {},
-  handler: async (ctx: any) => {
+  handler: async (ctx: QueryCtx) => {
     return [
       { code: 'US', name: 'United States' },
       { code: 'UK', name: 'United Kingdom' },
