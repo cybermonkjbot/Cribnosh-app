@@ -544,7 +544,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                                   {subItem.description}
                                 </p>
                               </div>
-                            </button>
+                            </Link>
                           </motion.li>
                         );
                       })}
