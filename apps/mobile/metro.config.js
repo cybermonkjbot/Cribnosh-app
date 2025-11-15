@@ -36,26 +36,35 @@ config.resolver.alias = {
   "@": path.resolve(projectRoot),
   "@/convex": path.join(workspaceRoot, 'packages', 'convex', 'convex'),
 };
+// Enable package.json exports field support (required for react/jsx-runtime subpath exports)
+config.resolver.unstable_enablePackageExports = true;
 
 // Check if we're in a monorepo by seeing if workspace root node_modules exists
 const isMonorepo = fs.existsSync(workspaceNodeModulesPath) && fs.existsSync(path.join(workspaceRoot, 'package.json'));
 
 // ALWAYS ensure React resolves from mobile app's node_modules (critical for EAS builds)
 // This ensures React is found even if monorepo detection fails or in EAS build environment
+// Use path.resolve to ensure absolute paths work in EAS build environment
+const reactPath = path.resolve(mobileNodeModules, 'react');
+const reactDomPath = path.resolve(mobileNodeModules, 'react-dom');
+
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),
-  // Always try to resolve React from mobile app's node_modules first
-  ...(fs.existsSync(path.join(mobileNodeModules, 'react')) ? {
-    'react': path.join(mobileNodeModules, 'react'),
-  } : {}),
-  ...(fs.existsSync(path.join(mobileNodeModules, 'react-dom')) ? {
-    'react-dom': path.join(mobileNodeModules, 'react-dom'),
-  } : {}),
-  // Note: react/jsx-runtime is a package.json subpath export
-  // Metro's default resolver will handle this correctly as long as React is found
-  // We don't need to alias it - just ensure React itself is resolved correctly above
+  // Always resolve React from mobile app's node_modules (even if fs check fails in EAS)
+  // Metro will handle the resolution, and this ensures the path is correct
+  'react': reactPath,
+  // Explicitly resolve react/jsx-runtime and react/jsx-dev-runtime subpath exports
+  // These point to the React package itself, and Metro will resolve the subpath exports
+  // from React's package.json exports field
+  'react/jsx-runtime': reactPath,
+  'react/jsx-dev-runtime': reactPath,
+  'react-dom': reactDomPath,
   // Add other React-related packages if they exist in mobile app's node_modules
   ...reactPackages.slice(5).reduce((acc, pkg) => {
+    // Skip react/jsx-runtime and react/jsx-dev-runtime as they're handled above
+    if (pkg === 'react/jsx-runtime' || pkg === 'react/jsx-dev-runtime') {
+      return acc;
+    }
     const pkgPath = path.join(mobileNodeModules, pkg);
     if (fs.existsSync(pkgPath)) {
       acc[pkg] = pkgPath;

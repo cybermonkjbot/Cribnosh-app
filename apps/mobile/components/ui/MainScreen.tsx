@@ -54,7 +54,6 @@ import { OrderAgainSection } from "./OrderAgainSection";
 import { usePerformanceOptimizations } from "./PerformanceMonitor";
 import { PopularMealsDrawer } from "./PopularMealsDrawer";
 import { PopularMealsSection } from "./PopularMealsSection";
-import { PullToNoshHeavenTrigger } from "./PullToNoshHeavenTrigger";
 import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 // import { ShakeDebugger } from './ShakeDebugger';
@@ -781,18 +780,7 @@ export function MainScreen() {
   const isRestoringScrollPositionShared = useSharedValue(false);
   const scrollViewRef = useRef<Animated.ScrollView>(null);
 
-  // Pull-up easter egg gesture state
-  const [showPullTrigger, setShowPullTrigger] = useState(false);
-  const [isAtBottom, setIsAtBottom] = useState(false);
-  const isAtBottomShared = useSharedValue(false);
-  const pullProgress = useSharedValue(0);
-  const pullTranslation = useSharedValue(0);
   const isNavigatingShared = useSharedValue(false);
-  
-  // Constants for pull gesture
-  const PULL_THRESHOLD = 150; // pixels to pull
-  const ACTIVATION_THRESHOLD = 0.9; // 90% of threshold
-  const BOTTOM_DETECTION_THRESHOLD = 50; // pixels from bottom
 
   const isScrolling = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -863,11 +851,6 @@ export function MainScreen() {
         return;
       }
       
-      // Don't scroll to top if nosh heaven trigger is visible (prevents scroll when notice appears)
-      if (showPullTrigger) {
-        return;
-      }
-      
       // Debounce scroll-to-top calls (prevent rapid successive calls)
       const now = Date.now();
       const timeSinceLastCall = now - lastScrollToTopCallRef.current;
@@ -933,7 +916,6 @@ export function MainScreen() {
     updateHeaderStickyState,
     isNavigatingShared,
     isRestoringScrollPositionShared,
-    showPullTrigger,
   ]);
 
   // Ensure initial state is correct - start with normal header (not sticky)
@@ -1269,50 +1251,6 @@ export function MainScreen() {
             categoryChipsOpacity.value = withTiming(0, { duration: 200 });
           }
 
-          // Bottom detection for pull-up easter egg
-          const contentHeight = event.contentSize?.height || 0;
-          const layoutHeight = event.layoutMeasurement?.height || 0;
-          const scrollPositionWithOffset = scrollPosition + layoutHeight;
-          const isNearBottom = contentHeight > 0 && 
-            scrollPositionWithOffset >= contentHeight - BOTTOM_DETECTION_THRESHOLD;
-
-          // Detect overscroll at bottom (negative overscroll means pulling up beyond content)
-          const overscroll = contentHeight - scrollPositionWithOffset;
-          
-          // Update bottom state
-          if (isNearBottom !== isAtBottomShared.value) {
-            isAtBottomShared.value = isNearBottom;
-            runOnJS(setIsAtBottom)(isNearBottom);
-            runOnJS(setShowPullTrigger)(isNearBottom);
-            
-            // Reset pull progress when scrolling away from bottom
-            if (!isNearBottom) {
-              pullProgress.value = withSpring(0, { damping: 15 });
-              pullTranslation.value = 0;
-            }
-          }
-          
-          // Track pull progress when at bottom and overscrolling upward
-          if (isNearBottom && overscroll < 0) {
-            const pullDistance = Math.abs(overscroll);
-            const progress = Math.max(0, Math.min(1, pullDistance / PULL_THRESHOLD));
-            const previousProgress = pullProgress.value;
-            pullProgress.value = progress;
-            pullTranslation.value = pullDistance;
-            
-            // Trigger haptic feedback at milestones (only once per milestone)
-            if (progress >= ACTIVATION_THRESHOLD && previousProgress < ACTIVATION_THRESHOLD) {
-              runOnJS(triggerHapticFeedback)('heavy');
-            } else if (progress >= 0.75 && previousProgress < 0.75) {
-              runOnJS(triggerHapticFeedback)('medium');
-            } else if (progress >= 0.5 && previousProgress < 0.5) {
-              runOnJS(triggerHapticFeedback)('light');
-            }
-          } else if (isNearBottom && overscroll >= 0 && pullProgress.value > 0) {
-            // Reset progress when not overscrolling
-            pullProgress.value = withSpring(0, { damping: 15 });
-            pullTranslation.value = 0;
-          }
         } catch {
           // Silently handle any worklet errors to prevent crashes
         }
@@ -1324,9 +1262,6 @@ export function MainScreen() {
       stickyHeaderOpacity,
       normalHeaderOpacity,
       categoryChipsOpacity,
-      isAtBottomShared,
-      pullProgress,
-      pullTranslation,
       isNavigatingShared,
       updateHeaderStickyState,
       triggerHapticFeedback,
@@ -1386,61 +1321,6 @@ export function MainScreen() {
     };
   });
 
-  // Handle Nosh Heaven trigger - navigate to modal
-  const handleNoshHeavenTrigger = useCallback(() => {
-    try {
-      console.log('[NoshHeaven] Navigating to Nosh Heaven modal');
-      
-      // Clear any existing navigation timeout
-      if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
-      }
-      
-      // CRITICAL: Ensure initial load completed flag is ALWAYS true before navigation
-      // This prevents skeletons from showing when returning from modal
-      hasInitialLoadCompletedRef.current = true;
-      setHasInitialLoadCompleted(true);
-      
-      // Scroll position should already be saved in savedScrollPositionRef from onScrollEndDrag/onMomentumScrollEnd
-      // If not saved yet, we're at bottom so use special value
-      if (savedScrollPositionRef.current === null) {
-        savedScrollPositionRef.current = Number.MAX_SAFE_INTEGER; // Special value to indicate "at bottom"
-      }
-      
-      // Mark that we're navigating using both ref and shared value
-      // This prevents scroll-to-top and scroll handler from processing
-      isNavigatingRef.current = true;
-      isNavigatingShared.value = true;
-      
-      // Reset pull trigger state before navigation to prevent any side effects
-      setShowPullTrigger(false);
-      pullProgress.value = 0;
-      pullTranslation.value = 0;
-      
-      // Navigate immediately - don't delay
-      router.push('/nosh-heaven');
-      
-      // Reset navigation flags after navigation completes
-      // Use a reasonable delay, but also reset on focus/blur events
-      navigationTimeoutRef.current = setTimeout(() => {
-        // Only reset if still navigating (might have been reset by focus handler)
-        if (isNavigatingRef.current) {
-          isNavigatingRef.current = false;
-          isNavigatingShared.value = false;
-        }
-        navigationTimeoutRef.current = null;
-      }, 2000);
-    } catch (error) {
-      console.error('[NoshHeaven] Error navigating:', error);
-      isNavigatingRef.current = false;
-      isNavigatingShared.value = false;
-      savedScrollPositionRef.current = null;
-      if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
-        navigationTimeoutRef.current = null;
-      }
-    }
-  }, [router, pullProgress, pullTranslation, isNavigatingShared]);
 
   // Handlers for new sections
   const handleCuisinePress = useCallback((cuisine: any) => {
@@ -1955,66 +1835,19 @@ export function MainScreen() {
               paddingTop: 282, // Fixed padding for header height (header is absolutely positioned)
             }}
             refreshControl={
-              // Only show RefreshControl when not at bottom to avoid conflict with pull-to-nosh-heaven
-              !showPullTrigger ? (
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor="#FF3B30"
-                  colors={["#FF3B30"]}
-                  progressBackgroundColor="rgba(255, 255, 255, 0.8)"
-                  progressViewOffset={0}
-                  title="Pull to refresh"
-                  titleColor="#FF3B30"
-                />
-              ) : undefined
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#FF3B30"
+                colors={["#FF3B30"]}
+                progressBackgroundColor="rgba(255, 255, 255, 0.8)"
+                progressViewOffset={0}
+                title="Pull to refresh"
+                titleColor="#FF3B30"
+              />
             }
             onScroll={scrollHandler}
             scrollEventThrottle={8}
-            onScrollEndDrag={(e) => {
-              // Don't process scroll end drag if we're navigating
-              // Use ref for JS thread check to avoid reading shared value during render
-              if (isNavigatingRef.current) {
-                return;
-              }
-              
-              // Detect overscroll at bottom when user releases
-              if (isAtBottom) {
-                const contentHeight = e.nativeEvent.contentSize.height;
-                const layoutHeight = e.nativeEvent.layoutMeasurement.height;
-                const scrollYPos = e.nativeEvent.contentOffset.y;
-                const overscroll = contentHeight - (scrollYPos + layoutHeight);
-                
-                // If overscrolled upward (negative overscroll) and threshold reached, trigger
-                if (overscroll < 0 && Math.abs(overscroll) >= PULL_THRESHOLD * ACTIVATION_THRESHOLD) {
-                  // Save scroll position from native event before triggering
-                  savedScrollPositionRef.current = scrollYPos;
-                  handleNoshHeavenTrigger();
-                } else if (pullProgress.value > 0) {
-                  // Reset progress if threshold not reached
-                  pullProgress.value = withSpring(0, { damping: 15 });
-                  pullTranslation.value = 0;
-                }
-              }
-            }}
-            onMomentumScrollEnd={(e) => {
-              // Don't process momentum scroll end if we're navigating
-              // Use ref for JS thread check to avoid reading shared value during render
-              if (isNavigatingRef.current) {
-                return;
-              }
-              
-              // Also check on momentum scroll end
-              if (isAtBottom && pullProgress.value >= ACTIVATION_THRESHOLD) {
-                // Save scroll position from native event before triggering
-                const scrollYPos = e.nativeEvent.contentOffset.y;
-                savedScrollPositionRef.current = scrollYPos;
-                handleNoshHeavenTrigger();
-              } else if (pullProgress.value > 0) {
-                pullProgress.value = withSpring(0, { damping: 15 });
-                pullTranslation.value = 0;
-              }
-            }}
             onLayout={() => {
               // CRITICAL: Ensure hasInitialLoadCompleted stays true on layout
               // This prevents skeletons from showing when layout changes
@@ -2243,21 +2076,6 @@ export function MainScreen() {
                 </>
               )}
 
-              {/* Pull to Nosh Heaven Trigger - Only show at the very end when content is loaded */}
-              {showPullTrigger && 
-               !cuisinesLoading && 
-               !chefsLoading && 
-               !mealsLoading && 
-               !refreshing && 
-               isAtBottom && (
-                <View style={{ paddingVertical: 40, paddingHorizontal: 16 }}>
-                  <PullToNoshHeavenTrigger
-                    isVisible={true}
-                    onTrigger={handleNoshHeavenTrigger}
-                    pullProgress={pullProgress}
-                  />
-                </View>
-              )}
             </Animated.View>
           </Animated.ScrollView>
         ) : (
