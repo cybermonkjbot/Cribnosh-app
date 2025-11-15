@@ -8,6 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
+      "bun": "1.2.20",
       "cache": {
         "key": "folly-fix-v1"
       },
@@ -22,6 +23,7 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "bun": "1.2.20",
       "ios": {
         "simulator": false
       }
@@ -29,6 +31,7 @@
     "production": {
       "autoIncrement": true,
       "channel": "production",
+      "bun": "1.2.20",
       "ios": {
         "simulator": false
       },
