@@ -15,16 +15,7 @@ interface DeliveryMapScreenProps {
   orderId?: string;
 }
 
-// Mock delivery person and destination locations (fallback)
-const defaultDeliveryPersonLocation = {
-  latitude: 37.7849,
-  longitude: -122.4094,
-};
-
-const defaultDestinationLocation = {
-  latitude: 37.7749,
-  longitude: -122.4194,
-};
+// No default locations - require real data from order
 
 export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScreenProps) {
   const { isAuthenticated } = useAuthContext();
@@ -53,14 +44,16 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
   // Get delivery person info and location from order data
   const deliveryPerson = (orderData as any)?.delivery_person;
   
-  // Get delivery location from order data or use default
-  const deliveryLocation = (deliveryPerson as any)?.location || defaultDeliveryPersonLocation;
+  // Get delivery location from order data - require real location
+  const deliveryLocation = (deliveryPerson as any)?.location;
 
   // Get destination from order delivery address
   const deliveryAddress = (orderData as any)?.delivery_address;
   
-  // For now, use default destination (would need geocoding to convert address to coordinates)
-  const destinationLocation = defaultDestinationLocation;
+  // Get destination coordinates from delivery address if available
+  const destinationLocation = deliveryAddress?.coordinates 
+    ? { latitude: deliveryAddress.coordinates[0], longitude: deliveryAddress.coordinates[1] }
+    : null;
 
   // Get driver name
   const getDriverName = (): string => {
@@ -88,8 +81,11 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
     return '15 - 45 minutes'; // Default fallback
   };
 
-  // Prepare chefs array for MapView
-  const mapMarkers = [
+  // Check if we have required location data
+  const hasLocationData = deliveryLocation && destinationLocation;
+  
+  // Prepare chefs array for MapView (only if locations are available)
+  const mapMarkers = hasLocationData ? [
     {
       id: 'delivery-person',
       kitchen_name: getDriverName(),
@@ -108,11 +104,15 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
       rating: 0,
       distance: 0,
     },
-  ];
+  ] : [];
 
-  // Calculate center point for map
-  const centerLat = (deliveryLocation.latitude + destinationLocation.latitude) / 2;
-  const centerLng = (deliveryLocation.longitude + destinationLocation.longitude) / 2;
+  // Calculate center point for map (only if locations are available)
+  const centerLat = hasLocationData 
+    ? (deliveryLocation.latitude + destinationLocation.latitude) / 2 
+    : null;
+  const centerLng = hasLocationData 
+    ? (deliveryLocation.longitude + destinationLocation.longitude) / 2 
+    : null;
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -145,17 +145,32 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
             iconColor="#E6FFE8"
           />
         </View>
+      ) : !hasLocationData ? (
+        <View style={styles.emptyStateContainer}>
+          <EmptyState
+            title="Location data unavailable"
+            subtitle="Delivery location information is not available for this order yet."
+            icon="map-outline"
+            actionButton={{
+              label: "Go Back",
+              onPress: onClose,
+            }}
+            titleColor="#E6FFE8"
+            subtitleColor="#EAEAEA"
+            iconColor="#E6FFE8"
+          />
+        </View>
       ) : (
         <>
           <View style={styles.mapWrapper}>
             <MapView
               chefs={mapMarkers}
-              initialRegion={{
+              initialRegion={centerLat && centerLng ? {
                 latitude: centerLat,
                 longitude: centerLng,
                 latitudeDelta: 0.05,
                 longitudeDelta: 0.05,
-              }}
+              } : undefined}
               showUserLocation={true}
               style={styles.mapView}
             />

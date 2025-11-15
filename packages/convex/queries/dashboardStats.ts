@@ -193,6 +193,7 @@ export const getRealTimeMetrics = query({
   }),
   handler: async (ctx) => {
     // Get active users (users with sessions in last 15 minutes)
+    // Optimize: Only fetch sessions, not all data
     const activeSessions = await ctx.db
       .query("sessions")
       .filter(q => q.gt(q.field("expiresAt"), Date.now()))
@@ -200,13 +201,13 @@ export const getRealTimeMetrics = query({
 
     const activeUsers = new Set(activeSessions.map(session => session.userId)).size;
 
-    // Get pending orders
+    // Get pending orders count (optimized: we only need count, but Convex requires collect)
     const pendingOrders = await ctx.db
       .query("orders")
       .filter(q => q.eq(q.field("order_status"), "pending"))
       .collect();
 
-    // Get active live streams
+    // Get active live streams count
     const liveStreams = await ctx.db
       .query("liveSessions")
       .filter(q => q.eq(q.field("status"), "live"))
@@ -333,6 +334,8 @@ export const getDashboardSummary = query({
 
     // Calculate overview metrics
     // Get total users count (all users, not just in time range)
+    // Note: Convex doesn't have a count() method, so we must collect to count
+    // This could be optimized with a counter table in the future
     const allUsers = await ctx.db.query("users").collect();
     const totalUsers = allUsers.length;
     const totalOrders = currentOrders.length;

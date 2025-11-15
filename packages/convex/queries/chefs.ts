@@ -125,6 +125,27 @@ export const getChefById = query({
 // Alias for consistency with other queries
 export const getById = getChefById;
 
+// Get kitchen phone by chef ID (gets phone from associated user)
+export const getKitchenPhoneByChefId = query({
+  args: {
+    chefId: v.id('chefs'),
+  },
+  handler: async (ctx, args) => {
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      return null;
+    }
+    
+    // Get user to access phone_number
+    const user = await ctx.db.get(chef.userId);
+    if (!user) {
+      return null;
+    }
+    
+    return user.phone_number || null;
+  },
+});
+
 export const getPendingCuisines = query({
   args: { sessionToken: v.optional(v.string()) },
   returns: v.array(cuisineDocValidator),

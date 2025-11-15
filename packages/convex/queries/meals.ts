@@ -30,10 +30,20 @@ interface ReviewDoc {
 export const getAll = query({
   args: {
     userId: v.optional(v.id('users')),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+    status: v.optional(v.string()),
   },
   returns: v.array(v.any()),
-  handler: async (ctx: QueryCtx, args: { userId?: Id<'users'> }) => {
-    const meals = await ctx.db.query('meals').collect();
+  handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number; offset?: number; status?: string }) => {
+    const { limit, offset = 0, status } = args;
+    
+    // Build query with optional status filter
+    let mealsQuery = ctx.db.query('meals');
+    if (status) {
+      mealsQuery = mealsQuery.filter(q => q.eq(q.field('status'), status));
+    }
+    const meals = await mealsQuery.collect();
     
     // Batch fetch all chefs and reviews to avoid N+1 queries
     const chefIds = new Set(meals.map((meal: MealDoc) => meal.chefId));
@@ -47,18 +57,23 @@ export const getAll = query({
       }
     }
     
-    // Get all reviews in one query and group by mealId
-    const allReviews = await ctx.db.query('reviews').collect();
+    // Get reviews only for the meals we fetched (optimized: don't fetch all reviews)
+    const mealIds = meals.map((meal: MealDoc) => meal._id);
+    const reviewPromises = mealIds.map(mealId => 
+      ctx.db.query('reviews')
+        .withIndex('by_meal', q => q.eq('meal_id', mealId))
+        .collect()
+    );
+    const reviewArrays = await Promise.all(reviewPromises);
+    
+    // Create review map by meal ID
     const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
-    for (const review of allReviews) {
-      const mealId = (review as any).mealId || (review as any).meal_id;
-      if (mealId) {
-        if (!reviewMap.has(mealId)) {
-          reviewMap.set(mealId, []);
-        }
-        reviewMap.get(mealId)!.push(review as ReviewDoc);
+    reviewArrays.forEach((reviews, index) => {
+      const mealId = mealIds[index];
+      if (reviews.length > 0) {
+        reviewMap.set(mealId, reviews as ReviewDoc[]);
       }
-    }
+    });
     
     // Build meals with chef and review data
     const mealsWithChefData = meals.map((meal: MealDoc) => {
@@ -92,6 +107,7 @@ export const getAll = query({
     });
 
     // Apply user preference filtering if userId provided
+    let filteredMeals = mealsWithChefData;
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
@@ -100,15 +116,20 @@ export const getAll = query({
           preferences,
           (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
         );
-        return scoredMeals.map(s => s.meal);
+        filteredMeals = scoredMeals.map(s => s.meal);
       } catch (error) {
         // If preference fetching fails, return unfiltered meals
         console.error('Error fetching user preferences:', error);
-        return mealsWithChefData;
       }
     }
 
-    return mealsWithChefData;
+    // Apply pagination
+    if (limit !== undefined) {
+      return filteredMeals.slice(offset, offset + limit);
+    }
+    
+    // If no limit, return all from offset
+    return filteredMeals.slice(offset);
   },
 });
 
@@ -151,20 +172,27 @@ export const getDishesWithDetails = query({
       }
     }
     
-    // Get all reviews for these meals in one query
-    const allReviews = await ctx.db.query('reviews').collect();
+    // Get reviews for these specific meals only (filter by meal IDs before collecting)
+    // Query reviews for each mealId separately to avoid fetching all reviews
+    const reviewPromises = args.dishIds.map(mealId => 
+      ctx.db.query('reviews')
+        .filter((q) => {
+          const mealIdField = q.field('meal_id');
+          return q.eq(mealIdField, mealId);
+        })
+        .collect()
+    );
+    
+    const reviewArrays = await Promise.all(reviewPromises);
     
     // Create review map by meal ID
     const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
-    for (const review of allReviews) {
-      const mealId = (review as any).mealId || (review as any).meal_id;
-      if (mealId && args.dishIds.includes(mealId)) {
-        if (!reviewMap.has(mealId)) {
-          reviewMap.set(mealId, []);
-        }
-        reviewMap.get(mealId)!.push(review as ReviewDoc);
+    reviewArrays.forEach((reviews, index) => {
+      const mealId = args.dishIds[index];
+      if (reviews.length > 0) {
+        reviewMap.set(mealId, reviews as ReviewDoc[]);
       }
-    }
+    });
     
     // Build result with all details
     let dishesWithDetails = validMeals.map((meal: MealDoc) => {

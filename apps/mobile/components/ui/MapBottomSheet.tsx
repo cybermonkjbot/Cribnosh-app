@@ -191,12 +191,19 @@ export function MapBottomSheet({
       return;
     }
 
+    // Don't search if user location is not available
+    if (!currentUserLocation) {
+      setIsSearching(false);
+      setSearchError("Please enable location services to search for kitchens.");
+      return;
+    }
+
     setIsSearching(true);
     try {
       // Use the new searchChefsByLocation API
       const searchResult = await searchChefsByLocation(
         query,
-        currentUserLocation || { latitude: 37.7749, longitude: -122.4194 },
+        currentUserLocation,
         5, // 5km radius
         undefined, // no specific cuisine filter
         20 // limit to 20 results

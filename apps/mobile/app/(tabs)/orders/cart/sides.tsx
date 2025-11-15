@@ -75,33 +75,53 @@ export default function SidesScreen() {
             }
           }
           
-          // Load payment method
+          // Load payment method - first check stored preference, then API
           const stored = await SecureStore.getItemAsync(PAYMENT_METHOD_STORAGE_KEY);
           if (stored) {
             setSelectedPaymentMethod(JSON.parse(stored));
           } else {
-            setSelectedPaymentMethod({
-              id: "card",
-              name: "Credit/Debit Card",
-              description: "**** **** **** 3095",
-              iconType: "card",
-            });
+            // Fetch actual payment methods from API
+            const paymentMethods = await getPaymentMethods();
+            if (paymentMethods && paymentMethods.length > 0) {
+              // Find the first card payment method or use the first available
+              const cardMethod = paymentMethods.find((m: any) => m.type === 'card');
+              const defaultMethod = cardMethod || paymentMethods[0];
+              
+              if (defaultMethod) {
+                const paymentMethodData = {
+                  id: defaultMethod.id,
+                  name: defaultMethod.type === 'card' 
+                    ? `**** **** **** ${defaultMethod.last4 || '****'}` 
+                    : defaultMethod.type === 'apple_pay' 
+                    ? 'Apple Pay'
+                    : defaultMethod.name || 'Payment Method',
+                  description: defaultMethod.type === 'card'
+                    ? `${defaultMethod.brand || 'Card'} •••• ${defaultMethod.last4 || '****'}`
+                    : defaultMethod.name || 'Payment Method',
+                  iconType: defaultMethod.type === 'card' ? 'card' : defaultMethod.type === 'apple_pay' ? 'apple' : 'card',
+                };
+                setSelectedPaymentMethod(paymentMethodData);
+                // Store it for future use
+                await SecureStore.setItemAsync(PAYMENT_METHOD_STORAGE_KEY, JSON.stringify(paymentMethodData));
+              } else {
+                // No payment methods available
+                setSelectedPaymentMethod(null);
+              }
+            } else {
+              // No payment methods available
+              setSelectedPaymentMethod(null);
+            }
           }
         } catch (error) {
           console.error("Error loading data:", error);
-          // Default payment method on error
-          setSelectedPaymentMethod({
-            id: "card",
-            name: "Credit/Debit Card",
-            description: "**** **** **** 3095",
-            iconType: "card",
-          });
+          // On error, set to null instead of hardcoded card
+          setSelectedPaymentMethod(null);
         } finally {
           setIsLoading(false);
         }
       };
       loadData();
-    }, [getCart, getSidesForCart])
+    }, [getCart, getSidesForCart, getPaymentMethods])
   );
 
   const handleBack = () => {
@@ -293,13 +313,13 @@ export default function SidesScreen() {
 
   // Render payment method text based on type
   const renderPaymentMethodText = () => {
-    if (!selectedPaymentMethod) return "**** **** **** 3095";
+    if (!selectedPaymentMethod) return "Add payment method";
 
     if (selectedPaymentMethod.iconType === "apple") {
       return selectedPaymentMethod.name || "Apple Pay";
     }
 
-    return selectedPaymentMethod.description || "**** **** **** 3095";
+    return selectedPaymentMethod.description || "Add payment method";
   };
 
   // Sides Screen Skeleton Loader Component
@@ -561,7 +581,9 @@ export default function SidesScreen() {
                   onPress={handleChangePaymentMethod}
                   style={styles.changeButton}
                 >
-                  <Text style={styles.changeButtonText}>Change</Text>
+                  <Text style={styles.changeButtonText}>
+                    {selectedPaymentMethod ? "Change" : "Add"}
+                  </Text>
                 </Pressable>
               </View>
               

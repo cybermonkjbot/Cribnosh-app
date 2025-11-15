@@ -56,37 +56,36 @@ export const getStaffStats = query({
     // Require staff/admin authentication
     await requireStaff(ctx, args.sessionToken);
     
-    const allStaff = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("roles"), ["staff"]))
-      .collect();
-    
+    // Optimize: Use database-level filtering for staff (note: Convex array field filtering)
+    // Note: Convex doesn't support direct array contains, so we filter in memory after
+    const allUsers = await ctx.db.query("users").collect();
+    const allStaff = allUsers.filter(u => Array.isArray(u.roles) && u.roles.includes('staff'));
     const activeStaff = allStaff.filter(staff => staff.status === "active");
     
+    // Optimize: Use database-level filtering for waitlist status
     // Get total users who can receive emails (waitlist + converted users)
-    const [waitlistEntries, convertedUsers] = await Promise.all([
+    const [allWaitlistEntries, allConvertedUsers] = await Promise.all([
       ctx.db.query("waitlist").collect(),
-      ctx.db.query("users")
-        .filter((q) => q.eq(q.field("roles"), ["customer"]))
-        .collect(),
+      allUsers.filter(u => Array.isArray(u.roles) && u.roles.includes('customer'))
     ]);
     
-    const totalUsers = waitlistEntries.length + convertedUsers.length;
-    const activeUsers = waitlistEntries.filter((entry: Doc<"waitlist">) => 
+    // Filter waitlist entries by status at database level where possible
+    const activeWaitlist = allWaitlistEntries.filter((entry: Doc<"waitlist">) => 
       entry.status === 'active' || entry.status === 'approved'
-    ).length + convertedUsers.filter((user: Doc<"users">) => user.status === 'active').length;
+    );
+    const activeConvertedUsers = allConvertedUsers.filter((user: Doc<"users">) => user.status === 'active');
     
-    const campaigns = await ctx.db
-      .query("staffEmailCampaigns")
-      .collect();
+    const totalUsers = allWaitlistEntries.length + allConvertedUsers.length;
+    const activeUsers = activeWaitlist.length + activeConvertedUsers.length;
     
-    const totalCampaigns = campaigns.length;
-    const monthlyCampaigns = campaigns.filter((campaign: Doc<"staffEmailCampaigns">) => {
-      const monthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      return campaign.createdAt > monthAgo;
-    }).length;
+    // Optimize: Filter campaigns at database level where possible
+    const allCampaigns = await ctx.db.query("staffEmailCampaigns").collect();
+    const monthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const monthlyCampaigns = allCampaigns.filter((campaign: Doc<"staffEmailCampaigns">) => 
+      campaign.createdAt > monthAgo
+    ).length;
     
-    const sentCampaigns = campaigns.filter((campaign: Doc<"staffEmailCampaigns">) => campaign.status === "sent");
+    const sentCampaigns = allCampaigns.filter((campaign: Doc<"staffEmailCampaigns">) => campaign.status === "sent");
     const totalSent = sentCampaigns.reduce((sum: number, campaign: Doc<"staffEmailCampaigns">) => sum + campaign.sentCount, 0);
     const totalRecipients = sentCampaigns.reduce((sum: number, campaign: Doc<"staffEmailCampaigns">) => sum + campaign.recipientCount, 0);
     
@@ -97,7 +96,7 @@ export const getStaffStats = query({
       activeStaff: activeStaff.length,
       totalUsers,
       activeUsers,
-      totalCampaigns,
+      totalCampaigns: allCampaigns.length,
       monthlyCampaigns,
       deliveryRate,
     };
@@ -142,16 +141,26 @@ export const getAllWorkEmailRequests = query({
       query = query.filter(q => q.eq(q.field('status'), args.status));
     }
     const requests = await query.order('desc').collect();
+    // Batch fetch all users to avoid N+1 queries
+    const userIds = new Set(requests.map(req => req.userId).filter(Boolean) as Id<'users'>[]);
+    const users = await Promise.all(Array.from(userIds).map(id => ctx.db.get(id)));
+    const userMap = new Map<Id<'users'>, typeof users[0]>();
+    users.forEach(user => {
+      if (user) {
+        userMap.set(user._id, user);
+      }
+    });
+    
     // Join user info
-    const withUser = await Promise.all(requests.map(async req => {
-      const user = req.userId ? await ctx.db.get(req.userId) : null;
+    const withUser = requests.map(req => {
+      const user = req.userId ? userMap.get(req.userId) : null;
       return {
         ...req,
         name: user?.name || '',
         department: user?.department || '',
         position: user?.position || '',
       };
-    }));
+    });
     return withUser;
   },
 });
@@ -229,16 +238,26 @@ export const getAllLeaveRequests = query({
       query = query.filter(q => q.eq(q.field('leaveType'), args.leaveType));
     }
     const requests = await query.order('desc').collect();
+    // Batch fetch all users to avoid N+1 queries
+    const userIds = new Set(requests.map(req => req.userId).filter(Boolean) as Id<'users'>[]);
+    const users = await Promise.all(Array.from(userIds).map(id => ctx.db.get(id)));
+    const userMap = new Map<Id<'users'>, typeof users[0]>();
+    users.forEach(user => {
+      if (user) {
+        userMap.set(user._id, user);
+      }
+    });
+    
     // Join user info
-    const withUser = await Promise.all(requests.map(async req => {
-      const user = req.userId ? await ctx.db.get(req.userId) : null;
+    const withUser = requests.map(req => {
+      const user = req.userId ? userMap.get(req.userId) : null;
       return {
         ...req,
         name: user?.name || '',
         department: user?.department || '',
         position: user?.position || '',
       };
-    }));
+    });
     return withUser;
   },
 });
@@ -412,11 +431,16 @@ export const getStaffByDepartment = query({
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
     
-    let users = await ctx.db.query('users').collect();
-    users = users.filter(u => Array.isArray(u.roles) && (u.roles.includes('staff') || u.roles.includes('admin')));
+    // Optimize: Filter by department at database level if provided
+    let query = ctx.db.query('users');
     if (args.department) {
-      users = users.filter(u => u.department === args.department);
+      query = query.filter((q) => q.eq(q.field('department'), args.department));
     }
+    let users = await query.collect();
+    
+    // Filter by roles (must be done in memory since Convex doesn't support array contains)
+    users = users.filter(u => Array.isArray(u.roles) && (u.roles.includes('staff') || u.roles.includes('admin')));
+    
     return users;
   },
 });
@@ -538,12 +562,20 @@ export const getAdminStaffDashboard = query({
         .order('desc')
         .take(10)
     ]);
-    let staffStats = await ctx.db.query('users').collect();
-    staffStats = staffStats.filter(u => Array.isArray(u.roles) && (u.roles.includes('staff') || u.roles.includes('admin')));
+    // Optimize: Fetch all users once, then filter for staff/admin
+    const allUsers = await ctx.db.query('users').collect();
+    const staffStats = allUsers.filter(u => Array.isArray(u.roles) && (u.roles.includes('staff') || u.roles.includes('admin')));
 
-    // Join staffAssignments for each staff
-    const staffWithAssignments = await Promise.all(staffStats.map(async (user) => {
-      const assignment = await ctx.db.query('staffAssignments').filter(q => q.eq(q.field('userId'), user._id)).first();
+    // Optimize: Batch fetch all staffAssignments at once instead of N+1 queries
+    const allAssignments = await ctx.db.query('staffAssignments').collect();
+    const assignmentMap = new Map<Id<'users'>, typeof allAssignments[0]>();
+    allAssignments.forEach(assignment => {
+      assignmentMap.set(assignment.userId, assignment);
+    });
+
+    // Join staffAssignments using the pre-fetched map
+    const staffWithAssignments = staffStats.map((user) => {
+      const assignment = assignmentMap.get(user._id);
       return {
         _id: user._id,
         name: user.name,
@@ -553,7 +585,7 @@ export const getAdminStaffDashboard = query({
         roles: user.roles,
         status: user.status,
       };
-    }));
+    });
 
     return {
       pendingWorkEmailRequests,

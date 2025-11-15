@@ -55,9 +55,8 @@ export default function OnTheWayScreen() {
     return 'Delivery Driver'; // Default fallback
   };
 
-  const getDriverPhone = (): string => {
-    if (deliveryPerson?.phone) return deliveryPerson.phone;
-    return '+44 7700 900123'; // Default fallback
+  const getDriverPhone = (): string | null => {
+    return deliveryPerson?.phone || null;
   };
 
   const getDriverStatus = (): string => {
@@ -75,6 +74,14 @@ export default function OnTheWayScreen() {
 
   const handleCallDeliveryPerson = async () => {
     const phoneNumber = getDriverPhone();
+    
+    if (!phoneNumber) {
+      Alert.alert(
+        "Phone Number Not Available",
+        "The delivery driver's phone number is not available. Please contact support if you need assistance."
+      );
+      return;
+    }
     
     try {
       const url = `tel:${phoneNumber.replace(/[^0-9+]/g, "")}`;

@@ -44,6 +44,8 @@ export const getWaitlistDetails = query({
   args: {
     status: v.optional(v.string()),
     search: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
     sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
@@ -66,12 +68,16 @@ export const getWaitlistDetails = query({
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
     
-    let waitlist = await ctx.db.query("waitlist").collect();
+    const { limit, offset = 0 } = args;
     
+    // Use database-level filtering for status (more efficient than in-memory)
+    let query = ctx.db.query("waitlist");
     if (args.status) {
-      waitlist = waitlist.filter((entry: Doc<"waitlist">) => entry.status === args.status);
+      query = query.filter((q) => q.eq(q.field("status"), args.status));
     }
+    let waitlist = await query.collect();
     
+    // Search filtering must be done in memory (Convex doesn't support full-text search)
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       waitlist = waitlist.filter((entry: Doc<"waitlist">) => 
@@ -81,7 +87,11 @@ export const getWaitlistDetails = query({
       );
     }
     
-    return waitlist.map((entry: Doc<"waitlist">) => ({
+    // Sort by joinedAt desc (newest first)
+    waitlist.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0));
+    
+    // Apply pagination
+    const mapped = waitlist.map((entry: Doc<"waitlist">) => ({
       _id: entry._id,
       email: entry.email,
       name: entry.name,
@@ -97,6 +107,12 @@ export const getWaitlistDetails = query({
       source: entry.source || 'unknown',
       priority: entry.priority || 'normal'
     }));
+    
+    if (limit !== undefined) {
+      return mapped.slice(offset, offset + limit);
+    }
+    
+    return mapped.slice(offset);
   },
 });
 
@@ -166,13 +182,31 @@ const waitlistDocValidator = v.object({
 
 // Additional functions needed by frontend
 export const getAll = query({
-  args: { sessionToken: v.optional(v.string()) },
+  args: { 
+    sessionToken: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number())
+  },
   returns: v.array(waitlistDocValidator),
-  handler: async (ctx, args: { sessionToken?: string }) => {
+  handler: async (ctx, args: { sessionToken?: string; limit?: number; offset?: number }) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
     
-    return await ctx.db.query("waitlist").collect();
+    const { limit, offset = 0 } = args;
+    
+    // Fetch all waitlist entries (will be optimized with index in schema if needed)
+    const allEntries = await ctx.db.query("waitlist").collect();
+    
+    // Sort by joinedAt desc (newest first)
+    allEntries.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0));
+    
+    // Apply pagination
+    if (limit !== undefined) {
+      return allEntries.slice(offset, offset + limit);
+    }
+    
+    // If no limit, return all from offset
+    return allEntries.slice(offset);
   },
 });
 
@@ -255,17 +289,22 @@ export const getWaitlistEntries = query({
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
     
-    let entries = await ctx.db.query("waitlist").collect();
+    // Use database-level filtering where possible (more efficient than in-memory)
+    let query = ctx.db.query("waitlist");
     
-    // Filter by staff member who added the entry (if provided)
+    // Filter by staff member who added the entry (if provided) - database level
     if (args.addedBy) {
-      entries = entries.filter((entry: Doc<"waitlist">) => entry.addedBy === args.addedBy);
+      query = query.filter((q) => q.eq(q.field("addedBy"), args.addedBy));
     }
     
+    // Filter by status - database level
     if (args.status && args.status !== 'all') {
-      entries = entries.filter((entry: Doc<"waitlist">) => entry.status === args.status);
+      query = query.filter((q) => q.eq(q.field("status"), args.status));
     }
     
+    let entries = await query.collect();
+    
+    // Search filtering must be done in memory (Convex doesn't support full-text search)
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       entries = entries.filter((entry: Doc<"waitlist">) =>

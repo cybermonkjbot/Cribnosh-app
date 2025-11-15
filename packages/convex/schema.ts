@@ -533,7 +533,9 @@ export default defineSchema({
   })
     .index("by_order", ["order_id"])
     .index("by_user", ["user_id"])
-    .index("by_chef", ["chef_id"]),
+    .index("by_chef", ["chef_id"])
+    .index("by_meal", ["meal_id"])
+    .index("by_createdAt", ["createdAt"]),
   // Kitchens table
   kitchens: defineTable({
     owner_id: v.id("users"),
@@ -1505,7 +1507,8 @@ export default defineSchema({
     subject: v.optional(v.string()),
     message: v.string(),
     createdAt: v.number(),
-  }),
+  })
+    .index("by_createdAt", ["createdAt"]),
 
   staffAssignments: defineTable({
     userId: v.id("users"),

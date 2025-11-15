@@ -7,7 +7,16 @@ interface MealDescriptionProps {
   onKitchenNamePress?: () => void;
 }
 
-export function MealDescription({ description, kitchenName = "Stans Kitchen", onKitchenNamePress }: MealDescriptionProps) {
+export function MealDescription({ description, kitchenName, onKitchenNamePress }: MealDescriptionProps) {
+  // If no kitchen name, just show the description as-is
+  if (!kitchenName) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.description}>{description}</Text>
+      </View>
+    );
+  }
+
   // Split the description to highlight the kitchen name
   const parts = description.split(kitchenName);
   

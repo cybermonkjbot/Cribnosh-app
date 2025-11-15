@@ -559,12 +559,30 @@ export const getUserByToken = query({
 
 // Get all users (alias for getAllUsers for consistency)
 export const getAll = query({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args: { sessionToken?: string }) => {
+  args: { 
+    sessionToken: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number())
+  },
+  handler: async (ctx, args: { sessionToken?: string; limit?: number; offset?: number }) => {
     // Require staff/admin authentication
     await requireStaff(ctx, args.sessionToken);
     
-    return await ctx.db.query('users').collect();
+    const { limit, offset = 0 } = args;
+    
+    // Fetch all users (will be optimized with index in schema if needed)
+    const allUsers = await ctx.db.query('users').collect();
+    
+    // Sort by creation time desc (newest first)
+    allUsers.sort((a, b) => (b._creationTime || 0) - (a._creationTime || 0));
+    
+    // Apply pagination
+    if (limit !== undefined) {
+      return allUsers.slice(offset, offset + limit);
+    }
+    
+    // If no limit, return all from offset
+    return allUsers.slice(offset);
   },
 });
 

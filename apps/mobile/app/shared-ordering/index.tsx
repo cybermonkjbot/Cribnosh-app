@@ -37,8 +37,8 @@ export default function SharedOrderingIndex() {
   }>();
   const { showToast } = useToast();
   const { isAuthenticated } = useAuthContext();
-  const [amount, setAmount] = useState("20"); // Default to £20
-  const [selectedAmount, setSelectedAmount] = useState<string | null>("20"); // Default to £20
+  const [amount, setAmount] = useState(""); // No default - user must enter amount
+  const [selectedAmount, setSelectedAmount] = useState<string | null>(null); // No default
   const [selectedDiet, setSelectedDiet] = useState<string>("none"); // Default to "No restrictions"
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);

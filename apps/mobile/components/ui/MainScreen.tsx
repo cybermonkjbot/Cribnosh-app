@@ -147,12 +147,21 @@ export function MainScreen() {
     }
   }, [isAuthenticated, getCuisines]);
 
-  // Load cuisines on mount/authentication change
+  // Parallelize data loading on mount/authentication change
   useEffect(() => {
     if (isAuthenticated) {
-      loadCuisines();
+      // Load all data in parallel instead of sequentially
+      Promise.all([
+        loadCuisines(),
+        loadPopularChefs(),
+        loadPopularMeals(),
+        loadOffers(),
+        loadCart()
+      ]).catch((error) => {
+        console.error('Error loading initial data:', error);
+      });
     }
-  }, [isAuthenticated, loadCuisines]);
+  }, [isAuthenticated, loadCuisines, loadPopularChefs, loadPopularMeals, loadOffers, loadCart]);
 
   // Mark initial load as complete once any data has been loaded
   // Use a ref to ensure this only happens once and doesn't reset
@@ -205,13 +214,6 @@ export function MainScreen() {
     }
   }, [getPopularChefs]);
 
-  // Load popular chefs on mount/authentication change
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadPopularChefs();
-    }
-  }, [isAuthenticated, loadPopularChefs]);
-
   // Refetch function for compatibility
   const refetchChefs = loadPopularChefs;
 
@@ -252,13 +254,6 @@ export function MainScreen() {
     }
   }, [isAuthenticated, getRandomMeals]);
 
-  // Load popular meals on mount/authentication change
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadPopularMeals();
-    }
-  }, [isAuthenticated, loadPopularMeals]);
-
   // Refetch function for compatibility
   const refetchMeals = loadPopularMeals;
 
@@ -285,13 +280,6 @@ export function MainScreen() {
     }
   }, [isAuthenticated, getActiveOffers]);
 
-  // Load offers on mount/authentication change
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadOffers();
-    }
-  }, [isAuthenticated, loadOffers]);
-
   // Cart using useCart hook
   const { getCart, addToCart: addToCartAction } = useCart();
   const [cartData, setCartData] = useState<any>(null);
@@ -314,13 +302,6 @@ export function MainScreen() {
       setCartLoading(false);
     }
   }, [isAuthenticated, getCart]);
-
-  // Load cart on mount/authentication change
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadCart();
-    }
-  }, [isAuthenticated, loadCart]);
 
   // Refetch function for compatibility
   const refetchCart = loadCart;

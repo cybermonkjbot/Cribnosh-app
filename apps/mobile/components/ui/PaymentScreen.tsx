@@ -82,11 +82,12 @@ export default function PaymentScreen({
         sum + (item.price || 0) * (item.quantity || 1),
       0
     ) || 0;
+  // Get delivery fee from cart data, prop, or null if not available
   const calculatedDeliveryFee =
-    cartData?.data?.delivery_fee || deliveryFee || 900; // Default £9 in pence
+    cartData?.data?.delivery_fee ?? deliveryFee ?? null;
   const calculatedTotal =
     (calculatedSubtotal || (orderTotal ? orderTotal * 100 : 0)) +
-    calculatedDeliveryFee;
+    (calculatedDeliveryFee ?? 0);
 
   // Convert to pounds for display
   const displayTotal = calculatedTotal / 100;

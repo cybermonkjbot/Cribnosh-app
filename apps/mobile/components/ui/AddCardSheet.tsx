@@ -265,7 +265,7 @@ export function AddCardSheet({
               <CardField
                 postalCodeEnabled={false}
                 placeholders={{
-                  number: '4242 4242 4242 4242',
+                  number: '',
                 }}
                 cardStyle={{
                   backgroundColor: '#FFFFFF',

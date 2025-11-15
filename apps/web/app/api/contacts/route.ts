@@ -267,13 +267,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-    // Fetch all contact form submissions (contacts table)
-    const allContacts = await convex.query(api.queries.contacts.getAll, {
-      sessionToken: sessionToken || undefined
+    // Use paginated query instead of fetch-all-then-slice
+    const paginated = await convex.query(api.queries.contacts.getAll, {
+      limit,
+      offset
     });
-    // Consistent ordering (createdAt DESC)
-    allContacts.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
-    const paginated = allContacts.slice(offset, offset + limit);
+    // Get total count for pagination info (query already handles sorting)
+    const allContacts = await convex.query(api.queries.contacts.getAll, {});
     return ResponseFactory.success({ contacts: paginated, total: allContacts.length, limit, offset });
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {

@@ -3,26 +3,30 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface MealInfoProps {
-  prepTime: string;
-  deliveryTime: string;
+  prepTime?: string;
+  deliveryTime?: string;
 }
 
 export function MealInfo({ prepTime, deliveryTime }: MealInfoProps) {
   return (
     <View style={styles.container}>
       {/* Prep Time */}
-      <View style={styles.infoItem}>
-        <Ionicons name="time-outline" size={16} color="#094327" />
-        <Text style={styles.label}>Prep</Text>
-        <Text style={styles.value}>{prepTime}</Text>
-      </View>
+      {prepTime && (
+        <View style={styles.infoItem}>
+          <Ionicons name="time-outline" size={16} color="#094327" />
+          <Text style={styles.label}>Prep</Text>
+          <Text style={styles.value}>{prepTime}</Text>
+        </View>
+      )}
 
       {/* Delivery Time */}
-      <View style={styles.infoItem}>
-        <Ionicons name="bicycle-outline" size={16} color="#FF3B30" />
-        <Text style={styles.label}>Delivery</Text>
-        <Text style={styles.value}>{deliveryTime}</Text>
-      </View>
+      {deliveryTime && (
+        <View style={styles.infoItem}>
+          <Ionicons name="bicycle-outline" size={16} color="#FF3B30" />
+          <Text style={styles.label}>Delivery</Text>
+          <Text style={styles.value}>{deliveryTime}</Text>
+        </View>
+      )}
     </View>
   );
 }

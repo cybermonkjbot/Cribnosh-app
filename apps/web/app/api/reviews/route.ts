@@ -130,14 +130,14 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-    // Fetch all reviews
+    // Use paginated query instead of fetch-all-then-slice
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-    const allReviews = (await convex.query(api.queries.reviews.getAll, {
-      sessionToken: sessionToken || undefined
+    const paginated = (await convex.query(api.queries.reviews.getAll, {
+      limit,
+      offset
     })) as any[];
-    // Consistent ordering (createdAt DESC)
-    allReviews.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
-    const paginated = allReviews.slice(offset, offset + limit);
+    // Get total count for pagination info (query already handles sorting)
+    const allReviews = (await convex.query(api.queries.reviews.getAll, {})) as any[];
     return ResponseFactory.success({ reviews: paginated, total: allReviews.length, limit, offset });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

@@ -125,12 +125,11 @@ export default function OrderDetailsScreen() {
   };
 
   const handleCallKitchen = async () => {
-    // Extract phone number from order if available
-    // In a real implementation, the order would have kitchen.phone or similar field
-    const phoneNumber = order?.kitchen_id || "+44 123 456 7890"; // Fallback if no phone in order
+    // Get phone number from enriched order data
+    const phoneNumber = order?.kitchen_phone;
     
-    if (!phoneNumber || phoneNumber === order?.kitchen_id) {
-      // If we only have kitchen_id, show a message that phone number is not available
+    if (!phoneNumber) {
+      // Phone number not available
       Alert.alert(
         "Phone Number Not Available",
         "The kitchen phone number is not available for this order. Please contact support if you need assistance."

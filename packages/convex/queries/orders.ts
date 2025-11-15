@@ -7,7 +7,9 @@ import { api } from '../_generated/api';
 export const listByChef = query({
   args: { 
     chef_id: v.string(),
-    sessionToken: v.optional(v.string())
+    sessionToken: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // Require authentication
@@ -24,7 +26,24 @@ export const listByChef = query({
       }
     }
     
-    return await ctx.db.query('orders').filter(q => q.eq(q.field('chef_id'), args.chef_id)).collect();
+    const { limit, offset = 0 } = args;
+    
+    // Fetch orders filtered by chef_id (will be optimized with index)
+    const allOrders = await ctx.db
+      .query('orders')
+      .filter(q => q.eq(q.field('chef_id'), args.chef_id))
+      .collect();
+    
+    // Sort by createdAt desc (newest first)
+    allOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    
+    // Apply pagination
+    if (limit !== undefined) {
+      return allOrders.slice(offset, offset + limit);
+    }
+    
+    // If no limit, return all from offset
+    return allOrders.slice(offset);
   },
 });
 
@@ -554,15 +573,64 @@ export const getEnrichedOrderBySessionToken = query({
       }
     }
 
-    // Fetch chef/kitchen name if available
+    // Fetch chef/kitchen name and phone if available
     let kitchenName = 'Unknown Kitchen';
+    let kitchenPhone = null;
     try {
       const chef = await ctx.runQuery(api.queries.chefs.getById, {
         chefId: order.chef_id as any,
       });
       kitchenName = chef?.name || 'Unknown Kitchen';
+      
+      // Get kitchen phone from user
+      if (chef?.userId) {
+        const user = await ctx.db.get(chef.userId);
+        kitchenPhone = user?.phone_number || null;
+      }
     } catch (error) {
       // Chef not found, use default
+    }
+    
+    // Get delivery person info if available
+    let deliveryPerson = null;
+    try {
+      const assignment = await ctx.db
+        .query('deliveryAssignments')
+        .filter(q => q.eq(q.field('order_id'), order._id))
+        .first();
+      
+      if (assignment) {
+        const driver = await ctx.db.get(assignment.driver_id);
+        if (driver) {
+          deliveryPerson = {
+            id: driver._id,
+            name: driver.name || `${driver.firstName || ''} ${driver.lastName || ''}`.trim() || 'Delivery Driver',
+            phone: driver.phone || null,
+            location: driver.currentLocation || null,
+            vehicleType: driver.vehicleType || null,
+            rating: driver.rating || null,
+          };
+        }
+      }
+    } catch (error) {
+      // Delivery assignment not found, continue without it
+    }
+    
+    // Get delivery fee - check order first, then deliveries table
+    let deliveryFee = order.delivery_fee || null;
+    if (deliveryFee === null || deliveryFee === undefined) {
+      try {
+        // Check deliveries table
+        const delivery = await ctx.db
+          .query('deliveries')
+          .filter(q => q.eq(q.field('orderId'), order._id))
+          .first();
+        if (delivery) {
+          deliveryFee = delivery.deliveryFee || null;
+        }
+      } catch (error) {
+        // Delivery not found, keep as null
+      }
     }
 
     // Transform delivery_address to match expected format (postcode -> postal_code, add state if missing)
@@ -610,8 +678,10 @@ export const getEnrichedOrderBySessionToken = query({
       // Additional fields that might be needed
       kitchen_id: order.chef_id,
       kitchen_name: kitchenName,
+      kitchen_phone: kitchenPhone,
       delivery_address: deliveryAddress,
-      delivery_fee: order.delivery_fee || 0,
+      delivery_fee: deliveryFee,
+      delivery_person: deliveryPerson,
       subtotal: subtotal,
       tax: order.tax || 0,
       created_at: order.created_at || order.createdAt || new Date().toISOString(),

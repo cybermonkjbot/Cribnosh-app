@@ -229,4 +229,66 @@ export const getDeliveryZones = query({
 
     return await query.collect();
   },
+});
+
+// Get delivery person by order ID (returns driver info with phone, name, location)
+export const getDeliveryPersonByOrderId = query({
+  args: {
+    orderId: v.string(), // Can be order_id string or Convex document ID
+  },
+  handler: async (ctx, args) => {
+    // First, find the order by order_id string or document ID
+    let order = null;
+    
+    // Try to get by document ID if it looks like a Convex ID
+    if (args.orderId.match(/^[a-z][a-z0-9]*$/)) {
+      try {
+        order = await ctx.db.get(args.orderId as any);
+        // Verify it's an order
+        if (order && !('order_id' in order || 'customer_id' in order)) {
+          order = null;
+        }
+      } catch (error) {
+        order = null;
+      }
+    }
+    
+    // If not found by document ID, search by order_id field
+    if (!order) {
+      order = await ctx.db
+        .query('orders')
+        .filter(q => q.eq(q.field('order_id'), args.orderId))
+        .first();
+    }
+    
+    if (!order) {
+      return null;
+    }
+    
+    // Get delivery assignment for this order
+    const assignment = await ctx.db
+      .query('deliveryAssignments')
+      .filter(q => q.eq(q.field('order_id'), order!._id))
+      .first();
+    
+    if (!assignment) {
+      return null;
+    }
+    
+    // Get driver info
+    const driver = await ctx.db.get(assignment.driver_id);
+    
+    if (!driver) {
+      return null;
+    }
+    
+    return {
+      id: driver._id,
+      name: driver.name || `${driver.firstName || ''} ${driver.lastName || ''}`.trim() || 'Delivery Driver',
+      phone: driver.phone || null,
+      location: driver.currentLocation || null,
+      vehicleType: driver.vehicleType || null,
+      rating: driver.rating || null,
+    };
+  },
 }); 

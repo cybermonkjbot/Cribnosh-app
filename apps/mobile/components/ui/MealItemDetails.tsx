@@ -2,7 +2,7 @@ import { useCart } from "@/hooks/useCart";
 import { useMeals } from "@/hooks/useMeals";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showError, showSuccess, showWarning } from "../../lib/GlobalToastManager";
@@ -116,53 +116,107 @@ export function MealItemDetails({
   // Get favorite status from API
   const isFavorite = favoriteStatus?.isFavorited ?? false;
 
-  // Load dish details
+  // Use refs to store stable function references and avoid dependency issues
+  const getDishDetailsRef = useRef(getDishDetails);
+  const getDishFavoriteStatusRef = useRef(getDishFavoriteStatus);
+  const getSimilarMealsRef = useRef(getSimilarMeals);
+  
+  // Update refs when functions change
+  useEffect(() => {
+    getDishDetailsRef.current = getDishDetails;
+    getDishFavoriteStatusRef.current = getDishFavoriteStatus;
+    getSimilarMealsRef.current = getSimilarMeals;
+  }, [getDishDetails, getDishFavoriteStatus, getSimilarMeals]);
+
+  // Check if mealData prop has all required fields to skip API calls
+  const hasCompleteMealData = useMemo(() => {
+    if (!mealData) return false;
+    // Check for essential fields that would make API call unnecessary
+    return !!(
+      mealData.title &&
+      mealData.kitchenName &&
+      mealData.price !== undefined &&
+      mealData.description
+    );
+  }, [mealData]);
+
+  // Reset state when mealId changes
   useEffect(() => {
     if (mealId) {
-      const loadDishDetails = async () => {
-        try {
-          setIsLoadingDishDetails(true);
-          const result = await getDishDetails(mealId);
-          if (result.success) {
-            setDishDetailsData({ success: true, data: result.data });
-          }
-        } catch (error) {
-          // Error already handled in hook
-        } finally {
-          setIsLoadingDishDetails(false);
-        }
-      };
-      loadDishDetails();
+      setDishDetailsData(null);
+      setFavoriteStatus(null);
+      setSimilarDishesData(null);
     }
-  }, [mealId, getDishDetails]);
+  }, [mealId]);
 
-  // Load favorite status
+  // Parallelized data fetching - single useEffect that fetches all data in parallel
   useEffect(() => {
-    if (mealId && isAuthenticated) {
-      const loadFavoriteStatus = async () => {
-        try {
-          setIsLoadingFavorite(true);
-          const result = await getDishFavoriteStatus(mealId);
-          if (result.success) {
-            setFavoriteStatus(result.data);
+    if (!mealId) return;
+
+    // Determine what needs to be fetched
+    const needsDishDetails = !hasCompleteMealData;
+    const needsFavoriteStatus = isAuthenticated;
+    // Similar meals are deferred - loaded after a delay to improve initial render
+
+    // Build array of promises for parallel execution
+    const fetchPromises: Promise<void>[] = [];
+
+    // Fetch dish details if needed
+    if (needsDishDetails) {
+      fetchPromises.push(
+        (async () => {
+          try {
+            setIsLoadingDishDetails(true);
+            const result = await getDishDetailsRef.current(mealId);
+            if (result.success) {
+              setDishDetailsData({ success: true, data: result.data });
+            }
+          } catch (error) {
+            // Error already handled in hook
+          } finally {
+            setIsLoadingDishDetails(false);
           }
-        } catch (error) {
-          // Error already handled in hook
-        } finally {
-          setIsLoadingFavorite(false);
-        }
-      };
-      loadFavoriteStatus();
+        })()
+      );
     }
-  }, [mealId, isAuthenticated, getDishFavoriteStatus]);
 
-  // Load similar meals
+    // Fetch favorite status if needed (always fetch when authenticated, state reset handles mealId changes)
+    if (needsFavoriteStatus) {
+      fetchPromises.push(
+        (async () => {
+          try {
+            setIsLoadingFavorite(true);
+            const result = await getDishFavoriteStatusRef.current(mealId);
+            if (result.success) {
+              setFavoriteStatus(result.data);
+            }
+          } catch (error) {
+            // Error already handled in hook
+          } finally {
+            setIsLoadingFavorite(false);
+          }
+        })()
+      );
+    }
+
+    // Execute all fetches in parallel
+    if (fetchPromises.length > 0) {
+      Promise.all(fetchPromises).catch((error) => {
+        console.error('Error loading meal data:', error);
+      });
+    }
+  }, [mealId, hasCompleteMealData, isAuthenticated]);
+
+  // Defer similar meals loading to improve initial render time
   useEffect(() => {
-    if (mealId) {
+    if (!mealId) return;
+
+    // Delay similar meals loading by 500ms to prioritize main content
+    const timeoutId = setTimeout(() => {
       const loadSimilarMeals = async () => {
         try {
           setIsLoadingSimilarMealsFromApi(true);
-          const result = await getSimilarMeals(mealId, 5);
+          const result = await getSimilarMealsRef.current(mealId, 5);
           if (result.success) {
             setSimilarDishesData({ success: true, data: result.data });
           }
@@ -173,8 +227,10 @@ export function MealItemDetails({
         }
       };
       loadSimilarMeals();
-    }
-  }, [mealId, getSimilarMeals]);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [mealId]);
 
   // Transform API dish details to mealData format
   const apiMealData = useMemo(() => {
@@ -215,7 +271,11 @@ export function MealItemDetails({
   }, [dishDetailsData]);
 
   // Prioritize API data over prop data - only use prop data if API is not available
-  const finalMealData = apiMealData || mealData;
+  // Memoize finalMealData to avoid unnecessary recalculations
+  const finalMealData = useMemo(() => {
+    return apiMealData || mealData;
+  }, [apiMealData, mealData]);
+  
   const isLoading = isLoadingDishDetails || (propIsLoading && !apiMealData);
 
   // Use API similar meals data - prioritize API data over prop data
@@ -239,7 +299,8 @@ export function MealItemDetails({
 
   const isLoadingSimilarMeals = isLoadingSimilarMealsProp || isLoadingSimilarMealsFromApi;
 
-  const handleAddToCart = async () => {
+  // Memoize handleAddToCart callback to prevent unnecessary re-renders
+  const handleAddToCart = useCallback(async () => {
     if (!finalMealData?.title) return;
 
     // Check authentication and token validity
@@ -280,9 +341,10 @@ export function MealItemDetails({
       const errorMessage = err?.message || 'Failed to add item to cart';
       showError('Failed to add item to cart', errorMessage);
     }
-  };
+  }, [finalMealData, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart, mealId, quantity, onAddToCart, router]);
 
-  const handleFavorite = async () => {
+  // Memoize handleFavorite callback to prevent unnecessary re-renders
+  const handleFavorite = useCallback(async () => {
     if (!isAuthenticated) {
       Alert.alert(
         'Authentication Required',
@@ -300,7 +362,7 @@ export function MealItemDetails({
         const result = await removeDishFavorite(mealId);
         if (result.success) {
           // Reload favorite status
-          const statusResult = await getDishFavoriteStatus(mealId);
+          const statusResult = await getDishFavoriteStatusRef.current(mealId);
           if (statusResult.success) {
             setFavoriteStatus(statusResult.data);
           }
@@ -310,7 +372,7 @@ export function MealItemDetails({
         const result = await addDishFavorite(mealId);
         if (result.success) {
           // Reload favorite status
-          const statusResult = await getDishFavoriteStatus(mealId);
+          const statusResult = await getDishFavoriteStatusRef.current(mealId);
           if (statusResult.success) {
             setFavoriteStatus(statusResult.data);
           }
@@ -323,7 +385,7 @@ export function MealItemDetails({
       setIsAddingFavorite(false);
       setIsRemovingFavorite(false);
     }
-  };
+  }, [isAuthenticated, mealId, isFavorite, removeDishFavorite, addDishFavorite]);
 
   // Determine which sections have data
   const hasBasicInfo = !isLoading && finalMealData?.title && finalMealData?.kitchenName;
@@ -407,8 +469,8 @@ export function MealItemDetails({
           {/* Meal Info Component */}
           {hasMealInfo ? (
             <MealInfo
-              prepTime={finalMealData.prepTime || "15 min"}
-              deliveryTime={finalMealData.deliveryTime || "30 min"}
+              prepTime={finalMealData.prepTime}
+              deliveryTime={finalMealData.deliveryTime}
             />
           ) : (
             <MealInfoSkeleton />

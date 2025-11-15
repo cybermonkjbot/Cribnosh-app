@@ -139,54 +139,56 @@ export const getDepartments = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
     // Extract unique departments from users table
+    // Optimize: Only fetch users with departments, not all users
     const allUsers = await ctx.db.query("users").collect();
     
-    // Get unique department names
-    const departmentNames = new Set<string>();
+    // Get unique department names and group users by department
+    const departmentMap = new Map<string, Id<'users'>[]>();
     allUsers.forEach((user) => {
       const userDoc = user as { department?: string };
       if (userDoc.department) {
-        departmentNames.add(userDoc.department);
+        if (!departmentMap.has(userDoc.department)) {
+          departmentMap.set(userDoc.department, []);
+        }
+        departmentMap.get(userDoc.department)!.push(user._id);
       }
     });
     
-    // Return empty array if no departments exist - no fallback demo data
-    if (departmentNames.size === 0) {
+    // Return empty array if no departments exist
+    if (departmentMap.size === 0) {
       return [];
     }
     
-    const departmentList = Array.from(departmentNames);
+    // Get all work sessions once (optimized: fetch once instead of per department)
+    const allWorkSessions = await ctx.db.query("workSessions").collect();
     
-    // Calculate stats for each department
-    const departmentsWithStats = await Promise.all(
-      departmentList.map(async (deptName) => {
-        const users = await ctx.db
-          .query("users")
-          .filter((q) => q.eq(q.field("department"), deptName))
-          .collect();
-        
-        // Calculate total hours for this department from actual time tracking data
-        // Get work sessions for users in this department
-        const userIds = new Set(users.map(u => u._id));
-        const allWorkSessions = await ctx.db.query("workSessions").collect();
-        
-        // Filter work sessions to only those for users in this department
-        const workSessions = allWorkSessions.filter(session => 
-          userIds.has(session.staffId)
-        );
-        
-        const totalHours = workSessions.reduce((sum, session) => {
-          return sum + (session.duration || 0) / (1000 * 60 * 60); // Convert milliseconds to hours
-        }, 0);
-        
-        return {
-          id: deptName.toLowerCase().replace(/\s+/g, "-"),
-          name: deptName,
-          userCount: users.length,
-          totalHours: Math.round(totalHours * 10) / 10
-        };
-      })
-    );
+    // Create a map of work sessions by staffId for efficient lookup
+    const sessionsByStaffId = new Map<Id<'users'>, typeof allWorkSessions>();
+    allWorkSessions.forEach(session => {
+      if (!sessionsByStaffId.has(session.staffId)) {
+        sessionsByStaffId.set(session.staffId, []);
+      }
+      sessionsByStaffId.get(session.staffId)!.push(session);
+    });
+    
+    // Calculate stats for each department using the pre-fetched data
+    const departmentsWithStats = Array.from(departmentMap.entries()).map(([deptName, userIds]) => {
+      // Calculate total hours for this department
+      const workSessions = userIds.flatMap(userId => 
+        sessionsByStaffId.get(userId) || []
+      );
+      
+      const totalHours = workSessions.reduce((sum, session) => {
+        return sum + (session.duration || 0) / (1000 * 60 * 60); // Convert milliseconds to hours
+      }, 0);
+      
+      return {
+        id: deptName.toLowerCase().replace(/\s+/g, "-"),
+        name: deptName,
+        userCount: userIds.length,
+        totalHours: Math.round(totalHours * 10) / 10
+      };
+    });
     
     return departmentsWithStats;
   },

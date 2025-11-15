@@ -127,15 +127,19 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-    // Fetch all chats for this user (assuming a 'chats' table with userId or participants)
-    const allChats = await convex.query(api.queries.chats.getAll, {
+    // Use paginated query for user's chats instead of fetch-all-then-slice
+    const chatResult = await convex.query(api.queries.chats.listConversationsForUser, {
+      userId,
+      limit,
+      offset,
       sessionToken: sessionToken || undefined
     });
-    const userChats = allChats.filter((c: any) => c.userId === userId || (Array.isArray(c.participants) && c.participants.includes(userId)));
-    // Consistent ordering (createdAt DESC)
-    userChats.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
-    const paginated = userChats.slice(offset, offset + limit);
-    return ResponseFactory.success({ chats: paginated, total: userChats.length, limit, offset });
+    return ResponseFactory.success({ 
+      chats: chatResult.chats, 
+      total: chatResult.total_count, 
+      limit, 
+      offset 
+    });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);

@@ -133,20 +133,37 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   const convex = getConvexClientFromRequest(request);
   // Get all conversations for the user
   const chatResult = await convex.query(api.queries.chats.listConversationsForUser, { userId: user._id });
-  // Aggregate all messages from all conversations
-  let allMessages: Array<{_id: string; chatId: string; content: string; createdAt: number; [key: string]: any}> = [];
   const chats = chatResult?.chats || [];
-  for (const chat of chats) {
-    const { messages } = await convex.query(api.queries.chats.listMessagesForChat, { chatId: chat._id, limit: 100 });
-    allMessages = allMessages.concat(messages.map((msg: any) => ({ ...msg, chatId: chat._id })));
-  }
-  // Sort by createdAt desc
-  allMessages.sort((a, b) => b.createdAt - a.createdAt);
-  // Pagination (limit/offset from query params)
+  
+  // Get pagination params
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '20', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
+  
+  // Batch fetch messages for all chats in one query (fixes N+1 problem)
+  if (chats.length === 0) {
+    return ResponseFactory.success({
+      messages: [],
+      total_count: 0,
+      limit,
+      offset
+    });
+  }
+  
+  const chatIds = chats.map((chat: any) => chat._id);
+  // Fetch messages for all chats at once, with a reasonable per-chat limit
+  const allMessages = await convex.query(api.queries.chats.listMessagesForChats, {
+    chatIds,
+    limitPerChat: 100, // Limit per chat to avoid fetching too many messages
+    totalLimit: limit + offset + 100 // Fetch a bit more than needed for accurate pagination
+  });
+  
+  // Sort by createdAt desc (already sorted in query, but ensure it)
+  allMessages.sort((a: any, b: any) => b.createdAt - a.createdAt);
+  
+  // Apply pagination
   const paged = allMessages.slice(offset, offset + limit);
+  
   return ResponseFactory.success({
     messages: paged,
     total_count: allMessages.length,

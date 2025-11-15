@@ -134,8 +134,8 @@ export default function PaymentMethodSelection() {
         }
       } catch (error) {
         console.error("Error loading payment method:", error);
-        // Default to card on error
-        setSelectedPaymentMethod("card");
+        // Don't set default - let user select or use first available
+        // If payment methods exist, will be set below
       }
     };
     loadPaymentMethod();
@@ -289,9 +289,20 @@ export default function PaymentMethodSelection() {
             const success = await removePaymentMethod(cardId);
             if (success) {
               await fetchSavedCards();
-              // If the removed card was selected, reset selection
+              // If the removed card was selected, reset to first available or null
               if (selectedPaymentMethod === cardId) {
-                setSelectedPaymentMethod("card");
+                // Refresh payment methods list
+                const updatedMethods = await getPaymentMethods();
+                // Find first available payment method (family, saved card, or generic card)
+                if (isFamilyMember && familyPaymentEnabled) {
+                  setSelectedPaymentMethod('family');
+                } else if (updatedMethods && updatedMethods.length > 0) {
+                  // Select first saved card
+                  setSelectedPaymentMethod(updatedMethods[0].id);
+                } else {
+                  // No saved cards, select generic card option if available
+                  setSelectedPaymentMethod("card");
+                }
               }
             }
           },

@@ -24,12 +24,6 @@ import { Avatar } from '../../components/ui/Avatar';
 import { CaloriesNoshPointsCards } from '../../components/ui/CaloriesNoshPointsCards';
 import { KPICards } from '../../components/ui/KPICards';
 import { ProfileScreenBackground } from '../../components/ui/ProfileScreenBackground';
-import {
-  BraggingCardsSkeleton,
-  CaloriesNoshPointsSkeleton,
-  ForkPrintScoreSkeleton,
-  KPICardsSkeleton,
-} from '../../components/ui/ProfileScreenSkeletons';
 import { QueryStateWrapper } from '../../components/ui/QueryStateWrapper';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useAnalytics } from '../../hooks/useAnalytics';
@@ -628,7 +622,6 @@ export default function ProfileScreen() {
                   isLoading={!isAuthenticated || forkPrintLoading}
                   error={forkPrintError}
                   isEmpty={!extractForkPrintScoreData(forkPrintData)}
-                  skeleton={<ForkPrintScoreSkeleton />}
                   errorTitle="Unable to Load ForkPrint Score"
                   errorSubtitle="Failed to load your ForkPrint score. Please try again."
                   onRetry={() => {
@@ -681,7 +674,6 @@ export default function ProfileScreen() {
                   isLoading={!isAuthenticated || caloriesProgressLoading || noshPointsLoading}
                   error={caloriesProgressError || noshPointsError}
                   isEmpty={!caloriesProgressData?.data || !noshPointsData?.data}
-                  skeleton={<CaloriesNoshPointsSkeleton />}
                   errorTitle="Unable to Load Progress Data"
                   errorSubtitle="Failed to load calories and Nosh Points progress. Please try again."
                   onRetry={() => {
@@ -705,7 +697,6 @@ export default function ProfileScreen() {
                   isLoading={!isAuthenticated || monthlyOverviewLoading}
                   error={monthlyOverviewError}
                   isEmpty={!monthlyOverviewData?.data}
-                  skeleton={<KPICardsSkeleton />}
                   errorTitle="Unable to Load Monthly Overview"
                   errorSubtitle="Failed to load your monthly statistics. Please try again."
                   onRetry={() => refetchMonthlyOverview()}
@@ -727,10 +718,7 @@ export default function ProfileScreen() {
             <GestureDetector gesture={sheetGesture}>
             <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
                 <Animated.View style={[styles.sheetContent, sheetBackgroundAnimatedStyle]}>
-                  {!isAuthenticated ? (
-                    <BraggingCardsSkeleton />
-                  ) : (
-                    <>
+                  <>
                     {/* Handlebar - Always visible */}
                     <View style={styles.handlebarContainer}>
                       <Animated.View style={handlebarStyle} />
@@ -758,7 +746,6 @@ export default function ProfileScreen() {
                         isLoading={weeklySummaryLoading}
                         error={weeklySummaryError}
                         isEmpty={(braggingData.weekMeals?.length ?? 0) === 0 && (braggingData.cuisines?.length ?? 0) === 0}
-                        skeleton={<BraggingCardsSkeleton />}
                         errorTitle="Unable to Load Weekly Summary"
                         errorSubtitle="Failed to load your weekly food statistics. Please try again."
                         onRetry={() => refetchWeeklySummary()}
@@ -782,8 +769,7 @@ export default function ProfileScreen() {
                           />
                       </QueryStateWrapper>
                     </ScrollView>
-                    </>
-                  )}
+                  </>
                 </Animated.View>
               </Animated.View>
             </GestureDetector>

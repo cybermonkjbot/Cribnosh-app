@@ -388,15 +388,21 @@ export const getContentItems = query({
 });
 
 export const globalAdminSearch = query({
-  args: { query: v.string() },
+  args: { 
+    query: v.string(),
+    limit: v.optional(v.number()) // Limit total results
+  },
   handler: async (ctx, args) => {
     const q = args.query.toLowerCase();
-    // Users
-    const users = await ctx.db.query('users').collect();
-    const userResults = users.filter(user =>
+    const resultLimit = args.limit || 50; // Default to 50 results max
+    const perTableLimit = 500; // Limit records fetched per table to avoid memory issues
+    
+    // Users - limit fetch to recent users first
+    const allUsers = await ctx.db.query('users').order('desc').take(perTableLimit);
+    const userResults = allUsers.filter(user =>
       user.name?.toLowerCase().includes(q) ||
       user.email?.toLowerCase().includes(q)
-    ).map(user => ({
+    ).slice(0, 10).map(user => ({
       _id: user._id,
       type: 'user',
       name: user.name,
@@ -404,169 +410,174 @@ export const globalAdminSearch = query({
       roles: user.roles,
       status: user.status
     }));
-    // Chefs
-    const chefs = await ctx.db.query('chefs').collect();
-    const chefResults = chefs.filter(chef =>
+    
+    // Chefs - limit fetch
+    const allChefs = await ctx.db.query('chefs').take(perTableLimit);
+    const chefResults = allChefs.filter(chef =>
       chef.bio?.toLowerCase().includes(q) ||
       chef.specialties?.some((s: string) => s.toLowerCase().includes(q))
-    ).map(chef => ({
+    ).slice(0, 10).map(chef => ({
       _id: chef._id,
       type: 'chef',
       bio: chef.bio,
       specialties: chef.specialties,
       status: chef.status
     }));
-    // Meals
-    const meals = await ctx.db.query('meals').collect();
-    const mealResults = meals.filter(meal =>
+    
+    // Meals - limit fetch
+    const allMeals = await ctx.db.query('meals').take(perTableLimit);
+    const mealResults = allMeals.filter(meal =>
       meal.name?.toLowerCase().includes(q) ||
       meal.description?.toLowerCase().includes(q) ||
       meal.cuisine?.some((c: string) => c.toLowerCase().includes(q))
-    ).map(meal => ({
+    ).slice(0, 10).map(meal => ({
       _id: meal._id,
       type: 'meal',
       name: meal.name,
       description: meal.description,
       cuisine: meal.cuisine
     }));
-    // Bookings
-    const bookings = await ctx.db.query('bookings').collect();
-    const bookingResults = bookings.filter(booking =>
+    
+    // Bookings - limit fetch
+    const allBookings = await ctx.db.query('bookings').take(perTableLimit);
+    const bookingResults = allBookings.filter(booking =>
       booking.notes?.toLowerCase().includes(q)
-    ).map(booking => ({
+    ).slice(0, 10).map(booking => ({
       _id: booking._id,
       type: 'booking',
       notes: booking.notes,
       status: booking.status
     }));
-    // Waitlist
-    const waitlist = await ctx.db.query('waitlist').collect();
-    const waitlistResults = waitlist.filter(w =>
+    
+    // Waitlist - limit fetch
+    const allWaitlist = await ctx.db.query('waitlist').take(perTableLimit);
+    const waitlistResults = allWaitlist.filter(w =>
       w.email?.toLowerCase().includes(q)
-    ).map(w => ({
+    ).slice(0, 10).map(w => ({
       _id: w._id,
       type: 'waitlist',
       email: w.email
     }));
-    // Reviews
-    const reviews = await ctx.db.query('reviews').collect();
-    const reviewResults = reviews.filter(r =>
+    
+    // Reviews - limit fetch
+    const allReviews = await ctx.db.query('reviews').take(perTableLimit);
+    const reviewResults = allReviews.filter(r =>
       r.comment?.toLowerCase().includes(q)
-    ).map(r => ({
+    ).slice(0, 10).map(r => ({
       _id: r._id,
       type: 'review',
       comment: r.comment,
       rating: r.rating
     }));
-    // Kitchens
-    const kitchens = await ctx.db.query('kitchens').collect();
-    const kitchenResults = kitchens.filter(k =>
+    // Kitchens - limit fetch
+    const allKitchens = await ctx.db.query('kitchens').take(perTableLimit);
+    const kitchenResults = allKitchens.filter(k =>
       k.address?.toLowerCase().includes(q)
-    ).map(k => ({
+    ).slice(0, 10).map(k => ({
       _id: k._id,
       type: 'kitchen',
       address: k.address,
       certified: k.certified
     }));
-    // Perks
-    const perks = await ctx.db.query('perks').collect();
-    const perkResults = perks.filter(p =>
+    // Perks - limit fetch
+    const allPerks = await ctx.db.query('perks').take(perTableLimit);
+    const perkResults = allPerks.filter(p =>
       p.title?.toLowerCase().includes(q) ||
       p.description?.toLowerCase().includes(q)
-    ).map(p => ({
+    ).slice(0, 10).map(p => ({
       _id: p._id,
       type: 'perk',
       title: p.title,
       description: p.description
     }));
-    // Analytics
-    const analytics = await ctx.db.query('analytics').collect();
-    const analyticsResults = analytics.filter(a =>
+    // Analytics - limit fetch
+    const allAnalytics = await ctx.db.query('analytics').take(perTableLimit);
+    const analyticsResults = allAnalytics.filter(a =>
       a.eventType?.toLowerCase().includes(q)
-    ).map(a => ({
+    ).slice(0, 10).map(a => ({
       _id: a._id,
       type: 'analytics',
       eventType: a.eventType,
       timestamp: a.timestamp
     }));
-    // Drivers
-    const drivers = await ctx.db.query('drivers').collect();
-    const driverResults = drivers.filter(d =>
+    // Drivers - limit fetch
+    const allDrivers = await ctx.db.query('drivers').take(perTableLimit);
+    const driverResults = allDrivers.filter(d =>
       d.name?.toLowerCase().includes(q) ||
       d.email?.toLowerCase().includes(q) ||
       d.vehicle?.toLowerCase().includes(q)
-    ).map(d => ({
+    ).slice(0, 10).map(d => ({
       _id: d._id,
       type: 'driver',
       name: d.name,
       email: d.email,
       vehicle: d.vehicle
     }));
-    // Admin Activity
-    const adminActivity = await ctx.db.query('adminActivity').collect();
-    const activityResults = adminActivity.filter(a =>
+    // Admin Activity - limit fetch
+    const allAdminActivity = await ctx.db.query('adminActivity').take(perTableLimit);
+    const activityResults = allAdminActivity.filter(a =>
       a.description?.toLowerCase().includes(q) ||
       a.type?.toLowerCase().includes(q)
-    ).map(a => ({
+    ).slice(0, 10).map(a => ({
       _id: a._id,
       type: 'adminActivity',
       description: a.description,
       activityType: a.type
     }));
-    // System Health
-    const systemHealth = await ctx.db.query('systemHealth').collect();
-    const healthResults = systemHealth.filter(s =>
+    // System Health - limit fetch
+    const allSystemHealth = await ctx.db.query('systemHealth').take(perTableLimit);
+    const healthResults = allSystemHealth.filter(s =>
       s.service?.toLowerCase().includes(q) ||
       s.status?.toLowerCase().includes(q)
-    ).map(s => ({
+    ).slice(0, 10).map(s => ({
       _id: s._id,
       type: 'systemHealth',
       service: s.service,
       status: s.status
     }));
-    // Admin Stats
-    const adminStats = await ctx.db.query('adminStats').collect();
-    const statsResults = adminStats.filter(s =>
+    // Admin Stats - limit fetch
+    const allAdminStats = await ctx.db.query('adminStats').take(perTableLimit);
+    const statsResults = allAdminStats.filter(s =>
       s.key?.toLowerCase().includes(q)
-    ).map(s => ({
+    ).slice(0, 10).map(s => ({
       _id: s._id,
       type: 'adminStats',
       key: s.key,
       value: s.value
     }));
-    // Content
-    const content = await ctx.db.query('content').collect();
-    const contentResults = content.filter(item =>
+    // Content - limit fetch
+    const allContent = await ctx.db.query('content').take(perTableLimit);
+    const contentResults = allContent.filter(item =>
       item.title?.toLowerCase().includes(q) ||
       item.content?.toLowerCase().includes(q) ||
       item.author?.toLowerCase().includes(q)
-    ).map(item => ({
+    ).slice(0, 10).map(item => ({
       _id: item._id,
       type: 'content',
       title: item.title,
       author: item.author,
       summary: item.content?.slice(0, 100)
     }));
-    // Jobs
-    const jobs = await ctx.db.query('jobPosting').collect();
-    const jobResults = jobs.filter(job =>
+    // Jobs - limit fetch
+    const allJobs = await ctx.db.query('jobPosting').take(perTableLimit);
+    const jobResults = allJobs.filter(job =>
       job.title?.toLowerCase().includes(q) ||
       job.department?.toLowerCase().includes(q) ||
       job.location?.toLowerCase().includes(q)
-    ).map(job => ({
+    ).slice(0, 10).map(job => ({
       _id: job._id,
       type: 'job',
       title: job.title,
       department: job.department,
       location: job.location
     }));
-    // Job Applications
-    const jobApplications = await ctx.db.query('jobApplication').collect();
-    const jobAppResults = jobApplications.filter(app =>
+    // Job Applications - limit fetch
+    const allJobApplications = await ctx.db.query('jobApplication').take(perTableLimit);
+    const jobAppResults = allJobApplications.filter(app =>
       app.fullName?.toLowerCase().includes(q) ||
       app.email?.toLowerCase().includes(q) ||
       app.phone?.toLowerCase().includes(q)
-    ).map(app => ({
+    ).slice(0, 10).map(app => ({
       _id: app._id,
       type: 'jobApplication',
       fullName: app.fullName,
@@ -574,16 +585,38 @@ export const globalAdminSearch = query({
       phone: app.phone,
       status: app.status
     }));
-    // Admin Logs
-    const adminLogs = await ctx.db.query('adminLogs').collect();
-    const logResults = adminLogs.filter(log =>
+    // Admin Logs - limit fetch
+    const allAdminLogs = await ctx.db.query('adminLogs').take(perTableLimit);
+    const logResults = allAdminLogs.filter(log =>
       log.action?.toLowerCase().includes(q)
-    ).map(log => ({
+    ).slice(0, 10).map(log => ({
       _id: log._id,
       type: 'adminLog',
       action: log.action,
       timestamp: log.timestamp
     }));
+    
+    // Combine all results and limit total
+    const allResults = [
+      ...userResults,
+      ...chefResults,
+      ...mealResults,
+      ...bookingResults,
+      ...waitlistResults,
+      ...reviewResults,
+      ...kitchenResults,
+      ...perkResults,
+      ...analyticsResults,
+      ...driverResults,
+      ...activityResults,
+      ...healthResults,
+      ...statsResults,
+      ...contentResults,
+      ...jobResults,
+      ...jobAppResults,
+      ...logResults
+    ].slice(0, resultLimit);
+    
     return {
       users: userResults,
       chefs: chefResults,

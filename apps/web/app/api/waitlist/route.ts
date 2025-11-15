@@ -171,13 +171,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-    // Fetch all waitlist entries
+    // Use paginated query instead of fetch-all-then-slice
+    const paginated = await convex.query(api.queries.waitlist.getAll, {
+      sessionToken: sessionToken || undefined,
+      limit,
+      offset
+    });
+    // Get total count for pagination info (query already handles sorting)
     const allWaitlist = await convex.query(api.queries.waitlist.getAll, {
       sessionToken: sessionToken || undefined
     });
-    // Consistent ordering (joinedAt DESC)
-    allWaitlist.sort((a: { joinedAt?: number }, b: { joinedAt?: number }) => (b.joinedAt || 0) - (a.joinedAt || 0));
-    const paginated = allWaitlist.slice(offset, offset + limit);
     return ResponseFactory.success({ waitlist: paginated, total: allWaitlist.length, limit, offset });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch waitlist.';
