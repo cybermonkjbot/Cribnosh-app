@@ -15,11 +15,16 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@/convex/*": [
+        "../../packages/convex/convex/*"
       ]
     }
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "../../packages/convex/convex/_generated/**/*"
   ]
 }

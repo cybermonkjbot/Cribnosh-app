@@ -5,6 +5,7 @@ const fs = require('fs');
 // Add support for workspace packages
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '../..');
+const workspaceRoot = monorepoRoot;
 
 const config = getDefaultConfig(projectRoot);
 
@@ -48,31 +49,40 @@ config.resolver = {
   ...resolver,
   assetExts: resolver.assetExts.filter((ext) => ext !== 'svg'),
   sourceExts: [...resolver.sourceExts, 'svg'],
+  // Add support for @ alias and convex package
+  alias: {
+    ...(resolver.alias || {}),
+    '@': path.resolve(projectRoot),
+    '@/convex': path.join(workspaceRoot, 'packages', 'convex', 'convex'),
+  },
 };
 
 // Watch all files within the monorepo - include default watchFolders
 config.watchFolders = [
   ...config.watchFolders,
-  monorepoRoot
+  workspaceRoot
 ];
 
 // Let Metro know where to resolve packages and in what order
 // ALWAYS prioritize app's node_modules first, then workspace root, then build root (for EAS builds)
 const nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
-  path.resolve(monorepoRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
 ];
 
 // Add build root node_modules for EAS builds (where dependencies are actually installed)
 // Only add if it's different from workspace root to avoid duplicates
 if (buildRootNodeModules && fs.existsSync(buildRootNodeModules)) {
   const normalizedBuildRoot = path.resolve(buildRootNodeModules);
-  const normalizedMonorepoRoot = path.resolve(monorepoRoot, 'node_modules');
+  const normalizedWorkspaceRoot = path.resolve(workspaceRoot, 'node_modules');
   // Only add if it's different from workspace root (in EAS builds, build root is usually different)
-  if (normalizedBuildRoot !== normalizedMonorepoRoot) {
+  if (normalizedBuildRoot !== normalizedWorkspaceRoot) {
     nodeModulesPaths.push(buildRootNodeModules);
   }
 }
+
+// Enable package.json exports field support (required for react/jsx-runtime)
+config.resolver.unstable_enablePackageExports = true;
 
 config.resolver.nodeModulesPaths = nodeModulesPaths;
 
