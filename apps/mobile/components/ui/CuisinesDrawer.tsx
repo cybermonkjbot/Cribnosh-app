@@ -1,9 +1,9 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
+import { useCuisines } from '@/hooks/useCuisines';
 import { showError } from '@/lib/GlobalToastManager';
-import { useGetCuisinesQuery } from '@/store/customerApi';
 import { Image } from 'expo-image';
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
@@ -25,17 +25,35 @@ export function CuisinesDrawer({
   onCuisinePress
 }: CuisinesDrawerProps) {
   const { isAuthenticated } = useAuthContext();
+  const { getCuisines } = useCuisines();
+  const [cuisinesData, setCuisinesData] = useState<any>(null);
+  const [cuisinesError, setCuisinesError] = useState<any>(null);
 
-  // Fetch cuisines from API if not provided via props
-  const {
-    data: cuisinesData,
-    error: cuisinesError,
-  } = useGetCuisinesQuery(
-    { page: 1, limit: 50 },
-    {
-      skip: !isAuthenticated || cuisines.length > 0, // Skip if props provided
+  // Load cuisines from API if not provided via props
+  useEffect(() => {
+    if (isAuthenticated && cuisines.length === 0) {
+      const loadCuisines = async () => {
+        try {
+          const result = await getCuisines(1, 50);
+          if (result.success) {
+            // Transform to match expected format
+            // result.data is already an array of cuisines from the hook
+            setCuisinesData({
+              success: true,
+              data: result.data.map((cuisine: any) => ({
+                id: cuisine.id || cuisine._id || `cuisine-${cuisine.name}`,
+                name: cuisine.name,
+                image_url: cuisine.image_url || cuisine.image || null,
+              })),
+            });
+          }
+        } catch (error: any) {
+          setCuisinesError(error);
+        }
+      };
+      loadCuisines();
     }
-  );
+  }, [isAuthenticated, cuisines.length, getCuisines]);
 
   // Transform API data to Cuisine format
   const apiCuisines: Cuisine[] = useMemo(() => {
@@ -49,12 +67,7 @@ export function CuisinesDrawer({
     return [];
   }, [cuisinesData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (cuisinesError && isAuthenticated) {
-      showError('Failed to load cuisines', 'Please try again');
-    }
-  }, [cuisinesError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Use props if provided, otherwise use API data, otherwise empty array
   const baseCuisines = useMemo(() => {

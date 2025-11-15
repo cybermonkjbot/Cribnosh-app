@@ -1,11 +1,9 @@
 import { Mascot } from "@/components/Mascot";
+import { useCart } from "@/hooks/useCart";
+import { useOrders } from "@/hooks/useOrders";
+import { usePayments } from "@/hooks/usePayments";
 import { useRegionAvailability } from "@/hooks/useRegionAvailability";
 import { startOrderLiveActivity } from "@/lib/live-activity/orderLiveActivity";
-import {
-  useCreateCheckoutMutation,
-  useCreateOrderFromCartMutation,
-  useGetCartQuery,
-} from "@/store/customerApi";
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -46,13 +44,28 @@ export default function PaymentScreen({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showRegionModal, setShowRegionModal] = useState(false);
 
-  // Get cart data for real totals
-  const { data: cartData } = useGetCartQuery(undefined, {
-    skip: !!orderTotal, // Skip if orderTotal is provided (fallback)
-  });
+  // Use hooks instead of RTK Query
+  const { getCart } = useCart();
+  const { createCheckout } = usePayments();
+  const { createOrderFromCart } = useOrders();
+  const [cartData, setCartData] = useState<any>(null);
 
-  const [createCheckout] = useCreateCheckoutMutation();
-  const [createOrderFromCart] = useCreateOrderFromCartMutation();
+  // Load cart data if orderTotal is not provided
+  useEffect(() => {
+    if (!orderTotal) {
+      const loadCart = async () => {
+        try {
+          const result = await getCart();
+          if (result?.success) {
+            setCartData(result);
+          }
+        } catch (error) {
+          // Error already handled in hook
+        }
+      };
+      loadCart();
+    }
+  }, [orderTotal, getCart]);
 
   // Regional availability check
   const { checkAddress, isChecking: isCheckingRegion } =
@@ -100,13 +113,12 @@ export default function PaymentScreen({
       }
 
       // Step 1: Create payment intent from cart
-      const checkoutResult = await createCheckout({}).unwrap();
+      const paymentIntent = await createCheckout();
 
-      if (!checkoutResult.success || !checkoutResult.data) {
+      if (!paymentIntent || !paymentIntent.id) {
         throw new Error("Failed to create payment intent");
       }
 
-      const paymentIntent = checkoutResult.data;
       const paymentIntentId = paymentIntent.id;
 
       // Step 2: Simulate payment confirmation
@@ -132,13 +144,13 @@ export default function PaymentScreen({
             }
           : undefined,
         special_instructions: specialInstructions,
-      }).unwrap();
+      });
 
-      if (!orderResult.success || !orderResult.data?.order_id) {
+      if (!orderResult || !orderResult.order_id) {
         throw new Error("Failed to create order");
       }
 
-      const orderId = orderResult.data.order_id;
+      const orderId = orderResult.order_id;
 
       setPaymentStatus("success");
 
@@ -170,7 +182,6 @@ export default function PaymentScreen({
       console.error("Payment processing error:", error);
       setPaymentStatus("error");
       const errorMsg =
-        error?.data?.error?.message ||
         error?.message ||
         "There was an issue processing your payment. Please try again.";
       setErrorMessage(errorMsg);
@@ -192,6 +203,7 @@ export default function PaymentScreen({
     onPaymentSuccess,
     specialInstructions,
     calculatedTotal,
+    getCart,
   ]);
 
   useEffect(() => {

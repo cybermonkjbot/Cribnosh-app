@@ -138,7 +138,33 @@ Based on the codebase analysis, these variables are **actively being used**:
      - Keep this secure - never commit to version control
      - Required for generating Apple client secret for token verification
 
-#### 16. **`NEXT_PUBLIC_BASE_URL`** (Used for webhook/notification URLs)
+#### 16. **`STRIPE_SECRET_KEY`** (Required for Payment Processing)
+   - **Status**: ❌ **MISSING** from `convex.json` - Add this
+   - **Used in**: 
+     - `actions/payments.ts` - `customerCreateCheckout` and `customerTopUpBalance` actions
+     - Future payment processing in Convex actions
+   - **Description**: Stripe secret API key for server-side payment processing
+   - **Where to get**: Stripe Dashboard → Developers → API keys → Secret key
+   - **Example**: `sk_test_...` (test) or `sk_live_...` (production)
+   - **Note**: 
+     - Required for creating payment intents, processing payments, and managing customers
+     - Keep this secure - never commit to version control
+     - Use test key for development, live key for production
+     - Currently, payment actions return errors indicating Stripe integration is needed
+
+#### 17. **`STRIPE_WEBHOOK_SECRET`** (Optional - for Stripe webhook verification)
+   - **Status**: ❌ **MISSING** from `convex.json`
+   - **Used in**: 
+     - Future webhook handling in Convex actions (if needed)
+   - **Description**: Stripe webhook signing secret for verifying webhook events
+   - **Where to get**: Stripe Dashboard → Developers → Webhooks → Add endpoint → Signing secret
+   - **Example**: `whsec_...`
+   - **Note**: 
+     - Only needed if handling Stripe webhooks directly in Convex
+     - Currently webhooks are handled in Next.js API routes
+     - Optional for now, but recommended if migrating webhook handling to Convex
+
+#### 18. **`NEXT_PUBLIC_BASE_URL`** (Used for webhook/notification URLs)
    - **Status**: ⚠️ **Note**: This is a Next.js variable, but used in Convex
    - **Used in**: 
      - `mutations/users.ts` - Referral links
@@ -207,6 +233,12 @@ Add these to your `convex.json` production variables section:
       },
       "APPLE_PRIVATE_KEY": {
         "description": "Apple private key (.p8 file content) for signing JWT tokens"
+      },
+      "STRIPE_SECRET_KEY": {
+        "description": "Stripe secret API key for payment processing"
+      },
+      "STRIPE_WEBHOOK_SECRET": {
+        "description": "Stripe webhook signing secret for webhook verification (optional)"
       }
     }
   }
@@ -251,6 +283,7 @@ OPENAI_API_KEY=sk-...
    - `OPENAI_API_KEY` - AI chat (throws error if missing)
    - `SMS_API_KEY` - OTP/SMS functionality
    - `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` - Apple Sign-In (for mobile app)
+   - `STRIPE_SECRET_KEY` - Payment processing (required for checkout and top-up features)
 
 2. **Important (Features degrade gracefully)**:
    - `OPENWEATHERMAP_API_KEY` - Weather features (returns defaults if missing)

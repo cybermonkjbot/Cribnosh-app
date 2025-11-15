@@ -25,7 +25,7 @@ import Animated, {
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useShakeDetection } from '@/hooks/useShakeDetection';
-import { useGetRandomMealsQuery } from '@/store/customerApi';
+import { useMeals } from '@/hooks/useMeals';
 import { CONFIG } from '../../constants/config';
 import { Mascot } from '../Mascot';
 
@@ -83,25 +83,31 @@ onStart?: () => void;
 
 export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: ShakeToEatFlowProps) {
   const { isAuthenticated, user } = useAuthContext();
+  const { getRandomMeals } = useMeals();
   const [currentStep, setCurrentStep] = useState<FlowStep>('idle');
   const [selectedMood, setSelectedMood] = useState<typeof MOODS[0] | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<ShakeMeal | null>(null);
   const [isInCooldown, setIsInCooldown] = useState(false);
   const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const availableMealsRef = useRef<ShakeMeal[]>(FALLBACK_MEALS);
+  const [randomMealsData, setRandomMealsData] = useState<any>(null);
 
   // Fetch random meals from API for shake-to-eat feature
-  const {
-    data: randomMealsData,
-  } = useGetRandomMealsQuery(
-    {
-      limit: 20,
-      userId: user?.id || user?._id || undefined,
-    },
-    {
-      skip: !isAuthenticated,
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadRandomMeals = async () => {
+        try {
+          const result = await getRandomMeals(20);
+          if (result.success) {
+            setRandomMealsData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          // Error already handled in hook
+        }
+      };
+      loadRandomMeals();
     }
-  );
+  }, [isAuthenticated, getRandomMeals]);
 
   // Transform API meals to ShakeMeal format
   const transformMealToShakeFormat = useCallback((apiMeal: any): ShakeMeal | null => {

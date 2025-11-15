@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -12,15 +12,34 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuperButton } from '@/components/ui/SuperButton';
-import { useGetFamilyProfileQuery, useUpdateMemberBudgetMutation } from '@/store/customerApi';
 import { useToast } from '@/lib/ToastContext';
+import { useFamilyProfile } from '@/hooks/useFamilyProfile';
 
 export default function MemberBudgetScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { showToast } = useToast();
-  const { data: familyProfileData } = useGetFamilyProfileQuery();
-  const [updateBudget, { isLoading }] = useUpdateMemberBudgetMutation();
+  const { getFamilyProfile } = useFamilyProfile();
+  const [familyProfileData, setFamilyProfileData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch family profile from Convex
+  const fetchFamilyProfile = useCallback(async () => {
+    try {
+      const result = await getFamilyProfile();
+      if (result.success) {
+        setFamilyProfileData({
+          data: result.data,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching family profile:', error);
+    }
+  }, [getFamilyProfile]);
+
+  useEffect(() => {
+    fetchFamilyProfile();
+  }, [fetchFamilyProfile]);
 
   const member = familyProfileData?.data?.family_members.find((m) => m.id === id);
   const [dailyLimit, setDailyLimit] = useState('');
@@ -39,30 +58,25 @@ export default function MemberBudgetScreen() {
     if (!member) return;
 
     try {
-      await updateBudget({
-        member_id: member.id,
-        budget_settings: {
-          daily_limit: dailyLimit ? parseFloat(dailyLimit) : undefined,
-          weekly_limit: weeklyLimit ? parseFloat(weeklyLimit) : undefined,
-          monthly_limit: monthlyLimit ? parseFloat(monthlyLimit) : undefined,
-          currency: 'gbp',
-        },
-      }).unwrap();
-
+      setIsLoading(true);
+      // TODO: Implement updateMemberBudget via Convex action when available
+      // For now, show a message that this feature is coming soon
       showToast({
-        type: 'success',
-        title: 'Budget Updated',
-        message: 'Budget limits have been updated successfully.',
+        type: 'info',
+        title: 'Coming Soon',
+        message: 'Member budget update will be available soon via Convex.',
         duration: 3000,
       });
-      router.back();
+      // router.back();
     } catch (error: any) {
       showToast({
         type: 'error',
         title: 'Update Failed',
-        message: error?.data?.message || error?.message || 'Failed to update budget. Please try again.',
+        message: error?.message || 'Failed to update budget. Please try again.',
         duration: 4000,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 

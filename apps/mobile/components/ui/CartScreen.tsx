@@ -1,33 +1,154 @@
-import { useGetCartQuery } from "@/store/customerApi";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
-import { Link, router } from "expo-router";
-import { CarFront } from "lucide-react-native";
-import { useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Link, router, useFocusEffect } from "expo-router";
+import { CarFront, Utensils } from "lucide-react-native";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import IncrementalOrderAmount from "../IncrementalOrderAmount";
+import { useCart } from "@/hooks/useCart";
+import { SkeletonWithTimeout } from "./SkeletonWithTimeout";
+import { NoshPassModal } from "./NoshPassModal";
+import { SkeletonBox } from "./MealItemDetails/Skeletons/ShimmerBox";
+import { CustomerAddress } from "@/types/customer";
+import { useAddressSelection } from "@/contexts/AddressSelectionContext";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from "@/contexts/AuthContext";
+import { getAbsoluteImageUrl } from "@/utils/imageUrl";
 
 export default function CartScreen() {
   const [cutleryIncluded, setCutleryIncluded] = useState(false);
+  const [cartData, setCartData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isNoshPassModalVisible, setIsNoshPassModalVisible] = useState(false);
+  const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
+  const hasInitialLoadRef = useRef(false);
 
-  // Fetch cart data from API
-  const { data: cartData, isLoading, error } = useGetCartQuery();
+  // Use cart hook for Convex actions
+  const { getCart, updateCartItem, removeFromCart, isLoading: cartLoading } = useCart();
+  const { isAuthenticated } = useAuthContext();
 
-  // Get cart items from API or fallback to empty array
-  // Structure: GetCartResponse.data.items (not data.cart.items)
-  const cartItems = cartData?.data?.items || [];
+  // Profile state
+  const [profileData, setProfileData] = useState<any>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  // Fetch profile data from Convex
+  const fetchProfile = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setIsLoadingProfile(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetProfile, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setProfileData({
+        data: {
+          ...result.user,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch profile on mount and when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProfile();
+    }
+  }, [isAuthenticated, fetchProfile]);
+
+  const refetchProfile = fetchProfile;
+
+  // Address selection context
+  const { setOnSelectAddress, selectedAddress, setSelectedAddress } = useAddressSelection();
+
+  const userAddress = profileData?.data?.address;
+  const hasAddress = userAddress && userAddress.street && userAddress.street.trim().length > 0;
+
+  // Fetch cart function
+  const fetchCart = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const result = await getCart();
+      if (result.success && result.data) {
+        setCartData(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getCart]);
+
+  // Fetch cart when screen comes into focus
+  // Only refresh on initial load, not when navigating from add to cart
+  useFocusEffect(
+    useCallback(() => {
+      // Only fetch on initial load
+      if (!hasInitialLoadRef.current) {
+        fetchCart();
+        hasInitialLoadRef.current = true;
+      }
+    }, [fetchCart])
+  );
+
+  // Get cart items from data or fallback to empty array
+  const cartItems = cartData?.items || [];
   const hasItems = cartItems.length > 0;
-  const isEmpty = !isLoading && (!cartData?.data || cartItems.length === 0);
+  const isEmpty = !isLoading && !cartLoading && (!cartData || cartItems.length === 0);
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleQuantityChange = (index: number, newQuantity: number) => {
-    // Handle quantity change logic here
-  };
+  const handleQuantityChange = useCallback(async (index: number, newQuantity: number) => {
+    const item = cartItems[index];
+    if (!item || !item._id) return;
+
+    if (newQuantity <= 0) {
+      // Remove item if quantity is 0
+      try {
+        await removeFromCart(item._id);
+        // Refresh cart after removal
+        const result = await getCart();
+        if (result.success && result.data) {
+          setCartData(result.data);
+        }
+      } catch (error) {
+        console.error('Error removing item:', error);
+      }
+    } else {
+      // Update quantity
+      try {
+        await updateCartItem(item._id, newQuantity);
+        // Refresh cart after update
+        const result = await getCart();
+        if (result.success && result.data) {
+          setCartData(result.data);
+        }
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+      }
+    }
+  }, [cartItems, removeFromCart, getCart, updateCartItem]);
 
   const handleCutleryToggle = () => {
     setCutleryIncluded(!cutleryIncluded);
@@ -37,14 +158,205 @@ export default function CartScreen() {
     router.replace("/(tabs)");
   };
 
-  // Show loading state
-  if (isLoading) {
+  // Set up address selection callback
+  // Only save addresses when explicitly selected by user, not on mount
+  useEffect(() => {
+    const handleAddressSelect = async (address: CustomerAddress | null) => {
+      // Early return if address is null or invalid - don't save on mount
+      if (!address || !address.street || typeof address.street !== 'string' || address.street.trim().length === 0) {
+        // Silently ignore invalid addresses - don't log errors for null addresses
+        // as this might be called during initialization
+        return;
+      }
+
+      try {
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          console.error('Error saving address: Not authenticated');
+          return;
+        }
+
+        const result = await convex.action(api.actions.users.customerUpdateProfile, {
+          sessionToken,
+          address: {
+            street: address.street,
+            city: address.city || '',
+            state: address.state || '',
+            postal_code: address.postal_code || '',
+            country: address.country || 'UK',
+          },
+        });
+
+        if (result.success === false) {
+          console.error('Error saving address:', result.error);
+          return;
+        }
+
+        await refetchProfile();
+        setSelectedAddress(null); // Clear after handling
+      } catch (error) {
+        console.error('Error saving address:', error);
+      }
+    };
+    setOnSelectAddress(handleAddressSelect);
+    return () => {
+      setOnSelectAddress(null);
+    };
+  }, [setOnSelectAddress, refetchProfile, setSelectedAddress]);
+
+  // Handle address selection when returning from modal
+  // Only process if address is valid and was explicitly selected
+  useFocusEffect(
+    useCallback(() => {
+      // Only process if we have a valid address with required fields
+      if (selectedAddress && selectedAddress.street && typeof selectedAddress.street === 'string' && selectedAddress.street.trim().length > 0) {
+        // Address was selected in modal, handle it
+        const handleSelected = async () => {
+          try {
+            const convex = getConvexClient();
+            const sessionToken = await getSessionToken();
+
+            if (!sessionToken) {
+              console.error('Error saving address: Not authenticated');
+              setSelectedAddress(null); // Clear invalid state
+              return;
+            }
+
+            const result = await convex.action(api.actions.users.customerUpdateProfile, {
+              sessionToken,
+              address: {
+                street: selectedAddress.street,
+                city: selectedAddress.city || '',
+                state: selectedAddress.state || '',
+                postal_code: selectedAddress.postal_code || '',
+                country: selectedAddress.country || 'UK',
+              },
+            });
+
+            if (result.success === false) {
+              console.error('Error saving address:', result.error);
+              setSelectedAddress(null); // Clear after error
+              return;
+            }
+
+            await refetchProfile();
+            setSelectedAddress(null); // Clear after handling
+          } catch (error) {
+            console.error('Error saving address:', error);
+            setSelectedAddress(null); // Clear after error
+          }
+        };
+        handleSelected();
+      } else if (selectedAddress) {
+        // Invalid address in context, clear it
+        setSelectedAddress(null);
+      }
+    }, [selectedAddress, refetchProfile, setSelectedAddress])
+  );
+
+  const handleOpenAddressModal = () => {
+    router.push({
+      pathname: '/select-address',
+      params: {
+        ...(userAddress && {
+          selectedStreet: userAddress.street,
+          selectedCity: userAddress.city,
+        }),
+      },
+    });
+  };
+
+  const handleNoshPassApply = async (code: string) => {
+    // TODO: Implement coupon code validation and application via API
+    // For now, just store it locally
+    if (code) {
+      setAppliedCouponCode(code);
+    } else {
+      setAppliedCouponCode(null);
+    }
+  };
+
+  // Format address for display
+  const formatAddress = (address: CustomerAddress | undefined): string => {
+    if (!address) return '';
+    const parts = [address.street, address.city, address.postal_code].filter(Boolean);
+    return parts.join(', ');
+  };
+
+  const handleClearCart = () => {
+    if (cartItems.length === 0) {
+      return;
+    }
+
+    Alert.alert(
+      "Clear Cart",
+      "Are you sure you want to remove all items from your cart?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Remove all items from cart
+              await Promise.all(
+                cartItems.map((item: any) => removeFromCart(item._id))
+              );
+              // Refresh cart after clearing
+              await fetchCart();
+            } catch (error) {
+              console.error('Error clearing cart:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Cart Skeleton Loader Component
+  const CartSkeleton = () => (
+    <View style={styles.skeletonContainer}>
+      <View style={styles.header}>
+        <SkeletonBox width={18} height={18} borderRadius={4} />
+        <SkeletonBox width={80} height={18} borderRadius={4} />
+        <SkeletonBox width={18} height={18} borderRadius={4} />
+      </View>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <View key={index} style={styles.skeletonItemRow}>
+          <View style={styles.skeletonItemLeft}>
+            <SkeletonBox width={80} height={80} borderRadius={12} />
+            <View style={styles.skeletonItemText}>
+              <SkeletonBox width={120} height={18} borderRadius={4} style={{ marginBottom: 8 }} />
+              <SkeletonBox width={60} height={16} borderRadius={4} />
+            </View>
+          </View>
+          <SkeletonBox width={79} height={36} borderRadius={10} />
+        </View>
+      ))}
+      <View style={styles.skeletonSection}>
+        <View style={styles.skeletonSectionRow}>
+          <SkeletonBox width={32} height={32} borderRadius={16} />
+          <View style={styles.skeletonSectionText}>
+            <SkeletonBox width={150} height={18} borderRadius={4} style={{ marginBottom: 4 }} />
+            <SkeletonBox width={200} height={16} borderRadius={4} />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
+  // Show loading state with skeleton
+  if (isLoading || cartLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#094327" />
-          <Text style={styles.loadingText}>Loading cart...</Text>
-        </View>
+        <SkeletonWithTimeout isLoading={isLoading || cartLoading}>
+          <CartSkeleton />
+        </SkeletonWithTimeout>
       </SafeAreaView>
     );
   }
@@ -81,10 +393,15 @@ export default function CartScreen() {
   }
 
   // Calculate totals from cart
+  // Note: Prices from Convex are in the base unit (not cents), so no division needed
   const subtotal = cartItems.reduce((sum: number, item: any) => {
-    return sum + ((item.price || 0) / 100 * (item.quantity || 1));
+    const itemPrice = item.price || 0;
+    const itemQuantity = item.quantity || 1;
+    // Check if price is in cents (>= 100) or already in base unit
+    const priceInBaseUnit = itemPrice >= 100 ? itemPrice / 100 : itemPrice;
+    return sum + (priceInBaseUnit * itemQuantity);
   }, 0);
-  const deliveryFee = (cartData?.data?.delivery_fee || 900) / 100;
+  const deliveryFee = 9.00; // Default delivery fee
   const total = subtotal + deliveryFee;
 
   return (
@@ -103,9 +420,12 @@ export default function CartScreen() {
               <Text style={styles.headerTitle}>
                 My Cart
               </Text>
-              <Pressable>
-                <Feather name="trash-2" size={18} color="#094327" />
-              </Pressable>
+              {hasItems && (
+                <Pressable onPress={handleClearCart}>
+                  <Feather name="trash-2" size={18} color="#094327" />
+                </Pressable>
+              )}
+              {!hasItems && <View style={styles.headerSpacer} />}
             </View>
             <View style={styles.itemsContainer}>
               {cartItems.map((item: any, index: number) => (
@@ -114,56 +434,85 @@ export default function CartScreen() {
                   key={index}
                 >
                   <View style={styles.itemLeft}>
-                    {item.image_url ? (
-                      <View style={styles.imageContainer}>
-                        <Image
-                          source={{ uri: item.image_url }}
-                          style={styles.itemImage}
-                          defaultSource={require("@/assets/images/sample.png")}
-                        />
-                      </View>
-                    ) : (
-                      <View style={styles.imageContainer}>
-                        <Image
-                          source={require("@/assets/images/sample.png")}
-                          style={styles.itemImage}
-                        />
-                      </View>
-                    )}
+                    {(() => {
+                      const absoluteImageUrl = getAbsoluteImageUrl(item.image_url);
+                      return absoluteImageUrl ? (
+                        <View style={styles.imageContainer}>
+                          <Image
+                            source={{ uri: absoluteImageUrl }}
+                            style={styles.itemImage}
+                            defaultSource={require("@/assets/images/sample.png")}
+                          />
+                        </View>
+                      ) : (
+                        <View style={[styles.imageContainer, styles.iconContainer]}>
+                          <Utensils size={32} color="#9CA3AF" />
+                        </View>
+                      );
+                    })()}
                     <View>
                       <Text>{item.dish_name || item.name || 'Unknown Item'}</Text>
                       <Text style={styles.itemPrice}>
-                        £ {((item.price || 0) / 100).toFixed(2)}
+                        £ {((item.price || 0) >= 100 ? (item.price || 0) / 100 : (item.price || 0)).toFixed(2)}
                       </Text>
                     </View>
                   </View>
 
                   <IncrementalOrderAmount
                     initialValue={item.quantity || 1}
-                    onChange={(newQuantity) =>
-                      handleQuantityChange(index, newQuantity)
-                    }
+                    onChange={(newQuantity) => {
+                      // Use setTimeout to defer the async operation and prevent blocking
+                      setTimeout(() => {
+                        handleQuantityChange(index, newQuantity);
+                      }, 0);
+                    }}
+                    isOrdered={true}
+                    key={item._id} // Add key to force re-render on quantity change
                   />
                 </View>
               ))}
             </View>
             <View>
-              <View style={styles.sectionRow}>
+              {/* Delivery Address Section */}
+              <Pressable
+                style={styles.sectionRow}
+                onPress={handleOpenAddressModal}
+              >
                 <View style={styles.sectionLeft}>
                   <View style={styles.iconBadge}>
                     <CarFront color={"white"} />
                   </View>
                   <View style={styles.sectionText}>
-                    <Text style={styles.sectionTitle}>
-                      Delivery in 38-64 mins
-                    </Text>
-                    <Text style={styles.sectionSubtitle}>32 Springfield Rd</Text>
+                    {hasAddress ? (
+                      <>
+                        <Text style={styles.sectionTitle}>
+                          Delivery in 38-64 mins
+                        </Text>
+                        <Text style={styles.sectionSubtitle}>
+                          {formatAddress(userAddress)}
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={styles.sectionTitle}>
+                          Add delivery address
+                        </Text>
+                        <Text style={styles.sectionSubtitle}>
+                          Tap to set your delivery location
+                        </Text>
+                      </>
+                    )}
                   </View>
                 </View>
 
                 <Entypo name="chevron-right" size={24} color="#094327" />
-              </View>
-              <View style={[styles.sectionRow, styles.sectionRowSpacing]}>
+              </Pressable>
+
+              {/* Nosh Pass Section */}
+              <Pressable
+                style={[styles.sectionRow, styles.sectionRowSpacing]}
+                onPress={() => setIsNoshPassModalVisible(true)}
+              >
                 <View style={styles.sectionLeft}>
                   <View style={styles.iconContainer}>
                     <Image
@@ -175,10 +524,14 @@ export default function CartScreen() {
                 </View>
 
                 <View style={styles.sectionRight}>
-                  <Text style={styles.badgeText}>#EarlyBird</Text>
+                  {appliedCouponCode ? (
+                    <Text style={styles.badgeText}>#{appliedCouponCode}</Text>
+                  ) : (
+                    <Text style={styles.badgeText}>Add code</Text>
+                  )}
                   <Entypo name="chevron-right" size={24} color="#094327" />
                 </View>
-              </View>
+              </Pressable>
               <View style={[styles.sectionRow, styles.sectionRowSpacing]}>
                 <View style={styles.sectionLeft}>
                   <View style={styles.iconContainer}>
@@ -266,6 +619,14 @@ export default function CartScreen() {
           </Pressable>
         </Link>
       </View>
+
+      {/* Nosh Pass Modal */}
+      <NoshPassModal
+        isVisible={isNoshPassModalVisible}
+        onClose={() => setIsNoshPassModalVisible(false)}
+        onApplyCode={handleNoshPassApply}
+        appliedCode={appliedCouponCode}
+      />
     </SafeAreaView>
   );
 }
@@ -306,17 +667,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  loadingContainer: {
+  skeletonContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#094327',
-    fontWeight: '500',
+  skeletonItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  skeletonItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  skeletonItemText: {
+    flex: 1,
+  },
+  skeletonSection: {
+    marginTop: 32,
+  },
+  skeletonSectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 8,
+  },
+  skeletonSectionText: {
+    flex: 1,
   },
   itemsContainer: {
     // empty className
@@ -345,6 +726,11 @@ const styles = StyleSheet.create({
     width: '100%', // w-full
     height: '100%', // h-full
     borderRadius: 12, // rounded-xl
+  },
+  iconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6', // Light gray background for icon
   },
   itemPrice: {
     fontWeight: '700', // font-bold

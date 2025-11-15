@@ -1,10 +1,16 @@
 import { AddPaymentMethodModal } from "@/components/AddPaymentMethodScreen";
-import { useGetCribnoshBalanceQuery, useGetFamilyProfileQuery } from "@/store/customerApi";
 import { Entypo, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Users } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from "@/contexts/AuthContext";
+import { TopUpBalanceSheet } from "@/components/ui/TopUpBalanceSheet";
+import { AddCardSheet } from "@/components/ui/AddCardSheet";
+import { usePayments } from "@/hooks/usePayments";
+import { Alert } from "react-native";
 import {
   Image,
   Pressable,
@@ -20,8 +26,102 @@ const PAYMENT_METHOD_STORAGE_KEY = "cart_selected_payment_method";
 export default function PaymentMethodSelection() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card");
   const [isAddPaymentMethodModalVisible, setIsAddPaymentMethodModalVisible] = useState(false);
-  const { data: familyProfileData } = useGetFamilyProfileQuery();
-  const { data: balanceData } = useGetCribnoshBalanceQuery();
+  const [isTopUpSheetVisible, setIsTopUpSheetVisible] = useState(false);
+  const [isAddCardSheetVisible, setIsAddCardSheetVisible] = useState(false);
+  const { isAuthenticated } = useAuthContext();
+  const [familyProfileData, setFamilyProfileData] = useState<any>(null);
+  const [balanceData, setBalanceData] = useState<any>(null);
+  const [savedCards, setSavedCards] = useState<any[]>([]);
+  const { getPaymentMethods, removePaymentMethod } = usePayments();
+
+  // Fetch family profile from Convex
+  const fetchFamilyProfile = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetFamilyProfile, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setFamilyProfileData({
+        data: {
+          member_user_ids: result.member_user_ids || [],
+          settings: result.settings || {},
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching family profile:', error);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch balance from Convex
+  const fetchBalance = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.payments.customerGetBalance, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setBalanceData({
+        data: {
+          balance: result.balance?.balance || 0,
+          is_available: true,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching balance:', error);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch saved payment methods (cards)
+  const fetchSavedCards = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const methods = await getPaymentMethods();
+      if (methods) {
+        // Filter to only show card payment methods
+        const cards = methods.filter((m: any) => m.type === 'card');
+        setSavedCards(cards);
+      }
+    } catch (error: any) {
+      console.error('Error fetching saved cards:', error);
+    }
+  }, [isAuthenticated, getPaymentMethods]);
+
+  // Fetch data on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchFamilyProfile();
+      fetchBalance();
+      fetchSavedCards();
+    }
+  }, [isAuthenticated, fetchFamilyProfile, fetchBalance, fetchSavedCards]);
 
   // Load currently selected payment method
   useEffect(() => {
@@ -45,6 +145,7 @@ export default function PaymentMethodSelection() {
   const isFamilyMember = familyProfileData?.data?.member_user_ids?.includes('current_user_id' as any) || false;
   const familyPaymentEnabled = familyProfileData?.data?.settings?.shared_payment_methods || false;
 
+  // Build payment methods list with saved cards
   const paymentMethods = [
     ...(isFamilyMember && familyPaymentEnabled
       ? [
@@ -58,13 +159,24 @@ export default function PaymentMethodSelection() {
           },
         ]
       : []),
-    {
+    // Add saved cards
+    ...savedCards.map((card: any) => ({
+      id: card.id,
+      name: card.brand ? `${card.brand.charAt(0).toUpperCase() + card.brand.slice(1)} Card` : "Credit/Debit Card",
+      icon: require("@/assets/images/mastercard-logo.png"),
+      description: card.last4 ? `**** **** **** ${card.last4}` : "Card",
+      isDefault: card.is_default || false,
+      isCard: true,
+      last4: card.last4,
+    })),
+    // Add generic card option if no saved cards
+    ...(savedCards.length === 0 ? [{
       id: "card",
       name: "Credit/Debit Card",
       icon: require("@/assets/images/mastercard-logo.png"),
-      description: "**** **** **** 3095",
+      description: "Add a card to pay",
       isDefault: !isFamilyMember || !familyPaymentEnabled,
-    },
+    }] : []),
     {
       id: "apple",
       name: "Apple Pay",
@@ -120,11 +232,72 @@ export default function PaymentMethodSelection() {
     setIsAddPaymentMethodModalVisible(false);
   };
 
+  const handleBalancePress = () => {
+    // If balance is available, allow selection
+    if (balanceData?.data?.is_available) {
+      // If balance is low or zero, open top-up sheet
+      if ((balanceData.data.balance || 0) <= 0) {
+        setIsTopUpSheetVisible(true);
+      } else {
+        // Otherwise, just select it as payment method
+        setSelectedPaymentMethod("balance");
+      }
+    } else {
+      // If balance is not available, open top-up sheet to potentially enable it
+      setIsTopUpSheetVisible(true);
+    }
+  };
+
+  const handleBalanceLongPress = () => {
+    // Long press always opens top-up sheet
+    setIsTopUpSheetVisible(true);
+  };
+
+  const handleCloseTopUpSheet = () => {
+    setIsTopUpSheetVisible(false);
+    // Refresh balance after top-up
+    fetchBalance();
+  };
+
   const handleCardAdd = () => {
-    // TODO: Implement card addition flow (e.g., open card form or payment processor SDK)
-    console.log("Add card payment method");
     setIsAddPaymentMethodModalVisible(false);
-    // Show a toast or navigate to card form
+    setIsAddCardSheetVisible(true);
+  };
+
+  const handleCloseAddCardSheet = () => {
+    setIsAddCardSheetVisible(false);
+  };
+
+  const handleCardAdded = async () => {
+    // Refresh payment methods after adding a card
+    await fetchSavedCards();
+  };
+
+  const handleRemoveCard = async (cardId: string, last4?: string) => {
+    Alert.alert(
+      'Remove Card',
+      `Are you sure you want to remove card ending in ${last4 || '****'}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await removePaymentMethod(cardId);
+            if (success) {
+              await fetchSavedCards();
+              // If the removed card was selected, reset selection
+              if (selectedPaymentMethod === cardId) {
+                setSelectedPaymentMethod("card");
+              }
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderPaymentMethodIcon = (method: any) => {
@@ -166,20 +339,30 @@ export default function PaymentMethodSelection() {
 
         {/* Payment Methods */}
         <View style={styles.methodsContainer}>
-          <Text style={styles.sectionTitle}>
-            Choose Payment Method
-          </Text>
-          
           {paymentMethods.map((method) => (
             <Pressable
               key={method.id}
-              onPress={() => !method.disabled && setSelectedPaymentMethod(method.id)}
+              onPress={() => {
+                if (method.id === "balance") {
+                  handleBalancePress();
+                } else if (method.id === "card" && savedCards.length === 0) {
+                  // If no saved cards and clicking generic "card", open add card sheet
+                  handleAddPaymentMethod();
+                } else if (!method.disabled) {
+                  setSelectedPaymentMethod(method.id);
+                }
+              }}
+              onLongPress={() => {
+                if (method.id === "balance") {
+                  handleBalanceLongPress();
+                }
+              }}
               style={[
                 styles.methodCard,
                 selectedPaymentMethod === method.id ? styles.methodCardSelected : styles.methodCardUnselected,
                 method.disabled && styles.methodCardDisabled,
               ]}
-              disabled={method.disabled}
+              disabled={method.disabled && method.id !== "balance"}
             >
               <View style={styles.methodLeft}>
                 {method.isFamily ? (
@@ -209,11 +392,31 @@ export default function PaymentMethodSelection() {
                 </View>
               </View>
               
-              {selectedPaymentMethod === method.id && (
-                <View style={styles.checkIcon}>
-                  <Feather name="check" size={16} color="white" />
-                </View>
-              )}
+              <View style={styles.methodRight}>
+                {method.id === "balance" && 
+                 balanceData?.data?.is_available && 
+                 (balanceData.data.balance || 0) <= 0 && (
+                  <View style={styles.topUpBadge}>
+                    <Text style={styles.topUpBadgeText}>Top Up</Text>
+                  </View>
+                )}
+                {method.isCard && (
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleRemoveCard(method.id, method.last4);
+                    }}
+                    style={styles.deleteButton}
+                  >
+                    <Feather name="trash-2" size={18} color="#EF4444" />
+                  </Pressable>
+                )}
+                {selectedPaymentMethod === method.id && (
+                  <View style={styles.checkIcon}>
+                    <Feather name="check" size={16} color="white" />
+                  </View>
+                )}
+              </View>
             </Pressable>
           ))}
         </View>
@@ -247,6 +450,19 @@ export default function PaymentMethodSelection() {
         isVisible={isAddPaymentMethodModalVisible}
         onClose={handleCloseAddPaymentMethodModal}
         onCardAdd={handleCardAdd}
+      />
+
+      {/* Top Up Balance Sheet */}
+      <TopUpBalanceSheet
+        isVisible={isTopUpSheetVisible}
+        onClose={handleCloseTopUpSheet}
+      />
+
+      {/* Add Card Sheet */}
+      <AddCardSheet
+        isVisible={isAddCardSheetVisible}
+        onClose={handleCloseAddCardSheet}
+        onSuccess={handleCardAdded}
       />
     </SafeAreaView>
   );
@@ -350,6 +566,22 @@ const styles = StyleSheet.create({
     fontWeight: '500', // font-medium
     marginTop: 4, // mt-1
   },
+  methodRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  topUpBadge: {
+    backgroundColor: '#094327',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  topUpBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   checkIcon: {
     width: 24, // w-6
     height: 24, // h-6
@@ -409,5 +641,9 @@ const styles = StyleSheet.create({
     color: '#094327', // text-green-700
     fontWeight: '500', // font-medium
     marginTop: 4, // mt-1
+  },
+  deleteButton: {
+    padding: 8,
+    marginRight: 8,
   },
 });

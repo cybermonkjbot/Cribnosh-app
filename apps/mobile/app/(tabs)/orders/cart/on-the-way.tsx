@@ -1,25 +1,81 @@
-import { useGetOrderStatusQuery } from '@/store/customerApi';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SuperButton } from '@/components/ui/SuperButton';
 import { Feather } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OnTheWayScreen() {
   const { order_id } = useLocalSearchParams<{ order_id?: string }>();
   const orderId = typeof order_id === 'string' ? order_id : undefined;
+  const { isAuthenticated } = useAuthContext();
+  const [orderStatusData, setOrderStatusData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
 
-  // Fetch order status with polling for active orders
-  const { data: orderStatusData, isLoading, error, refetch } = useGetOrderStatusQuery(
-    orderId || '',
-    {
-      skip: !orderId,
-      pollingInterval: orderId ? 30000 : 0, // Poll every 30 seconds if order_id exists
+  // Fetch order status from Convex
+  const fetchOrderStatus = useCallback(async () => {
+    if (!orderId || !isAuthenticated) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        setError(new Error('Not authenticated'));
+        return;
+      }
+
+      const result = await convex.action(api.actions.orders.customerGetOrderStatus, {
+        sessionToken,
+        order_id: orderId,
+      });
+
+      if (result.success === false) {
+        setError(new Error(result.error || 'Failed to fetch order status'));
+        return;
+      }
+
+      // Transform order to match expected format
+      const order = result.order;
+      if (order) {
+        setOrderStatusData({
+          data: {
+            order_id: order._id || order.id,
+            current_status: order.order_status || order.status,
+            delivery_person: order.delivery_person || order.deliveryPerson,
+            estimated_delivery_time: order.estimated_delivery_time || order.delivery_time,
+          },
+        });
+      }
+    } catch (error: any) {
+      setError(error);
+      console.error('Error fetching order status:', error);
+    } finally {
+      setIsLoading(false);
     }
-  );
+  }, [orderId, isAuthenticated]);
+
+  // Fetch on mount and set up polling
+  useEffect(() => {
+    if (orderId && isAuthenticated) {
+      fetchOrderStatus();
+      // Poll every 30 seconds for active orders
+      const interval = setInterval(() => {
+        fetchOrderStatus();
+      }, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [orderId, isAuthenticated, fetchOrderStatus]);
+
+  const refetch = fetchOrderStatus;
 
   const handleBack = () => {
     router.back();

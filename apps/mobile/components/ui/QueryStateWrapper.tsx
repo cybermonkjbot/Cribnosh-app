@@ -1,5 +1,6 @@
 import React from 'react';
 import { EmptyState } from './EmptyState';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface QueryStateWrapperProps {
   isLoading: boolean;
@@ -27,7 +28,11 @@ export function QueryStateWrapper({
   children,
 }: QueryStateWrapperProps) {
   if (isLoading) {
-    return <>{skeleton}</>;
+    return (
+      <SkeletonWithTimeout isLoading={isLoading}>
+        {skeleton}
+      </SkeletonWithTimeout>
+    );
   }
 
   if (error) {

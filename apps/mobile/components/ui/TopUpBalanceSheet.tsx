@@ -1,10 +1,10 @@
 import { useToast } from '@/lib/ToastContext';
-import { useGetCribnoshBalanceQuery, useGetPaymentMethodsQuery, useTopUpBalanceMutation } from '@/store/customerApi';
+import { usePayments } from '@/hooks/usePayments';
 import { useStripe } from '@stripe/stripe-react-native';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { BottomSheetBase } from '../BottomSheetBase';
+import { AddCardSheet } from './AddCardSheet';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -27,32 +27,66 @@ export function TopUpBalanceSheet({
   isVisible,
   onClose,
 }: TopUpBalanceSheetProps) {
-  const snapPoints = useMemo(() => ['90%'], []);
   const { showToast } = useToast();
   const { confirmPayment } = useStripe();
+  const { topUpBalance, getPaymentMethods, getBalance } = usePayments();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethodsData, setPaymentMethodsData] = useState<any>(null);
+  const [isAddCardSheetVisible, setIsAddCardSheetVisible] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const hiddenInputRef = useRef<TextInput>(null);
 
-  const [topUpBalance] = useTopUpBalanceMutation();
-  const { refetch: refetchBalance } = useGetCribnoshBalanceQuery(undefined, { skip: !isVisible });
-  const { data: paymentMethodsData } = useGetPaymentMethodsQuery(undefined, { skip: !isVisible });
-
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) {
-      onClose();
-      // Reset state when closing
-      setSelectedAmount(null);
-      setCustomAmount('');
-      setSelectedPaymentMethod(null);
-      setIsProcessing(false);
+  // Load payment methods when sheet becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      const loadPaymentMethods = async () => {
+        try {
+          const methods = await getPaymentMethods();
+          if (methods) {
+            setPaymentMethodsData({ data: methods });
+          } else {
+            setPaymentMethodsData({ data: [] });
+          }
+        } catch (error) {
+          // Error already handled in hook
+          setPaymentMethodsData({ data: [] });
+        }
+      };
+      loadPaymentMethods();
     }
+  }, [isVisible, getPaymentMethods]);
+
+  // Refresh payment methods when AddCardSheet closes
+  const handleCloseAddCardSheet = useCallback(() => {
+    setIsAddCardSheetVisible(false);
+  }, []);
+
+  // Handle successful card addition
+  const handleCardAdded = useCallback(async () => {
+    // Refresh payment methods after adding a card
+    const methods = await getPaymentMethods();
+    if (methods) {
+      setPaymentMethodsData({ data: methods });
+    }
+  }, [getPaymentMethods]);
+
+  const handleClose = useCallback(() => {
+    onClose();
+    // Reset state when closing
+    setSelectedAmount(null);
+    setCustomAmount('');
+    setSelectedPaymentMethod(null);
+    setIsProcessing(false);
+    setIsInputFocused(false);
   }, [onClose]);
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount);
     setCustomAmount('');
+    setIsInputFocused(false);
   };
 
   const handleCustomAmountChange = (value: string) => {
@@ -87,6 +121,14 @@ export function TopUpBalanceSheet({
       return;
     }
 
+    // Check if user has payment methods
+    const paymentMethods = paymentMethodsData?.data || [];
+    if (paymentMethods.length === 0) {
+      // No payment methods - open AddCardSheet
+      setIsAddCardSheetVisible(true);
+      return;
+    }
+
     // Get default payment method if none selected
     const paymentMethodToUse = selectedPaymentMethod || 
       paymentMethodsData?.data?.find(m => m.is_default)?.id || 
@@ -95,32 +137,55 @@ export function TopUpBalanceSheet({
     setIsProcessing(true);
     try {
       // Create payment intent (with or without payment method)
-      const result = await topUpBalance({
-        amount: amountInPence,
-        ...(paymentMethodToUse ? { payment_method_id: paymentMethodToUse } : {}),
-      }).unwrap();
+      const paymentIntent = await topUpBalance(
+        amountInPence,
+        paymentMethodToUse || undefined
+      );
 
-      if (!result.success || !result.data?.clientSecret) {
+      if (!paymentIntent || !paymentIntent.clientSecret) {
         throw new Error('Failed to create payment intent');
       }
 
+      // Prepare confirmation options
+      // When a payment method is provided, it's already attached to the payment intent on the server
+      // We still need to confirm it, but we don't need to collect card details
+      // If no payment method is provided, we need to collect card details
+      const confirmOptions = paymentMethodToUse 
+        ? undefined // Payment method already attached - confirm without options (SDK handles 3D Secure if needed)
+        : { paymentMethodType: 'Card' as const }; // No payment method - collect card details
+
       // Confirm payment using Stripe SDK
-      // If payment method was provided and payment intent was already confirmed server-side,
-      // this will just verify the status. Otherwise, it will collect payment method.
-      const { error: stripeError, paymentIntent } = await confirmPayment(
-        result.data.clientSecret,
-        {
-          paymentMethodType: 'Card',
-        }
+      const { error: stripeError, paymentIntent: confirmedIntent } = await confirmPayment(
+        paymentIntent.clientSecret,
+        confirmOptions
       );
 
       if (stripeError) {
+        // If error is about missing card details, offer to add a card
+        if (stripeError.message?.includes('Card details not complete') || 
+            stripeError.message?.includes('card') ||
+            stripeError.code === 'card_declined' ||
+            !paymentMethodToUse) {
+          setIsProcessing(false);
+          showToast({
+            type: 'error',
+            title: 'Payment Method Required',
+            message: 'Please add a payment method to continue',
+            duration: 3000,
+          });
+          // Open add card sheet if no payment methods exist
+          const methods = paymentMethodsData?.data || [];
+          if (methods.length === 0) {
+            setIsAddCardSheetVisible(true);
+          }
+          return;
+        }
         throw new Error(stripeError.message || 'Payment confirmation failed');
       }
 
-      if (paymentIntent?.status === 'Succeeded') {
+      if (confirmedIntent?.status === 'Succeeded') {
         // Refetch balance to show updated amount
-        await refetchBalance();
+        await getBalance();
 
         showToast({
           type: 'success',
@@ -137,158 +202,250 @@ export function TopUpBalanceSheet({
           setSelectedPaymentMethod(null);
           setIsProcessing(false);
         }, 1500);
+      } else if (confirmedIntent?.status === 'RequiresAction') {
+        // Payment requires additional action (e.g., 3D Secure)
+        // The Stripe SDK should handle this automatically, but we'll show a message
+        showToast({
+          type: 'info',
+          title: 'Payment Requires Action',
+          message: 'Please complete the authentication step',
+          duration: 3000,
+        });
+        setIsProcessing(false);
       } else {
-        throw new Error('Payment was not completed successfully');
+        throw new Error(`Payment status: ${confirmedIntent?.status || 'unknown'}`);
       }
     } catch (error: any) {
       console.error('Error topping up balance:', error);
-      const errorMessage = 
-        error?.data?.error?.message ||
-        error?.data?.message ||
-        error?.message ||
-        'Failed to top up balance. Please try again.';
-      showToast({
-        type: 'error',
-        title: 'Top Up Failed',
-        message: errorMessage,
-        duration: 4000,
-      });
+      const errorMessage = error?.message || 'Failed to top up balance. Please try again.';
+      
+      // If error is about missing card details or no payment method, offer to add a card
+      if (errorMessage.includes('Card details not complete') || 
+          errorMessage.includes('card') ||
+          !paymentMethodToUse) {
+        const methods = paymentMethodsData?.data || [];
+        if (methods.length === 0) {
+          // Open AddCardSheet instead of showing error
+          setIsAddCardSheetVisible(true);
+        } else {
+          showToast({
+            type: 'error',
+            title: 'Top Up Failed',
+            message: errorMessage,
+            duration: 4000,
+          });
+        }
+      } else {
+        showToast({
+          type: 'error',
+          title: 'Top Up Failed',
+          message: errorMessage,
+          duration: 4000,
+        });
+      }
       setIsProcessing(false);
     }
   };
-
-  if (!isVisible) {
-    return null;
-  }
 
   const amountInPence = getAmountInPence();
   const displayAmount = amountInPence ? `£${(amountInPence / 100).toFixed(2)}` : '£0.00';
   const paymentMethods = paymentMethodsData?.data || [];
 
   return (
-    <BottomSheetBase
-      snapPoints={snapPoints}
-      index={0}
-      onChange={handleSheetChanges}
-      enablePanDownToClose={!isProcessing}
-      backgroundStyle={{
-        backgroundColor: '#FAFFFA',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-      }}
+    <Modal
+      visible={isVisible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={handleClose}
+      statusBarTranslucent={true}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Top Up Balance</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton} disabled={isProcessing}>
-            <SvgXml xml={closeIconSVG} width={24} height={24} />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Amount Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Amount</Text>
-            <View style={styles.amountGrid}>
-              {PREDEFINED_AMOUNTS.map((amount) => (
-                <TouchableOpacity
-                  key={amount.value}
-                  style={[
-                    styles.amountButton,
-                    selectedAmount === amount.value && styles.amountButtonSelected,
-                  ]}
-                  onPress={() => handleAmountSelect(amount.value)}
-                  disabled={isProcessing}
-                >
-                  <Text
-                    style={[
-                      styles.amountButtonText,
-                      selectedAmount === amount.value && styles.amountButtonTextSelected,
-                    ]}
-                  >
-                    {amount.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+      <KeyboardAvoidingView
+        style={styles.modalContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.container}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Top Up Balance</Text>
+              <TouchableOpacity onPress={handleClose} style={styles.closeButton} disabled={isProcessing}>
+                <SvgXml xml={closeIconSVG} width={24} height={24} />
+              </TouchableOpacity>
             </View>
-            <Text style={styles.orText}>or</Text>
-            <View style={styles.customAmountContainer}>
-              <Text style={styles.customAmountLabel}>Custom Amount</Text>
-              <View style={styles.customAmountInputContainer}>
-                <Text style={styles.currencySymbol}>£</Text>
-                <TextInput
-                  style={styles.customAmountInput}
-                  placeholder="0.00"
-                  placeholderTextColor="#9CA3AF"
-                  value={customAmount}
-                  onChangeText={handleCustomAmountChange}
-                  keyboardType="decimal-pad"
-                  editable={!isProcessing}
-                />
-              </View>
+
+          {isInputFocused ? (
+            // Focused state - only show amount entry
+            <View style={styles.focusedContainer}>
+              <View style={styles.focusedContent}>
+              {/* Active Amount Display - acts as input */}
+              <TouchableOpacity
+                style={styles.activeAmountDisplay}
+                onPress={() => {
+                  hiddenInputRef.current?.focus();
+                }}
+                activeOpacity={1}
+              >
+                <Text style={styles.activeAmountText}>
+                  {customAmount ? `£${customAmount}` : '£0.00'}
+                </Text>
+              </TouchableOpacity>
+              
+              {/* Hidden Input Field - for keyboard input */}
+              <TextInput
+                ref={hiddenInputRef}
+                style={styles.hiddenInput}
+                value={customAmount}
+                onChangeText={handleCustomAmountChange}
+                keyboardType="decimal-pad"
+                editable={!isProcessing}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
+                autoFocus
+              />
+              
+              {/* Done Button */}
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => {
+                  hiddenInputRef.current?.blur();
+                  setIsInputFocused(false);
+                }}
+                disabled={isProcessing}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Payment Method Selection */}
-          {paymentMethods.length > 0 && (
+        ) : (
+          // Normal state - show all content
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Amount Selection */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Payment Method</Text>
-              <View style={styles.paymentMethodsList}>
-                {paymentMethods.map((method) => (
+              <Text style={styles.sectionTitle}>Select Amount</Text>
+              <View style={styles.amountGrid}>
+                {PREDEFINED_AMOUNTS.map((amount) => (
                   <TouchableOpacity
-                    key={method.id}
+                    key={amount.value}
                     style={[
-                      styles.paymentMethodItem,
-                      selectedPaymentMethod === method.id && styles.paymentMethodItemSelected,
-                      method.is_default && !selectedPaymentMethod && styles.paymentMethodItemDefault,
+                      styles.amountButton,
+                      selectedAmount === amount.value && styles.amountButtonSelected,
                     ]}
-                    onPress={() => setSelectedPaymentMethod(method.id)}
+                    onPress={() => handleAmountSelect(amount.value)}
                     disabled={isProcessing}
                   >
-                    <View style={styles.paymentMethodLeft}>
-                      <Text style={styles.paymentMethodText}>
-                        {method.type === 'apple_pay'
-                          ? 'Apple Pay'
-                          : method.last4
-                          ? `... ${method.last4}`
-                          : 'Card'}
-                      </Text>
-                      {method.is_default && !selectedPaymentMethod && (
-                        <Text style={styles.defaultLabel}>(Default)</Text>
-                      )}
-                    </View>
-                    <View
+                    <Text
                       style={[
-                        styles.radioButton,
-                        (selectedPaymentMethod === method.id || (method.is_default && !selectedPaymentMethod)) &&
-                          styles.radioButtonSelected,
+                        styles.amountButtonText,
+                        selectedAmount === amount.value && styles.amountButtonTextSelected,
                       ]}
-                    />
+                    >
+                      {amount.label}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
+              <Text style={styles.orText}>or</Text>
+              <View style={styles.customAmountContainer}>
+                <Text style={styles.customAmountLabel}>Custom Amount</Text>
+                
+                <View style={styles.customAmountInputContainer}>
+                  <Text style={styles.currencySymbol}>£</Text>
+                  <TextInput
+                    style={styles.customAmountInput}
+                    placeholder="0.00"
+                    placeholderTextColor="#9CA3AF"
+                    value={customAmount}
+                    onChangeText={handleCustomAmountChange}
+                    keyboardType="decimal-pad"
+                    editable={!isProcessing}
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={() => setIsInputFocused(false)}
+                  />
+                </View>
+              </View>
             </View>
-          )}
 
-          {/* Top Up Button */}
-          <TouchableOpacity
-            style={[styles.topUpButton, (!amountInPence || isProcessing) && styles.topUpButtonDisabled]}
-            onPress={handleTopUp}
-            disabled={!amountInPence || isProcessing}
-          >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.topUpButtonText}>Confirm</Text>
+            {/* Payment Method Selection */}
+            {paymentMethods.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Payment Method</Text>
+                <View style={styles.paymentMethodsList}>
+                  {paymentMethods.map((method) => (
+                    <TouchableOpacity
+                      key={method.id}
+                      style={[
+                        styles.paymentMethodItem,
+                        selectedPaymentMethod === method.id && styles.paymentMethodItemSelected,
+                        method.is_default && !selectedPaymentMethod && styles.paymentMethodItemDefault,
+                      ]}
+                      onPress={() => setSelectedPaymentMethod(method.id)}
+                      disabled={isProcessing}
+                    >
+                      <View style={styles.paymentMethodLeft}>
+                        <Text style={styles.paymentMethodText}>
+                          {method.type === 'apple_pay'
+                            ? 'Apple Pay'
+                            : method.last4
+                            ? `... ${method.last4}`
+                            : 'Card'}
+                        </Text>
+                        {method.is_default && !selectedPaymentMethod && (
+                          <Text style={styles.defaultLabel}>(Default)</Text>
+                        )}
+                      </View>
+                      <View
+                        style={[
+                          styles.radioButton,
+                          (selectedPaymentMethod === method.id || (method.is_default && !selectedPaymentMethod)) &&
+                            styles.radioButtonSelected,
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  style={styles.addCardButton}
+                  onPress={() => setIsAddCardSheetVisible(true)}
+                  disabled={isProcessing}
+                >
+                  <Text style={styles.addCardButtonText}>+ Add New Card</Text>
+                </TouchableOpacity>
+              </View>
             )}
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </BottomSheetBase>
+
+            {/* Top Up Button */}
+            <TouchableOpacity
+              style={[styles.topUpButton, (!amountInPence || isProcessing) && styles.topUpButtonDisabled]}
+              onPress={handleTopUp}
+              disabled={!amountInPence || isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.topUpButtonText}>Confirm</Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+        </View>
+
+          {/* Add Card Sheet */}
+          <AddCardSheet
+            isVisible={isAddCardSheetVisible}
+            onClose={handleCloseAddCardSheet}
+            onSuccess={handleCardAdded}
+          />
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FAFFFA',
+  },
   container: {
     flex: 1,
     paddingHorizontal: 20,
@@ -377,6 +534,46 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 8,
   },
+  focusedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  focusedContent: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 32,
+    minHeight: 200,
+  },
+  activeAmountDisplay: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    padding: 32,
+    borderWidth: 2,
+    borderColor: '#094327',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  activeAmountDisplayFocused: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#094327',
+    borderWidth: 2,
+  },
+  activeAmountText: {
+    fontFamily: 'Inter',
+    fontWeight: '700',
+    fontSize: 48,
+    lineHeight: 56,
+    color: '#094327',
+  },
+  hiddenInput: {
+    position: 'absolute',
+    opacity: 0,
+    width: 1,
+    height: 1,
+  },
   customAmountInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -385,6 +582,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#E5E7EB',
     paddingHorizontal: 16,
+  },
+  customAmountInputContainerFocused: {
+    borderColor: '#094327',
+    backgroundColor: '#FAFFFA',
   },
   currencySymbol: {
     fontFamily: 'Inter',
@@ -465,6 +666,67 @@ const styles = StyleSheet.create({
     backgroundColor: '#9CA3AF',
   },
   topUpButtonText: {
+    fontFamily: 'Inter',
+    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#FFFFFF',
+  },
+  addCardButton: {
+    marginTop: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#094327',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+  },
+  addCardButtonText: {
+    fontFamily: 'Inter',
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#094327',
+  },
+  doneButton: {
+    backgroundColor: '#094327',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  doneButtonText: {
+    fontFamily: 'Inter',
+    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#FFFFFF',
+  },
+  noPaymentMethodContainer: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FEE2E2',
+  },
+  noPaymentMethodText: {
+    fontFamily: 'Inter',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#991B1B',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  addCardButtonPrimary: {
+    backgroundColor: '#094327',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    minWidth: 200,
+  },
+  addCardButtonPrimaryText: {
     fontFamily: 'Inter',
     fontWeight: '600',
     fontSize: 16,

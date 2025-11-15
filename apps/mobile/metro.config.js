@@ -34,6 +34,7 @@ config.resolver = config.resolver || {};
 config.resolver.alias = {
   ...(config.resolver.alias || {}),
   "@": path.resolve(projectRoot),
+  "@/convex": path.join(workspaceRoot, 'packages', 'convex', 'convex'),
 };
 
 // Force React and react-dom to resolve from mobile app's node_modules only

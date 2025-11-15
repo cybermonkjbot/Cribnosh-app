@@ -1,12 +1,13 @@
-import { useGetRecommendedMealsQuery } from '@/store/customerApi';
+import { useMeals } from '@/hooks/useMeals';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { showError } from '../../lib/GlobalToastManager';
 import { PopularMealsSectionEmpty } from './PopularMealsSectionEmpty';
 import { PopularMealsSectionSkeleton } from './PopularMealsSectionSkeleton';
 import { SentimentRating } from './SentimentRating';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface Meal {
   id: string;
@@ -37,18 +38,34 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
   limit = 8,
 }) => {
   const { isAuthenticated, user } = useAuthContext();
+  const { getRecommendedMeals, isLoading: isLoadingMeals } = useMeals();
+  
+  const [recommendationsData, setRecommendationsData] = useState<any>(null);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [recommendationsError, setRecommendationsError] = useState<any>(null);
 
-  // Fetch personalized recommendations
-  const {
-    data: recommendationsData,
-    isLoading: isLoadingRecommendations,
-    error: recommendationsError,
-  } = useGetRecommendedMealsQuery(
-    { limit },
-    {
-      skip: !isAuthenticated,
+  // Load recommended meals
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadRecommendations = async () => {
+        try {
+          setIsLoadingRecommendations(true);
+          setRecommendationsError(null);
+          const result = await getRecommendedMeals(limit);
+          if (result.success) {
+            setRecommendationsData({ success: true, data: { recommendations: result.data.meals } });
+          }
+        } catch (error: any) {
+          setRecommendationsError(error);
+        } finally {
+          setIsLoadingRecommendations(false);
+        }
+      };
+      loadRecommendations();
+    } else {
+      setRecommendationsData(null);
     }
-  );
+  }, [isAuthenticated, limit, getRecommendedMeals]);
 
   // Transform API data to component format
   const transformMealData = useCallback((apiMeal: any): Meal | null => {
@@ -84,12 +101,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
     return [];
   }, [recommendationsData, transformMealData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (recommendationsError && isAuthenticated) {
-      showError('Failed to load recommendations', 'Please try again');
-    }
-  }, [recommendationsError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Don't show section if not authenticated
   if (!isAuthenticated) {
@@ -98,7 +110,11 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
 
   // Show skeleton while loading
   if (isLoadingRecommendations) {
-    return <PopularMealsSectionSkeleton itemCount={8} />;
+    return (
+      <SkeletonWithTimeout isLoading={isLoadingRecommendations}>
+        <PopularMealsSectionSkeleton itemCount={8} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Show empty state if no recommendations

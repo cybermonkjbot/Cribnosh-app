@@ -2,11 +2,12 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { AlertCircle, Search } from 'lucide-react-native';
-import { forwardRef, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Circle, Rect, Svg } from 'react-native-svg';
 
-import { useGetKitchenCategoriesQuery, useGetKitchenMealsQuery, useGetKitchenPopularMealsQuery, useGetKitchenTagsQuery, useSearchKitchenMealsQuery } from '@/store/customerApi';
+import { useChefs } from '@/hooks/useChefs';
+import { useMeals } from '@/hooks/useMeals';
 import { CategoriesSkeleton, MealsSkeleton } from './KitchenSkeletons';
 
 interface KitchenBottomSheetContentProps {
@@ -14,7 +15,9 @@ interface KitchenBottomSheetContentProps {
   onScrollAttempt?: () => void;
   deliveryTime?: string;
   kitchenId?: string;
+  kitchenName?: string;
   searchQuery?: string;
+  onMealPress?: (meal: any) => void;
 }
 
 const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetContentProps>(({
@@ -22,26 +25,69 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
   onScrollAttempt,
   deliveryTime = "30-45 mins",
   kitchenId,
+  kitchenName,
   searchQuery,
+  onMealPress,
 }, ref) => {
   // State for selected category ID and active filters
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
 
-  // Fetch kitchen tags
-  const { data: tagsDataRaw } = useGetKitchenTagsQuery(
-    { kitchenId: kitchenId || '' },
-    { skip: !kitchenId }
-  );
+  const { getKitchenMeals, getPopularKitchenMeals, searchKitchenMeals } = useMeals();
+  const { getKitchenCategories, getKitchenTags } = useChefs();
+  const [filteredMealsData, setFilteredMealsData] = useState<any>(null);
+  const [isLoadingFilteredMeals, setIsLoadingFilteredMeals] = useState(false);
+  const [isErrorFilteredMeals, setIsErrorFilteredMeals] = useState(false);
+  const [popularMealsData, setPopularMealsData] = useState<any>(null);
+  const [isLoadingPopularMeals, setIsLoadingPopularMeals] = useState(false);
+  const [isErrorPopularMeals, setIsErrorPopularMeals] = useState(false);
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+  const [isErrorSearch, setIsErrorSearch] = useState(false);
+  const [tagsData, setTagsData] = useState<any>(null);
+  const [categoriesData, setCategoriesData] = useState<any>(null);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
 
-  // Extract tags from response (handle both wrapped and unwrapped formats)
-  const tagsData = (tagsDataRaw as any)?.data || tagsDataRaw;
+  // Load kitchen tags
+  useEffect(() => {
+    if (kitchenId) {
+      const loadTags = async () => {
+        try {
+          setIsLoadingTags(true);
+          const result = await getKitchenTags(kitchenId);
+          if (result.success) {
+            setTagsData(result.data);
+          }
+        } catch (error) {
+          // Error handling is done in the hook
+        } finally {
+          setIsLoadingTags(false);
+        }
+      };
+      loadTags();
+    }
+  }, [kitchenId, getKitchenTags]);
 
-  // Fetch categories
-  const { data: categoriesData, isLoading: isLoadingCategories } = useGetKitchenCategoriesQuery(
-    { kitchenId: kitchenId || '' },
-    { skip: !kitchenId }
-  );
+  // Load kitchen categories
+  useEffect(() => {
+    if (kitchenId) {
+      const loadCategories = async () => {
+        try {
+          setIsLoadingCategories(true);
+          const result = await getKitchenCategories(kitchenId);
+          if (result.success) {
+            setCategoriesData(result.data);
+          }
+        } catch (error) {
+          // Error handling is done in the hook
+        } finally {
+          setIsLoadingCategories(false);
+        }
+      };
+      loadCategories();
+    }
+  }, [kitchenId, getKitchenCategories]);
 
   // Map real categories to display format (with icons)
   const categoryIcons: Record<string, React.ReactNode> = {
@@ -62,7 +108,7 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
     // Add more icons as needed
   };
 
-  const realCategories = (categoriesData as any)?.data?.categories || categoriesData?.categories || [];
+  const realCategories = categoriesData?.categories || [];
   const categories = realCategories.map((cat: any) => ({
     id: cat.category.toLowerCase().replace(/\s+/g, '-'),
     name: cat.category,
@@ -81,27 +127,82 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
     : null;
 
   // Fetch meals with filters
-  const { data: filteredMealsData, isLoading: isLoadingFilteredMeals, isError: isErrorFilteredMeals } = useGetKitchenMealsQuery(
-    {
-      kitchenId: kitchenId || '',
-      category: selectedCategoryName || undefined,
-      dietary: activeFilters.size > 0 ? Array.from(activeFilters) : undefined,
-      limit: 20,
-    },
-    { skip: !kitchenId || !selectedCategoryName && activeFilters.size === 0 }
-  );
+  useEffect(() => {
+    if (kitchenId && (selectedCategoryName || activeFilters.size > 0)) {
+      const loadFilteredMeals = async () => {
+        try {
+          setIsLoadingFilteredMeals(true);
+          setIsErrorFilteredMeals(false);
+          const result = await getKitchenMeals({
+            kitchen_id: kitchenId,
+            category: selectedCategoryName || undefined,
+            dietary: activeFilters.size > 0 ? Array.from(activeFilters) : undefined,
+            limit: 20,
+          });
+          if (result.success) {
+            setFilteredMealsData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setIsErrorFilteredMeals(true);
+        } finally {
+          setIsLoadingFilteredMeals(false);
+        }
+      };
+      loadFilteredMeals();
+    } else {
+      setFilteredMealsData(null);
+    }
+  }, [kitchenId, selectedCategoryName, activeFilters, getKitchenMeals]);
 
   // Fetch popular meals (when no filters/category selected)
-  const { data: popularMealsData, isLoading: isLoadingPopularMeals, isError: isErrorPopularMeals } = useGetKitchenPopularMealsQuery(
-    { kitchenId: kitchenId || '', limit: 10 },
-    { skip: !kitchenId || selectedCategoryId !== null || activeFilters.size > 0 }
-  );
+  useEffect(() => {
+    if (kitchenId && selectedCategoryId === null && activeFilters.size === 0) {
+      const loadPopularMeals = async () => {
+        try {
+          setIsLoadingPopularMeals(true);
+          setIsErrorPopularMeals(false);
+          const result = await getPopularKitchenMeals(kitchenId, 10);
+          if (result.success) {
+            setPopularMealsData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setIsErrorPopularMeals(true);
+        } finally {
+          setIsLoadingPopularMeals(false);
+        }
+      };
+      loadPopularMeals();
+    } else {
+      setPopularMealsData(null);
+    }
+  }, [kitchenId, selectedCategoryId, activeFilters, getPopularKitchenMeals]);
 
   // Fetch search results if searchQuery is provided
-  const { data: searchResults, isLoading: isLoadingSearch, isError: isErrorSearch } = useSearchKitchenMealsQuery(
-    { kitchenId: kitchenId || '', q: searchQuery || '' },
-    { skip: !kitchenId || !searchQuery || searchQuery.trim().length === 0 }
-  );
+  useEffect(() => {
+    if (kitchenId && searchQuery && searchQuery.trim().length > 0) {
+      const loadSearchResults = async () => {
+        try {
+          setIsLoadingSearch(true);
+          setIsErrorSearch(false);
+          const result = await searchKitchenMeals({
+            kitchen_id: kitchenId,
+            query: searchQuery,
+            limit: 20,
+          });
+          if (result.success) {
+            setSearchResults({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setIsErrorSearch(true);
+        } finally {
+          setIsLoadingSearch(false);
+        }
+      };
+      loadSearchResults();
+    } else {
+      setSearchResults(null);
+    }
+  }, [kitchenId, searchQuery, searchKitchenMeals]);
 
   // Handle category selection
   const handleCategoryPress = (categoryId: string) => {
@@ -144,6 +245,7 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
     deliveryTime: `${meal.prepTime || 30} min`,
     averageRating: meal.averageRating,
     reviewCount: meal.reviewCount,
+    originalMeal: meal, // Keep reference to original meal data
   });
 
   // Map popular meals to display format
@@ -186,9 +288,9 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
       </Text>
 
       {/* Feature chips - dynamically loaded from kitchen meals */}
-      {tagsData && Array.isArray(tagsData) && tagsData.length > 0 && (
+      {tagsData?.tags && Array.isArray(tagsData.tags) && tagsData.tags.length > 0 && (
         <View style={styles.chipsContainer}>
-          {tagsData.slice(0, 5).map((tagItem: { tag: string; count: number }) => {
+          {tagsData.tags.slice(0, 5).map((tagItem: { tag: string; count: number }) => {
             const tag = tagItem.tag || tagItem;
             const tagId = typeof tag === 'string' ? tag.toLowerCase() : tag;
             const tagLabel = typeof tag === 'string' 
@@ -333,8 +435,18 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
                   key={meal.id}
                   style={styles.mealCard}
                   onPress={() => {
-                    // Navigate to meal details or add to cart
-                    // TODO: Implement navigation to meal details page
+                    if (onMealPress) {
+                      // Pass the original meal data if available, otherwise use display meal
+                      const mealData = meal.originalMeal || meal;
+                      onMealPress({
+                        id: mealData._id || mealData.id || meal.id,
+                        name: mealData.name || meal.name,
+                        price: mealData.price || meal.price,
+                        kitchen: kitchenName || '',
+                        image: meal.image,
+                        _id: mealData._id || mealData.id,
+                      });
+                    }
                   }}
                   activeOpacity={0.8}
                 >

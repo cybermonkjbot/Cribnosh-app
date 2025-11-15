@@ -1,13 +1,17 @@
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useCart } from '@/hooks/useCart';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useToast } from '@/lib/ToastContext';
-import { useAddToCartMutation, useSendChatMessageMutation } from '@/store/customerApi';
+import { useSendChatMessageMutation } from '@/store/customerApi';
 import { DishRecommendation } from '@/types/customer';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 import { useTopPosition } from '@/utils/positioning';
+import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -203,9 +207,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
 // User Message Component
 interface UserMessageProps {
   message: string;
+  userAvatarUri?: string;
 }
 
-const UserMessage: React.FC<UserMessageProps> = ({ message }) => {
+const UserMessage: React.FC<UserMessageProps> = ({ message, userAvatarUri }) => {
+  // Determine the avatar source - use user avatar if available, otherwise fallback to default
+  const avatarSource = userAvatarUri 
+    ? { uri: userAvatarUri }
+    : require('../../assets/images/adaptive-icon.png');
+
   return (
     <View style={{
       flexDirection: 'row',
@@ -239,7 +249,7 @@ const UserMessage: React.FC<UserMessageProps> = ({ message }) => {
       </View>
       
       <Avatar 
-        source={require('../../assets/images/adaptive-icon.png')} 
+        source={avatarSource} 
         size="sm"
         glass={true}
         elevated={true}
@@ -442,7 +452,68 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
   const locationState = useUserLocation();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
   const [sendChatMessage, { isLoading: isSendingMessage }] = useSendChatMessageMutation();
-  const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
+  const { addToCart: addToCartAction, isLoading: isAddingToCart } = useCart();
+  
+  // Profile state
+  const [profileData, setProfileData] = useState<any>(null);
+
+  // Fetch profile data from Convex
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          return;
+        }
+
+        const result = await convex.action(api.actions.users.customerGetProfile, {
+          sessionToken,
+        });
+
+        if (result.success === false) {
+          return;
+        }
+
+        // Transform to match expected format
+        setProfileData({
+          data: {
+            ...result.user,
+          },
+        });
+      } catch (error: any) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchProfile();
+    }
+  }, [isAuthenticated]);
+
+  // Get profile picture URL, converting relative URLs to absolute
+  const userAvatarUri = useMemo(() => {
+    if (!profileData?.data) {
+      return undefined;
+    }
+    
+    // Check multiple possible locations for the picture
+    const picture = 
+      profileData.data.picture || 
+      (profileData.data as any)?.user?.picture || 
+      (profileData.data as any)?.user?.avatar ||
+      (profileData.data as any)?.avatar;
+    
+    if (picture) {
+      const absoluteUrl = getAbsoluteImageUrl(picture);
+      return absoluteUrl;
+    }
+    
+    return undefined;
+  }, [profileData?.data]);
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
@@ -535,11 +606,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
 
       // Add all dishes from the recommendations
       const addPromises = message.dishIds.map(dishId =>
-        addToCart({
-          dish_id: dishId,
-          quantity: 1,
-          special_instructions: specialInstructions,
-        }).unwrap()
+        addToCartAction(dishId, 1)
       );
 
       await Promise.all(addPromises);
@@ -549,7 +616,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add items to cart';
       showError('Cart error', errorMessage);
     }
-  }, [isAuthenticated, token, checkTokenExpiration, refreshAuthState, messages, addToCart, showSuccess, showError]);
+  }, [isAuthenticated, token, checkTokenExpiration, refreshAuthState, messages, addToCartAction, showSuccess, showError]);
 
   const handleSendMessage = useCallback(async (messageText: string) => {
     if (!messageText.trim()) return;
@@ -741,6 +808,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
                 {message.type === 'user' ? (
                   <UserMessage
                     message={message.content}
+                    userAvatarUri={userAvatarUri}
                   />
                 ) : (
                   <AIMessage

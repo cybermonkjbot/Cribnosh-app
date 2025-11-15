@@ -1,5 +1,4 @@
-import { AlertCircle, CheckCircle, Copy, Info, X } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -37,7 +36,7 @@ const ToastComponent: React.FC<ToastComponentProps> = ({
   type,
   title,
   message,
-  duration = 4000,
+  duration = 3000,
   onDismiss,
   action,
 }) => {
@@ -45,17 +44,36 @@ const ToastComponent: React.FC<ToastComponentProps> = ({
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    // Slide in animation
+  const handleDismiss = useCallback(() => {
     Animated.parallel([
       Animated.timing(slideAnim, {
+        toValue: -100,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setIsVisible(false);
+      onDismiss(id);
+    });
+  }, [id, onDismiss, slideAnim, opacityAnim]);
+
+  useEffect(() => {
+    // Slide in animation - faster and more subtle
+    Animated.parallel([
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 100,
+        friction: 8,
         useNativeDriver: true,
       }),
       Animated.timing(opacityAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start();
@@ -66,57 +84,27 @@ const ToastComponent: React.FC<ToastComponentProps> = ({
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration]);
-
-  const handleDismiss = () => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: -100,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setIsVisible(false);
-      onDismiss(id);
-    });
-  };
-
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle size={20} color="#10B981" />;
-      case 'error':
-        return <X size={20} color="#EF4444" />;
-      case 'warning':
-        return <AlertCircle size={20} color="#F59E0B" />;
-      case 'info':
-        return <Info size={20} color="#3B82F6" />;
-      default:
-        return <Copy size={20} color="#6B7280" />;
-    }
-  };
+  }, [duration, handleDismiss, slideAnim, opacityAnim]);
 
   const getBackgroundColor = () => {
     switch (type) {
       case 'success':
-        return '#10B981';
+        return '#000000';
       case 'error':
-        return '#EF4444';
+        return '#000000';
       case 'warning':
-        return '#F59E0B';
+        return '#000000';
       case 'info':
-        return '#3B82F6';
+        return '#000000';
       default:
-        return '#6B7280';
+        return '#000000';
     }
   };
 
   if (!isVisible) return null;
+
+  // Compact TikTok-style: single line, no icon, minimal padding
+  const displayText = message ? `${title} ${message}` : title;
 
   return (
     <Animated.View
@@ -125,29 +113,13 @@ const ToastComponent: React.FC<ToastComponentProps> = ({
         {
           transform: [{ translateY: slideAnim }],
           opacity: opacityAnim,
-          borderLeftColor: getBackgroundColor(),
+          backgroundColor: getBackgroundColor(),
         },
       ]}
     >
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          {getIcon()}
-        </View>
-        
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>{title}</Text>
-          {message && <Text style={styles.message}>{message}</Text>}
-        </View>
-
-        <TouchableOpacity
-          style={styles.dismissButton}
-          onPress={handleDismiss}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <X size={16} color="#9CA3AF" />
-        </TouchableOpacity>
-      </View>
-
+      <Text style={styles.text} numberOfLines={1}>
+        {displayText}
+      </Text>
       {action && (
         <TouchableOpacity style={styles.actionButton} onPress={action.onPress}>
           <Text style={styles.actionText}>{action.label}</Text>
@@ -185,53 +157,36 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     zIndex: 99999,
-  },
-  toast: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-    ...shadowPresets.xl(),
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-  },
-  iconContainer: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  message: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-  },
-  dismissButton: {
-    padding: 4,
-    marginLeft: 8,
-  },
-  actionButton: {
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
     alignItems: 'center',
   },
-  actionText: {
+  toast: {
+    backgroundColor: '#000000',
+    borderRadius: 24,
+    marginBottom: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    maxWidth: screenWidth - 32,
+    alignSelf: 'center',
+    ...shadowPresets.xl(),
+  },
+  text: {
     fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  actionButton: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignSelf: 'center',
+  },
+  actionText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: '#FFFFFF',
   },
 });
 

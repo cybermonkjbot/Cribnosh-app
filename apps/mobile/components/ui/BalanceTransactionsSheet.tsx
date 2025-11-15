@@ -1,8 +1,9 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 import { SvgXml } from 'react-native-svg';
 import { BottomSheetBase } from '../BottomSheetBase';
-import { useGetBalanceTransactionsQuery } from '@/store/customerApi';
+import { usePayments } from '@/hooks/usePayments';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -19,11 +20,43 @@ export function BalanceTransactionsSheet({
   onClose,
 }: BalanceTransactionsSheetProps) {
   const snapPoints = useMemo(() => ['75%', '90%'], []);
+  const { getBalanceTransactions } = usePayments();
+  const [transactionsData, setTransactionsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { data: transactionsData, isLoading, refetch } = useGetBalanceTransactionsQuery(
-    { page: 1, limit: 50 },
-    { skip: !isVisible }
-  );
+  // Load transactions when sheet becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      const loadTransactions = async () => {
+        try {
+          setIsLoading(true);
+          const result = await getBalanceTransactions(1, 50);
+          if (result) {
+            setTransactionsData({ data: result });
+          }
+        } catch (error) {
+          // Error already handled in hook
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadTransactions();
+    }
+  }, [isVisible, getBalanceTransactions]);
+
+  const refetch = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const result = await getBalanceTransactions(1, 50);
+      if (result) {
+        setTransactionsData({ data: result });
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getBalanceTransactions]);
 
   const handleSheetChanges = useCallback((index: number) => {
     if (index === -1) {
@@ -93,7 +126,7 @@ export function BalanceTransactionsSheet({
     return null;
   }
 
-  const transactions = transactionsData?.data?.transactions || [];
+  const transactions = transactionsData?.data?.transactions || transactionsData?.transactions || [];
 
   return (
     <BottomSheetBase
@@ -116,9 +149,11 @@ export function BalanceTransactionsSheet({
         </View>
 
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#094327" />
-          </View>
+          <SkeletonWithTimeout isLoading={isLoading}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#094327" />
+            </View>
+          </SkeletonWithTimeout>
         ) : (
           <FlatList
             data={transactions}

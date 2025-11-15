@@ -1,12 +1,11 @@
 import AmountInput from '@/components/AmountInput'
 import { Button } from '@/components/ui/Button'
-import { CartButton } from '@/components/ui/CartButton'
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useRouter, useLocalSearchParams } from 'expo-router'
-import { useState, useMemo } from 'react'
-import { useGetGroupOrderQuery, useGetBudgetDetailsQuery, useChipInToBudgetMutation } from '@/store/customerApi'
 import { useAuthState } from '@/hooks/useAuthState'
+import { useGroupOrders } from '@/hooks/useGroupOrders'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function GroupOrderDetails() {
   const router = useRouter()
@@ -15,16 +14,41 @@ export default function GroupOrderDetails() {
   const groupOrderId = params.group_order_id || ''
   
   const [amount, setAmount] = useState('')
+  const { getGroupOrder, getBudgetDetails, chipInToBudget } = useGroupOrders()
   
-  const { data: groupOrderData, isLoading: isLoadingOrder } = useGetGroupOrderQuery(groupOrderId, {
-    skip: !groupOrderId,
-  })
+  const [groupOrderData, setGroupOrderData] = useState<any>(null)
+  const [budgetData, setBudgetData] = useState<any>(null)
+  const [isLoadingOrder, setIsLoadingOrder] = useState(false)
+  const [isLoadingBudget, setIsLoadingBudget] = useState(false)
+  const [isChippingIn, setIsChippingIn] = useState(false)
   
-  const { data: budgetData, isLoading: isLoadingBudget } = useGetBudgetDetailsQuery(groupOrderId, {
-    skip: !groupOrderId,
-  })
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoadingOrder(true)
+      setIsLoadingBudget(true)
+      const [orderResult, budgetResult] = await Promise.all([
+        getGroupOrder(groupOrderId),
+        getBudgetDetails(groupOrderId),
+      ])
+      if (orderResult.success) {
+        setGroupOrderData({ success: true, data: orderResult })
+      }
+      if (budgetResult.success) {
+        setBudgetData({ success: true, data: budgetResult })
+      }
+    } catch {
+      // Error already handled in hook
+    } finally {
+      setIsLoadingOrder(false)
+      setIsLoadingBudget(false)
+    }
+  }, [groupOrderId, getGroupOrder, getBudgetDetails])
   
-  const [chipInToBudget, { isLoading: isChippingIn }] = useChipInToBudgetMutation()
+  useEffect(() => {
+    if (groupOrderId) {
+      loadData()
+    }
+  }, [groupOrderId, loadData])
   
   const groupOrder = groupOrderData?.data
   const budget = budgetData?.data
@@ -57,19 +81,22 @@ export default function GroupOrderDetails() {
     }
     
     try {
-      await chipInToBudget({
-        group_order_id: groupOrderId,
-        amount: amountNum,
-      }).unwrap()
-      
-      Alert.alert('Success', 'Your contribution has been added', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ])
-    } catch (error: any) {
-      Alert.alert('Error', error?.data?.message || 'Failed to chip in to budget')
+      setIsChippingIn(true)
+      const result = await chipInToBudget(groupOrderId, amountNum)
+      if (result.success) {
+        // Reload budget data
+        await loadData()
+        Alert.alert('Success', 'Your contribution has been added', [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ])
+      }
+    } catch {
+      // Error already handled in hook
+    } finally {
+      setIsChippingIn(false)
     }
   }
   

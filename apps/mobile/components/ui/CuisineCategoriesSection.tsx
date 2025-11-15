@@ -1,11 +1,12 @@
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGetCuisineCategoriesQuery } from '@/store/customerApi';
+import { useCuisines } from '@/hooks/useCuisines';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { showError } from '../../lib/GlobalToastManager';
 import { CuisineCategoriesSectionEmpty } from './CuisineCategoriesSectionEmpty';
 import { CuisineCategoriesSectionSkeleton } from './CuisineCategoriesSectionSkeleton';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface Cuisine {
   id: string;
@@ -33,18 +34,29 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
   useBackend = true,
 }) => {
   const { isAuthenticated } = useAuthContext();
+  const { getCuisineCategories, isLoading: backendLoading } = useCuisines();
+  const [categoriesData, setCategoriesData] = useState<any>(null);
+  const [backendError, setBackendError] = useState<any>(null);
 
-  // Backend API integration
-  const {
-    data: categoriesData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetCuisineCategoriesQuery(
-    undefined,
-    {
-      skip: !useBackend || !isAuthenticated,
+  // Fetch categories from backend when needed
+  useEffect(() => {
+    if (useBackend && isAuthenticated && propCuisines === undefined) {
+      loadCategories();
     }
-  );
+  }, [useBackend, isAuthenticated]);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      setBackendError(null);
+      const result = await getCuisineCategories();
+      if (result.success) {
+        setCategoriesData(result);
+      }
+    } catch (error) {
+      setBackendError(error);
+      // Error state is shown in UI - no toast needed
+    }
+  }, [getCuisineCategories, isAuthenticated]);
 
   // Transform API data to component format
   const transformCuisineData = useCallback((apiCategory: any): Cuisine | null => {
@@ -93,12 +105,7 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
     return [];
   }, [propCuisines, categoriesData, useBackend, transformCuisineData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError('Failed to load cuisine categories', 'Please try again');
-    }
-  }, [backendError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Determine loading state
   const isLoading = propIsLoading || (useBackend && backendLoading && isAuthenticated);
@@ -196,7 +203,11 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
 
   // Show skeleton while loading
   if (isLoading && useBackend) {
-    return <CuisineCategoriesSectionSkeleton itemCount={4} />;
+    return (
+      <SkeletonWithTimeout isLoading={isLoading}>
+        <CuisineCategoriesSectionSkeleton itemCount={4} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no cuisines (don't show empty state)

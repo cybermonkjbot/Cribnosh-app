@@ -1,12 +1,14 @@
-import { useAddToCartMutation, useGetTakeawayItemsQuery } from '@/store/customerApi';
+import { useCart } from '@/hooks/useCart';
+import { useMeals } from '@/hooks/useMeals';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { showError, showSuccess, showWarning } from '../../lib/GlobalToastManager';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
 import { TakeAwaysEmpty } from './TakeAwaysEmpty';
 import { TakeAwaysSkeleton } from './TakeAwaysSkeleton';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface TakeAwayItem {
   id: string;
@@ -22,20 +24,34 @@ interface TakeAwaysProps {
 }
 
 export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
-  const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
+  const { addToCart } = useCart();
+  const { getTakeawayItems } = useMeals();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
+  const [takeawayData, setTakeawayData] = useState<any>(null);
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendError, setBackendError] = useState<any>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  // Backend API integration
-  const {
-    data: takeawayData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetTakeawayItemsQuery(
-    { limit: 20, page: 1 },
-    {
-      skip: !useBackend || !isAuthenticated,
+  // Load takeaway items
+  useEffect(() => {
+    if (useBackend && isAuthenticated) {
+      const loadTakeawayItems = async () => {
+        setBackendLoading(true);
+        setBackendError(null);
+        try {
+          const result = await getTakeawayItems(20, 1);
+          if (result?.success) {
+            setTakeawayData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setBackendError(error);
+        } finally {
+          setBackendLoading(false);
+        }
+      };
+      loadTakeawayItems();
     }
-  );
+  }, [useBackend, isAuthenticated, getTakeawayItems]);
 
   // Transform API data to component format
   const transformTakeawayItem = useCallback((apiItem: any): TakeAwayItem | null => {
@@ -69,16 +85,15 @@ export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
     return transformedItems;
   }, [takeawayData, useBackend, transformTakeawayItem]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError('Failed to load takeaway items', 'Please try again');
-    }
-  }, [backendError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Show skeleton while loading
   if (useBackend && backendLoading) {
-    return <TakeAwaysSkeleton itemCount={3} />;
+    return (
+      <SkeletonWithTimeout isLoading={backendLoading}>
+        <TakeAwaysSkeleton itemCount={3} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no items (don't show empty state)
@@ -102,27 +117,21 @@ export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
     if (isExpired) {
       // Refresh auth state to update isAuthenticated
       await refreshAuthState();
-      showWarning(
-        "Session Expired",
-        "Please sign in again to add items to cart"
-      );
-      navigateToSignIn();
-      return;
     }
 
+    setIsAddingToCart(true);
     try {
-      const result = await addToCart({
-        dish_id: item.id,
-        quantity: 1,
-        special_instructions: undefined,
-      }).unwrap();
-
-      if (result.success) {
-        showSuccess("Added to Cart!", `${item.name} added successfully`);
-      }
-    } catch (err: any) {
-      const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add item to cart';
-      showError("Failed to add item to cart", errorMessage);
+      // Extract price from string format "£X.XX" or number
+      const priceValue = typeof item.price === 'string' 
+        ? parseFloat(item.price.replace('£', '')) * 100 
+        : item.price;
+      
+      await addToCart(item.id, 1);
+      showSuccess("Added to Cart", `${item.name} added to your cart`);
+    } catch (error: any) {
+      showError("Failed to Add", error?.message || "Could not add item to cart");
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 

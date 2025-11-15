@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons'; // Added Ionicons import
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useGetUsualDinnerItemsQuery, useGetColleagueConnectionsQuery, useGetPlayToWinHistoryQuery } from '@/store/customerApi';
+import { useOrders } from '@/hooks/useOrders';
+import { useConnections } from '@/hooks/useConnections';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { showError } from '../../lib/GlobalToastManager';
 import {
@@ -13,6 +14,7 @@ import {
 } from '../../utils/hiddenSections';
 import { UsualDinnerSectionSkeleton } from './UsualDinnerSectionSkeleton';
 import { PlayToWinSectionSkeleton } from './PlayToWinSectionSkeleton';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface UsualDinnerItem {
   dish_id: string;
@@ -30,34 +32,46 @@ interface UsualDinnerItem {
 export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavior }) {
   const { isAuthenticated } = useAuthContext();
   const router = useRouter();
-  
-  // Fetch usual dinner items from API - only use API data, no fallback
-  const {
-    data: dinnerItemsData,
-    isLoading: dinnerItemsLoading,
-    error: dinnerItemsError,
-  } = useGetUsualDinnerItemsQuery(
-    { limit: 6 },
-    {
-      skip: !isAuthenticated,
+  const { getUsualDinnerItems } = useOrders();
+  const [dinnerItemsData, setDinnerItemsData] = useState<any>(null);
+  const [dinnerItemsLoading, setDinnerItemsLoading] = useState(false);
+  const [dinnerItemsError, setDinnerItemsError] = useState<any>(null);
+
+  // Load usual dinner items
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadDinnerItems = async () => {
+        try {
+          setDinnerItemsLoading(true);
+          setDinnerItemsError(null);
+          const result = await getUsualDinnerItems(6);
+          if (result && result.success) {
+            setDinnerItemsData({ success: true, data: result });
+          }
+        } catch (error: any) {
+          setDinnerItemsError(error);
+        } finally {
+          setDinnerItemsLoading(false);
+        }
+      };
+      loadDinnerItems();
     }
-  );
+  }, [isAuthenticated, getUsualDinnerItems]);
 
   // Transform API data to component format - only use API data
   const dinnerItems: UsualDinnerItem[] = useMemo(() => {
     if (dinnerItemsData?.success && dinnerItemsData.data?.items && dinnerItemsData.data.items.length > 0) {
       return dinnerItemsData.data.items;
     }
+    // Also check if items are directly in data
+    if (dinnerItemsData?.items && Array.isArray(dinnerItemsData.items) && dinnerItemsData.items.length > 0) {
+      return dinnerItemsData.items;
+    }
     // No fallback - return empty array if API has no data
     return [];
   }, [dinnerItemsData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (dinnerItemsError && isAuthenticated) {
-      showError('Failed to load dinner favorites', 'Please try again');
-    }
-  }, [dinnerItemsError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
   
   const handleItemPress = useCallback((item: UsualDinnerItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -78,7 +92,11 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
 
   // Show skeleton while loading
   if (dinnerItemsLoading && isAuthenticated) {
-    return <UsualDinnerSectionSkeleton itemCount={4} />;
+    return (
+      <SkeletonWithTimeout isLoading={dinnerItemsLoading}>
+        <UsualDinnerSectionSkeleton itemCount={4} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no items (don't show empty state)
@@ -197,29 +215,56 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
 export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior }) {
   const { isAuthenticated } = useAuthContext();
   const router = useRouter();
-  
-  // Fetch colleague connections and game history from API
-  const {
-    data: colleaguesData,
-    isLoading: colleaguesLoading,
-    error: colleaguesError,
-  } = useGetColleagueConnectionsQuery(
-    undefined,
-    {
-      skip: !isAuthenticated,
-    }
-  );
+  const { getConnections } = useConnections();
+  const [colleaguesData, setColleaguesData] = useState<any>(null);
+  const [colleaguesLoading, setColleaguesLoading] = useState(false);
+  const [colleaguesError, setColleaguesError] = useState<any>(null);
+  const [playToWinHistoryData, setPlayToWinHistoryData] = useState<any>(null);
 
-  const {
-    data: playToWinHistoryData,
-    isLoading: playToWinHistoryLoading,
-    error: playToWinHistoryError,
-  } = useGetPlayToWinHistoryQuery(
-    undefined,
-    {
-      skip: !isAuthenticated,
+  // Load colleague connections
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadColleagues = async () => {
+        try {
+          setColleaguesLoading(true);
+          setColleaguesError(null);
+          const result = await getConnections();
+          if (result && result.success) {
+            // Filter for colleague connections
+            const colleagues = (result.data || []).filter((conn: any) => 
+              conn.connection_type === 'colleague'
+            );
+            setColleaguesData({ 
+              success: true, 
+              data: { 
+                colleagueCount: colleagues.length,
+                colleagues: colleagues
+              } 
+            });
+          }
+        } catch (error: any) {
+          setColleaguesError(error);
+        } finally {
+          setColleaguesLoading(false);
+        }
+      };
+      loadColleagues();
     }
-  );
+  }, [isAuthenticated, getConnections]);
+
+  // Use play to win history from userBehavior prop
+  useEffect(() => {
+    if (userBehavior?.playToWinHistory) {
+      setPlayToWinHistoryData({
+        success: true,
+        data: {
+          gamesPlayed: userBehavior.playToWinHistory.gamesPlayed || 0,
+          gamesWon: userBehavior.playToWinHistory.gamesWon || 0,
+          lastPlayed: userBehavior.playToWinHistory.lastPlayed?.getTime() || null,
+        },
+      });
+    }
+  }, [userBehavior]);
 
   // Combine API data with userBehavior fallback
   const data = useMemo(() => {
@@ -227,16 +272,24 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
     
     // Override with API data if available
     if (colleaguesData?.success && colleaguesData.data) {
-      baseData.colleagueConnections = colleaguesData.data.colleagueCount;
+      baseData.colleagueConnections = colleaguesData.data.colleagueCount || userBehavior.colleagueConnections || 0;
+    } else if (userBehavior.colleagueConnections) {
+      baseData.colleagueConnections = userBehavior.colleagueConnections;
     }
     
     if (playToWinHistoryData?.success && playToWinHistoryData.data) {
       baseData.playHistory = {
-        gamesPlayed: playToWinHistoryData.data.gamesPlayed,
-        gamesWon: playToWinHistoryData.data.gamesWon,
+        gamesPlayed: playToWinHistoryData.data.gamesPlayed || 0,
+        gamesWon: playToWinHistoryData.data.gamesWon || 0,
         lastPlayed: playToWinHistoryData.data.lastPlayed
           ? new Date(playToWinHistoryData.data.lastPlayed)
           : undefined,
+      };
+    } else if (userBehavior.playToWinHistory) {
+      baseData.playHistory = {
+        gamesPlayed: userBehavior.playToWinHistory.gamesPlayed || 0,
+        gamesWon: userBehavior.playToWinHistory.gamesWon || 0,
+        lastPlayed: userBehavior.playToWinHistory.lastPlayed,
       };
     }
     
@@ -244,14 +297,7 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
   }, [userBehavior, colleaguesData, playToWinHistoryData]);
 
   // Handle errors
-  React.useEffect(() => {
-    if (colleaguesError && isAuthenticated) {
-      showError('Failed to load colleague connections', 'Please try again');
-    }
-    if (playToWinHistoryError && isAuthenticated) {
-      showError('Failed to load game history', 'Please try again');
-    }
-  }, [colleaguesError, playToWinHistoryError, isAuthenticated]);
+  // Error states are shown in UI - no toasts needed
   
   const handleStartGame = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -268,8 +314,12 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
   }, [router]);
 
   // Show skeleton while loading
-  if ((colleaguesLoading || playToWinHistoryLoading) && isAuthenticated) {
-    return <PlayToWinSectionSkeleton />;
+  if (colleaguesLoading && isAuthenticated) {
+    return (
+      <SkeletonWithTimeout isLoading={colleaguesLoading}>
+        <PlayToWinSectionSkeleton />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no colleagues available (don't show empty state)

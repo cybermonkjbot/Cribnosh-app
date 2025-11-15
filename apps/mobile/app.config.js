@@ -1,0 +1,124 @@
+/**
+ * Expo App Configuration
+ * This file loads environment variables from .env and makes them available to the app
+ */
+
+require('dotenv').config({ path: '.env' });
+
+module.exports = {
+  expo: {
+    name: 'Cribnosh-app',
+    slug: 'cribnosh-user-app',
+    version: '1.0.0',
+    sdkVersion: '54.0.0',
+    orientation: 'portrait',
+    icon: './assets/images/icon.png',
+    scheme: 'cribnoshapp',
+    userInterfaceStyle: 'automatic',
+    newArchEnabled: true,
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: 'com.cribnosh.co.uk',
+      associatedDomains: ['applinks:cribnosh.com'],
+      appleTeamId: '9H45CVD35P',
+      infoPlist: {
+        NSPhotoLibraryUsageDescription: 'This app needs access to your photo library to select profile pictures.',
+        NSCameraUsageDescription: 'This app needs access to your camera to take photos.',
+        NSLocationWhenInUseUsageDescription: 'CribNosh needs your location to show nearby chefs and provide delivery services',
+        NSLocationAlwaysAndWhenInUseUsageDescription: 'CribNosh needs your location to show nearby chefs and provide delivery services',
+        ITSAppUsesNonExemptEncryption: false,
+      },
+      deploymentTarget: '16.2',
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: './assets/images/adaptive-icon.png',
+        backgroundColor: '#ffffff',
+      },
+      edgeToEdgeEnabled: true,
+      package: 'com.cribnosh.co.uk',
+      intentFilters: [
+        {
+          action: 'VIEW',
+          data: [
+            {
+              scheme: 'cribnoshapp',
+            },
+          ],
+          category: ['BROWSABLE', 'DEFAULT'],
+        },
+      ],
+      permissions: [
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.CAMERA',
+        'android.permission.RECORD_AUDIO',
+        'android.permission.MODIFY_AUDIO_SETTINGS',
+        'ACCESS_FINE_LOCATION',
+        'ACCESS_COARSE_LOCATION',
+      ],
+    },
+    web: {
+      bundler: 'metro',
+      output: 'static',
+      favicon: './assets/images/favicon.png',
+    },
+    plugins: [
+      'expo-router',
+      'expo-av',
+      'expo-camera',
+      'expo-sensors',
+      'expo-apple-authentication',
+      'expo-image-picker',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/images/white-greenlogo.png',
+          imageWidth: 250,
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+          dark: {
+            backgroundColor: '#2C2C2C',
+          },
+        },
+      ],
+      'expo-maps',
+      'expo-font',
+      'expo-web-browser',
+      [
+        '@stripe/stripe-react-native',
+        {
+          merchantIdentifier: 'merchant.com.cribnosh.co.uk',
+        },
+      ],
+      [
+        'expo-live-activity',
+        {
+          enablePushNotifications: true,
+        },
+      ],
+    ],
+    experiments: {
+      typedRoutes: true,
+    },
+    extra: {
+      router: {},
+      eas: {
+        projectId: '2578e373-8a73-4caa-b2a3-6324699ebd79',
+      },
+      appId: '2578e373-8a73-4caa-b2a3-6324699ebd79',
+      appleStoreSku: 'cribnosh-mobile-app-2578e373',
+      // Explicitly pass environment variables
+      stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+    },
+    owner: 'cribnoshtest',
+    updates: {
+      url: 'https://u.expo.dev/2578e373-8a73-4caa-b2a3-6324699ebd79',
+      fallbackToCacheTimeout: 0,
+      checkAutomatically: 'ON_LOAD',
+      enabled: true,
+    },
+    runtimeVersion: '1.0.0',
+  },
+};
+

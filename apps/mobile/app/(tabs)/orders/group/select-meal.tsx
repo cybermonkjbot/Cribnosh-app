@@ -1,11 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { useAuthState } from "@/hooks/useAuthState";
-import {
-  useGetChefMenusQuery,
-  useGetGroupOrderQuery,
-  useGetParticipantSelectionsQuery,
-  useUpdateParticipantSelectionsMutation,
-} from "@/store/customerApi";
+import { useGroupOrders } from "@/hooks/useGroupOrders";
+import { useMeals } from "@/hooks/useMeals";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
@@ -36,33 +32,81 @@ export default function SelectMealScreen() {
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { getGroupOrder, getParticipantSelections, updateParticipantSelections } = useGroupOrders();
+  
+  const [groupOrderData, setGroupOrderData] = useState<any>(null);
+  const [selectionsData, setSelectionsData] = useState<any>(null);
+  const [isLoadingOrder, setIsLoadingOrder] = useState(false);
+  const [isLoadingSelections, setIsLoadingSelections] = useState(false);
+  const { getKitchenMeals } = useMeals();
+  const [chefMenusData, setChefMenusData] = useState<any>(null);
+  const [isLoadingMenus, setIsLoadingMenus] = useState(false);
 
-  const { data: groupOrderData, isLoading: isLoadingOrder } =
-    useGetGroupOrderQuery(groupOrderId, {
-      skip: !groupOrderId,
-    });
+  useEffect(() => {
+    if (groupOrderId) {
+      loadGroupOrder();
+    }
+  }, [groupOrderId]);
 
-  const { data: selectionsData, isLoading: isLoadingSelections } =
-    useGetParticipantSelectionsQuery(
-      {
-        group_order_id: groupOrderId,
-        user_id: user?.user_id,
-      },
-      {
-        skip: !groupOrderId || !user?.user_id,
+  useEffect(() => {
+    if (groupOrderId && user?.user_id) {
+      loadSelections();
+    }
+  }, [groupOrderId, user?.user_id]);
+
+  const loadGroupOrder = async () => {
+    try {
+      setIsLoadingOrder(true);
+      const result = await getGroupOrder(groupOrderId);
+      if (result.success) {
+        setGroupOrderData({ success: true, data: result });
       }
-    );
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoadingOrder(false);
+    }
+  };
 
-  const [updateSelections] = useUpdateParticipantSelectionsMutation();
+  const loadSelections = async () => {
+    try {
+      setIsLoadingSelections(true);
+      const result = await getParticipantSelections(groupOrderId, user?.user_id);
+      if (result.success && result.data?.selections) {
+        setSelectionsData({ success: true, data: { selections: result.data.selections } });
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoadingSelections(false);
+    }
+  };
 
   const groupOrder = groupOrderData?.data;
-  const currentSelections = selectionsData?.data?.[0];
+  const currentSelections = selectionsData?.data?.selections?.[0];
 
-  // Fetch chef menu items - only use API data
-  const { data: chefMenusData, isLoading: isLoadingMenus } =
-    useGetChefMenusQuery(groupOrder?.chef_id || "", {
-      skip: !groupOrder?.chef_id,
-    });
+  // Fetch chef menu items when group order is loaded
+  useEffect(() => {
+    if (groupOrder?.chef_id) {
+      const loadChefMenus = async () => {
+        setIsLoadingMenus(true);
+        try {
+          const result = await getKitchenMeals({
+            kitchen_id: groupOrder.chef_id,
+            limit: 100,
+          });
+          if (result?.success) {
+            setChefMenusData({ data: result.data });
+          }
+        } catch (error) {
+          // Error already handled in hook
+        } finally {
+          setIsLoadingMenus(false);
+        }
+      };
+      loadChefMenus();
+    }
+  }, [groupOrder?.chef_id, getKitchenMeals]);
 
   // Initialize selected items from current selections
   useEffect(() => {
@@ -81,14 +125,9 @@ export default function SelectMealScreen() {
 
   // Get menu items from API - only use API data (must be before early returns)
   const menuItems = useMemo(() => {
-    if (
-      chefMenusData?.success &&
-      chefMenusData.data &&
-      chefMenusData.data.length > 0
-    ) {
-      return chefMenusData.data;
-    }
-    return []; // Return empty array if API has no data
+    // Structure: chefMenusData = { data: { success: true, data: { meals: [...] } } }
+    const meals = chefMenusData?.data?.meals || chefMenusData?.data?.data?.meals || [];
+    return Array.isArray(meals) ? meals : [];
   }, [chefMenusData]);
 
   // Calculate total
@@ -125,22 +164,21 @@ export default function SelectMealScreen() {
 
     setIsSubmitting(true);
     try {
-      await updateSelections({
+      const result = await updateParticipantSelections({
         group_order_id: groupOrderId,
         order_items: selectedItems,
-      }).unwrap();
+      });
 
-      Alert.alert("Success", "Your selections have been updated", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      if (result.success) {
+        Alert.alert("Success", "Your selections have been updated", [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]);
+      }
     } catch (error: any) {
-      Alert.alert(
-        "Error",
-        error?.data?.message || "Failed to update selections"
-      );
+      // Error already handled in hook
     } finally {
       setIsSubmitting(false);
     }

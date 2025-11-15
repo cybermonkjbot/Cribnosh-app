@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { query } from '../_generated/server';
-import { isAdmin, requireAuth } from '../utils/auth';
+import { isAdmin, isStaff, requireAuth, getAuthenticatedUser } from '../utils/auth';
 
 export const listByChef = query({
   args: { 
@@ -18,7 +18,6 @@ export const listByChef = query({
     if (!isAdmin(user)) {
       // Check if user is the chef (would need chef-user relationship)
       // For now, require staff/admin
-      const { isStaff } = await import('../utils/auth');
       if (!isStaff(user)) {
         throw new Error('Access denied');
       }
@@ -42,7 +41,6 @@ export const getById = query({
     
     // Only allow if user is admin/staff, or if they are the customer
     if (!isAdmin(user)) {
-      const { isStaff } = await import('../utils/auth');
       if (!isStaff(user)) {
         // Check if user is the customer
         if (order.customer_id !== user._id) {
@@ -70,7 +68,6 @@ export const getOrderById = query({
     
     // Only allow if user is admin/staff, or if they are the customer
     if (!isAdmin(user)) {
-      const { isStaff } = await import('../utils/auth');
       if (!isStaff(user)) {
         // Check if user is the customer
         if (order.customer_id !== user._id) {
@@ -103,7 +100,6 @@ export const getOrdersWithRefundEligibility = query({
     // If customerId is specified, ensure user can access it
     if (args.customerId) {
       if (!isAdmin(user)) {
-        const { isStaff } = await import('../utils/auth');
         if (!isStaff(user) && args.customerId !== user._id) {
           throw new Error('Access denied');
         }
@@ -111,7 +107,6 @@ export const getOrdersWithRefundEligibility = query({
     } else {
       // If no customerId specified, only allow staff/admin
       if (!isAdmin(user)) {
-        const { isStaff } = await import('../utils/auth');
         if (!isStaff(user)) {
           // Default to current user's orders
           args.customerId = user._id;
@@ -188,7 +183,6 @@ export const getRefundEligibilitySummary = query({
     // If customerId is specified, ensure user can access it
     if (args.customerId) {
       if (!isAdmin(user)) {
-        const { isStaff } = await import('../utils/auth');
         if (!isStaff(user) && args.customerId !== user._id) {
           throw new Error('Access denied');
         }
@@ -196,7 +190,6 @@ export const getRefundEligibilitySummary = query({
     } else {
       // If no customerId specified, only allow staff/admin
       if (!isAdmin(user)) {
-        const { isStaff } = await import('../utils/auth');
         if (!isStaff(user)) {
           // Default to current user's orders
           args.customerId = user._id;
@@ -329,12 +322,16 @@ export const listByCustomer = query({
     sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
-    // Require authentication
-    const user = await requireAuth(ctx, args.sessionToken);
+    // Check authentication - return empty array if not authenticated instead of throwing
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    
+    // If not authenticated, return empty array (graceful degradation)
+    if (!user) {
+      return [];
+    }
     
     // Ensure user can only access their own orders unless they're staff/admin
     if (!isAdmin(user)) {
-      const { isStaff } = await import('../utils/auth');
       if (!isStaff(user) && args.customer_id !== user._id.toString()) {
         throw new Error('Access denied');
       }
@@ -417,7 +414,6 @@ export const getRecentOrders = query({
     
     // Ensure user can only access their own orders unless they're staff/admin
     if (!isAdmin(user)) {
-      const { isStaff } = await import('../utils/auth');
       if (!isStaff(user) && args.userId !== user._id) {
         throw new Error('Access denied');
       }
@@ -456,7 +452,6 @@ export const getUserCart = query({
     
     // Ensure user can only access their own cart unless they're staff/admin
     if (!isAdmin(user)) {
-      const { isStaff } = await import('../utils/auth');
       if (!isStaff(user) && args.userId !== user._id) {
         throw new Error('Access denied');
       }
@@ -471,5 +466,63 @@ export const getUserCart = query({
       items: [],
       updatedAt: Date.now()
     };
+  },
+});
+
+// Get user's cart by session token (for reactive queries in mobile app)
+export const getUserCartBySessionToken = query({
+  args: { 
+    sessionToken: v.string()
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    if (!user) {
+      return {
+        userId: null,
+        items: [],
+        updatedAt: Date.now()
+      };
+    }
+    
+    const cart = await ctx.db
+      .query('carts')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first();
+    
+    return cart || {
+      userId: user._id,
+      items: [],
+      updatedAt: Date.now()
+    };
+  },
+});
+
+// Get cart item count by session token (for reactive cart count in mobile app)
+export const getCartItemCountBySessionToken = query({
+  args: { 
+    sessionToken: v.string()
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    if (!user) {
+      return 0;
+    }
+    
+    const cart = await ctx.db
+      .query('carts')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first();
+    
+    if (!cart || !cart.items || cart.items.length === 0) {
+      return 0;
+    }
+    
+    // Calculate total item count (sum of all quantities)
+    return cart.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
   },
 });

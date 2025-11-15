@@ -1,15 +1,13 @@
-import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNotifications } from '@/hooks/useNotifications';
+import { Notification } from '@/types/customer';
 import { useRouter } from 'expo-router';
 import { Bell, CheckCheck } from 'lucide-react-native';
-import { SvgXml } from 'react-native-svg';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  useGetNotificationsQuery,
-  useMarkNotificationReadMutation,
-  useMarkAllNotificationsReadMutation,
-} from '@/store/customerApi';
-import { Notification } from '@/types/customer';
+import { SvgXml } from 'react-native-svg';
 import { SkeletonBox } from './MealItemDetails/Skeletons/ShimmerBox';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -27,14 +25,45 @@ export function NotificationsSheet({
 }: NotificationsSheetProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { getNotifications, markNotificationRead, markAllNotificationsRead, isLoading } = useNotifications();
+  const [notificationsData, setNotificationsData] = useState<any>(null);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
-  const { data: notificationsData, isLoading, refetch } = useGetNotificationsQuery(
-    { limit: 50 },
-    { skip: !isVisible }
-  );
+  // Load notifications when sheet becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      const loadNotifications = async () => {
+        try {
+          setIsLoadingNotifications(true);
+          const result = await getNotifications({ limit: 50 });
+          if (result.success) {
+            setNotificationsData({ success: true, data: result.data });
+          }
+        } catch {
+          // Error handling is done in the hook
+          setNotificationsData(null);
+        } finally {
+          setIsLoadingNotifications(false);
+        }
+      };
+      loadNotifications();
+    }
+  }, [isVisible, getNotifications]);
 
-  const [markNotificationRead] = useMarkNotificationReadMutation();
-  const [markAllNotificationsRead, { isLoading: isMarkingAll }] = useMarkAllNotificationsReadMutation();
+  const refetch = useCallback(async () => {
+    try {
+      setIsLoadingNotifications(true);
+      const result = await getNotifications({ limit: 50 });
+      if (result.success) {
+        setNotificationsData({ success: true, data: result.data });
+      }
+    } catch {
+      // Error handling is done in the hook
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  }, [getNotifications]);
 
   const formatTimestamp = (timestamp: number) => {
     const now = Date.now();
@@ -65,7 +94,9 @@ export function NotificationsSheet({
     // Mark as read if unread
     if (!notification.read) {
       try {
-        await markNotificationRead({ notificationId: notification.id }).unwrap();
+        await markNotificationRead(notification.id);
+        // Refetch to update the UI
+        await refetch();
       } catch (error) {
         // Silently fail - notification will still be shown
         console.error('Failed to mark notification as read:', error);
@@ -88,9 +119,14 @@ export function NotificationsSheet({
 
   const handleMarkAllAsRead = async () => {
     try {
-      await markAllNotificationsRead().unwrap();
+      setIsMarkingAll(true);
+      await markAllNotificationsRead();
+      // Refetch to update the UI
+      await refetch();
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
+    } finally {
+      setIsMarkingAll(false);
     }
   };
 
@@ -138,7 +174,7 @@ export function NotificationsSheet({
       <Bell size={48} color="#9CA3AF" />
       <Text style={styles.emptyText}>No notifications</Text>
       <Text style={styles.emptySubtext}>
-        You're all caught up! New notifications will appear here.
+        You&apos;re all caught up! New notifications will appear here.
       </Text>
     </View>
   );
@@ -211,8 +247,10 @@ export function NotificationsSheet({
           </View>
         </View>
 
-        {isLoading ? (
-          renderNotificationSkeleton()
+        {(isLoading || isLoadingNotifications) ? (
+          <SkeletonWithTimeout isLoading={isLoading || isLoadingNotifications}>
+            {renderNotificationSkeleton()}
+          </SkeletonWithTimeout>
         ) : (
           <FlatList
             data={sortedNotifications}

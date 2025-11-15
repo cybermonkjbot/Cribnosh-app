@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { useGetSupportChatQuery, useGetSupportChatMessagesQuery, useSendSupportMessageMutation, useGetSupportAgentQuery, useGetQuickRepliesQuery } from '../store/customerApi';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 import { SupportMessage, SupportAgent } from '../types/customer';
 
 interface UseSupportChatOptions {
@@ -26,93 +27,109 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
   const [quickReplies, setQuickReplies] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Loading states
+  const [isLoadingChat, setIsLoadingChat] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingAgent, setIsLoadingAgent] = useState(false);
+  const [isLoadingQuickReplies, setIsLoadingQuickReplies] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  // Error states
+  const [chatError, setChatError] = useState<any>(null);
+  const [messagesError, setMessagesError] = useState<any>(null);
+  const [agentError, setAgentError] = useState<any>(null);
+  const [quickRepliesError, setQuickRepliesError] = useState<any>(null);
+
   const lastMessageIdRef = useRef<string | null>(null);
   const lastAgentIdRef = useRef<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const agentPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitializedRef = useRef(false);
 
-  // Get or create support chat
-  const {
-    data: chatData,
-    isLoading: isLoadingChat,
-    error: chatError,
-    refetch: refetchChat,
-  } = useGetSupportChatQuery(caseId ? { caseId } : undefined, {
-    skip: !enabled,
-    refetchOnMountOrArgChange: true,
-  });
+  // Fetch support chat
+  const fetchSupportChat = useCallback(async () => {
+    if (!enabled) return;
 
-  // Get messages
-  const {
-    data: messagesData,
-    isLoading: isLoadingMessages,
-    error: messagesError,
-    refetch: refetchMessages,
-  } = useGetSupportChatMessagesQuery(
-    { limit: 100, offset: 0 },
-    {
-      skip: !chatId || !enabled,
-      pollingInterval: chatId ? pollingInterval : 0,
-    }
-  );
+    try {
+      setIsLoadingChat(true);
+      setChatError(null);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
 
-  // Get agent info
-  const {
-    data: agentData,
-    isLoading: isLoadingAgent,
-    error: agentError,
-    refetch: refetchAgent,
-  } = useGetSupportAgentQuery(undefined, {
-    skip: !chatId || !enabled,
-    pollingInterval: chatId ? pollingInterval * 2 : 0, // Poll less frequently
-  });
-
-  // Get quick replies
-  const {
-    data: quickRepliesData,
-    isLoading: isLoadingQuickReplies,
-    error: quickRepliesError,
-    refetch: refetchQuickReplies,
-  } = useGetQuickRepliesQuery(undefined, {
-    skip: !chatId || !enabled,
-  });
-
-  // Send message mutation
-  const [sendMessage, { isLoading: isSendingMessage }] = useSendSupportMessageMutation();
-
-  // Initialize chat data
-  useEffect(() => {
-    if (chatData?.data && !isInitialized) {
-      setChatId(chatData.data.chatId);
-      setSupportCaseId(chatData.data.supportCaseId);
-      setMessages(chatData.data.messages || []);
-      setAgent(chatData.data.agent);
-      setIsInitialized(true);
-
-      // Set initial refs
-      if (chatData.data.messages && chatData.data.messages.length > 0) {
-        const lastMessage = chatData.data.messages[chatData.data.messages.length - 1];
-        lastMessageIdRef.current = lastMessage._id;
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
       }
-      if (chatData.data.agent) {
-        lastAgentIdRef.current = chatData.data.agent.id;
-      }
-    }
-  }, [chatData, isInitialized]);
 
-  // Update messages from polling
-  useEffect(() => {
-    if (messagesData?.data?.messages) {
-      const newMessages = messagesData.data.messages;
-      
+      const result = await convex.action(api.actions.users.customerGetSupportChat, {
+        sessionToken,
+        caseId: caseId || undefined,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to get support chat');
+      }
+
+      if (!isInitializedRef.current) {
+        setChatId(result.chatId);
+        setSupportCaseId(result.supportCaseId);
+        setMessages(result.messages || []);
+        setAgent(result.agent);
+        setIsInitialized(true);
+        isInitializedRef.current = true;
+
+        // Set initial refs
+        if (result.messages && result.messages.length > 0) {
+          const lastMessage = result.messages[result.messages.length - 1];
+          lastMessageIdRef.current = lastMessage._id;
+        }
+        if (result.agent) {
+          lastAgentIdRef.current = result.agent.id;
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch support chat:', error);
+      setChatError(error);
+    } finally {
+      setIsLoadingChat(false);
+    }
+  }, [enabled, caseId]);
+
+  // Fetch messages
+  const fetchMessages = useCallback(async () => {
+    if (!enabled || !chatId) return;
+
+    try {
+      setIsLoadingMessages(true);
+      setMessagesError(null);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.users.customerGetSupportMessages, {
+        sessionToken,
+        limit: 100,
+        offset: 0,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to get messages');
+      }
+
+      const newMessages = result.messages;
+
       // Check for new messages
       if (lastMessageIdRef.current) {
         const lastMessageIndex = newMessages.findIndex(
-          (msg) => msg._id === lastMessageIdRef.current
+          (msg: SupportMessage) => msg._id === lastMessageIdRef.current
         );
-        
+
         if (lastMessageIndex >= 0 && lastMessageIndex < newMessages.length - 1) {
           // New messages found
           const newMessagesFound = newMessages.slice(lastMessageIndex + 1);
-          newMessagesFound.forEach((msg) => {
+          newMessagesFound.forEach((msg: SupportMessage) => {
             if (onNewMessage) {
               onNewMessage(msg);
             }
@@ -125,20 +142,44 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
       }
 
       setMessages(newMessages);
-      
+
       // Update last message ID
       if (newMessages.length > 0) {
         const lastMessage = newMessages[newMessages.length - 1];
         lastMessageIdRef.current = lastMessage._id;
       }
+    } catch (error: any) {
+      console.error('Failed to fetch messages:', error);
+      setMessagesError(error);
+    } finally {
+      setIsLoadingMessages(false);
     }
-  }, [messagesData, onNewMessage]);
+  }, [enabled, chatId, onNewMessage]);
 
-  // Update agent info
-  useEffect(() => {
-    if (agentData?.data?.agent !== undefined) {
-      const newAgent = agentData.data.agent;
-      
+  // Fetch agent info
+  const fetchAgent = useCallback(async () => {
+    if (!enabled || !chatId) return;
+
+    try {
+      setIsLoadingAgent(true);
+      setAgentError(null);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.users.customerGetSupportAgent, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to get agent info');
+      }
+
+      const newAgent = result.agent;
+
       // Check if agent changed
       if (lastAgentIdRef.current !== newAgent?.id) {
         if (onAgentChange) {
@@ -146,43 +187,163 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
         }
         lastAgentIdRef.current = newAgent?.id || null;
       }
-      
-      setAgent(newAgent);
-    }
-  }, [agentData, onAgentChange]);
 
-  // Update quick replies
-  useEffect(() => {
-    if (quickRepliesData?.data?.replies) {
-      setQuickReplies(quickRepliesData.data.replies.map((reply) => reply.text));
+      setAgent(newAgent);
+    } catch (error: any) {
+      console.error('Failed to fetch agent:', error);
+      setAgentError(error);
+    } finally {
+      setIsLoadingAgent(false);
     }
-  }, [quickRepliesData]);
+  }, [enabled, chatId, onAgentChange]);
+
+  // Fetch quick replies
+  const fetchQuickReplies = useCallback(async () => {
+    if (!enabled || !chatId) return;
+
+    try {
+      setIsLoadingQuickReplies(true);
+      setQuickRepliesError(null);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.users.customerGetQuickReplies, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to get quick replies');
+      }
+
+      setQuickReplies(result.replies.map((reply: { text: string }) => reply.text));
+    } catch (error: any) {
+      console.error('Failed to fetch quick replies:', error);
+      setQuickRepliesError(error);
+    } finally {
+      setIsLoadingQuickReplies(false);
+    }
+  }, [enabled, chatId]);
+
+  // Reset initialization when caseId changes
+  useEffect(() => {
+    if (caseId) {
+      setIsInitialized(false);
+      isInitializedRef.current = false;
+      setChatId(null);
+      setSupportCaseId(null);
+      setMessages([]);
+      setAgent(null);
+    }
+  }, [caseId]);
+
+  // Initial fetch
+  useEffect(() => {
+    if (enabled) {
+      fetchSupportChat();
+    }
+  }, [enabled, caseId, fetchSupportChat]); // Only fetch when enabled or caseId changes
+
+  // Set up polling for messages
+  useEffect(() => {
+    if (enabled && chatId) {
+      // Initial fetch
+      fetchMessages();
+
+      // Set up polling
+      pollingIntervalRef.current = setInterval(() => {
+        fetchMessages();
+      }, pollingInterval);
+
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+      };
+    }
+  }, [enabled, chatId, pollingInterval, fetchMessages]);
+
+  // Set up polling for agent (less frequent)
+  useEffect(() => {
+    if (enabled && chatId) {
+      // Initial fetch
+      fetchAgent();
+
+      // Set up polling (less frequent)
+      agentPollingIntervalRef.current = setInterval(() => {
+        fetchAgent();
+      }, pollingInterval * 2);
+
+      return () => {
+        if (agentPollingIntervalRef.current) {
+          clearInterval(agentPollingIntervalRef.current);
+        }
+      };
+    }
+  }, [enabled, chatId, pollingInterval, fetchAgent]);
+
+  // Fetch quick replies once when chat is initialized
+  useEffect(() => {
+    if (enabled && chatId && isInitialized) {
+      fetchQuickReplies();
+    }
+  }, [enabled, chatId, isInitialized, fetchQuickReplies]);
 
   // Send message function
-  const sendSupportMessage = async (content: string): Promise<boolean> => {
+  const sendSupportMessage = useCallback(async (content: string): Promise<boolean> => {
     try {
-      const result = await sendMessage({ content }).unwrap();
-      if (result.success) {
-        // Refetch messages to get the new message
-        await refetchMessages();
-        return true;
+      setIsSendingMessage(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
       }
-      return false;
+
+      const result = await convex.action(api.actions.users.customerSendSupportMessage, {
+        sessionToken,
+        content,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to send message');
+      }
+
+      // Refetch messages to get the new message
+      await fetchMessages();
+      return true;
     } catch (error) {
       console.error('Failed to send message:', error);
       return false;
+    } finally {
+      setIsSendingMessage(false);
     }
-  };
+  }, [fetchMessages]);
 
   // Manual refresh function
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     await Promise.all([
-      refetchChat(),
-      chatId && refetchMessages(),
-      chatId && refetchAgent(),
-      chatId && refetchQuickReplies(),
+      fetchSupportChat(),
+      chatId && fetchMessages(),
+      chatId && fetchAgent(),
+      chatId && fetchQuickReplies(),
     ]);
-  };
+  }, [fetchSupportChat, fetchMessages, fetchAgent, fetchQuickReplies, chatId]);
+
+  // Cleanup polling intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+      if (agentPollingIntervalRef.current) {
+        clearInterval(agentPollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   return {
     // State

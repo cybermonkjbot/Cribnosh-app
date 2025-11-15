@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SentimentRating } from '../SentimentRating';
 import { SimilarMealsSkeleton } from './Skeletons';
+import { SkeletonWithTimeout } from '../SkeletonWithTimeout';
 
 interface SimilarMeal {
   id: string;
@@ -21,7 +22,11 @@ interface SimilarMealsProps {
 
 export function SimilarMeals({ meals, isLoading = false, onMealPress }: SimilarMealsProps) {
   if (isLoading) {
-    return <SimilarMealsSkeleton />;
+    return (
+      <SkeletonWithTimeout isLoading={isLoading}>
+        <SimilarMealsSkeleton />
+      </SkeletonWithTimeout>
+    );
   }
   
   if (!meals || meals.length === 0) return null;

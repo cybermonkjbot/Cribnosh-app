@@ -1,11 +1,6 @@
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import {
-  useCancelOrderMutation,
-  useGetOrderQuery,
-  useRateOrderMutation,
-} from "@/store/customerApi";
 import { Order as ApiOrder } from "@/types/customer";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -16,7 +11,8 @@ import {
   Phone,
   Star,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useOrders } from "@/hooks/useOrders";
 import {
   ActivityIndicator,
   Alert,
@@ -43,21 +39,28 @@ export default function OrderDetailsScreen() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
+  const [order, setOrder] = useState<ApiOrder | undefined>(undefined);
+  const [apiLoading, setApiLoading] = useState(false);
 
-  // Fetch order details from API
-  const { data: apiData, isLoading: apiLoading } = useGetOrderQuery(
-    orderId || "",
-    {
-      skip: !orderId,
-    }
-  );
+  const { getOrder, cancelOrder, rateOrder, isLoading: ordersLoading } = useOrders();
 
-  // Mutations
-  const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
-  const [rateOrder, { isLoading: isRating }] = useRateOrderMutation();
+  // Fetch order details using Convex
+  useEffect(() => {
+    const fetchOrder = async () => {
+      if (!orderId) return;
+      setApiLoading(true);
+      const orderData = await getOrder(orderId);
+      if (orderData) {
+        // Transform the order data to match ApiOrder format
+        setOrder(orderData as ApiOrder);
+      }
+      setApiLoading(false);
+    };
+    fetchOrder();
+  }, [orderId, getOrder]);
 
-  // Use only API data - no mock fallback
-  const order: ApiOrder | undefined = apiData?.data || undefined;
+  const isCancelling = ordersLoading;
+  const isRating = ordersLoading;
 
   const handleBack = () => {
     router.back();
@@ -72,22 +75,14 @@ export default function OrderDetailsScreen() {
         text: "Yes, Cancel",
         style: "destructive",
         onPress: async () => {
-          try {
-            await cancelOrder({
-              orderId: order.id,
-              data: {
-                reason: "Customer requested cancellation",
-                refund_preference: "full_refund",
-              },
-            }).unwrap();
+          const success = await cancelOrder(
+            order.id || order._id || orderId || "",
+            "Customer requested cancellation",
+            "full_refund"
+          );
+          if (success) {
             Alert.alert("Success", "Order has been cancelled successfully");
             router.back();
-          } catch (error: any) {
-            console.error("Error cancelling order:", error);
-            Alert.alert(
-              "Error",
-              error?.data?.error?.message || "Failed to cancel order. Please try again."
-            );
           }
         },
       },
@@ -97,24 +92,16 @@ export default function OrderDetailsScreen() {
   const handleRateOrder = async () => {
     if (!order || rating === 0) return;
 
-    try {
-      await rateOrder({
-        orderId: order.id,
-        data: {
-          rating,
-          review: review.trim() || undefined,
-        },
-      }).unwrap();
+    const result = await rateOrder({
+      order_id: order.id || order._id || orderId || "",
+      rating,
+      review: review.trim() || undefined,
+    });
+    if (result) {
       Alert.alert("Success", "Thank you for your rating!");
       setShowRatingModal(false);
       setRating(0);
       setReview("");
-    } catch (error: any) {
-      console.error("Error rating order:", error);
-      Alert.alert(
-        "Error",
-        error?.data?.error?.message || "Failed to submit rating. Please try again."
-      );
     }
   };
 

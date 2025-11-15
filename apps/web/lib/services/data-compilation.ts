@@ -1,10 +1,16 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient } from '@/lib/conxed-client';
+import { getConvexClient, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { ConvexHttpClient } from 'convex/browser';
+import { NextRequest } from 'next/server';
 import { sendDataDownloadEmail } from './email-service';
 
 import { Id } from '@/convex/_generated/dataModel';
 
-export async function compileUserData(userId: Id<'users'>, sessionToken?: string | null): Promise<{
+export async function compileUserData(
+  userId: Id<'users'>, 
+  sessionToken?: string | null,
+  convexClient?: ConvexHttpClient
+): Promise<{
   user: unknown;
   orders: unknown[];
   paymentMethods: unknown[];
@@ -13,26 +19,29 @@ export async function compileUserData(userId: Id<'users'>, sessionToken?: string
   reviews: unknown[];
   supportCases: unknown[];
 }> {
-  const convex = getConvexClient();
+  const convex = convexClient || getConvexClient();
 
   // Fetch all user data
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const user = await convex.query(api.queries.users.getById, { 
     userId,
     sessionToken: sessionToken || undefined
-  });
+  }).catch(() => null); // Return null on error
   const userIdString = user?._id || userId as unknown as string;
   
   const [orders, paymentMethods, preferences, allergies, reviews, supportCases] = await Promise.all([
-    convex.query(api.queries.orders.listByCustomer, { customer_id: userIdString }),
-    convex.query(api.queries.paymentMethods.getByUserId, { userId }),
-    convex.query(api.queries.dietaryPreferences.getByUserId, { userId }),
-    convex.query(api.queries.allergies.getByUserId, { userId }),
+    convex.query(api.queries.orders.listByCustomer, { 
+      customer_id: userIdString,
+      sessionToken: sessionToken || undefined 
+    }).catch(() => []), // Return empty array on error
+    convex.query(api.queries.paymentMethods.getByUserId, { userId }).catch(() => []),
+    convex.query(api.queries.dietaryPreferences.getByUserId, { userId }).catch(() => null),
+    convex.query(api.queries.allergies.getByUserId, { userId }).catch(() => []),
     convex.query(api.queries.reviews.getAll, {}).then((reviews: unknown[]) => {
       const typedReviews = reviews as Array<{ user_id?: Id<'users'> }>;
       return typedReviews.filter((r) => r.user_id === userId);
-    }),
-    convex.query(api.queries.supportCases.getByUserId, { userId }),
+    }).catch(() => []),
+    convex.query(api.queries.supportCases.getByUserId, { userId }).catch(() => []),
   ]);
 
   return {
@@ -46,9 +55,18 @@ export async function compileUserData(userId: Id<'users'>, sessionToken?: string
   };
 }
 
-export async function generateDataDownload(userId: Id<'users'>, downloadToken: string, expiresAt: number, sessionToken?: string | null) {
+export async function generateDataDownload(
+  userId: Id<'users'>, 
+  downloadToken: string, 
+  expiresAt: number, 
+  sessionToken?: string | null,
+  request?: NextRequest
+) {
+  // Get Convex client with request context if available
+  const convexClient = request ? getConvexClientFromRequest(request) : undefined;
+  
   // Compile all user data
-  const userData = await compileUserData(userId, sessionToken);
+  const userData = await compileUserData(userId, sessionToken, convexClient);
 
   // Convert to JSON
   const jsonData = JSON.stringify(userData, null, 2);

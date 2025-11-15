@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { getConvexClient, getSessionToken } from "@/lib/convexClient";
-import { api } from "../../../packages/convex/_generated/api.js";
+import { api } from '@/convex/_generated/api';
 import { useToast } from "@/lib/ToastContext";
 
 export const useProfile = () => {

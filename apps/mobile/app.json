@@ -102,6 +102,13 @@
       "appId": "2578e373-8a73-4caa-b2a3-6324699ebd79",
       "appleStoreSku": "cribnosh-mobile-app-2578e373"
     },
-    "owner": "cribnoshtest"
+    "owner": "cribnoshtest",
+    "updates": {
+      "url": "https://u.expo.dev/2578e373-8a73-4caa-b2a3-6324699ebd79",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD",
+      "enabled": true
+    },
+    "runtimeVersion": "1.0.0"
   }
 }

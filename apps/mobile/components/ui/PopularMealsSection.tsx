@@ -1,12 +1,13 @@
-import { useGetPopularMealsQuery } from '@/store/customerApi';
+import { useMeals } from '@/hooks/useMeals';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { showError } from '../../lib/GlobalToastManager';
 import { PopularMealsSectionEmpty } from './PopularMealsSectionEmpty';
 import { PopularMealsSectionSkeleton } from './PopularMealsSectionSkeleton';
 import { SentimentRating } from './SentimentRating';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface Meal {
   id: string;
@@ -41,21 +42,45 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
   useBackend = true,
 }) => {
   const { isAuthenticated, user } = useAuthContext();
+  const { getRandomMeals, isLoading: isLoadingMeals } = useMeals();
+  
+  const [popularMealsData, setPopularMealsData] = useState<any>(null);
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendError, setBackendError] = useState<any>(null);
 
-  // Backend API integration
-  const {
-    data: popularMealsData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetPopularMealsQuery(
-    { 
-      limit: 20,
-      userId: user?.id || user?._id || undefined,
-    },
-    {
-      skip: !useBackend || !isAuthenticated,
+  // Load popular meals (using random meals for now, or we can use top-rated)
+  useEffect(() => {
+    if (useBackend && isAuthenticated) {
+      const loadPopularMeals = async () => {
+        try {
+          setBackendLoading(true);
+          setBackendError(null);
+          // For now, use random meals as popular meals
+          // In the future, we can add a specific getPopularMeals action
+          const result = await getRandomMeals(20);
+          if (result.success) {
+            // Transform to match expected format
+            setPopularMealsData({ 
+              success: true, 
+              data: { 
+                popular: result.data.meals.map((meal: any) => ({
+                  meal,
+                  chef: meal.chef || null,
+                }))
+              } 
+            });
+          }
+        } catch (error: any) {
+          setBackendError(error);
+        } finally {
+          setBackendLoading(false);
+        }
+      };
+      loadPopularMeals();
+    } else {
+      setPopularMealsData(null);
     }
-  );
+  }, [useBackend, isAuthenticated, getRandomMeals]);
 
   // Transform API data to component format
   const transformMealData = useCallback((apiMeal: any): Meal | null => {
@@ -103,16 +128,15 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
   // Determine loading state
   const isLoading = propIsLoading !== undefined ? propIsLoading : (useBackend && backendLoading);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError('Failed to load popular meals', 'Please try again');
-    }
-  }, [backendError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Show skeleton while loading
   if (isLoading) {
-    return <PopularMealsSectionSkeleton itemCount={8} />;
+    return (
+      <SkeletonWithTimeout isLoading={isLoading}>
+        <PopularMealsSectionSkeleton itemCount={8} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no meals (don't show empty state)

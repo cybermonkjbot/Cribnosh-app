@@ -1096,10 +1096,33 @@ export default defineSchema({
       price: v.number(),
       quantity: v.number(),
       updatedAt: v.optional(v.number()),
+      sides: v.optional(v.array(v.object({
+        id: v.string(),
+        name: v.string(),
+        price: v.number(),
+        quantity: v.number(),
+      }))),
     })),
     updatedAt: v.number(),
   })
     .index('by_user', ['userId']),
+
+  // Sides table - available side dishes/extras that can be added to meals
+  sides: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    price: v.number(), // Price in cents
+    mealId: v.optional(v.id('meals')), // Optional: specific to a meal
+    chefId: v.optional(v.id('chefs')), // Optional: specific to a chef
+    category: v.optional(v.string()), // e.g., "drinks", "extras", "sauces", "sides"
+    image: v.optional(v.string()),
+    available: v.optional(v.boolean()), // Default true
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_meal', ['mealId'])
+    .index('by_chef', ['chefId'])
+    .index('by_category', ['category']),
 
   // Orders table
   orders: defineTable({

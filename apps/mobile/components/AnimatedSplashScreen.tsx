@@ -63,17 +63,13 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
 
   // Create interpolated background color using RGB values for better compatibility
   // Start with dark background instead of white to avoid white flash
-  const backgroundColor = useDerivedValue(() => {
+  const containerAnimatedStyle = useAnimatedStyle(() => {
     "worklet";
     const r = interpolate(backgroundColorAnim.value, [0, 0.5, 1], [2, 44, 220]);
     const g = interpolate(backgroundColorAnim.value, [0, 0.5, 1], [18, 44, 38]);
     const b = interpolate(backgroundColorAnim.value, [0, 0.5, 1], [10, 44, 38]);
-    return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-  });
-
-  const containerAnimatedStyle = useAnimatedStyle(() => {
     return {
-      backgroundColor: backgroundColor.value,
+      backgroundColor: `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`,
     };
   });
 

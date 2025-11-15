@@ -3,16 +3,12 @@ import { BalanceInfoSheet } from '@/components/ui/BalanceInfoSheet';
 import { BalanceTransactionsSheet } from '@/components/ui/BalanceTransactionsSheet';
 import { TopUpBalanceSheet } from '@/components/ui/TopUpBalanceSheet';
 import {
-  useAddPaymentMethodMutation,
-  useGetBalanceTransactionsQuery,
-  useGetCribnoshBalanceQuery,
-  useGetPaymentMethodsQuery,
-  useSetDefaultPaymentMethodMutation,
   useSetupFamilyProfileMutation,
 } from '@/store/customerApi';
 import { useRouter } from 'expo-router';
 import { CreditCard } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePayments } from '@/hooks/usePayments';
 import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -64,54 +60,45 @@ export default function PaymentSettingsScreen() {
   const [isBalanceInfoVisible, setIsBalanceInfoVisible] = useState(false);
   const [isTransactionsVisible, setIsTransactionsVisible] = useState(false);
   const [isTopUpVisible, setIsTopUpVisible] = useState(false);
+  const [paymentMethodsData, setPaymentMethodsData] = useState<any>(null);
+  const [balanceData, setBalanceData] = useState<any>(null);
+  const [transactionsData, setTransactionsData] = useState<any>(null);
 
-  // Fetch payment data from API
-  const { data: paymentMethodsData } = useGetPaymentMethodsQuery(undefined, {
-    skip: false,
-  });
-
-  const { data: balanceData } = useGetCribnoshBalanceQuery(undefined, {
-    skip: false,
-  });
-
-  const { data: transactionsData } = useGetBalanceTransactionsQuery(
-    { page: 1, limit: 10 },
-    {
-      skip: false,
-    }
-  );
-
-  const [addPaymentMethod] = useAddPaymentMethodMutation();
-  const [setDefaultPaymentMethod] = useSetDefaultPaymentMethodMutation();
+  const {
+    getPaymentMethods,
+    getBalance,
+    getBalanceTransactions,
+    setDefaultPaymentMethod,
+    isLoading: paymentsLoading,
+  } = usePayments();
   const [setupFamilyProfile] = useSetupFamilyProfileMutation();
+
+  // Fetch payment data using Convex
+  useEffect(() => {
+    const fetchData = async () => {
+      const [methods, balance, transactions] = await Promise.all([
+        getPaymentMethods(),
+        getBalance(),
+        getBalanceTransactions(1, 10),
+      ]);
+      if (methods) setPaymentMethodsData({ data: methods });
+      if (balance) setBalanceData({ data: balance });
+      if (transactions) setTransactionsData({ data: transactions });
+    };
+    fetchData();
+  }, [getPaymentMethods, getBalance, getBalanceTransactions]);
 
   const handleBack = () => {
     router.back();
   };
 
   const handlePaymentMethodSelect = async (methodId: string) => {
-    try {
-      await setDefaultPaymentMethod(methodId).unwrap();
+    const success = await setDefaultPaymentMethod(methodId);
+    if (success) {
       setSelectedPaymentMethod(methodId);
-      showToast({
-        type: "success",
-        title: "Payment Method Updated",
-        message: "Default payment method has been changed.",
-        duration: 3000,
-      });
-    } catch (error: any) {
-      console.error("Error setting default payment method:", error);
-      const errorMessage = 
-        error?.data?.error?.message ||
-        error?.data?.message ||
-        error?.message ||
-        "Failed to update payment method. Please try again.";
-      showToast({
-        type: "error",
-        title: "Update Failed",
-        message: errorMessage,
-        duration: 4000,
-      });
+      // Refresh payment methods to get updated default
+      const methods = await getPaymentMethods();
+      if (methods) setPaymentMethodsData({ data: methods });
     }
   };
 

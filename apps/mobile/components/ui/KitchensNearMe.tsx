@@ -1,13 +1,13 @@
+import { useChefs } from '@/hooks/useChefs';
 import { Image } from 'expo-image';
 import { MapPin } from 'lucide-react-native';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { useGetNearbyChefsQuery } from '@/store/customerApi';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useUserLocation } from '../../hooks/useUserLocation';
 import { showError } from '../../lib/GlobalToastManager';
-import { KitchensNearMeEmpty } from './KitchensNearMeEmpty';
 import { KitchensNearMeSkeleton } from './KitchensNearMeSkeleton';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface Kitchen {
   id: string;
@@ -31,24 +31,40 @@ export function KitchensNearMe({
 }: KitchensNearMeProps) {
   const { isAuthenticated } = useAuthContext();
   const locationState = useUserLocation();
+  const { getNearbyChefs } = useChefs();
 
-  // Backend API integration
-  const {
-    data: nearbyChefsData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetNearbyChefsQuery(
-    {
-      latitude: locationState.location?.latitude || 0,
-      longitude: locationState.location?.longitude || 0,
-      radius: 5, // 5km radius
-      limit: 10,
-      page: 1,
-    },
-    {
-      skip: !useBackend || !isAuthenticated || !locationState.location?.latitude || !locationState.location?.longitude,
+  const [nearbyChefsData, setNearbyChefsData] = useState<any>(null);
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendError, setBackendError] = useState<any>(null);
+
+  // Load nearby chefs
+  useEffect(() => {
+    if (useBackend && isAuthenticated && locationState.location?.latitude && locationState.location?.longitude) {
+      const loadNearbyChefs = async () => {
+        try {
+          setBackendLoading(true);
+          setBackendError(null);
+          const result = await getNearbyChefs({
+            latitude: locationState.location!.latitude,
+            longitude: locationState.location!.longitude,
+            radius: 5,
+            limit: 10,
+            page: 1,
+          });
+          if (result.success) {
+            setNearbyChefsData({ success: true, data: result.data });
+          }
+        } catch (error: any) {
+          setBackendError(error);
+        } finally {
+          setBackendLoading(false);
+        }
+      };
+      loadNearbyChefs();
+    } else {
+      setNearbyChefsData(null);
     }
-  );
+  }, [useBackend, isAuthenticated, locationState.location?.latitude, locationState.location?.longitude, getNearbyChefs]);
 
   // Transform API data to component format
   const transformKitchenData = useCallback((apiChef: any): Kitchen | null => {
@@ -86,16 +102,15 @@ export function KitchensNearMe({
     return transformedKitchens;
   }, [nearbyChefsData, useBackend, transformKitchenData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError('Failed to load nearby kitchens', 'Please try again');
-    }
-  }, [backendError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Show skeleton while loading
   if (useBackend && backendLoading) {
-    return <KitchensNearMeSkeleton itemCount={2} />;
+    return (
+      <SkeletonWithTimeout isLoading={backendLoading}>
+        <KitchensNearMeSkeleton itemCount={2} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no kitchens (don't show empty state)

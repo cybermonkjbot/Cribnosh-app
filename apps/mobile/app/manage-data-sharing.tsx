@@ -1,7 +1,4 @@
-import {
-  useGetDataSharingPreferencesQuery,
-  useUpdateDataSharingPreferencesMutation,
-} from '@/store/customerApi';
+import { usePreferences } from '@/hooks/usePreferences';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -44,32 +41,33 @@ const chevronRightIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fil
 export default function ManageDataSharingScreen() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { getDataSharingPreferences, updateDataSharingPreferences } = usePreferences();
 
-  // Fetch data sharing preferences from API
-  const { data: dataSharingData } = useGetDataSharingPreferencesQuery(undefined, {
-    skip: false, // Backend endpoint needed: GET /customer/data-sharing-preferences
-  });
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [personalizationEnabled, setPersonalizationEnabled] = useState(true);
+  const [marketingEnabled, setMarketingEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [updateDataSharing] = useUpdateDataSharingPreferencesMutation();
-
-  const [analyticsEnabled, setAnalyticsEnabled] = useState(
-    dataSharingData?.data?.analytics_enabled ?? true
-  );
-  const [personalizationEnabled, setPersonalizationEnabled] = useState(
-    dataSharingData?.data?.personalization_enabled ?? true
-  );
-  const [marketingEnabled, setMarketingEnabled] = useState(
-    dataSharingData?.data?.marketing_enabled ?? false
-  );
-
-  // Sync state with API data when it loads
+  // Load data sharing preferences on mount
   useEffect(() => {
-    if (dataSharingData?.data) {
-      setAnalyticsEnabled(dataSharingData.data.analytics_enabled);
-      setPersonalizationEnabled(dataSharingData.data.personalization_enabled);
-      setMarketingEnabled(dataSharingData.data.marketing_enabled);
+    loadPreferences();
+  }, []);
+
+  const loadPreferences = async () => {
+    try {
+      setIsLoading(true);
+      const result = await getDataSharingPreferences();
+      if (result.success && result.data) {
+        setAnalyticsEnabled(result.data.analytics_enabled ?? true);
+        setPersonalizationEnabled(result.data.personalization_enabled ?? true);
+        setMarketingEnabled(result.data.marketing_enabled ?? false);
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoading(false);
     }
-  }, [dataSharingData]);
+  };
 
   const handleBack = () => {
     router.back();
@@ -119,31 +117,14 @@ export default function ManageDataSharingScreen() {
                 onValueChange={async (value) => {
                   setAnalyticsEnabled(value);
                   try {
-                    await updateDataSharing({
+                    await updateDataSharingPreferences({
                       analytics_enabled: value,
                       personalization_enabled: personalizationEnabled,
                       marketing_enabled: marketingEnabled,
-                    }).unwrap();
-                    showToast({
-                      type: "success",
-                      title: "Settings Updated",
-                      message: "Data sharing preferences have been updated.",
-                      duration: 3000,
                     });
-                  } catch (error: any) {
-                    console.error("Error updating data sharing preferences:", error);
+                  } catch (error) {
                     setAnalyticsEnabled(!value); // Revert on error
-                    const errorMessage = 
-                      error?.data?.error?.message ||
-                      error?.data?.message ||
-                      error?.message ||
-                      "Failed to update preferences. Please try again.";
-                    showToast({
-                      type: "error",
-                      title: "Update Failed",
-                      message: errorMessage,
-                      duration: 4000,
-                    });
+                    // Error already handled in hook
                   }
                 }}
                 trackColor={{ false: '#E5E7EB', true: '#FF3B30' }}
@@ -167,31 +148,14 @@ export default function ManageDataSharingScreen() {
                 onValueChange={async (value) => {
                   setPersonalizationEnabled(value);
                   try {
-                    await updateDataSharing({
+                    await updateDataSharingPreferences({
                       analytics_enabled: analyticsEnabled,
                       personalization_enabled: value,
                       marketing_enabled: marketingEnabled,
-                    }).unwrap();
-                    showToast({
-                      type: "success",
-                      title: "Settings Updated",
-                      message: "Data sharing preferences have been updated.",
-                      duration: 3000,
                     });
-                  } catch (error: any) {
-                    console.error("Error updating data sharing preferences:", error);
+                  } catch (error) {
                     setPersonalizationEnabled(!value); // Revert on error
-                    const errorMessage = 
-                      error?.data?.error?.message ||
-                      error?.data?.message ||
-                      error?.message ||
-                      "Failed to update preferences. Please try again.";
-                    showToast({
-                      type: "error",
-                      title: "Update Failed",
-                      message: errorMessage,
-                      duration: 4000,
-                    });
+                    // Error already handled in hook
                   }
                 }}
                 trackColor={{ false: '#E5E7EB', true: '#FF3B30' }}
@@ -215,31 +179,14 @@ export default function ManageDataSharingScreen() {
                 onValueChange={async (value) => {
                   setMarketingEnabled(value);
                   try {
-                    await updateDataSharing({
+                    await updateDataSharingPreferences({
                       analytics_enabled: analyticsEnabled,
                       personalization_enabled: personalizationEnabled,
                       marketing_enabled: value,
-                    }).unwrap();
-                    showToast({
-                      type: "success",
-                      title: "Settings Updated",
-                      message: "Data sharing preferences have been updated.",
-                      duration: 3000,
                     });
-                  } catch (error: any) {
-                    console.error("Error updating data sharing preferences:", error);
+                  } catch (error) {
                     setMarketingEnabled(!value); // Revert on error
-                    const errorMessage = 
-                      error?.data?.error?.message ||
-                      error?.data?.message ||
-                      error?.message ||
-                      "Failed to update preferences. Please try again.";
-                    showToast({
-                      type: "error",
-                      title: "Update Failed",
-                      message: errorMessage,
-                      duration: 4000,
-                    });
+                    // Error already handled in hook
                   }
                 }}
                 trackColor={{ false: '#E5E7EB', true: '#FF3B30' }}

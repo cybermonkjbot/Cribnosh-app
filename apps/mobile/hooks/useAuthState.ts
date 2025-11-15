@@ -8,7 +8,7 @@ import {
   StoredUser,
 } from "../utils/authUtils";
 import { getConvexClient, clearSessionToken } from "../lib/convexClient";
-import { api } from "../../../packages/convex/_generated/api.js";
+import { api } from '@/convex/_generated/api';
 
 export interface UseAuthStateReturn {
   // State

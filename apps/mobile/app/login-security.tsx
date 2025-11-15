@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,13 +16,8 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import {
-  useChangePasswordMutation,
-  useGetSessionsQuery,
-  useRevokeSessionMutation,
-  useSetupTwoFactorMutation,
-  useDisableTwoFactorMutation,
-} from '@/store/customerApi';
+import { useAccount } from '@/hooks/useAccount';
+import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '../lib/ToastContext';
 
 // Back arrow SVG
@@ -52,6 +47,8 @@ export default function LoginSecurityScreen() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [sessionsData, setSessionsData] = useState<any>(null);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
   // Password form state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -61,13 +58,18 @@ export default function LoginSecurityScreen() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [changePassword] = useChangePasswordMutation();
-  const { data: sessionsData, isLoading: isLoadingSessions } = useGetSessionsQuery(undefined, {
-    skip: false,
-  });
-  const [revokeSession] = useRevokeSessionMutation();
-  const [setupTwoFactor] = useSetupTwoFactorMutation();
-  const [disableTwoFactor] = useDisableTwoFactorMutation();
+  // Use account hook for Convex actions
+  const {
+    changePassword,
+    getSessions,
+    revokeSession,
+    setup2FA,
+    disable2FA,
+    isLoading: accountLoading,
+  } = useAccount();
+  
+  // Use profile hook to get user's 2FA status
+  const { getCustomerProfile } = useProfile();
   
   // 2FA state
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
@@ -75,6 +77,40 @@ export default function LoginSecurityScreen() {
   const [qrCodeData, setQrCodeData] = useState<string>('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [isSettingUp2FA, setIsSettingUp2FA] = useState(false);
+
+  // Fetch sessions and 2FA status on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoadingSessions(true);
+        
+        // Fetch sessions
+        const sessionsResult = await getSessions();
+        if (sessionsResult.success && sessionsResult.data?.sessions) {
+          setSessionsData({ data: { sessions: sessionsResult.data.sessions } });
+        }
+        
+        // Fetch profile to get 2FA status
+        try {
+          const profileResult = await getCustomerProfile();
+          if (profileResult.success && profileResult.data?.user) {
+            // Note: 2FA status might not be in the profile response
+            // If it's not available, we'll keep the default false
+            // The toggle will update it when used
+          }
+        } catch (profileError) {
+          // Profile fetch is optional, don't fail if it errors
+          console.log('Could not fetch profile for 2FA status:', profileError);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoadingSessions(false);
+      }
+    };
+
+    fetchData();
+  }, [getSessions, getCustomerProfile]);
 
   const handleBack = () => {
     router.back();
@@ -113,17 +149,7 @@ export default function LoginSecurityScreen() {
 
     setIsChangingPassword(true);
     try {
-      await changePassword({
-        current_password: currentPassword,
-        new_password: newPassword,
-      }).unwrap();
-
-      showToast({
-        type: 'success',
-        title: 'Password Changed',
-        message: 'Your password has been changed successfully.',
-        duration: 3000,
-      });
+      await changePassword(currentPassword, newPassword);
 
       // Reset form
       setCurrentPassword('');
@@ -132,17 +158,7 @@ export default function LoginSecurityScreen() {
       setShowPasswordForm(false);
     } catch (error: any) {
       console.error('Error changing password:', error);
-      const errorMessage =
-        error?.data?.error?.message ||
-        error?.data?.message ||
-        error?.message ||
-        'Failed to change password. Please try again.';
-      showToast({
-        type: 'error',
-        title: 'Change Failed',
-        message: errorMessage,
-        duration: 4000,
-      });
+      // Error handling is done in the hook
     } finally {
       setIsChangingPassword(false);
     }
@@ -154,8 +170,8 @@ export default function LoginSecurityScreen() {
         // Enable 2FA - setup flow
         setIsSettingUp2FA(true);
         try {
-          const result = await setupTwoFactor().unwrap();
-          if (result.data) {
+          const result = await setup2FA();
+          if (result.success && result.data) {
             setQrCodeData(result.data.qrCode);
             setBackupCodes(result.data.backupCodes);
             setTwoFactorEnabled(true);
@@ -163,17 +179,6 @@ export default function LoginSecurityScreen() {
           }
         } catch (error: any) {
           console.error('Error setting up 2FA:', error);
-          const errorMessage =
-            error?.data?.error?.message ||
-            error?.data?.message ||
-            error?.message ||
-            'Failed to setup 2FA. Please try again.';
-          showToast({
-            type: 'error',
-            title: 'Setup Failed',
-            message: errorMessage,
-            duration: 4000,
-          });
           setTwoFactorEnabled(false);
         } finally {
           setIsSettingUp2FA(false);
@@ -181,27 +186,10 @@ export default function LoginSecurityScreen() {
       } else {
         // Disable 2FA
         try {
-          await disableTwoFactor({}).unwrap();
+          await disable2FA();
           setTwoFactorEnabled(false);
-          showToast({
-            type: 'success',
-            title: '2FA Disabled',
-            message: 'Two-factor authentication has been disabled.',
-            duration: 3000,
-          });
         } catch (error: any) {
           console.error('Error disabling 2FA:', error);
-          const errorMessage =
-            error?.data?.error?.message ||
-            error?.data?.message ||
-            error?.message ||
-            'Failed to disable 2FA. Please try again.';
-          showToast({
-            type: 'error',
-            title: 'Disable Failed',
-            message: errorMessage,
-            duration: 4000,
-          });
           setTwoFactorEnabled(true); // Revert on error
         }
       }
@@ -235,27 +223,16 @@ export default function LoginSecurityScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await revokeSession(sessionId).unwrap();
-
-              showToast({
-                type: 'success',
-                title: 'Session Revoked',
-                message: 'The session has been revoked successfully.',
-                duration: 3000,
-              });
+              await revokeSession(sessionId);
+              
+              // Refresh sessions after revoking
+              const result = await getSessions();
+              if (result.success && result.data?.sessions) {
+                setSessionsData({ data: { sessions: result.data.sessions } });
+              }
             } catch (error: any) {
               console.error('Error revoking session:', error);
-              const errorMessage =
-                error?.data?.error?.message ||
-                error?.data?.message ||
-                error?.message ||
-                'Failed to revoke session. Please try again.';
-              showToast({
-                type: 'error',
-                title: 'Revoke Failed',
-                message: errorMessage,
-                duration: 4000,
-              });
+              // Error handling is done in the hook
             }
           },
         },
@@ -445,7 +422,7 @@ export default function LoginSecurityScreen() {
               </View>
             </View>
 
-            {isLoadingSessions ? (
+            {(isLoadingSessions || accountLoading) ? (
               <View style={styles.placeholderContainer}>
                 <ActivityIndicator size="small" color="#094327" />
                 <Text style={styles.placeholderText}>Loading sessions...</Text>

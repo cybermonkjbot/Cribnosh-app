@@ -152,6 +152,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const dishesWithDetails = dishIds.length > 0
       ? await convex.query(api.queries.meals.getDishesWithDetails, {
         dishIds,
+        userId,
         sessionToken: sessionToken || undefined
       })
       : [];

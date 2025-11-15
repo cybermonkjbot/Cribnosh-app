@@ -1,9 +1,5 @@
 import { useToast } from "@/lib/ToastContext";
-import {
-  useGetFamilyProfileQuery,
-  useGetFamilySpendingQuery,
-  useRemoveFamilyMemberMutation,
-} from "@/store/customerApi";
+import { useRemoveFamilyMemberMutation } from "@/store/customerApi";
 import type { FamilyMember } from "@/types/customer";
 import { Stack, useRouter } from "expo-router";
 import { Plus, Users } from "lucide-react-native";
@@ -22,7 +18,7 @@ import { SvgXml } from "react-native-svg";
 import { AddFamilyMemberSheet } from "@/components/ui/AddFamilyMemberSheet";
 import { FamilyMemberDetailSheet } from "@/components/ui/FamilyMemberDetailSheet";
 import { FamilyOrdersSheet } from "@/components/ui/FamilyOrdersSheet";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -32,14 +28,41 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 export default function FamilyProfileManageScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const {
-    data: familyProfileData,
-    isLoading: profileLoading,
-    error: profileError,
-    refetch: refetchFamilyProfile,
-  } = useGetFamilyProfileQuery();
-  const { data: spendingData, isLoading: spendingLoading } =
-    useGetFamilySpendingQuery();
+  const { getFamilyProfile, getFamilySpending } = useFamilyProfile();
+  const [familyProfileData, setFamilyProfileData] = useState<any>(null);
+  const [spendingData, setSpendingData] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [spendingLoading, setSpendingLoading] = useState(false);
+  const [profileError, setProfileError] = useState<any>(null);
+
+  useEffect(() => {
+    loadFamilyData();
+  }, []);
+
+  const loadFamilyData = async () => {
+    try {
+      setProfileLoading(true);
+      setProfileError(null);
+      const [profileResult, spendingResult] = await Promise.all([
+        getFamilyProfile(),
+        getFamilySpending(),
+      ]);
+      if (profileResult.success) {
+        setFamilyProfileData({ success: true, data: profileResult.data });
+      }
+      if (spendingResult.success) {
+        setSpendingData({ success: true, data: spendingResult.data });
+      }
+    } catch (error) {
+      setProfileError(error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const refetchFamilyProfile = () => {
+    loadFamilyData();
+  };
   const [removeFamilyMember, { isLoading: isRemovingMember }] =
     useRemoveFamilyMemberMutation();
   

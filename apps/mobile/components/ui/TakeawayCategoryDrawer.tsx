@@ -1,8 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGetTakeawayItemsQuery } from '@/store/customerApi';
+import { useMeals } from '@/hooks/useMeals';
 import { showError } from '@/lib/GlobalToastManager';
 import { CategoryFoodItemsGrid } from './CategoryFoodItemsGrid';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
@@ -41,17 +41,31 @@ export function TakeawayCategoryDrawer({
 }: TakeawayCategoryDrawerProps) {
   const { isAuthenticated } = useAuthContext();
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const { getTakeawayItems } = useMeals();
+  const [takeawayData, setTakeawayData] = useState<any>(null);
+  const [takeawayError, setTakeawayError] = useState<any>(null);
+  const [takeawayLoading, setTakeawayLoading] = useState(false);
 
-  // Fetch takeaway items from API
-  const {
-    data: takeawayData,
-    error: takeawayError,
-  } = useGetTakeawayItemsQuery(
-    { limit: 50, page: 1 },
-    {
-      skip: !isAuthenticated,
+  // Load takeaway items
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadTakeawayItems = async () => {
+        try {
+          setTakeawayLoading(true);
+          setTakeawayError(null);
+          const result = await getTakeawayItems(50, 1);
+          if (result.success) {
+            setTakeawayData({ success: true, data: result.data });
+          }
+        } catch (error: any) {
+          setTakeawayError(error);
+        } finally {
+          setTakeawayLoading(false);
+        }
+      };
+      loadTakeawayItems();
     }
-  );
+  }, [isAuthenticated, getTakeawayItems]);
 
   // Transform API data to FoodItem format
   const transformTakeawayItem = useCallback((apiItem: any): FoodItem | null => {
@@ -97,8 +111,13 @@ export function TakeawayCategoryDrawer({
       return [];
     }
 
-    // SearchResponse.data is an array of SearchResult
-    const items = Array.isArray(takeawayData.data) ? takeawayData.data : [];
+    // Handle different data structures: could be array directly or { items: [...] }
+    let items: any[] = [];
+    if (Array.isArray(takeawayData.data)) {
+      items = takeawayData.data;
+    } else if (takeawayData.data.items && Array.isArray(takeawayData.data.items)) {
+      items = takeawayData.data.items;
+    }
     
     const transformedItems = items
       .map((item: any) => transformTakeawayItem(item))
@@ -108,11 +127,7 @@ export function TakeawayCategoryDrawer({
   }, [takeawayData, isAuthenticated, transformTakeawayItem]);
 
   // Handle errors
-  React.useEffect(() => {
-    if (takeawayError && isAuthenticated) {
-      showError('Failed to load takeaway items', 'Please try again');
-    }
-  }, [takeawayError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Use API data if available, otherwise use props, otherwise empty array
   const defaultItems: FoodItem[] = useMemo(() => {

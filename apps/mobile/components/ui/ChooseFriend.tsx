@@ -240,33 +240,54 @@ export default function ChooseFriend({ isOpen, onClick }: ChooseFriendModal) {
           </View>
         )}
 
-        {/* Default Friends List - Show when not searching */}
+        {/* Default Friends List or Empty State - Show when not searching */}
         {!searchQuery && (
-          <View style={styles.friendsContainer}>
-            {rows.map((row, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.row,
-                  row.type === "even" ? styles.rowEven : styles.rowOdd,
-                ]}
-              >
-                {row.items.map((item: Box, idx: number) => (
-                  <Pressable onPress={() => {
-                    const friend = defaultItems.find(f => f.name === item.name);
-                    if (friend) {
-                      handleFriendPress(friend.id);
-                    }
-                  }} key={idx}>
-                    <GroupOrderMember
-                      avatarUri={item.avatarUri}
-                      name={item.name}
-                    />
-                  </Pressable>
+          <>
+            {availableFriends.length === 0 ? (
+              <View style={styles.emptyStateWrapper}>
+                <EmptyState
+                  title="You have no friends"
+                  subtitle="Add friends to share payments and split costs together"
+                  icon="people-outline"
+                  titleColor="#E6FFE8"
+                  subtitleColor="#EAEAEA"
+                  iconColor="#E6FFE8"
+                />
+              </View>
+            ) : (
+              <View style={{ marginTop: 20 }}>
+                {availableFriends.map((friend) => (
+                  <View key={friend.id} style={styles.userResultItem}>
+                    <TouchableOpacity 
+                      style={styles.userResultContent}
+                      onPress={() => handleFriendPress(friend.id)}
+                    >
+                      <View style={styles.userAvatarContainer}>
+                        <Avatar source={friend.avatarUri} size="sm" />
+                        <View style={styles.selectionIndicator}>
+                          {selectedUsers.includes(friend.id) ? (
+                            <View style={styles.selectedCircle}>
+                              <Text style={styles.checkmark}>✓</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.unselectedCircle} />
+                          )}
+                        </View>
+                      </View>
+                      <View style={styles.userInfo}>
+                        <Text style={styles.userName}>{friend.name}</Text>
+                        {friend.mutualFriends > 0 && (
+                          <Text style={styles.mutualFriends}>
+                            {friend.mutualFriends} mutual friends
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
-            ))}
-          </View>
+            )}
+          </>
         )}
       </ScrollView>
       

@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -29,15 +29,13 @@ import {
 import { QueryStateWrapper } from '../../components/ui/QueryStateWrapper';
 import { useAuthContext } from '../../contexts/AuthContext';
 import {
-  useGetCaloriesProgressQuery,
-  useGetCustomerProfileQuery,
   useGetForkPrintScoreQuery,
-  useGetMonthlyOverviewQuery,
-  useGetNoshPointsQuery,
-  useGetWeeklySummaryQuery,
 } from '../../store/customerApi';
+import { useAnalytics } from '../../hooks/useAnalytics';
 import { getAbsoluteImageUrl } from '../../utils/imageUrl';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
+import { getConvexClient, getSessionToken } from '../../lib/convexClient';
+import { api } from '@/convex/_generated/api';
 
 // Constants moved outside component to prevent recreation
 const SHEET_SNAP_POINT = 200; // Distance to pull up to open sheet
@@ -87,13 +85,50 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // API Queries
-  const {
-    data: profileData,
-    isLoading: profileLoading,
-  } = useGetCustomerProfileQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  // Profile state
+  const [profileData, setProfileData] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  // Fetch profile data from Convex
+  const fetchProfile = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setProfileLoading(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetProfile, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setProfileData({
+        data: {
+          ...result.user,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch profile on mount and when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProfile();
+    }
+  }, [isAuthenticated, fetchProfile]);
 
   // Get profile picture URL, converting relative URLs to absolute
   // Check multiple possible locations for the picture field
@@ -109,23 +144,8 @@ export default function ProfileScreen() {
       (profileData.data as any)?.user?.avatar ||
       (profileData.data as any)?.avatar;
     
-    // Debug: Log the profile data structure
-    console.log('Profile Screen - Profile Data:', {
-      hasData: !!profileData.data,
-      picture: picture,
-      dataPicture: profileData.data.picture,
-      userPicture: (profileData.data as any)?.user?.picture,
-      userAvatar: (profileData.data as any)?.user?.avatar,
-      dataAvatar: (profileData.data as any)?.avatar,
-      dataKeys: Object.keys(profileData.data),
-    });
-    
     if (picture) {
       const absoluteUrl = getAbsoluteImageUrl(picture);
-      console.log('Profile Screen - Picture URL:', {
-        original: picture,
-        absolute: absoluteUrl,
-      });
       return absoluteUrl;
     }
     
@@ -141,41 +161,167 @@ export default function ProfileScreen() {
     skip: !isAuthenticated,
   });
 
-  const {
-    data: noshPointsData,
-    isLoading: noshPointsLoading,
-    error: noshPointsError,
-    refetch: refetchNoshPoints,
-  } = useGetNoshPointsQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  const { 
+    getRewardsPoints, 
+    getNutritionProgress, 
+    getMonthlyOverview, 
+    getWeeklySummary,
+    isLoading: analyticsLoading 
+  } = useAnalytics();
 
-  const {
-    data: caloriesProgressData,
-    isLoading: caloriesProgressLoading,
-    error: caloriesProgressError,
-    refetch: refetchCaloriesProgress,
-  } = useGetCaloriesProgressQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  const [noshPointsData, setNoshPointsData] = useState<any>(null);
+  const [caloriesProgressData, setCaloriesProgressData] = useState<any>(null);
+  const [monthlyOverviewData, setMonthlyOverviewData] = useState<any>(null);
+  const [weeklySummaryData, setWeeklySummaryData] = useState<any>(null);
+  
+  const [noshPointsLoading, setNoshPointsLoading] = useState(false);
+  const [caloriesProgressLoading, setCaloriesProgressLoading] = useState(false);
+  const [monthlyOverviewLoading, setMonthlyOverviewLoading] = useState(false);
+  const [weeklySummaryLoading, setWeeklySummaryLoading] = useState(false);
 
-  const {
-    data: monthlyOverviewData,
-    isLoading: monthlyOverviewLoading,
-    error: monthlyOverviewError,
-    refetch: refetchMonthlyOverview,
-  } = useGetMonthlyOverviewQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  const [noshPointsError, setNoshPointsError] = useState<any>(null);
+  const [caloriesProgressError, setCaloriesProgressError] = useState<any>(null);
+  const [monthlyOverviewError, setMonthlyOverviewError] = useState<any>(null);
+  const [weeklySummaryError, setWeeklySummaryError] = useState<any>(null);
 
-  const {
-    data: weeklySummaryData,
-    isLoading: weeklySummaryLoading,
-    error: weeklySummaryError,
-    refetch: refetchWeeklySummary,
-  } = useGetWeeklySummaryQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  // Load analytics data when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadAnalyticsData();
+    }
+  }, [isAuthenticated]);
+
+  const loadAnalyticsData = useCallback(async () => {
+    // Load all analytics data in parallel
+    const loadPromises = [
+      (async () => {
+        try {
+          setNoshPointsLoading(true);
+          setNoshPointsError(null);
+          const result = await getRewardsPoints();
+          if (result.success) {
+            setNoshPointsData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setNoshPointsError(error);
+        } finally {
+          setNoshPointsLoading(false);
+        }
+      })(),
+      (async () => {
+        try {
+          setCaloriesProgressLoading(true);
+          setCaloriesProgressError(null);
+          const result = await getNutritionProgress();
+          if (result.success) {
+            setCaloriesProgressData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setCaloriesProgressError(error);
+        } finally {
+          setCaloriesProgressLoading(false);
+        }
+      })(),
+      (async () => {
+        try {
+          setMonthlyOverviewLoading(true);
+          setMonthlyOverviewError(null);
+          const result = await getMonthlyOverview();
+          if (result.success) {
+            setMonthlyOverviewData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setMonthlyOverviewError(error);
+        } finally {
+          setMonthlyOverviewLoading(false);
+        }
+      })(),
+      (async () => {
+        try {
+          setWeeklySummaryLoading(true);
+          setWeeklySummaryError(null);
+          const result = await getWeeklySummary();
+          if (result.success) {
+            setWeeklySummaryData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setWeeklySummaryError(error);
+        } finally {
+          setWeeklySummaryLoading(false);
+        }
+      })(),
+    ];
+
+    await Promise.all(loadPromises);
+  }, [getRewardsPoints, getNutritionProgress, getMonthlyOverview, getWeeklySummary]);
+
+  const refetchNoshPoints = useCallback(() => {
+    (async () => {
+      try {
+        setNoshPointsLoading(true);
+        setNoshPointsError(null);
+        const result = await getRewardsPoints();
+        if (result.success) {
+          setNoshPointsData({ success: true, data: result.data });
+        }
+      } catch (error) {
+        setNoshPointsError(error);
+      } finally {
+        setNoshPointsLoading(false);
+      }
+    })();
+  }, [getRewardsPoints]);
+
+  const refetchCaloriesProgress = useCallback(() => {
+    (async () => {
+      try {
+        setCaloriesProgressLoading(true);
+        setCaloriesProgressError(null);
+        const result = await getNutritionProgress();
+        if (result.success) {
+          setCaloriesProgressData({ success: true, data: result.data });
+        }
+      } catch (error) {
+        setCaloriesProgressError(error);
+      } finally {
+        setCaloriesProgressLoading(false);
+      }
+    })();
+  }, [getNutritionProgress]);
+
+  const refetchMonthlyOverview = useCallback(() => {
+    (async () => {
+      try {
+        setMonthlyOverviewLoading(true);
+        setMonthlyOverviewError(null);
+        const result = await getMonthlyOverview();
+        if (result.success) {
+          setMonthlyOverviewData({ success: true, data: result.data });
+        }
+      } catch (error) {
+        setMonthlyOverviewError(error);
+      } finally {
+        setMonthlyOverviewLoading(false);
+      }
+    })();
+  }, [getMonthlyOverview]);
+
+  const refetchWeeklySummary = useCallback(() => {
+    (async () => {
+      try {
+        setWeeklySummaryLoading(true);
+        setWeeklySummaryError(null);
+        const result = await getWeeklySummary();
+        if (result.success) {
+          setWeeklySummaryData({ success: true, data: result.data });
+        }
+      } catch (error) {
+        setWeeklySummaryError(error);
+      } finally {
+        setWeeklySummaryLoading(false);
+      }
+    })();
+  }, [getWeeklySummary]);
   
   // Simplified state management
   const isAnimating = useRef(false);
@@ -380,19 +526,10 @@ export default function ProfileScreen() {
                 />
                 {isAuthenticated && (
                   <TouchableOpacity onPress={() => router.push('/account-details')}>
-                    {(() => {
-                      console.log('Profile Screen - Rendering Avatar with:', {
-                        profilePictureUrl,
-                        hasUrl: !!profilePictureUrl,
-                        source: profilePictureUrl ? { uri: profilePictureUrl } : undefined,
-                      });
-                      return (
-                        <Avatar 
-                          size="md"
-                          source={profilePictureUrl ? { uri: profilePictureUrl } : undefined}
-                        />
-                      );
-                    })()}
+                    <Avatar 
+                      size="md"
+                      source={profilePictureUrl ? { uri: profilePictureUrl } : undefined}
+                    />
                   </TouchableOpacity>
                 )}
               </View>

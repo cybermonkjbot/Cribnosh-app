@@ -8,6 +8,7 @@ interface IncrementalOrderAmountProps {
   onChange?: (value: number) => void;
   onOrder?: () => void;
   isOrdered?: boolean;
+  buttonText?: string; // Custom text for the initial button (default: "Order")
 }
 
 const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
@@ -17,6 +18,7 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
   onChange,
   onOrder,
   isOrdered: externalIsOrdered,
+  buttonText = "Order",
 }) => {
   const [value, setValue] = useState(initialValue);
   const [internalIsOrdered, setInternalIsOrdered] = useState(false);
@@ -24,7 +26,9 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
   // Use external isOrdered if provided, otherwise use internal state
   const isOrdered = externalIsOrdered !== undefined ? externalIsOrdered : internalIsOrdered;
 
-  const handleOrderClick = () => {
+  const handleOrderClick = (e?: any) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     if (onOrder) {
       onOrder();
     } else {
@@ -35,21 +39,19 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
 
   const handleDecrement = () => {
     if (value > min) {
-      setValue(prev => {
-        const newValue = prev - 1;
-        onChange && onChange(newValue);
-        return newValue;
-      });
+      const newValue = value - 1;
+      setValue(newValue);
+      // Call onChange directly - the parent should handle async operations
+      onChange?.(newValue);
     }
   };
 
   const handleIncrement = () => {
     if (value < max) {
-      setValue(prev => {
-        const newValue = prev + 1;
-        onChange && onChange(newValue);
-        return newValue;
-      });
+      const newValue = value + 1;
+      setValue(newValue);
+      // Call onChange directly - the parent should handle async operations
+      onChange?.(newValue);
     }
   };
   
@@ -60,11 +62,16 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
     }
   }, [externalIsOrdered, internalIsOrdered]);
 
-  // Show "Order" button initially
+  // Sync value when initialValue changes
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  // Show button initially (with custom text or "Order" default)
   if (!isOrdered) {
     return (
       <Pressable style={styles.orderButton} onPress={handleOrderClick}>
-        <Text style={styles.orderButtonText}>Order</Text>
+        <Text style={styles.orderButtonText}>{buttonText}</Text>
       </Pressable>
     );
   }
@@ -72,11 +79,17 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
   // Show quantity controls after order is clicked
   return (
     <View style={styles.container}>
-      <Pressable style={styles.button} onPress={handleDecrement}>
+      <Pressable 
+        style={styles.button} 
+        onPress={handleDecrement}
+      >
         <Text style={styles.buttonText}>-</Text>
       </Pressable>
       <Text style={styles.value}>{value}</Text>
-      <Pressable style={styles.button} onPress={handleIncrement}>
+      <Pressable 
+        style={styles.button} 
+        onPress={handleIncrement}
+      >
         <Text style={styles.buttonText}>+</Text>
       </Pressable>
     </View>

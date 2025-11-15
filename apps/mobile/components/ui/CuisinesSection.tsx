@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useGetCuisinesQuery } from '@/store/customerApi';
+import { useCuisines } from '@/hooks/useCuisines';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { showError } from '../../lib/GlobalToastManager';
 import { CuisinesSectionEmpty } from './CuisinesSectionEmpty';
 import { CuisinesSectionSkeleton } from './CuisinesSectionSkeleton';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface Cuisine {
   id: string;
@@ -27,25 +28,45 @@ export function CuisinesSection({
   useBackend = true,
 }: CuisinesSectionProps) {
   const { isAuthenticated } = useAuthContext();
+  const { getCuisines, isLoading: backendLoading } = useCuisines();
+  const [cuisinesData, setCuisinesData] = useState<any>(null);
+  const [backendError, setBackendError] = useState<any>(null);
 
-  // Backend API integration
-  const {
-    data: cuisinesData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetCuisinesQuery(
-    { page: 1, limit: 20 },
-    {
-      skip: !useBackend || !isAuthenticated,
+  // Fetch cuisines from backend when needed
+  useEffect(() => {
+    if (useBackend && isAuthenticated && !propCuisines) {
+      loadCuisines();
     }
-  );
+  }, [useBackend, isAuthenticated]);
+
+  const loadCuisines = useCallback(async () => {
+    try {
+      setBackendError(null);
+      const result = await getCuisines(1, 20);
+      if (result.success) {
+        setCuisinesData(result);
+      }
+    } catch (error) {
+      setBackendError(error);
+      // Error state is shown in UI - no toast needed
+    }
+  }, [getCuisines, isAuthenticated]);
 
   // Transform API data to component format
   const transformCuisineData = useCallback((apiCuisine: any): Cuisine | null => {
     if (!apiCuisine) return null;
 
+    // Handle case where cuisines are returned as strings
+    if (typeof apiCuisine === 'string') {
+      return {
+        id: apiCuisine,
+        name: apiCuisine,
+        image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop',
+      };
+    }
+
     return {
-      id: apiCuisine.id || '',
+      id: apiCuisine.id || apiCuisine.name || '',
       name: apiCuisine.name || 'Unknown Cuisine',
       image: apiCuisine.image_url || apiCuisine.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop',
     };
@@ -71,16 +92,13 @@ export function CuisinesSection({
     return [];
   }, [propCuisines, cuisinesData, useBackend, transformCuisineData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError('Failed to load cuisines', 'Please try again');
-    }
-  }, [backendError, isAuthenticated]);
-
   // Show skeleton while loading
-  if (useBackend && backendLoading) {
-    return <CuisinesSectionSkeleton itemCount={3} />;
+  if (useBackend && backendLoading && !propCuisines) {
+    return (
+      <SkeletonWithTimeout isLoading={backendLoading}>
+        <CuisinesSectionSkeleton itemCount={3} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no cuisines (don't show empty state)

@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useCallback, useContext, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useRef, useState } from 'react';
 import { ToastContainer, ToastProps } from '../app/components/Toast';
 
 interface ToastContextType {
@@ -19,9 +19,11 @@ interface ToastProviderProps {
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
+  const idCounterRef = useRef(0);
 
   const showToast = useCallback((toast: Omit<ToastProps, 'id'>) => {
-    const id = Date.now().toString();
+    idCounterRef.current += 1;
+    const id = `${Date.now()}-${idCounterRef.current}`;
     const newToast: ToastProps = {
       ...toast,
       id,

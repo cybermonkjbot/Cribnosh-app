@@ -1,13 +1,15 @@
 import { Mascot } from '@/components/Mascot';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import ScatteredGroupMembers from '@/components/ui/ScatteredGroupMembers';
 import { SharedOrderingHeader } from '@/components/ui/SharedOrderingHeader';
+import { Avatar } from '@/components/ui/Avatar';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGetUserConnectionsQuery } from '@/store/customerApi';
 import { useRouter } from 'expo-router';
 import { SearchIcon, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChooseFriends() {
@@ -188,43 +190,105 @@ export default function ChooseFriends() {
         {/* Search Results - Always visible when searching */}
         {searchQuery && (
           <View style={{ marginTop: 20 }}>
-            <Text style={styles.searchResultsTitle}>
-              {filteredFriends.length > 0 ? `Found ${filteredFriends.length} people` : 'No results found'}
-            </Text>
-            {filteredFriends.map((friend) => (
-              <View key={friend.id} style={styles.userResultItem}>
-                <TouchableOpacity 
-                  style={styles.userResultContent}
-                  onPress={() => toggleFriendSelection(friend.id)}
-                >
-                  <View style={styles.userAvatarContainer}>
-                    <Image source={friend.avatar} style={styles.avatar} />
-                    <View style={styles.selectionIndicator}>
-                      {selectedFriends.includes(friend.id) ? (
-                        <View style={styles.selectedCircle}>
-                          <Text style={styles.checkmark}>✓</Text>
+            {filteredFriends.length > 0 ? (
+              <>
+                <Text style={styles.searchResultsTitle}>
+                  Found {filteredFriends.length} people
+                </Text>
+                {filteredFriends.map((friend) => (
+                  <View key={friend.id} style={styles.userResultItem}>
+                    <TouchableOpacity 
+                      style={styles.userResultContent}
+                      onPress={() => toggleFriendSelection(friend.id)}
+                    >
+                      <View style={styles.userAvatarContainer}>
+                        <Avatar source={friend.avatar} size="sm" />
+                        <View style={styles.selectionIndicator}>
+                          {selectedFriends.includes(friend.id) ? (
+                            <View style={styles.selectedCircle}>
+                              <Text style={styles.checkmark}>✓</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.unselectedCircle} />
+                          )}
                         </View>
-                      ) : (
-                        <View style={styles.unselectedCircle} />
-                      )}
-                    </View>
+                      </View>
+                      <View style={styles.userInfo}>
+                        <Text style={styles.userName}>{friend.name}</Text>
+                      </View>
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{friend.name}</Text>
-                  </View>
-                </TouchableOpacity>
+                ))}
+              </>
+            ) : (
+              <View style={styles.emptyStateWrapper}>
+                <EmptyState
+                  title="No friends found"
+                  subtitle="Try a different search term or invite friends to join"
+                  icon="people-outline"
+                  titleColor="#E6FFE8"
+                  subtitleColor="#EAEAEA"
+                  iconColor="#E6FFE8"
+                />
               </View>
-            ))}
+            )}
           </View>
         )}
 
-        {/* ScatteredGroupMembers with proper spacing */}
-        <View style={styles.scatteredMembersContainer}>
-          <ScatteredGroupMembers 
-            members={groupMembers} 
-            refreshKey={refreshKey}
-          />
-        </View>
+        {/* Friends List or Empty State - Show when not searching */}
+        {!searchQuery && (
+          <>
+            {friends.length === 0 ? (
+              <View style={styles.emptyStateWrapper}>
+                <EmptyState
+                  title="You have no friends"
+                  subtitle="Add friends to share group orders and split costs together"
+                  icon="people-outline"
+                  titleColor="#E6FFE8"
+                  subtitleColor="#EAEAEA"
+                  iconColor="#E6FFE8"
+                />
+              </View>
+            ) : (
+              <View style={{ marginTop: 20 }}>
+                {friends.map((friend) => (
+                  <View key={friend.id} style={styles.userResultItem}>
+                    <TouchableOpacity 
+                      style={styles.userResultContent}
+                      onPress={() => toggleFriendSelection(friend.id)}
+                    >
+                      <View style={styles.userAvatarContainer}>
+                        <Avatar source={friend.avatar} size="sm" />
+                        <View style={styles.selectionIndicator}>
+                          {selectedFriends.includes(friend.id) ? (
+                            <View style={styles.selectedCircle}>
+                              <Text style={styles.checkmark}>✓</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.unselectedCircle} />
+                          )}
+                        </View>
+                      </View>
+                      <View style={styles.userInfo}>
+                        <Text style={styles.userName}>{friend.name}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        )}
+
+        {/* ScatteredGroupMembers with proper spacing - Show selected friends */}
+        {selectedFriends.length > 0 && (
+          <View style={styles.scatteredMembersContainer}>
+            <ScatteredGroupMembers 
+              members={groupMembers} 
+              refreshKey={refreshKey}
+            />
+          </View>
+        )}
       </ScrollView>
 
       {/* Full Screen Loading Modal */}
@@ -374,11 +438,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 12,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
   selectionIndicator: {
     position: 'absolute',
     top: -4,
@@ -415,6 +474,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+  },
+  emptyStateWrapper: {
+    paddingVertical: 40,
+    paddingHorizontal: 20,
   },
   imageContainer: {
     position: 'absolute',

@@ -1,15 +1,7 @@
 import { useAuthContext } from '@/contexts/AuthContext';
-import {
-  useAddToCartMutation,
-  useGetCartQuery,
-  useGetLiveSessionQuery,
-  useUpdateCartItemMutation,
-  useGetLiveCommentsQuery,
-  useSendLiveCommentMutation,
-  useGetLiveViewersQuery,
-  useSendLiveReactionMutation,
-  useGetLiveReactionsQuery,
-} from '@/store/customerApi';
+import { useCart } from '@/hooks/useCart';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '../../../../packages/convex/_generated/api';
 import { LiveComment } from '@/types/customer';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
@@ -42,8 +34,9 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   const [commentText, setCommentText] = useState('');
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
   const router = useRouter();
-  const [addToCart] = useAddToCartMutation();
-  const [updateCartItem] = useUpdateCartItemMutation();
+  const { getCart, addToCart: addToCartAction, updateCartItem: updateCartItemAction } = useCart();
+  const [cartData, setCartData] = useState<any>(null);
+  const [cartLoading, setCartLoading] = useState(false);
   const insets = useSafeAreaInsets();
   
   // Detect if this is a mock ID (simple numeric string like "1", "2", etc.)
@@ -51,19 +44,86 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     return /^\d+$/.test(sessionId) && sessionId.length <= 3;
   }, [sessionId]);
 
-  // Fetch live session data only if not a mock ID
-  const { 
-    data: sessionData, 
-    isLoading: isLoadingSession, 
-    error: sessionError 
-  } = useGetLiveSessionQuery(sessionId, {
-    skip: !sessionId || isMockId,
-  });
+  // Live session state
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
+  const [sessionError, setSessionError] = useState<any>(null);
+
+  // Fetch live session from Convex
+  useEffect(() => {
+    const fetchLiveSession = async () => {
+      if (!sessionId || isMockId || !isAuthenticated) return;
+
+      try {
+        setIsLoadingSession(true);
+        setSessionError(null);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          return;
+        }
+
+        const result = await convex.action(api.actions.liveStreaming.customerGetLiveSession, {
+          sessionToken,
+          sessionId,
+        });
+
+        if (result.success === false) {
+          setSessionError(new Error(result.error || 'Failed to fetch live session'));
+          return;
+        }
+
+        // Transform to match expected format
+        setSessionData({
+          data: {
+            session: result.session,
+            meal: result.session.meal,
+          },
+        });
+      } catch (error: any) {
+        setSessionError(error);
+        console.error('Error fetching live session:', error);
+      } finally {
+        setIsLoadingSession(false);
+      }
+    };
+
+    fetchLiveSession();
+  }, [sessionId, isMockId, isAuthenticated]);
   
-  // Fetch cart data to show cart button when items exist
-  const { data: cartData, refetch: refetchCart } = useGetCartQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  // Load cart data to show cart button when items exist
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadCart = async () => {
+        try {
+          setCartLoading(true);
+          const result = await getCart();
+          if (result.success) {
+            setCartData(result.data);
+          }
+        } catch (error) {
+          // Silently fail - cart button will just not show
+        } finally {
+          setCartLoading(false);
+        }
+      };
+      loadCart();
+    }
+  }, [isAuthenticated, getCart]);
+
+  const refetchCart = useCallback(async () => {
+    if (isAuthenticated) {
+      try {
+        const result = await getCart();
+        if (result.success) {
+          setCartData(result.data);
+        }
+      } catch (error) {
+        // Silently fail
+      }
+    }
+  }, [isAuthenticated, getCart]);
   
   // Calculate cart item count
   const cartItemCount = useMemo(() => {
@@ -104,26 +164,157 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     return 0;
   }, [liveViewersData, sessionData, isMockId, mockKitchenData]);
 
-  // Fetch live comments from API - only use API data
-  const { data: liveCommentsData, isLoading: isLoadingComments } = useGetLiveCommentsQuery(
-    { sessionId, limit: 50, offset: 0 },
-    { skip: !sessionId || isMockId, pollingInterval: 5000 } // Poll every 5 seconds for new comments
-  );
+  // Live comments state
+  const [liveCommentsData, setLiveCommentsData] = useState<any>(null);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
 
-  // Fetch live viewers from API
-  const { data: liveViewersData } = useGetLiveViewersQuery(
-    { sessionId, limit: 100, includeAnonymous: true },
-    { skip: !sessionId || isMockId, pollingInterval: 10000 } // Poll every 10 seconds for viewer count
-  );
+  // Live viewers state
+  const [liveViewersData, setLiveViewersData] = useState<any>(null);
 
-  const [sendLiveComment] = useSendLiveCommentMutation();
-  const [sendLiveReaction] = useSendLiveReactionMutation();
+  // Live reactions state
+  const [liveReactionsData, setLiveReactionsData] = useState<any>(null);
 
-  // Fetch live reactions from API
-  const { data: liveReactionsData } = useGetLiveReactionsQuery(
-    { sessionId, limit: 100, offset: 0 },
-    { skip: !sessionId || isMockId, pollingInterval: 5000 } // Poll every 5 seconds for new reactions
-  );
+  // Fetch live comments from Convex
+  const fetchLiveComments = useCallback(async () => {
+    if (!sessionId || isMockId || !isAuthenticated) return;
+
+    try {
+      setIsLoadingComments(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.liveStreaming.customerGetLiveComments, {
+        sessionToken,
+        sessionId,
+        limit: 50,
+        offset: 0,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setLiveCommentsData({
+        success: true,
+        data: {
+          comments: result.comments || [],
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching live comments:', error);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  }, [sessionId, isMockId, isAuthenticated]);
+
+  // Fetch live viewers from Convex
+  const fetchLiveViewers = useCallback(async () => {
+    if (!sessionId || isMockId || !isAuthenticated) return;
+
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.liveStreaming.customerGetLiveViewers, {
+        sessionToken,
+        sessionId,
+        limit: 100,
+        offset: 0,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setLiveViewersData({
+        success: true,
+        data: {
+          summary: {
+            totalViewers: result.total || 0,
+          },
+          viewers: result.viewers || [],
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching live viewers:', error);
+    }
+  }, [sessionId, isMockId, isAuthenticated]);
+
+  // Fetch live reactions from Convex
+  const fetchLiveReactions = useCallback(async () => {
+    if (!sessionId || isMockId || !isAuthenticated) return;
+
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.liveStreaming.customerGetLiveReactions, {
+        sessionToken,
+        sessionId,
+        limit: 100,
+        offset: 0,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setLiveReactionsData({
+        success: true,
+        data: {
+          reactions: result.reactions || [],
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching live reactions:', error);
+    }
+  }, [sessionId, isMockId, isAuthenticated]);
+
+  // Set up polling for live data
+  useEffect(() => {
+    if (!sessionId || isMockId || !isAuthenticated) return;
+
+    // Initial fetch
+    fetchLiveComments();
+    fetchLiveViewers();
+    fetchLiveReactions();
+
+    // Poll every 5 seconds for comments and reactions
+    const commentsInterval = setInterval(() => {
+      fetchLiveComments();
+    }, 5000);
+
+    // Poll every 10 seconds for viewers
+    const viewersInterval = setInterval(() => {
+      fetchLiveViewers();
+    }, 10000);
+
+    // Poll every 5 seconds for reactions
+    const reactionsInterval = setInterval(() => {
+      fetchLiveReactions();
+    }, 5000);
+
+    return () => {
+      clearInterval(commentsInterval);
+      clearInterval(viewersInterval);
+      clearInterval(reactionsInterval);
+    };
+  }, [sessionId, isMockId, isAuthenticated, fetchLiveComments, fetchLiveViewers, fetchLiveReactions]);
 
   // Transform API comments to component format
   const liveComments = useMemo(() => {
@@ -149,17 +340,32 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     }
 
     try {
-      await sendLiveReaction({
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.liveStreaming.customerSendLiveReaction, {
+        sessionToken,
         sessionId,
         reactionType,
         intensity: 'medium',
-      }).unwrap();
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to send reaction');
+      }
+
+      // Refresh reactions after sending
+      fetchLiveReactions();
       // Reaction sent successfully - no need to show toast for reactions
     } catch (err: any) {
-      const errorMessage = err?.data?.error?.message || err?.message || 'Failed to send reaction';
+      const errorMessage = err?.message || 'Failed to send reaction';
       showError('Failed to send reaction', errorMessage);
     }
-  }, [isAuthenticated, sessionId, isMockId, sendLiveReaction, router]);
+  }, [isAuthenticated, sessionId, isMockId, router, fetchLiveReactions]);
 
   // Handle sending live comment
   const handleSendComment = useCallback(async (content: string) => {
@@ -174,24 +380,34 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     }
 
     try {
-      await sendLiveComment({
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.liveStreaming.customerSendLiveComment, {
+        sessionToken,
         sessionId,
         content: content.trim(),
         commentType: 'general',
-      }).unwrap();
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to send comment');
+      }
+
+      // Refresh comments after sending
+      fetchLiveComments();
       showSuccess('Comment sent!', '');
     } catch (err: any) {
-      const errorMessage = err?.data?.error?.message || err?.message || 'Failed to send comment';
+      const errorMessage = err?.message || 'Failed to send comment';
       showError('Failed to send comment', errorMessage);
     }
-  }, [isAuthenticated, sessionId, isMockId, sendLiveComment, router]);
+  }, [isAuthenticated, sessionId, isMockId, router, fetchLiveComments]);
 
-  // Handle session errors
-  useEffect(() => {
-    if (sessionError) {
-      showError('Failed to load live session', 'Please try again');
-    }
-  }, [sessionError]);
+  // Error state is shown in UI - no toast needed
 
   const toggleBottomSheet = () => {
     setIsBottomSheetVisible(!isBottomSheetVisible);
@@ -237,16 +453,12 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     }
 
     try {
-      const result = await addToCart({
-        dish_id: sessionData.data.meal._id,
-        quantity: 1,
-        special_instructions: undefined,
-      }).unwrap();
+      const result = await addToCartAction(sessionData.data.meal._id, 1);
 
       if (result.success) {
-        showSuccess('Added to Cart!', result.data.dish_name || sessionData.data.meal.name);
+        showSuccess('Added to Cart!', result.data.item?.name || sessionData.data.meal.name);
         // Refetch cart to update the cart button
-        refetchCart();
+        await refetchCart();
       }
     } catch (err: any) {
       const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add item to cart';
@@ -271,11 +483,8 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     if (currentCartItem && currentCartItem.id) {
       const cartItemId = currentCartItem.id;
       try {
-        await updateCartItem({
-          cartItemId: String(cartItemId),
-          data: { quantity },
-        }).unwrap();
-        refetchCart();
+        await updateCartItemAction(String(cartItemId), quantity);
+        await refetchCart();
       } catch (err: any) {
         const errorMessage = err?.data?.error?.message || err?.message || 'Failed to update cart item';
         showError('Failed to update quantity', errorMessage);

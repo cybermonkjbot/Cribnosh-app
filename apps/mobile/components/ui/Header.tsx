@@ -1,4 +1,3 @@
-import { useGetNotificationStatsQuery } from '@/store/customerApi';
 import { useAppContext } from '@/utils/AppContext';
 import { BlurEffect } from '@/utils/blurEffects';
 import { getCompleteDynamicHeader } from '@/utils/dynamicHeaderMessages';
@@ -7,7 +6,9 @@ import { useTopPosition } from '@/utils/positioning';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Bell, Settings } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Easing,
@@ -32,11 +33,46 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false, 
   const { isAuthenticated } = useAuthContext();
   const topPosition = useTopPosition(0);
   const [dynamicMessage, setDynamicMessage] = useState(() => getCompleteDynamicHeader(userName, showSubtitle));
-  
-  // Get notification stats for badge count
-  const { data: statsData } = useGetNotificationStatsQuery(undefined, {
-    skip: !isAuthenticated || isSticky, // Only fetch in normal header state
-  });
+  const [statsData, setStatsData] = useState<any>(null);
+
+  // Fetch notification stats from Convex
+  const fetchNotificationStats = useCallback(async () => {
+    if (!isAuthenticated || isSticky) return; // Only fetch in normal header state
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetNotificationStats, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setStatsData({
+        data: {
+          unread: result.unread || 0,
+          total: result.total || 0,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching notification stats:', error);
+    }
+  }, [isAuthenticated, isSticky]);
+
+  // Fetch stats on mount and when authenticated/sticky changes
+  useEffect(() => {
+    if (isAuthenticated && !isSticky) {
+      fetchNotificationStats();
+    }
+  }, [isAuthenticated, isSticky, fetchNotificationStats]);
   
   const unreadCount = statsData?.data?.unread || 0;
   const showBadge = unreadCount > 0;

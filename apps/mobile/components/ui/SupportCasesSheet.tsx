@@ -1,9 +1,10 @@
-import { useCallback, useMemo } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback } from 'react';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import { BottomSheetBase } from '../BottomSheetBase';
 import { SupportCase } from '../../types/customer';
 import { formatOrderDate } from '../../utils/dateFormat';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -27,6 +28,7 @@ interface SupportCasesSheetProps {
   cases: SupportCase[];
   isLoading: boolean;
   onSelectCase: (caseId: string) => void;
+  onRefresh?: () => void;
 }
 
 export function SupportCasesSheet({
@@ -36,37 +38,23 @@ export function SupportCasesSheet({
   isLoading,
   onSelectCase,
 }: SupportCasesSheetProps) {
-  const snapPoints = useMemo(() => ['75%', '90%'], []);
-
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) {
-      onClose();
-    }
-  }, [onClose]);
-
+  const insets = useSafeAreaInsets();
   const handleCasePress = useCallback((caseId: string) => {
     onSelectCase(caseId);
     onClose();
   }, [onSelectCase, onClose]);
 
-  if (!isVisible) {
-    return null;
-  }
-
   return (
-    <BottomSheetBase
-      snapPoints={snapPoints}
-      index={0}
-      onChange={handleSheetChanges}
-      enablePanDownToClose={true}
-      backgroundStyle={{
-        backgroundColor: '#FAFFFA',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-      }}
+    <Modal
+      visible={isVisible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      statusBarTranslucent
+      onRequestClose={onClose}
     >
+      <SafeAreaView style={styles.modalContainer} edges={[]}>
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={styles.title}>Support Cases</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <SvgXml xml={closeIconSVG} width={24} height={24} />
@@ -74,16 +62,18 @@ export function SupportCasesSheet({
         </View>
 
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#094327" />
-            <Text style={styles.loadingText}>Loading support cases...</Text>
-          </View>
+          <SkeletonWithTimeout isLoading={isLoading}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#094327" />
+              <Text style={styles.loadingText}>Loading support cases...</Text>
+            </View>
+          </SkeletonWithTimeout>
         ) : cases.length === 0 ? (
           <View style={styles.emptyContainer}>
             <SvgXml xml={emptyIconSVG} width={64} height={64} />
             <Text style={styles.emptyTitle}>No open support cases</Text>
             <Text style={styles.emptySubtitle}>
-              You don't have any open support cases at the moment. Start a new chat to get help.
+              You don&apos;t have any open support cases at the moment. Start a new chat to get help.
             </Text>
           </View>
         ) : (
@@ -136,21 +126,29 @@ export function SupportCasesSheet({
           </ScrollView>
         )}
       </View>
-    </BottomSheetBase>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FAFFFA',
+  },
   container: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingTop: 20,
+    paddingHorizontal: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
+    backgroundColor: '#FAFFFA',
+    paddingHorizontal: 16,
+    marginHorizontal: -16,
+    paddingBottom: 20,
   },
   title: {
     fontFamily: 'Archivo',

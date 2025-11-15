@@ -3,8 +3,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useGetParticipantSelectionsQuery, useGetGroupOrderQuery } from '@/store/customerApi';
+import { useGroupOrders } from '@/hooks/useGroupOrders';
 import { useAuthState } from '@/hooks/useAuthState';
+import { useEffect, useState } from 'react';
 
 export default function ParticipantSelectionsScreen() {
   const router = useRouter();
@@ -12,20 +13,40 @@ export default function ParticipantSelectionsScreen() {
   const { user } = useAuthState();
   const groupOrderId = params.group_order_id || '';
   const participantId = params.participant_id || '';
+  const { getParticipantSelections, getGroupOrder } = useGroupOrders();
   
-  const { data: selectionsData, isLoading: isLoadingSelections } = useGetParticipantSelectionsQuery({
-    group_order_id: groupOrderId,
-    user_id: participantId,
-  }, {
-    skip: !groupOrderId || !participantId,
-  });
+  const [selectionsData, setSelectionsData] = useState<any>(null);
+  const [groupOrderData, setGroupOrderData] = useState<any>(null);
+  const [isLoadingSelections, setIsLoadingSelections] = useState(false);
   
-  const { data: groupOrderData } = useGetGroupOrderQuery(groupOrderId, {
-    skip: !groupOrderId,
-  });
+  useEffect(() => {
+    if (groupOrderId && participantId) {
+      loadData();
+    }
+  }, [groupOrderId, participantId]);
+  
+  const loadData = async () => {
+    try {
+      setIsLoadingSelections(true);
+      const [selectionsResult, orderResult] = await Promise.all([
+        getParticipantSelections(groupOrderId, participantId),
+        getGroupOrder(groupOrderId),
+      ]);
+      if (selectionsResult.success && selectionsResult.data?.selections) {
+        setSelectionsData({ success: true, data: { selections: selectionsResult.data.selections } });
+      }
+      if (orderResult.success) {
+        setGroupOrderData({ success: true, data: orderResult });
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoadingSelections(false);
+    }
+  };
   
   const groupOrder = groupOrderData?.data;
-  const selections = selectionsData?.data?.[0];
+  const selections = selectionsData?.data?.selections?.[0];
   
   // Find participant details
   const participant = groupOrder?.participants?.find(

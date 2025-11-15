@@ -11,14 +11,8 @@ import { ChevronLeft, SearchIcon, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  useGetGroupOrderQuery, 
-  useGetGroupOrderStatusQuery,
-  useGetUserConnectionsQuery,
-  useMarkSelectionsReadyMutation,
-  useStartSelectionPhaseMutation,
-  useCreateConnectionMutation,
-} from '@/store/customerApi';
+import { useGroupOrders } from '@/hooks/useGroupOrders';
+import { useConnections } from '@/hooks/useConnections';
 import { useAuthState } from '@/hooks/useAuthState';
 import { GroupOrder, GroupOrderParticipant } from '@/types/customer';
 
@@ -36,39 +30,110 @@ export default function GroupOrdersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   
-  // API Queries
   const { 
-    data: groupOrderData, 
-    isLoading: isLoadingGroupOrder,
-    error: groupOrderError,
-    refetch: refetchGroupOrder 
-  } = useGetGroupOrderQuery(groupOrderId, {
-    skip: !groupOrderId,
-    pollingInterval: 5000, // Poll every 5 seconds for real-time updates
-  });
+    getGroupOrder, 
+    getGroupOrderStatus, 
+    markSelectionsReady, 
+    startSelectionPhase,
+    isLoading: isLoadingGroupOrders 
+  } = useGroupOrders();
   
-  const { 
-    data: statusData,
-    isLoading: isLoadingStatus 
-  } = useGetGroupOrderStatusQuery(groupOrderId, {
-    skip: !groupOrderId,
-    pollingInterval: 5000,
-  });
+  const {
+    getConnections,
+    createConnection,
+    isLoading: isLoadingConnections
+  } = useConnections();
   
-  const { 
-    data: connectionsData,
-    isLoading: isLoadingConnections 
-  } = useGetUserConnectionsQuery(undefined, {
-    skip: !searchQuery, // Only fetch when searching
-  });
+  const [groupOrderData, setGroupOrderData] = useState<any>(null);
+  const [statusData, setStatusData] = useState<any>(null);
+  const [connectionsData, setConnectionsData] = useState<any>(null);
+  const [isLoadingGroupOrder, setIsLoadingGroupOrder] = useState(false);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
+  const [groupOrderError, setGroupOrderError] = useState<any>(null);
+  const [isMarkingReady, setIsMarkingReady] = useState(false);
+  const [isStartingPhase, setIsStartingPhase] = useState(false);
   
-  // Mutations
-  const [markSelectionsReady, { isLoading: isMarkingReady }] = useMarkSelectionsReadyMutation();
-  const [startSelectionPhase, { isLoading: isStartingPhase }] = useStartSelectionPhaseMutation();
-  const [createConnection] = useCreateConnectionMutation();
+  // Load group order and status data
+  const loadGroupOrderData = useCallback(async () => {
+    if (!groupOrderId) return;
+    
+    try {
+      setIsLoadingGroupOrder(true);
+      setGroupOrderError(null);
+      const result = await getGroupOrder(groupOrderId);
+      if (result.success) {
+        // result.data is the Convex response which has success and spreads groupOrder properties
+        setGroupOrderData(result.data);
+      } else {
+        setGroupOrderError(new Error('Failed to load group order'));
+      }
+    } catch (error: any) {
+      setGroupOrderError(error);
+    } finally {
+      setIsLoadingGroupOrder(false);
+    }
+  }, [groupOrderId, getGroupOrder]);
   
-  const groupOrder = groupOrderData?.data;
-  const status = statusData?.data;
+  const loadStatusData = useCallback(async () => {
+    if (!groupOrderId) return;
+    
+    try {
+      setIsLoadingStatus(true);
+      const result = await getGroupOrderStatus(groupOrderId);
+      if (result.success) {
+        // result.data is the Convex response which has success and spreads status properties
+        setStatusData(result.data);
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoadingStatus(false);
+    }
+  }, [groupOrderId, getGroupOrderStatus]);
+  
+  // Load connections when searching
+  const loadConnections = useCallback(async () => {
+    if (!searchQuery) {
+      setConnectionsData(null);
+      return;
+    }
+    
+    try {
+      const result = await getConnections();
+      if (result.success) {
+        setConnectionsData({ success: true, data: result.data });
+      }
+    } catch (error) {
+      // Error already handled in hook
+    }
+  }, [searchQuery, getConnections]);
+  
+  useEffect(() => {
+    loadConnections();
+  }, [loadConnections]);
+  
+  // Initial load
+  useEffect(() => {
+    if (groupOrderId) {
+      loadGroupOrderData();
+      loadStatusData();
+    }
+  }, [groupOrderId, loadGroupOrderData, loadStatusData]);
+  
+  // Polling: Update every 5 seconds
+  useEffect(() => {
+    if (!groupOrderId) return;
+    
+    const interval = setInterval(() => {
+      loadGroupOrderData();
+      loadStatusData();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [groupOrderId, loadGroupOrderData, loadStatusData]);
+  
+  const groupOrder = groupOrderData;
+  const status = statusData;
 
   // Map participants to ScatteredGroupMembers format
   const groupMembers = useMemo(() => {
@@ -169,13 +234,15 @@ export default function GroupOrdersScreen() {
     }
   };
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    refetchGroupOrder().finally(() => {
+    try {
+      await Promise.all([loadGroupOrderData(), loadStatusData()]);
       setRefreshKey(prev => prev + 1);
+    } finally {
       setRefreshing(false);
-    });
-  }, [refetchGroupOrder]);
+    }
+  }, [loadGroupOrderData, loadStatusData]);
 
   const handleScroll = (event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -224,10 +291,16 @@ export default function GroupOrdersScreen() {
     if (!groupOrderId) return;
     
     try {
-      await markSelectionsReady(groupOrderId).unwrap();
-      // Success - UI will update via cache invalidation
+      setIsMarkingReady(true);
+      const result = await markSelectionsReady(groupOrderId);
+      if (result.success) {
+        // Reload data to update UI
+        await Promise.all([loadGroupOrderData(), loadStatusData()]);
+      }
     } catch (error: any) {
-      Alert.alert('Error', error?.data?.message || 'Failed to mark selections as ready');
+      // Error already handled in hook
+    } finally {
+      setIsMarkingReady(false);
     }
   };
   
@@ -243,10 +316,16 @@ export default function GroupOrdersScreen() {
           text: 'Start',
           onPress: async () => {
             try {
-              await startSelectionPhase(groupOrderId).unwrap();
-              // Success - UI will update via cache invalidation
+              setIsStartingPhase(true);
+              const result = await startSelectionPhase(groupOrderId);
+              if (result.success) {
+                // Reload data to update UI
+                await Promise.all([loadGroupOrderData(), loadStatusData()]);
+              }
             } catch (error: any) {
-              Alert.alert('Error', error?.data?.message || 'Failed to start selection phase');
+              // Error already handled in hook
+            } finally {
+              setIsStartingPhase(false);
             }
           },
         },
@@ -267,7 +346,7 @@ export default function GroupOrdersScreen() {
           createConnection({
             connected_user_id: userId,
             connection_type: 'friend',
-          }).unwrap()
+          })
         )
       );
       
@@ -275,7 +354,7 @@ export default function GroupOrdersScreen() {
       handleInvitePress();
       setSelectedUsers([]);
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to invite users');
+      Alert.alert('Error', error?.message || 'Failed to invite users');
     }
   };
 
@@ -321,7 +400,7 @@ export default function GroupOrdersScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Failed to load group order</Text>
-          <TouchableOpacity onPress={() => refetchGroupOrder()} style={styles.retryButton}>
+          <TouchableOpacity onPress={() => loadGroupOrderData()} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>

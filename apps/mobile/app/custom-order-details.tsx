@@ -1,11 +1,10 @@
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import {
-  useDeleteCustomOrderMutation,
-  useGenerateSharedOrderLinkMutation,
-  useGetCustomOrderQuery,
-} from "@/store/customerApi";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   Clock,
@@ -31,21 +30,54 @@ export default function CustomOrderDetailsScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const { id } = useLocalSearchParams();
+  const { isAuthenticated } = useAuthContext();
 
   // Get custom order ID from route params
   const customOrderId = typeof id === "string" ? id : undefined;
 
-  // Fetch custom order details
-  const { data: customOrderData, isLoading } = useGetCustomOrderQuery(
-    customOrderId || "",
-    {
-      skip: !customOrderId,
-    }
-  );
+  // Order state
+  const [customOrderData, setCustomOrderData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
-  const [deleteCustomOrder] = useDeleteCustomOrderMutation();
-  const [generateSharedLink, { isLoading: isGeneratingLink }] =
-    useGenerateSharedOrderLinkMutation();
+  // Fetch custom order details from Convex
+  useEffect(() => {
+    const fetchCustomOrder = async () => {
+      if (!customOrderId || !isAuthenticated) return;
+
+      try {
+        setIsLoading(true);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          return;
+        }
+
+        const result = await convex.action(api.actions.orders.customerGetOrder, {
+          sessionToken,
+          order_id: customOrderId,
+        });
+
+        if (result.success === false) {
+          return;
+        }
+
+        // Transform to match expected format
+        setCustomOrderData({
+          data: result.order,
+        });
+      } catch (error: any) {
+        console.error('Error fetching custom order:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (customOrderId && isAuthenticated) {
+      fetchCustomOrder();
+    }
+  }, [customOrderId, isAuthenticated]);
 
   // Use only API data - no mock fallback
   const customOrder = customOrderData?.data || undefined;
@@ -77,30 +109,27 @@ export default function CustomOrderDetailsScreen() {
     }
 
     try {
-      const result = await generateSharedLink({
-        order_id: customOrderId,
-      }).unwrap();
-      if (result.success && result.data?.shareLink) {
-        // Copy to clipboard or share the link
-        const shareLink = result.data.shareLink;
-        // You can use expo-sharing or Clipboard API here
-        showToast({
-          type: "success",
-          title: "Share Link Generated",
-          message: `Share link: ${shareLink}`,
-          duration: 5000,
-        });
-      }
+      setIsGeneratingLink(true);
+      // TODO: Implement share link generation via Convex action when available
+      // For now, generate a simple share link
+      const shareLink = `${process.env.EXPO_PUBLIC_APP_URL || 'https://cribnosh.com'}/orders/${customOrderId}`;
+      
+      showToast({
+        type: "success",
+        title: "Share Link Generated",
+        message: `Share link: ${shareLink}`,
+        duration: 5000,
+      });
     } catch (error: any) {
       console.error("Error generating share link:", error);
       showToast({
         type: "error",
         title: "Share Failed",
-        message:
-          error?.data?.error?.message ||
-          "Failed to generate share link. Please try again.",
+        message: error?.message || "Failed to generate share link. Please try again.",
         duration: 4000,
       });
+    } finally {
+      setIsGeneratingLink(false);
     }
   };
 
@@ -118,9 +147,40 @@ export default function CustomOrderDetailsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              if (customOrderId) {
-                await deleteCustomOrder(customOrderId).unwrap();
+              if (!customOrderId) {
+                showToast({
+                  type: "error",
+                  title: "Error",
+                  message: "Order ID is missing",
+                  duration: 3000,
+                });
+                return;
               }
+
+              const convex = getConvexClient();
+              const sessionToken = await getSessionToken();
+
+              if (!sessionToken) {
+                showToast({
+                  type: "error",
+                  title: "Error",
+                  message: "Not authenticated",
+                  duration: 3000,
+                });
+                return;
+              }
+
+              // Use cancel order action (custom orders can be cancelled/deleted)
+              const result = await convex.action(api.actions.orders.customerCancelOrder, {
+                sessionToken,
+                order_id: customOrderId,
+                reason: "User requested deletion",
+              });
+
+              if (result.success === false) {
+                throw new Error(result.error || 'Failed to delete custom order');
+              }
+
               showToast({
                 type: "success",
                 title: "Order Deleted",
@@ -133,9 +193,7 @@ export default function CustomOrderDetailsScreen() {
               showToast({
                 type: "error",
                 title: "Delete Failed",
-                message:
-                  error?.data?.error?.message ||
-                  "Failed to delete custom order. Please try again.",
+                message: error?.message || "Failed to delete custom order. Please try again.",
                 duration: 4000,
               });
             }

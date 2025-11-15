@@ -19,7 +19,7 @@ import { useAuthContext } from "../../contexts/AuthContext";
 import { ChefMarker } from "@/types/maps";
 import { CONFIG } from "../../constants/config";
 import { useUserLocation } from "../../hooks/useUserLocation";
-import { getDirections, getNearbyChefs } from "../../utils/appleMapsService";
+import { getDirections } from "../../utils/appleMapsService";
 import { UserBehavior } from "../../utils/hiddenSections";
 import {
   OrderingContext,
@@ -72,14 +72,13 @@ import { TooFreshToWasteDrawer } from "./TooFreshToWasteDrawer";
 import { TopKebabs } from "./TopKebabs";
 
 // Customer API imports
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { useCart } from "@/hooks/useCart";
+import { useChefs } from "@/hooks/useChefs";
+import { useCuisines } from "@/hooks/useCuisines";
+import { useMeals } from "@/hooks/useMeals";
+import { useOffers } from "@/hooks/useOffers";
 import {
-  useAddToCartMutation,
-  useGetActiveOffersQuery,
-  useGetCartQuery,
-  useGetCuisinesQuery,
-  useGetPopularChefsQuery,
-  useGetPopularMealsQuery,
-  useGetUserBehaviorQuery,
   useGetWeatherQuery,
 } from "@/store/customerApi";
 import { Chef, Cuisine } from "@/types/customer";
@@ -112,63 +111,200 @@ export function MainScreen() {
     refreshAuthState,
   } = useAuthContext();
 
-  // Customer API hooks
-  const {
-    data: cuisinesData,
-    isLoading: cuisinesLoading,
-    error: cuisinesError,
-    refetch: refetchCuisines,
-  } = useGetCuisinesQuery(
-    { page: 1, limit: 20 },
-    {
-      skip: !isAuthenticated, // Only fetch when authenticated
-    }
-  );
+  // Cuisines using useCuisines hook
+  const { getCuisines } = useCuisines();
+  const [cuisinesData, setCuisinesData] = useState<any>(null);
+  const [cuisinesLoading, setCuisinesLoading] = useState(false);
+  const [cuisinesError, setCuisinesError] = useState<any>(null);
 
-  const {
-    data: chefsData,
-    isLoading: chefsLoading,
-    error: chefsError,
-    refetch: refetchChefs,
-  } = useGetPopularChefsQuery(
-    { page: 1, limit: 20 },
-    {
-      skip: !isAuthenticated, // Only fetch when authenticated
+  // Load cuisines function
+  const loadCuisines = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      setCuisinesLoading(true);
+      setCuisinesError(null);
+      const result = await getCuisines();
+      if (result.success) {
+        // Transform to match expected format
+        setCuisinesData({
+          success: true,
+          data: {
+            cuisines: result.data.cuisines.map((cuisine: string, index: number) => ({
+              id: `cuisine-${index}`,
+              name: cuisine,
+              image_url: null,
+            })),
+          },
+        });
+        // Clear error on successful load
+        setCuisinesError(null);
+      } else {
+        // If result is not successful, set error
+        setCuisinesError(new Error(result.error || 'Failed to load cuisines'));
+      }
+    } catch (error: any) {
+      setCuisinesError(error);
+    } finally {
+      setCuisinesLoading(false);
     }
-  );
+  }, [isAuthenticated, getCuisines]);
 
-  const {
-    data: popularMealsData,
-    isLoading: mealsLoading,
-    error: mealsError,
-    refetch: refetchMeals,
-  } = useGetPopularMealsQuery(
-    {
-      limit: 50,
-      userId: user?.id || user?._id || undefined,
-    },
-    {
-      skip: !isAuthenticated, // Only fetch when authenticated
+  // Load cuisines on mount/authentication change
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadCuisines();
     }
-  );
+  }, [isAuthenticated, loadCuisines]);
 
-  const {
-    data: offersData,
-  } = useGetActiveOffersQuery(
-    { target: "all" },
-    {
-      skip: !isAuthenticated, // Only fetch when authenticated
+  // Refetch function for compatibility
+  const refetchCuisines = loadCuisines;
+
+  // Popular chefs using useChefs hook
+  const { getPopularChefs } = useChefs();
+  const [chefsData, setChefsData] = useState<any>(null);
+  const [chefsLoading, setChefsLoading] = useState(false);
+  const [chefsError, setChefsError] = useState<any>(null);
+
+  // Load popular chefs function
+  const loadPopularChefs = useCallback(async () => {
+    try {
+      setChefsLoading(true);
+      setChefsError(null);
+      const result = await getPopularChefs();
+      if (result.success) {
+        setChefsData({ success: true, data: result.data });
+        // Clear error on successful load
+        setChefsError(null);
+      } else {
+        // If result is not successful, set error
+        setChefsError(new Error(result.error || 'Failed to load chefs'));
+      }
+    } catch (error: any) {
+      setChefsError(error);
+    } finally {
+      setChefsLoading(false);
     }
-  );
+  }, [getPopularChefs]);
 
-  const { error: cartError, refetch: refetchCart } = useGetCartQuery(
-    undefined,
-    {
-      skip: !isAuthenticated, // Only fetch when authenticated
+  // Load popular chefs on mount/authentication change
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadPopularChefs();
     }
-  );
+  }, [isAuthenticated, loadPopularChefs]);
 
-  const [addToCart] = useAddToCartMutation();
+  // Refetch function for compatibility
+  const refetchChefs = loadPopularChefs;
+
+  // Popular meals using useMeals hook
+  const { getRandomMeals } = useMeals();
+  const [popularMealsData, setPopularMealsData] = useState<any>(null);
+  const [mealsLoading, setMealsLoading] = useState(false);
+  const [mealsError, setMealsError] = useState<any>(null);
+
+  // Load popular meals function
+  const loadPopularMeals = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      setMealsLoading(true);
+      setMealsError(null);
+      const result = await getRandomMeals(50);
+      if (result.success) {
+        // Transform to match expected format
+        setPopularMealsData({ 
+          success: true, 
+          data: { 
+            popular: result.data.meals.map((meal: any) => ({
+              meal,
+              chef: meal.chef || null,
+            }))
+          } 
+        });
+        // Clear error on successful load
+        setMealsError(null);
+      } else {
+        // If result is not successful, set error
+        setMealsError(new Error(result.error || 'Failed to load meals'));
+      }
+    } catch (error: any) {
+      setMealsError(error);
+    } finally {
+      setMealsLoading(false);
+    }
+  }, [isAuthenticated, getRandomMeals]);
+
+  // Load popular meals on mount/authentication change
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadPopularMeals();
+    }
+  }, [isAuthenticated, loadPopularMeals]);
+
+  // Refetch function for compatibility
+  const refetchMeals = loadPopularMeals;
+
+  // Offers using useOffers hook
+  const { getActiveOffers } = useOffers();
+  const [offersData, setOffersData] = useState<any>(null);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [offersError, setOffersError] = useState<any>(null);
+
+  // Load offers function
+  const loadOffers = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      setOffersLoading(true);
+      setOffersError(null);
+      const result = await getActiveOffers("all");
+      if (result.success) {
+        setOffersData({ success: true, data: result.data });
+      }
+    } catch (error: any) {
+      setOffersError(error);
+    } finally {
+      setOffersLoading(false);
+    }
+  }, [isAuthenticated, getActiveOffers]);
+
+  // Load offers on mount/authentication change
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadOffers();
+    }
+  }, [isAuthenticated, loadOffers]);
+
+  // Cart using useCart hook
+  const { getCart, addToCart: addToCartAction } = useCart();
+  const [cartData, setCartData] = useState<any>(null);
+  const [cartError, setCartError] = useState<any>(null);
+  const [cartLoading, setCartLoading] = useState(false);
+
+  // Load cart function
+  const loadCart = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      setCartLoading(true);
+      setCartError(null);
+      const result = await getCart();
+      if (result.success) {
+        setCartData(result.data);
+      }
+    } catch (error: any) {
+      setCartError(error);
+    } finally {
+      setCartLoading(false);
+    }
+  }, [isAuthenticated, getCart]);
+
+  // Load cart on mount/authentication change
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadCart();
+    }
+  }, [isAuthenticated, loadCart]);
+
+  // Refetch function for compatibility
+  const refetchCart = loadCart;
 
   // Location hook for map functionality
   const locationState = useUserLocation();
@@ -267,13 +403,6 @@ export function MainScreen() {
   const cuisines = useMemo(() => {
     if (cuisinesData?.success && cuisinesData.data && Array.isArray(cuisinesData.data)) {
       const transformedData = transformCuisinesData(cuisinesData.data);
-      // Show success toast when cuisines are loaded
-      if (transformedData.length > 0) {
-        showInfo(
-          `Loaded ${transformedData.length} cuisines`,
-          "Cuisines Updated"
-        );
-      }
       return transformedData;
     }
     return []; // Return empty array instead of mock data
@@ -282,10 +411,6 @@ export function MainScreen() {
   const kitchens = useMemo(() => {
     if (chefsData?.success && chefsData.data && Array.isArray(chefsData.data)) {
       const transformedData = transformChefsData(chefsData.data);
-      // Show success toast when chefs are loaded
-      if (transformedData.length > 0) {
-        showInfo(`Loaded ${transformedData.length} chefs`, "Chefs Updated");
-      }
       return transformedData;
     }
     return []; // Return empty array instead of mock data
@@ -461,29 +586,7 @@ export function MainScreen() {
   const isFirstMapLoad = useRef(true);
 
   // Handle API errors with toast notifications
-  useEffect(() => {
-    if (cuisinesError && isAuthenticated) {
-      showError("Failed to load cuisines", "Please try again");
-    }
-  }, [cuisinesError, isAuthenticated]);
-
-  useEffect(() => {
-    if (chefsError && isAuthenticated) {
-      showError("Failed to load chefs", "Please try again");
-    }
-  }, [chefsError, isAuthenticated]);
-
-  useEffect(() => {
-    if (mealsError && isAuthenticated) {
-      showError("Failed to load meals", "Please try again");
-    }
-  }, [mealsError, isAuthenticated]);
-
-  useEffect(() => {
-    if (cartError && isAuthenticated) {
-      showError("Failed to load cart", "Please try again");
-    }
-  }, [cartError, isAuthenticated]);
+  // Error states are handled by UI components - no toasts needed
 
 
   // Category drawer state management
@@ -557,14 +660,35 @@ export function MainScreen() {
   const [orderedSections, setOrderedSections] = useState<any[]>([]);
   
   // Fetch user behavior data from API
-  const {
-    data: userBehaviorData,
-  } = useGetUserBehaviorQuery(
-    undefined,
-    {
-      skip: !isAuthenticated, // Only fetch when authenticated
+  // User behavior using useAnalytics hook
+  const { getUserBehavior } = useAnalytics();
+  const [userBehaviorData, setUserBehaviorData] = useState<any>(null);
+  const [userBehaviorLoading, setUserBehaviorLoading] = useState(false);
+  const [userBehaviorError, setUserBehaviorError] = useState<any>(null);
+
+  // Load user behavior function
+  const loadUserBehavior = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      setUserBehaviorLoading(true);
+      setUserBehaviorError(null);
+      const result = await getUserBehavior();
+      if (result.success) {
+        setUserBehaviorData({ success: true, data: result.data });
+      }
+    } catch (error: any) {
+      setUserBehaviorError(error);
+    } finally {
+      setUserBehaviorLoading(false);
     }
-  );
+  }, [isAuthenticated, getUserBehavior]);
+
+  // Load user behavior on mount/authentication change
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadUserBehavior();
+    }
+  }, [isAuthenticated, loadUserBehavior]);
 
   // Transform API response to UserBehavior format
   const userBehavior: UserBehavior = useMemo(() => {
@@ -627,6 +751,27 @@ export function MainScreen() {
   const isScrolling = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollPosition = useRef(0);
+
+  // Callback to update state - ensures consistent state updates
+  // MUST be defined before any useEffect hooks or scrollHandler that use it
+  const updateHeaderStickyState = useCallback((isSticky: boolean) => {
+    setIsHeaderSticky(isSticky);
+  }, []);
+
+  // Haptic feedback helper - MUST be defined before scrollHandler that uses it
+  const triggerHapticFeedback = useCallback((intensity: 'light' | 'medium' | 'heavy') => {
+    try {
+      if (intensity === 'light') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (intensity === 'medium') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
+    } catch {
+      // Silently fail haptics
+    }
+  }, []);
 
   // Register scroll-to-top callback
   useEffect(() => {
@@ -914,13 +1059,9 @@ export function MainScreen() {
       pullProgress,
       pullTranslation,
       updateHeaderStickyState,
+      triggerHapticFeedback,
     ]
   );
-
-  // Callback to update state - ensures consistent state updates
-  const updateHeaderStickyState = useCallback((isSticky: boolean) => {
-    setIsHeaderSticky(isSticky);
-  }, []);
   
   // Expo 54: Keep useAnimatedReaction as backup to ensure state stays in sync
   // This ensures state updates happen even if scroll handler misses an update
@@ -987,22 +1128,6 @@ export function MainScreen() {
     }
   }, [router, pullProgress, pullTranslation]);
 
-  // Haptic feedback helper
-  const triggerHapticFeedback = useCallback((intensity: 'light' | 'medium' | 'heavy') => {
-    try {
-      if (intensity === 'light') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } else if (intensity === 'medium') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } else {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      }
-    } catch {
-      // Silently fail haptics
-    }
-  }, []);
-
-
   // Handlers for new sections
   const handleCuisinePress = useCallback((cuisine: any) => {
     // Open category drawer for this cuisine instead of kitchen sheet
@@ -1059,6 +1184,7 @@ export function MainScreen() {
   }, [locationState.location]);
 
   // Initialize map chefs with real data from API
+  const { getNearbyChefs: getNearbyChefsFromHook } = useChefs();
   useEffect(() => {
     const loadNearbyChefs = async () => {
       try {
@@ -1071,27 +1197,25 @@ export function MainScreen() {
           userLocation = locationState.location;
         }
         
-        const result = await getNearbyChefs(
-          userLocation.latitude,
-          userLocation.longitude,
-          5, // 5km radius
-          20, // limit to 20 chefs
-          1 // first page
-        );
+        const result = await getNearbyChefsFromHook({
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          radius: 5,
+          limit: 20,
+          page: 1,
+        });
         
-        setMapChefs(result.chefs);
-        
-        // Only show notification for updates when map is visible, not initial load
-        if (!isFirstMapLoad.current && isMapVisible) {
-          showSuccess(`Loaded ${result.chefs.length} nearby chefs`, "Map Updated");
+        if (result.success && result.data) {
+          setMapChefs(result.data.chefs || []);
+          
+          // Map updated silently - no toast needed
         }
         
         // Mark that initial load is complete
         isFirstMapLoad.current = false;
       } catch (error) {
         console.error('Failed to load nearby chefs:', error);
-        showError('Failed to load chefs', 'Unable to load nearby chefs. Please try again.');
-        // Fallback to empty array on error
+        // Fallback to empty array on error - no toast needed, UI will show empty state
         setMapChefs([]);
         // Mark initial load as complete even on error
         isFirstMapLoad.current = false;
@@ -1101,7 +1225,7 @@ export function MainScreen() {
     if (isAuthenticated) {
       loadNearbyChefs();
     }
-  }, [isAuthenticated, locationState.location, isMapVisible]);
+  }, [isAuthenticated, locationState.location, isMapVisible, getNearbyChefsFromHook]);
 
   const handleMealPress = useCallback((meal: any) => {
     // Ensure we have a valid meal ID - use _id if id is missing
@@ -1341,20 +1465,18 @@ export function MainScreen() {
       }
 
       try {
-        const result = await addToCart({
-          dish_id: id,
-          quantity: 1,
-          special_instructions: undefined,
-        }).unwrap();
+        const result = await addToCartAction(id, 1);
 
         if (result.success) {
-          showSuccess("Added to Cart!", result.data.dish_name);
+          showSuccess("Added to Cart!", result.data.item?.name || "Item");
+          // Refetch cart to update UI
+          await refetchCart();
         }
       } catch {
         showError("Failed to add item to cart", "Please try again");
       }
     },
-    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart]
+    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCartAction, refetchCart]
   );
 
   const handleDrawerItemPress = useCallback((id: string) => {
@@ -1575,8 +1697,15 @@ export function MainScreen() {
                 </View>
               )}
 
-              {/* Error handling for API data */}
-              {(cuisinesError || chefsError || mealsError) && isAuthenticated && (
+              {/* Error handling for API data - only show if there's an error AND no data */}
+              {(cuisinesError || chefsError || mealsError) && 
+               isAuthenticated && 
+               !cuisinesLoading && 
+               !chefsLoading && 
+               !mealsLoading &&
+               !cuisinesData && 
+               !chefsData && 
+               !popularMealsData && (
                 <View style={{ padding: 20, alignItems: "center" }}>
                   <Text style={{ color: "#FF3B30", fontSize: 16 }}>
                     Failed to load content. Pull to refresh.
@@ -1964,6 +2093,7 @@ export function MainScreen() {
             onHeartPress={handleKitchenHeartPress}
             onSearchPress={handleKitchenSearchPress}
             onClose={handleCloseKitchenMainScreen}
+            onMealPress={handleMealPress}
           />
         )}
       </Modal>

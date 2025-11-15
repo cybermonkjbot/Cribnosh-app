@@ -1,8 +1,8 @@
-import { useGetKitchenDetailsQuery } from '@/store/customerApi';
+import { useChefs } from '@/hooks/useChefs';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { Users } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import SearchArea from '../../SearchArea';
 import { CartButton } from '../CartButton';
@@ -19,6 +19,7 @@ interface KitchenBottomSheetProps {
   onHeartPress?: () => void;
   onSearchPress?: () => void;
   onSearchSubmit?: (query: string) => void;
+  onMealPress?: (meal: any) => void;
 }
 
 export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
@@ -31,6 +32,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   onHeartPress,
   onSearchPress,
   onSearchSubmit,
+  onMealPress,
 }) => {
   const router = useRouter();
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -39,17 +41,28 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   const [currentSnapPoint, setCurrentSnapPoint] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { getKitchenDetails } = useChefs();
+  const [kitchenDetails, setKitchenDetails] = useState<any>(null);
 
-  // Fetch kitchen details if kitchenId is provided
-  const { data: kitchenDetails } = useGetKitchenDetailsQuery(
-    { kitchenId: kitchenId || '' },
-    { skip: !kitchenId }
-  );
+  // Load kitchen details
+  useEffect(() => {
+    if (kitchenId) {
+      const loadKitchenDetails = async () => {
+        try {
+          const details = await getKitchenDetails(kitchenId);
+          if (details) {
+            setKitchenDetails({ data: details });
+          }
+        } catch (error) {
+          // Error already handled in hook
+        }
+      };
+      loadKitchenDetails();
+    }
+  }, [kitchenId, getKitchenDetails]);
 
   // Extract kitchen name from API response
-  // ResponseFactory returns: { success: true, data: { kitchenName, ... }, message: ... }
-  // RTK Query returns the full response, so we access .data
-  const apiKitchenName = (kitchenDetails as any)?.data?.kitchenName;
+  const apiKitchenName = kitchenDetails?.data?.kitchenName;
 
   // Use fetched kitchen name from API
   // If kitchenId is provided, prioritize API data and don't use demo name from prop
@@ -159,7 +172,9 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
               isExpanded={true}
               deliveryTime={deliveryTime}
               kitchenId={kitchenId}
+              kitchenName={kitchenName}
               searchQuery={searchQuery}
+              onMealPress={onMealPress}
             />
           </View>
         ) : (
@@ -183,7 +198,9 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
               onScrollAttempt={() => !isExpanded && bottomSheetRef.current?.snapToIndex(1)}
               deliveryTime={deliveryTime}
               kitchenId={kitchenId}
+              kitchenName={kitchenName}
               searchQuery={isSearchMode ? searchQuery : undefined}
+              onMealPress={onMealPress}
             />
           </>
         )}

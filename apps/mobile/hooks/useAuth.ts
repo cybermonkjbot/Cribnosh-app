@@ -9,8 +9,8 @@ import { useToast } from "@/lib/ToastContext";
 import { API_CONFIG } from "@/constants/api";
 import { useCallback } from "react";
 import { getConvexClient, setSessionToken, clearSessionToken } from "@/lib/convexClient";
-// Import from the convex package - relative path from apps/mobile/hooks to packages/convex
-import { api } from "../../../packages/convex/_generated/api.js";
+// Import from the convex package using @/convex alias
+import { api } from '@/convex/_generated/api';
 // Mock imports commented out - keeping for future use if needed
 // import { mockPhoneLogin, mockSendOTP } from "../utils/mockAuthUtils";
 // import { isMockModeEnabled } from "../utils/mockConfig";

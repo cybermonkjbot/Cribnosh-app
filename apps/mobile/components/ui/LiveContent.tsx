@@ -23,7 +23,8 @@ import Animated, {
 import LiveScreenView from "./LiveViewerScreen";
 
 // Customer API imports
-import { useGetLiveStreamsQuery } from "@/store/customerApi";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from "../../../../packages/convex/_generated/api";
 import { LiveStream } from "@/types/customer";
 
 // Global toast imports
@@ -122,14 +123,48 @@ export default function LiveContent({
   const contentFadeAnim =
     externalContentFadeAnim || internalContentFadeAnim.current;
 
-  // Live streams API hook
-  const { data: liveStreamsData, error: liveStreamsError } =
-    useGetLiveStreamsQuery(
-      { page: 1, limit: 20 },
-      {
-        skip: !isAuthenticated, // Only fetch when authenticated
+  // Live streams state
+  const [liveStreamsData, setLiveStreamsData] = useState<any>(null);
+  const [liveStreamsError, setLiveStreamsError] = useState<any>(null);
+
+  // Fetch live streams from Convex
+  useEffect(() => {
+    const fetchLiveStreams = async () => {
+      if (!isAuthenticated) return;
+
+      try {
+        setLiveStreamsError(null);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          return;
+        }
+
+        const result = await convex.action(api.actions.liveStreaming.customerGetLiveStreams, {
+          sessionToken,
+          page: 1,
+          limit: 20,
+        });
+
+        if (result.success === false) {
+          setLiveStreamsError(new Error(result.error || 'Failed to fetch live streams'));
+          return;
+        }
+
+        // Transform to match expected format
+        setLiveStreamsData({
+          success: true,
+          data: result.streams || [],
+        });
+      } catch (error: any) {
+        setLiveStreamsError(error);
+        console.error('Error fetching live streams:', error);
       }
-    );
+    };
+
+    fetchLiveStreams();
+  }, [isAuthenticated]);
 
   // Transform API live streams to component format
   const transformLiveStreamsData = useCallback((apiStreams: LiveStream[]) => {
@@ -165,12 +200,7 @@ export default function LiveContent({
     return [];
   }, [liveStreamsData, isAuthenticated, transformLiveStreamsData]);
 
-  // Handle live streams API errors
-  useEffect(() => {
-    if (liveStreamsError && isAuthenticated) {
-      showError("Failed to load live streams", "Please try again");
-    }
-  }, [liveStreamsError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   const handleKitchenPress = useCallback((kitchen: LiveKitchen) => {
     // Pass session ID and kitchen data when opening live viewer

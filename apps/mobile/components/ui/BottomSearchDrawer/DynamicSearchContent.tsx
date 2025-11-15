@@ -119,7 +119,7 @@ function NoticesCarousel({ notices, renderNoticeItem }: NoticesCarouselProps) {
   const keyExtractor = useCallback((item: DynamicContent) => item.id, []);
 
   return (
-    <View style={{ marginBottom: 16, marginTop: 8, overflow: "visible" }}>
+    <View style={{ marginBottom: 16, marginTop: 8, overflow: "visible", paddingTop: 8 }}>
       <FlatList
         ref={flatListRef}
         data={notices}
@@ -148,6 +148,8 @@ function NoticesCarousel({ notices, renderNoticeItem }: NoticesCarouselProps) {
         contentContainerStyle={{
           paddingLeft: 16,
           paddingRight: 8,
+          paddingTop: 8,
+          paddingBottom: 8,
         }}
         onScrollToIndexFailed={(info) => {
           // Fallback if scroll fails
@@ -242,15 +244,25 @@ export function DynamicSearchContent({
   // Render a single notice item
   const renderNoticeItem = useCallback((item: DynamicContent): React.ReactElement => {
     const gradientColors = getGradientColors(item.backgroundColor);
+    const hasBadge = item.type === "notice" && item.badgeText;
+    const badgeHeight = 32; // Height of badge including spacing
     
     return (
-      <View style={{ width: SCREEN_WIDTH - 32, marginLeft: 0, marginRight: 12, marginTop: item.type === "notice" && item.badgeText ? 24 : 0, position: "relative", overflow: "visible" }}>
+      <View style={{ 
+        width: SCREEN_WIDTH - 32, 
+        marginLeft: 0, 
+        marginRight: 12, 
+        marginTop: hasBadge ? badgeHeight : 0, 
+        marginBottom: hasBadge ? 8 : 0,
+        position: "relative", 
+        overflow: "visible" 
+      }}>
         {/* Badge - positioned above the card for notice type */}
-        {item.type === "notice" && item.badgeText && (
+        {hasBadge && (
           <View
             style={{
               position: "absolute",
-              top: -24,
+              top: -badgeHeight + 8,
               left: 0,
               zIndex: 10,
               transform: [{ rotate: "-5deg" }],
@@ -284,11 +296,11 @@ export function DynamicSearchContent({
             onPress={() => handlePress(item)}
             activeOpacity={0.9}
           >
-            <View style={{ position: "relative", minHeight: 100 }}>
+            <View style={{ position: "relative", minHeight: 120 }}>
               {item.backgroundImageUrl ? (
                 <Image
                   source={{ uri: item.backgroundImageUrl }}
-                  style={{ width: "100%", minHeight: 100 }}
+                  style={{ width: "100%", minHeight: 120 }}
                   contentFit="cover"
                 />
               ) : null}
@@ -313,12 +325,20 @@ export function DynamicSearchContent({
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  justifyContent: "center",
+                  justifyContent: "flex-start",
                   paddingLeft: 16,
                   paddingRight: 16,
-                  paddingVertical: 12,
+                  paddingTop: 16,
+                  paddingBottom: 16,
                 }}
               >
+                {/* Icon for promo type */}
+                {item.type === "promo" && (
+                  <View style={{ marginBottom: 8 }}>
+                    <Sparkles size={20} color="#fff" />
+                  </View>
+                )}
+                
                 <Text
                   style={{
                     color: "#fff",
@@ -335,7 +355,7 @@ export function DynamicSearchContent({
                     color: "#fff",
                     fontSize: 13,
                     opacity: 0.95,
-                    marginBottom: item.callToActionText ? 8 : 0,
+                    marginBottom: item.callToActionText ? 12 : 0,
                     lineHeight: 18,
                   }}
                 >
@@ -346,7 +366,7 @@ export function DynamicSearchContent({
                     style={{
                       backgroundColor: "rgba(255, 255, 255, 0.2)",
                       paddingHorizontal: 14,
-                      paddingVertical: 6,
+                      paddingVertical: 8,
                       borderRadius: 18,
                       alignSelf: "flex-start",
                       marginTop: 4,
@@ -380,20 +400,53 @@ export function DynamicSearchContent({
   if (!content) return null;
 
   const gradientColors = getGradientColors(content.backgroundColor);
+  const hasBadge = content.type === "notice" && content.badgeText;
+  const badgeHeight = 32;
 
   return (
-    <View style={{ marginBottom: 16 }}>
-      <View style={{ position: "relative" }}>
+    <View style={{ 
+      marginBottom: 16, 
+      marginTop: hasBadge ? badgeHeight : 0,
+      overflow: "visible" 
+    }}>
+      <View style={{ position: "relative", overflow: "visible" }}>
+        {/* Badge - positioned outside for notice type */}
+        {hasBadge && (
+          <View
+            style={{
+              position: "absolute",
+              top: -badgeHeight + 8,
+              left: 12,
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 12,
+              zIndex: 10,
+            }}
+          >
+            <Text
+              style={{
+                color: content.backgroundColor || "#ef4444",
+                fontSize: 10,
+                fontWeight: "700",
+                textTransform: "uppercase",
+              }}
+            >
+              {content.badgeText}
+            </Text>
+          </View>
+        )}
+        
         <TouchableOpacity
           style={{ borderRadius: 16, overflow: "hidden" }}
           onPress={() => handlePress(content)}
           activeOpacity={0.9}
         >
-          <View style={{ position: "relative", minHeight: 100 }}>
+          <View style={{ position: "relative", minHeight: 120 }}>
             {content.backgroundImageUrl ? (
               <Image
                 source={{ uri: content.backgroundImageUrl }}
-                style={{ width: "100%", minHeight: 100 }}
+                style={{ width: "100%", minHeight: 120 }}
                 contentFit="cover"
               />
             ) : null}
@@ -418,9 +471,10 @@ export function DynamicSearchContent({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                justifyContent: "center",
+                justifyContent: "flex-start",
                 paddingHorizontal: 16,
-                paddingVertical: 12,
+                paddingTop: 16,
+                paddingBottom: 16,
               }}
             >
               {icon && content.type !== "notice" && (
@@ -473,7 +527,7 @@ export function DynamicSearchContent({
                   color: "#fff",
                   fontSize: 13,
                   opacity: 0.95,
-                  marginBottom: content.callToActionText ? 8 : 0,
+                  marginBottom: content.callToActionText ? 12 : 0,
                   lineHeight: 18,
                 }}
               >
@@ -484,7 +538,7 @@ export function DynamicSearchContent({
                   style={{
                     backgroundColor: "rgba(255, 255, 255, 0.2)",
                     paddingHorizontal: 14,
-                    paddingVertical: 6,
+                    paddingVertical: 8,
                     borderRadius: 18,
                     alignSelf: "flex-start",
                     marginTop: 4,
@@ -504,33 +558,6 @@ export function DynamicSearchContent({
             </View>
           </View>
         </TouchableOpacity>
-
-        {/* Badge - positioned outside for notice type */}
-        {content.type === "notice" && content.badgeText && (
-          <View
-            style={{
-              position: "absolute",
-              top: -8,
-              left: 12,
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 12,
-              zIndex: 1,
-            }}
-          >
-            <Text
-              style={{
-                color: content.backgroundColor || "#ef4444",
-                fontSize: 10,
-                fontWeight: "700",
-                textTransform: "uppercase",
-              }}
-            >
-              {content.badgeText}
-            </Text>
-          </View>
-        )}
       </View>
     </View>
   );

@@ -6,14 +6,13 @@ import { OrdersCampaignBanner } from "@/components/ui/OrdersCampaignBanner";
 import { PremiumHeader } from "@/components/ui/PremiumHeader";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import {
-  useGetActiveOffersQuery,
-  useGetCustomOrdersQuery,
-  useGetOrdersQuery,
-} from "@/store/customerApi";
 import { Order as ApiOrder, CustomOrder } from "@/types/customer";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useOrders } from "@/hooks/useOrders";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from "@/contexts/AuthContext";
 import { StyleSheet } from "react-native";
 import Animated, {
   Extrapolate,
@@ -70,33 +69,103 @@ export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "past">("ongoing");
   const router = useRouter();
   const scrollY = useSharedValue(0);
+  const { getOrders, isLoading: ordersLoading } = useOrders();
+  const [ordersData, setOrdersData] = useState<any>(null);
+  const [customOrdersData, setCustomOrdersData] = useState<any>(null);
+  const [offersData, setOffersData] = useState<any>(null);
+  const [isLoadingOffers, setIsLoadingOffers] = useState(false);
+  const { isAuthenticated } = useAuthContext();
 
-  // Fetch custom orders from API
-  const { data: customOrdersData } = useGetCustomOrdersQuery(
-    { page: 1, limit: 20 },
-    {
-      skip: false, // Always fetch to check if we have data
+  // Fetch custom orders from Convex
+  const fetchCustomOrders = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.orders.customerGetOrders, {
+        sessionToken,
+        page: 1,
+        limit: 20,
+        order_type: "all",
+        status: "all",
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setCustomOrdersData({
+        data: result.orders || [],
+        total: result.total || 0,
+      });
+    } catch (error: any) {
+      console.error('Error fetching custom orders:', error);
     }
-  );
+  }, [isAuthenticated]);
 
-  // Fetch regular orders from API with status filtering
-  const { data: ordersData } = useGetOrdersQuery(
-    {
-      page: 1,
-      limit: 20,
-      status: activeTab === "ongoing" ? "ongoing" : "past",
-      order_type: "all",
-    },
-    {
-      skip: false,
+  // Fetch active offers from Convex
+  const fetchOffers = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setIsLoadingOffers(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetActiveOffers, {
+        sessionToken,
+        target: "group_orders",
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setOffersData({
+        data: result.offers || [],
+      });
+    } catch (error: any) {
+      console.error('Error fetching offers:', error);
+    } finally {
+      setIsLoadingOffers(false);
     }
-  );
+  }, [isAuthenticated]);
 
-  // Fetch active special offers - only use API data
-  const { data: offersData } = useGetActiveOffersQuery(
-    { target: "group_orders" },
-    { skip: false }
-  );
+  // Fetch custom orders and offers on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCustomOrders();
+      fetchOffers();
+    }
+  }, [isAuthenticated, fetchCustomOrders, fetchOffers]);
+
+  // Fetch regular orders using Convex
+  useEffect(() => {
+    const fetchOrders = async () => {
+      const result = await getOrders({
+        page: 1,
+        limit: 20,
+        status: activeTab === "ongoing" ? "ongoing" : "past",
+        order_type: "all",
+      });
+      if (result) {
+        setOrdersData({ data: result });
+      }
+    };
+    fetchOrders();
+  }, [activeTab, getOrders]);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -275,7 +344,7 @@ export default function OrdersScreen() {
     };
   };
 
-  // Get regular orders from API response - only use API data
+  // Get regular orders from Convex response - only use API data
   const apiOrders =
     ordersData?.data?.orders && ordersData.data.orders.length > 0
       ? ordersData.data.orders

@@ -1,12 +1,12 @@
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGetFeaturedKitchensQuery } from '@/store/customerApi';
+import { useChefs } from '@/hooks/useChefs';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { showError } from '../../lib/GlobalToastManager';
-import { FeaturedKitchensSectionEmpty } from './FeaturedKitchensSectionEmpty';
 import { FeaturedKitchensSectionSkeleton } from './FeaturedKitchensSectionSkeleton';
 import { KitchenRating } from './KitchenRating';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface Kitchen {
   id: string;
@@ -40,18 +40,34 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
   useBackend = true,
 }) => {
   const { isAuthenticated } = useAuthContext();
+  const { getFeaturedKitchens } = useChefs();
 
-  // Backend API integration
-  const {
-    data: featuredKitchensData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetFeaturedKitchensQuery(
-    { limit: 20 },
-    {
-      skip: !useBackend || !isAuthenticated,
+  const [featuredKitchensData, setFeaturedKitchensData] = useState<any>(null);
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendError, setBackendError] = useState<any>(null);
+
+  // Load featured kitchens
+  useEffect(() => {
+    if (useBackend && isAuthenticated) {
+      const loadFeaturedKitchens = async () => {
+        try {
+          setBackendLoading(true);
+          setBackendError(null);
+          const result = await getFeaturedKitchens({ limit: 20 });
+          if (result.success) {
+            setFeaturedKitchensData({ success: true, data: result.data });
+          }
+        } catch (error: any) {
+          setBackendError(error);
+        } finally {
+          setBackendLoading(false);
+        }
+      };
+      loadFeaturedKitchens();
+    } else {
+      setFeaturedKitchensData(null);
     }
-  );
+  }, [useBackend, isAuthenticated, getFeaturedKitchens]);
 
   // Transform API data to component format
   const transformKitchenData = useCallback((apiKitchen: any): Kitchen | null => {
@@ -103,12 +119,7 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
     return [];
   }, [propKitchens, featuredKitchensData, useBackend, transformKitchenData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError('Failed to load featured kitchens', 'Please try again');
-    }
-  }, [backendError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Determine loading state
   const isLoading = propIsLoading || (useBackend && backendLoading && isAuthenticated);
@@ -230,7 +241,11 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
 
   // Show skeleton while loading
   if (isLoading && useBackend) {
-    return <FeaturedKitchensSectionSkeleton itemCount={4} />;
+    return (
+      <SkeletonWithTimeout isLoading={isLoading}>
+        <FeaturedKitchensSectionSkeleton itemCount={4} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no kitchens (don't show empty state)

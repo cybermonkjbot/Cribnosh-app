@@ -5,6 +5,7 @@
  */
 
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // Determine the API base URL
 function getApiBaseUrl(): string {
@@ -38,8 +39,38 @@ export const API_CONFIG = {
 };
 
 // Stripe Configuration
+// Try multiple sources for the publishable key
+const publishableKey = (
+  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
+  (typeof Constants !== 'undefined' && Constants.expoConfig?.extra?.stripePublishableKey) ||
+  ''
+).trim();
+
+// Debug: Log configuration (only in development)
+if (__DEV__) {
+  console.log('🔑 Stripe Key Check:', {
+    fromEnv: !!process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    fromConstants: !!(typeof Constants !== 'undefined' && Constants.expoConfig?.extra?.stripePublishableKey),
+    keyLength: publishableKey.length,
+    keyPrefix: publishableKey ? publishableKey.substring(0, 20) + '...' : 'MISSING',
+  });
+  
+  if (!publishableKey) {
+    console.warn('⚠️ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set! Stripe features will not work.');
+    console.warn('   Make sure:');
+    console.warn('   1. .env file exists in apps/mobile/');
+    console.warn('   2. EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is set in .env');
+    console.warn('   3. You have restarted the dev server with --clear flag');
+  }
+}
+
+// Validate publishable key format
+const isValidPublishableKey = (key: string): boolean => {
+  return key.startsWith('pk_test_') || key.startsWith('pk_live_');
+};
+
 export const STRIPE_CONFIG = {
-  publishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+  publishableKey: isValidPublishableKey(publishableKey) ? publishableKey : '',
 };
 
 export default API_CONFIG;

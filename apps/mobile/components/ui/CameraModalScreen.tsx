@@ -7,7 +7,7 @@ import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SvgXml } from 'react-native-svg';
-import { useGetChefMealsQuery, useStartLiveSessionMutation } from '@/store/customerApi';
+import { useChefs } from '@/hooks/useChefs';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { CribNoshLogo } from './CribNoshLogo';
 
@@ -902,15 +902,29 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
   const [showMealPicker, setShowMealPicker] = useState(false);
   const isMountedRef = React.useRef(true);
 
-  // Fetch chef meals
-  const { data: mealsData, isLoading: isLoadingMeals } = useGetChefMealsQuery(
-    { limit: 100 },
-    { skip: !isAuthenticated }
-  );
+  const { getChefMeals, startLiveSession } = useChefs();
+  const [meals, setMeals] = useState<any[]>([]);
+  const [isLoadingMeals, setIsLoadingMeals] = useState(false);
 
-  const [startLiveSession] = useStartLiveSessionMutation();
-
-  const meals = mealsData?.meals || [];
+  // Load chef meals
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadMeals = async () => {
+        try {
+          setIsLoadingMeals(true);
+          const result = await getChefMeals(100, 0);
+          if (result.success) {
+            setMeals(result.data.meals || []);
+          }
+        } catch (error) {
+          // Error handling is done in the hook
+        } finally {
+          setIsLoadingMeals(false);
+        }
+      };
+      loadMeals();
+    }
+  }, [isAuthenticated, getChefMeals]);
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -956,15 +970,19 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
     try {
       if (!isMountedRef.current) return;
       setIsStarting(true);
+      // Generate a unique channel name
+      const channelName = `live_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      
       const result = await startLiveSession({
+        channelName,
         title: title.trim(),
         description: description.trim() || '',
         mealId: selectedMealId,
         tags: tags,
-      }).unwrap();
+      });
       
-      if (isMountedRef.current) {
-        onStartLiveStream(result.sessionId);
+      if (isMountedRef.current && result.success) {
+        onStartLiveStream(result.data.sessionId || result.data.session?.sessionId || '');
       }
     } catch (error: any) {
       if (!isMountedRef.current) return;

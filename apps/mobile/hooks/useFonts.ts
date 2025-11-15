@@ -31,8 +31,16 @@ export function useFonts() {
       await new Promise(resolve => setTimeout(resolve, 100));
       try {
         await SplashScreen.hideAsync();
-      } catch (error) {
+      } catch (error: any) {
         // Silently handle the error - the splash screen will auto-hide anyway
+        // On iOS, this can happen when the view controller doesn't have splash screen registered
+        // This is safe to ignore as the splash screen will auto-hide
+        if (error?.message?.includes('No native splash screen registered')) {
+          // Expected error on iOS when splash screen isn't registered for current view controller
+          // This can happen with modals or certain navigation patterns
+          return;
+        }
+        // Only log unexpected errors
         console.warn('SplashScreen.hideAsync error:', error);
       }
     }

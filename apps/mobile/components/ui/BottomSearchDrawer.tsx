@@ -2,7 +2,7 @@ import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { AlertCircle, Search, Play } from "lucide-react-native";
+import { AlertCircle, Play, Search } from "lucide-react-native";
 import React, {
   useCallback,
   useEffect,
@@ -42,31 +42,25 @@ import {
   getDynamicSearchPrompt,
 } from "../../utils/dynamicSearchPrompts";
 import SearchArea from "../SearchArea";
+import {
+  DynamicContent,
+  DynamicSearchContent
+} from "./BottomSearchDrawer/DynamicSearchContent";
 import { SearchSuggestionsSkeleton } from "./BottomSearchDrawer/SearchSkeletons";
 import { Button } from "./Button";
-import {
-  DynamicSearchContent,
-  DynamicContent,
-  DynamicContentType,
-} from "./BottomSearchDrawer/DynamicSearchContent";
 
 // Customer API imports
-import {
-  useCreateCustomOrderMutation,
-  useGenerateSharedOrderLinkMutation,
-  useGetActiveOffersQuery,
-  useGetSearchSuggestionsQuery,
-  useGetTrendingSearchQuery,
-  useSearchChefsQuery,
-  useSearchQuery,
-  useSearchWithEmotionsMutation,
-} from "@/store/customerApi";
+import { useChefs } from "@/hooks/useChefs";
+import { useOffers } from "@/hooks/useOffers";
+import { useSearch } from "@/hooks/useSearch";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import {
   SearchChef,
   SearchResult,
   SearchSuggestion,
   TrendingItem,
 } from "@/types/customer";
+import { api } from "../../../../packages/convex/_generated/api";
 
 // Global toast imports
 import { showError, showInfo } from "../../lib/GlobalToastManager";
@@ -425,72 +419,188 @@ export function BottomSearchDrawer({
   }, []);
 
   // Search API hooks with dietary filters
+  const { search: searchAction, isLoading: isLoadingSearchAction } = useSearch();
+  const [searchData, setSearchData] = useState<any>(null);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+  const [isErrorSearch, setIsErrorSearch] = useState(false);
+  const [searchError, setSearchError] = useState<any>(null);
+  
   const dietaryFilters = getDietaryFiltersFromActiveFilter(activeFilter);
-  const { data: searchData, isLoading: isLoadingSearch, isError: isErrorSearch, error: searchError } = useSearchQuery(
-    {
-      query: searchQuery,
-      type:
-        activeSearchFilter === "all" ? undefined : (activeSearchFilter as any),
-      page: 1,
-      limit: maxSuggestions,
-      filters: dietaryFilters,
-    },
-    {
-      skip: !searchQuery.trim() || !isAuthenticated || isNaturalLanguageQuery(searchQuery), // Skip regular search for natural language queries
+  
+  // Load search results
+  useEffect(() => {
+    if (
+      searchQuery.trim() &&
+      isAuthenticated &&
+      !isNaturalLanguageQuery(searchQuery) &&
+      activeSearchFilter !== "chefs"
+    ) {
+      const loadSearch = async () => {
+        try {
+          setIsLoadingSearch(true);
+          setIsErrorSearch(false);
+          setSearchError(null);
+          const result = await searchAction({
+            query: searchQuery,
+            limit: maxSuggestions,
+            location: userLocation ? {
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+            } : undefined,
+            filters: dietaryFilters ? {
+              dietary: dietaryFilters.dietary_restrictions,
+            } : undefined,
+          });
+          if (result.success) {
+            setSearchData({ success: true, data: result.data });
+          }
+        } catch (error: any) {
+          setIsErrorSearch(true);
+          setSearchError(error);
+        } finally {
+          setIsLoadingSearch(false);
+        }
+      };
+      loadSearch();
+    } else {
+      setSearchData(null);
     }
-  );
+  }, [searchQuery, isAuthenticated, activeSearchFilter, maxSuggestions, userLocation, dietaryFilters, searchAction]);
 
   // Emotions search mutation for natural language queries
-  const [searchWithEmotions, { isLoading: isSearchingWithEmotions }] = useSearchWithEmotionsMutation();
+  const [isSearchingWithEmotions, setIsSearchingWithEmotions] = useState(false);
   
-  // Chef search hook
-  const { data: chefSearchData, isLoading: isLoadingChefSearch, isError: isErrorChefSearch, error: chefSearchError } = useSearchChefsQuery(
-    {
-      q: searchQuery,
-      limit: maxSuggestions,
-    },
-    {
-      skip:
-        !searchQuery.trim() ||
-        !isAuthenticated ||
-        activeSearchFilter !== "chefs",
+  // Chef search using useChefs hook
+  const { searchChefs } = useChefs();
+  const [chefSearchData, setChefSearchData] = useState<any>(null);
+  const [isLoadingChefSearch, setIsLoadingChefSearch] = useState(false);
+  const [isErrorChefSearch, setIsErrorChefSearch] = useState(false);
+  const [chefSearchError, setChefSearchError] = useState<any>(null);
+
+  // Load chef search results
+  useEffect(() => {
+    if (
+      searchQuery.trim() &&
+      isAuthenticated &&
+      activeSearchFilter === "chefs"
+    ) {
+      const loadChefSearch = async () => {
+        try {
+          setIsLoadingChefSearch(true);
+          setIsErrorChefSearch(false);
+          setChefSearchError(null);
+          const result = await searchChefs({
+            query: searchQuery,
+            limit: maxSuggestions,
+            location: userLocation ? {
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+            } : undefined,
+          });
+          if (result.success) {
+            setChefSearchData({ success: true, data: result.data });
+          }
+        } catch (error: any) {
+          setIsErrorChefSearch(true);
+          setChefSearchError(error);
+        } finally {
+          setIsLoadingChefSearch(false);
+        }
+      };
+      loadChefSearch();
+    } else {
+      setChefSearchData(null);
     }
-  );
+  }, [searchQuery, isAuthenticated, activeSearchFilter, maxSuggestions, userLocation, searchChefs]);
 
   // Search suggestions hook
-  const { data: suggestionsData, isLoading: isLoadingSuggestionsQuery, isError: isErrorSuggestionsQuery, error: suggestionsError } =
-    useGetSearchSuggestionsQuery(
-      {
-        q: searchQuery,
-        limit: maxSuggestions,
-        category:
-          activeSearchFilter === "all" ? "all" : (activeSearchFilter as any),
-      },
-      {
-        skip: !searchQuery.trim() || !isAuthenticated,
-      }
-    );
+  const { getSearchSuggestions } = useSearch();
+  const [suggestionsData, setSuggestionsData] = useState<any>(null);
+  const [isLoadingSuggestionsQuery, setIsLoadingSuggestionsQuery] = useState(false);
+  const [isErrorSuggestionsQuery, setIsErrorSuggestionsQuery] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<any>(null);
+  
+  useEffect(() => {
+    if (searchQuery.trim() && isAuthenticated) {
+      const loadSuggestions = async () => {
+        try {
+          setIsLoadingSuggestionsQuery(true);
+          setIsErrorSuggestionsQuery(false);
+          setSuggestionsError(null);
+          const result = await getSearchSuggestions({ query: searchQuery, limit: maxSuggestions });
+          if (result.success) {
+            setSuggestionsData({ success: true, data: { suggestions: result.data.suggestions } });
+          }
+        } catch (error: any) {
+          setIsErrorSuggestionsQuery(true);
+          setSuggestionsError(error);
+        } finally {
+          setIsLoadingSuggestionsQuery(false);
+        }
+      };
+      loadSuggestions();
+    } else {
+      setSuggestionsData(null);
+    }
+  }, [searchQuery, isAuthenticated, maxSuggestions, getSearchSuggestions]);
 
   // Trending search hook
-  const { data: trendingData, isLoading: isLoadingTrendingQuery, isError: isErrorTrendingQuery, error: trendingError } =
-    useGetTrendingSearchQuery(
-      {
-        limit: maxSuggestions,
-        category:
-          activeSearchFilter === "all" ? "dishes" : (activeSearchFilter as any),
-      },
-      {
-        skip: !isAuthenticated,
-      }
-    );
-
-  // Active offers query for dynamic content
-  const { data: offersData } = useGetActiveOffersQuery(
-    { target: "all" },
-    {
-      skip: !isAuthenticated,
+  const { getTrendingSearches } = useSearch();
+  const [trendingData, setTrendingData] = useState<any>(null);
+  const [isLoadingTrendingQuery, setIsLoadingTrendingQuery] = useState(false);
+  const [isErrorTrendingQuery, setIsErrorTrendingQuery] = useState(false);
+  const [trendingError, setTrendingError] = useState<any>(null);
+  
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadTrending = async () => {
+        try {
+          setIsLoadingTrendingQuery(true);
+          setIsErrorTrendingQuery(false);
+          setTrendingError(null);
+          const result = await getTrendingSearches({ limit: maxSuggestions });
+          if (result.success) {
+            setTrendingData({ success: true, data: { trending: result.data.trending } });
+          }
+        } catch (error: any) {
+          setIsErrorTrendingQuery(true);
+          setTrendingError(error);
+        } finally {
+          setIsLoadingTrendingQuery(false);
+        }
+      };
+      loadTrending();
+    } else {
+      setTrendingData(null);
     }
-  );
+  }, [isAuthenticated, maxSuggestions, getTrendingSearches]);
+
+  // Active offers using useOffers hook
+  const { getActiveOffers } = useOffers();
+  const [offersData, setOffersData] = useState<any>(null);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [offersError, setOffersError] = useState<any>(null);
+
+  // Load offers for dynamic content
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadOffers = async () => {
+        try {
+          setOffersLoading(true);
+          setOffersError(null);
+          const result = await getActiveOffers("all");
+          if (result.success) {
+            setOffersData({ success: true, data: result.data });
+          }
+        } catch (error: any) {
+          setOffersError(error);
+        } finally {
+          setOffersLoading(false);
+        }
+      };
+      loadOffers();
+    }
+  }, [isAuthenticated, getActiveOffers]);
 
   // Combined loading state for all search operations
   const isSearching = isLoading || isSearchingWithEmotions || isLoadingSearch || isLoadingChefSearch || isLoadingSuggestionsQuery || isLoadingTrendingQuery;
@@ -502,9 +612,9 @@ export function BottomSearchDrawer({
     router.push("/orders/group/create");
   };
 
-  // Custom order and link generation hooks
-  const [createCustomOrder, { isLoading: isCreatingOrder }] = useCreateCustomOrderMutation();
-  const [generateSharedOrderLink, { isLoading: isGeneratingLink }] = useGenerateSharedOrderLinkMutation();
+  // Custom order and link generation state
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   
   const handleInviteFriend = useCallback(async (): Promise<void> => {
     if (!isAuthenticated) {
@@ -515,30 +625,45 @@ export function BottomSearchDrawer({
     try {
       // Step 1: Create a custom order with default budget
       showInfo("Creating order", "Setting up your invite...");
-      const customOrderResult = await createCustomOrder({
+      setIsCreatingOrder(true);
+      
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error("Not authenticated");
+      }
+
+      const customOrderResult = await convex.action(api.actions.orders.customerCreateCustomOrder, {
+        sessionToken,
         requirements: "Shared ordering - invite a friend",
         serving_size: 2,
         desired_delivery_time: new Date().toISOString(),
         budget: 2000, // £20 in pence
-      }).unwrap();
+      });
 
-      if (!customOrderResult.success || !customOrderResult.data._id) {
-        throw new Error("Failed to create custom order");
+      if (!customOrderResult.success || !customOrderResult.custom_order?._id) {
+        throw new Error(customOrderResult.error || "Failed to create custom order");
       }
 
-      const orderId = customOrderResult.data._id;
+      const orderId = customOrderResult.custom_order._id;
+      setIsCreatingOrder(false);
 
       // Step 2: Generate shareable link
       showInfo("Generating link", "Creating your share link...");
-      const linkResult = await generateSharedOrderLink({
+      setIsGeneratingLink(true);
+      
+      const linkResult = await convex.action(api.actions.orders.customerGenerateSharedOrderLink, {
+        sessionToken,
         order_id: orderId,
-      }).unwrap();
+      });
 
-      if (!linkResult.success || !linkResult.data.shareLink) {
-        throw new Error("Failed to generate share link");
+      if (!linkResult.success || !linkResult.shareLink) {
+        throw new Error(linkResult.error || "Failed to generate share link");
       }
 
-      const shareLink = linkResult.data.shareLink;
+      const shareLink = linkResult.shareLink;
+      setIsGeneratingLink(false);
       const shareMessage = `I'm treating you to a meal! 🍽️\n\nUse this link to order: ${shareLink}`;
 
       // Step 3: Present share options
@@ -568,8 +693,10 @@ export function BottomSearchDrawer({
       console.error("Error in invite friend flow:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to create invite link";
       showError("Invite failed", errorMessage);
+      setIsCreatingOrder(false);
+      setIsGeneratingLink(false);
     }
-  }, [isAuthenticated, createCustomOrder, generateSharedOrderLink]);
+  }, [isAuthenticated]);
 
   const handleSetupFamily = (): void => {
     router.push("/shared-ordering/setup");
@@ -1315,10 +1442,34 @@ export function BottomSearchDrawer({
               },
             };
 
-            await searchWithEmotions(searchParams).unwrap();
+            setIsSearchingWithEmotions(true);
+            const convex = getConvexClient();
+            const sessionToken = await getSessionToken();
+
+            if (!sessionToken) {
+              throw new Error("Not authenticated");
+            }
+
+            const result = await convex.action(api.actions.search.customerSearchWithEmotions, {
+              sessionToken,
+              query: searchParams.query || '',
+              emotions: undefined, // TODO: Extract from preferences if needed
+              location: searchParams.location ? `${searchParams.location.latitude},${searchParams.location.longitude}` : undefined,
+              cuisine: undefined, // TODO: Extract from preferences if needed
+              limit: 20,
+            });
+
+            if (result.success === false) {
+              throw new Error(result.error || 'Search failed');
+            }
+
+            // Note: The search result is handled by the search hook/component
+            // This just triggers the search action
+            setIsSearchingWithEmotions(false);
           } catch (err: any) {
             console.error("Natural language search error:", err);
-            showError("Search failed", err?.data?.message || "Please try again");
+            setIsSearchingWithEmotions(false);
+            showError("Search failed", err?.message || err?.data?.message || "Please try again");
           }
         }
       } catch (error: unknown) {
@@ -1336,7 +1487,6 @@ export function BottomSearchDrawer({
       isAuthenticated,
       userLocation,
       dietaryFilters,
-      searchWithEmotions,
     ]
   );
 

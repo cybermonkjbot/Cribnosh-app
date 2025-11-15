@@ -1,8 +1,8 @@
-import { useGetKitchenDetailsQuery, useGetKitchenFeaturedVideoQuery } from '@/store/customerApi';
+import { useChefs } from '@/hooks/useChefs';
 import { useTopPosition } from '@/utils/positioning';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -32,6 +32,7 @@ interface KitchenMainScreenProps {
   onHeartPress?: () => void;
   onSearchPress?: () => void;
   onClose?: () => void;
+  onMealPress?: (meal: any) => void;
 }
 
 export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
@@ -46,24 +47,59 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   onHeartPress,
   onSearchPress,
   onClose,
+  onMealPress,
 }) => {
   const router = useRouter();
   const topPosition = useTopPosition(20);
   const playIconScale = useSharedValue(1);
+  const { getKitchenDetails, getKitchenFeaturedVideo } = useChefs();
+  const [kitchenDetails, setKitchenDetails] = useState<any>(null);
+  const [featuredVideoData, setFeaturedVideoData] = useState<any>(null);
+  const [isLoadingKitchenDetails, setIsLoadingKitchenDetails] = useState(false);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
 
   // Fetch kitchen details if kitchenId is provided
-  const { data: kitchenDetails, isLoading: isLoadingKitchenDetails } = useGetKitchenDetailsQuery(
-    { kitchenId: kitchenId || '' },
-    { skip: !kitchenId }
-  );
+  useEffect(() => {
+    if (kitchenId) {
+      const loadKitchenDetails = async () => {
+        setIsLoadingKitchenDetails(true);
+        try {
+          const details = await getKitchenDetails(kitchenId);
+          if (details) {
+            setKitchenDetails({ data: details });
+          }
+        } catch (error) {
+          // Error already handled in hook
+        } finally {
+          setIsLoadingKitchenDetails(false);
+        }
+      };
+      loadKitchenDetails();
+    }
+  }, [kitchenId, getKitchenDetails]);
+
+  // Fetch featured video if kitchenId is available
+  useEffect(() => {
+    if (kitchenId) {
+      const loadFeaturedVideo = async () => {
+        setIsLoadingVideo(true);
+        try {
+          const video = await getKitchenFeaturedVideo(kitchenId);
+          if (video) {
+            setFeaturedVideoData({ data: video });
+          }
+        } catch (error) {
+          // Error already handled in hook
+        } finally {
+          setIsLoadingVideo(false);
+        }
+      };
+      loadFeaturedVideo();
+    }
+  }, [kitchenId, getKitchenFeaturedVideo]);
 
   // Extract kitchen name from API response
-  // ResponseFactory returns: { success: true, data: { kitchenName, ... }, message: ... }
-  // RTK Query returns the full response, so we access .data
-  const apiKitchenName = (kitchenDetails as any)?.data?.kitchenName;
-
-  // Debug: Log to see what we're getting
-  // console.log('Kitchen Details Debug:', { kitchenId, kitchenDetails, apiKitchenName, propKitchenName });
+  const apiKitchenName = kitchenDetails?.data?.kitchenName;
 
   // Use fetched kitchen name from API
   // If kitchenId is provided, always prioritize API data over prop
@@ -72,16 +108,6 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   const kitchenName = kitchenId 
     ? (apiKitchenName || (!isDemoName && propKitchenName) || (isLoadingKitchenDetails ? undefined : "Kitchen"))
     : (propKitchenName || "Amara's Kitchen");
-  
-  // Fetch featured video if kitchenId is available
-  const {
-    data: featuredVideoData,
-    isLoading: isLoadingVideo,
-    error: videoError,
-  } = useGetKitchenFeaturedVideoQuery(
-    { kitchenId: kitchenId || '' },
-    { skip: !kitchenId }
-  );
 
   // Continuous play icon animation
   useEffect(() => {
@@ -226,6 +252,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
         onCartPress={onCartPress}
         onHeartPress={onHeartPress}
         onSearchSubmit={(query) => console.log('Search submitted:', query)}
+        onMealPress={onMealPress}
       />
 
       {/* Floating Play Button */}

@@ -1,12 +1,13 @@
-import { useGetTooFreshItemsQuery } from '@/store/customerApi';
+import { useMeals } from '@/hooks/useMeals';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { showError } from '../../lib/GlobalToastManager';
 import { TooFreshToWasteEmpty } from './TooFreshToWasteEmpty';
 import { TooFreshToWasteSkeleton } from './TooFreshToWasteSkeleton';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface FreshItem {
   id: string;
@@ -30,17 +31,31 @@ export function TooFreshToWaste({
 }: TooFreshToWasteProps) {
   const { isAuthenticated } = useAuthContext();
 
-  // Backend API integration
-  const {
-    data: tooFreshData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetTooFreshItemsQuery(
-    { limit: 20, page: 1 },
-    {
-      skip: !useBackend || !isAuthenticated,
+  const { getTooFreshItems } = useMeals();
+  const [tooFreshData, setTooFreshData] = useState<any>(null);
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendError, setBackendError] = useState<any>(null);
+
+  // Load too fresh items
+  useEffect(() => {
+    if (useBackend && isAuthenticated) {
+      const loadTooFreshItems = async () => {
+        setBackendLoading(true);
+        setBackendError(null);
+        try {
+          const result = await getTooFreshItems(20, 1);
+          if (result?.success) {
+            setTooFreshData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setBackendError(error);
+        } finally {
+          setBackendLoading(false);
+        }
+      };
+      loadTooFreshItems();
     }
-  );
+  }, [useBackend, isAuthenticated, getTooFreshItems]);
 
   // Transform API data to component format
   const transformFreshItem = useCallback((apiItem: any): FreshItem | null => {
@@ -73,16 +88,15 @@ export function TooFreshToWaste({
     return transformedItems;
   }, [tooFreshData, useBackend, transformFreshItem]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError('Failed to load sustainability items', 'Please try again');
-    }
-  }, [backendError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Show skeleton while loading
   if (useBackend && backendLoading) {
-    return <TooFreshToWasteSkeleton itemCount={3} />;
+    return (
+      <SkeletonWithTimeout isLoading={backendLoading}>
+        <TooFreshToWasteSkeleton itemCount={3} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no items (don't show empty state)

@@ -1,30 +1,27 @@
 import AmountInput from '@/components/AmountInput';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAuthState } from '@/hooks/useAuthState';
+import { useChefs } from '@/hooks/useChefs';
+import { useGroupOrders } from '@/hooks/useGroupOrders';
+import { useUserLocation } from '@/hooks/useUserLocation';
+import { Chef, CustomerAddress } from '@/types/customer';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, Search as SearchIcon } from 'lucide-react-native';
-import { useState, useMemo } from 'react';
-import { 
-  ActivityIndicator, 
-  Alert, 
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   Image,
-  ScrollView, 
-  StyleSheet, 
-  Text, 
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
-  TouchableOpacity, 
-  View 
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  useCreateGroupOrderMutation, 
-  useGetNearbyChefsQuery,
-  useSearchChefsQuery 
-} from '@/store/customerApi';
-import { useAuthState } from '@/hooks/useAuthState';
-import { useUserLocation } from '@/hooks/useUserLocation';
-import { CustomerAddress, Chef } from '@/types/customer';
 
 export default function CreateGroupOrderScreen() {
   const router = useRouter();
@@ -51,35 +48,71 @@ export default function CreateGroupOrderScreen() {
   const [deliveryTime, setDeliveryTime] = useState('');
   const [expiresInHours, setExpiresInHours] = useState('24');
   
-  const [createGroupOrder, { isLoading: isCreating }] = useCreateGroupOrderMutation();
+  const { createGroupOrder, isLoading: isCreating } = useGroupOrders();
+  const { getNearbyChefs, searchChefs } = useChefs();
+  
+  const [nearbyChefsData, setNearbyChefsData] = useState<any>(null);
+  const [searchChefsData, setSearchChefsData] = useState<any>(null);
+  const [isLoadingNearbyChefs, setIsLoadingNearbyChefs] = useState(false);
+  const [isLoadingSearchChefs, setIsLoadingSearchChefs] = useState(false);
   
   // Fetch nearby chefs
-  const { 
-    data: nearbyChefsData, 
-    isLoading: isLoadingNearbyChefs 
-  } = useGetNearbyChefsQuery(
-    {
-      latitude: userLocation?.latitude || 0,
-      longitude: userLocation?.longitude || 0,
-      radius: 5,
-      limit: 20,
-      page: 1,
-    },
-    {
-      skip: !showChefSelection || !userLocation || !!searchQuery,
+  useEffect(() => {
+    if (showChefSelection && userLocation && !searchQuery) {
+      const loadNearbyChefs = async () => {
+        try {
+          setIsLoadingNearbyChefs(true);
+          const result = await getNearbyChefs({
+            latitude: userLocation.latitude,
+            longitude: userLocation.longitude,
+            radius: 5,
+            limit: 20,
+            page: 1,
+          });
+          if (result.success) {
+            setNearbyChefsData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          // Error already handled in hook
+        } finally {
+          setIsLoadingNearbyChefs(false);
+        }
+      };
+      loadNearbyChefs();
+    } else {
+      setNearbyChefsData(null);
     }
-  );
+  }, [showChefSelection, userLocation, searchQuery, getNearbyChefs]);
   
   // Search chefs
-  const { 
-    data: searchChefsData, 
-    isLoading: isLoadingSearchChefs 
-  } = useSearchChefsQuery(
-    { q: searchQuery, limit: 20 },
-    {
-      skip: !showChefSelection || !searchQuery || searchQuery.length < 2,
+  useEffect(() => {
+    if (showChefSelection && searchQuery && searchQuery.length >= 2) {
+      const loadSearchChefs = async () => {
+        try {
+          setIsLoadingSearchChefs(true);
+          const result = await searchChefs({
+            q: searchQuery,
+            limit: 20,
+            ...(userLocation ? {
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+              radius: 10,
+            } : {}),
+          });
+          if (result.success) {
+            setSearchChefsData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          // Error already handled in hook
+        } finally {
+          setIsLoadingSearchChefs(false);
+        }
+      };
+      loadSearchChefs();
+    } else {
+      setSearchChefsData(null);
     }
-  );
+  }, [showChefSelection, searchQuery, userLocation, searchChefs]);
   
   const chefId = selectedChef?.chef_id || '';
   const restaurantName = selectedChef?.restaurant_name || '';
@@ -158,10 +191,19 @@ export default function CreateGroupOrderScreen() {
         restaurant_name: restaurantName,
         initial_budget: budgetNum,
         title: title || defaultTitle,
-        delivery_address: deliveryAddress,
+        delivery_address: deliveryAddress ? {
+          street: deliveryAddress.street || '',
+          city: deliveryAddress.city || '',
+          postcode: deliveryAddress.postal_code || deliveryAddress.postcode || '',
+          country: deliveryAddress.country || '',
+        } : undefined,
         delivery_time: deliveryTime || undefined,
         expires_in_hours: expiresHours,
-      }).unwrap();
+      });
+      
+      if (!result.success || !result.data) {
+        throw new Error('Failed to create group order');
+      }
       
       // Success - navigate to group order screen
       // Navigate back multiple times to clear modal context (e.g., from BottomSearchDrawer),
@@ -199,9 +241,8 @@ export default function CreateGroupOrderScreen() {
         });
       }
     } catch (error: any) {
+      // Error already handled in hook with toast
       const errorMessage = 
-        error?.data?.error?.message ||
-        error?.data?.message ||
         error?.message ||
         'Failed to create group order. Please try again.';
       Alert.alert('Error', errorMessage);
@@ -275,7 +316,7 @@ export default function CreateGroupOrderScreen() {
             </View>
           ) : (
             <FlatList
-              data={chefs}
+              data={chefs as any[]}
               keyExtractor={(item) => item.id}
               renderItem={({ item: chef }) => (
                 <TouchableOpacity

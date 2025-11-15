@@ -1,10 +1,11 @@
 import { useToast } from '@/lib/ToastContext';
-import { useAddPaymentMethodMutation, useCreateSetupIntentMutation, useGetPaymentMethodsQuery } from '@/store/customerApi';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
+import { usePayments } from '@/hooks/usePayments';
+import { CardField, useStripe, confirmSetupIntent as confirmSetupIntentDirect } from '@stripe/stripe-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { BottomSheetBase } from '../BottomSheetBase';
+import { STRIPE_CONFIG } from '@/constants/api';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -14,22 +15,33 @@ const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 interface AddCardSheetProps {
   isVisible: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 export function AddCardSheet({
   isVisible,
   onClose,
+  onSuccess,
 }: AddCardSheetProps) {
   const snapPoints = useMemo(() => ['90%'], []);
   const { showToast } = useToast();
-  const { confirmSetupIntent } = useStripe();
+  const stripe = useStripe();
+  const { confirmSetupIntent } = stripe || {};
   const [isProcessing, setIsProcessing] = useState(false);
   const [setAsDefault, setSetAsDefault] = useState(false);
   const [cardDetailsComplete, setCardDetailsComplete] = useState(false);
 
-  const [createSetupIntent] = useCreateSetupIntentMutation();
-  const [addPaymentMethod] = useAddPaymentMethodMutation();
-  const { refetch: refetchPaymentMethods } = useGetPaymentMethodsQuery(undefined, { skip: !isVisible });
+  const { addPaymentMethod, getPaymentMethods, createSetupIntent } = usePayments();
+
+  // Debug: Log Stripe initialization status
+  if (__DEV__) {
+    console.log('AddCardSheet - Stripe Status:', {
+      hasStripe: !!stripe,
+      hasConfirmSetupIntent: !!confirmSetupIntent,
+      publishableKeySet: !!STRIPE_CONFIG.publishableKey,
+      publishableKeyLength: STRIPE_CONFIG.publishableKey?.length || 0,
+    });
+  }
 
   const handleSheetChanges = useCallback((index: number) => {
     if (index === -1) {
@@ -52,22 +64,45 @@ export function AddCardSheet({
       return;
     }
 
+    // Check if Stripe is initialized
+    if (!stripe || !confirmSetupIntent) {
+      showToast({
+        type: 'error',
+        title: 'Stripe Not Initialized',
+        message: 'Stripe is not properly configured. Please check your environment variables and restart the app.',
+        duration: 5000,
+      });
+      console.error('Stripe not initialized:', { stripe, confirmSetupIntent });
+      return;
+    }
+
     setIsProcessing(true);
     try {
       // Step 1: Create setup intent
-      const setupIntentResult = await createSetupIntent().unwrap();
+      const setupIntentResult = await createSetupIntent();
 
-      if (!setupIntentResult.success || !setupIntentResult.data?.clientSecret) {
+      if (!setupIntentResult || !setupIntentResult.success || !setupIntentResult.data?.clientSecret) {
         throw new Error('Failed to create setup intent');
       }
 
       const { clientSecret } = setupIntentResult.data;
 
+      // Debug: Log setup intent details
+      if (__DEV__) {
+        console.log('Setup Intent Details:', {
+          hasClientSecret: !!clientSecret,
+          clientSecretPrefix: clientSecret?.substring(0, 20) || 'N/A',
+          publishableKeyPrefix: STRIPE_CONFIG.publishableKey?.substring(0, 20) || 'N/A',
+        });
+      }
+
       // Step 2: Confirm setup intent with card details
-      const { error: stripeError, setupIntent } = await confirmSetupIntent(
+      // Try using the direct import first, fallback to hook method
+      const confirmFn = confirmSetupIntent || confirmSetupIntentDirect;
+      const { error: stripeError, setupIntent } = await confirmFn(
         clientSecret,
         {
-          paymentMethodType: 'Card',
+          type: 'Card', // Use 'type' instead of 'paymentMethodType' per Stripe docs
         }
       );
 
@@ -80,18 +115,18 @@ export function AddCardSheet({
       }
 
       // Step 3: Add payment method to backend
-      const addResult = await addPaymentMethod({
+      const paymentMethod = await addPaymentMethod({
         payment_method_id: setupIntent.paymentMethodId,
         type: 'card',
         set_as_default: setAsDefault,
-      }).unwrap();
+      });
 
-      if (!addResult.success) {
-        throw new Error(addResult.message || 'Failed to add payment method');
+      if (!paymentMethod) {
+        throw new Error('Failed to add payment method');
       }
 
       // Refetch payment methods to show the new card
-      await refetchPaymentMethods();
+      await getPaymentMethods();
 
       showToast({
         type: 'success',
@@ -99,6 +134,11 @@ export function AddCardSheet({
         message: 'Your payment card has been added successfully',
         duration: 3000,
       });
+
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
 
       // Close sheet after a short delay
       setTimeout(() => {
@@ -110,8 +150,6 @@ export function AddCardSheet({
     } catch (error: any) {
       console.error('Error adding card:', error);
       const errorMessage = 
-        error?.data?.error?.message ||
-        error?.data?.message ||
         error?.message ||
         'Failed to add card. Please try again.';
       showToast({

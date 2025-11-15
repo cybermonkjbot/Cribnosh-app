@@ -1,10 +1,10 @@
 import { ProfileAvatar } from '@/components/ProfileAvatar';
-import { AddressSelectionSheet } from '@/components/ui/AddressSelectionSheet';
 import { ProfileUpdateOTPModal } from '@/components/ui/ProfileUpdateOTPModal';
 import { useProfile } from '@/hooks/useProfile';
 import { CustomerAddress } from '@/types/customer';
-import { Stack, useRouter } from 'expo-router';
-import { useEffect, useState, useRef } from 'react';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useAddressSelection } from '@/contexts/AddressSelectionContext';
 import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import {
   ActivityIndicator,
@@ -38,11 +38,12 @@ export default function PersonalInfoScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
-  const [addressSheetMode, setAddressSheetMode] = useState<'home' | 'work' | null>(null);
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
+  
+  // Address selection context
+  const { setOnSelectAddress, selectedAddress, setSelectedAddress } = useAddressSelection();
 
   // Use profile hook for Convex actions
   const {
@@ -285,15 +286,39 @@ export default function PersonalInfoScreen() {
     setSelectedProfileImage(imageUri);
   };
 
-  const handleAddressSelect = (selectedAddress: CustomerAddress) => {
-    setAddress(selectedAddress);
-    setIsAddressSheetVisible(false);
-    setAddressSheetMode(null);
-  };
+  // Set up address selection callback
+  useEffect(() => {
+    const handleAddressSelect = (selectedAddr: CustomerAddress) => {
+      setAddress(selectedAddr);
+      setSelectedAddress(null); // Clear after handling
+    };
+    setOnSelectAddress(handleAddressSelect);
+    return () => {
+      setOnSelectAddress(null);
+    };
+  }, [setOnSelectAddress, setSelectedAddress]);
+
+  // Handle address selection when returning from modal
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedAddress) {
+        setAddress(selectedAddress);
+        setSelectedAddress(null); // Clear after handling
+      }
+    }, [selectedAddress, setSelectedAddress])
+  );
 
   const handleEditAddress = (mode: 'home' | 'work') => {
-    setAddressSheetMode(mode);
-    setIsAddressSheetVisible(true);
+    router.push({
+      pathname: '/select-address',
+      params: {
+        addressLabel: mode,
+        ...(address && {
+          selectedStreet: address.street,
+          selectedCity: address.city,
+        }),
+      },
+    });
   };
 
   const formatAddress = (addr?: CustomerAddress): string => {
@@ -428,20 +453,6 @@ export default function PersonalInfoScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
-
-        {/* Address Selection Sheet */}
-        {addressSheetMode && (
-          <AddressSelectionSheet
-            isVisible={isAddressSheetVisible}
-            onClose={() => {
-              setIsAddressSheetVisible(false);
-              setAddressSheetMode(null);
-            }}
-            onSelectAddress={handleAddressSelect}
-            selectedAddress={address}
-            addressLabel={addressSheetMode}
-          />
-        )}
 
         {/* OTP Verification Modal */}
         <ProfileUpdateOTPModal

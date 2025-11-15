@@ -1,11 +1,13 @@
 import { BottomSheetBase } from '@/components/BottomSheetBase';
 import { useRegionAvailability } from '@/hooks/useRegionAvailability';
 import { useUserLocation } from '@/hooks/useUserLocation';
-import { useGetCustomerProfileQuery } from '@/store/customerApi';
 import { CustomerAddress } from '@/types/customer';
 import * as SecureStore from 'expo-secure-store';
 import { Edit, MapPin, Plus, Search, Trash2, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from '@/contexts/AuthContext';
 import {
     Alert,
     Dimensions,
@@ -82,9 +84,48 @@ export function AddressSelectionSheet({
   // Get user location for distance calculation
   const locationState = useUserLocation();
   const userLocation = locationState.location;
+  const { isAuthenticated } = useAuthContext();
 
-  // Get customer profile for saved addresses
-  const { data: profileData } = useGetCustomerProfileQuery();
+  // Profile state
+  const [profileData, setProfileData] = useState<any>(null);
+
+  // Fetch profile data from Convex
+  const fetchProfile = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetProfile, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setProfileData({
+        data: {
+          ...result.user,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching profile:', error);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch profile when sheet opens
+  useEffect(() => {
+    if (isVisible && isAuthenticated) {
+      fetchProfile();
+    }
+  }, [isVisible, isAuthenticated, fetchProfile]);
 
   // Regional availability check
   const { checkAddress } = useRegionAvailability();

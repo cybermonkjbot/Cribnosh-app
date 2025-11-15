@@ -52,6 +52,13 @@ Based on `convex env list`:
    - **Action Required**: Set this for proper Apple token verification
    - **Note**: This is the content of the .p8 file (not the file path). Keep secure!
 
+9. **`STRIPE_SECRET_KEY`** - Required for Payment Processing
+   - Used in: `actions/payments.ts` - `customerCreateCheckout` and `customerTopUpBalance` actions
+   - Get from: Stripe Dashboard → Developers → API keys → Secret key
+   - **Action Required**: Set this to enable payment processing in Convex actions
+   - **Note**: Currently payment actions return errors. Set this to enable checkout and top-up features.
+   - **Example**: `sk_test_...` (test) or `sk_live_...` (production)
+
 ### Optional (Features degrade gracefully):
 
 9. **`OPENWEATHERMAP_API_KEY`** - Optional for weather features
@@ -81,6 +88,11 @@ Based on `convex env list`:
     - **Default**: `"CribNosh <onboarding@cribnosh.com>"` (if not set)
     - **Note**: Customize the default "from" email address
 
+15. **`STRIPE_WEBHOOK_SECRET`** - Optional for Stripe webhook verification
+    - Used in: Future webhook handling in Convex actions (if needed)
+    - Get from: Stripe Dashboard → Developers → Webhooks → Signing secret
+    - **Note**: Only needed if handling Stripe webhooks directly in Convex. Currently webhooks are handled in Next.js.
+
 ## How to Set Missing Variables
 
 ### Option 1: Via Convex CLI (Recommended)
@@ -96,11 +108,13 @@ npx convex env set APPLE_CLIENT_ID "com.cribnosh.service"
 npx convex env set APPLE_TEAM_ID "ABC123DEF4"
 npx convex env set APPLE_KEY_ID "78U8CYGFZY"
 npx convex env set APPLE_PRIVATE_KEY "$(cat AuthKey_78U8CYGFZY.p8)"
+npx convex env set STRIPE_SECRET_KEY "sk_test_..." # or sk_live_... for production
 
 # Optional variables
 npx convex env set OPENWEATHERMAP_API_KEY "your_weather_key"
 npx convex env set SMS_SENDER_ID "CribNosh"
 npx convex env set RESEND_FROM_EMAIL "CribNosh <noreply@cribnosh.com>"
+npx convex env set STRIPE_WEBHOOK_SECRET "whsec_..." # Optional - only if handling webhooks in Convex
 ```
 
 ### Option 2: Via Convex Dashboard
@@ -118,6 +132,7 @@ npx convex env set RESEND_FROM_EMAIL "CribNosh <noreply@cribnosh.com>"
 2. `OPENAI_API_KEY` - If using AI chat features
 3. `SMS_API_KEY` - If using phone/OTP authentication
 4. `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` - If using Apple Sign-In on mobile app
+5. `STRIPE_SECRET_KEY` - If using payment processing (checkout, top-up) in Convex actions
 
 **Set these next (optional but recommended):**
 5. `OPENWEATHERMAP_API_KEY` - For weather-based features

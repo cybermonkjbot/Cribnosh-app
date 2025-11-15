@@ -1,9 +1,9 @@
-import {
-  useGetOrdersQuery,
-  useGetSupportCasesQuery,
-} from '@/store/customerApi';
+import { useSupport } from '@/hooks/useSupport';
 import { Stack, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -42,18 +42,72 @@ const burgerIconSVG = `<svg width="40" height="40" viewBox="0 0 40 40" fill="non
 export default function HelpSupportScreen() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { isAuthenticated } = useAuthContext();
 
-  // Fetch support cases from API
-  const { data: supportCasesData, isLoading: supportCasesLoading } = useGetSupportCasesQuery(
-    { page: 1, limit: 10, status: 'open' }
-  );
+  // Fetch support cases using new hook
+  const { getSupportCases, isLoading: supportCasesLoading } = useSupport();
+  const [supportCasesData, setSupportCasesData] = useState<any>(null);
+  const [ordersData, setOrdersData] = useState<any>(null);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
-  // Fetch recent orders (limit to 1 most recent)
-  const { data: ordersData, isLoading: ordersLoading } = useGetOrdersQuery({
-    limit: 1,
-    offset: 0,
-    status: 'all',
-  });
+  useEffect(() => {
+    loadSupportCases();
+  }, []);
+
+  const loadSupportCases = async () => {
+    try {
+      const result = await getSupportCases({ page: 1, limit: 10, status: 'open' });
+      if (result.success) {
+        setSupportCasesData(result);
+      }
+    } catch (error) {
+      // Error already handled in hook
+    }
+  };
+
+  // Fetch recent orders from Convex (limit to 1 most recent)
+  const fetchRecentOrders = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setOrdersLoading(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.orders.customerGetOrders, {
+        sessionToken,
+        page: 1,
+        limit: 1,
+        status: 'all',
+        order_type: 'all',
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setOrdersData({
+        data: {
+          orders: result.orders || [],
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchRecentOrders();
+    }
+  }, [isAuthenticated, fetchRecentOrders]);
 
   // Note: createSupportCase mutation is available for future use when creating support cases from this screen
   // const [createSupportCase] = useCreateSupportCaseMutation();
@@ -457,6 +511,7 @@ export default function HelpSupportScreen() {
           isVisible={isSupportCasesSheetVisible}
           onClose={handleCloseSupportCasesSheet}
           cases={supportCasesData?.data?.cases || []}
+          onRefresh={loadSupportCases}
           isLoading={supportCasesLoading}
           onSelectCase={handleSelectSupportCase}
         />

@@ -1,4 +1,4 @@
-import { useGetDietaryPreferencesQuery, useUpdateDietaryPreferencesMutation } from '@/store/customerApi';
+import { usePreferences } from '@/hooks/usePreferences';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -55,26 +55,36 @@ export function DietaryPreferencesSheet({
 }: DietaryPreferencesSheetProps) {
   const { showToast } = useToast();
   const snapPoints = useMemo(() => ['85%', '95%'], []);
-
-  const { data: preferencesData, isLoading } = useGetDietaryPreferencesQuery(undefined, {
-    skip: !isVisible,
-  });
-
-  const [updatePreferences, { isLoading: isSaving }] = useUpdateDietaryPreferencesMutation();
+  const { getDietaryPreferences, updateDietaryPreferences, isLoading: isSaving } = usePreferences();
 
   // State for selected preferences
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [selectedReligious, setSelectedReligious] = useState<string[]>([]);
   const [selectedHealth, setSelectedHealth] = useState<string[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Initialize from API data
+  // Load preferences when sheet becomes visible
   useEffect(() => {
-    if (preferencesData?.data) {
-      setSelectedPreferences(preferencesData.data.preferences || []);
-      setSelectedReligious(preferencesData.data.religious_requirements || []);
-      setSelectedHealth(preferencesData.data.health_driven || []);
+    if (isVisible) {
+      loadPreferences();
     }
-  }, [preferencesData]);
+  }, [isVisible]);
+
+  const loadPreferences = useCallback(async () => {
+    try {
+      setIsLoadingData(true);
+      const result = await getDietaryPreferences();
+      if (result.success && result.data) {
+        setSelectedPreferences(result.data.preferences || []);
+        setSelectedReligious(result.data.religious_requirements || []);
+        setSelectedHealth(result.data.health_driven || []);
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [getDietaryPreferences]);
 
   const handleSheetChanges = useCallback(
     (index: number) => {
@@ -113,34 +123,15 @@ export function DietaryPreferencesSheet({
 
   const handleSave = async () => {
     try {
-      const payload = {
+      await updateDietaryPreferences({
         preferences: selectedPreferences,
         religious_requirements: selectedReligious,
         health_driven: selectedHealth,
-      };
-
-      await updatePreferences(payload).unwrap();
-
-      showToast({
-        type: 'success',
-        title: 'Preferences Updated',
-        message: 'Your dietary preferences have been saved successfully.',
-        duration: 3000,
       });
 
       onClose();
-    } catch (error: any) {
-      const errorMessage =
-        error?.data?.error?.message ||
-        error?.data?.message ||
-        error?.message ||
-        'Failed to update dietary preferences. Please try again.';
-      showToast({
-        type: 'error',
-        title: 'Update Failed',
-        message: errorMessage,
-        duration: 4000,
-      });
+    } catch (error) {
+      // Error already handled in hook
     }
   };
 
@@ -202,7 +193,7 @@ export function DietaryPreferencesSheet({
           </TouchableOpacity>
         </View>
 
-        {isLoading ? (
+        {isLoadingData ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#094327" />
           </View>

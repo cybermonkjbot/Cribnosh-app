@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -13,8 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuperButton } from '@/components/ui/SuperButton';
-import { useGetFamilyProfileQuery, useUpdateMemberPreferencesMutation } from '@/store/customerApi';
 import { useToast } from '@/lib/ToastContext';
+import { useFamilyProfile } from '@/hooks/useFamilyProfile';
 import { AlertTriangle, Plus, X, ChevronDown, ChevronUp } from 'lucide-react-native';
 
 interface Allergy {
@@ -59,8 +59,27 @@ export default function MemberPreferencesScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { showToast } = useToast();
-  const { data: familyProfileData } = useGetFamilyProfileQuery();
-  const [updatePreferences, { isLoading }] = useUpdateMemberPreferencesMutation();
+  const { getFamilyProfile } = useFamilyProfile();
+  const [familyProfileData, setFamilyProfileData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch family profile from Convex
+  const fetchFamilyProfile = useCallback(async () => {
+    try {
+      const result = await getFamilyProfile();
+      if (result.success) {
+        setFamilyProfileData({
+          data: result.data,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching family profile:', error);
+    }
+  }, [getFamilyProfile]);
+
+  useEffect(() => {
+    fetchFamilyProfile();
+  }, [fetchFamilyProfile]);
 
   const member = familyProfileData?.data?.family_members.find((m) => m.id === id);
   const [parentControlled, setParentControlled] = useState(true);
@@ -151,33 +170,25 @@ export default function MemberPreferencesScreen() {
     if (!member) return;
 
     try {
-      await updatePreferences({
-        member_id: member.id,
-        preferences: {
-          parent_controlled: parentControlled,
-          allergies: allergies.length > 0 ? allergies : undefined,
-          dietary_preferences: {
-            preferences: dietaryPrefs.preferences,
-            religious_requirements: dietaryPrefs.religious_requirements,
-            health_driven: dietaryPrefs.health_driven,
-          },
-        },
-      }).unwrap();
-
+      setIsLoading(true);
+      // TODO: Implement updateMemberPreferences via Convex action when available
+      // For now, show a message that this feature is coming soon
       showToast({
-        type: 'success',
-        title: 'Preferences Updated',
-        message: 'Member preferences have been updated successfully.',
+        type: 'info',
+        title: 'Coming Soon',
+        message: 'Member preferences update will be available soon via Convex.',
         duration: 3000,
       });
-      router.back();
+      // router.back();
     } catch (error: any) {
       showToast({
         type: 'error',
         title: 'Update Failed',
-        message: error?.data?.message || error?.message || 'Failed to update preferences. Please try again.',
+        message: error?.message || 'Failed to update preferences. Please try again.',
         duration: 4000,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 

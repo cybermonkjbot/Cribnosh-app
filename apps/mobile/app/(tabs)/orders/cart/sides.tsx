@@ -6,6 +6,10 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
 import { AppleIcon } from "@/components/AppleIcon";
+import { useCart } from "@/hooks/useCart";
+import { useSides } from "@/hooks/useSides";
+import { SkeletonBox } from "@/components/ui/MealItemDetails/Skeletons/ShimmerBox";
+import { SkeletonWithTimeout } from "@/components/ui/SkeletonWithTimeout";
 
 const PAYMENT_METHOD_STORAGE_KEY = "cart_selected_payment_method";
 
@@ -16,34 +20,62 @@ interface PaymentMethod {
   iconType: string;
 }
 
-export default function CartScreen() {
+interface CartItem {
+  _id: string;
+  dish_id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image_url?: string;
+  sides?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
+}
+
+interface AvailableSide {
+  _id: string;
+  name: string;
+  description?: string;
+  price: number;
+  category?: string;
+  image?: string;
+}
+
+export default function SidesScreen() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [cartData, setCartData] = useState<{ items: CartItem[] } | null>(null);
+  const [availableSides, setAvailableSides] = useState<Record<string, AvailableSide[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const { getCart } = useCart();
+  const { getSidesForCart, addSideToCartItem, updateSideQuantity, removeSideFromCartItem, isLoading: sidesLoading } = useSides();
 
-  const OrderItems = [
-    {
-      name: "Sharwama",
-      price: "16",
-      image: require("@/assets/images/sample.png"),
-      quantity: 1,
-    },
-    {
-      name: "Lentil Soup",
-      price: "18",
-      image: require("@/assets/images/sushi.png"),
-      quantity: 1,
-    },
-  ];
-
-  // Load payment method when screen comes into focus
+  // Load cart data and sides when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      const loadPaymentMethod = async () => {
+      const loadData = async () => {
         try {
+          setIsLoading(true);
+          
+          // Load cart
+          const cartResult = await getCart();
+          if (cartResult.success && cartResult.data) {
+            setCartData(cartResult.data);
+            
+            // Load available sides for cart items
+            const sidesResult = await getSidesForCart();
+            if (sidesResult.success && sidesResult.data) {
+              setAvailableSides(sidesResult.data);
+            }
+          }
+          
+          // Load payment method
           const stored = await SecureStore.getItemAsync(PAYMENT_METHOD_STORAGE_KEY);
           if (stored) {
             setSelectedPaymentMethod(JSON.parse(stored));
           } else {
-            // Default to card if nothing is stored
             setSelectedPaymentMethod({
               id: "card",
               name: "Credit/Debit Card",
@@ -52,18 +84,20 @@ export default function CartScreen() {
             });
           }
         } catch (error) {
-          console.error("Error loading payment method:", error);
-          // Default to card on error
+          console.error("Error loading data:", error);
+          // Default payment method on error
           setSelectedPaymentMethod({
             id: "card",
             name: "Credit/Debit Card",
             description: "**** **** **** 3095",
             iconType: "card",
           });
+        } finally {
+          setIsLoading(false);
         }
       };
-      loadPaymentMethod();
-    }, [])
+      loadData();
+    }, [getCart, getSidesForCart])
   );
 
   const handleBack = () => {
@@ -80,9 +114,94 @@ export default function CartScreen() {
     router.push("/orders/cart/payment-method");
   };
 
-  const handleQuantityChange = (index: number, newQuantity: number) => {
-    // Handle quantity change logic here
-    console.log(`Item ${index} quantity changed to ${newQuantity}`);
+  const handleSideQuantityChange = async (cartItemId: string, sideId: string, newQuantity: number) => {
+    try {
+      if (newQuantity <= 0) {
+        await removeSideFromCartItem(cartItemId, sideId);
+      } else {
+        // Check if side is already in cart
+        const cartItem = cartData?.items.find(item => item._id === cartItemId);
+        const existingSide = cartItem?.sides?.find(s => s.id === sideId);
+        
+        if (existingSide) {
+          await updateSideQuantity(cartItemId, sideId, newQuantity);
+        } else {
+          await addSideToCartItem(cartItemId, sideId, newQuantity);
+        }
+      }
+      
+      // Refresh cart data
+      const cartResult = await getCart();
+      if (cartResult.success && cartResult.data) {
+        setCartData(cartResult.data);
+      }
+    } catch (error) {
+      console.error('Error updating side quantity:', error);
+    }
+  };
+
+  // Calculate total price including sides
+  const calculateTotal = () => {
+    if (!cartData) return 0;
+    
+    let total = 0;
+    cartData.items.forEach(item => {
+      // Item total
+      total += (item.price * item.quantity);
+      
+      // Sides total
+      if (item.sides) {
+        item.sides.forEach(side => {
+          total += (side.price * side.quantity);
+        });
+      }
+    });
+    
+    return total;
+  };
+
+  // Get all unique sides combined from all cart items
+  const getAllCombinedSides = () => {
+    // Collect all unique sides from all items
+    const allSidesMap = new Map<string, AvailableSide & { quantity: number; cartItemIds: string[] }>();
+    
+    // Iterate through all cart items and their available sides
+    cartData?.items.forEach(item => {
+      const available = availableSides[item._id] || [];
+      const addedSides = item.sides || [];
+      
+      available.forEach(side => {
+        const existing = allSidesMap.get(side._id);
+        const added = addedSides.find(s => s.id === side._id);
+        const quantity = added?.quantity || 0;
+        
+        if (existing) {
+          // Side already exists, add this cart item ID and sum quantities
+          existing.cartItemIds.push(item._id);
+          existing.quantity += quantity; // Sum quantities across all items
+        } else {
+          // New side, add it
+          allSidesMap.set(side._id, {
+            ...side,
+            quantity,
+            cartItemIds: [item._id],
+          });
+        }
+      });
+    });
+    
+    return Array.from(allSidesMap.values());
+  };
+
+  // Get the first cart item ID that supports a given side
+  const getFirstCartItemForSide = (sideId: string): string | null => {
+    for (const item of cartData?.items || []) {
+      const available = availableSides[item._id] || [];
+      if (available.some(side => side._id === sideId)) {
+        return item._id;
+      }
+    }
+    return null;
   };
 
   // Render payment method icon based on type
@@ -129,6 +248,98 @@ export default function CartScreen() {
     return selectedPaymentMethod.description || "**** **** **** 3095";
   };
 
+  // Sides Screen Skeleton Loader Component
+  const SidesSkeleton = () => (
+    <View style={styles.skeletonContainer}>
+      {/* Order Header Skeleton - Stacked Images + "Your order" */}
+      <View style={styles.skeletonOrderHeaderSection}>
+        {/* Stacked Images Skeleton */}
+        <View style={styles.skeletonImageStackContainer}>
+          {Array.from({ length: 3 }).map((_, index) => {
+            const offset = index * 8;
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.skeletonStackedImage,
+                  {
+                    transform: [
+                      { translateX: offset },
+                      { translateY: offset * 0.5 },
+                    ],
+                    zIndex: 3 - index,
+                  },
+                ]}
+              >
+                <SkeletonBox width={80} height={80} borderRadius={12} />
+              </View>
+            );
+          })}
+        </View>
+        
+        {/* Order Text Section Skeleton */}
+        <View style={styles.skeletonOrderTextContainer}>
+          <SkeletonBox width={120} height={28} borderRadius={4} style={{ marginBottom: 8 }} />
+          <View style={styles.skeletonOrderDetailsRow}>
+            <SkeletonBox width={60} height={16} borderRadius={4} />
+            <View style={styles.skeletonOrderPriceContainer}>
+              <SkeletonBox width={50} height={14} borderRadius={4} />
+              <SkeletonBox width={60} height={18} borderRadius={4} />
+            </View>
+          </View>
+        </View>
+      </View>
+      
+      {/* Combined Sides Section Skeleton */}
+      <View style={styles.skeletonSidesSection}>
+        <SkeletonBox width={200} height={18} borderRadius={4} style={{ marginBottom: 16 }} />
+        {Array.from({ length: 4 }).map((_, sideIndex) => (
+          <View key={sideIndex} style={styles.skeletonSideRow}>
+            <View style={styles.skeletonSideLeft}>
+              <SkeletonBox width={140} height={16} borderRadius={4} style={{ marginBottom: 6 }} />
+              <SkeletonBox width={200} height={14} borderRadius={4} style={{ marginBottom: 6 }} />
+              <SkeletonBox width={50} height={14} borderRadius={4} />
+            </View>
+            <SkeletonBox width={79} height={36} borderRadius={10} />
+          </View>
+        ))}
+      </View>
+      
+      {/* Payment Section Skeleton */}
+      <View style={styles.skeletonPaymentSection}>
+        <SkeletonBox width={140} height={20} borderRadius={4} style={{ marginBottom: 16 }} />
+        <View style={styles.skeletonPaymentMethodRow}>
+          <View style={styles.skeletonPaymentMethodLeft}>
+            <SkeletonBox width={32} height={25} borderRadius={6} />
+            <SkeletonBox width={150} height={16} borderRadius={4} />
+          </View>
+          <SkeletonBox width={70} height={32} borderRadius={9999} />
+        </View>
+        
+        <View style={styles.skeletonDietSection}>
+          <SkeletonBox width={32} height={23} borderRadius={4} style={{ marginBottom: 8 }} />
+          <SkeletonBox width="100%" height={14} borderRadius={4} />
+        </View>
+      </View>
+      
+      {/* Summary Section Skeleton */}
+      <View style={styles.skeletonSummarySection}>
+        <View style={styles.skeletonSummaryRow}>
+          <SkeletonBox width={80} height={18} borderRadius={4} />
+          <SkeletonBox width={80} height={18} borderRadius={4} />
+        </View>
+        <View style={styles.skeletonSummaryRow}>
+          <SkeletonBox width={100} height={18} borderRadius={4} />
+          <SkeletonBox width={60} height={18} borderRadius={4} />
+        </View>
+        <View style={styles.skeletonSummaryRow}>
+          <SkeletonBox width={60} height={18} borderRadius={4} />
+          <SkeletonBox width={80} height={18} borderRadius={4} />
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
@@ -148,34 +359,139 @@ export default function CartScreen() {
               <View style={styles.headerSpacer} />
             </View>
             
-            <View style={styles.itemsContainer}>
-              {OrderItems.map((item, index) => (
-                <View
-                  style={styles.itemRow}
-                  key={index}
-                >
-                  <View style={styles.itemLeft}>
-                    <View style={styles.imageContainer}>
-                      <Image
-                        source={item.image}
-                        style={styles.itemImage}
-                      />
-                    </View>
-                    <View>
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemPrice}>
-                        £ {item.price}
-                      </Text>
+            {isLoading ? (
+              <SkeletonWithTimeout isLoading={isLoading}>
+                <SidesSkeleton />
+              </SkeletonWithTimeout>
+            ) : cartData && cartData.items.length > 0 ? (
+              <View style={styles.itemsContainer}>
+                {/* Stacked Image Gallery with "Your order" text */}
+                <View style={styles.orderHeaderSection}>
+                  <View style={styles.imageStackContainer}>
+                    {cartData.items.slice(0, 4).map((item, index) => {
+                      const offset = index * 8; // Stagger offset for scattered effect
+                      const rotation = (index % 2 === 0 ? 1 : -1) * (index * 3); // Alternate rotation
+                      return (
+                        <View
+                          key={item._id}
+                          style={[
+                            styles.stackedImage,
+                            {
+                              transform: [
+                                { translateX: offset },
+                                { translateY: offset * 0.5 },
+                                { rotate: `${rotation}deg` },
+                              ],
+                              zIndex: cartData.items.length - index,
+                            },
+                          ]}
+                        >
+                          {item.image_url ? (
+                            <Image
+                              source={{ uri: item.image_url }}
+                              style={styles.stackedImageContent}
+                            />
+                          ) : (
+                            <View style={[styles.stackedImageContent, styles.placeholderImage]}>
+                              <Text style={styles.placeholderText}>📦</Text>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                    {cartData.items.length > 4 && (
+                      <View
+                        style={[
+                          styles.stackedImage,
+                          styles.moreItemsOverlay,
+                          {
+                            transform: [
+                              { translateX: 4 * 8 },
+                              { translateY: 4 * 8 * 0.5 },
+                            ],
+                            zIndex: 0,
+                          },
+                        ]}
+                      >
+                        <View style={[styles.stackedImageContent, styles.moreItemsContainer]}>
+                          <Text style={styles.moreItemsText}>+{cartData.items.length - 4}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.orderTextContainer}>
+                    <Text style={styles.yourOrderText}>Your order</Text>
+                    <View style={styles.orderDetailsRow}>
+                      {(() => {
+                        const totalItems = cartData.items.reduce((sum, item) => sum + item.quantity, 0);
+                        return (
+                          <Text style={styles.orderItemCount}>
+                            {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                          </Text>
+                        );
+                      })()}
+                      <View style={styles.orderPriceContainer}>
+                        <Text style={styles.orderSubtotalLabel}>Subtotal</Text>
+                        <Text style={styles.orderSubtotalPrice}>
+                          £{(calculateTotal() / 100).toFixed(2)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-
-                  <IncrementalOrderAmount
-                    initialValue={item.quantity}
-                    onChange={(newQuantity) => handleQuantityChange(index, newQuantity)}
-                  />
                 </View>
-              ))}
-            </View>
+                
+                {/* Combined Sides Section */}
+                {(() => {
+                  const allSides = getAllCombinedSides();
+                  return allSides.length > 0 ? (
+                    <View style={styles.sidesSection}>
+                      <Text style={styles.sidesSectionTitle}>Available Sides & Extras</Text>
+                      {allSides.map((side) => {
+                        const firstCartItemId = getFirstCartItemForSide(side._id);
+                        return (
+                          <View key={side._id} style={styles.sideRow}>
+                            <View style={styles.sideLeft}>
+                              <View>
+                                <Text style={styles.sideName}>{side.name}</Text>
+                                {side.description && (
+                                  <Text style={styles.sideDescription}>{side.description}</Text>
+                                )}
+                                <Text style={styles.sidePrice}>
+                                  £{(side.price / 100).toFixed(2)}
+                                </Text>
+                              </View>
+                            </View>
+                            <IncrementalOrderAmount
+                              initialValue={side.quantity}
+                              onChange={(newQuantity) => {
+                                if (firstCartItemId) {
+                                  handleSideQuantityChange(firstCartItemId, side._id, newQuantity);
+                                }
+                              }}
+                              isOrdered={side.quantity > 0}
+                              buttonText="Add"
+                            />
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <View style={styles.noSidesContainer}>
+                      <Text style={styles.noSidesText}>
+                        No sides available
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Your cart is empty</Text>
+                <Pressable onPress={handleBack} style={styles.backToCartButton}>
+                  <Text style={styles.backToCartButtonText}>Back to Cart</Text>
+                </Pressable>
+              </View>
+            )}
 
             <View style={styles.paymentSection}>
               <Text style={styles.paymentTitle}>Payment method</Text>
@@ -203,23 +519,35 @@ export default function CartScreen() {
                   />
                   <Text style={styles.dietText}>
                     These options are limited by Your Diet Preferences{" "}
-                    <Text style={styles.dietBoldText}>Update Diet</Text>
+                    <Pressable onPress={() => router.push("/food-safety")}>
+                      <Text style={styles.dietBoldText}>Update Diet</Text>
+                    </Pressable>
                   </Text>
                 </View>
                 <View />
               </View>
             </View>
 
-            <View style={styles.summarySection}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Delivery Fee</Text>
-                <Text style={styles.summaryValue}>£ 9</Text>
+            {cartData && cartData.items.length > 0 && (
+              <View style={styles.summarySection}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Subtotal</Text>
+                  <Text style={styles.summaryValue}>
+                    £{((calculateTotal() + 900) / 100).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Delivery Fee</Text>
+                  <Text style={styles.summaryValue}>£9.00</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryTotalLabel}>Total</Text>
+                  <Text style={styles.summaryTotalValue}>
+                    £{((calculateTotal() + 900) / 100).toFixed(2)}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryTotalLabel}>Total </Text>
-                <Text style={styles.summaryTotalValue}>£ 36</Text>
-              </View>
-            </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -430,5 +758,250 @@ const styles = StyleSheet.create({
     fontSize: 18, // text-lg
     fontWeight: '700', // font-bold
     color: '#FFFFFF', // text-white
+  },
+  skeletonContainer: {
+    flex: 1,
+  },
+  skeletonOrderHeaderSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 16,
+  },
+  skeletonImageStackContainer: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+  },
+  skeletonStackedImage: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  skeletonOrderTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  skeletonOrderDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  skeletonOrderPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  skeletonSidesSection: {
+    marginBottom: 32,
+  },
+  skeletonSideRow: {
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  skeletonSideLeft: {
+    flex: 1,
+    marginRight: 16,
+  },
+  skeletonPaymentSection: {
+    marginBottom: 32,
+    marginTop: 16,
+  },
+  skeletonPaymentMethodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 8,
+  },
+  skeletonPaymentMethodLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  skeletonDietSection: {
+    marginTop: 16,
+  },
+  skeletonSummarySection: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
+  },
+  skeletonSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  cartItemSection: {
+    marginBottom: 32,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
+  },
+  mainItemRow: {
+    marginBottom: 16,
+  },
+  placeholderImage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    fontSize: 32,
+  },
+  sidesSection: {
+    marginTop: 16,
+  },
+  sidesSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  sideRow: {
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sideLeft: {
+    flex: 1,
+    marginRight: 16,
+  },
+  sideName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  sideDescription: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+  sidePrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  noSidesContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  noSidesText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    marginBottom: 24,
+  },
+  backToCartButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+  },
+  backToCartButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  orderHeaderSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 16,
+  },
+  imageStackContainer: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+  },
+  stackedImage: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#EAEAEA',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  stackedImageContent: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+  },
+  moreItemsOverlay: {
+    backgroundColor: '#02120A',
+    borderColor: '#374151',
+  },
+  moreItemsContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#02120A',
+  },
+  moreItemsText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  yourOrderText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  orderTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  orderDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  orderItemCount: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
+  orderPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  orderSubtotalLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
+  orderSubtotalPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

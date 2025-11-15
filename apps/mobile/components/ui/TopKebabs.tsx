@@ -1,11 +1,12 @@
-import { useGetTopKebabsQuery } from '@/store/customerApi';
+import { useMeals } from '@/hooks/useMeals';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { showError } from '../../lib/GlobalToastManager';
 import { TopKebabsEmpty } from './TopKebabsEmpty';
 import { TopKebabsSkeleton } from './TopKebabsSkeleton';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 interface Kebab {
   id: string;
@@ -22,17 +23,31 @@ interface TopKebabsProps {
 export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress }: TopKebabsProps) {
   const { isAuthenticated } = useAuthContext();
 
-  // Backend API integration
-  const {
-    data: kebabsData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetTopKebabsQuery(
-    { limit: 20, page: 1 },
-    {
-      skip: !useBackend || !isAuthenticated,
+  const { getTopKebabs } = useMeals();
+  const [kebabsData, setKebabsData] = useState<any>(null);
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendError, setBackendError] = useState<any>(null);
+
+  // Load top kebabs
+  useEffect(() => {
+    if (useBackend && isAuthenticated) {
+      const loadTopKebabs = async () => {
+        setBackendLoading(true);
+        setBackendError(null);
+        try {
+          const result = await getTopKebabs(20, 1);
+          if (result?.success) {
+            setKebabsData({ success: true, data: result.data });
+          }
+        } catch (error) {
+          setBackendError(error);
+        } finally {
+          setBackendLoading(false);
+        }
+      };
+      loadTopKebabs();
     }
-  );
+  }, [useBackend, isAuthenticated, getTopKebabs]);
 
   // Transform API data to component format
   // TopKebabs shows cuisines/kitchens, not individual meals
@@ -74,16 +89,15 @@ export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress }: Top
     return Array.from(cuisineMap.values()).slice(0, 10); // Limit to 10 unique cuisines
   }, [kebabsData, useBackend, transformKebabData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError('Failed to load top kebabs', 'Please try again');
-    }
-  }, [backendError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Show skeleton while loading
   if (useBackend && backendLoading) {
-    return <TopKebabsSkeleton itemCount={3} />;
+    return (
+      <SkeletonWithTimeout isLoading={backendLoading}>
+        <TopKebabsSkeleton itemCount={3} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no kebabs (don't show empty state)

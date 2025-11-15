@@ -1,8 +1,8 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { BottomSheetBase } from '../BottomSheetBase';
-import { useGetFamilyOrdersQuery } from '@/store/customerApi';
+import { useFamilyProfile } from '@/hooks/useFamilyProfile';
 import { formatOrderDate } from '@/utils/dateFormat';
 import { Package } from 'lucide-react-native';
 
@@ -28,7 +28,30 @@ export function FamilyOrdersSheet({
   onClose,
   onSelectOrder,
 }: FamilyOrdersSheetProps) {
-  const { data: ordersData, isLoading } = useGetFamilyOrdersQuery({ limit: 50 });
+  const { getFamilyOrders } = useFamilyProfile();
+  const [ordersData, setOrdersData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isVisible) {
+      loadOrders();
+    }
+  }, [isVisible]);
+
+  const loadOrders = async () => {
+    try {
+      setIsLoading(true);
+      const result = await getFamilyOrders({ limit: 50 });
+      if (result.success) {
+        setOrdersData({ success: true, data: result.orders });
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const orders = ordersData?.data || [];
 
   const snapPoints = useMemo(() => ['75%', '90%'], []);

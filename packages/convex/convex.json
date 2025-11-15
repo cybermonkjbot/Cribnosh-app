@@ -37,6 +37,12 @@
       },
       "RESEND_FROM_EMAIL": {
         "description": "Default from email address for automated emails"
+      },
+      "STRIPE_SECRET_KEY": {
+        "description": "Stripe secret API key for payment processing"
+      },
+      "STRIPE_WEBHOOK_SECRET": {
+        "description": "Stripe webhook signing secret for webhook verification (optional)"
       }
     }
   }

@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
 import { CategoryFoodItemsGrid } from './CategoryFoodItemsGrid';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
-import { useSearchQuery } from '@/store/customerApi';
+import { useSearch } from '@/hooks/useSearch';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { EmptyState } from './EmptyState';
 
 interface CuisineCategoryDrawerProps {
   cuisine: {
@@ -26,26 +27,44 @@ export function CuisineCategoryDrawer({
 }: CuisineCategoryDrawerProps) {
   const { isAuthenticated } = useAuthContext();
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const { search } = useSearch();
+  
+  const [cuisineMealsData, setCuisineMealsData] = useState<any>(null);
+  const [isLoadingMeals, setIsLoadingMeals] = useState(false);
+  const [mealsError, setMealsError] = useState<any>(null);
 
   // Fetch meals filtered by cuisine using search API
-  const {
-    data: cuisineMealsData,
-    isLoading: isLoadingMeals,
-    error: mealsError,
-  } = useSearchQuery(
-    { 
-      query: '',
-      type: 'dishes',
-      limit: 50,
-      page: 1,
-      filters: {
-        cuisine: [cuisine.name],
-      },
-    },
-    {
-      skip: !isAuthenticated,
+  const loadCuisineMeals = useCallback(async () => {
+    if (!isAuthenticated) {
+      setCuisineMealsData(null);
+      return;
     }
-  );
+    
+    try {
+      setIsLoadingMeals(true);
+      setMealsError(null);
+      const result = await search({
+        query: cuisine.name,
+        limit: 50,
+        filters: {
+          cuisine: cuisine.name,
+        },
+      });
+      if (result.success) {
+        setCuisineMealsData({ success: true, data: result.data.results?.dishes || [] });
+      } else {
+        setMealsError(new Error('Failed to load dishes'));
+      }
+    } catch (error: any) {
+      setMealsError(error);
+    } finally {
+      setIsLoadingMeals(false);
+    }
+  }, [isAuthenticated, cuisine.name, search]);
+
+  useEffect(() => {
+    loadCuisineMeals();
+  }, [loadCuisineMeals]);
 
   // Transform API data to FoodItem format
   const transformMealData = (apiMeal: any) => {
@@ -143,8 +162,18 @@ export function CuisineCategoryDrawer({
       <View style={styles.content}>
         {isLoadingMeals ? (
           <View style={styles.loadingContainer}>
-            {/* Loading skeleton could go here */}
+            <ActivityIndicator size="large" color="#FF3B30" />
           </View>
+        ) : mealsError ? (
+          <EmptyState
+            title="Unable to Load Dishes"
+            subtitle="We couldn't load the dishes for this cuisine. Please try again."
+            icon="alert-circle-outline"
+            actionButton={{
+              label: 'Retry',
+              onPress: loadCuisineMeals,
+            }}
+          />
         ) : filteredMeals.length > 0 ? (
           <>
             {/* Popular Section */}
@@ -186,9 +215,19 @@ export function CuisineCategoryDrawer({
             />
           </>
         ) : (
-          <View style={styles.emptyContainer}>
-            {/* Empty state could go here */}
-          </View>
+          <EmptyState
+            title={`No ${cuisine.name} Dishes Available`}
+            subtitle={`We couldn't find any ${cuisine.name.toLowerCase()} dishes at the moment. Try adjusting your filters or check back soon!`}
+            icon="restaurant-outline"
+            actionButton={
+              activeFilters.length > 0
+                ? {
+                    label: 'Clear Filters',
+                    onPress: () => setActiveFilters([]),
+                  }
+                : undefined
+            }
+          />
         )}
       </View>
     </CategoryFullDrawer>
@@ -200,12 +239,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

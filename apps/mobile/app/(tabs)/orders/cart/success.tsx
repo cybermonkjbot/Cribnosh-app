@@ -1,20 +1,65 @@
 import { KitchenNameCard } from '@/components/KitchenNameCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SuperButton } from '@/components/ui/SuperButton';
-import { useGetOrderQuery } from '@/store/customerApi';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
 
 export default function SuccessScreen() {
   const { order_id } = useLocalSearchParams<{ order_id?: string }>();
   const orderId = typeof order_id === 'string' ? order_id : undefined;
+  const { isAuthenticated } = useAuthContext();
+  const [orderData, setOrderData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
 
-  // Fetch order details from API
-  const { data: orderData, isLoading, error } = useGetOrderQuery(orderId || '', {
-    skip: !orderId,
-  });
+  // Fetch order details from Convex
+  useEffect(() => {
+    const fetchOrder = async () => {
+      if (!orderId || !isAuthenticated) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          setError(new Error('Not authenticated'));
+          return;
+        }
+
+        const result = await convex.action(api.actions.orders.customerGetOrder, {
+          sessionToken,
+          order_id: orderId,
+        });
+
+        if (result.success === false) {
+          setError(new Error(result.error || 'Failed to fetch order'));
+          return;
+        }
+
+        // Transform to match expected format
+        setOrderData({
+          data: result.order,
+        });
+      } catch (error: any) {
+        setError(error);
+        console.error('Error fetching order:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (orderId && isAuthenticated) {
+      fetchOrder();
+    }
+  }, [orderId, isAuthenticated]);
 
   const handleBackToHome = () => {
     router.replace("/(tabs)");

@@ -1,10 +1,10 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
+import { useMeals } from '@/hooks/useMeals';
 import { showError } from '@/lib/GlobalToastManager';
-import { useGetTooFreshItemsQuery } from '@/store/customerApi';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
@@ -34,17 +34,31 @@ export function TooFreshToWasteDrawer({
   onItemPress
 }: TooFreshToWasteDrawerProps) {
   const { isAuthenticated } = useAuthContext();
+  const { getTooFreshItems } = useMeals();
+  const [tooFreshData, setTooFreshData] = useState<any>(null);
+  const [tooFreshError, setTooFreshError] = useState<any>(null);
+  const [tooFreshLoading, setTooFreshLoading] = useState(false);
 
-  // Fetch too fresh items from API
-  const {
-    data: tooFreshData,
-    error: tooFreshError,
-  } = useGetTooFreshItemsQuery(
-    { limit: 50, page: 1 },
-    {
-      skip: !isAuthenticated,
+  // Load too fresh items
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadTooFreshItems = async () => {
+        try {
+          setTooFreshLoading(true);
+          setTooFreshError(null);
+          const result = await getTooFreshItems(50, 1);
+          if (result.success) {
+            setTooFreshData({ success: true, data: result.data });
+          }
+        } catch (error: any) {
+          setTooFreshError(error);
+        } finally {
+          setTooFreshLoading(false);
+        }
+      };
+      loadTooFreshItems();
     }
-  );
+  }, [isAuthenticated, getTooFreshItems]);
 
   // Transform API data to TooFreshItem format
   const transformTooFreshItem = useCallback((apiItem: any): TooFreshItem | null => {
@@ -95,8 +109,13 @@ export function TooFreshToWasteDrawer({
       return [];
     }
 
-    // SearchResponse.data is an array of SearchResult
-    const items = Array.isArray(tooFreshData.data) ? tooFreshData.data : [];
+    // Handle different data structures: could be array directly or { items: [...] }
+    let items: any[] = [];
+    if (Array.isArray(tooFreshData.data)) {
+      items = tooFreshData.data;
+    } else if (tooFreshData.data.items && Array.isArray(tooFreshData.data.items)) {
+      items = tooFreshData.data.items;
+    }
     
     const transformedItems = items
       .map((item: any) => transformTooFreshItem(item))
@@ -106,11 +125,7 @@ export function TooFreshToWasteDrawer({
   }, [tooFreshData, isAuthenticated, transformTooFreshItem]);
 
   // Handle errors
-  React.useEffect(() => {
-    if (tooFreshError && isAuthenticated) {
-      showError('Failed to load eco-friendly items', 'Please try again');
-    }
-  }, [tooFreshError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Use props if provided, otherwise use API data, otherwise empty array
   const baseItems = useMemo(() => {

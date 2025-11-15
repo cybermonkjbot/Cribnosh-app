@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   ScrollView,
@@ -10,11 +10,12 @@ import {
 } from "react-native";
 
 // Customer API imports
-import { useGetRecentDishesQuery } from "@/store/customerApi";
+import { useOrders } from "@/hooks/useOrders";
 
 // Global toast imports
 import { showError } from "../../lib/GlobalToastManager";
 import { OrderAgainSectionSkeleton } from "./OrderAgainSectionSkeleton";
+import { SkeletonWithTimeout } from "./SkeletonWithTimeout";
 
 interface OrderItem {
   id: string;
@@ -41,17 +42,34 @@ export function OrderAgainSection({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
-  // Recent dishes API hook
-  const {
-    data: recentDishesData,
-    isLoading: dishesLoading,
-    error: dishesError,
-  } = useGetRecentDishesQuery(
-    { limit: 10 },
-    {
-      skip: !isAuthenticated, // Only fetch when authenticated
+  // Recent dishes using useOrders hook
+  const { getRecentDishes } = useOrders();
+  const [recentDishesData, setRecentDishesData] = useState<any>(null);
+  const [dishesLoading, setDishesLoading] = useState(false);
+  const [dishesError, setDishesError] = useState<any>(null);
+
+  // Load recent dishes
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadRecentDishes = async () => {
+        try {
+          setDishesLoading(true);
+          setDishesError(null);
+          const result = await getRecentDishes(10);
+          if (result?.success) {
+            setRecentDishesData({ success: true, data: result });
+          }
+        } catch (error: any) {
+          setDishesError(error);
+        } finally {
+          setDishesLoading(false);
+        }
+      };
+      loadRecentDishes();
+    } else {
+      setRecentDishesData(null);
     }
-  );
+  }, [isAuthenticated, getRecentDishes]);
 
   // Transform API dishes to component format
   const transformDishesData = useCallback((apiDishes: any[]) => {
@@ -66,9 +84,10 @@ export function OrderAgainSection({
 
   // Process dishes data from API - return empty array if no data
   const orderItems = useMemo(() => {
-    if (recentDishesData?.success && recentDishesData.data?.dishes && isAuthenticated) {
-      const dishes = recentDishesData.data.dishes;
-      const transformedData = transformDishesData(dishes);
+    if (recentDishesData?.success && recentDishesData.data && isAuthenticated) {
+      // Handle different data structures
+      const dishes = recentDishesData.data.dishes || recentDishesData.data || [];
+      const transformedData = transformDishesData(Array.isArray(dishes) ? dishes : []);
       return transformedData;
     }
 
@@ -76,12 +95,7 @@ export function OrderAgainSection({
     return [];
   }, [recentDishesData, isAuthenticated, transformDishesData]);
 
-  // Handle dishes API errors
-  useEffect(() => {
-    if (dishesError && isAuthenticated) {
-      showError("Failed to load recent dishes", "Please try again");
-    }
-  }, [dishesError, isAuthenticated]);
+  // Error state is shown in UI - no toast needed
 
   // Handle entrance and exit animations based on header state
   // IMPORTANT: This hook must be called before any early returns to maintain hook consistency
@@ -130,7 +144,11 @@ export function OrderAgainSection({
 
   // Show skeleton while loading (after all hooks are called)
   if (dishesLoading && isAuthenticated) {
-    return <OrderAgainSectionSkeleton itemCount={3} />;
+    return (
+      <SkeletonWithTimeout isLoading={dishesLoading}>
+        <OrderAgainSectionSkeleton itemCount={3} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section completely if no orders (after all hooks are called)

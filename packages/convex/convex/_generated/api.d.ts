@@ -9,15 +9,19 @@
  */
 
 import type * as actions_agora from "../actions/agora.js";
+import type * as actions_chefs from "../actions/chefs.js";
 import type * as actions_data_compilation from "../actions/data_compilation.js";
 import type * as actions_dripScheduler from "../actions/dripScheduler.js";
 import type * as actions_emotionsEngine from "../actions/emotionsEngine.js";
 import type * as actions_index from "../actions/index.js";
 import type * as actions_liveSessions from "../actions/liveSessions.js";
+import type * as actions_liveStreaming from "../actions/liveStreaming.js";
 import type * as actions_orders from "../actions/orders.js";
 import type * as actions_password from "../actions/password.js";
+import type * as actions_payments from "../actions/payments.js";
 import type * as actions_prelaunchEmails from "../actions/prelaunchEmails.js";
 import type * as actions_resend from "../actions/resend.js";
+import type * as actions_search from "../actions/search.js";
 import type * as actions_seedData from "../actions/seedData.js";
 import type * as actions_staff from "../actions/staff.js";
 import type * as actions_users from "../actions/users.js";
@@ -99,6 +103,7 @@ import type * as mutations_payroll from "../mutations/payroll.js";
 import type * as mutations_presence from "../mutations/presence.js";
 import type * as mutations_reviews from "../mutations/reviews.js";
 import type * as mutations_sessions from "../mutations/sessions.js";
+import type * as mutations_sides from "../mutations/sides.js";
 import type * as mutations_specialOffers from "../mutations/specialOffers.js";
 import type * as mutations_staff from "../mutations/staff.js";
 import type * as mutations_streaks from "../mutations/streaks.js";
@@ -180,6 +185,7 @@ import type * as queries_payroll from "../queries/payroll.js";
 import type * as queries_presence from "../queries/presence.js";
 import type * as queries_reviews from "../queries/reviews.js";
 import type * as queries_sessions from "../queries/sessions.js";
+import type * as queries_sides from "../queries/sides.js";
 import type * as queries_specialOffers from "../queries/specialOffers.js";
 import type * as queries_staff from "../queries/staff.js";
 import type * as queries_stats from "../queries/stats.js";
@@ -229,15 +235,19 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   "actions/agora": typeof actions_agora;
+  "actions/chefs": typeof actions_chefs;
   "actions/data_compilation": typeof actions_data_compilation;
   "actions/dripScheduler": typeof actions_dripScheduler;
   "actions/emotionsEngine": typeof actions_emotionsEngine;
   "actions/index": typeof actions_index;
   "actions/liveSessions": typeof actions_liveSessions;
+  "actions/liveStreaming": typeof actions_liveStreaming;
   "actions/orders": typeof actions_orders;
   "actions/password": typeof actions_password;
+  "actions/payments": typeof actions_payments;
   "actions/prelaunchEmails": typeof actions_prelaunchEmails;
   "actions/resend": typeof actions_resend;
+  "actions/search": typeof actions_search;
   "actions/seedData": typeof actions_seedData;
   "actions/staff": typeof actions_staff;
   "actions/users": typeof actions_users;
@@ -319,6 +329,7 @@ declare const fullApi: ApiFromModules<{
   "mutations/presence": typeof mutations_presence;
   "mutations/reviews": typeof mutations_reviews;
   "mutations/sessions": typeof mutations_sessions;
+  "mutations/sides": typeof mutations_sides;
   "mutations/specialOffers": typeof mutations_specialOffers;
   "mutations/staff": typeof mutations_staff;
   "mutations/streaks": typeof mutations_streaks;
@@ -400,6 +411,7 @@ declare const fullApi: ApiFromModules<{
   "queries/presence": typeof queries_presence;
   "queries/reviews": typeof queries_reviews;
   "queries/sessions": typeof queries_sessions;
+  "queries/sides": typeof queries_sides;
   "queries/specialOffers": typeof queries_specialOffers;
   "queries/staff": typeof queries_staff;
   "queries/stats": typeof queries_stats;

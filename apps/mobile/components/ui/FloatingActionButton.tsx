@@ -1,4 +1,5 @@
-import { useGetCartQuery } from '@/store/customerApi';
+import { useCartCount } from '@/hooks/useCartCount';
+import { BlurEffect } from '@/utils/blurEffects';
 import { useRouter } from 'expo-router';
 import { Camera, ChefHat, Plus, ShoppingCart } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
@@ -10,7 +11,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { BlurEffect } from '@/utils/blurEffects';
 
 interface FloatingActionButtonProps {
   bottomPosition?: number;
@@ -33,13 +33,8 @@ export function FloatingActionButton({
   const [lastUsedFunction, setLastUsedFunction] = useState<'camera' | 'recipe' | 'cart' | null>(null);
   const router = useRouter();
   
-  // Fetch cart data
-  const { data: cartData } = useGetCartQuery();
-  
-  // Calculate cart item count
-  const cartItemCount = cartData?.data?.items
-    ? cartData.data.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
-    : 0;
+  // Use reactive cart count from Convex query
+  const cartItemCount = useCartCount();
   
   // Animation values for badge and icon
   const badgeScale = useSharedValue(cartItemCount > 0 ? 1 : 0);
@@ -280,9 +275,17 @@ export function FloatingActionButton({
 
   return (
     <View style={[styles.floatingActionButton, { bottom: bottomPosition, right: rightPosition }]}>
+      {/* Cart Counter Badge - Positioned on the right side of the pill */}
+      {showCartCounter && cartItemCount > 0 && (
+        <Animated.View style={[styles.cartBadge, badgeAnimatedStyle]}>
+          <Text style={styles.cartBadgeText}>{displayCartCount}</Text>
+        </Animated.View>
+      )}
+      
       <TouchableOpacity
         style={[
           styles.mainActionButton,
+          cartItemCount > 0 && styles.mainActionButtonPill,
           isActionMenuOpen && styles.mainActionButtonOpen
         ]}
         onPress={handleMainButtonPress}
@@ -294,7 +297,7 @@ export function FloatingActionButton({
           tint="light"
           useGradient={true}
           backgroundColor="rgba(255, 59, 48, 0.75)"
-          style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
+          style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, { zIndex: 0 }]}
         />
         
         {/* Content container - positioned above blur */}
@@ -302,15 +305,6 @@ export function FloatingActionButton({
           <Animated.View style={[styles.mainButtonIcon, iconAnimatedStyle]}>
             {getMainButtonIcon()}
           </Animated.View>
-          
-          {/* Cart Counter Badge - Always render for smooth animations */}
-          {showCartCounter && (
-            <Animated.View style={[styles.cartBadge, badgeAnimatedStyle]}>
-              {cartItemCount > 0 && (
-                <Text style={styles.cartBadgeText}>{displayCartCount}</Text>
-              )}
-            </Animated.View>
-          )}
         </View>
       </TouchableOpacity>
 
@@ -397,6 +391,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 1000,
     alignItems: 'flex-end',
+    justifyContent: 'flex-end',
   },
   mainActionButton: {
     width: 50,
@@ -412,6 +407,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     position: 'relative', // Needed for absolute positioned blur
+  },
+  mainActionButtonPill: {
+    width: 60,
+    height: 40,
+    borderRadius: 20, // Pill shape with rounded ends
   },
   mainActionButtonOpen: {
     transform: [{ translateY: -20 }], // Move button up by 20px when open
@@ -435,9 +435,9 @@ const styles = StyleSheet.create({
   },
   cartBadge: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#0B9E58', // Cribnosh green
+    top: 10, // Vertically center on the pill (pill height is 40px, badge height is 20px, so center at 10px from top)
+    right: -10, // Position to the right of the pill (negative value extends beyond the right edge)
+    backgroundColor: '#064e3b', // Dark green
     borderRadius: 10,
     minWidth: 20,
     height: 20,

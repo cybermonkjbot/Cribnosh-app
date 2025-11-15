@@ -2,8 +2,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { SuperButton } from "@/components/ui/SuperButton";
-import { useGetOrderStatusQuery } from "@/store/customerApi";
 import * as Linking from "expo-linking";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   CheckCircle,
@@ -26,7 +28,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomSheetBase } from "../components/BottomSheetBase";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   startOrderLiveActivity,
   updateOrderLiveActivity,
@@ -38,18 +40,65 @@ export default function OrderStatusTrackingScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const orderId = typeof id === "string" ? id : undefined;
+  const { isAuthenticated } = useAuthContext();
 
-  // Fetch order status from API
-  const {
-    data: apiData,
-    error: apiError,
-    isLoading: apiLoading,
-  } = useGetOrderStatusQuery(orderId || "", {
-    skip: !orderId,
-  });
+  // Order status state
+  const [orderStatus, setOrderStatus] = useState<any>(undefined);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiError, setApiError] = useState<any>(null);
 
-  // Use API data only - return undefined if no data available (don't use mock fallback)
-  const orderStatus = apiData?.data || undefined;
+  // Fetch order status from Convex
+  useEffect(() => {
+    const fetchOrderStatus = async () => {
+      if (!orderId || !isAuthenticated) return;
+
+      try {
+        setApiLoading(true);
+        setApiError(null);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          setApiError(new Error('Not authenticated'));
+          return;
+        }
+
+        const result = await convex.action(api.actions.orders.customerGetOrderStatus, {
+          sessionToken,
+          order_id: orderId,
+        });
+
+        if (result.success === false) {
+          setApiError(new Error(result.error || 'Failed to fetch order status'));
+          return;
+        }
+
+        // Transform order to match expected format
+        const order = result.order;
+        if (order) {
+          setOrderStatus({
+            order_id: order._id || order.id,
+            current_status: order.order_status || order.status,
+            estimated_delivery_time: order.estimated_delivery_time || order.delivery_time,
+            delivery_address: order.delivery_address || order.deliveryAddress,
+            order_items: order.order_items || order.items,
+            total_amount: order.total_amount || order.total,
+            chef_id: order.chef_id || order.chefId,
+            created_at: order.created_at || order.createdAt,
+          });
+        }
+      } catch (error: any) {
+        setApiError(error);
+        console.error('Error fetching order status:', error);
+      } finally {
+        setApiLoading(false);
+      }
+    };
+
+    if (orderId && isAuthenticated) {
+      fetchOrderStatus();
+    }
+  }, [orderId, isAuthenticated]);
 
   // Track previous status to detect changes
   const previousStatusRef = useRef<string | undefined>(undefined);

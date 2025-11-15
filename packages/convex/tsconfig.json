@@ -2,6 +2,10 @@
   /* This TypeScript project config describes the environment that
    * Convex functions run in and is used to typecheck them.
    * You can modify it, but some settings are required to use Convex.
+   * 
+   * Note: TypeScript doesn't support disabling specific error codes (like TS2589)
+   * in tsconfig.json. To suppress "Type instantiation is excessively deep" errors,
+   * use // @ts-nocheck at the top of the file or // @ts-expect-error before specific lines.
    */
   "compilerOptions": {
     /* These settings are not required by Convex and can be modified. */

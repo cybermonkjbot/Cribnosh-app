@@ -1,10 +1,11 @@
-import { useGetActiveOffersQuery } from "@/store/customerApi";
+import { useOffersAndTreats } from "@/hooks/useOffersAndTreats";
 import { Image } from "expo-image";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { showError } from "../../lib/GlobalToastManager";
 import { SpecialOffersSectionSkeleton } from "./SpecialOffersSectionSkeleton";
+import { SkeletonWithTimeout } from "./SkeletonWithTimeout";
 
 interface SpecialOffer {
   id: string;
@@ -77,18 +78,29 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
   useBackend = true,
 }) => {
   const { isAuthenticated } = useAuthContext();
+  const { getActiveOffers, isLoading: backendLoading } = useOffersAndTreats();
+  const [offersData, setOffersData] = useState<any>(null);
+  const [backendError, setBackendError] = useState<any>(null);
 
-  // Backend API integration
-  const {
-    data: offersData,
-    isLoading: backendLoading,
-    error: backendError,
-  } = useGetActiveOffersQuery(
-    { target: "all" },
-    {
-      skip: !useBackend || !isAuthenticated,
+  // Fetch offers from backend when needed
+  useEffect(() => {
+    if (useBackend && isAuthenticated) {
+      loadOffers();
     }
-  );
+  }, [useBackend, isAuthenticated]);
+
+  const loadOffers = useCallback(async () => {
+    try {
+      setBackendError(null);
+      const result = await getActiveOffers("all");
+      if (result.success) {
+        setOffersData(result);
+      }
+    } catch (error) {
+      setBackendError(error);
+      // Error state is shown in UI - no toast needed
+    }
+  }, [getActiveOffers, isAuthenticated]);
 
   // Transform API data to component format
   const transformOfferData = useCallback(
@@ -141,16 +153,14 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
     return [];
   }, [offersData, useBackend, transformOfferData]);
 
-  // Handle errors
-  React.useEffect(() => {
-    if (backendError && isAuthenticated) {
-      showError("Failed to load special offers", "Please try again");
-    }
-  }, [backendError, isAuthenticated]);
 
   // Show skeleton while loading
   if (useBackend && backendLoading) {
-    return <SpecialOffersSectionSkeleton itemCount={3} />;
+    return (
+      <SkeletonWithTimeout isLoading={backendLoading}>
+        <SpecialOffersSectionSkeleton itemCount={3} />
+      </SkeletonWithTimeout>
+    );
   }
 
   // Hide section if no offers (don't show empty state)

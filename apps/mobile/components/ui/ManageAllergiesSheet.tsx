@@ -1,4 +1,4 @@
-import { useGetAllergiesQuery, useUpdateAllergiesMutation } from '@/store/customerApi';
+import { usePreferences } from '@/hooks/usePreferences';
 import { AlertTriangle } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -53,12 +53,7 @@ export function ManageAllergiesSheet({
 }: ManageAllergiesSheetProps) {
   const { showToast } = useToast();
   const snapPoints = useMemo(() => ['85%', '95%'], []);
-
-  const { data: allergiesData, isLoading } = useGetAllergiesQuery(undefined, {
-    skip: !isVisible,
-  });
-
-  const [updateAllergies, { isLoading: isSaving }] = useUpdateAllergiesMutation();
+  const { getAllergies, updateAllergies, isLoading: isSaving } = usePreferences();
 
   // State for predefined allergens
   const [allergenStates, setAllergenStates] = useState<Map<string, AllergenState>>(new Map());
@@ -68,39 +63,54 @@ export function ManageAllergiesSheet({
   const [customName, setCustomName] = useState('');
   const [customType, setCustomType] = useState<'allergy' | 'intolerance'>('allergy');
   const [customSeverity, setCustomSeverity] = useState<'mild' | 'moderate' | 'severe'>('moderate');
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Initialize from API data
+  // Load allergies when sheet becomes visible
   useEffect(() => {
-    if (allergiesData?.data) {
-      const newStates = new Map<string, AllergenState>();
-      const newCustom: AllergenState[] = [];
-
-      allergiesData.data.forEach((allergy) => {
-        const predefined = PREDEFINED_ALLERGENS.find(
-          (p) => p.name.toLowerCase() === allergy.name.toLowerCase()
-        );
-
-        if (predefined) {
-          newStates.set(allergy.name, {
-            name: allergy.name,
-            type: allergy.type,
-            severity: allergy.severity,
-            notes: allergy.notes,
-          });
-        } else {
-          newCustom.push({
-            name: allergy.name,
-            type: allergy.type,
-            severity: allergy.severity,
-            notes: allergy.notes,
-          });
-        }
-      });
-
-      setAllergenStates(newStates);
-      setCustomAllergens(newCustom);
+    if (isVisible) {
+      loadAllergies();
     }
-  }, [allergiesData]);
+  }, [isVisible]);
+
+  const loadAllergies = useCallback(async () => {
+    try {
+      setIsLoadingData(true);
+      const result = await getAllergies();
+      if (result.success && result.data) {
+        const newStates = new Map<string, AllergenState>();
+        const newCustom: AllergenState[] = [];
+
+        result.data.allergies.forEach((allergy: any) => {
+          const predefined = PREDEFINED_ALLERGENS.find(
+            (p) => p.name.toLowerCase() === allergy.name.toLowerCase()
+          );
+
+          if (predefined) {
+            newStates.set(allergy.name, {
+              name: allergy.name,
+              type: allergy.type,
+              severity: allergy.severity,
+              notes: allergy.notes,
+            });
+          } else {
+            newCustom.push({
+              name: allergy.name,
+              type: allergy.type,
+              severity: allergy.severity,
+              notes: allergy.notes,
+            });
+          }
+        });
+
+        setAllergenStates(newStates);
+        setCustomAllergens(newCustom);
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [getAllergies]);
 
   const handleSheetChanges = useCallback(
     (index: number) => {
@@ -191,37 +201,18 @@ export function ManageAllergiesSheet({
         ...customAllergens,
       ];
 
-      const payload = {
+      await updateAllergies({
         allergies: allAllergies.map((a) => ({
           name: a.name,
           type: a.type,
           severity: a.severity,
           notes: a.notes,
         })),
-      };
-
-      await updateAllergies(payload).unwrap();
-
-      showToast({
-        type: 'success',
-        title: 'Allergies Updated',
-        message: 'Your allergies have been saved successfully.',
-        duration: 3000,
       });
 
       onClose();
-    } catch (error: any) {
-      const errorMessage =
-        error?.data?.error?.message ||
-        error?.data?.message ||
-        error?.message ||
-        'Failed to update allergies. Please try again.';
-      showToast({
-        type: 'error',
-        title: 'Update Failed',
-        message: errorMessage,
-        duration: 4000,
-      });
+    } catch (error) {
+      // Error already handled in hook
     }
   };
 
@@ -249,7 +240,7 @@ export function ManageAllergiesSheet({
           </TouchableOpacity>
         </View>
 
-        {isLoading ? (
+        {isLoadingData ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#094327" />
           </View>

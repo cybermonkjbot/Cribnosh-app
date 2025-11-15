@@ -81,3 +81,39 @@ export const setDefault = mutation({
   },
 });
 
+export const remove = mutation({
+  args: {
+    paymentMethodId: v.id('paymentMethods'),
+    userId: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    // Verify payment method belongs to user
+    const paymentMethod = await ctx.db.get(args.paymentMethodId);
+    if (!paymentMethod || paymentMethod.userId !== args.userId) {
+      throw new Error('Payment method not found');
+    }
+
+    // If this was the default, set another one as default if available
+    if (paymentMethod.is_default) {
+      const otherMethods = await ctx.db
+        .query('paymentMethods')
+        .withIndex('by_user', (q) => q.eq('userId', args.userId))
+        .filter((q) => q.neq(q.field('_id'), args.paymentMethodId))
+        .collect();
+
+      if (otherMethods.length > 0) {
+        // Set the first available method as default
+        await ctx.db.patch(otherMethods[0]._id, {
+          is_default: true,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // Delete the payment method
+    await ctx.db.delete(args.paymentMethodId);
+
+    return args.paymentMethodId;
+  },
+});
+

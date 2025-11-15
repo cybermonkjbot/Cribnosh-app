@@ -120,6 +120,28 @@ export const getChefByKitchenId = query({
   },
 });
 
+// Get kitchen ID from chef ID (helper query)
+export const getKitchenByChefId = query({
+  args: {
+    chefId: v.id("chefs"),
+  },
+  returns: v.union(v.id("kitchens"), v.null()),
+  handler: async (ctx, args) => {
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      return null;
+    }
+
+    // Find kitchen by owner_id (chef userId)
+    const kitchen = await ctx.db
+      .query("kitchens")
+      .filter((q) => q.eq(q.field("owner_id"), chef.userId))
+      .first();
+
+    return kitchen?._id || null;
+  },
+});
+
 // Get kitchen details by kitchen ID (including chef name)
 export const getKitchenDetails = query({
   args: {

@@ -2,7 +2,7 @@ import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { query, QueryCtx, internalQuery } from '../_generated/server';
-import { isAdmin, isStaff, requireAdmin, requireAuth, requireAuthBySessionToken, requireStaff } from '../utils/auth';
+import { isAdmin, isStaff, requireAdmin, requireAuth, requireAuthBySessionToken, requireStaff, getAuthenticatedUser } from '../utils/auth';
 
 export const getById = query({
   args: { 
@@ -10,13 +10,12 @@ export const getById = query({
     sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
-    // Require authentication - use session token if provided, otherwise fall back to requireAuth
-    let user;
-    if (args.sessionToken) {
-      user = await requireAuthBySessionToken(ctx, args.sessionToken);
-    } else {
-      // Fallback for backward compatibility (won't work without setAuth, but keeping for now)
-      user = await requireAuth(ctx);
+    // Check authentication - return null if not authenticated instead of throwing
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    
+    // If not authenticated, return null (graceful degradation)
+    if (!user) {
+      return null;
     }
     
     // Users can access their own data, staff/admin can access any

@@ -1,6 +1,6 @@
 import { Id } from '../_generated/dataModel';
 import { MutationCtx, QueryCtx } from '../_generated/server';
-import { filterAndRankMealsByPreferences, getUserPreferences, type UserPreferences } from './userPreferencesFilter';
+import { filterAndRankMealsByPreferences, filterAndRankMealsByPreferencesWithTasteProfile, getUserPreferences, extractTasteProfile, type UserPreferences } from './userPreferencesFilter';
 
 // Common database context type
 type DatabaseCtx = QueryCtx | MutationCtx;
@@ -36,6 +36,7 @@ export async function getPersonalizedMeals(
   limit: number = 20
 ): Promise<unknown[]> {
   const preferences = await getUserPreferences(ctx, userId);
+  const tasteProfile = await extractTasteProfile(ctx, userId);
   
   // Get all available meals
   const allMeals = await ctx.db
@@ -77,10 +78,12 @@ export async function getPersonalizedMeals(
     })
   );
 
-  // Filter and rank by preferences
-  const scoredMeals = filterAndRankMealsByPreferences(
+  // Filter and rank by preferences with taste profile
+  const scoredMeals = await filterAndRankMealsByPreferencesWithTasteProfile(
+    ctx,
     mealsWithChefData,
     preferences,
+    tasteProfile,
     (meal: MealDoc & { averageRating?: number; reviewCount?: number }) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
   );
 
@@ -96,10 +99,23 @@ export async function getRecommendedMeals(
   limit: number = 10
 ): Promise<unknown[]> {
   const preferences = await getUserPreferences(ctx, userId);
+  const tasteProfile = await extractTasteProfile(ctx, userId);
   
   // Get meals from followed chefs first
   const followedChefMeals = await Promise.all(
     Array.from(preferences.followedChefIds).map(async (chefId: string) => {
+      const meals = await ctx.db
+        .query('meals')
+        .filter((q) => q.eq(q.field('chefId'), chefId as Id<'chefs'>))
+        .filter((q) => q.eq(q.field('status'), 'available'))
+        .collect();
+      return meals;
+    })
+  );
+
+  // Get meals from liked chefs/kitchens
+  const likedChefMeals = await Promise.all(
+    Array.from(preferences.likedChefIds).map(async (chefId: string) => {
       const meals = await ctx.db
         .query('meals')
         .filter((q) => q.eq(q.field('chefId'), chefId as Id<'chefs'>))
@@ -119,6 +135,7 @@ export async function getRecommendedMeals(
   // Combine and filter
   let allMeals = [
     ...followedChefMeals.flat(),
+    ...likedChefMeals.flat(),
     ...likedMeals.filter((m: MealDoc | null) => m && (m as { status?: string }).status === 'available')
   ];
 
@@ -189,12 +206,15 @@ export async function getRecommendedMeals(
     })
   );
 
-  // Filter and rank by preferences
-  const scoredMeals = filterAndRankMealsByPreferences(
+  // Filter and rank by preferences with taste profile
+  const scoredMeals = await filterAndRankMealsByPreferencesWithTasteProfile(
+    ctx,
     mealsWithChefData,
     preferences,
+    tasteProfile,
     (meal: MealDoc & { averageRating?: number; reviewCount?: number; chefId?: string | Id<'chefs'>; _id?: string | Id<'meals'> }) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0) + 
       (preferences.followedChefIds.has((meal.chefId || (meal as { chefId?: string | Id<'chefs'> }).chefId) as string) ? 50 : 0) +
+      (preferences.likedChefIds.has((meal.chefId || (meal as { chefId?: string | Id<'chefs'> }).chefId) as string) ? 30 : 0) +
       (preferences.likedMealIds.has((meal._id || (meal as { _id?: string | Id<'meals'> })._id) as string) ? 60 : 0)
   );
 
@@ -257,9 +277,12 @@ export async function getSimilarMeals(
 
   // Apply user preference filtering if userId provided
   if (preferences) {
-    const scoredMeals = filterAndRankMealsByPreferences(
+    const tasteProfile = await extractTasteProfile(ctx, userId);
+    const scoredMeals = await filterAndRankMealsByPreferencesWithTasteProfile(
+      ctx,
       similarMeals.map((item: { meal: MealDoc; similarityScore: number }) => item.meal),
       preferences,
+      tasteProfile,
       (meal: MealDoc) => {
         const item = similarMeals.find((sm: { meal: MealDoc; similarityScore: number }) => sm.meal._id === meal._id);
         return (item?.similarityScore || 0) * 10;

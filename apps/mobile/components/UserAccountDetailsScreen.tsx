@@ -1,14 +1,16 @@
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGetCustomerProfileQuery, useUpdateCustomerProfileMutation } from '@/store/customerApi';
 import { CustomerAddress } from '@/types/customer';
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import { ProfileAvatar } from './ProfileAvatar';
 import { VerificationBanner } from './VerificationBanner';
-import { AddressSelectionSheet } from './ui/AddressSelectionSheet';
+import { SkeletonWithTimeout } from './ui/SkeletonWithTimeout';
+import { useAddressSelection } from '@/contexts/AddressSelectionContext';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 
 interface UserAccountDetailsScreenProps {
   userName?: string;
@@ -107,22 +109,63 @@ export function UserAccountDetailsScreen({
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | undefined>();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
-  const [addressSheetMode, setAddressSheetMode] = useState<'home' | 'work' | null>(null);
   const { logout, isAuthenticated } = useAuthContext();
+  
+  // Address selection context
+  const { setOnSelectAddress, selectedAddress, setSelectedAddress } = useAddressSelection();
 
-  // Fetch profile data from backend
-  const { 
-    data: profileData, 
-    isLoading: isLoadingProfile, 
-    error: profileError,
-    refetch: refetchProfile 
-  } = useGetCustomerProfileQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  // Profile state
+  const [profileData, setProfileData] = useState<any>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<any>(null);
 
-  // Update profile mutation
-  const [updateProfile] = useUpdateCustomerProfileMutation();
+  // Fetch profile data from Convex
+  const fetchProfile = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setIsLoadingProfile(true);
+      setProfileError(null);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        setProfileError(new Error('Not authenticated'));
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetProfile, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        setProfileError(new Error(result.error || 'Failed to fetch profile'));
+        return;
+      }
+
+      // Transform to match expected format
+      setProfileData({
+        data: {
+          ...result.user,
+          is_verified: result.user.roles?.includes('verified') || false,
+        },
+      });
+    } catch (error: any) {
+      setProfileError(error);
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch profile on mount and when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProfile();
+    }
+  }, [isAuthenticated, fetchProfile]);
+
+  const refetchProfile = fetchProfile;
 
   // Get user data from API or fallback to prop
   const userName = profileData?.data?.name || propUserName || "User";
@@ -213,25 +256,35 @@ export function UserAccountDetailsScreen({
     setIsUploadingImage(true);
     
     try {
-      // Upload the image - assume backend accepts URI or we need to convert to base64
-      // For now, we'll send the URI. If backend needs a URL, we may need a separate upload endpoint
-      const result = await updateProfile({
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.users.customerUpdateProfile, {
+        sessionToken,
         picture: imageUri,
-      }).unwrap();
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to update profile picture');
+      }
 
       // If backend returns a new picture URL, use it; otherwise keep the selected image temporarily
-      if (result?.data?.picture) {
+      if (result.user?.picture || result.user?.avatar) {
         // Clear selected image so we use the URL from backend
         setSelectedProfileImage(undefined);
       }
 
       // Refetch profile to get updated picture URL from backend
       await refetchProfile();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading profile picture:', error);
       Alert.alert(
         'Upload Failed',
-        'Failed to upload profile picture. Please try again.',
+        error?.message || 'Failed to upload profile picture. Please try again.',
         [
           {
             text: 'Retry',
@@ -265,42 +318,115 @@ export function UserAccountDetailsScreen({
     setShowLogoutModal(false);
   }
 
+  // Set up address selection callback
+  useEffect(() => {
+    const handleAddressSelect = async (address: CustomerAddress) => {
+      try {
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          throw new Error('Not authenticated');
+        }
+
+        if (!address || !address.street) {
+          throw new Error('Invalid address provided');
+        }
+
+        const result = await convex.action(api.actions.users.customerUpdateProfile, {
+          sessionToken,
+          address: {
+            street: address.street,
+            city: address.city || '',
+            state: address.state || '',
+            postal_code: address.postal_code || '',
+            country: address.country || 'UK',
+          },
+        });
+
+        if (result.success === false) {
+          throw new Error(result.error || 'Failed to save address');
+        }
+
+        // Refetch profile to get updated address
+        await refetchProfile();
+        setSelectedAddress(null); // Clear after handling
+      } catch (error: any) {
+        console.error('Error saving address:', error);
+        Alert.alert(
+          'Error',
+          error?.message || 'Failed to save address. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    };
+    setOnSelectAddress(handleAddressSelect);
+    return () => {
+      setOnSelectAddress(null);
+    };
+  }, [setOnSelectAddress, refetchProfile, setSelectedAddress]);
+
+  // Handle address selection when returning from modal
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedAddress) {
+        const handleSelected = async () => {
+          try {
+            const convex = getConvexClient();
+            const sessionToken = await getSessionToken();
+
+            if (!sessionToken) {
+              throw new Error('Not authenticated');
+            }
+
+            if (!selectedAddress || !selectedAddress.street) {
+              throw new Error('Invalid address provided');
+            }
+
+            const result = await convex.action(api.actions.users.customerUpdateProfile, {
+              sessionToken,
+              address: {
+                street: selectedAddress.street,
+                city: selectedAddress.city || '',
+                state: selectedAddress.state || '',
+                postal_code: selectedAddress.postal_code || '',
+                country: selectedAddress.country || 'UK',
+              },
+            });
+
+            if (result.success === false) {
+              throw new Error(result.error || 'Failed to save address');
+            }
+
+            await refetchProfile();
+            setSelectedAddress(null); // Clear after handling
+          } catch (error: any) {
+            console.error('Error saving address:', error);
+            Alert.alert(
+              'Error',
+              error?.message || 'Failed to save address. Please try again.',
+              [{ text: 'OK' }]
+            );
+          }
+        };
+        handleSelected();
+      }
+    }, [selectedAddress, refetchProfile, setSelectedAddress])
+  );
+
   // Handle address sheet opening
   const handleOpenAddressSheet = (mode: 'home' | 'work') => {
-    setAddressSheetMode(mode);
-    setIsAddressSheetVisible(true);
+    router.push({
+      pathname: '/select-address',
+      params: {
+        addressLabel: mode,
+        ...(profileAddress && {
+          selectedStreet: profileAddress.street,
+          selectedCity: profileAddress.city,
+        }),
+      },
+    });
   };
-
-  // Handle address selection/saving
-  const handleAddressSelect = async (address: CustomerAddress) => {
-    try {
-      await updateProfile({
-        address: address,
-      }).unwrap();
-
-      // Refetch profile to get updated address
-      await refetchProfile();
-      
-      setIsAddressSheetVisible(false);
-      setAddressSheetMode(null);
-    } catch (error) {
-      console.error('Error saving address:', error);
-      Alert.alert(
-        'Error',
-        'Failed to save address. Please try again.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
-  // Get current address based on mode
-  const getCurrentAddress = useMemo((): CustomerAddress | undefined => {
-    if (addressSheetMode === 'home' && profileAddress) {
-      return profileAddress;
-    }
-    // Work address not yet supported
-    return undefined;
-  }, [addressSheetMode, profileAddress]);
 
   // Loading state
   if (isLoadingProfile) {
@@ -323,9 +449,11 @@ export function UserAccountDetailsScreen({
             </View>
             <View style={styles.skeletonName} />
           </View>
-          <View style={styles.section}>
-            <ActivityIndicator size="large" color="#333333" />
-          </View>
+          <SkeletonWithTimeout isLoading={isLoadingProfile}>
+            <View style={styles.section}>
+              <ActivityIndicator size="large" color="#333333" />
+            </View>
+          </SkeletonWithTimeout>
         </ScrollView>
       </View>
     );
@@ -576,19 +704,6 @@ export function UserAccountDetailsScreen({
         </View>
       </Modal>
 
-      {/* Address Selection Sheet */}
-      {addressSheetMode && (
-        <AddressSelectionSheet
-          isVisible={isAddressSheetVisible}
-          onClose={() => {
-            setIsAddressSheetVisible(false);
-            setAddressSheetMode(null);
-          }}
-          onSelectAddress={handleAddressSelect}
-          selectedAddress={getCurrentAddress}
-          addressLabel={addressSheetMode}
-        />
-      )}
     </View>
   );
 }

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useCart } from '@/hooks/useCart';
 import {
-  useGetVideoFeedQuery,
   useLikeVideoMutation,
   useUnlikeVideoMutation,
   useShareVideoMutation,
   useRecordVideoViewMutation,
-  useAddToCartMutation,
 } from '@/store/customerApi';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '../../../../packages/convex/_generated/api';
 import { VideoPost } from '@/types/customer';
 import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';
 import { NoshHeavenErrorBoundary } from './ErrorBoundary';
@@ -44,22 +45,63 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>([]);
   const [videoCursor, setVideoCursor] = useState<string | undefined>(undefined);
 
-  // Nosh Heaven video hooks
-  const {
-    data: videoFeedData,
-    isLoading: isLoadingVideos,
-    error: videoFeedError,
-    refetch: refetchVideos,
-  } = useGetVideoFeedQuery(
-    { limit: 20, cursor: videoCursor },
-    { skip: false } // Always fetch when modal is open
-  );
+  // Video feed state
+  const [videoFeedData, setVideoFeedData] = useState<any>(null);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [videoFeedError, setVideoFeedError] = useState<any>(null);
+
+  // Fetch video feed from Convex
+  const fetchVideoFeed = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      setIsLoadingVideos(true);
+      setVideoFeedError(null);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.search.customerGetVideoFeed, {
+        sessionToken,
+        limit: 20,
+        cursor: videoCursor,
+      });
+
+      if (result.success === false) {
+        setVideoFeedError(new Error(result.error || 'Failed to fetch video feed'));
+        return;
+      }
+
+      // Transform to match expected format
+      setVideoFeedData({
+        success: true,
+        data: {
+          videos: result.videos || [],
+          nextCursor: result.nextCursor,
+        },
+      });
+    } catch (error: any) {
+      setVideoFeedError(error);
+      console.error('Error fetching video feed:', error);
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  }, [isAuthenticated, videoCursor]);
+
+  useEffect(() => {
+    fetchVideoFeed();
+  }, [fetchVideoFeed]);
+
+  const refetchVideos = fetchVideoFeed;
 
   const [likeVideo] = useLikeVideoMutation();
   const [unlikeVideo] = useUnlikeVideoMutation();
   const [shareVideo] = useShareVideoMutation();
   const [recordVideoView] = useRecordVideoViewMutation();
-  const [addToCart] = useAddToCartMutation();
+  const { addToCart: addToCartAction } = useCart();
 
   // Transform video feed data to meal format
   useEffect(() => {
@@ -79,12 +121,7 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
     }
   }, [videoFeedData, videoCursor]);
 
-  // Handle video feed errors
-  useEffect(() => {
-    if (videoFeedError) {
-      showError('Failed to load videos', 'Please try again');
-    }
-  }, [videoFeedError]);
+  // Error state is shown in UI - no toast needed
 
   // Reset video state when modal closes
   useEffect(() => {
@@ -218,20 +255,16 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
       }
 
       try {
-        const result = await addToCart({
-          dish_id: mealId,
-          quantity: 1,
-          special_instructions: undefined,
-        }).unwrap();
+        const result = await addToCartAction(mealId, 1);
 
         if (result.success) {
-          showSuccess('Added to Cart!', result.data.dish_name);
+          showSuccess('Added to Cart!', result.data.item?.name || 'Item');
         }
       } catch {
         showError('Failed to add item to cart', 'Please try again');
       }
     },
-    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart]
+    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCartAction]
   );
 
   const handleKitchenPress = useCallback(

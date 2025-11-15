@@ -11,11 +11,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { Package } from 'lucide-react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { useGetFamilyOrdersQuery } from '@/store/customerApi';
+import { useFamilyProfile } from '@/hooks/useFamilyProfile';
+import { useEffect, useState } from 'react';
 
 export default function FamilyOrdersScreen() {
   const router = useRouter();
-  const { data: ordersData, isLoading } = useGetFamilyOrdersQuery({ limit: 50 });
+  const { getFamilyOrders } = useFamilyProfile();
+  const [ordersData, setOrdersData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const loadOrders = async () => {
+    try {
+      setIsLoading(true);
+      const result = await getFamilyOrders({ limit: 50 });
+      if (result.success) {
+        setOrdersData({ success: true, data: result.orders });
+      }
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
