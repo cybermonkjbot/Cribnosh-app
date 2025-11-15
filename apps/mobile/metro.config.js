@@ -19,30 +19,68 @@ const workspaceNodeModulesPath = path.join(workspaceRoot, 'node_modules');
 
 // Detect EAS build environment - in EAS builds, dependencies are installed at the build root
 // We need to find the actual build root by looking for node_modules/expo (which should exist in EAS builds)
-// Start from project root and walk up to find where node_modules/expo exists
+// Also check for common EAS build paths like /Users/expo/workingdir/build
 let buildRootNodeModules = null;
-let searchPath = projectRoot;
-const maxDepth = 10; // Prevent infinite loops
-let depth = 0;
 
-// Walk up the directory tree to find the build root (where node_modules/expo exists)
-while (searchPath !== '/' && searchPath.length > 0 && depth < maxDepth) {
-  const testNodeModules = path.join(searchPath, 'node_modules');
-  const testExpoPath = path.join(testNodeModules, 'expo');
+// First, check if we're in an EAS build by looking at the project root path
+// EAS builds typically have paths like /Users/expo/workingdir/build/apps/mobile
+const isEASBuild = projectRoot.includes('/Users/expo/workingdir/build') || 
+                   projectRoot.includes('workingdir/build');
+
+if (isEASBuild) {
+  // In EAS builds, the build root is typically 2-3 levels up from the app directory
+  // e.g., /Users/expo/workingdir/build/apps/mobile -> /Users/expo/workingdir/build
+  let searchPath = projectRoot;
+  const maxDepth = 5;
+  let depth = 0;
   
-  // If we find node_modules/expo, this is likely the build root
-  if (fs.existsSync(testExpoPath)) {
-    buildRootNodeModules = testNodeModules;
-    break;
+  while (searchPath !== '/' && searchPath.length > 0 && depth < maxDepth) {
+    const testNodeModules = path.join(searchPath, 'node_modules');
+    const testExpoPath = path.join(testNodeModules, 'expo');
+    const testReactPath = path.join(testNodeModules, 'react');
+    
+    // If we find both node_modules/expo and node_modules/react, this is the build root
+    if (fs.existsSync(testExpoPath) && fs.existsSync(testReactPath)) {
+      buildRootNodeModules = testNodeModules;
+      break;
+    }
+    
+    const parentPath = path.dirname(searchPath);
+    if (parentPath === searchPath) {
+      break;
+    }
+    searchPath = parentPath;
+    depth++;
+  }
+} else {
+  // For local development, try to find build root by walking up from project root
+  let searchPath = projectRoot;
+  const maxDepth = 15;
+  let depth = 0;
+  
+  // Also check current working directory as a starting point
+  const cwd = process.cwd();
+  if (cwd.includes('workingdir') || cwd.includes('/Users/expo/')) {
+    searchPath = cwd;
+    depth = 0;
   }
   
-  const parentPath = path.dirname(searchPath);
-  // Stop if we've reached the filesystem root or if parent is same as current (shouldn't happen)
-  if (parentPath === searchPath) {
-    break;
+  while (searchPath !== '/' && searchPath.length > 0 && depth < maxDepth) {
+    const testNodeModules = path.join(searchPath, 'node_modules');
+    const testExpoPath = path.join(testNodeModules, 'expo');
+    
+    if (fs.existsSync(testExpoPath)) {
+      buildRootNodeModules = testNodeModules;
+      break;
+    }
+    
+    const parentPath = path.dirname(searchPath);
+    if (parentPath === searchPath) {
+      break;
+    }
+    searchPath = parentPath;
+    depth++;
   }
-  searchPath = parentPath;
-  depth++;
 }
 
 // React-related packages that must resolve from mobile app's node_modules
@@ -70,41 +108,81 @@ config.resolver.unstable_enablePackageExports = true;
 // Check if we're in a monorepo by seeing if workspace root node_modules exists
 const isMonorepo = fs.existsSync(workspaceNodeModulesPath) && fs.existsSync(path.join(workspaceRoot, 'package.json'));
 
-// ALWAYS ensure React resolves from mobile app's node_modules (critical for EAS builds)
-// This ensures React is found even if monorepo detection fails or in EAS build environment
-// Use path.resolve to ensure absolute paths work in EAS build environment
-// In EAS builds, React might be in the build root's node_modules, so check there too
-let reactPath = path.resolve(mobileNodeModules, 'react');
-let reactDomPath = path.resolve(mobileNodeModules, 'react-dom');
+// Find React in available node_modules locations
+// Check mobile app's node_modules first, then build root (for EAS builds), then workspace root
+let reactPath = null;
+let reactDomPath = null;
 
-// If React is not in mobile app's node_modules, try build root (EAS builds)
-if (!fs.existsSync(reactPath) && buildRootNodeModules) {
+// Try mobile app's node_modules first
+const mobileReactPath = path.resolve(mobileNodeModules, 'react');
+const mobileReactDomPath = path.resolve(mobileNodeModules, 'react-dom');
+
+if (fs.existsSync(mobileReactPath)) {
+  reactPath = mobileReactPath;
+}
+if (fs.existsSync(mobileReactDomPath)) {
+  reactDomPath = mobileReactDomPath;
+}
+
+// If not found, try build root (EAS builds) - this is CRITICAL for EAS builds
+if (!reactPath && buildRootNodeModules) {
   const buildRootReactPath = path.join(buildRootNodeModules, 'react');
   if (fs.existsSync(buildRootReactPath)) {
     reactPath = buildRootReactPath;
   }
 }
-
-// If React is not in mobile app's node_modules, try build root (EAS builds)
-if (!fs.existsSync(reactDomPath) && buildRootNodeModules) {
+if (!reactDomPath && buildRootNodeModules) {
   const buildRootReactDomPath = path.join(buildRootNodeModules, 'react-dom');
   if (fs.existsSync(buildRootReactDomPath)) {
     reactDomPath = buildRootReactDomPath;
   }
 }
 
+// In EAS builds, if we still haven't found React, try the fallback path construction
+if (!reactPath && isEASBuild && projectRoot.includes('/apps/')) {
+  const potentialBuildRoot = projectRoot.split('/apps/')[0];
+  const potentialReactPath = path.join(potentialBuildRoot, 'node_modules', 'react');
+  if (fs.existsSync(potentialReactPath)) {
+    reactPath = potentialReactPath;
+  }
+}
+if (!reactDomPath && isEASBuild && projectRoot.includes('/apps/')) {
+  const potentialBuildRoot = projectRoot.split('/apps/')[0];
+  const potentialReactDomPath = path.join(potentialBuildRoot, 'node_modules', 'react-dom');
+  if (fs.existsSync(potentialReactDomPath)) {
+    reactDomPath = potentialReactDomPath;
+  }
+}
+
+// If still not found, try workspace root (local monorepo)
+if (!reactPath && isMonorepo && fs.existsSync(workspaceNodeModulesPath)) {
+  const workspaceReactPath = path.join(workspaceNodeModulesPath, 'react');
+  if (fs.existsSync(workspaceReactPath)) {
+    reactPath = workspaceReactPath;
+  }
+}
+if (!reactDomPath && isMonorepo && fs.existsSync(workspaceNodeModulesPath)) {
+  const workspaceReactDomPath = path.join(workspaceNodeModulesPath, 'react-dom');
+  if (fs.existsSync(workspaceReactDomPath)) {
+    reactDomPath = workspaceReactDomPath;
+  }
+}
+
+// Only add React to extraNodeModules if we actually found it
+// Otherwise, rely on nodeModulesPaths for automatic resolution
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),
-  // Always resolve React from mobile app's node_modules (even if fs check fails in EAS)
-  // Metro will handle the resolution, and this ensures the path is correct
-  // In EAS builds, this will point to the build root's node_modules if React isn't in app's node_modules
-  'react': reactPath,
-  // Explicitly resolve react/jsx-runtime and react/jsx-dev-runtime subpath exports
-  // These point to the React package itself, and Metro will resolve the subpath exports
-  // from React's package.json exports field
-  'react/jsx-runtime': reactPath,
-  'react/jsx-dev-runtime': reactPath,
-  'react-dom': reactDomPath,
+  ...(reactPath ? {
+    'react': reactPath,
+    // Explicitly resolve react/jsx-runtime and react/jsx-dev-runtime subpath exports
+    // These point to the React package itself, and Metro will resolve the subpath exports
+    // from React's package.json exports field
+    'react/jsx-runtime': reactPath,
+    'react/jsx-dev-runtime': reactPath,
+  } : {}),
+  ...(reactDomPath ? {
+    'react-dom': reactDomPath,
+  } : {}),
   // Add other React-related packages if they exist in mobile app's node_modules
   ...reactPackages.slice(5).reduce((acc, pkg) => {
     // Skip react/jsx-runtime and react/jsx-dev-runtime as they're handled above
@@ -145,19 +223,53 @@ if (isMonorepo) {
 // This ensures React and other dependencies are found from the mobile app's node_modules
 // In EAS builds, also include the build root's node_modules where dependencies are actually installed
 const nodeModulesPaths = [mobileNodeModules];
+
+// Add workspace root node_modules (for local monorepo)
 if (isMonorepo && fs.existsSync(workspaceNodeModulesPath)) {
   nodeModulesPaths.push(workspaceNodeModulesPath);
 }
+
 // Add build root node_modules for EAS builds (where dependencies are actually installed)
-// Only add if it's different from workspace root to avoid duplicates
+// This is CRITICAL - in EAS builds, dependencies are at the build root, not in app directory
+// We MUST include this for React and react/jsx-runtime to be found
 if (buildRootNodeModules && fs.existsSync(buildRootNodeModules)) {
   const normalizedBuildRoot = path.resolve(buildRootNodeModules);
-  const normalizedWorkspaceRoot = path.resolve(workspaceNodeModulesPath);
-  // Only add if it's different from workspace root (in EAS builds, build root is usually different)
-  if (normalizedBuildRoot !== normalizedWorkspaceRoot) {
-    nodeModulesPaths.push(buildRootNodeModules);
+  const normalizedWorkspaceRoot = isMonorepo ? path.resolve(workspaceNodeModulesPath) : null;
+  // Only add if it's different from workspace root to avoid duplicates
+  // In EAS builds, build root is usually different from workspace root
+  if (!normalizedWorkspaceRoot || normalizedBuildRoot !== normalizedWorkspaceRoot) {
+    // Insert build root BEFORE workspace root so it's checked first (after mobile app's node_modules)
+    // This ensures React from build root is found before any workspace root version
+    if (isMonorepo && normalizedWorkspaceRoot) {
+      const workspaceIndex = nodeModulesPaths.findIndex(p => path.resolve(p) === normalizedWorkspaceRoot);
+      if (workspaceIndex >= 0) {
+        nodeModulesPaths.splice(workspaceIndex, 0, buildRootNodeModules);
+      } else {
+        nodeModulesPaths.push(buildRootNodeModules);
+      }
+    } else {
+      nodeModulesPaths.push(buildRootNodeModules);
+    }
+  }
+} else if (isEASBuild) {
+  // Fallback for EAS builds: if detection failed, try direct path construction
+  // Based on typical EAS structure: /Users/expo/workingdir/build/apps/mobile
+  // Build root should be: /Users/expo/workingdir/build
+  if (projectRoot.includes('/apps/')) {
+    const potentialBuildRoot = projectRoot.split('/apps/')[0];
+    const potentialNodeModules = path.join(potentialBuildRoot, 'node_modules');
+    const potentialExpo = path.join(potentialNodeModules, 'expo');
+    const potentialReact = path.join(potentialNodeModules, 'react');
+    if (fs.existsSync(potentialExpo) && fs.existsSync(potentialReact)) {
+      const normalizedPotential = path.resolve(potentialNodeModules);
+      if (!nodeModulesPaths.some(p => path.resolve(p) === normalizedPotential)) {
+        // Insert after mobile app's node_modules but before workspace root
+        nodeModulesPaths.splice(1, 0, potentialNodeModules);
+      }
+    }
   }
 }
+
 config.resolver.nodeModulesPaths = nodeModulesPaths;
 
 // Add watchFolders to include the packages directory for monorepo support
