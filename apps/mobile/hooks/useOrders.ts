@@ -178,6 +178,7 @@ export const useOrders = () => {
       };
       special_instructions?: string;
       delivery_time?: string;
+      nosh_points_applied?: number; // Nosh Points applied for discount
     }) => {
       try {
         setIsLoading(true);
@@ -195,6 +196,7 @@ export const useOrders = () => {
           delivery_address: data.delivery_address,
           special_instructions: data.special_instructions,
           delivery_time: data.delivery_time,
+          nosh_points_applied: data.nosh_points_applied,
         });
 
         if (!result.success) {

@@ -9,4 +9,6 @@ export * from "./weather";
 export * from "./users";
 export * from "./chefs";
 export * from "./liveStreaming";
-export * from "./search"; 
+export * from "./search";
+export * from "./specialOffers";
+export * from "./coupons"; 

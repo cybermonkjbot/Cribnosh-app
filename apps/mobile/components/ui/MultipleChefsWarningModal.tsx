@@ -4,7 +4,6 @@
  * Displays a warning modal when a user tries to checkout with items from multiple food creators.
  */
 
-import { X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Mascot } from '@/components/Mascot';
@@ -36,7 +35,7 @@ export function MultipleChefsWarningModal({
       visible={isVisible}
       transparent
       animationType="fade"
-      onRequestClose={onCancel}
+      onRequestClose={() => {}} // Prevent dismissal via back button
     >
       <View style={styles.overlay}>
         <View
@@ -45,12 +44,6 @@ export function MultipleChefsWarningModal({
             { backgroundColor: colors.background },
           ]}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onCancel} style={styles.closeIconButton}>
-              <X size={24} color={colors.text} />
-            </TouchableOpacity>
-          </View>
 
           {/* Content */}
           <View style={styles.content}>
@@ -108,14 +101,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 8,
-  },
-  closeIconButton: {
-    padding: 4,
   },
   content: {
     alignItems: 'center',

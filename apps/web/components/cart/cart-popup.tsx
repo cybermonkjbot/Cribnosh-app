@@ -10,6 +10,7 @@ import { EmptyCart } from "./empty-cart";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useModalSheet } from "@/context/ModalSheetContext";
 
 interface CartPopupProps {
   isOpen: boolean;
@@ -19,18 +20,22 @@ interface CartPopupProps {
 export function CartPopup({ isOpen, onClose }: CartPopupProps) {
   const { data: cart, isLoading } = useCart();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const { setAnyModalOpen } = useModalSheet();
 
-  // Prevent body scroll when popup is open
+  // Prevent body scroll when popup is open and notify context
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      setAnyModalOpen(true);
     } else {
       document.body.style.overflow = "";
+      setAnyModalOpen(false);
     }
     return () => {
       document.body.style.overflow = "";
+      setAnyModalOpen(false);
     };
-  }, [isOpen]);
+  }, [isOpen, setAnyModalOpen]);
 
   const items = cart?.items || [];
   const isEmpty = items.length === 0;
@@ -45,7 +50,7 @@ export function CartPopup({ isOpen, onClose }: CartPopupProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 z-[999997]"
+            className="fixed inset-0 bg-black/50 z-[999998]"
             onClick={onClose}
           />
 
@@ -59,7 +64,7 @@ export function CartPopup({ isOpen, onClose }: CartPopupProps) {
               isMobile
                 ? "bottom-0 left-0 right-0 top-1/3 rounded-t-3xl"
                 : "top-0 right-0 bottom-0 w-full max-w-md"
-            } bg-white z-[999998] shadow-2xl flex flex-col`}
+            } bg-white z-[999999] shadow-2xl flex flex-col`}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">

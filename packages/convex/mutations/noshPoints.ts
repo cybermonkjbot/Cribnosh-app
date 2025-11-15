@@ -95,6 +95,7 @@ export const spendPoints = mutation({
     userId: v.id('users'),
     points: v.number(),
     reason: v.string(),
+    orderId: v.optional(v.id('orders')),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -129,6 +130,7 @@ export const spendPoints = mutation({
       points: -args.points, // negative
       type: 'spent',
       reason: args.reason,
+      order_id: args.orderId,
       created_at: now,
     });
 

@@ -76,6 +76,9 @@ export * from './userConnections';
 // Export special offers queries
 export * from './specialOffers';
 
+// Export claimed offers queries
+export * from './claimedOffers';
+
 // Export admin queries
 export * from './admin';
 

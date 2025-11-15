@@ -189,3 +189,9 @@ body:not([data-custom-pointer="true"]) {
     opacity: 0.5;
   }
 }
+
+/* Ensure Sonner toasts have the highest z-index */
+[data-sonner-toaster],
+[data-sonner-toast] {
+  z-index: 999999 !important;
+}

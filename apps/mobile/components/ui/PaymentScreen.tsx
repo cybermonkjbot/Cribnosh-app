@@ -16,6 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import { RegionAvailabilityModal } from "./RegionAvailabilityModal";
 import { MultipleChefsWarningModal } from "./MultipleChefsWarningModal";
 
@@ -150,7 +151,21 @@ export default function PaymentScreen({
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Step 3: Create order from cart after payment
+      // Step 3: Get discount info from storage
+      let noshPointsApplied: number | undefined = undefined;
+      try {
+        const discountInfoStr = await SecureStore.getItemAsync('cart_discount_info');
+        if (discountInfoStr) {
+          const discountInfo = JSON.parse(discountInfoStr);
+          if (discountInfo.type === 'nosh_pass' && discountInfo.pointsAmount) {
+            noshPointsApplied = discountInfo.pointsAmount;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to read discount info:', error);
+      }
+
+      // Step 4: Create order from cart after payment
       const orderResult = await createOrderFromCart({
         payment_intent_id: paymentIntentId,
         delivery_address: deliveryAddress
@@ -163,10 +178,18 @@ export default function PaymentScreen({
             }
           : undefined,
         special_instructions: specialInstructions,
+        nosh_points_applied: noshPointsApplied,
       });
 
       if (!orderResult || !orderResult.order_id) {
         throw new Error("Failed to create order: Order result is invalid");
+      }
+
+      // Clear discount info after successful order
+      try {
+        await SecureStore.deleteItemAsync('cart_discount_info');
+      } catch (error) {
+        console.warn('Failed to clear discount info:', error);
       }
 
       const orderId = orderResult.order_id;
@@ -225,22 +248,28 @@ export default function PaymentScreen({
     getCart,
   ]);
 
-  // Check for multiple chefs before processing payment
+  // Check for multiple chefs immediately on mount - before rendering payment screen
   useEffect(() => {
-    if (hasCheckedMultipleChefs || paymentStatus !== "pending_confirmation") {
+    if (hasCheckedMultipleChefs) {
       return;
     }
 
-    if (hasMultipleChefs && cartData?.data?.items) {
+    // Wait for cart data to load
+    if (!cartData?.data?.items) {
+      return;
+    }
+
+    setHasCheckedMultipleChefs(true);
+
+    if (hasMultipleChefs) {
+      // Show modal before rendering payment screen
       setShowMultipleChefsModal(true);
-      setHasCheckedMultipleChefs(true);
-    } else if (cartData?.data?.items) {
-      // No multiple chefs, proceed directly
-      setHasCheckedMultipleChefs(true);
+    } else {
+      // No multiple chefs, proceed directly to payment
       setPaymentStatus("processing");
       processPaymentInternal();
     }
-  }, [hasMultipleChefs, cartData, hasCheckedMultipleChefs, paymentStatus, processPaymentInternal]);
+  }, [hasMultipleChefs, cartData, hasCheckedMultipleChefs, processPaymentInternal]);
 
   const handleConfirmMultipleChefs = () => {
     setShowMultipleChefsModal(false);
@@ -258,53 +287,59 @@ export default function PaymentScreen({
     router.back();
   };
 
+  // Don't render payment screen content if modal should be shown
+  const shouldShowPaymentScreen = !showMultipleChefsModal && hasCheckedMultipleChefs;
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={handleBack}>
-            <Entypo name="chevron-down" size={24} color="#094327" />
-          </Pressable>
-          <Text style={styles.headerTitle}>Processing Payment</Text>
-          <View style={styles.headerSpacer} />
+      {/* Only show payment screen content after modal is handled */}
+      {shouldShowPaymentScreen && (
+        <View style={styles.content}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Pressable onPress={handleBack}>
+              <Entypo name="chevron-down" size={24} color="#094327" />
+            </Pressable>
+            <Text style={styles.headerTitle}>Processing Payment</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          {/* Main Content */}
+          <View style={styles.mainContent}>
+            {(paymentStatus === "processing" || paymentStatus === "pending_confirmation" || isCheckingRegion) && (
+              <>
+                <ActivityIndicator size="large" color="#10B981" />
+                <Text style={styles.statusText}>
+                  {isCheckingRegion
+                    ? "Checking delivery availability..."
+                    : paymentStatus === "pending_confirmation"
+                    ? "Preparing your order..."
+                    : "Processing Payment"}
+                </Text>
+                <Text style={styles.amountValue}>£{displayTotal.toFixed(2)}</Text>
+              </>
+            )}
+
+            {paymentStatus === "error" && (
+              <>
+                <Mascot emotion="sad" size={180} />
+                <Text style={styles.statusText}>Payment Failed</Text>
+                {errorMessage && (
+                  <Text style={styles.errorMessage}>{errorMessage}</Text>
+                )}
+              </>
+            )}
+
+            {paymentStatus === "success" && (
+              <>
+                <Mascot emotion="happy" size={180} />
+                <Text style={styles.statusText}>Payment Successful</Text>
+                <Text style={styles.successSubtext}>Creating your order...</Text>
+              </>
+            )}
+          </View>
         </View>
-
-        {/* Main Content */}
-        <View style={styles.mainContent}>
-          {(paymentStatus === "processing" || paymentStatus === "pending_confirmation" || isCheckingRegion) && (
-            <>
-              <ActivityIndicator size="large" color="#10B981" />
-              <Text style={styles.statusText}>
-                {isCheckingRegion
-                  ? "Checking delivery availability..."
-                  : paymentStatus === "pending_confirmation"
-                  ? "Preparing your order..."
-                  : "Processing Payment"}
-              </Text>
-              <Text style={styles.amountValue}>£{displayTotal.toFixed(2)}</Text>
-            </>
-          )}
-
-          {paymentStatus === "error" && (
-            <>
-              <Mascot emotion="sad" size={180} />
-              <Text style={styles.statusText}>Payment Failed</Text>
-              {errorMessage && (
-                <Text style={styles.errorMessage}>{errorMessage}</Text>
-              )}
-            </>
-          )}
-
-          {paymentStatus === "success" && (
-            <>
-              <Mascot emotion="happy" size={180} />
-              <Text style={styles.statusText}>Payment Successful</Text>
-              <Text style={styles.successSubtext}>Creating your order...</Text>
-            </>
-          )}
-        </View>
-      </View>
+      )}
 
       {/* Region Availability Modal */}
       <RegionAvailabilityModal
@@ -312,7 +347,7 @@ export default function PaymentScreen({
         onClose={() => setShowRegionModal(false)}
       />
 
-      {/* Multiple Chefs Warning Modal */}
+      {/* Multiple Chefs Warning Modal - shown before payment screen */}
       <MultipleChefsWarningModal
         isVisible={showMultipleChefsModal}
         onConfirm={handleConfirmMultipleChefs}

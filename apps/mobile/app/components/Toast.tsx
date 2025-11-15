@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    zIndex: 99999,
+    zIndex: 999999,
     alignItems: 'center',
   },
   toast: {

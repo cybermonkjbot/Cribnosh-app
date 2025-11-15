@@ -22,6 +22,7 @@ import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 import { STRIPE_CONFIG } from '@/constants/api';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AddressSelectionProvider } from '@/contexts/AddressSelectionContext';
+import { ModalSheetProvider } from '@/context/ModalSheetContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { store } from '@/store/index';
 import { AppProvider } from '@/utils/AppContext';
@@ -221,6 +222,15 @@ export default function RootLayout() {
                 }} 
               />
               <Stack.Screen 
+                name="claim-offer" 
+                options={{ 
+                  headerShown: false,
+                  presentation: 'fullScreenModal',
+                  animation: 'slide_from_bottom',
+                  gestureEnabled: true,
+                }} 
+              />
+              <Stack.Screen 
                 name="payment-settings" 
                 options={{ 
                   headerShown: false,
@@ -305,9 +315,11 @@ export default function RootLayout() {
           <EmotionsUIProvider>
             <AppProvider>
               <AddressSelectionProvider>
-                <ToastProvider>
-                  {wrappedContent}
-                </ToastProvider>
+                <ModalSheetProvider>
+                  <ToastProvider>
+                    {wrappedContent}
+                  </ToastProvider>
+                </ModalSheetProvider>
               </AddressSelectionProvider>
             </AppProvider>
           </EmotionsUIProvider>

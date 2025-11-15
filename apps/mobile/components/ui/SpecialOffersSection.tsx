@@ -2,6 +2,7 @@ import { useOffersAndTreats } from "@/hooks/useOffersAndTreats";
 import { Image } from "expo-image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { showError } from "../../lib/GlobalToastManager";
 import { SpecialOffersSectionSkeleton } from "./SpecialOffersSectionSkeleton";
@@ -79,6 +80,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
   useBackend = true,
   hasInitialLoadCompleted = false,
 }) => {
+  const router = useRouter();
   const { isAuthenticated } = useAuthContext();
   const { getActiveOffers, isLoading: backendLoading } = useOffersAndTreats();
   const [offersData, setOffersData] = useState<any>(null);
@@ -141,6 +143,14 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
     []
   );
 
+  // Store full API offers for Claim Now functionality
+  const fullApiOffers = useMemo(() => {
+    if (useBackend && offersData?.success && offersData.data?.offers) {
+      return offersData.data.offers;
+    }
+    return [];
+  }, [offersData, useBackend]);
+
   // Process offers data - only use API data, no prop fallback
   const offers: SpecialOffer[] = useMemo(() => {
     // Only use backend API data
@@ -155,6 +165,16 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
     return [];
   }, [offersData, useBackend, transformOfferData]);
 
+  // Define handleClaimNow hook BEFORE early returns to maintain hook order
+  const handleClaimNow = useCallback((offerId: string, e?: any) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    router.push({
+      pathname: '/claim-offer',
+      params: { offerId },
+    } as any);
+  }, [router]);
 
   // Only show skeleton during initial load, never after initial load is complete
   if (useBackend && backendLoading && !hasInitialLoadCompleted) {
@@ -169,7 +189,11 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
   if (offers.length === 0) {
     return null;
   }
-  const renderOfferCard = (offer: SpecialOffer, index: number) => (
+
+  const renderOfferCard = (offer: SpecialOffer, index: number) => {
+    const fullOffer = fullApiOffers.find((o: any) => (o.offer_id || o._id) === offer.id);
+    
+    return (
     <TouchableOpacity
       key={offer.id}
       style={{
@@ -319,6 +343,13 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
               paddingVertical: 8,
               borderRadius: 20,
             }}
+            onPress={(e) => {
+              e.stopPropagation();
+              if (fullOffer) {
+                handleClaimNow(fullOffer.offer_id || fullOffer._id || offer.id);
+              }
+            }}
+            activeOpacity={0.8}
           >
             <Text
               style={{
@@ -333,7 +364,8 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
         </View>
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={{ marginBottom: 24 }}>

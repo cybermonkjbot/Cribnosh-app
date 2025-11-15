@@ -1,16 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, useSpring } from "motion/react";
 import { useCartItemCount } from "@/hooks/use-cart";
 import { CartPopup } from "./cart-popup";
+import { useModalSheet } from "@/context/ModalSheetContext";
 
 export function FloatingCartIcon() {
   const [isOpen, setIsOpen] = useState(false);
   const itemCount = useCartItemCount();
   const pathname = usePathname();
+  const { isAnyModalOpen } = useModalSheet();
+  
+  // Animated bottom position
+  const bottomValue = useMotionValue(96); // bottom-24 = 96px
+  const bottom = useSpring(bottomValue, { stiffness: 300, damping: 30 });
+  
+  // Adjust position when modals are open
+  useEffect(() => {
+    bottomValue.set(isAnyModalOpen ? 20 : 96); // Move closer to bottom when modals are open
+  }, [isAnyModalOpen, bottomValue]);
   
   // Don't show on admin or staff routes
   const isAdminRoute = pathname?.startsWith('/admin') ?? false;
@@ -24,7 +35,8 @@ export function FloatingCartIcon() {
     <>
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-4 z-[999998] h-14 px-6 rounded-full bg-[#ff3b30] text-white shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center gap-2"
+        style={{ bottom }}
+        className="fixed right-4 z-[999999] h-14 px-6 rounded-full bg-[#ff3b30] text-white shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center gap-2"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Open cart"

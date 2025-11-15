@@ -1,8 +1,9 @@
 import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView } from '@gorhom/bottom-sheet';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import Colors from '../constants/Colors';
 import { useColorScheme } from '../hooks/useColorScheme';
+import { useModalSheet } from '@/context/ModalSheetContext';
 
 interface BottomSheetProps {
   children: React.ReactNode;
@@ -31,6 +32,7 @@ export function BottomSheetBase({
 }: BottomSheetProps) {
   const colorScheme = useColorScheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const { setAnySheetOpen } = useModalSheet();
 
   // Memoize snap points to prevent unnecessary re-renders
   const memoizedSnapPoints = useMemo(() => snapPoints, [snapPoints]);
@@ -38,7 +40,14 @@ export function BottomSheetBase({
   // Callbacks
   const handleSheetChanges = useCallback((index: number) => {
     onChange?.(index);
-  }, [onChange]);
+    // Report to context when sheet is open (index >= 0) or closed (index === -1)
+    setAnySheetOpen(index >= 0);
+  }, [onChange, setAnySheetOpen]);
+
+  // Report initial state
+  useEffect(() => {
+    setAnySheetOpen(index >= 0);
+  }, [index, setAnySheetOpen]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (

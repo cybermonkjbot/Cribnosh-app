@@ -507,6 +507,7 @@ export const customerCreateOrderFromCart = action({
     })),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
+    nosh_points_applied: v.optional(v.number()), // Nosh Points applied for discount
   },
   returns: v.union(
     v.object({
@@ -631,6 +632,17 @@ export const customerCreateOrderFromCart = action({
         // Calculate total for this chef's items
         const chefTotal = orderItems.reduce((sum: number, item: { price: number; quantity: number }) => sum + (item.price * item.quantity), 0);
 
+        // Calculate proportional points for this chef's order
+        // If multiple chefs, distribute points proportionally
+        const totalCartValue = Array.from(itemsByChef.values()).reduce(
+          (sum, items) => sum + items.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0),
+          0
+        );
+        const chefProportion = chefTotal / totalCartValue;
+        const chefPointsApplied = args.nosh_points_applied 
+          ? Math.floor(args.nosh_points_applied * chefProportion)
+          : undefined;
+
         // Create order with payment for this chef
         const order = await ctx.runMutation(api.mutations.orders.createOrderWithPayment, {
           customer_id: user._id.toString(),
@@ -643,6 +655,7 @@ export const customerCreateOrderFromCart = action({
           delivery_time: args.delivery_time,
           delivery_address: args.delivery_address,
           sessionToken: args.sessionToken,
+          nosh_points_applied: chefPointsApplied,
         });
 
         createdOrders.push(order);

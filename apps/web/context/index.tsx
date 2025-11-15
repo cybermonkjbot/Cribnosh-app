@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { env } from "@/lib/config/env";
 import { QueryProvider } from "@/app/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { ModalSheetProvider } from "./ModalSheetContext";
 
 type MobileMenuContextType = {
   isMobileMenuOpen: boolean;
@@ -53,8 +54,10 @@ export function Providers({
           defaultTheme={env.DISABLE_DARK_MODE ? "light" : (defaultTheme || "system")}
           forcedTheme={actualForcedTheme}
         >
-          {children}
-          <Toaster />
+          <ModalSheetProvider>
+            {children}
+            <Toaster />
+          </ModalSheetProvider>
         </ThemeProvider>
       </MobileMenuContext.Provider>
     </QueryProvider>

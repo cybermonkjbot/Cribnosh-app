@@ -1674,8 +1674,11 @@ export function MainScreen() {
   );
 
   const handleDrawerItemPress = useCallback((id: string) => {
-    // In a real app, this would navigate to item details
-  }, []);
+    // Navigate to meal details when a meal item is clicked
+    if (id) {
+      handleMealPress({ id, name: '', price: 0, kitchen: '', image: undefined });
+    }
+  }, [handleMealPress]);
 
   // Pull trigger visibility is now handled inline in the ScrollView content
 
@@ -2123,6 +2126,7 @@ export function MainScreen() {
       <BottomSearchDrawer
         onOpenAIChat={handleOpenAIChat}
         isAuthenticated={isAuthenticated}
+        onMealPress={handleMealPress}
       />
 
       {/* Category Drawers */}
@@ -2185,6 +2189,8 @@ export function MainScreen() {
             onBack={handleCloseDrawer}
             kitchens={kitchens}
             onKitchenPress={handleFeaturedKitchenPress}
+            isLoading={chefsLoading}
+            error={chefsError}
           />
         )}
         {activeDrawer === "popularMeals" && (

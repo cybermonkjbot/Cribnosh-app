@@ -1,10 +1,11 @@
 import { EmptyState } from "@/components/ui/EmptyState";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
-import { Link, router, useFocusEffect } from "expo-router";
+import { Link, router } from "expo-router";
 import { CarFront, Utensils } from "lucide-react-native";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import IncrementalOrderAmount from "../IncrementalOrderAmount";
 import { useCart } from "@/hooks/useCart";
@@ -13,16 +14,23 @@ import { NoshPassModal } from "./NoshPassModal";
 import { SkeletonBox } from "./MealItemDetails/Skeletons/ShimmerBox";
 import { CustomerAddress } from "@/types/customer";
 import { useAddressSelection } from "@/contexts/AddressSelectionContext";
-import { getSessionToken } from "@/lib/convexClient";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from "@/contexts/AuthContext";
 import { getAbsoluteImageUrl } from "@/utils/imageUrl";
 import { useQuery } from "convex/react";
 
+type CouponType = 'nosh_pass' | 'discount';
+
 export default function CartScreen() {
   const [cutleryIncluded, setCutleryIncluded] = useState(false);
   const [isNoshPassModalVisible, setIsNoshPassModalVisible] = useState(false);
   const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
+  const [appliedCouponType, setAppliedCouponType] = useState<CouponType | null>(null);
+  const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
+  const [appliedPoints, setAppliedPoints] = useState<number | null>(null);
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [freeDelivery, setFreeDelivery] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   // Use cart hook for Convex mutations (update, remove)
@@ -155,7 +163,7 @@ export default function CartScreen() {
           return;
         }
 
-        await refetchProfile();
+        // Profile will automatically update via reactive query, no need to manually refetch
         setSelectedAddress(null); // Clear after handling
       } catch (error) {
         console.error('Error saving address:', error);
@@ -165,62 +173,17 @@ export default function CartScreen() {
     return () => {
       setOnSelectAddress(null);
     };
-  }, [setOnSelectAddress, refetchProfile, setSelectedAddress]);
+  }, [setOnSelectAddress, setSelectedAddress]);
 
-  // Handle address selection when returning from modal
-  // Only process if address is valid and was explicitly selected
-  useFocusEffect(
-    useCallback(() => {
-      // Only process if we have a valid address with required fields
-      if (selectedAddress && selectedAddress.street && typeof selectedAddress.street === 'string' && selectedAddress.street.trim().length > 0) {
-        // Address was selected in modal, handle it
-        const handleSelected = async () => {
-          try {
-            const convex = getConvexClient();
-            const sessionToken = await getSessionToken();
-
-            if (!sessionToken) {
-              console.error('Error saving address: Not authenticated');
-              setSelectedAddress(null); // Clear invalid state
-              return;
-            }
-
-            const result = await convex.action(api.actions.users.customerUpdateProfile, {
-              sessionToken,
-              address: {
-                street: selectedAddress.street,
-                city: selectedAddress.city || '',
-                state: selectedAddress.state || '',
-                postal_code: selectedAddress.postal_code || '',
-                country: selectedAddress.country || 'UK',
-              },
-            });
-
-            if (result.success === false) {
-              console.error('Error saving address:', result.error);
-              setSelectedAddress(null); // Clear after error
-              return;
-            }
-
-            await refetchProfile();
-            setSelectedAddress(null); // Clear after handling
-          } catch (error) {
-            console.error('Error saving address:', error);
-            setSelectedAddress(null); // Clear after error
-          }
-        };
-        handleSelected();
-      } else if (selectedAddress) {
-        // Invalid address in context, clear it
-        setSelectedAddress(null);
-      }
-    }, [selectedAddress, refetchProfile, setSelectedAddress])
-  );
+  // Note: Address selection is now handled via the onSelectAddress callback
+  // set in the useEffect above. The useFocusEffect approach was removed to
+  // prevent duplicate handling and navigation issues.
 
   const handleOpenAddressModal = () => {
     router.push({
       pathname: '/select-address',
       params: {
+        returnPath: '/orders/cart',
         ...(userAddress && {
           selectedStreet: userAddress.street,
           selectedCity: userAddress.city,
@@ -229,15 +192,89 @@ export default function CartScreen() {
     });
   };
 
-  const handleNoshPassApply = async (code: string) => {
-    // TODO: Implement coupon code validation and application via API
-    // For now, just store it locally
-    if (code) {
+  const handleNoshPassApply = async (code: string, type: CouponType, couponId?: string, pointsAmount?: number) => {
+    if (type === 'nosh_pass' && pointsAmount && pointsAmount > 0) {
+      // Apply Nosh Points
       setAppliedCouponCode(code);
+      setAppliedCouponType(type);
+      setAppliedCouponId(null);
+      setAppliedPoints(pointsAmount);
+      
+      // Calculate discount from points (1 point = £0.01)
+      const pointsDiscount = pointsAmount * 0.01;
+      setDiscountAmount(pointsDiscount);
+      setFreeDelivery(false);
+      
+      // Store discount info for order creation
+      await SecureStore.setItemAsync('cart_discount_info', JSON.stringify({
+        type: 'nosh_pass',
+        pointsAmount,
+        discountAmount: pointsDiscount,
+      }));
+    } else if (code && couponId) {
+      // Apply discount code
+      setAppliedCouponCode(code);
+      setAppliedCouponType(type);
+      setAppliedCouponId(couponId);
+      setAppliedPoints(null);
+      
+      // Calculate discount (will store discount info automatically)
+      await calculateDiscount(couponId, code);
     } else {
+      // Remove discount
       setAppliedCouponCode(null);
+      setAppliedCouponType(null);
+      setAppliedCouponId(null);
+      setAppliedPoints(null);
+      setDiscountAmount(0);
+      setFreeDelivery(false);
+      
+      // Clear stored discount info
+      await SecureStore.deleteItemAsync('cart_discount_info');
     }
   };
+
+  const calculateDiscount = useCallback(async (couponId: string, couponCode?: string) => {
+    try {
+      const convex = getConvexClient();
+      const subtotal = cartItems.reduce((sum: number, item: any) => {
+        const itemPrice = item.price || 0;
+        const itemQuantity = item.quantity || 1;
+        const priceInBaseUnit = itemPrice >= 100 ? itemPrice / 100 : itemPrice;
+        return sum + (priceInBaseUnit * itemQuantity);
+      }, 0);
+      const deliveryFee = 9.00;
+
+      const result = await convex.action(api.actions.coupons.calculateCartDiscount, {
+        couponId: couponId as any,
+        cartSubtotal: subtotal,
+        deliveryFee,
+      });
+
+      if (result.success) {
+        setDiscountAmount(result.discountAmount || 0);
+        setFreeDelivery(result.freeDelivery || false);
+        
+        // Store discount info for order creation
+        await SecureStore.setItemAsync('cart_discount_info', JSON.stringify({
+          type: 'discount',
+          couponId,
+          couponCode: couponCode || appliedCouponCode,
+        }));
+      }
+    } catch (error) {
+      console.error('Error calculating discount:', error);
+      setDiscountAmount(0);
+      setFreeDelivery(false);
+    }
+  }, [cartItems, appliedCouponCode]);
+
+  // Recalculate discount when cart items change
+  useEffect(() => {
+    if (appliedCouponId) {
+      calculateDiscount(appliedCouponId);
+    }
+  }, [appliedCouponId, calculateDiscount]);
 
   // Format address for display
   const formatAddress = (address: CustomerAddress | undefined): string => {
@@ -409,8 +446,8 @@ export default function CartScreen() {
     const priceInBaseUnit = itemPrice >= 100 ? itemPrice / 100 : itemPrice;
     return sum + (priceInBaseUnit * itemQuantity);
   }, 0);
-  const deliveryFee = 9.00; // Default delivery fee
-  const total = subtotal + deliveryFee;
+  const deliveryFee = freeDelivery ? 0 : 9.00; // Free delivery if coupon applies
+  const total = Math.max(0, subtotal - discountAmount + deliveryFee);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -603,11 +640,27 @@ export default function CartScreen() {
           </View>
 
           <View style={styles.summary}>
+            {discountAmount > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  Discount
+                </Text>
+                <Text style={[styles.summaryValue, styles.discountValue]}>
+                  -£ {discountAmount.toFixed(2)}
+                </Text>
+              </View>
+            )}
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>
                 Delivery Fee
               </Text>
-              <Text style={styles.summaryValue}>£ {deliveryFee.toFixed(2)}</Text>
+              <Text style={styles.summaryValue}>
+                {freeDelivery ? (
+                  <Text style={styles.freeDeliveryText}>Free</Text>
+                ) : (
+                  `£ ${deliveryFee.toFixed(2)}`
+                )}
+              </Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryTotalLabel}>Total </Text>
@@ -634,6 +687,9 @@ export default function CartScreen() {
         onClose={() => setIsNoshPassModalVisible(false)}
         onApplyCode={handleNoshPassApply}
         appliedCode={appliedCouponCode}
+        appliedCodeType={appliedCouponType}
+        appliedPoints={appliedPoints}
+        cartSubtotal={subtotal}
       />
     </SafeAreaView>
   );
@@ -642,7 +698,7 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1, // flex-1
-    padding: 20, // p-5
+    padding: 16, // Reduced from 20
     backgroundColor: '#FFFFFF', // bg-white
   },
   scrollView: {
@@ -673,7 +729,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   skeletonContainer: {
     flex: 1,
@@ -865,13 +921,20 @@ const styles = StyleSheet.create({
     fontSize: 18, // text-lg
     fontWeight: '700', // font-bold
   },
+  discountValue: {
+    color: '#10B981', // Green color for discount
+  },
+  freeDeliveryText: {
+    color: '#10B981', // Green color for free delivery
+    fontWeight: '600',
+  },
   footer: {
     position: 'absolute', // absolute
     bottom: 0, // bottom-0
     left: 0, // left-0
     right: 0, // right-0
     backgroundColor: '#FFFFFF', // bg-white
-    paddingHorizontal: 20, // px-5
+    paddingHorizontal: 16, // Reduced from 20
     paddingVertical: 16, // py-4
     borderTopWidth: 1, // border-t
     borderTopColor: '#E5E7EB', // border-gray-200

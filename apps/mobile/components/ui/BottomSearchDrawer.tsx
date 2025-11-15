@@ -71,6 +71,9 @@ import { useUserLocation } from "@/hooks/useUserLocation";
 // BlurEffect for Android fallback
 import { BlurEffect } from "@/utils/blurEffects";
 
+// Modal/Sheet context
+import { useModalSheet } from "@/context/ModalSheetContext";
+
 // Error boundary for icon components
 const SafeIcon = ({
   children,
@@ -311,6 +314,7 @@ interface BottomSearchDrawerProps {
   onOpenAIChat?: () => void;
   onSearchSubmit?: (query: string, filter: string) => void;
   onSuggestionSelect?: (suggestion: any) => void;
+  onMealPress?: (meal: any) => void;
   maxSuggestions?: number;
   enableHaptics?: boolean;
   accessibilityLabel?: string;
@@ -353,6 +357,7 @@ export function BottomSearchDrawer({
   onOpenAIChat,
   onSearchSubmit,
   onSuggestionSelect,
+  onMealPress,
   maxSuggestions = 20,
   enableHaptics = true,
   accessibilityLabel = "Search drawer",
@@ -360,6 +365,7 @@ export function BottomSearchDrawer({
   isAuthenticated = false,
 }: BottomSearchDrawerProps) {
   const router = useRouter();
+  const { setSearchDrawerExpanded } = useModalSheet();
   
   // Core animation values - using height instead of translateY
   const drawerHeight = useSharedValue(SNAP_POINTS.COLLAPSED);
@@ -1083,7 +1089,9 @@ export function BottomSearchDrawer({
   }, [isSearchFocused]);
 
   useDerivedValue(() => {
-    runOnJS(setIsExpandedState)(isExpandedCondition.value);
+    const isExpanded = isExpandedCondition.value;
+    runOnJS(setIsExpandedState)(isExpanded);
+    runOnJS(setSearchDrawerExpanded)(isExpanded);
   });
 
   // Backdrop with proper opacity and interaction blocking
@@ -1259,6 +1267,7 @@ export function BottomSearchDrawer({
             : "cuisines",
       rating: result.rating ? result.rating.toString() : "4.5",
       relevance_score: result.relevance_score,
+      originalResult: result, // Preserve original result data for navigation
     }));
   }, []);
 
@@ -1673,6 +1682,20 @@ export function BottomSearchDrawer({
       if (!suggestion || !suggestion.text) return;
 
       try {
+        // If it's a meal item and onMealPress is provided, navigate to meal details
+        if (suggestion.type === "meals" && onMealPress && suggestion.originalResult) {
+          const result = suggestion.originalResult;
+          onMealPress({
+            id: result.id || result._id,
+            name: result.title || suggestion.text,
+            price: result.price || 0,
+            kitchen: result.kitchen || suggestion.kitchen || "Various Kitchens",
+            image: result.image_url ? { uri: result.image_url } : undefined,
+            _id: result.id || result._id,
+          });
+          return;
+        }
+
         setSearchQuery(suggestion.text);
 
         if (onSuggestionSelect) {
@@ -1684,7 +1707,7 @@ export function BottomSearchDrawer({
         setError("Failed to select suggestion. Please try again.");
       }
     },
-    [onSuggestionSelect]
+    [onSuggestionSelect, onMealPress]
   );
 
   // Update header message when drawer expands

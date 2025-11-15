@@ -87,3 +87,51 @@ export const createSpecialOffer = mutation({
   },
 });
 
+/**
+ * Increment click count for an offer
+ */
+export const incrementClickCount = mutation({
+  args: {
+    offer_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const offer = await ctx.db
+      .query('special_offers')
+      .withIndex('by_offer_id', q => q.eq('offer_id', args.offer_id))
+      .first();
+
+    if (!offer) {
+      throw new Error('Offer not found');
+    }
+
+    await ctx.db.patch(offer._id, {
+      click_count: (offer.click_count || 0) + 1,
+      updated_at: Date.now(),
+    });
+  },
+});
+
+/**
+ * Increment conversion count for an offer
+ */
+export const incrementConversionCount = mutation({
+  args: {
+    offer_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const offer = await ctx.db
+      .query('special_offers')
+      .withIndex('by_offer_id', q => q.eq('offer_id', args.offer_id))
+      .first();
+
+    if (!offer) {
+      throw new Error('Offer not found');
+    }
+
+    await ctx.db.patch(offer._id, {
+      conversion_count: (offer.conversion_count || 0) + 1,
+      updated_at: Date.now(),
+    });
+  },
+});
+

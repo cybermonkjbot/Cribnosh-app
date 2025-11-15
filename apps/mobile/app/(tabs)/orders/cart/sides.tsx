@@ -8,8 +8,10 @@ import * as SecureStore from "expo-secure-store";
 import { AppleIcon } from "@/components/AppleIcon";
 import { useCart } from "@/hooks/useCart";
 import { useSides } from "@/hooks/useSides";
+import { usePayments } from "@/hooks/usePayments";
 import { SkeletonBox } from "@/components/ui/MealItemDetails/Skeletons/ShimmerBox";
 import { SkeletonWithTimeout } from "@/components/ui/SkeletonWithTimeout";
+import { AddCardSheet } from "@/components/ui/AddCardSheet";
 
 const PAYMENT_METHOD_STORAGE_KEY = "cart_selected_payment_method";
 
@@ -49,8 +51,10 @@ export default function SidesScreen() {
   const [cartData, setCartData] = useState<{ items: CartItem[] } | null>(null);
   const [availableSides, setAvailableSides] = useState<Record<string, AvailableSide[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddCardSheetVisible, setIsAddCardSheetVisible] = useState(false);
   const { getCart } = useCart();
   const { getSidesForCart, addSideToCartItem, updateSideQuantity, removeSideFromCartItem, isLoading: sidesLoading } = useSides();
+  const { getPaymentMethods } = usePayments();
 
   // Load cart data and sides when screen comes into focus
   useFocusEffect(
@@ -104,8 +108,58 @@ export default function SidesScreen() {
     router.back();
   };
 
-  const handleProceedToPayment = () => {
-    // Go directly to payment processing, not payment method selection
+  const handleProceedToPayment = async () => {
+    // Check if user has a valid payment method
+    try {
+      const paymentMethods = await getPaymentMethods();
+      
+      // Check if there are any valid card payment methods
+      const hasValidCard = paymentMethods && paymentMethods.some((method: any) => 
+        method.type === 'card' && method.id
+      );
+      
+      // Also check if there's a stored payment method (could be Apple Pay, etc.)
+      const storedPaymentMethod = await SecureStore.getItemAsync(PAYMENT_METHOD_STORAGE_KEY);
+      const hasStoredMethod = !!storedPaymentMethod;
+      
+      if (!hasValidCard && !hasStoredMethod) {
+        // No valid payment method, show add card sheet
+        setIsAddCardSheetVisible(true);
+        return;
+      }
+      
+      // Has valid payment method, proceed to payment
+      router.push("/orders/cart/payment");
+    } catch (error) {
+      console.error('Error checking payment methods:', error);
+      // On error, show add card sheet to be safe
+      setIsAddCardSheetVisible(true);
+    }
+  };
+  
+  const handleCardAdded = async () => {
+    setIsAddCardSheetVisible(false);
+    // Refresh payment methods and proceed to payment
+    const paymentMethods = await getPaymentMethods();
+    if (paymentMethods && paymentMethods.length > 0) {
+      // Set the newly added card as the selected payment method
+      const newCard = paymentMethods.find((m: any) => m.type === 'card');
+      if (newCard) {
+        await SecureStore.setItemAsync(PAYMENT_METHOD_STORAGE_KEY, JSON.stringify({
+          id: newCard.id,
+          name: `**** **** **** ${newCard.last4 || '****'}`,
+          description: `${newCard.brand || 'Card'} •••• ${newCard.last4 || '****'}`,
+          iconType: 'card',
+        }));
+        setSelectedPaymentMethod({
+          id: newCard.id,
+          name: `**** **** **** ${newCard.last4 || '****'}`,
+          description: `${newCard.brand || 'Card'} •••• ${newCard.last4 || '****'}`,
+          iconType: 'card',
+        });
+      }
+    }
+    // Proceed to payment after card is added
     router.push("/orders/cart/payment");
   };
 
@@ -561,6 +615,13 @@ export default function SidesScreen() {
           <Text style={styles.paymentButtonText}>Proceed to Payment</Text>
         </Pressable>
       </View>
+
+      {/* Add Card Sheet */}
+      <AddCardSheet
+        isVisible={isAddCardSheetVisible}
+        onClose={() => setIsAddCardSheetVisible(false)}
+        onSuccess={handleCardAdded}
+      />
     </SafeAreaView>
   );
 }

@@ -18,10 +18,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      className="toaster group !z-[999999]"
       toastOptions={{
         classNames: {
-          toast: "!bg-white dark:!bg-gray-900 !text-gray-900 dark:!text-gray-100 !border !border-gray-200 dark:!border-gray-800 !shadow-lg",
+          toast: "!bg-white dark:!bg-gray-900 !text-gray-900 dark:!text-gray-100 !border !border-gray-200 dark:!border-gray-800 !shadow-lg !z-[999999]",
           success: "!bg-green-50 dark:!bg-green-900/20 !text-green-900 dark:!text-green-100 !border-green-200 dark:!border-green-800",
           error: "!bg-red-50 dark:!bg-red-900/20 !text-red-900 dark:!text-red-100 !border-red-200 dark:!border-red-800",
           info: "!bg-blue-50 dark:!bg-blue-900/20 !text-blue-900 dark:!text-blue-100 !border-blue-200 dark:!border-blue-800",

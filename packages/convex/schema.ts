@@ -1131,6 +1131,15 @@ export default defineSchema({
     chef_id: v.id('chefs'),
     order_date: v.string(), // ISO date string
     total_amount: v.number(),
+    subtotal: v.optional(v.number()), // Subtotal before discount
+    offer_id: v.optional(v.string()), // Applied special offer ID
+    discount_amount: v.optional(v.number()), // Discount amount applied
+    discount_type: v.optional(v.union(
+      v.literal("percentage"),
+      v.literal("fixed_amount"),
+      v.literal("free_delivery")
+    )),
+    nosh_points_applied: v.optional(v.number()), // Nosh Points applied for discount
     order_status: v.union(
       v.literal("pending"),
       v.literal("confirmed"),
@@ -1359,6 +1368,69 @@ export default defineSchema({
     .index("by_dates", ["starts_at", "ends_at"])
     .index("by_target", ["target_audience"])
     .index("by_offer_id", ["offer_id"]),
+
+  // Claimed Offers table - tracks which users have claimed which offers
+  claimed_offers: defineTable({
+    user_id: v.id("users"),
+    offer_id: v.string(), // Reference to special_offers.offer_id
+    claimed_at: v.number(),
+    used_at: v.optional(v.number()), // When offer was actually used in an order
+    order_id: v.optional(v.id("orders")), // Order where offer was used
+    is_used: v.boolean(), // Whether offer has been used
+    expires_at: v.number(), // When the claim expires (usually offer.ends_at)
+  })
+    .index("by_user", ["user_id"])
+    .index("by_offer", ["offer_id"])
+    .index("by_user_offer", ["user_id", "offer_id"])
+    .index("by_expires", ["expires_at"]),
+
+  // Coupons/Discount Codes table
+  coupons: defineTable({
+    code: v.string(), // The discount code (e.g., "SAVE20", "NOSHPASS123")
+    type: v.union(
+      v.literal("nosh_pass"), // Nosh Pass subscription code
+      v.literal("discount") // Regular discount code
+    ),
+    discount_type: v.union(
+      v.literal("percentage"),
+      v.literal("fixed_amount"),
+      v.literal("free_delivery")
+    ),
+    discount_value: v.number(), // Percentage (0-100) or fixed amount in base currency
+    max_discount: v.optional(v.number()), // Maximum discount amount for percentage discounts
+    min_order_amount: v.optional(v.number()), // Minimum order amount to use this coupon
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("expired")
+    ),
+    usage_limit: v.optional(v.number()), // Total number of times this coupon can be used
+    usage_count: v.number(), // Current usage count
+    user_limit: v.optional(v.number()), // Number of times a single user can use this coupon
+    valid_from: v.number(), // Start date timestamp
+    valid_until: v.optional(v.number()), // End date timestamp (null = no expiration)
+    created_at: v.number(),
+    updated_at: v.number(),
+    created_by: v.optional(v.id("users")), // Admin who created the coupon
+  })
+    .index("by_code", ["code"])
+    .index("by_status", ["status"])
+    .index("by_type", ["type"])
+    .index("by_valid_dates", ["valid_from", "valid_until"]),
+
+  // Coupon Usage tracking - tracks which users have used which coupons
+  coupon_usage: defineTable({
+    coupon_id: v.id("coupons"),
+    user_id: v.id("users"),
+    order_id: v.optional(v.id("orders")), // Order where coupon was applied
+    used_at: v.number(),
+    discount_amount: v.number(), // Actual discount amount applied
+  })
+    .index("by_coupon", ["coupon_id"])
+    .index("by_user", ["user_id"])
+    .index("by_user_coupon", ["user_id", "coupon_id"])
+    .index("by_order", ["order_id"]),
 
   // Deliveries table
   deliveries: defineTable({

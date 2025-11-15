@@ -79,6 +79,9 @@ export {
 } from './sessions';
 
 export * from './specialOffers';
+
+// Export claimed offers mutations
+export * from './claimedOffers';
 export * from './staff';
 export * from './timelogs';
 export * from './users';

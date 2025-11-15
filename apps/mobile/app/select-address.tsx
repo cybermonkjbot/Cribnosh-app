@@ -11,10 +11,15 @@ export default function SelectAddressModalScreen() {
     selectedStreet?: string;
     selectedCity?: string;
     mode?: 'add' | 'select';
+    returnPath?: string;
   }>();
 
   const handleClose = () => {
-    if (router.canGoBack()) {
+    // If a return path is provided, navigate to it explicitly
+    // Otherwise, try to go back, or fall back to home
+    if (params.returnPath) {
+      router.replace(params.returnPath as any);
+    } else if (router.canGoBack()) {
       router.back();
     } else {
       router.replace('/(tabs)');
@@ -24,12 +29,13 @@ export default function SelectAddressModalScreen() {
   const handleSelectAddress = (address: CustomerAddress) => {
     // Store the selected address in context
     setSelectedAddress(address);
-    // Call the callback if it exists
-    if (onSelectAddress) {
+    // Call the callback if it exists and is a function - this will save the address
+    // The callback should NOT navigate, just save the address
+    if (onSelectAddress && typeof onSelectAddress === 'function') {
       onSelectAddress(address);
     }
-    // Navigate back
-    router.back();
+    // Note: Don't navigate here - AddressSelectionModal will call onClose() after onSelectAddress
+    // which will handle the navigation back to the previous screen
   };
 
   return (

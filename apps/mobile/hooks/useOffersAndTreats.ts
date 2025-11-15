@@ -218,12 +218,61 @@ export const useOffersAndTreats = () => {
     [showToast]
   );
 
+  /**
+   * Claim a special offer
+   */
+  const claimOffer = useCallback(
+    async (offer_id: string) => {
+      try {
+        setIsLoading(true);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          throw new Error("Not authenticated");
+        }
+
+        const result = await convex.action(api.actions.specialOffers.claimOffer, {
+          sessionToken,
+          offer_id,
+        });
+
+        if (result.success === false) {
+          throw new Error(result.error || "Failed to claim offer");
+        }
+
+        return {
+          success: true,
+          data: {
+            claimed_offer_id: result.claimed_offer_id,
+          },
+        };
+      } catch (error: any) {
+        const errorMessage =
+          error?.message ||
+          error?.data?.error?.message ||
+          "Failed to claim offer";
+        showToast({
+          type: "error",
+          title: "Claim Failed",
+          message: errorMessage,
+          duration: 4000,
+        });
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [showToast]
+  );
+
   return {
     isLoading,
     getActiveOffers,
     getTreats,
     createTreat,
     getTreatByToken,
+    claimOffer,
   };
 };
 

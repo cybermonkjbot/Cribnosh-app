@@ -11,6 +11,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useModalSheet } from '@/context/ModalSheetContext';
 
 interface FloatingActionButtonProps {
   bottomPosition?: number;
@@ -35,6 +36,23 @@ export function FloatingActionButton({
   
   // Use reactive cart count from Convex query
   const cartItemCount = useCartCount();
+  
+  // Get modal/sheet states from context
+  const { isSearchDrawerExpanded, isAnySheetOpen, isAnyModalOpen } = useModalSheet();
+  
+  // Animated bottom position that adjusts when modals/sheets are open
+  const animatedBottomPosition = useSharedValue(bottomPosition);
+  
+  // Adjust position when search drawer is expanded or any sheet/modal is open
+  useEffect(() => {
+    const shouldMoveDown = isSearchDrawerExpanded || isAnySheetOpen || isAnyModalOpen;
+    const targetPosition = shouldMoveDown ? 20 : bottomPosition; // Move closer to bottom when sheets are open
+    
+    animatedBottomPosition.value = withSpring(targetPosition, {
+      damping: 20,
+      stiffness: 300,
+    });
+  }, [isSearchDrawerExpanded, isAnySheetOpen, isAnyModalOpen, bottomPosition, animatedBottomPosition]);
   
   // Animation values for badge and icon
   const badgeScale = useSharedValue(cartItemCount > 0 ? 1 : 0);
@@ -273,8 +291,16 @@ export function FloatingActionButton({
     opacity: cartOpacity.value,
   }));
 
+  // Animated style for bottom position
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    return {
+      bottom: animatedBottomPosition.value,
+      right: rightPosition,
+    };
+  });
+
   return (
-    <View style={[styles.floatingActionButton, { bottom: bottomPosition, right: rightPosition }]}>
+    <Animated.View style={[styles.floatingActionButton, animatedContainerStyle]}>
       {/* Cart Counter Badge - Positioned on the right side of the pill */}
       {showCartCounter && cartItemCount > 0 && (
         <Animated.View style={[styles.cartBadge, badgeAnimatedStyle]}>
@@ -382,16 +408,17 @@ export function FloatingActionButton({
           onPress={() => setIsActionMenuOpen(false)}
         />
       )}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   floatingActionButton: {
     position: 'absolute',
-    zIndex: 1000,
+    zIndex: 999999,
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
+    // bottom and right are now controlled by animated style
   },
   mainActionButton: {
     width: 50,
@@ -468,12 +495,12 @@ const styles = StyleSheet.create({
     width: Dimensions.get('window').width * 3,
     height: Dimensions.get('window').height * 3,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    zIndex: 999,
+    zIndex: 999998,
   },
   circularMenuItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000,
+    zIndex: 999999,
   },
   circularIconButton: {
     width: 48,
