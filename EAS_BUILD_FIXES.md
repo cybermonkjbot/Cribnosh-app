@@ -61,6 +61,10 @@ This ensures EAS Build uses the correct Bun version (matching your local version
   3. Build root's `node_modules` (for EAS builds)
 - **Fallback resolution**: If React is not found in the app's `node_modules`, the config automatically falls back to the build root's `node_modules` where EAS installs dependencies
 
+### `apps/driver-app/metro.config.js`
+- **Applied same EAS build fixes**: Added build root detection and enhanced node_modules resolution paths to handle EAS builds where dependencies are installed at the build root
+- **Consistent resolution strategy**: Both mobile and driver apps now use the same approach for resolving dependencies in EAS builds
+
 ## Next Steps
 
 1. **Test the Build**: Try running an EAS build to verify the fixes:
