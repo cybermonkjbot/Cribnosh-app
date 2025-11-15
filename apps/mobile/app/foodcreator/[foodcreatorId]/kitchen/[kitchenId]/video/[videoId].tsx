@@ -1,10 +1,12 @@
-import { useGetVideoByIdQuery } from '@/store/customerApi';
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Id } from '@/convex/_generated/dataModel';
 
 export default function KitchenVideoPage() {
   const { videoId } = useLocalSearchParams<{
@@ -15,17 +17,14 @@ export default function KitchenVideoPage() {
   const router = useRouter();
   const videoRef = useRef<Video>(null);
   
-  // Fetch video data from API
-  const {
-    data: videoResponse,
-    isLoading,
-    error: videoError,
-  } = useGetVideoByIdQuery(
-    { videoId: videoId || '' },
-    { skip: !videoId }
+  // Fetch video data from Convex
+  const videoData = useQuery(
+    api.queries.videoPosts.getVideoById,
+    videoId ? { videoId: videoId as Id<'videoPosts'> } : "skip"
   );
 
-  const videoData = videoResponse?.data;
+  const isLoading = videoData === undefined;
+  const videoError = videoData === null && !isLoading ? new Error('Video not found') : null;
 
   const handleBack = () => {
     router.back();

@@ -2,19 +2,20 @@
  * React Hook for Regional Availability Checking
  *
  * Provides a hook to check if an address or location is in a supported region
- * for ordering. Uses API endpoint for real-time availability checks.
+ * for ordering. Uses Convex queries for real-time availability checks.
  */
 
-import {
-  useCheckRegionAvailabilityMutation,
-  useGetRegionalAvailabilityConfigQuery,
-} from "@/store/customerApi";
+import { api } from '@/convex/_generated/api';
+import { getConvexReactClient } from "@/lib/convexClient";
 import { CustomerAddress } from "@/types/customer";
 import {
-  getDefaultRegionalConfig,
   RegionalAvailabilityConfig,
+  getDefaultRegionalConfig,
+  isAddressInSupportedRegion,
+  isCountrySupported,
 } from "@/utils/regionValidation";
-import { useCallback, useMemo } from "react";
+import { useQuery } from "convex/react";
+import { useCallback, useMemo, useState } from "react";
 
 export interface UseRegionAvailabilityResult {
   config: RegionalAvailabilityConfig | null;
@@ -31,21 +32,20 @@ export interface UseRegionAvailabilityResult {
  * @returns Object with config, loading state, and check methods
  */
 export function useRegionAvailability(): UseRegionAvailabilityResult {
-  // Fetch regional availability config from API
-  const { data: configData, isLoading: configLoading } =
-    useGetRegionalAvailabilityConfigQuery();
+  // Fetch regional availability config from Convex
+  const configData: RegionalAvailabilityConfig | undefined = useQuery(api.queries.admin.getRegionalAvailabilityConfig, {});
+  const configLoading = configData === undefined;
 
-  // Mutation for checking region availability
-  const [checkRegionAvailability, { isLoading: isChecking }] =
-    useCheckRegionAvailabilityMutation();
+  // Track checking state for on-demand region checks
+  const [isChecking, setIsChecking] = useState(false);
 
   // Use default config if query returns undefined (not loaded yet)
   const effectiveConfig = useMemo(() => {
     if (configLoading) {
       return null; // Still loading
     }
-    if (configData?.success && configData.data) {
-      return configData.data;
+    if (configData) {
+      return configData;
     }
     return getDefaultRegionalConfig();
   }, [configData, configLoading]);
@@ -53,11 +53,14 @@ export function useRegionAvailability(): UseRegionAvailabilityResult {
   const isLoading = configLoading;
 
   /**
-   * Check if an address is in a supported region using API endpoint
+   * Check if an address is in a supported region using Convex query
+   * Falls back to config-based check if query fails
    */
   const checkAddress = useCallback(
     async (address: CustomerAddress): Promise<boolean> => {
+      setIsChecking(true);
       try {
+        const convex = getConvexReactClient();
         const request: {
           city?: string;
           country?: string;
@@ -84,26 +87,56 @@ export function useRegionAvailability(): UseRegionAvailabilityResult {
           request.country = address.country;
         } else {
           // No location info provided
+          setIsChecking(false);
           return false;
         }
 
-        const result = await checkRegionAvailability(request).unwrap();
-        return result.success && result.data?.isSupported === true;
-      } catch (error) {
-        console.error("Error checking region availability:", error);
-        // On error, return false as a safety measure
+        // Call Convex query directly
+        const isSupported = await convex.query(api.queries.admin.checkRegionAvailability, request);
+        setIsChecking(false);
+        return isSupported === true;
+      } catch (error: any) {
+        setIsChecking(false);
+        // Handle error gracefully - check if we can use config as fallback
+        const errorMessage = error?.message || '';
+        
+        // Only log unexpected errors
+        if (!errorMessage.includes('Server Error')) {
+          console.warn("Error checking region availability:", {
+            message: errorMessage,
+          });
+        }
+
+        // Fallback to config-based check if available
+        if (effectiveConfig) {
+          try {
+            return isAddressInSupportedRegion(address, effectiveConfig);
+          } catch (fallbackError) {
+            // If fallback also fails, return false as safety measure
+            if (fallbackError instanceof Error) {
+              console.warn("Fallback region check failed:", fallbackError.message);
+            }
+            return false;
+          }
+        }
+
+        // If no config available, return false as a safety measure
+        // (better to deny than allow unsupported regions)
         return false;
       }
     },
-    [checkRegionAvailability]
+    [effectiveConfig]
   );
 
   /**
-   * Check if a city (and optionally country) is in a supported region using API endpoint
+   * Check if a city (and optionally country) is in a supported region using Convex query
+   * Falls back to config-based check if query fails
    */
   const checkCity = useCallback(
     async (city: string, country?: string): Promise<boolean> => {
+      setIsChecking(true);
       try {
+        const convex = getConvexReactClient();
         const request: {
           city?: string;
           country?: string;
@@ -112,15 +145,58 @@ export function useRegionAvailability(): UseRegionAvailabilityResult {
           country: country || "UK", // Default to UK if not provided
         };
 
-        const result = await checkRegionAvailability(request).unwrap();
-        return result.success && result.data?.isSupported === true;
-      } catch (error) {
-        console.error("Error checking region availability:", error);
-        // On error, return false as a safety measure
+        // Call Convex query directly
+        const isSupported = await convex.query(api.queries.admin.checkRegionAvailability, request);
+        setIsChecking(false);
+        return isSupported === true;
+      } catch (error: any) {
+        setIsChecking(false);
+        // Handle error gracefully - check if we can use config as fallback
+        const errorMessage = error?.message || '';
+        
+        // Only log unexpected errors
+        if (!errorMessage.includes('Server Error')) {
+          console.warn("Error checking region availability:", {
+            message: errorMessage,
+          });
+        }
+
+        // Fallback to config-based check if available
+        if (effectiveConfig && city) {
+          try {
+            const countryToCheck = country || "UK";
+            
+            // Check country support
+            if (!isCountrySupported(countryToCheck, effectiveConfig)) {
+              return false;
+            }
+            
+            // Check city support if config has supported cities
+            if (effectiveConfig.supportedCities && effectiveConfig.supportedCities.length > 0) {
+              const normalizedCity = city.trim().toLowerCase();
+              const isSupported = effectiveConfig.supportedCities.some(
+                (supportedCity) => supportedCity.toLowerCase() === normalizedCity
+              );
+              return isSupported;
+            }
+            
+            // If no city list but country is supported, allow it
+            return true;
+          } catch (fallbackError) {
+            // If fallback also fails, return false as safety measure
+            if (fallbackError instanceof Error) {
+              console.warn("Fallback region check failed:", fallbackError.message);
+            }
+            return false;
+          }
+        }
+
+        // If no config available, return false as a safety measure
+        // (better to deny than allow unsupported regions)
         return false;
       }
     },
-    [checkRegionAvailability]
+    [effectiveConfig]
   );
 
   // Determine if region is supported (null means config not loaded)

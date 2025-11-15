@@ -1,4 +1,3 @@
-import { Utensils } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -20,11 +19,14 @@ interface MealsLoggedCardProps {
 
 // Memoize the component to prevent unnecessary re-renders
 const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
-  weekMeals = [2, 3, 4, 3, 5, 1, 2],
-  avgMeals = 2.9,
+  weekMeals,
+  avgMeals,
   onPress,
 }) => {
-  const maxMeals = Math.max(...weekMeals, avgMeals);
+  // Use empty array and 0 as defaults if no data
+  const safeWeekMeals = weekMeals || [];
+  const safeAvgMeals = avgMeals ?? 0;
+  const maxMeals = safeWeekMeals.length > 0 ? Math.max(...safeWeekMeals, safeAvgMeals) : 0;
   const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   
   // Animation values
@@ -33,15 +35,11 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
   const cardTranslateY = useSharedValue(20);
   const barsProgress = useSharedValue(0);
   const averageLineProgress = useSharedValue(0);
-  const iconScale = useSharedValue(0.8);
-  const iconRotation = useSharedValue(0);
 
   // Derived values for safe access
   const currentCardOpacity = useDerivedValue(() => cardOpacity.value);
   const currentCardScale = useDerivedValue(() => cardScale.value);
   const currentCardTranslateY = useDerivedValue(() => cardTranslateY.value);
-  const currentIconScale = useDerivedValue(() => iconScale.value);
-  const currentIconRotation = useDerivedValue(() => `${iconRotation.value}deg`);
   const currentAverageLineProgress = useDerivedValue(() => averageLineProgress.value);
 
   // State for JSX access
@@ -64,22 +62,12 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
     ],
   }));
 
-  const iconAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: currentIconScale.value },
-      { rotate: currentIconRotation.value }
-    ],
-  }));
 
   // Start entrance animations
   useEffect(() => {
     // Card entrance
     cardOpacity.value = withTiming(1, { duration: 600 });
     cardTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
-    
-    // Icon animation
-    iconScale.value = withDelay(200, withSpring(1, { damping: 10, stiffness: 200 }));
-    iconRotation.value = withDelay(200, withSpring(360, { damping: 15, stiffness: 150 }));
     
     // Bars animation
     barsProgress.value = withDelay(400, withTiming(1, { duration: 800 }));
@@ -95,18 +83,12 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
   };
 
   const handlePress = () => {
-    // Trigger icon bounce animation
-    iconScale.value = withSequence(
-      withSpring(1.2, { damping: 8, stiffness: 300 }),
-      withSpring(1, { damping: 15, stiffness: 300 })
-    );
-    
     if (onPress) {
       onPress();
     }
   };
 
-  const barHeight = (value: number) => (value / maxMeals) * 60; // Max bar height of 60
+  const barHeight = (value: number) => maxMeals > 0 ? (value / maxMeals) * 60 : 0; // Max bar height of 60
 
   return (
     <Animated.View style={cardAnimatedStyle}>
@@ -118,18 +100,12 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Animated.View style={[styles.icon, iconAnimatedStyle]}>
-              <Utensils size={20} color="#FF6B00" />
-            </Animated.View>
             <Text style={styles.title}>Meals Logged</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
         </View>
 
         {/* Summary Text */}
         <Text style={styles.summaryText}>
-          Over the last 7 days, you logged an average of {avgMeals.toFixed(1)} meals per day.
+          Your weekly average: {safeAvgMeals.toFixed(1)} meals per day over the past 7 days.
         </Text>
 
         {/* Separator */}
@@ -139,9 +115,9 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
         <View style={styles.chartSection}>
           {/* Average Display */}
           <View style={styles.averageContainer}>
-            <Text style={styles.averageLabel}>Average Meals</Text>
-            <Text style={styles.averageValue}>{avgMeals.toFixed(1)}</Text>
-            <Text style={styles.averageUnit}>meals</Text>
+            <Text style={styles.averageLabel}>Daily Average</Text>
+            <Text style={styles.averageValue}>{safeAvgMeals.toFixed(1)}</Text>
+            <Text style={styles.averageUnit}>meals/day</Text>
           </View>
 
           {/* Bar Chart - Replaced SVG with View-based bars */}
@@ -149,8 +125,8 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
             <View style={styles.chart}>
               {/* Daily Bars */}
               <View style={styles.barsContainer}>
-                {weekMeals.map((meals, index) => {
-                  const animatedHeight = barHeight(meals) * barsProgressState;
+                {safeWeekMeals.map((meals, index) => {
+                  const animatedHeight = maxMeals > 0 ? barHeight(meals) * barsProgressState : 0;
                   return (
                     <Animated.View
                       key={index}
@@ -167,15 +143,17 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
               </View>
               
               {/* Average Line */}
+              {maxMeals > 0 && (
               <Animated.View
                 style={[
                   styles.averageLine,
                   {
                     width: `${averageLineProgressState * 100}%`,
-                    bottom: `${(barHeight(avgMeals) / 60) * 100}%`,
+                      bottom: `${(barHeight(safeAvgMeals) / 60) * 100}%`,
                   }
                 ]}
               />
+              )}
             </View>
             
             {/* Day Labels */}
@@ -218,22 +196,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  icon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FF6B00',
-  },
-  chevron: {
-    fontSize: 16,
-    color: '#9BA1A6',
   },
   summaryText: {
     fontSize: 16,

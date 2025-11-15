@@ -116,6 +116,79 @@ export const createVideoPost = mutation({
   },
 });
 
+// Create a new video post (internal version that accepts userId)
+export const createVideoPostByUserId = mutation({
+  args: {
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    videoStorageId: v.id("_storage"),
+    thumbnailStorageId: v.optional(v.id("_storage")),
+    kitchenId: v.optional(v.id("kitchens")),
+    duration: v.number(),
+    fileSize: v.number(),
+    resolution: v.object({
+      width: v.number(),
+      height: v.number(),
+    }),
+    tags: v.array(v.string()),
+    cuisine: v.optional(v.string()),
+    difficulty: v.optional(v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    )),
+    visibility: v.optional(v.union(
+      v.literal("public"),
+      v.literal("followers"),
+      v.literal("private")
+    )),
+    isLive: v.optional(v.boolean()),
+    liveSessionId: v.optional(v.id("liveSessions")),
+  },
+  returns: v.id("videoPosts"),
+  handler: async (ctx, args) => {
+    // Get user to verify roles
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check if user is a chef or food creator
+    const isChef = user.roles?.includes('chef') || user.roles?.includes('staff') || user.roles?.includes('admin');
+    if (!isChef) {
+      throw new Error("Only chefs and food creators can create video posts");
+    }
+
+    const videoId = await ctx.db.insert('videoPosts', {
+      creatorId: args.userId,
+      kitchenId: args.kitchenId,
+      title: args.title,
+      description: args.description,
+      videoStorageId: args.videoStorageId,
+      thumbnailStorageId: args.thumbnailStorageId,
+      duration: args.duration,
+      fileSize: args.fileSize,
+      resolution: args.resolution,
+      tags: args.tags,
+      cuisine: args.cuisine,
+      difficulty: args.difficulty,
+      status: "draft",
+      visibility: args.visibility || "public",
+      isLive: args.isLive || false,
+      liveSessionId: args.liveSessionId,
+      likesCount: 0,
+      commentsCount: 0,
+      sharesCount: 0,
+      viewsCount: 0,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return videoId;
+  },
+});
+
 // Update video post
 export const updateVideoPost = mutation({
   args: {

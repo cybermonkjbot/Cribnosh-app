@@ -2,14 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
-import {
-  useLikeVideoMutation,
-  useUnlikeVideoMutation,
-  useShareVideoMutation,
-  useRecordVideoViewMutation,
-} from '@/store/customerApi';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '../../../../packages/convex/_generated/api';
+import { api } from '@/convex/_generated/api';
 import { VideoPost } from '@/types/customer';
 import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';
 import { NoshHeavenErrorBoundary } from './ErrorBoundary';
@@ -96,12 +90,94 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
   }, [fetchVideoFeed]);
 
   const refetchVideos = fetchVideoFeed;
-
-  const [likeVideo] = useLikeVideoMutation();
-  const [unlikeVideo] = useUnlikeVideoMutation();
-  const [shareVideo] = useShareVideoMutation();
-  const [recordVideoView] = useRecordVideoViewMutation();
   const { addToCart: addToCartAction } = useCart();
+
+  // Video interaction functions using Convex
+  const likeVideo = useCallback(async ({ videoId }: { videoId: string }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.search.customerLikeVideo, {
+      sessionToken,
+      videoId,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to like video');
+    }
+
+    return { success: true, data: result };
+  }, []);
+
+  const unlikeVideo = useCallback(async ({ videoId }: { videoId: string }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.search.customerUnlikeVideo, {
+      sessionToken,
+      videoId,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to unlike video');
+    }
+
+    return { success: true, data: result };
+  }, []);
+
+  const shareVideo = useCallback(async ({ videoId }: { videoId: string }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.search.customerShareVideo, {
+      sessionToken,
+      videoId,
+      platform: 'internal',
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to share video');
+    }
+
+    return { success: true, data: result };
+  }, []);
+
+  const recordVideoView = useCallback(async ({ videoId, watchDuration, completionRate, deviceInfo }: {
+    videoId: string;
+    watchDuration: number;
+    completionRate: number;
+    deviceInfo?: { type: string; os: string };
+  }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    // Note: sessionToken can be undefined for anonymous views
+    const result = await convex.action(api.actions.search.customerRecordVideoView, {
+      sessionToken: sessionToken || '',
+      videoId,
+      watchDuration,
+      completionRate,
+      deviceInfo,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to record video view');
+    }
+
+    return { success: true, data: result };
+  }, []);
 
   // Transform video feed data to meal format
   useEffect(() => {
@@ -166,9 +242,9 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
         );
 
         if (isLiked) {
-          await unlikeVideo({ videoId: mealId }).unwrap();
+          await unlikeVideo({ videoId: mealId });
         } else {
-          await likeVideo({ videoId: mealId }).unwrap();
+          await likeVideo({ videoId: mealId });
         }
       } catch (error) {
         // Revert optimistic update on error
@@ -199,13 +275,13 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
   const handleMealShare = useCallback(
     async (mealId: string) => {
       try {
-        await shareVideo({ videoId: mealId }).unwrap();
+        await shareVideo({ videoId: mealId });
         showSuccess('Video shared!', 'Thanks for sharing');
       } catch (error) {
         showError('Failed to share video', 'Please try again');
       }
     },
-    [shareVideo]
+    [shareVideo, showSuccess, showError]
   );
 
   // Handle video view tracking
@@ -220,7 +296,7 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
             type: 'mobile',
             os: 'iOS', // Could be dynamic
           },
-        }).unwrap();
+        });
       } catch (error) {
         // Silently fail view tracking
         console.warn('Failed to record video view:', error);

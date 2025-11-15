@@ -2,7 +2,6 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useToast } from '@/lib/ToastContext';
-import { useSendChatMessageMutation } from '@/store/customerApi';
 import { DishRecommendation } from '@/types/customer';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
@@ -451,8 +450,39 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
   const { showError, showSuccess, showInfo } = useToast();
   const locationState = useUserLocation();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
-  const [sendChatMessage, { isLoading: isSendingMessage }] = useSendChatMessageMutation();
   const { addToCart: addToCartAction, isLoading: isAddingToCart } = useCart();
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  // Send AI chat message function using Convex
+  const sendChatMessage = useCallback(async (data: {
+    message: string;
+    conversation_id?: string;
+    location?: { latitude: number; longitude: number };
+  }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.users.customerSendAIChatMessage, {
+      sessionToken,
+      message: data.message,
+      conversation_id: data.conversation_id,
+      location: data.location,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to send chat message');
+    }
+
+    // Transform to match expected format
+    return {
+      success: true,
+      data: result.data,
+    };
+  }, []);
   
   // Profile state
   const [profileData, setProfileData] = useState<any>(null);
@@ -639,11 +669,13 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       } : undefined;
 
       // Send chat message
+      setIsSendingMessage(true);
       const response = await sendChatMessage({
         message: messageText.trim(),
         conversation_id: conversationId,
         location,
-      }).unwrap();
+      });
+      setIsSendingMessage(false);
 
       // Transform recommendations to product cards
       const products: ProductCardProps[] = response.data.recommendations
@@ -672,7 +704,8 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
         showInfo('No specific recommendations', 'Try asking more specifically about what you\'d like to eat');
       }
     } catch (err: any) {
-      const errorMessage = err?.data?.error?.message || err?.message || 'Failed to get AI response';
+      setIsSendingMessage(false);
+      const errorMessage = err?.message || 'Failed to get AI response';
       setError(errorMessage);
       
       // Add error message to chat

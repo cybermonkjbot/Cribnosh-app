@@ -11,7 +11,7 @@ import { IconSymbol } from './IconSymbol';
 const { width } = Dimensions.get('window');
 
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const { scrollToTop } = useAppContext();
+  const { scrollToTop, setActiveHeaderTab } = useAppContext();
   const lastTapRef = useRef<number>(0);
   const doubleTapDelay = 300; // milliseconds
 
@@ -26,13 +26,14 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       navigation.navigate(route.name);
     }
 
-    // Handle double-tap for home tab
+    // Handle double-tap for home tab - ONLY way to scroll to top
     if (route.name === 'index' && isFocused) {
       const now = Date.now();
       const timeDiff = now - lastTapRef.current;
       
       if (timeDiff < doubleTapDelay) {
-        // Double tap detected - scroll to top
+        // Double tap detected - switch to 'for-you' tab and scroll to top
+        setActiveHeaderTab('for-you');
         scrollToTop();
         lastTapRef.current = 0; // Reset to prevent triple tap
       } else {

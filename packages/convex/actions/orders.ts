@@ -147,12 +147,74 @@ export const customerGetOrders = action({
         sessionToken: args.sessionToken,
       });
 
-      // Transform orders to match API format
-      const transformedOrders = orders.map((order: any) => ({
-        ...order,
-        order_status: order.order_status,
-        is_group_order: order.is_group_order || false,
-        group_order: order.group_order_details || null,
+      // Transform and enrich orders with meal images
+      const transformedOrders = await Promise.all(orders.map(async (order: any) => {
+        // Enrich order items with images
+        const enrichedOrderItems = await Promise.all(
+          (order.order_items || []).map(async (item: any) => {
+            try {
+              // Get meal ID - try multiple possible field names
+              const mealId = item.dish_id || item.dishId || item.id || item._id;
+              if (!mealId) {
+                return item; // Return item as-is if no meal ID found
+              }
+
+              // Get meal details to fetch image
+              const meal = await ctx.runQuery(api.queries.meals.getById, {
+                mealId: mealId as any,
+              });
+
+              // Get all image URLs if available
+              const imageUrls: string[] = [];
+              if (meal?.images && Array.isArray(meal.images) && meal.images.length > 0) {
+                for (const image of meal.images) {
+                  let imageUrl: string | undefined = undefined;
+                  // Check if it's a Convex storage ID (starts with 'k' and is a valid ID format)
+                  // or if it's already a URL
+                  if (image.startsWith('http://') || image.startsWith('https://')) {
+                    imageUrl = image;
+                  } else if (image.startsWith('k')) {
+                    // It's likely a Convex storage ID, get the URL
+                    try {
+                      imageUrl = await ctx.storage.getUrl(image as any);
+                    } catch (error) {
+                      console.error('Failed to get storage URL for image:', image, error);
+                      // Fallback to relative path
+                      imageUrl = `/api/files/${image}`;
+                    }
+                  } else {
+                    // Fallback to relative path
+                    imageUrl = `/api/files/${image}`;
+                  }
+                  if (imageUrl) {
+                    imageUrls.push(imageUrl);
+                  }
+                }
+              }
+
+              return {
+                ...item,
+                image_url: imageUrls.length > 0 ? imageUrls[0] : undefined, // Keep first image for backward compatibility
+                image_urls: imageUrls, // Array of all images
+                imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined,
+                imageUrls: imageUrls,
+                images: imageUrls,
+              };
+            } catch (error) {
+              // If meal not found or error, return item without image
+              console.error('Error enriching order item:', error);
+              return item;
+            }
+          })
+        );
+
+        return {
+          ...order,
+          order_status: order.order_status,
+          is_group_order: order.is_group_order || false,
+          group_order: order.group_order_details || null,
+          order_items: enrichedOrderItems,
+        };
       }));
 
       return {
@@ -517,9 +579,14 @@ export const customerCreateOrderFromCart = action({
       // Get all meals to map cart items to meals and extract chef_id
       const allMeals = await ctx.runQuery(api.queries.meals.getAll, {});
 
-      // Convert cart items to order items and validate
-      const orderItems = [];
-      const chefIds = new Set<string>();
+      // Group cart items by chef
+      const itemsByChef = new Map<string, Array<{
+        dish_id: string;
+        quantity: number;
+        price: number;
+        name: string;
+      }>>();
+
       let totalAmount = 0;
 
       for (const cartItem of cart.items) {
@@ -534,14 +601,17 @@ export const customerCreateOrderFromCart = action({
           return { success: false as const, error: `Meal ${cartItem.id} does not have a chef_id.` };
         }
 
-        chefIds.add(chefId.toString());
+        const chefIdStr = chefId.toString();
+        if (!itemsByChef.has(chefIdStr)) {
+          itemsByChef.set(chefIdStr, []);
+        }
 
         const itemPrice = meal.price || cartItem.price || 0;
         const itemQuantity = cartItem.quantity;
         const itemTotal = itemPrice * itemQuantity;
         totalAmount += itemTotal;
 
-        orderItems.push({
+        itemsByChef.get(chefIdStr)!.push({
           dish_id: cartItem.id,
           quantity: itemQuantity,
           price: itemPrice,
@@ -549,48 +619,58 @@ export const customerCreateOrderFromCart = action({
         });
       }
 
-      // Validate that all items are from the same chef
-      if (chefIds.size > 1) {
-        return {
-          success: false as const,
-          error: 'Cannot create order with items from multiple chefs. Please create separate orders for each chef.',
-        };
-      }
-
-      if (chefIds.size === 0) {
+      if (itemsByChef.size === 0) {
         return { success: false as const, error: 'No valid chef_id found in cart items.' };
       }
 
-      const chef_id = Array.from(chefIds)[0];
+      // Create separate orders for each chef
+      const createdOrders = [];
+      let firstOrder = null;
 
-      // Create order with payment
-      const order = await ctx.runMutation(api.mutations.orders.createOrderWithPayment, {
-        customer_id: user._id.toString(),
-        chef_id,
-        order_items: orderItems,
-        total_amount: totalAmount,
-        payment_id: args.payment_intent_id,
-        payment_method: 'card',
-        special_instructions: args.special_instructions,
-        delivery_time: args.delivery_time,
-        delivery_address: args.delivery_address,
-        sessionToken: args.sessionToken,
-      });
+      for (const [chefId, orderItems] of itemsByChef.entries()) {
+        // Calculate total for this chef's items
+        const chefTotal = orderItems.reduce((sum: number, item: { price: number; quantity: number }) => sum + (item.price * item.quantity), 0);
 
-      // Clear cart after order creation
+        // Create order with payment for this chef
+        const order = await ctx.runMutation(api.mutations.orders.createOrderWithPayment, {
+          customer_id: user._id.toString(),
+          chef_id: chefId,
+          order_items: orderItems,
+          total_amount: chefTotal,
+          payment_id: args.payment_intent_id, // Same payment intent for all orders
+          payment_method: 'card',
+          special_instructions: args.special_instructions,
+          delivery_time: args.delivery_time,
+          delivery_address: args.delivery_address,
+          sessionToken: args.sessionToken,
+        });
+
+        createdOrders.push(order);
+        if (!firstOrder) {
+          firstOrder = order;
+        }
+      }
+
+      // Clear cart after all orders are created
       try {
         await ctx.runMutation(api.mutations.orders.clearCart, {
           userId: user._id,
         });
       } catch (error) {
         console.warn('Could not clear cart after order creation:', error);
-        // Continue - order is created
+        // Continue - orders are created
+      }
+
+      // Return the first order for backward compatibility
+      // In the future, we could return all orders
+      if (!firstOrder) {
+        return { success: false as const, error: 'Failed to create orders' };
       }
 
       return {
         success: true as const,
-        order_id: order.order_id || order._id,
-        order: order,
+        order_id: firstOrder.order_id || firstOrder._id,
+        order: firstOrder,
       };
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to create order from cart';
@@ -1181,6 +1261,250 @@ export const customerCreateCustomOrder = action({
       };
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to create custom order';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Get Custom Orders - for mobile app direct Convex communication
+ */
+export const customerGetCustomOrders = action({
+  args: {
+    sessionToken: v.string(),
+    page: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      custom_orders: v.array(v.any()),
+      total: v.number(),
+      page: v.number(),
+      limit: v.number(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get custom orders for user
+      const allOrders = await ctx.runQuery(api.queries.custom_orders.getByUserId, {
+        userId: user._id,
+      });
+
+      // Apply pagination
+      const page = args.page || 1;
+      const limit = args.limit || 10;
+      const offset = (page - 1) * limit;
+      const paginatedOrders = allOrders.slice(offset, offset + limit);
+
+      // Transform orders to match expected format
+      const formattedOrders = paginatedOrders.map((order: any) => ({
+        _id: order._id,
+        custom_order_id: order.custom_order_id,
+        requirements: order.requirements,
+        serving_size: order.serving_size,
+        desired_delivery_time: order.desired_delivery_time,
+        dietary_restrictions: order.dietary_restrictions,
+        status: order.status,
+        estimated_price: order.estimatedPrice,
+        created_at: order.createdAt,
+        updated_at: order.updatedAt || order.createdAt,
+      }));
+
+      return {
+        success: true as const,
+        custom_orders: formattedOrders,
+        total: allOrders.length,
+        page,
+        limit,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to get custom orders';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Get Custom Order - for mobile app direct Convex communication
+ */
+export const customerGetCustomOrder = action({
+  args: {
+    sessionToken: v.string(),
+    custom_order_id: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      custom_order: v.any(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get custom order
+      const order = await ctx.runQuery(api.queries.custom_orders.getById, {
+        customOrderId: args.custom_order_id,
+      });
+
+      if (!order) {
+        return { success: false as const, error: 'Custom order not found' };
+      }
+
+      // Verify ownership
+      if (order.userId !== user._id && order.userId.toString() !== user._id.toString()) {
+        return { success: false as const, error: 'Custom order not found or not owned by customer' };
+      }
+
+      // Transform to match expected format
+      const formattedOrder = {
+        _id: order._id,
+        custom_order_id: order.custom_order_id,
+        requirements: order.requirements,
+        serving_size: order.serving_size,
+        desired_delivery_time: order.desired_delivery_time,
+        dietary_restrictions: order.dietary_restrictions,
+        status: order.status,
+        estimated_price: order.estimatedPrice,
+        created_at: order.createdAt,
+        updated_at: order.updatedAt || order.createdAt,
+      };
+
+      return {
+        success: true as const,
+        custom_order: formattedOrder,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to get custom order';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Update Custom Order - for mobile app direct Convex communication
+ */
+export const customerUpdateCustomOrder = action({
+  args: {
+    sessionToken: v.string(),
+    custom_order_id: v.string(),
+    requirements: v.optional(v.string()),
+    serving_size: v.optional(v.number()),
+    desired_delivery_time: v.optional(v.string()),
+    dietary_restrictions: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      custom_order: v.any(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get custom order to verify ownership
+      const order = await ctx.runQuery(api.queries.custom_orders.getById, {
+        customOrderId: args.custom_order_id,
+      });
+
+      if (!order) {
+        return { success: false as const, error: 'Custom order not found' };
+      }
+
+      // Verify ownership
+      if (order.userId !== user._id && order.userId.toString() !== user._id.toString()) {
+        return { success: false as const, error: 'Custom order not found or not owned by customer' };
+      }
+
+      // Build updates object
+      const updates: any = {};
+      if (args.requirements !== undefined) updates.requirements = args.requirements;
+      if (args.serving_size !== undefined) updates.servingSize = args.serving_size;
+      if (args.desired_delivery_time !== undefined) updates.desiredDeliveryTime = args.desired_delivery_time;
+      if (args.dietary_restrictions !== undefined) updates.dietaryRestrictions = args.dietary_restrictions;
+
+      // Update custom order
+      const updatedOrder = await ctx.runMutation(api.mutations.customOrders.update, {
+        orderId: order._id,
+        updates,
+      });
+
+      if (!updatedOrder) {
+        return { success: false as const, error: 'Failed to update custom order' };
+      }
+
+      // Transform to match expected format
+      const formattedOrder = {
+        _id: updatedOrder._id,
+        custom_order_id: updatedOrder.custom_order_id,
+        requirements: updatedOrder.requirements,
+        serving_size: updatedOrder.serving_size,
+        desired_delivery_time: updatedOrder.desired_delivery_time,
+        dietary_restrictions: updatedOrder.dietary_restrictions,
+        status: updatedOrder.status,
+        estimated_price: updatedOrder.estimatedPrice,
+        created_at: updatedOrder.createdAt,
+        updated_at: updatedOrder.updatedAt || updatedOrder.createdAt,
+      };
+
+      return {
+        success: true as const,
+        custom_order: formattedOrder,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to update custom order';
       return { success: false as const, error: errorMessage };
     }
   },

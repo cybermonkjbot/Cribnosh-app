@@ -1,7 +1,9 @@
 import { useToast } from "@/lib/ToastContext";
-import { useRemoveFamilyMemberMutation } from "@/store/customerApi";
 import type { FamilyMember } from "@/types/customer";
 import { Stack, useRouter } from "expo-router";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from "@/convex/_generated/api";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { Plus, Users } from "lucide-react-native";
 import {
   ActivityIndicator,
@@ -19,6 +21,7 @@ import { AddFamilyMemberSheet } from "@/components/ui/AddFamilyMemberSheet";
 import { FamilyMemberDetailSheet } from "@/components/ui/FamilyMemberDetailSheet";
 import { FamilyOrdersSheet } from "@/components/ui/FamilyOrdersSheet";
 import { useEffect, useState } from "react";
+import { useFamilyProfile } from "@/hooks/useFamilyProfile";
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -63,8 +66,34 @@ export default function FamilyProfileManageScreen() {
   const refetchFamilyProfile = () => {
     loadFamilyData();
   };
-  const [removeFamilyMember, { isLoading: isRemovingMember }] =
-    useRemoveFamilyMemberMutation();
+  
+  const { isAuthenticated } = useAuthContext();
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
+
+  // Remove family member function
+  const removeFamilyMember = async (data: { member_id: string }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.users.customerRemoveFamilyMember, {
+      sessionToken,
+      member_id: data.member_id,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to remove family member');
+    }
+
+    // Transform to match expected format
+    return {
+      success: true,
+      data: result,
+    };
+  };
   
   const [isAddMemberSheetVisible, setIsAddMemberSheetVisible] = useState(false);
   const [isMemberDetailSheetVisible, setIsMemberDetailSheetVisible] = useState(false);
@@ -112,23 +141,27 @@ export default function FamilyProfileManageScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await removeFamilyMember({ member_id: member.id }).unwrap();
+              setIsRemovingMember(true);
+              await removeFamilyMember({ member_id: member.id });
               showToast({
                 type: "success",
                 title: "Member Removed",
                 message: `${member.name} has been removed from your family profile.`,
                 duration: 3000,
               });
+              refetchFamilyProfile();
             } catch (error: any) {
               console.error("Error removing family member:", error);
               showToast({
                 type: "error",
                 title: "Remove Failed",
                 message:
-                  error?.data?.error?.message ||
+                  error?.message ||
                   "Failed to remove family member. Please try again.",
                 duration: 4000,
               });
+            } finally {
+              setIsRemovingMember(false);
             }
           },
         },

@@ -438,26 +438,6 @@ export default function OrderStatusTrackingScreen() {
           <SuperButton
             title={
               <View style={styles.driverBottomSheetContainer}>
-                {/* Profile Picture with Status Ring */}
-                <View style={styles.driverBottomSheetAvatarContainer}>
-                  <View style={styles.driverBottomSheetAvatar}>
-                    <Text style={styles.driverBottomSheetAvatarText}>
-                      {orderStatus.delivery_person.name
-                        .split(" ")
-                        .map((n: string) => n[0])
-                        .join("")}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.driverBottomSheetRing,
-                      {
-                      borderColor: getStatusColor(orderStatus.current_status),
-                      }
-                    ]}
-                  />
-                </View>
-
                 {/* Driver Info */}
                 <View style={styles.driverBottomSheetInfo}>
                   <Text style={styles.driverBottomSheetName}>
@@ -753,32 +733,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', // justify-center
     width: '100%', // w-full
     marginTop: -48, // -mt-12
-  },
-  driverBottomSheetAvatarContainer: {
-    position: 'relative', // relative
-    marginRight: 32, // mr-8
-  },
-  driverBottomSheetAvatar: {
-    width: 64, // w-16
-    height: 64, // h-16
-    backgroundColor: '#4B5563', // bg-gray-600
-    borderRadius: 9999, // rounded-full
-    alignItems: 'center', // items-center
-    justifyContent: 'center', // justify-center
-  },
-  driverBottomSheetAvatarText: {
-    color: '#FFFFFF', // text-white
-    fontSize: 20, // text-xl
-    fontWeight: '700', // font-bold
-  },
-  driverBottomSheetRing: {
-    position: 'absolute', // absolute
-    top: -4, // -top-1
-    right: -4, // -right-1
-    width: 72, // w-18
-    height: 72, // h-18
-    borderWidth: 4, // border-4
-    borderRadius: 9999, // rounded-full
   },
   driverBottomSheetInfo: {
     flex: 1, // flex-1

@@ -2,6 +2,7 @@ import { BurgerIcon } from "@/components/ui/BurgerIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { OrderCard } from "@/components/ui/OrderCard";
+import { OrderCardSkeleton } from "@/components/ui/OrderCardSkeleton";
 import { OrdersCampaignBanner } from "@/components/ui/OrdersCampaignBanner";
 import { PremiumHeader } from "@/components/ui/PremiumHeader";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
@@ -10,7 +11,9 @@ import { Order as ApiOrder, CustomOrder } from "@/types/customer";
 import { useRouter } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
 import { useOrders } from "@/hooks/useOrders";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { getSessionToken } from "@/lib/convexClient";
+import { useQuery } from "convex/react";
+import { useMemo } from "react";
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from "@/contexts/AuthContext";
 import { StyleSheet } from "react-native";
@@ -50,6 +53,13 @@ interface GroupOrder {
   isActive: boolean;
 }
 
+interface OrderItemWithImage {
+  _id?: string;
+  dish_id?: string;
+  name?: string;
+  image_url?: string;
+}
+
 interface Order {
   id: number;
   time: string;
@@ -60,112 +70,83 @@ interface Order {
   kitchenName?: string;
   orderNumber?: string;
   items?: string[];
+  orderItems?: OrderItemWithImage[];
   orderType?: OrderType;
   groupOrder?: GroupOrder;
   _uniqueKey?: string; // Unique key for React list rendering
+  _originalId?: string; // Original ID from API (_id or order_id) for navigation
 }
 
 export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "past">("ongoing");
   const router = useRouter();
   const scrollY = useSharedValue(0);
-  const { getOrders, isLoading: ordersLoading } = useOrders();
-  const [ordersData, setOrdersData] = useState<any>(null);
-  const [customOrdersData, setCustomOrdersData] = useState<any>(null);
-  const [offersData, setOffersData] = useState<any>(null);
-  const [isLoadingOffers, setIsLoadingOffers] = useState(false);
   const { isAuthenticated } = useAuthContext();
 
-  // Fetch custom orders from Convex
-  const fetchCustomOrders = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-
-      if (!sessionToken) {
-        return;
-      }
-
-      const result = await convex.action(api.actions.orders.customerGetOrders, {
-        sessionToken,
-        page: 1,
-        limit: 20,
-        order_type: "all",
-        status: "all",
-      });
-
-      if (result.success === false) {
-        return;
-      }
-
-      // Transform to match expected format
-      setCustomOrdersData({
-        data: result.orders || [],
-        total: result.total || 0,
-      });
-    } catch (error: any) {
-      console.error('Error fetching custom orders:', error);
-    }
-  }, [isAuthenticated]);
-
-  // Fetch active offers from Convex
-  const fetchOffers = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      setIsLoadingOffers(true);
-      const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-
-      if (!sessionToken) {
-        return;
-      }
-
-      const result = await convex.action(api.actions.users.customerGetActiveOffers, {
-        sessionToken,
-        target: "group_orders",
-      });
-
-      if (result.success === false) {
-        return;
-      }
-
-      // Transform to match expected format
-      setOffersData({
-        data: result.offers || [],
-      });
-    } catch (error: any) {
-      console.error('Error fetching offers:', error);
-    } finally {
-      setIsLoadingOffers(false);
-    }
-  }, [isAuthenticated]);
-
-  // Fetch custom orders and offers on mount
+  // Get session token for reactive queries
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchCustomOrders();
-      fetchOffers();
-    }
-  }, [isAuthenticated, fetchCustomOrders, fetchOffers]);
-
-  // Fetch regular orders using Convex
-  useEffect(() => {
-    const fetchOrders = async () => {
-      const result = await getOrders({
-        page: 1,
-        limit: 20,
-        status: activeTab === "ongoing" ? "ongoing" : "past",
-        order_type: "all",
-      });
-      if (result) {
-        setOrdersData({ data: result });
+    const loadToken = async () => {
+      if (isAuthenticated) {
+        const token = await getSessionToken();
+        setSessionToken(token);
+      } else {
+        setSessionToken(null);
       }
     };
-    fetchOrders();
-  }, [activeTab, getOrders]);
+    loadToken();
+  }, [isAuthenticated]);
+
+  // Get user by session token (reactive query)
+  const user = useQuery(
+    api.queries.users.getUserBySessionToken,
+    sessionToken ? { sessionToken } : "skip"
+  );
+
+  // Get orders (reactive query)
+  const ordersDataRaw = useQuery(
+    api.queries.orders.listByCustomer,
+    user?._id && sessionToken ? {
+      customer_id: user._id.toString(),
+      sessionToken,
+      status: activeTab === "ongoing" ? "ongoing" : activeTab === "past" ? "past" : "all",
+      order_type: "all",
+      limit: 20,
+    } : "skip"
+  );
+
+  // Transform orders data to match expected format
+  const ordersData = useMemo(() => {
+    if (!ordersDataRaw) return null;
+    return { 
+      data: {
+        orders: ordersDataRaw,
+        total: ordersDataRaw.length,
+      }
+    };
+  }, [ordersDataRaw]);
+
+  const ordersLoading = user === undefined || (user && ordersDataRaw === undefined);
+
+  // Get active offers (reactive query)
+  const offersDataRaw = useQuery(
+    api.queries.specialOffers.getActiveOffers,
+    user?._id ? {
+      user_id: user._id,
+      target_audience: "group_orders" as const,
+    } : "skip"
+  );
+
+  // Transform offers data to match expected format
+  const offersData = useMemo(() => {
+    if (!offersDataRaw) return null;
+    return {
+      data: offersDataRaw || [],
+    };
+  }, [offersDataRaw]);
+
+  const isLoadingOffers = user === undefined || (user && offersDataRaw === undefined);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -230,6 +211,23 @@ export default function OrdersScreen() {
       ? apiOrder.order_items.map((item: any) => item.name || item.dish_name)
       : apiOrder.items.map((item) => item.dish_name);
 
+    // Get order items with images for stacking
+    const orderItemsWithImages = apiOrder.order_items
+      ? apiOrder.order_items.map((item: any) => ({
+          _id: item._id || item.id,
+          dish_id: item.dish_id || item.id,
+          name: item.name || item.dish_name,
+          image_url: item.image_url || item.imageUrl || item.image,
+        }))
+      : apiOrder.items
+        ? apiOrder.items.map((item: any) => ({
+            _id: item._id || item.id,
+            dish_id: item.dish_id || item.id,
+            name: item.dish_name || item.name,
+            image_url: item.image_url || item.imageUrl || item.image,
+          }))
+        : [];
+
     // Get description
     const kitchenName =
       apiOrder.kitchen_name || apiOrder.restaurant_name || "Kitchen";
@@ -268,9 +266,12 @@ export default function OrdersScreen() {
       kitchenName,
       orderNumber,
       items,
+      orderItems: orderItemsWithImages,
       orderType: apiOrder.is_group_order ? "group" : "individual",
       // Store unique identifier for key generation
       _uniqueKey: `api-${uniqueId}`,
+      // Store original ID for navigation (prefer _id, then order_id, then id)
+      _originalId: apiOrder._id || apiOrder.order_id || (apiOrder.id ? String(apiOrder.id) : undefined),
     };
 
     // Add group order info if applicable
@@ -341,6 +342,8 @@ export default function OrdersScreen() {
       orderType: "individual",
       // Store unique identifier for key generation
       _uniqueKey: `custom-${uniqueId}`,
+      // Store original ID for navigation
+      _originalId: customOrder._id || customOrder.custom_order_id || String(customOrder.id),
     };
   };
 
@@ -350,11 +353,8 @@ export default function OrdersScreen() {
       ? ordersData.data.orders
       : [];
 
-  // Get custom orders from API response - only use API data, no mock fallback
-  const customOrders =
-    customOrdersData?.data?.orders && customOrdersData.data.orders.length > 0
-      ? customOrdersData.data.orders
-      : [];
+  // Custom orders are now included in the reactive orders query
+  const customOrders: CustomOrder[] = [];
 
   // Convert API orders to Order format
   const apiOrdersAsOrders = apiOrders.map(convertApiOrderToOrder);
@@ -429,9 +429,12 @@ export default function OrdersScreen() {
     activeTab === "ongoing" ? allOngoingOrders : allPastOrders;
 
   const handleOrderPress = (
-    orderId: number,
+    order: Order,
     isCustomOrder: boolean = false
   ) => {
+    // Use original ID for navigation if available, otherwise fall back to numeric ID
+    const orderId = order._originalId || String(order.id);
+    
     if (isCustomOrder) {
       // Navigate to custom order details
       router.push(`/custom-order-details?id=${orderId}`);
@@ -442,6 +445,26 @@ export default function OrdersScreen() {
   };
 
   const renderContent = () => {
+    // Show skeleton loader while loading
+    // Show skeleton if orders are loading OR if we haven't fetched any data yet
+    const isLoading = ordersLoading || (ordersData === null && isAuthenticated);
+    
+    if (isLoading) {
+      return (
+        <>
+          <SectionHeader
+            title={activeTab === "ongoing" ? "Current Orders" : "June 2025"}
+          />
+          {Array.from({ length: 3 }).map((_, index) => (
+            <OrderCardSkeleton
+              key={`skeleton-${index}`}
+              showSeparator={index < 2}
+            />
+          ))}
+        </>
+      );
+    }
+
     if (currentOrders.length === 0) {
       return (
         <EmptyState
@@ -503,10 +526,11 @@ export default function OrdersScreen() {
               estimatedTime={order.estimatedTime}
               orderNumber={order.orderNumber}
               items={order.items}
+              orderItems={order.orderItems}
               orderType={order.orderType}
               groupOrder={order.groupOrder}
               icon={<BurgerIcon />}
-              onPress={() => handleOrderPress(order.id, isCustomOrder)}
+              onPress={() => handleOrderPress(order, isCustomOrder)}
               showSeparator={index < sortedOrders.length - 1}
               index={index}
             />

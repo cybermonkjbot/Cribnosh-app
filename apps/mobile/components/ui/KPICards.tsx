@@ -11,9 +11,9 @@ interface KPICardsProps {
 
 // Memoize the component to prevent unnecessary re-renders
 const MemoizedKPICards: React.FC<KPICardsProps> = React.memo(({
-  mealsLogged = "24",
-  caloriesTracked = "2,847",
-  streakDays = "7",
+  mealsLogged,
+  caloriesTracked,
+  streakDays,
 }) => {
   return (
     <View style={styles.container}>
@@ -23,48 +23,49 @@ const MemoizedKPICards: React.FC<KPICardsProps> = React.memo(({
           <Text style={styles.sectionTitle}>Monthly Overview</Text>
           <Text style={styles.sectionSubtitle}>Your food journey this month</Text>
         </View>
-        <TouchableOpacity style={styles.headerButton}>
-          <Text style={styles.headerButtonText}>View All</Text>
-          <Text style={styles.headerButtonIcon}>→</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Food Stats Cards Section */}
       <View style={styles.accountCardsContainer}>
-        {/* Meals Logged Card */}
-        <BlurView intensity={27.5} style={styles.accountCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardLabel}>Meals</Text>
-          </View>
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardValue}>{mealsLogged}</Text>
-          </View>
-          <Text style={styles.cardSubtext}>This Month</Text>
-        </BlurView>
-
-        {/* Calories Tracked Card */}
-        <BlurView intensity={27.5} style={styles.caloriesCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardLabel}>Calories</Text>
-          </View>
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardValue}>{caloriesTracked}</Text>
-          </View>
-          <Text style={styles.cardSubtext}>This Month</Text>
-        </BlurView>
-
-        {/* Streak Days Card */}
-        <TouchableOpacity>
-          <BlurView intensity={27.5} style={styles.streakCard}>
+        {/* First Row: Meals and Calories */}
+        <View style={styles.firstRow}>
+          {/* Meals Logged Card */}
+          <BlurView intensity={27.5} style={styles.accountCard}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardLabel}>Streak</Text>
+              <Text style={styles.cardLabel}>Meals Logged</Text>
             </View>
             <View style={styles.cardFooter}>
-              <Text style={styles.cardValue}>{streakDays}</Text>
+              <Text style={styles.cardValue}>{mealsLogged ?? "0"}</Text>
             </View>
-            <Text style={styles.cardSubtext}>Current</Text>
+            <Text style={styles.cardSubtext}>Total this month</Text>
           </BlurView>
-        </TouchableOpacity>
+
+          {/* Calories Tracked Card */}
+          <BlurView intensity={27.5} style={styles.caloriesCard}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardLabel}>Calories Tracked</Text>
+            </View>
+            <View style={styles.cardFooter}>
+              <Text style={styles.cardValue}>{caloriesTracked ?? "0"}</Text>
+            </View>
+            <Text style={styles.cardSubtext}>Total this month</Text>
+          </BlurView>
+        </View>
+
+        {/* Second Row: Streak Days Card */}
+        <View style={styles.secondRow}>
+          <TouchableOpacity style={styles.streakCardWrapper}>
+            <BlurView intensity={27.5} style={styles.streakCard}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardLabel}>Day Streak</Text>
+              </View>
+              <View style={styles.cardFooter}>
+                <Text style={styles.cardValue}>{streakDays ?? "0"}</Text>
+              </View>
+              <Text style={styles.cardSubtext}>Current streak</Text>
+            </BlurView>
+          </TouchableOpacity>
+        </View>
       </View>
 
 
@@ -94,26 +95,6 @@ const styles = StyleSheet.create({
   headerLeft: {
     alignItems: 'flex-start',
   },
-  headerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    letterSpacing: 0.2,
-    fontFamily: 'Mukta',
-  },
-  headerButtonIcon: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginLeft: 6,
-    fontFamily: 'Mukta',
-  },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '800',
@@ -132,12 +113,26 @@ const styles = StyleSheet.create({
   
   // Food Stats Cards
   accountCardsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 28,
   },
+  firstRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  secondRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  streakCardWrapper: {
+    width: '100%',
+    alignItems: 'center',
+  },
   accountCard: {
-    width: 108,
+    flex: 1,
+    maxWidth: 160,
     height: 72,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 18,
@@ -151,9 +146,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     overflow: 'hidden',
+    marginRight: 8,
   },
   caloriesCard: {
-    width: 108,
+    flex: 1,
+    maxWidth: 160,
     height: 72,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 18,
@@ -169,7 +166,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   streakCard: {
-    width: 108,
+    width: '100%',
     height: 72,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 18,

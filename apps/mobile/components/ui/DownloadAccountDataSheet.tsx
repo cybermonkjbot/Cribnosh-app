@@ -2,8 +2,9 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { BottomSheetBase } from '../BottomSheetBase';
-import { useDownloadAccountDataMutation } from '../../store/customerApi';
 import { useToast } from '../../lib/ToastContext';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -27,7 +28,34 @@ export function DownloadAccountDataSheet({
 }: DownloadAccountDataSheetProps) {
   const { showToast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadAccountData] = useDownloadAccountDataMutation();
+
+  // Request account data download function
+  const downloadAccountData = useCallback(async () => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.users.customerRequestAccountDataDownload, {
+      sessionToken,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to request account data download');
+    }
+
+    // Transform to match expected format
+    return {
+      data: {
+        download_url: result.download_url,
+        download_token: result.download_token,
+        status: result.status,
+        estimated_completion_time: result.estimated_completion_time,
+      },
+    };
+  }, []);
 
   const snapPoints = useMemo(() => ['85%', '100%'], []);
 
@@ -40,7 +68,7 @@ export function DownloadAccountDataSheet({
   const handleDownloadData = async () => {
     try {
       setIsDownloading(true);
-      const result = await downloadAccountData(undefined).unwrap();
+      const result = await downloadAccountData();
       setIsDownloading(false);
       
       if (result.data?.download_url) {
@@ -64,8 +92,6 @@ export function DownloadAccountDataSheet({
       setIsDownloading(false);
       console.error("Error downloading account data:", error);
       const errorMessage = 
-        error?.data?.error?.message ||
-        error?.data?.message ||
         error?.message ||
         "Failed to initiate data download. Please try again.";
       showToast({

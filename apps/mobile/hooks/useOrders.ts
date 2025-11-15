@@ -183,8 +183,9 @@ export const useOrders = () => {
         setIsLoading(true);
         const sessionToken = await getSessionToken();
         if (!sessionToken) {
-          showToast('Please log in to create an order', 'error');
-          return null;
+          const errorMsg = 'Please log in to create an order';
+          showToast(errorMsg, 'error');
+          throw new Error(errorMsg);
         }
 
         const convex = getConvexClient();
@@ -197,16 +198,29 @@ export const useOrders = () => {
         });
 
         if (!result.success) {
-          showToast(result.error || 'Failed to create order from cart', 'error');
-          return null;
+          const errorMsg = result.error || 'Failed to create order from cart';
+          showToast(errorMsg, 'error');
+          throw new Error(errorMsg);
         }
 
         showToast('Order created successfully', 'success');
         return result;
       } catch (error: any) {
+        // If we threw this error ourselves, toast was already shown
+        // For unexpected errors (network, etc.), show toast
         const errorMessage = error?.message || 'Failed to create order from cart';
-        showToast(errorMessage, 'error');
-        return null;
+        // Only show toast if this is an unexpected error (not one we threw)
+        const isExpectedError = errorMessage === 'Please log in to create an order' ||
+                                errorMessage.includes('Failed to create order from cart') ||
+                                errorMessage.includes('Oops, We do not serve this region') ||
+                                errorMessage.includes('Cart is empty') ||
+                                errorMessage.includes('Authentication required') ||
+                                errorMessage.includes('Access denied');
+        
+        if (!isExpectedError) {
+          showToast(errorMessage, 'error');
+        }
+        throw error; // Re-throw so caller can handle it
       } finally {
         setIsLoading(false);
       }

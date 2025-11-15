@@ -21,9 +21,10 @@ interface TakeAwayItem {
 interface TakeAwaysProps {
   onOpenDrawer?: () => void;
   useBackend?: boolean;
+  hasInitialLoadCompleted?: boolean;
 }
 
-export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
+export function TakeAways({ onOpenDrawer, useBackend = true, hasInitialLoadCompleted = false }: TakeAwaysProps) {
   const { addToCart } = useCart();
   const { getTakeawayItems } = useMeals();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
@@ -87,8 +88,8 @@ export function TakeAways({ onOpenDrawer, useBackend = true }: TakeAwaysProps) {
 
   // Error state is shown in UI - no toast needed
 
-  // Show skeleton while loading
-  if (useBackend && backendLoading) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (useBackend && backendLoading && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={backendLoading}>
         <TakeAwaysSkeleton itemCount={3} />

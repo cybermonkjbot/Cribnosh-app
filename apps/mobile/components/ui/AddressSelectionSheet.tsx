@@ -53,6 +53,7 @@ export interface AddressSelectionSheetProps {
   onSelectAddress: (address: CustomerAddress) => void;
   selectedAddress?: CustomerAddress;
   addressLabel?: 'home' | 'work' | 'custom'; // Indicates which address type we're setting
+  mode?: 'add' | 'select'; // 'add' for adding new address, 'select' for selecting existing
 }
 
 interface SavedAddress extends CustomerAddress {
@@ -74,6 +75,7 @@ export function AddressSelectionSheet({
   onSelectAddress,
   selectedAddress,
   addressLabel,
+  mode = 'add', // Default to 'add' for backward compatibility
 }: AddressSelectionSheetProps) {
   const colorScheme = useColorScheme();
   const [searchQuery, setSearchQuery] = useState('');
@@ -382,6 +384,7 @@ export function AddressSelectionSheet({
         <TouchableOpacity
           style={styles.addressItemContent}
           onPress={() => handleSelectAddress(item)}
+          activeOpacity={0.7}
         >
           <View style={styles.addressIconContainer}>
             {item.label === 'home' ? (
@@ -393,9 +396,6 @@ export function AddressSelectionSheet({
             )}
           </View>
           <View style={styles.addressInfo}>
-            <Text style={styles.addressLabel}>
-              {labelName}
-            </Text>
             <Text style={styles.addressText}>
               {item.street}
             </Text>
@@ -408,11 +408,6 @@ export function AddressSelectionSheet({
               </Text>
             )}
           </View>
-          {isSelected && (
-            <View style={styles.selectedIndicator}>
-              <View style={styles.selectedDot} />
-            </View>
-          )}
         </TouchableOpacity>
         {isCustom && (
           <View style={styles.addressActions}>
@@ -441,14 +436,6 @@ export function AddressSelectionSheet({
     
     return (
       <View style={styles.placesSection}>
-        {hasAnyAddresses && (
-          <Text style={styles.placesSectionTitle}>
-            {addressLabel === 'home' ? 'Add home address' : 
-             addressLabel === 'work' ? 'Add work address' : 
-             'Choose an address type'}
-          </Text>
-        )}
-        
         <View style={styles.placesGrid}>
         {/* Home Place */}
         <TouchableOpacity
@@ -514,30 +501,32 @@ export function AddressSelectionSheet({
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            {addressLabel === 'home' ? 'Add home address' : 
-             addressLabel === 'work' ? 'Add work address' : 
-             'Select address'}
+            {mode === 'select' 
+              ? 'Select address'
+              : addressLabel === 'home' 
+                ? 'Add home address' 
+                : addressLabel === 'work' 
+                  ? 'Add work address' 
+                  : 'Add address'}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#333333" />
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar - Only show when needed */}
-        {filteredSavedAddresses.length > 0 || filteredRecentAddresses.length > 0 ? (
-          <View style={styles.searchContainer}>
-            <View style={styles.searchInput}>
-              <Search size={20} color="#6B7280" />
-              <TextInput
-                style={styles.searchTextInput}
-                placeholder="Search addresses"
-                placeholderTextColor="#9CA3AF"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInput}>
+            <Search size={20} color="#6B7280" />
+            <TextInput
+              style={styles.searchTextInput}
+              placeholder={mode === 'select' ? 'Enter a new address' : 'Search addresses'}
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
           </View>
-        ) : null}
+        </View>
 
         {/* Content */}
         <FlatList
@@ -545,15 +534,12 @@ export function AddressSelectionSheet({
           renderItem={() => null}
           ListHeaderComponent={
             <>
-              {/* Places Section - Main focus */}
-              {!searchQuery && renderPlacesSection()}
+              {/* Places Section - Only show in 'add' mode */}
+              {mode === 'add' && !searchQuery && renderPlacesSection()}
 
               {/* All Saved Addresses - Combined and simplified */}
               {(filteredSavedAddresses.length > 0 || customAddresses.length > 0 || filteredRecentAddresses.length > 0) && (
                 <View style={styles.section}>
-                  {!searchQuery && (
-                    <Text style={styles.sectionTitle}>Saved Addresses</Text>
-                  )}
                   <FlatList
                     data={[
                       ...filteredSavedAddresses,
@@ -583,10 +569,12 @@ export function AddressSelectionSheet({
                 <View style={styles.emptyState}>
                   <MapPin size={48} color="#9CA3AF" />
                   <Text style={styles.emptyStateText}>
-                    No saved addresses yet
+                    {mode === 'select' ? 'No saved addresses' : 'No saved addresses yet'}
                   </Text>
                   <Text style={styles.emptyStateSubtext}>
-                    Choose an address type above to get started
+                    {mode === 'select' 
+                      ? 'Enter a new address above or add one from your profile'
+                      : 'Choose an address type above to get started'}
                   </Text>
                 </View>
               )}
@@ -696,7 +684,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontFamily: 'Archivo',
@@ -708,7 +696,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   placesSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   placesSectionTitle: {
     fontFamily: 'Archivo',
@@ -769,38 +757,36 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   addressItem: {
-    borderRadius: 8,
-    marginBottom: 8,
-    paddingVertical: 18,
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
   addressItemSelected: {
-    borderBottomColor: '#3B82F6',
-    borderBottomWidth: 2,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   addressItemContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   addressIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
     backgroundColor: '#F8F9FA',
   },
   addressInfo: {
@@ -818,11 +804,11 @@ const styles = StyleSheet.create({
   addressText: {
     fontFamily: 'Inter',
     fontStyle: 'normal',
-    fontWeight: '500',
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333333',
-    marginBottom: 2,
+    fontWeight: '600',
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#111827',
+    marginBottom: 4,
   },
   addressSubtext: {
     fontFamily: 'Inter',
@@ -831,7 +817,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#6B7280',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   addressDistance: {
     fontFamily: 'Inter',

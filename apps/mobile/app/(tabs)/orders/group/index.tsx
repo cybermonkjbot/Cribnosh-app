@@ -556,9 +556,8 @@ export default function GroupOrdersScreen() {
                 >
                   <View style={styles.userAvatarContainer}>
                     <Avatar 
-                      source={{ uri: '' }} 
+                      source={conn.avatar_url ? { uri: conn.avatar_url } : undefined} 
                       size="sm" 
-                      initials={conn.user_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                     />
                     <View style={styles.selectionIndicator}>
                       {selectedUsers.includes(conn.user_id) ? (

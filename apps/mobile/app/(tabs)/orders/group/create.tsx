@@ -91,7 +91,7 @@ export default function CreateGroupOrderScreen() {
         try {
           setIsLoadingSearchChefs(true);
           const result = await searchChefs({
-            q: searchQuery,
+            query: searchQuery,
             limit: 20,
             ...(userLocation ? {
               latitude: userLocation.latitude,
@@ -194,7 +194,7 @@ export default function CreateGroupOrderScreen() {
         delivery_address: deliveryAddress ? {
           street: deliveryAddress.street || '',
           city: deliveryAddress.city || '',
-          postcode: deliveryAddress.postal_code || deliveryAddress.postcode || '',
+          postal_code: deliveryAddress.postal_code || '',
           country: deliveryAddress.country || '',
         } : undefined,
         delivery_time: deliveryTime || undefined,

@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import { useSubmitDeleteAccountFeedbackMutation } from '@/store/customerApi';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { useToast } from '../lib/ToastContext';
 
 // Back arrow icon SVG
@@ -36,7 +37,7 @@ export default function DeleteAccountSurveyScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const [selectedOptions, setSelectedOptions] = useState<Set<number>>(new Set([0, 3])); // Pre-select first and fourth options
-  const [submitFeedback, { isLoading: isSubmitting }] = useSubmitDeleteAccountFeedbackMutation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleBackPress = () => {
     router.back();
@@ -54,9 +55,22 @@ export default function DeleteAccountSurveyScreen() {
 
   const handleDone = async () => {
     try {
-      await submitFeedback({
+      setIsSubmitting(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error("Please sign in to submit feedback.");
+      }
+
+      const result = await convex.action(api.actions.users.customerSubmitDeleteAccountFeedback, {
+        sessionToken,
         feedback_options: Array.from(selectedOptions),
-      }).unwrap();
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || "Failed to submit feedback");
+      }
       
       showToast({
         type: "success",
@@ -70,9 +84,9 @@ export default function DeleteAccountSurveyScreen() {
     } catch (error: any) {
       console.error("Error submitting feedback:", error);
       const errorMessage = 
+        error?.message ||
         error?.data?.error?.message ||
         error?.data?.message ||
-        error?.message ||
         "Failed to submit feedback. Please try again.";
       showToast({
         type: "error",
@@ -80,6 +94,8 @@ export default function DeleteAccountSurveyScreen() {
         message: errorMessage,
         duration: 4000,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

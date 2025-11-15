@@ -348,7 +348,7 @@ export default function PaymentMethodSelection() {
                 } else if (method.id === "card" && savedCards.length === 0) {
                   // If no saved cards and clicking generic "card", open add card sheet
                   handleAddPaymentMethod();
-                } else if (!method.disabled) {
+                } else if (!('disabled' in method && method.disabled)) {
                   setSelectedPaymentMethod(method.id);
                 }
               }}
@@ -360,12 +360,12 @@ export default function PaymentMethodSelection() {
               style={[
                 styles.methodCard,
                 selectedPaymentMethod === method.id ? styles.methodCardSelected : styles.methodCardUnselected,
-                method.disabled && styles.methodCardDisabled,
+                'disabled' in method && method.disabled && styles.methodCardDisabled,
               ]}
-              disabled={method.disabled && method.id !== "balance"}
+              disabled={'disabled' in method && method.disabled && method.id !== "balance"}
             >
               <View style={styles.methodLeft}>
-                {method.isFamily ? (
+                {'isFamily' in method && method.isFamily ? (
                   <View style={styles.familyIconContainer}>
                     <Users size={24} color="#094327" />
                   </View>
@@ -384,7 +384,7 @@ export default function PaymentMethodSelection() {
                       Default
                     </Text>
                   )}
-                  {method.isFamily && (
+                  {'isFamily' in method && method.isFamily && (
                     <Text style={styles.familyBudgetText}>
                       Budget limits apply
                     </Text>
@@ -400,11 +400,11 @@ export default function PaymentMethodSelection() {
                     <Text style={styles.topUpBadgeText}>Top Up</Text>
                   </View>
                 )}
-                {method.isCard && (
+                {'isCard' in method && method.isCard && (
                   <Pressable
                     onPress={(e) => {
                       e.stopPropagation();
-                      handleRemoveCard(method.id, method.last4);
+                      handleRemoveCard(method.id, 'last4' in method ? method.last4 : undefined);
                     }}
                     style={styles.deleteButton}
                   >

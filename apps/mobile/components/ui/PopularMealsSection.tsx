@@ -30,6 +30,7 @@ interface PopularMealsSectionProps {
   showTitle?: boolean;
   isLoading?: boolean;
   useBackend?: boolean;
+  hasInitialLoadCompleted?: boolean;
 }
 
 export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
@@ -40,6 +41,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
   showTitle = true,
   isLoading: propIsLoading,
   useBackend = true,
+  hasInitialLoadCompleted = false,
 }) => {
   const { isAuthenticated, user } = useAuthContext();
   const { getRandomMeals, isLoading: isLoadingMeals } = useMeals();
@@ -130,8 +132,8 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
 
   // Error state is shown in UI - no toast needed
 
-  // Show skeleton while loading
-  if (isLoading) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (isLoading && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={isLoading}>
         <PopularMealsSectionSkeleton itemCount={8} />

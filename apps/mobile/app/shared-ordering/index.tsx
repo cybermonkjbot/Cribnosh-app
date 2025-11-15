@@ -1,16 +1,16 @@
 import { RegionAvailabilityModal } from "@/components/ui/RegionAvailabilityModal";
 import { useRegionAvailability } from "@/hooks/useRegionAvailability";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import {
-  useCreateCustomOrderMutation,
-  useGetCustomerProfileQuery,
-  useUpdateCustomOrderMutation,
-} from "@/store/customerApi";
 import { setRouteContext } from "@/utils/authErrorHandler";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { getSessionToken } from "@/lib/convexClient";
+import { useQuery } from "convex/react";
+import { useMemo } from "react";
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from "@/contexts/AuthContext";
 import {
   Dimensions,
   Image,
@@ -36,16 +36,52 @@ export default function SharedOrderingIndex() {
     selectedDiet?: string;
   }>();
   const { showToast } = useToast();
+  const { isAuthenticated } = useAuthContext();
   const [amount, setAmount] = useState("20"); // Default to £20
   const [selectedAmount, setSelectedAmount] = useState<string | null>("20"); // Default to £20
   const [selectedDiet, setSelectedDiet] = useState<string>("none"); // Default to "No restrictions"
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
-
   // Regional availability check
   const { checkAddress } = useRegionAvailability();
   const { location: userLocation } = useUserLocation();
-  const { data: profileData } = useGetCustomerProfileQuery();
+
+  // Get session token for reactive queries
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const loadToken = async () => {
+      if (isAuthenticated) {
+        const token = await getSessionToken();
+        setSessionToken(token);
+      } else {
+        setSessionToken(null);
+      }
+    };
+    loadToken();
+  }, [isAuthenticated]);
+
+  // Get user by session token (reactive query)
+  const user = useQuery(
+    api.queries.users.getUserBySessionToken,
+    sessionToken ? { sessionToken } : "skip"
+  );
+
+  // Get user profile (reactive query)
+  const profileDataRaw = useQuery(
+    api.queries.users.getUserProfile,
+    user?._id && sessionToken ? { userId: user._id, sessionToken } : "skip"
+  );
+
+  // Transform profile data to match expected format
+  const profileData = useMemo(() => {
+    if (!profileDataRaw) return null;
+    return {
+      data: {
+        ...profileDataRaw,
+      },
+    };
+  }, [profileDataRaw]);
 
   // Restore form state from params if returning from sign-in
   useEffect(() => {
@@ -60,8 +96,74 @@ export default function SharedOrderingIndex() {
     }
   }, [params.amount, params.selectedAmount, params.selectedDiet]);
 
-  const [createCustomOrder] = useCreateCustomOrderMutation();
-  const [updateCustomOrder] = useUpdateCustomOrderMutation();
+  // Create custom order function
+  const createCustomOrder = useCallback(async (data: {
+    requirements: string;
+    serving_size: number;
+    budget?: number;
+    desired_delivery_time?: string;
+    dietary_restrictions?: string;
+  }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.orders.customerCreateCustomOrder, {
+      sessionToken,
+      requirements: data.requirements,
+      serving_size: data.serving_size,
+      desired_delivery_time: data.desired_delivery_time || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      budget: data.budget,
+      dietary_restrictions: data.dietary_restrictions,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to create custom order');
+    }
+
+    // Transform to match expected format
+    return {
+      data: result.custom_order,
+    };
+  }, []);
+
+  // Update custom order function
+  const updateCustomOrder = useCallback(async (data: {
+    customOrderId: string;
+    data: {
+      details?: {
+        dietary_restrictions?: string[];
+      };
+    };
+  }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    // Extract dietary restrictions from the nested structure
+    const dietaryRestrictions = data.data.details?.dietary_restrictions?.[0] || null;
+
+    const result = await convex.action(api.actions.orders.customerUpdateCustomOrder, {
+      sessionToken,
+      custom_order_id: data.customOrderId,
+      dietary_restrictions: dietaryRestrictions,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to update custom order');
+    }
+
+    // Transform to match expected format
+    return {
+      data: result.custom_order,
+    };
+  }, []);
 
   const presetAmounts = ["10", "20", "50", "Unlimited"];
 
@@ -149,7 +251,7 @@ export default function SharedOrderingIndex() {
         selectedDiet,
       });
 
-      // Create custom order via API with both budget and dietary restrictions in one call
+      // Create custom order via Convex with both budget and dietary restrictions in one call
       const customOrderData = await createCustomOrder({
         requirements: `Shared ordering for £${amount || "unlimited"}`,
         serving_size: parseInt(amount) || 0,
@@ -158,7 +260,7 @@ export default function SharedOrderingIndex() {
             ? undefined
             : parseFloat(amount) * 100, // Convert to pence
         dietary_restrictions: selectedDiet !== "none" ? selectedDiet : undefined,
-      }).unwrap();
+      });
 
       // Navigate directly to "it's on you" screen
       router.push("/shared-ordering/its-on-you");

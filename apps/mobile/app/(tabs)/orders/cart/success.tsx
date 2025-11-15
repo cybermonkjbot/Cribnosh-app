@@ -5,61 +5,37 @@ import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useQuery } from 'convex/react';
 import { useEffect, useState } from 'react';
 
 export default function SuccessScreen() {
   const { order_id } = useLocalSearchParams<{ order_id?: string }>();
   const orderId = typeof order_id === 'string' ? order_id : undefined;
   const { isAuthenticated } = useAuthContext();
-  const [orderData, setOrderData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Fetch order details from Convex
+  // Load session token for reactive queries
   useEffect(() => {
-    const fetchOrder = async () => {
-      if (!orderId || !isAuthenticated) return;
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        const convex = getConvexClient();
-        const sessionToken = await getSessionToken();
-
-        if (!sessionToken) {
-          setError(new Error('Not authenticated'));
-          return;
-        }
-
-        const result = await convex.action(api.actions.orders.customerGetOrder, {
-          sessionToken,
-          order_id: orderId,
-        });
-
-        if (result.success === false) {
-          setError(new Error(result.error || 'Failed to fetch order'));
-          return;
-        }
-
-        // Transform to match expected format
-        setOrderData({
-          data: result.order,
-        });
-      } catch (error: any) {
-        setError(error);
-        console.error('Error fetching order:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    const loadToken = async () => {
+      const token = await getSessionToken();
+      setSessionToken(token);
     };
-
-    if (orderId && isAuthenticated) {
-      fetchOrder();
+    if (isAuthenticated) {
+      loadToken();
     }
-  }, [orderId, isAuthenticated]);
+  }, [isAuthenticated]);
+
+  // Use reactive Convex query for order data - same as order-details screen
+  const orderData = useQuery(
+    api.queries.orders.getEnrichedOrderBySessionToken,
+    sessionToken && orderId ? { sessionToken, order_id: orderId } : "skip"
+  );
+
+  const isLoading = orderData === undefined && sessionToken !== null;
+  const hasError = orderData === null && sessionToken !== null && !isLoading;
 
   const handleBackToHome = () => {
     router.replace("/(tabs)");
@@ -79,18 +55,16 @@ export default function SuccessScreen() {
 
   // Format delivery time
   const getDeliveryTime = (): string => {
-    const order = orderData?.data;
-    if (!order) return '15 - 45 minutes';
+    if (!orderData) return '15 - 45 minutes';
     
-    // Check for estimated_prep_time_minutes from API response
-    const estimatedMins = (order as any).estimated_prep_time_minutes || 
-                           (order as any).estimatedPrepTimeMinutes;
+    // Check for estimated_prep_time_minutes
+    const estimatedMins = (orderData as any).estimated_prep_time_minutes;
     if (typeof estimatedMins === 'number' && estimatedMins > 0) {
       return `${estimatedMins}-${estimatedMins + 15} minutes`;
     }
     
     // Check for estimated_delivery_time string
-    const estimatedTime = (order as any).estimated_delivery_time;
+    const estimatedTime = (orderData as any).estimated_delivery_time;
     if (typeof estimatedTime === 'string' && estimatedTime) {
       return estimatedTime;
     }
@@ -100,31 +74,49 @@ export default function SuccessScreen() {
 
   // Format delivery address
   const getDeliveryAddress = (): string => {
-    const order = orderData?.data;
-    if (!order) return 'Address not provided';
+    if (!orderData) return 'Address not provided';
     
-    const address = (order as any).delivery_address || (order as any).deliveryAddress;
-    if (!address || typeof address !== 'object') return 'Address not provided';
+    const address = (orderData as any).delivery_address;
+    if (!address) return 'Address not provided';
     
-    const parts: string[] = [];
-    if (typeof address.street === 'string' && address.street) parts.push(address.street);
-    if (typeof address.city === 'string' && address.city) parts.push(address.city);
-    if (typeof address.postcode === 'string' && address.postcode) parts.push(address.postcode);
-    if (typeof address.postal_code === 'string' && address.postal_code) parts.push(address.postal_code);
+    // Handle different address formats
+    if (typeof address === 'string') {
+      return address;
+    }
     
-    return parts.length > 0 ? parts.join(', ') : 'Address not provided';
+    if (typeof address === 'object') {
+      const parts: string[] = [];
+      
+      // Try all possible field names
+      const street = address.street || address.address_line_1 || address.addressLine1 || address.line1;
+      const city = address.city || address.town;
+      const postcode = address.postal_code || address.postcode || address.postalCode || address.zip || address.zipCode;
+      const state = address.state || address.county || address.province;
+      const country = address.country;
+      
+      if (typeof street === 'string' && street.trim()) parts.push(street.trim());
+      if (typeof city === 'string' && city.trim()) parts.push(city.trim());
+      if (typeof state === 'string' && state.trim()) parts.push(state.trim());
+      if (typeof postcode === 'string' && postcode.trim()) parts.push(postcode.trim());
+      if (typeof country === 'string' && country.trim() && country.toLowerCase() !== 'uk') {
+        parts.push(country.trim());
+      }
+      
+      if (parts.length > 0) {
+        return parts.join(', ');
+      }
+    }
+    
+    return 'Address not provided';
   };
 
   // Get kitchen name
   const getKitchenName = (): string => {
-    const order = orderData?.data;
-    if (!order) return 'Kitchen';
+    if (!orderData) return 'Kitchen';
     
-    if (typeof (order as any).kitchen_name === 'string' && (order as any).kitchen_name) {
-      return (order as any).kitchen_name;
-    }
-    if (typeof (order as any).restaurant_name === 'string' && (order as any).restaurant_name) {
-      return (order as any).restaurant_name;
+    const kitchenName = (orderData as any).kitchen_name || (orderData as any).restaurant_name;
+    if (typeof kitchenName === 'string' && kitchenName) {
+      return kitchenName;
     }
     return 'Kitchen'; // Default fallback
   };
@@ -148,7 +140,7 @@ export default function SuccessScreen() {
   }
 
   // Show empty state when order not found or error
-  if ((error && !orderData) || (!orderId && !isLoading)) {
+  if (hasError || !orderId) {
     return (
       <SafeAreaView style={styles.container}>
         {/* Header */}

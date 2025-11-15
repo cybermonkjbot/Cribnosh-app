@@ -28,6 +28,7 @@ interface RecommendedMealsSectionProps {
   title?: string;
   showTitle?: boolean;
   limit?: number;
+  hasInitialLoadCompleted?: boolean;
 }
 
 export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = ({
@@ -36,6 +37,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
   title = 'Recommended For You',
   showTitle = true,
   limit = 8,
+  hasInitialLoadCompleted = false,
 }) => {
   const { isAuthenticated, user } = useAuthContext();
   const { getRecommendedMeals, isLoading: isLoadingMeals } = useMeals();
@@ -108,8 +110,8 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
     return null;
   }
 
-  // Show skeleton while loading
-  if (isLoadingRecommendations) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (isLoadingRecommendations && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={isLoadingRecommendations}>
         <PopularMealsSectionSkeleton itemCount={8} />

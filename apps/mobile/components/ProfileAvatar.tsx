@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useState, useEffect } from 'react';
+import { Camera } from 'lucide-react-native';
 
 interface ProfileAvatarProps {
   size?: number;
@@ -20,12 +21,9 @@ const UserIcon = ({ size }: { size: number }) => (
   </View>
 );
 
-// Simple camera icon component - replaced SVG with View-based icon
+// Camera icon component using lucide-react-native
 const CameraIcon = ({ size }: { size: number }) => (
-  <View style={[cameraIconStyles.container, { width: size, height: size }]}>
-    <View style={[cameraIconStyles.body, { width: size * 0.9, height: size * 0.7, borderRadius: size * 0.1 }]} />
-    <View style={[cameraIconStyles.lens, { width: size * 0.4, height: size * 0.4, borderRadius: size * 0.2 }]} />
-  </View>
+  <Camera size={size * 0.6} color="#FFFFFF" strokeWidth={2.5} />
 );
 
 export function ProfileAvatar({ 
@@ -221,21 +219,3 @@ const userIconStyles = StyleSheet.create({
   },
 });
 
-const cameraIconStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  body: {
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    backgroundColor: 'transparent',
-  },
-  lens: {
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    backgroundColor: 'transparent',
-  },
-});

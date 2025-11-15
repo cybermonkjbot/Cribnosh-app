@@ -60,10 +60,8 @@ export function AppProvider({ children }: AppProviderProps) {
   };
 
   const scrollToTop = () => {
-    // Switch to "For you" tab first
-    setActiveHeaderTab('for-you');
-    
-    // Then call the scroll callback
+    // Only call the scroll callback - don't switch tabs automatically
+    // Tab switching should be handled separately by the double-tap handler
     if (scrollToTopCallback) {
       scrollToTopCallback();
     }

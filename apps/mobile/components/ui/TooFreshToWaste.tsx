@@ -21,6 +21,7 @@ interface TooFreshToWasteProps {
   onOpenSustainability?: () => void;
   useBackend?: boolean;
   onItemPress?: (item: FreshItem) => void;
+  hasInitialLoadCompleted?: boolean;
 }
 
 export function TooFreshToWaste({ 
@@ -28,6 +29,7 @@ export function TooFreshToWaste({
   onOpenSustainability,
   useBackend = true,
   onItemPress,
+  hasInitialLoadCompleted = false,
 }: TooFreshToWasteProps) {
   const { isAuthenticated } = useAuthContext();
 
@@ -90,8 +92,8 @@ export function TooFreshToWaste({
 
   // Error state is shown in UI - no toast needed
 
-  // Show skeleton while loading
-  if (useBackend && backendLoading) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (useBackend && backendLoading && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={backendLoading}>
         <TooFreshToWasteSkeleton itemCount={3} />

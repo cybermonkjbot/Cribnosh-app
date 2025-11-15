@@ -3,10 +3,11 @@ import { SuperButton } from '@/components/ui/SuperButton';
 import { Feather } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useEffect, useState, useCallback } from 'react';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { useEffect, useState } from 'react';
+import { getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useQuery } from 'convex/react';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,89 +15,44 @@ export default function OnTheWayScreen() {
   const { order_id } = useLocalSearchParams<{ order_id?: string }>();
   const orderId = typeof order_id === 'string' ? order_id : undefined;
   const { isAuthenticated } = useAuthContext();
-  const [orderStatusData, setOrderStatusData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Fetch order status from Convex
-  const fetchOrderStatus = useCallback(async () => {
-    if (!orderId || !isAuthenticated) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-
-      if (!sessionToken) {
-        setError(new Error('Not authenticated'));
-        return;
-      }
-
-      const result = await convex.action(api.actions.orders.customerGetOrderStatus, {
-        sessionToken,
-        order_id: orderId,
-      });
-
-      if (result.success === false) {
-        setError(new Error(result.error || 'Failed to fetch order status'));
-        return;
-      }
-
-      // Transform order to match expected format
-      const order = result.order;
-      if (order) {
-        setOrderStatusData({
-          data: {
-            order_id: order._id || order.id,
-            current_status: order.order_status || order.status,
-            delivery_person: order.delivery_person || order.deliveryPerson,
-            estimated_delivery_time: order.estimated_delivery_time || order.delivery_time,
-          },
-        });
-      }
-    } catch (error: any) {
-      setError(error);
-      console.error('Error fetching order status:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [orderId, isAuthenticated]);
-
-  // Fetch on mount and set up polling
+  // Load session token for reactive queries
   useEffect(() => {
-    if (orderId && isAuthenticated) {
-      fetchOrderStatus();
-      // Poll every 30 seconds for active orders
-      const interval = setInterval(() => {
-        fetchOrderStatus();
-      }, 30000);
-      return () => clearInterval(interval);
+    const loadToken = async () => {
+      const token = await getSessionToken();
+      setSessionToken(token);
+    };
+    if (isAuthenticated) {
+      loadToken();
     }
-  }, [orderId, isAuthenticated, fetchOrderStatus]);
+  }, [isAuthenticated]);
 
-  const refetch = fetchOrderStatus;
+  // Use reactive Convex query for order data - same as order-details screen
+  const orderData = useQuery(
+    api.queries.orders.getEnrichedOrderBySessionToken,
+    sessionToken && orderId ? { sessionToken, order_id: orderId } : "skip"
+  );
+
+  const isLoading = orderData === undefined && sessionToken !== null;
+  const hasError = orderData === null && sessionToken !== null && !isLoading;
 
   const handleBack = () => {
-    router.back();
+    // Reset the navigation stack to go back to home/orders
+    router.replace("/(tabs)/orders");
   };
 
   const handleViewOrders = () => {
     router.push("/(tabs)/orders");
   };
 
-  // Get delivery driver info from order status
-  const deliveryPerson = orderStatusData?.data?.delivery_person || 
-                         (orderStatusData?.data?.order as any)?.delivery_person;
+  // Get delivery driver info from order data
+  const deliveryPerson = (orderData as any)?.delivery_person;
+  const orderStatus = (orderData as any)?.status || (orderData as any)?.order_status;
 
   const getDriverName = (): string => {
     if (deliveryPerson?.name) return deliveryPerson.name;
     return 'Delivery Driver'; // Default fallback
-  };
-
-  const getDriverInitial = (): string => {
-    const name = getDriverName();
-    return name.charAt(0).toUpperCase();
   };
 
   const getDriverPhone = (): string => {
@@ -105,13 +61,14 @@ export default function OnTheWayScreen() {
   };
 
   const getDriverStatus = (): string => {
-    const status = orderStatusData?.data?.order?.order_status || 
-                   orderStatusData?.data?.current_status;
-    if (status === 'on_the_way' || status === 'on-the-way') {
+    if (orderStatus === 'on_the_way' || orderStatus === 'on-the-way') {
       return 'Delivering to you now';
     }
-    if (status === 'ready') {
+    if (orderStatus === 'ready') {
       return 'Ready for pickup';
+    }
+    if (orderStatus === 'preparing') {
+      return 'Preparing your order';
     }
     return 'Delivering to you now'; // Default
   };
@@ -140,9 +97,14 @@ export default function OnTheWayScreen() {
   };
 
   // Show loading state
-  if (isLoading && !orderStatusData) {
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Pressable onPress={handleBack}>
+            <Feather name="chevron-left" size={24} color="white" />
+          </Pressable>
+        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFFFFF" />
           <Text style={styles.loadingText}>Loading order status...</Text>
@@ -152,7 +114,7 @@ export default function OnTheWayScreen() {
   }
 
   // Show empty state when order not found or error
-  if ((error && !orderStatusData && !isLoading) || (!orderId && !isLoading)) {
+  if (hasError || !orderId) {
     return (
       <SafeAreaView style={styles.container}>
         {/* Header */}
@@ -160,7 +122,6 @@ export default function OnTheWayScreen() {
           <Pressable onPress={handleBack}>
             <Feather name="chevron-left" size={24} color="white" />
           </Pressable>
-          <View style={styles.headerIcon} />
         </View>
 
         {/* Empty State */}
@@ -182,10 +143,9 @@ export default function OnTheWayScreen() {
     );
   }
 
-  // If no order_id or error, show default/mock data
-  const displayDriverName = orderId && deliveryPerson ? getDriverName() : 'David Morel';
-  const displayDriverInitial = orderId && deliveryPerson ? getDriverInitial() : 'D';
-  const displayDriverStatus = orderId && orderStatusData ? getDriverStatus() : 'Delivering to you now';
+  // Use order data or fallback to default values
+  const displayDriverName = deliveryPerson ? getDriverName() : 'Delivery Driver';
+  const displayDriverStatus = orderStatus ? getDriverStatus() : 'Delivering to you now';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -194,7 +154,6 @@ export default function OnTheWayScreen() {
         <Pressable onPress={handleBack}>
           <Feather name="chevron-left" size={24} color="white" />
         </Pressable>
-        <View style={styles.headerIcon} />
       </View>
 
       {/* Main Content */}
@@ -231,14 +190,6 @@ export default function OnTheWayScreen() {
       <SuperButton
         title={
           <View style={styles.driverContainer}>
-            {/* Profile Picture with Red Ring */}
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{displayDriverInitial}</Text>
-              </View>
-              <View style={styles.avatarRing} />
-            </View>
-
             {/* Driver Info */}
             <View style={styles.driverInfo}>
               <Text style={styles.driverName}>
@@ -282,15 +233,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', // flex-row
     alignItems: 'center', // items-center
-    justifyContent: 'space-between', // justify-between
     paddingHorizontal: 24, // px-6
     paddingVertical: 16, // py-4
-  },
-  headerIcon: {
-    width: 40, // w-10
-    height: 40, // h-10
-    backgroundColor: '#FFFFFF', // bg-white
-    borderRadius: 9999, // rounded-full
   },
   content: {
     flex: 1, // flex-1
@@ -327,33 +271,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', // justify-center
     width: '100%', // w-full
     marginTop: -48, // -mt-12
-  },
-  avatarContainer: {
-    position: 'relative', // relative
-    marginRight: 32, // mr-8
-  },
-  avatar: {
-    width: 64, // w-16
-    height: 64, // h-16
-    backgroundColor: '#4B5563', // bg-gray-600
-    borderRadius: 9999, // rounded-full
-    alignItems: 'center', // items-center
-    justifyContent: 'center', // justify-center
-  },
-  avatarText: {
-    color: '#FFFFFF', // text-white
-    fontSize: 20, // text-xl
-    fontWeight: '700', // font-bold
-  },
-  avatarRing: {
-    position: 'absolute', // absolute
-    top: -4, // -top-1
-    right: -4, // -right-1
-    width: 72, // w-18
-    height: 72, // h-18
-    borderWidth: 4, // border-4
-    borderColor: '#FF3B30', // border-[#FF3B30]
-    borderRadius: 9999, // rounded-full
   },
   driverInfo: {
     flex: 1, // flex-1

@@ -59,7 +59,7 @@ export function MapMarker({ chef, onPress, isSelected = false }: MapMarkerProps)
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>
-              {chef.name.charAt(0).toUpperCase()}
+              {chef.name?.charAt(0)?.toUpperCase() || chef.kitchen_name?.charAt(0)?.toUpperCase() || 'K'}
             </Text>
           </View>
         )}

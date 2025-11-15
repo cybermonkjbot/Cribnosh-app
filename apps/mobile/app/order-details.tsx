@@ -1,18 +1,19 @@
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GradientBackground } from "@/components/ui/GradientBackground";
-import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Order as ApiOrder } from "@/types/customer";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import Entypo from "@expo/vector-icons/Entypo";
 import {
-  Clock,
-  MapPin,
   Package,
-  Phone,
   Star,
+  Phone,
 } from "lucide-react-native";
 import { useState, useEffect } from "react";
 import { useOrders } from "@/hooks/useOrders";
+import { useQuery } from "convex/react";
+import { api } from '@/convex/_generated/api';
+import { getSessionToken } from "@/lib/convexClient";
+import { useAuthContext } from "@/contexts/AuthContext";
 import {
   ActivityIndicator,
   Alert,
@@ -24,40 +25,46 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SvgXml } from "react-native-svg";
 
-// Back arrow SVG
-const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M19 12H5M12 19L5 12L12 5" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
+// Helper function to check if order is active
+const isOrderActive = (status: string): boolean => {
+  const activeStatuses = ["pending", "confirmed", "preparing", "ready", "on-the-way", "on_the_way"];
+  return activeStatuses.includes(status.toLowerCase());
+};
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const orderId = typeof id === "string" ? id : undefined;
+  const { isAuthenticated } = useAuthContext();
 
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
-  const [order, setOrder] = useState<ApiOrder | undefined>(undefined);
-  const [apiLoading, setApiLoading] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  const { getOrder, cancelOrder, rateOrder, isLoading: ordersLoading } = useOrders();
+  const { cancelOrder, rateOrder, isLoading: ordersLoading } = useOrders();
 
-  // Fetch order details using Convex
+  // Load session token for reactive queries
   useEffect(() => {
-    const fetchOrder = async () => {
-      if (!orderId) return;
-      setApiLoading(true);
-      const orderData = await getOrder(orderId);
-      if (orderData) {
-        // Transform the order data to match ApiOrder format
-        setOrder(orderData as ApiOrder);
-      }
-      setApiLoading(false);
+    const loadToken = async () => {
+      const token = await getSessionToken();
+      setSessionToken(token);
     };
-    fetchOrder();
-  }, [orderId, getOrder]);
+    if (isAuthenticated) {
+      loadToken();
+    }
+  }, [isAuthenticated]);
+
+  // Use reactive Convex query for order data - this will automatically update when order changes
+  const orderData = useQuery(
+    api.queries.orders.getEnrichedOrderBySessionToken,
+    sessionToken && orderId ? { sessionToken, order_id: orderId } : "skip"
+  );
+
+  // Transform order data to match ApiOrder format
+  const order = orderData ? (orderData as ApiOrder) : undefined;
+  const apiLoading = orderData === undefined && sessionToken !== null; // undefined means query is loading
 
   const isCancelling = ordersLoading;
   const isRating = ordersLoading;
@@ -89,7 +96,7 @@ export default function OrderDetailsScreen() {
     ]);
   };
 
-  const handleRateOrder = async () => {
+  const handleSubmitRating = async () => {
     if (!order || rating === 0) return;
 
     const result = await rateOrder({
@@ -106,7 +113,15 @@ export default function OrderDetailsScreen() {
   };
 
   const handleTrackOrder = () => {
-    router.push(`/order-status-tracking?id=${orderId}`);
+    if (orderId) {
+      router.push(`/(tabs)/orders/cart/on-the-way?order_id=${orderId}`);
+    }
+  };
+
+  const handleNavigateToRateOrder = () => {
+    if (orderId) {
+      router.push(`/rate-order?id=${orderId}`);
+    }
   };
 
   const handleCallKitchen = async () => {
@@ -195,21 +210,19 @@ export default function OrderDetailsScreen() {
             title: 'Order Details'
           }} 
         />
-        <GradientBackground>
-          <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-            <View style={styles.header}>
-              <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                <SvgXml xml={backArrowSVG} width={24} height={24} />
-              </TouchableOpacity>
-              <View style={styles.headerSpacer} />
-            </View>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#E6FFE8" />
-              <Text style={styles.loadingText}>Loading Order Details...</Text>
-            </View>
-          </SafeAreaView>
-        </GradientBackground>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <Entypo name="chevron-down" size={18} color="#094327" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Order Details</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#094327" />
+            <Text style={styles.loadingText}>Loading Order Details...</Text>
+          </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -223,25 +236,25 @@ export default function OrderDetailsScreen() {
             title: 'Order Details'
           }} 
         />
-        <GradientBackground>
-          <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-            <View style={styles.header}>
-              <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                <SvgXml xml={backArrowSVG} width={24} height={24} />
-              </TouchableOpacity>
-              <View style={styles.headerSpacer} />
-            </View>
-            <EmptyState
-              title="Order Not Found"
-              subtitle="The order you are looking for could not be found or an error occurred."
-              icon="alert-circle-outline"
-            />
-          </SafeAreaView>
-        </GradientBackground>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <Entypo name="chevron-down" size={18} color="#094327" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Order Details</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+          <EmptyState
+            title="Order Not Found"
+            subtitle="The order you are looking for could not be found or an error occurred."
+            icon="alert-circle-outline"
+          />
+        </SafeAreaView>
       </>
     );
   }
+
+  const isActive = isOrderActive(order.status);
 
   return (
     <>
@@ -251,196 +264,113 @@ export default function OrderDetailsScreen() {
           title: 'Order Details'
         }} 
       />
-      <GradientBackground>
-        <SafeAreaView style={styles.container}>
-          <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <SvgXml xml={backArrowSVG} width={24} height={24} />
-            </TouchableOpacity>
-            <View style={styles.headerSpacer} />
-          </View>
-
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <SectionHeader title={`Order #${order.id}`} />
-
-          {/* Order Status Card */}
-          <View style={styles.statusCard}>
-            <View style={styles.statusHeader}>
-              <View
-                style={[
-                  styles.statusIndicator,
-                  { backgroundColor: getStatusColor(order.status) },
-                ]}
-              />
-              <Text style={styles.statusText}>
-                {getStatusText(order.status)}
-              </Text>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                <Entypo name="chevron-down" size={18} color="#094327" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Order Details</Text>
+              <View style={styles.headerSpacer} />
             </View>
-            {order.estimated_delivery_time && (
-              <View style={styles.deliveryTime}>
-                <Clock size={16} color="#C0DCC0" />
-                <Text style={styles.deliveryTimeText}>
-                  Estimated delivery:{" "}
-                  {formatTime(order.estimated_delivery_time)}
-                </Text>
-              </View>
-            )}
-          </View>
+            {/* Order Header */}
+            <View style={styles.orderHeader}>
+              <Text style={styles.orderTitle}>Order</Text>
+              <Text style={styles.orderId}>#{order.id}</Text>
+            </View>
 
-          {/* Kitchen Info */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Kitchen</Text>
-            <Text style={styles.kitchenName}>{order.kitchen_name}</Text>
-            <TouchableOpacity
-              style={styles.callButton}
-              onPress={handleCallKitchen}
-            >
-              <Phone size={16} color="#E6FFE8" />
-              <Text style={styles.callButtonText}>Call Kitchen</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Order Status */}
+            <View style={styles.statusContainer}>
+              <View style={styles.statusIndicator} />
+              <Text style={styles.statusText}>{getStatusText(order.status).toLowerCase()}</Text>
+            </View>
 
-          {/* Order Items */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Order Items</Text>
-            {order.items.map((item: any, index: number) => (
-              <View key={item.id} style={styles.orderItem}>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.dish_name}</Text>
-                  <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
-                  {item.special_instructions && (
-                    <Text style={styles.specialInstructions}>
-                      Note: {item.special_instructions}
-                    </Text>
-                  )}
+            {/* Kitchen Info */}
+            <View style={styles.sectionRow}>
+              <View style={styles.sectionLeft}>
+                <View style={styles.iconBadge}>
+                  <Phone size={16} color="white" />
                 </View>
-                <Text style={styles.itemPrice}>
-                  {formatPrice(item.price * item.quantity)}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Order Summary */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Order Summary</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>
-                {formatPrice(order.subtotal)}
-              </Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery Fee</Text>
-              <Text style={styles.summaryValue}>
-                {formatPrice(order.delivery_fee)}
-              </Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tax</Text>
-              <Text style={styles.summaryValue}>{formatPrice(order.tax)}</Text>
-            </View>
-            <View style={[styles.summaryRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{formatPrice(order.total)}</Text>
-            </View>
-          </View>
-
-          {/* Delivery Address */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Delivery Address</Text>
-            <View style={styles.addressContainer}>
-              <MapPin size={16} color="#C0DCC0" />
-              <Text style={styles.addressText}>
-                {`${order.delivery_address.street}, ${order.delivery_address.city}, ${order.delivery_address.state} ${order.delivery_address.postal_code}, ${order.delivery_address.country}`}
-              </Text>
-            </View>
-            {order.special_instructions && (
-              <Text style={styles.specialInstructions}>
-                Special Instructions: {order.special_instructions}
-              </Text>
-            )}
-          </View>
-
-          {/* Order Timeline */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Order Timeline</Text>
-            <View style={styles.timelineItem}>
-              <View style={styles.timelineDot} />
-              <View style={styles.timelineContent}>
-                <Text style={styles.timelineTitle}>Order Placed</Text>
-                <Text style={styles.timelineTime}>
-                  {formatTime(order.created_at)}
-                </Text>
-              </View>
-            </View>
-            {order.status === "preparing" && (
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineDot, styles.activeDot]} />
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>Preparing</Text>
-                  <Text style={styles.timelineTime}>In progress</Text>
+                <View style={styles.sectionText}>
+                  <Text style={styles.sectionTitle}>Kitchen</Text>
+                  <Text style={styles.kitchenName}>{order.kitchen_name}</Text>
                 </View>
               </View>
-            )}
-            {order.status === "ready" && (
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineDot, styles.activeDot]} />
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>Ready for Pickup</Text>
-                  <Text style={styles.timelineTime}>Ready now</Text>
-                </View>
-              </View>
-            )}
-            {order.status === "delivered" && (
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineDot, styles.activeDot]} />
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>Delivered</Text>
-                  <Text style={styles.timelineTime}>
-                    {formatTime(order.updated_at)}
+              <TouchableOpacity
+                style={styles.callKitchenButton}
+                onPress={handleCallKitchen}
+              >
+                <Text style={styles.callKitchenText}>Call</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Order Items */}
+            <View style={styles.itemsSection}>
+              <Text style={styles.sectionTitle}>Order Items</Text>
+              {order.items.map((item: any, index: number) => (
+                <View key={item.id || index} style={styles.orderItem}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.dish_name}</Text>
+                    <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+                  </View>
+                  <Text style={styles.itemPrice}>
+                    {formatPrice(item.price * item.quantity)}
                   </Text>
                 </View>
+              ))}
+            </View>
+
+            {/* Order Summary */}
+            <View style={styles.summary}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal</Text>
+                <Text style={styles.summaryValue}>
+                  {formatPrice(order.subtotal)}
+                </Text>
               </View>
-            )}
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Delivery Fee</Text>
+                <Text style={styles.summaryValue}>
+                  {formatPrice(order.delivery_fee)}
+                </Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Tax</Text>
+                <Text style={styles.summaryValue}>{formatPrice(order.tax)}</Text>
+              </View>
+              <View style={[styles.summaryRow, styles.totalRow]}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalValue}>{formatPrice(order.total)}</Text>
+              </View>
+            </View>
           </View>
         </ScrollView>
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtonsContainer}>
-          {order.status === "preparing" && (
-            <TouchableOpacity
-              style={styles.trackButton}
-              onPress={handleTrackOrder}
-            >
-              <Package size={20} color="#E6FFE8" />
-              <Text style={styles.trackButtonText}>Track Order</Text>
-            </TouchableOpacity>
-          )}
-
-          {order.status === "preparing" && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={handleCancelOrder}
-              disabled={isCancelling}
-            >
-              <Text style={styles.actionButtonText}>
-                {isCancelling ? "Cancelling..." : "Cancel Order"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {order.status === "delivered" && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.rateButton]}
-              onPress={() => setShowRatingModal(true)}
-            >
-              <Star size={20} color="#E6FFE8" />
-              <Text style={styles.actionButtonText}>Rate Order</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* Footer with Action Buttons */}
+        <SafeAreaView style={styles.footerContainer} edges={['bottom']}>
+          <View style={styles.footer}>
+            {isActive ? (
+              <TouchableOpacity
+                style={styles.trackButton}
+                onPress={handleTrackOrder}
+              >
+                <Text style={styles.trackButtonText}>Track Order</Text>
+              </TouchableOpacity>
+            ) : order.status === "delivered" ? (
+              <TouchableOpacity
+                style={styles.trackButton}
+                onPress={handleNavigateToRateOrder}
+              >
+                <Text style={styles.trackButtonText}>Rate Order</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </SafeAreaView>
 
         {/* Rating Modal */}
         {showRatingModal && (
@@ -464,7 +394,7 @@ export default function OrderDetailsScreen() {
               </View>
               <TouchableOpacity
                 style={[styles.modalButton, styles.submitButton]}
-                onPress={handleRateOrder}
+                onPress={handleSubmitRating}
                 disabled={rating === 0 || isRating}
               >
                 <Text style={styles.modalButtonText}>
@@ -481,7 +411,6 @@ export default function OrderDetailsScreen() {
           </View>
         )}
       </SafeAreaView>
-    </GradientBackground>
     </>
   );
 }
@@ -489,20 +418,33 @@ export default function OrderDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    flexDirection: 'column',
+    flex: 1,
+    padding: 20,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   backButton: {
     padding: 8,
-    borderRadius: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '500',
+    textAlign: 'center',
+    color: '#094327',
   },
   headerSpacer: {
-    width: 40,
+    width: 24,
   },
   loadingContainer: {
     flex: 1,
@@ -510,223 +452,207 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#E6FFE8",
+    color: "#094327",
     marginTop: 10,
     fontSize: 16,
   },
   scrollContent: {
-    paddingHorizontal: 20,
     paddingBottom: 100,
   },
-  statusCard: {
-    backgroundColor: "rgba(230, 255, 232, 0.1)",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "rgba(230, 255, 232, 0.2)",
+  orderHeader: {
+    marginBottom: 16,
   },
-  statusHeader: {
+  orderTitle: {
+    color: "#111827",
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  orderId: {
+    color: "#6B7280",
+    fontSize: 14,
+    fontFamily: "monospace",
+  },
+  statusContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 32,
   },
   statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#111827",
+    marginRight: 8,
   },
   statusText: {
-    color: "#E6FFE8",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  deliveryTime: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  deliveryTimeText: {
-    color: "#C0DCC0",
+    color: "#6B7280",
     fontSize: 14,
-    marginLeft: 8,
+    textTransform: "capitalize",
   },
-  card: {
-    backgroundColor: "rgba(230, 255, 232, 0.1)",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "rgba(230, 255, 232, 0.2)",
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 32,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 8,
   },
-  cardTitle: {
-    color: "#E6FFE8",
+  sectionLeft: {
+    flexDirection: 'row',
+    gap: 8,
+    flex: 1,
+    alignItems: 'center',
+  },
+  iconBadge: {
+    padding: 8,
+    borderRadius: 9999,
+    backgroundColor: '#094327',
+    flexShrink: 0,
+  },
+  sectionText: {
+    flex: 1,
+  },
+  sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
   },
   kitchenName: {
-    color: "#C0DCC0",
-    fontSize: 16,
-    marginBottom: 10,
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "600",
   },
-  callButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(230, 255, 232, 0.15)",
-    paddingHorizontal: 15,
+  callKitchenButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
-    alignSelf: "flex-start",
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  callButtonText: {
-    color: "#E6FFE8",
-    fontSize: 14,
-    marginLeft: 8,
+  callKitchenText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  itemsSection: {
+    marginTop: 32,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 8,
   },
   orderItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 15,
-    paddingBottom: 15,
+    paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(230, 255, 232, 0.1)",
+    borderBottomColor: '#F3F4F6',
   },
   itemInfo: {
     flex: 1,
   },
   itemName: {
-    color: "#E6FFE8",
-    fontSize: 16,
+    color: "#111827",
+    fontSize: 18,
     fontWeight: "600",
     marginBottom: 4,
   },
   itemQuantity: {
-    color: "#C0DCC0",
+    color: "#6B7280",
     fontSize: 14,
-    marginBottom: 4,
-  },
-  specialInstructions: {
-    color: "#A0A0A0",
-    fontSize: 12,
-    fontStyle: "italic",
   },
   itemPrice: {
-    color: "#22c55e",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: "#094327",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  summary: {
+    marginTop: 48,
   },
   summaryRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 8,
   },
   summaryLabel: {
-    color: "#C0DCC0",
-    fontSize: 14,
+    fontSize: 18,
+    fontFamily: 'Inter',
+    color: '#094327',
   },
   summaryValue: {
-    color: "#E6FFE8",
-    fontSize: 14,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#094327',
   },
   totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: "rgba(230, 255, 232, 0.2)",
-    paddingTop: 8,
     marginTop: 8,
+    paddingTop: 8,
   },
   totalLabel: {
-    color: "#E6FFE8",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
   },
   totalValue: {
-    color: "#22c55e",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
   },
-  addressContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+  footerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
   },
-  addressText: {
-    color: "#C0DCC0",
-    fontSize: 14,
-    marginLeft: 8,
-    flex: 1,
-  },
-  timelineItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 15,
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#6B7280",
-    marginRight: 15,
-    marginTop: 4,
-  },
-  activeDot: {
-    backgroundColor: "#22c55e",
-  },
-  timelineContent: {
-    flex: 1,
-  },
-  timelineTitle: {
-    color: "#E6FFE8",
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  timelineTime: {
-    color: "#C0DCC0",
-    fontSize: 12,
-  },
-  actionButtonsContainer: {
-    flexDirection: "row",
+  footer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 10,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   trackButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#22c55e",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    flex: 1,
-    justifyContent: "center",
+    backgroundColor: '#FF3B30',
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   trackButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 8,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   actionButton: {
-    backgroundColor: "#22c55e",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    flex: 1,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: "#dc2626",
+    backgroundColor: '#dc2626',
   },
   rateButton: {
-    backgroundColor: "#F59E0B",
+    backgroundColor: '#FF3B30',
   },
-  actionButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  cancelButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  rateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
     marginLeft: 8,
   },
   modalOverlay: {

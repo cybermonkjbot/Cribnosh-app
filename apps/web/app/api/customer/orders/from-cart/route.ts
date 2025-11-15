@@ -245,9 +245,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       {}
     ) as MealData[];
     
-    // Convert cart items to order items and validate
-    const orderItems = [];
-    const chefIds = new Set<string>();
+    // Group cart items by chef
+    const itemsByChef = new Map<string, Array<{
+      dish_id: string;
+      quantity: number;
+      price: number;
+      name: string;
+    }>>();
+
     let totalAmount = 0;
 
     for (const cartItem of cart.items) {
@@ -265,14 +270,17 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         return ResponseFactory.validationError(`Meal ${cartItem.id} does not have a chef_id.`);
       }
 
-      chefIds.add(chefId);
+      const chefIdStr = chefId.toString();
+      if (!itemsByChef.has(chefIdStr)) {
+        itemsByChef.set(chefIdStr, []);
+      }
       
       const itemPrice = meal.price || cartItem.price;
       const itemQuantity = cartItem.quantity;
       const itemTotal = itemPrice * itemQuantity;
       totalAmount += itemTotal;
 
-      orderItems.push({
+      itemsByChef.get(chefIdStr)!.push({
         dish_id: cartItem.id,
         quantity: itemQuantity,
         price: itemPrice,
@@ -280,18 +288,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    // Validate that all items are from the same chef (single chef per order)
-    if (chefIds.size > 1) {
-      return ResponseFactory.validationError(
-        'Cannot create order with items from multiple chefs. Please create separate orders for each chef.'
-      );
-    }
-
-    if (chefIds.size === 0) {
+    if (itemsByChef.size === 0) {
       return ResponseFactory.validationError('No valid chef_id found in cart items.');
     }
-
-    const chef_id = Array.from(chefIds)[0];
 
     // Verify payment amount matches cart total (with small tolerance for rounding)
     const paymentAmount = paymentIntent.amount / 100; // Convert from cents
@@ -303,49 +302,65 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // Continue anyway but log the warning
     }
 
-    // Create the order using existing mutation
+    // Create separate orders for each chef
+    const createdOrderIds: Id<'orders'>[] = [];
+    let firstOrder: OrderData | null = null;
+
     type CreateOrderMutation = FunctionReference<"mutation", "public", CreateOrderArgs, Id<'orders'>>;
-    const orderId = await convex.mutation(
-      (apiMutations.orders.createOrder as unknown as CreateOrderMutation),
-      {
-        customer_id: userId,
-        chef_id,
-        order_items: orderItems,
-        total_amount: totalAmount,
-        payment_method: 'card',
-        special_instructions,
-        delivery_time,
-        delivery_address,
-      }
-    ) as Id<'orders'>;
-
-    // Link payment intent to order by updating order with payment_id
-    // Get the order we just created to get its order_id
     type ListOrdersQuery = FunctionReference<"query", "public", { customer_id: string }, OrderData[]>;
-    const allOrders = await convex.query(
-      (apiQueries.orders.listByCustomer as unknown as ListOrdersQuery),
-      { customer_id: userId }
-    ) as OrderData[];
-    const order = allOrders.find((o: OrderData) => o._id === orderId);
+    type MarkPaidMutation = FunctionReference<"mutation", "public", MarkPaidArgs, void>;
 
-    if (order && order.order_id) {
-      // Update order with payment_id and mark as paid
-      try {
-        type MarkPaidMutation = FunctionReference<"mutation", "public", MarkPaidArgs, void>;
-        await convex.mutation(
-          (apiMutations.orders.markPaid as unknown as MarkPaidMutation),
-          {
-            order_id: order.order_id,
-            paymentIntentId: payment_intent_id,
-          }
-        );
-      } catch (error) {
-        logger.warn('Could not link payment intent to order:', error);
-        // Continue - order is created, just payment link failed
+    for (const [chefId, orderItems] of itemsByChef.entries()) {
+      // Calculate total for this chef's items
+      const chefTotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      // Create the order using existing mutation
+      const orderId = await convex.mutation(
+        (apiMutations.orders.createOrder as unknown as CreateOrderMutation),
+        {
+          customer_id: userId,
+          chef_id: chefId,
+          order_items: orderItems,
+          total_amount: chefTotal,
+          payment_method: 'card',
+          special_instructions,
+          delivery_time,
+          delivery_address,
+        }
+      ) as Id<'orders'>;
+
+      createdOrderIds.push(orderId);
+
+      // Link payment intent to order by updating order with payment_id
+      // Get the order we just created to get its order_id
+      const allOrders = await convex.query(
+        (apiQueries.orders.listByCustomer as unknown as ListOrdersQuery),
+        { customer_id: userId }
+      ) as OrderData[];
+      const order = allOrders.find((o: OrderData) => o._id === orderId);
+
+      if (order && order.order_id) {
+        // Update order with payment_id and mark as paid
+        try {
+          await convex.mutation(
+            (apiMutations.orders.markPaid as unknown as MarkPaidMutation),
+            {
+              order_id: order.order_id,
+              paymentIntentId: payment_intent_id,
+            }
+          );
+        } catch (error) {
+          logger.warn('Could not link payment intent to order:', error);
+          // Continue - order is created, just payment link failed
+        }
+      }
+
+      if (!firstOrder) {
+        firstOrder = order || null;
       }
     }
 
-    // Clear cart after order creation
+    // Clear cart after all orders are created
     try {
       type ClearCartMutation = FunctionReference<"mutation", "public", ClearCartArgs, void>;
       await convex.mutation(
@@ -354,34 +369,50 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       );
     } catch (error) {
       logger.warn('Could not clear cart after order creation:', error);
-      // Continue - order is created, cart clearing can be retried
+      // Continue - orders are created, cart clearing can be retried
     }
 
-    // Get final order details
+    // Get final order details for the first order
     const finalOrders = await convex.query(
       (apiQueries.orders.listByCustomer as unknown as ListOrdersQuery),
       { customer_id: userId }
     ) as OrderData[];
-    const finalOrder = finalOrders.find((o: OrderData) => o._id === orderId) || order;
+    const finalOrder = firstOrder 
+      ? finalOrders.find((o: OrderData) => o._id === firstOrder!._id) || firstOrder
+      : null;
+
+    if (!finalOrder && createdOrderIds.length > 0) {
+      // Fallback: create a basic order object from the first order ID
+      const firstOrderId = createdOrderIds[0];
+      const firstChefId = Array.from(itemsByChef.keys())[0];
+      const firstOrderItems = itemsByChef.get(firstChefId) || [];
+      const firstChefTotal = firstOrderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      return ResponseFactory.success({
+        success: true,
+        order_id: firstOrderId,
+        order: {
+          _id: firstOrderId,
+          customer_id: userId,
+          chef_id: firstChefId,
+          order_items: firstOrderItems,
+          total_amount: firstChefTotal,
+          payment_method: 'card',
+          special_instructions,
+          delivery_time,
+          delivery_address,
+          order_status: 'pending',
+          payment_status: 'paid',
+          payment_id: payment_intent_id,
+        },
+      }, `Order${createdOrderIds.length > 1 ? 's' : ''} created successfully from cart`);
+    }
 
     return ResponseFactory.success({
       success: true,
-      order_id: finalOrder?.order_id || orderId,
-      order: finalOrder || {
-        _id: orderId,
-        customer_id: userId,
-        chef_id,
-        order_items: orderItems,
-        total_amount: totalAmount,
-        payment_method: 'card',
-        special_instructions,
-        delivery_time,
-        delivery_address,
-        order_status: 'pending',
-        payment_status: 'paid',
-        payment_id: payment_intent_id,
-      },
-    }, 'Order created successfully from cart');
+      order_id: finalOrder?.order_id || createdOrderIds[0],
+      order: finalOrder,
+    }, `Order${createdOrderIds.length > 1 ? 's' : ''} created successfully from cart`);
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);

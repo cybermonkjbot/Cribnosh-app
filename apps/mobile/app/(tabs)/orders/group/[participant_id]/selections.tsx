@@ -98,7 +98,6 @@ export default function ParticipantSelectionsScreen() {
           <Avatar
             source={participant.avatar_url ? { uri: participant.avatar_url } : undefined}
             size="lg"
-            initials={participant.user_initials || participant.user_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
           />
           <Text style={styles.participantName}>{displayName}</Text>
           <Text style={styles.statusText}>

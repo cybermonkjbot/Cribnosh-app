@@ -31,6 +31,9 @@
       "channel": "production",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "NODE_ENV": "production"
       }
     }
   },
@@ -39,17 +42,6 @@
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json"
       }
-    }
-  },
-  "update": {
-    "development": {
-      "channel": "development"
-    },
-    "preview": {
-      "channel": "preview"
-    },
-    "production": {
-      "channel": "production"
     }
   }
 }

@@ -2,6 +2,22 @@
 
 This document outlines how Stripe credentials are configured across the Cribnosh application.
 
+## ⚠️ IMPORTANT: Hardcoded Test Keys
+
+**TEMPORARY FALLBACK KEYS ARE HARDCODED - REMOVE BEFORE PRODUCTION**
+
+Test Stripe keys have been hardcoded as fallbacks in the following files:
+- `apps/mobile/constants/api.ts` - Publishable key fallback
+- `packages/convex/actions/payments.ts` - Secret key fallback
+
+**These are temporary test keys for development and MUST be removed before production deployment.**
+
+To remove:
+1. Remove the hardcoded fallback values from both files
+2. Ensure environment variables are properly set:
+   - `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` in `apps/mobile/.env`
+   - `STRIPE_SECRET_KEY` in Convex environment variables
+
 ## Overview
 
 Stripe credentials are required in three places:

@@ -1,5 +1,13 @@
 # Mobile App Environment Variables
 
+## ⚠️ IMPORTANT: Hardcoded Test Keys
+
+**TEMPORARY FALLBACK KEYS ARE HARDCODED - REMOVE BEFORE PRODUCTION**
+
+A test Stripe publishable key has been hardcoded as a fallback in `apps/mobile/constants/api.ts`. This is a temporary measure for development and **MUST be removed before production deployment**.
+
+See `STRIPE_CONFIGURATION.md` in the root directory for details on removing hardcoded keys.
+
 ## Required Environment Variables
 
 The following environment variables should be set in your `.env` file in the `apps/mobile/` directory.

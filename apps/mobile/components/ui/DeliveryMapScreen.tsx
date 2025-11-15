@@ -1,10 +1,11 @@
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Feather } from '@expo/vector-icons';
 import { MapPin } from 'lucide-react-native';
-import React, { useEffect, useState, useCallback } from 'react';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import React, { useEffect, useState } from 'react';
+import { getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useQuery } from 'convex/react';
 import { ActivityIndicator, Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapView } from './MapView';
@@ -27,84 +28,36 @@ const defaultDestinationLocation = {
 
 export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScreenProps) {
   const { isAuthenticated } = useAuthContext();
-  const [orderStatusData, setOrderStatusData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Fetch order status from Convex
-  const fetchOrderStatus = useCallback(async () => {
-    if (!orderId || !isAuthenticated) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-
-      if (!sessionToken) {
-        setError(new Error('Not authenticated'));
-        return;
-      }
-
-      const result = await convex.action(api.actions.orders.customerGetOrderStatus, {
-        sessionToken,
-        order_id: orderId,
-      });
-
-      if (result.success === false) {
-        setError(new Error(result.error || 'Failed to fetch order status'));
-        return;
-      }
-
-      // Transform order to match expected format
-      const order = result.order;
-      if (order) {
-        setOrderStatusData({
-          data: {
-            order_id: order._id || order.id,
-            current_status: order.order_status || order.status,
-            delivery_person: order.delivery_person || order.deliveryPerson,
-            status_updates: order.status_updates || order.statusUpdates || [],
-            order: order,
-          },
-        });
-      }
-    } catch (error: any) {
-      setError(error);
-      console.error('Error fetching order status:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [orderId, isAuthenticated]);
-
-  // Fetch on mount and set up polling
+  // Load session token for reactive queries
   useEffect(() => {
-    if (orderId && isAuthenticated) {
-      fetchOrderStatus();
-      // Poll every 30 seconds for active orders
-      const interval = setInterval(() => {
-        fetchOrderStatus();
-      }, 30000);
-      return () => clearInterval(interval);
+    const loadToken = async () => {
+      const token = await getSessionToken();
+      setSessionToken(token);
+    };
+    if (isAuthenticated) {
+      loadToken();
     }
-  }, [orderId, isAuthenticated, fetchOrderStatus]);
+  }, [isAuthenticated]);
 
-  // Get delivery person info and location from order status
-  const deliveryPerson = orderStatusData?.data?.delivery_person || 
-                         (orderStatusData?.data?.order as any)?.delivery_person;
+  // Use reactive Convex query for order data - same as order-details screen
+  const orderData = useQuery(
+    api.queries.orders.getEnrichedOrderBySessionToken,
+    sessionToken && orderId ? { sessionToken, order_id: orderId } : "skip"
+  );
+
+  const isLoading = orderData === undefined && sessionToken !== null;
+  const hasError = orderData === null && sessionToken !== null && !isLoading;
+
+  // Get delivery person info and location from order data
+  const deliveryPerson = (orderData as any)?.delivery_person;
   
-  // Get delivery location from order status updates
-  const latestStatusUpdate = orderStatusData?.data?.status_updates?.[
-    (orderStatusData?.data?.status_updates?.length || 1) - 1
-  ];
-  
-  const deliveryLocation = latestStatusUpdate?.location || 
-                           (deliveryPerson as any)?.location ||
-                           defaultDeliveryPersonLocation;
+  // Get delivery location from order data or use default
+  const deliveryLocation = (deliveryPerson as any)?.location || defaultDeliveryPersonLocation;
 
   // Get destination from order delivery address
-  const order = orderStatusData?.data?.order as any;
-  const deliveryAddress = order?.delivery_address || order?.deliveryAddress;
+  const deliveryAddress = (orderData as any)?.delivery_address;
   
   // For now, use default destination (would need geocoding to convert address to coordinates)
   const destinationLocation = defaultDestinationLocation;
@@ -117,8 +70,20 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
 
   // Get estimated arrival time
   const getEstimatedTime = (): string => {
-    if (orderStatusData?.data?.estimated_delivery_time) {
-      return orderStatusData.data.estimated_delivery_time;
+    if ((orderData as any)?.estimated_delivery_time) {
+      const deliveryTime = new Date((orderData as any).estimated_delivery_time);
+      const now = new Date();
+      const diffMinutes = Math.ceil((deliveryTime.getTime() - now.getTime()) / (1000 * 60));
+      
+      if (diffMinutes <= 0) {
+        return 'Arriving now';
+      } else if (diffMinutes < 60) {
+        return `Arriving in ${diffMinutes} minutes`;
+      } else {
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        return `Arriving in ${hours}h ${minutes}m`;
+      }
     }
     return '15 - 45 minutes'; // Default fallback
   };
@@ -160,12 +125,12 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
       </View>
 
       {/* Map View */}
-      {isLoading && !orderStatusData ? (
+      {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#E6FFE8" />
           <Text style={styles.loadingText}>Loading delivery status...</Text>
         </View>
-      ) : (error && !orderStatusData && !isLoading) || (!orderId && !isLoading) ? (
+      ) : hasError || !orderId ? (
         <View style={styles.emptyStateContainer}>
           <EmptyState
             title="Order not found"

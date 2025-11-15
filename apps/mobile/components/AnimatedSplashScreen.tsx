@@ -1,14 +1,13 @@
 import React, { useEffect } from "react";
 import { Dimensions, StyleSheet } from "react-native";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useAnimatedReaction,
-  useDerivedValue,
   interpolate,
-  withTiming,
-  withSpring,
   runOnJS,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming
 } from "react-native-reanimated";
 import { CribNoshLogo } from "./ui/CribNoshLogo";
 

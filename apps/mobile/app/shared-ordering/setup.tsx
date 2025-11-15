@@ -1,12 +1,11 @@
 import { SharedOrderingHeader } from "@/components/ui/SharedOrderingHeader";
-import {
-  useCreateCustomOrderMutation,
-  useGetCustomOrdersQuery,
-} from "@/store/customerApi";
 import { CustomOrder } from "@/types/customer";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from "@/contexts/AuthContext";
 import {
   StyleSheet,
   Text,
@@ -20,20 +19,85 @@ import { useToast } from "../../lib/ToastContext";
 export default function SharedOrderingSetup() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { isAuthenticated } = useAuthContext();
   const [amount, setAmount] = useState("");
   const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [customOrdersData, setCustomOrdersData] = useState<any>(null);
+  const [customOrdersError, setCustomOrdersError] = useState<any>(null);
 
-  // Fetch existing custom orders for fallback data
-  const { data: customOrdersData, error: customOrdersError } =
-    useGetCustomOrdersQuery(
-      { page: 1, limit: 10 },
-      {
-        skip: false, // Always fetch to check if we have data
+  // Fetch existing custom orders from Convex
+  const fetchCustomOrders = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
       }
-    );
 
-  const [createCustomOrder] = useCreateCustomOrderMutation();
+      const result = await convex.action(api.actions.orders.customerGetCustomOrders, {
+        sessionToken,
+        page: 1,
+        limit: 10,
+      });
+
+      if (result.success === false) {
+        setCustomOrdersError(new Error(result.error || 'Failed to get custom orders'));
+        return;
+      }
+
+      // Transform to match expected format
+      setCustomOrdersData({
+        data: result.custom_orders,
+      });
+    } catch (error: any) {
+      console.error('Error fetching custom orders:', error);
+      setCustomOrdersError(error);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCustomOrders();
+    }
+  }, [isAuthenticated, fetchCustomOrders]);
+
+  // Create custom order function
+  const createCustomOrder = useCallback(async (data: {
+    requirements: string;
+    serving_size: number;
+    budget?: number;
+    desired_delivery_time: string;
+    dietary_restrictions?: string;
+  }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.orders.customerCreateCustomOrder, {
+      sessionToken,
+      requirements: data.requirements,
+      serving_size: data.serving_size,
+      desired_delivery_time: data.desired_delivery_time,
+      budget: data.budget,
+      dietary_restrictions: data.dietary_restrictions,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to create custom order');
+    }
+
+    // Transform to match expected format
+    return {
+      data: result.custom_order,
+    };
+  }, []);
 
   const presetAmounts = ["10", "20", "50", "Unlimited"];
 
@@ -60,14 +124,14 @@ export default function SharedOrderingSetup() {
     try {
       setIsCreatingOrder(true);
 
-      // Create custom order via API - dietary restrictions will be added in meal-options screen
+      // Create custom order via Convex - dietary restrictions will be added in meal-options screen
       // This is a two-step flow: setup → meal-options, so we create order first, then update with dietary restrictions
       const customOrderData = await createCustomOrder({
         requirements: `Shared ordering for £${amount || "unlimited"}`,
         serving_size: parseInt(amount) || 0,
         budget: amount === "Unlimited" ? undefined : parseFloat(amount) * 100, // Convert to pence
         desired_delivery_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Default to tomorrow
-      }).unwrap();
+      });
 
       showToast({
         type: "success",

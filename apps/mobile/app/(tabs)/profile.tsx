@@ -1,12 +1,16 @@
+import { api } from '@/convex/_generated/api';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  Extrapolate,
+  interpolate,
   runOnJS,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withSpring,
@@ -28,18 +32,18 @@ import {
 } from '../../components/ui/ProfileScreenSkeletons';
 import { QueryStateWrapper } from '../../components/ui/QueryStateWrapper';
 import { useAuthContext } from '../../contexts/AuthContext';
-import {
-  useGetForkPrintScoreQuery,
-} from '../../store/customerApi';
 import { useAnalytics } from '../../hooks/useAnalytics';
+import { getSessionToken } from '../../lib/convexClient';
+import { useQuery } from 'convex/react';
 import { getAbsoluteImageUrl } from '../../utils/imageUrl';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
-import { getConvexClient, getSessionToken } from '../../lib/convexClient';
-import { api } from '@/convex/_generated/api';
 
 // Constants moved outside component to prevent recreation
-const SHEET_SNAP_POINT = 200; // Distance to pull up to open sheet
-const SHEET_OPEN_HEIGHT = 400; // Height when sheet is fully open
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SHEET_COLLAPSED_HEIGHT = 30; // Always visible collapsed height (shorter initial state)
+const SHEET_EXPANDED_HEIGHT = Math.min(SCREEN_HEIGHT * 0.85, 600); // Max 85% of screen or 600px
+const SHEET_SNAP_POINT = 200; // Distance to pull up to expand sheet
+const VELOCITY_THRESHOLD = 500;
 
 // ForkPrint PNG component - memoized to prevent recreation
 const ForkPrintImage = React.memo(() => {
@@ -85,50 +89,63 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Profile state
-  const [profileData, setProfileData] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
-
-  // Fetch profile data from Convex
-  const fetchProfile = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      setProfileLoading(true);
-      const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-
-      if (!sessionToken) {
-        return;
+  // Get session token for reactive queries
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const loadToken = async () => {
+      if (isAuthenticated) {
+        const token = await getSessionToken();
+        setSessionToken(token);
+      } else {
+        setSessionToken(null);
       }
-
-      const result = await convex.action(api.actions.users.customerGetProfile, {
-        sessionToken,
-      });
-
-      if (result.success === false) {
-        return;
-      }
-
-      // Transform to match expected format
-      setProfileData({
-        data: {
-          ...result.user,
-        },
-      });
-    } catch (error: any) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setProfileLoading(false);
-    }
+    };
+    loadToken();
   }, [isAuthenticated]);
 
-  // Fetch profile on mount and when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProfile();
-    }
-  }, [isAuthenticated, fetchProfile]);
+  // Get user by session token (reactive query)
+  const user = useQuery(
+    api.queries.users.getUserBySessionToken,
+    sessionToken ? { sessionToken } : "skip"
+  );
+
+  // Get user profile (reactive query)
+  const profileDataRaw = useQuery(
+    api.queries.users.getUserProfile,
+    user?._id && sessionToken ? { userId: user._id, sessionToken } : "skip"
+  );
+
+  // Transform profile data to match expected format
+  const profileData = useMemo(() => {
+    if (!profileDataRaw) return null;
+    return {
+      data: {
+        ...profileDataRaw,
+      },
+    };
+  }, [profileDataRaw]);
+
+  const profileLoading = user === undefined || (user && profileDataRaw === undefined);
+
+  // Get ForkPrint score (reactive query)
+  const forkPrintDataRaw = useQuery(
+    api.queries.forkPrint.getScoreByUserId,
+    user?._id ? { userId: user._id } : "skip"
+  );
+
+  // Transform ForkPrint data to match expected format
+  const forkPrintData = useMemo(() => {
+    if (!forkPrintDataRaw) return null;
+    return {
+      data: {
+        data: forkPrintDataRaw,
+      },
+    };
+  }, [forkPrintDataRaw]);
+
+  const forkPrintLoading = user === undefined || (user && forkPrintDataRaw === undefined);
+  const forkPrintError = user && forkPrintDataRaw === null ? new Error('Failed to get ForkPrint score') : null;
 
   // Get profile picture URL, converting relative URLs to absolute
   // Check multiple possible locations for the picture field
@@ -152,14 +169,6 @@ export default function ProfileScreen() {
     return undefined;
   }, [profileData?.data]);
 
-  const {
-    data: forkPrintData,
-    isLoading: forkPrintLoading,
-    error: forkPrintError,
-    refetch: refetchForkPrint,
-  } = useGetForkPrintScoreQuery(undefined, {
-    skip: !isAuthenticated,
-  });
 
   const { 
     getRewardsPoints, 
@@ -334,9 +343,10 @@ export default function ProfileScreen() {
   const braggingCardsTranslateY = useSharedValue(50);
   const braggingCardsOpacity = useSharedValue(0);
   
-  // Sheet animation values
-  const sheetTranslateY = useSharedValue(0);
-  const sheetHeight = useSharedValue(0);
+  // Sheet animation values - persistent sheet using height (like BottomSearchDrawer)
+  const sheetHeight = useSharedValue(SHEET_COLLAPSED_HEIGHT); // Start collapsed (always visible)
+  const currentSnapPoint = useSharedValue<'collapsed' | 'expanded'>('collapsed');
+  const gestureStartHeight = useSharedValue(SHEET_COLLAPSED_HEIGHT);
 
   // Refs
   const scrollViewRef = useRef<Animated.ScrollView>(null);
@@ -360,27 +370,66 @@ export default function ProfileScreen() {
     transform: [{ translateY: braggingCardsTranslateY.value }],
   }));
   
-  // Sheet animated styles - simplified
+  // Sheet animated styles - height-based like BottomSearchDrawer
   const sheetAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
-    // Safeguard against invalid values
-    const safeTranslateY = isFinite(sheetTranslateY.value) ? sheetTranslateY.value : 0;
-    const safeHeight = isFinite(sheetHeight.value) && sheetHeight.value >= 0 ? sheetHeight.value : 0;
+    const safeHeight = isFinite(sheetHeight.value) && sheetHeight.value >= 0 
+      ? sheetHeight.value 
+      : SHEET_COLLAPSED_HEIGHT;
     return {
-      transform: [{ translateY: safeTranslateY }],
       height: safeHeight,
     };
   });
   
   const sheetBackgroundAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
-    const translateY = sheetTranslateY.value;
-    // Safeguard against invalid values
-    const safeTranslateY = isFinite(translateY) ? translateY : 0;
-    const progress = Math.min(Math.max(Math.abs(safeTranslateY) / SHEET_SNAP_POINT, 0), 1);
-    const opacity = Math.min(Math.max(0.1 + (progress * 0.8), 0.1), 0.9);
+    const height = sheetHeight.value;
+    const safeHeight = isFinite(height) && height >= 0 ? height : SHEET_COLLAPSED_HEIGHT;
+    // Calculate progress from collapsed to expanded
+    const progress = (safeHeight - SHEET_COLLAPSED_HEIGHT) / (SHEET_EXPANDED_HEIGHT - SHEET_COLLAPSED_HEIGHT);
+    const clampedProgress = Math.min(Math.max(progress, 0), 1);
+    const opacity = 0.1 + (clampedProgress * 0.8);
     return {
       backgroundColor: `rgba(255, 255, 255, ${opacity})`,
+    };
+  });
+
+  // Determine if sheet is collapsed (for conditional rendering)
+  const isCollapsed = useDerivedValue(() => {
+    return sheetHeight.value <= SHEET_COLLAPSED_HEIGHT + 20;
+  });
+
+  // Handlebar style - always visible
+  const handlebarStyle = useAnimatedStyle(() => {
+    'worklet';
+    const width = interpolate(
+      sheetHeight.value,
+      [SHEET_COLLAPSED_HEIGHT, SHEET_EXPANDED_HEIGHT],
+      [36, 48],
+      Extrapolate.CLAMP
+    );
+    return {
+      width,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    };
+  });
+
+  // Header opacity - fade in when expanded
+  const headerOpacityStyle = useAnimatedStyle(() => {
+    'worklet';
+    const progress = (sheetHeight.value - SHEET_COLLAPSED_HEIGHT) / (SHEET_EXPANDED_HEIGHT - SHEET_COLLAPSED_HEIGHT);
+    const clampedProgress = Math.min(Math.max(progress, 0), 1);
+    const opacity = interpolate(
+      clampedProgress,
+      [0, 0.3],
+      [0, 1],
+      Extrapolate.CLAMP
+    );
+    return {
+      opacity,
+      height: opacity > 0 ? 'auto' : 0,
     };
   });
 
@@ -388,34 +437,71 @@ export default function ProfileScreen() {
 
   // Safe scroll to function - removed unused function
 
-  // Sheet gesture handler - simplified
-  const springConfig = { damping: 20, stiffness: 200 };
+  // Sheet gesture handler - height-based like BottomSearchDrawer
+  const springConfig = { damping: 50, stiffness: 400, mass: 0.8 };
   
   const sheetGesture = Gesture.Pan()
+    .onStart(() => {
+      'worklet';
+      // Store initial height when gesture starts
+      gestureStartHeight.value = sheetHeight.value;
+    })
     .onUpdate((event) => {
       'worklet';
       // Safeguard against invalid translation values
+      // event.translationY: negative = dragging up (expand), positive = dragging down (collapse)
+      // Dragging up decreases height (expands), dragging down increases height (collapses)
       const safeTranslationY = isFinite(event.translationY) ? event.translationY : 0;
-      const newTranslateY = Math.max(-SHEET_OPEN_HEIGHT, Math.min(0, safeTranslationY));
-      sheetTranslateY.value = newTranslateY;
-      const pullDistance = Math.abs(newTranslateY);
-      const progress = Math.min(Math.max(pullDistance / SHEET_SNAP_POINT, 0), 1);
-      sheetHeight.value = progress * SHEET_OPEN_HEIGHT;
+      const startHeight = gestureStartHeight.value;
+      // Dragging up (negative translationY) expands sheet (decreases height from start)
+      // Dragging down (positive translationY) collapses sheet (increases height toward collapsed)
+      const heightDelta = -safeTranslationY; // Negative translation = expand
+      const newHeight = Math.max(
+        SHEET_COLLAPSED_HEIGHT, 
+        Math.min(SHEET_EXPANDED_HEIGHT, startHeight + heightDelta)
+      );
+      sheetHeight.value = newHeight;
     })
     .onEnd((event) => {
       'worklet';
       // Safeguard against invalid velocity values
       const safeVelocityY = isFinite(event.velocityY) ? event.velocityY : 0;
-      const currentTranslateY = isFinite(sheetTranslateY.value) ? sheetTranslateY.value : 0;
-      const shouldOpen = currentTranslateY < -SHEET_SNAP_POINT || safeVelocityY < -500;
+      const currentHeight = isFinite(sheetHeight.value) ? sheetHeight.value : SHEET_COLLAPSED_HEIGHT;
+      const heightDelta = currentHeight - SHEET_COLLAPSED_HEIGHT;
+      const hasSignificantVelocity = Math.abs(safeVelocityY) > VELOCITY_THRESHOLD;
       
-      if (shouldOpen) {
-        sheetTranslateY.value = withSpring(-SHEET_OPEN_HEIGHT, springConfig);
-        sheetHeight.value = withSpring(SHEET_OPEN_HEIGHT, springConfig);
-        runOnJS(safeHapticFeedback)(Haptics.ImpactFeedbackStyle.Medium);
+      // Determine target snap point
+      let targetHeight: number;
+      let targetSnap: 'collapsed' | 'expanded';
+      
+      if (hasSignificantVelocity) {
+        // Use velocity to determine direction
+        if (safeVelocityY < 0) {
+          // Swiping up - expand
+          targetHeight = SHEET_EXPANDED_HEIGHT;
+          targetSnap = 'expanded';
       } else {
-        sheetTranslateY.value = withSpring(0, springConfig);
-        sheetHeight.value = withSpring(0, springConfig);
+          // Swiping down - collapse
+          targetHeight = SHEET_COLLAPSED_HEIGHT;
+          targetSnap = 'collapsed';
+        }
+      } else {
+        // Use position to determine snap point
+        const midPoint = (SHEET_COLLAPSED_HEIGHT + SHEET_EXPANDED_HEIGHT) / 2;
+        if (currentHeight > midPoint || heightDelta > SHEET_SNAP_POINT) {
+          targetHeight = SHEET_EXPANDED_HEIGHT;
+          targetSnap = 'expanded';
+        } else {
+          targetHeight = SHEET_COLLAPSED_HEIGHT;
+          targetSnap = 'collapsed';
+        }
+      }
+      
+      currentSnapPoint.value = targetSnap;
+      sheetHeight.value = withSpring(targetHeight, springConfig);
+      
+      if (targetSnap === 'expanded') {
+        runOnJS(safeHapticFeedback)(Haptics.ImpactFeedbackStyle.Medium);
       }
   });
 
@@ -545,7 +631,14 @@ export default function ProfileScreen() {
                   skeleton={<ForkPrintScoreSkeleton />}
                   errorTitle="Unable to Load ForkPrint Score"
                   errorSubtitle="Failed to load your ForkPrint score. Please try again."
-                  onRetry={() => refetchForkPrint()}
+                  onRetry={() => {
+                    // Query will automatically refetch when dependencies change
+                    // Force a refresh by navigating away and back, or just reload
+                    if (user) {
+                      // The useQuery hook will automatically refetch
+                      // This is a no-op since convex queries are reactive
+                    }
+                  }}
                 >
                   {(() => {
                     const scoreData = extractForkPrintScoreData(forkPrintData);
@@ -626,15 +719,25 @@ export default function ProfileScreen() {
                   </View>
                 </Animated.View>
 
-            {/* Bragging Cards Section - Sheet */}
+            {/* Extra bottom padding for proper scrolling */}
+            <View style={styles.bottomPadding} />
+          </Animated.ScrollView>
+
+          {/* Bragging Cards Section - Sheet (Positioned absolutely at bottom) */}
             <GestureDetector gesture={sheetGesture}>
-              <Animated.View style={[braggingCardsAnimatedStyle, sheetAnimatedStyle]}>
+            <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
                 <Animated.View style={[styles.sheetContent, sheetBackgroundAnimatedStyle]}>
                   {!isAuthenticated ? (
                     <BraggingCardsSkeleton />
                   ) : (
                     <>
-                      <View style={styles.sheetHeader}>
+                    {/* Handlebar - Always visible */}
+                    <View style={styles.handlebarContainer}>
+                      <Animated.View style={handlebarStyle} />
+                    </View>
+
+                    {/* Header - Only visible when expanded */}
+                    <Animated.View style={[styles.sheetHeader, headerOpacityStyle]}>
                         <Text style={styles.sheetTitle}>
                           Your Food Stats
                         </Text>
@@ -643,8 +746,14 @@ export default function ProfileScreen() {
                             Refresh
                           </Text>
                         </TouchableOpacity>
-                      </View>
+                    </Animated.View>
                       
+                    <ScrollView
+                      style={styles.sheetScrollView}
+                      contentContainerStyle={styles.sheetScrollContent}
+                      showsVerticalScrollIndicator={false}
+                      nestedScrollEnabled={true}
+                    >
                       <QueryStateWrapper
                         isLoading={weeklySummaryLoading}
                         error={weeklySummaryError}
@@ -672,15 +781,12 @@ export default function ProfileScreen() {
                             onPress={handleCuisinePress}
                           />
                       </QueryStateWrapper>
+                    </ScrollView>
                     </>
                   )}
                 </Animated.View>
               </Animated.View>
             </GestureDetector>
-            
-            {/* Extra bottom padding for proper scrolling */}
-            <View style={styles.bottomPadding} />
-          </Animated.ScrollView>
 
           {/* Not Logged In Indicator - Pill shaped at bottom center */}
           {!isAuthenticated && !authLoading && (
@@ -788,13 +894,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 20,
   },
+  sheetContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 20,
+    overflow: 'hidden',
+  },
   sheetContent: {
     marginHorizontal: 0,
-    marginBottom: 40,
-    marginTop: 20,
-    borderRadius: 16,
+    marginBottom: 0,
+    marginTop: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 16,
-    minHeight: 200,
+    paddingTop: 12,
+    flex: 1,
+    overflow: 'hidden',
+  },
+  handlebarContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  sheetScrollView: {
+    flex: 1,
+  },
+  sheetScrollContent: {
+    paddingBottom: 20,
   },
   sheetHeader: {
     flexDirection: 'row',
@@ -806,12 +941,12 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#094327', // Cribnosh green
     fontFamily: 'Mukta',
   },
   sheetRefresh: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: '#094327', // Cribnosh green
     opacity: 0.8,
     fontFamily: 'Mukta',
   },

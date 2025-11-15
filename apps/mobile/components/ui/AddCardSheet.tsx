@@ -1,6 +1,6 @@
 import { useToast } from '@/lib/ToastContext';
 import { usePayments } from '@/hooks/usePayments';
-import { CardField, useStripe, confirmSetupIntent as confirmSetupIntentDirect } from '@stripe/stripe-react-native';
+import { CardField, useStripe } from '@stripe/stripe-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
@@ -26,7 +26,7 @@ export function AddCardSheet({
   const snapPoints = useMemo(() => ['90%'], []);
   const { showToast } = useToast();
   const stripe = useStripe();
-  const { confirmSetupIntent } = stripe || {};
+  const { confirmSetupIntent, isApplePaySupported, isGooglePaySupported } = stripe || {};
   const [isProcessing, setIsProcessing] = useState(false);
   const [setAsDefault, setSetAsDefault] = useState(false);
   const [cardDetailsComplete, setCardDetailsComplete] = useState(false);
@@ -40,6 +40,11 @@ export function AddCardSheet({
       hasConfirmSetupIntent: !!confirmSetupIntent,
       publishableKeySet: !!STRIPE_CONFIG.publishableKey,
       publishableKeyLength: STRIPE_CONFIG.publishableKey?.length || 0,
+      publishableKeyPrefix: STRIPE_CONFIG.publishableKey?.substring(0, 20) || 'MISSING',
+      isApplePaySupported,
+      isGooglePaySupported,
+      // Check if stripe object has the publishable key internally
+      stripeInitialized: stripe !== null,
     });
   }
 
@@ -72,7 +77,27 @@ export function AddCardSheet({
         message: 'Stripe is not properly configured. Please check your environment variables and restart the app.',
         duration: 5000,
       });
-      console.error('Stripe not initialized:', { stripe, confirmSetupIntent });
+      console.error('Stripe not initialized:', { 
+        stripe, 
+        confirmSetupIntent,
+        publishableKey: STRIPE_CONFIG.publishableKey ? `${STRIPE_CONFIG.publishableKey.substring(0, 20)}...` : 'MISSING',
+        publishableKeyLength: STRIPE_CONFIG.publishableKey?.length || 0,
+      });
+      return;
+    }
+
+    // Validate publishable key is set
+    if (!STRIPE_CONFIG.publishableKey || STRIPE_CONFIG.publishableKey.length === 0) {
+      showToast({
+        type: 'error',
+        title: 'Stripe Configuration Error',
+        message: 'Stripe publishable key is missing. Please check your environment variables.',
+        duration: 5000,
+      });
+      console.error('Stripe publishable key is missing:', {
+        fromEnv: !!process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+        configKey: STRIPE_CONFIG.publishableKey,
+      });
       return;
     }
 
@@ -82,31 +107,78 @@ export function AddCardSheet({
       const setupIntentResult = await createSetupIntent();
 
       if (!setupIntentResult || !setupIntentResult.success || !setupIntentResult.data?.clientSecret) {
-        throw new Error('Failed to create setup intent');
+        const errorMsg = setupIntentResult?.data?.error || 'Failed to create setup intent';
+        console.error('Setup Intent Creation Failed:', {
+          result: setupIntentResult,
+          error: errorMsg,
+        });
+        throw new Error(errorMsg);
       }
 
       const { clientSecret } = setupIntentResult.data;
 
-      // Debug: Log setup intent details
+      // Debug: Log setup intent details and verify account match
       if (__DEV__) {
+        // Extract account ID from publishable key (format: pk_test_ACCOUNTID...)
+        const publishableKeyAccountId = STRIPE_CONFIG.publishableKey?.substring(8, 24) || 'N/A';
+        // Extract account ID from client secret (format: seti_ACCOUNTID...)
+        const clientSecretAccountId = clientSecret?.substring(5, 21) || 'N/A';
+        const accountsMatch = publishableKeyAccountId === clientSecretAccountId;
+        
         console.log('Setup Intent Details:', {
           hasClientSecret: !!clientSecret,
-          clientSecretPrefix: clientSecret?.substring(0, 20) || 'N/A',
+          clientSecretPrefix: clientSecret?.substring(0, 30) || 'N/A',
+          clientSecretLength: clientSecret?.length || 0,
           publishableKeyPrefix: STRIPE_CONFIG.publishableKey?.substring(0, 20) || 'N/A',
+          publishableKeyLength: STRIPE_CONFIG.publishableKey?.length || 0,
+          publishableKeyAccountId,
+          clientSecretAccountId,
+          accountsMatch,
         });
+        
+        if (!accountsMatch) {
+          console.error('⚠️ ACCOUNT MISMATCH: Publishable key and setup intent are from different Stripe accounts!');
+          console.error('   This will cause "API key" errors. Ensure both keys are from the same account.');
+        }
+      }
+
+      // Validate clientSecret format
+      if (!clientSecret || !clientSecret.startsWith('seti_')) {
+        console.error('Invalid clientSecret format:', {
+          clientSecret: clientSecret?.substring(0, 50),
+          expectedPrefix: 'seti_',
+        });
+        throw new Error('Invalid setup intent client secret received from server');
       }
 
       // Step 2: Confirm setup intent with card details
-      // Try using the direct import first, fallback to hook method
-      const confirmFn = confirmSetupIntent || confirmSetupIntentDirect;
-      const { error: stripeError, setupIntent } = await confirmFn(
+      // Must use the hook version to ensure publishable key is available
+      if (!confirmSetupIntent) {
+        throw new Error('Stripe confirmSetupIntent is not available. Please ensure StripeProvider is properly configured with a valid publishable key.');
+      }
+      
+      if (__DEV__) {
+        console.log('Confirming Setup Intent:', {
+          hasConfirmSetupIntent: !!confirmSetupIntent,
+          clientSecretPrefix: clientSecret.substring(0, 20),
+          publishableKeySet: !!STRIPE_CONFIG.publishableKey,
+        });
+      }
+      
+      const { error: stripeError, setupIntent } = await confirmSetupIntent(
         clientSecret,
         {
-          type: 'Card', // Use 'type' instead of 'paymentMethodType' per Stripe docs
+          paymentMethodType: 'Card' as const,
         }
       );
 
       if (stripeError) {
+        console.error('Stripe Confirmation Error:', {
+          error: stripeError,
+          code: stripeError.code,
+          message: stripeError.message,
+          type: stripeError.type,
+        });
         throw new Error(stripeError.message || 'Failed to confirm setup intent');
       }
 

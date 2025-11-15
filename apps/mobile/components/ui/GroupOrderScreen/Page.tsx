@@ -9,8 +9,10 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGetUserConnectionsQuery } from '@/store/customerApi';
 import { CartButton } from '../CartButton';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
+import { useEffect, useCallback } from 'react';
 import { Input } from '../Input';
 
 type GroupOrderBottomSheetProps = {
@@ -39,14 +41,48 @@ export default function GroupOrderBottomSheet({
   const snapPoints = useMemo(() => ['25%', '95%', '100%'], []);
   const router = useRouter();
   const [isSheetOpen, setIsSheetOpen] = React.useState(isOpen);
+  const [connectionsData, setConnectionsData] = React.useState<any>(null);
+  const [isLoadingConnections, setIsLoadingConnections] = React.useState(false);
 
-  // Fetch real connections/friends from API if no props provided
-  const {
-    data: connectionsData,
-    isLoading: isLoadingConnections,
-  } = useGetUserConnectionsQuery(undefined, {
-    skip: !isAuthenticated || !!propGroupMembers,
-  });
+  // Fetch real connections/friends from Convex if no props provided
+  const fetchConnections = useCallback(async () => {
+    if (!isAuthenticated || propGroupMembers) return;
+    
+    try {
+      setIsLoadingConnections(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetConnections, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        console.error('Error fetching connections:', result.error);
+        return;
+      }
+
+      // Transform to match expected format
+      setConnectionsData({
+        success: true,
+        data: result.connections || [],
+      });
+    } catch (error: any) {
+      console.error('Error fetching connections:', error);
+    } finally {
+      setIsLoadingConnections(false);
+    }
+  }, [isAuthenticated, propGroupMembers]);
+
+  useEffect(() => {
+    if (isAuthenticated && !propGroupMembers) {
+      fetchConnections();
+    }
+  }, [isAuthenticated, propGroupMembers, fetchConnections]);
 
   // Use provided group members or fetch from API, or empty array
   const groupMembers = useMemo(() => {

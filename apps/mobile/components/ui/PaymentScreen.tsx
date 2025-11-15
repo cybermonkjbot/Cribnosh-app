@@ -6,7 +6,7 @@ import { useRegionAvailability } from "@/hooks/useRegionAvailability";
 import { startOrderLiveActivity } from "@/lib/live-activity/orderLiveActivity";
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { RegionAvailabilityModal } from "./RegionAvailabilityModal";
+import { MultipleChefsWarningModal } from "./MultipleChefsWarningModal";
 
 interface PaymentScreenProps {
   orderTotal?: number;
@@ -39,10 +40,12 @@ export default function PaymentScreen({
   onPaymentSuccess,
 }: PaymentScreenProps) {
   const [paymentStatus, setPaymentStatus] = useState<
-    "processing" | "success" | "error"
-  >("processing");
+    "processing" | "success" | "error" | "pending_confirmation"
+  >("pending_confirmation");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showRegionModal, setShowRegionModal] = useState(false);
+  const [showMultipleChefsModal, setShowMultipleChefsModal] = useState(false);
+  const [hasCheckedMultipleChefs, setHasCheckedMultipleChefs] = useState(false);
 
   // Use hooks instead of RTK Query
   const { getCart } = useCart();
@@ -87,7 +90,23 @@ export default function PaymentScreen({
   // Convert to pounds for display
   const displayTotal = calculatedTotal / 100;
 
-  const processPayment = useCallback(async () => {
+  // Check if cart has items from multiple chefs
+  const hasMultipleChefs = useMemo(() => {
+    if (!cartData?.data?.items || cartData.data.items.length === 0) {
+      return false;
+    }
+    
+    const chefIds = new Set<string>();
+    for (const item of cartData.data.items) {
+      if (item.chef_id) {
+        chefIds.add(item.chef_id);
+      }
+    }
+    
+    return chefIds.size > 1;
+  }, [cartData]);
+
+  const processPaymentInternal = useCallback(async () => {
     try {
       setPaymentStatus("processing");
       setErrorMessage(null);
@@ -147,7 +166,7 @@ export default function PaymentScreen({
       });
 
       if (!orderResult || !orderResult.order_id) {
-        throw new Error("Failed to create order");
+        throw new Error("Failed to create order: Order result is invalid");
       }
 
       const orderId = orderResult.order_id;
@@ -206,9 +225,34 @@ export default function PaymentScreen({
     getCart,
   ]);
 
+  // Check for multiple chefs before processing payment
   useEffect(() => {
-    processPayment();
-  }, [processPayment]);
+    if (hasCheckedMultipleChefs || paymentStatus !== "pending_confirmation") {
+      return;
+    }
+
+    if (hasMultipleChefs && cartData?.data?.items) {
+      setShowMultipleChefsModal(true);
+      setHasCheckedMultipleChefs(true);
+    } else if (cartData?.data?.items) {
+      // No multiple chefs, proceed directly
+      setHasCheckedMultipleChefs(true);
+      setPaymentStatus("processing");
+      processPaymentInternal();
+    }
+  }, [hasMultipleChefs, cartData, hasCheckedMultipleChefs, paymentStatus, processPaymentInternal]);
+
+  const handleConfirmMultipleChefs = () => {
+    setShowMultipleChefsModal(false);
+    setPaymentStatus("processing");
+    processPaymentInternal();
+  };
+
+  const handleCancelMultipleChefs = () => {
+    setShowMultipleChefsModal(false);
+    setPaymentStatus("error");
+    setErrorMessage("Order cancelled. Please review your cart.");
+  };
 
   const handleBack = () => {
     router.back();
@@ -228,12 +272,14 @@ export default function PaymentScreen({
 
         {/* Main Content */}
         <View style={styles.mainContent}>
-          {(paymentStatus === "processing" || isCheckingRegion) && (
+          {(paymentStatus === "processing" || paymentStatus === "pending_confirmation" || isCheckingRegion) && (
             <>
               <ActivityIndicator size="large" color="#10B981" />
               <Text style={styles.statusText}>
                 {isCheckingRegion
                   ? "Checking delivery availability..."
+                  : paymentStatus === "pending_confirmation"
+                  ? "Preparing your order..."
                   : "Processing Payment"}
               </Text>
               <Text style={styles.amountValue}>£{displayTotal.toFixed(2)}</Text>
@@ -264,6 +310,13 @@ export default function PaymentScreen({
       <RegionAvailabilityModal
         isVisible={showRegionModal}
         onClose={() => setShowRegionModal(false)}
+      />
+
+      {/* Multiple Chefs Warning Modal */}
+      <MultipleChefsWarningModal
+        isVisible={showMultipleChefsModal}
+        onConfirm={handleConfirmMultipleChefs}
+        onCancel={handleCancelMultipleChefs}
       />
     </SafeAreaView>
   );

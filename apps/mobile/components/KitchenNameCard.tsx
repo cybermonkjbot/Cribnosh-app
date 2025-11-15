@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { Avatar } from './ui/Avatar';
 import { TiltCard } from './ui/TiltCard';
 
 interface KitchenNameCardProps {
@@ -11,39 +10,16 @@ interface KitchenNameCardProps {
   tiltEnabled?: boolean;
 }
 
-// Helper function to validate URI
-const isValidUri = (uri: any): boolean => {
-  if (!uri) return false;
-  if (typeof uri === 'string') return uri.trim().length > 0;
-  if (typeof uri === 'object' && uri.uri) return uri.uri.trim().length > 0;
-  return false;
-};
-
 export function KitchenNameCard({
-  avatarUri,
   name,
   description,
   tiltEnabled = true,
 }: KitchenNameCardProps) {
-  // Edge case handling
-  const fallbackAvatar = { uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face' };
-  let avatarSource: { uri: string } = fallbackAvatar;
-  if (isValidUri(avatarUri)) {
-    if (typeof avatarUri === 'string') {
-      avatarSource = { uri: avatarUri };
-    } else if (avatarUri && typeof avatarUri.uri === 'string') {
-      avatarSource = { uri: avatarUri.uri };
-    }
-  }
   const displayName = typeof name === 'string' && name.trim() ? name : 'Stans Kitchen';
   const displayDesc = typeof description === 'string' && description.trim() ? description : 'African cuisine (Top Rated)';
 
   const cardContent = (
     <View style={styles.container}>
-      {/* Avatar */}
-      <View style={styles.avatarContainer}>
-        <Avatar source={avatarSource} size="md" style={styles.avatar} />
-      </View>
       {/* Texts */}
       <View style={styles.textContainer}>
         <Text style={styles.name}>{displayName}</Text>
@@ -96,20 +72,6 @@ const styles = StyleSheet.create({
     elevation: 5,
     marginVertical: 10, // my-2.5
     paddingHorizontal: 16, // px-4
-  },
-  avatarContainer: {
-    width: 52, // w-[52px]
-    height: 52, // h-[52px]
-    borderRadius: 9999, // rounded-full
-    backgroundColor: '#EAEAEA', // bg-[#EAEAEA]
-    justifyContent: 'center', // justify-center
-    alignItems: 'center', // items-center
-    marginRight: 15, // mr-[15px]
-  },
-  avatar: {
-    width: 52, // w-[52px]
-    height: 52, // h-[52px]
-    borderRadius: 9999, // rounded-full
   },
   textContainer: {
     flex: 1, // flex-1

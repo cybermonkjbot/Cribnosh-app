@@ -1,10 +1,9 @@
 import { SharedOrderingHeader } from "@/components/ui/SharedOrderingHeader";
-import {
-    useGetCustomOrderQuery,
-    useUpdateCustomOrderMutation,
-} from "@/store/customerApi";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from "@/contexts/AuthContext";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useToast } from "../../lib/ToastContext";
@@ -14,19 +13,85 @@ export default function MealOptions() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams();
   const { showToast } = useToast();
+  const { isAuthenticated } = useAuthContext();
   const [selectedDiet, setSelectedDiet] = useState<string>("");
   const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
+  const [customOrderData, setCustomOrderData] = useState<any>(null);
 
   // Fetch the specific custom order to check if dietary restrictions are already set
   const customOrderId = typeof orderId === "string" ? orderId : undefined;
-  const { data: customOrderData } = useGetCustomOrderQuery(
-    customOrderId || "",
-    {
-      skip: !customOrderId,
-    }
-  );
 
-  const [updateCustomOrder] = useUpdateCustomOrderMutation();
+  // Fetch custom order from Convex
+  const fetchCustomOrder = useCallback(async () => {
+    if (!isAuthenticated || !customOrderId) return;
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.orders.customerGetCustomOrder, {
+        sessionToken,
+        custom_order_id: customOrderId,
+      });
+
+      if (result.success === false) {
+        console.error('Error fetching custom order:', result.error);
+        return;
+      }
+
+      // Transform to match expected format
+      setCustomOrderData({
+        data: result.custom_order,
+      });
+    } catch (error: any) {
+      console.error('Error fetching custom order:', error);
+    }
+  }, [isAuthenticated, customOrderId]);
+
+  useEffect(() => {
+    if (isAuthenticated && customOrderId) {
+      fetchCustomOrder();
+    }
+  }, [isAuthenticated, customOrderId, fetchCustomOrder]);
+
+  // Update custom order function
+  const updateCustomOrder = useCallback(async (data: {
+    customOrderId: string;
+    data: {
+      details?: {
+        dietary_restrictions?: string[];
+      };
+    };
+  }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    // Extract dietary restrictions from the nested structure
+    const dietaryRestrictions = data.data.details?.dietary_restrictions?.[0] || null;
+
+    const result = await convex.action(api.actions.orders.customerUpdateCustomOrder, {
+      sessionToken,
+      custom_order_id: data.customOrderId,
+      dietary_restrictions: dietaryRestrictions,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to update custom order');
+    }
+
+    // Transform to match expected format
+    return {
+      data: result.custom_order,
+    };
+  }, []);
 
   // Check if dietary restrictions are already set and match selection
   useEffect(() => {
@@ -85,7 +150,7 @@ export default function MealOptions() {
     try {
       setIsUpdatingOrder(true);
 
-      // Update custom order via API only if dietary restrictions have changed
+      // Update custom order via Convex only if dietary restrictions have changed
       await updateCustomOrder({
         customOrderId,
         data: {
@@ -96,7 +161,7 @@ export default function MealOptions() {
                 : undefined,
           },
         },
-      }).unwrap();
+      });
 
       showToast({
         type: "success",

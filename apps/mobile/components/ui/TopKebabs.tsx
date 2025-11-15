@@ -18,9 +18,10 @@ interface TopKebabsProps {
   onOpenDrawer?: () => void;
   useBackend?: boolean;
   onKebabPress?: (kebab: Kebab) => void;
+  hasInitialLoadCompleted?: boolean;
 }
 
-export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress }: TopKebabsProps) {
+export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress, hasInitialLoadCompleted = false }: TopKebabsProps) {
   const { isAuthenticated } = useAuthContext();
 
   const { getTopKebabs } = useMeals();
@@ -91,8 +92,8 @@ export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress }: Top
 
   // Error state is shown in UI - no toast needed
 
-  // Show skeleton while loading
-  if (useBackend && backendLoading) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (useBackend && backendLoading && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={backendLoading}>
         <TopKebabsSkeleton itemCount={3} />

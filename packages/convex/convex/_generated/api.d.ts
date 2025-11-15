@@ -31,13 +31,13 @@ import type * as config_complianceIssues from "../config/complianceIssues.js";
 import type * as config_complianceScoring from "../config/complianceScoring.js";
 import type * as convex__generated_api from "../convex/_generated/api.js";
 import type * as convex__generated_server from "../convex/_generated/server.js";
+import type * as crons from "../crons.js";
 import type * as crons_autoRegister from "../crons/autoRegister.js";
 import type * as crons_cleanupExpiredOTPs from "../crons/cleanupExpiredOTPs.js";
 import type * as crons_dripScheduler from "../crons/dripScheduler.js";
 import type * as crons_healthCheck from "../crons/healthCheck.js";
 import type * as crons_maintenance from "../crons/maintenance.js";
 import type * as crons_refundEligibility from "../crons/refundEligibility.js";
-import type * as crons from "../crons.js";
 import type * as emailAnalytics from "../emailAnalytics.js";
 import type * as emailAutomation from "../emailAutomation.js";
 import type * as emailConfig from "../emailConfig.js";
@@ -225,14 +225,6 @@ import type {
   FunctionReference,
 } from "convex/server";
 
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 declare const fullApi: ApiFromModules<{
   "actions/agora": typeof actions_agora;
   "actions/chefs": typeof actions_chefs;
@@ -257,13 +249,13 @@ declare const fullApi: ApiFromModules<{
   "config/complianceScoring": typeof config_complianceScoring;
   "convex/_generated/api": typeof convex__generated_api;
   "convex/_generated/server": typeof convex__generated_server;
+  crons: typeof crons;
   "crons/autoRegister": typeof crons_autoRegister;
   "crons/cleanupExpiredOTPs": typeof crons_cleanupExpiredOTPs;
   "crons/dripScheduler": typeof crons_dripScheduler;
   "crons/healthCheck": typeof crons_healthCheck;
   "crons/maintenance": typeof crons_maintenance;
   "crons/refundEligibility": typeof crons_refundEligibility;
-  crons: typeof crons;
   emailAnalytics: typeof emailAnalytics;
   emailAutomation: typeof emailAutomation;
   emailConfig: typeof emailConfig;
@@ -445,14 +437,30 @@ declare const fullApi: ApiFromModules<{
   "utils/regionValidation": typeof utils_regionValidation;
   "utils/userPreferencesFilter": typeof utils_userPreferencesFilter;
 }>;
-declare const fullApiWithMounts: typeof fullApi;
 
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 export declare const api: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "public">
 >;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
 export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "internal">
 >;
 

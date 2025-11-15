@@ -2,13 +2,13 @@ import { AddCardSheet } from '@/components/ui/AddCardSheet';
 import { BalanceInfoSheet } from '@/components/ui/BalanceInfoSheet';
 import { BalanceTransactionsSheet } from '@/components/ui/BalanceTransactionsSheet';
 import { TopUpBalanceSheet } from '@/components/ui/TopUpBalanceSheet';
-import {
-  useSetupFamilyProfileMutation,
-} from '@/store/customerApi';
 import { useRouter } from 'expo-router';
 import { CreditCard } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePayments } from '@/hooks/usePayments';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -71,7 +71,6 @@ export default function PaymentSettingsScreen() {
     setDefaultPaymentMethod,
     isLoading: paymentsLoading,
   } = usePayments();
-  const [setupFamilyProfile] = useSetupFamilyProfileMutation();
 
   // Fetch payment data using Convex
   useEffect(() => {

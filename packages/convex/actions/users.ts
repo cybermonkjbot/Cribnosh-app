@@ -3239,67 +3239,105 @@ export const customerGetMonthlyOverview = action({
       const targetMonth = args.month !== undefined ? args.month : now.getMonth() + 1;
       const targetYear = args.year !== undefined ? args.year : now.getFullYear();
       
-      const monthStart = new Date(targetYear, targetMonth - 1, 1).getTime();
-      const monthEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999).getTime();
+      // Format month as YYYY-MM for the query
+      const monthString = `${targetYear}-${String(targetMonth).padStart(2, '0')}`;
 
-      // Get all orders for the month
-      const allOrders = await ctx.runQuery(api.queries.orders.listByCustomer, {
-        customer_id: userId.toString(),
-        status: 'all',
-        order_type: 'all',
-      });
-
-      const monthOrders = allOrders.filter((order: any) => {
-        const orderDate = order.order_date || order.createdAt || order._creationTime;
-        return orderDate >= monthStart && orderDate <= monthEnd;
-      });
-
-      // Calculate statistics
-      const totalOrders = monthOrders.length;
-      const totalSpent = monthOrders.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0);
-      const averageOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
-      
-      // Count orders by status
-      const statusCounts: Record<string, number> = {};
-      monthOrders.forEach((order: any) => {
-        const status = order.order_status || 'unknown';
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      });
-
-      // Get unique chefs ordered from
-      const chefIds = new Set(monthOrders.map((order: any) => order.chef_id).filter(Boolean));
-      
-      // Get unique meals ordered
-      const mealIds = new Set();
-      monthOrders.forEach((order: any) => {
-        if (order.items) {
-          order.items.forEach((item: any) => {
-            if (item.meal_id) mealIds.add(item.meal_id);
-          });
-        }
+      // Use the existing query that returns the correct structure
+      const overview = await ctx.runQuery(api.queries.stats.getMonthlyOverview, {
+        userId,
+        month: monthString,
       });
 
       return {
         success: true as const,
-        overview: {
-          month: targetMonth,
-          year: targetYear,
-          total_orders: totalOrders,
-          total_spent: totalSpent,
-          average_order_value: averageOrderValue,
-          status_breakdown: statusCounts,
-          unique_chefs: chefIds.size,
-          unique_meals: mealIds.size,
-          orders: monthOrders.map((order: any) => ({
-            id: order.order_id,
-            date: order.order_date || order.createdAt,
-            total: order.total_amount,
-            status: order.order_status,
-          })),
-        },
+        overview,
       };
     } catch (error: any) {
       return { success: false as const, error: error?.message || 'Failed to get monthly overview' };
+    }
+  },
+      });
+
+/**
+ * Customer Get ForkPrint Score - for mobile app direct Convex communication
+ */
+export const customerGetForkPrintScore = action({
+  args: {
+    sessionToken: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      data: v.object({
+        score: v.number(),
+        status: v.string(),
+        points_to_next: v.number(),
+        next_level: v.string(),
+        current_level_icon: v.optional(v.string()),
+        level_history: v.optional(v.array(v.object({
+          level: v.string(),
+          unlocked_at: v.string(),
+        }))),
+        updated_at: v.string(),
+      }),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get ForkPrint score
+      const scoreData = await ctx.runQuery(api.queries.forkPrint.getScoreByUserId, {
+        userId: user._id,
+      });
+
+      if (!scoreData) {
+        // Return default values if no score exists yet
+      return {
+        success: true as const,
+          data: {
+            score: 0,
+            status: 'Starter',
+            points_to_next: 100,
+            next_level: 'Tastemaker',
+            current_level_icon: undefined,
+            level_history: [],
+            updated_at: new Date().toISOString(),
+          },
+        };
+      }
+
+      return {
+        success: true as const,
+        data: {
+          score: scoreData.score,
+          status: scoreData.status,
+          points_to_next: scoreData.points_to_next,
+          next_level: scoreData.next_level,
+          current_level_icon: (scoreData.current_level_icon != null) ? scoreData.current_level_icon : undefined,
+          level_history: scoreData.level_history || [],
+          updated_at: scoreData.updated_at,
+        },
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to get ForkPrint score';
+      return { success: false as const, error: errorMessage };
     }
   },
 });
@@ -3432,13 +3470,21 @@ export const customerGetUserBehavior = action({
 export const customerGetWeeklySummary = action({
   args: {
     sessionToken: v.string(),
-    week: v.optional(v.number()),
-    year: v.optional(v.number()),
+    start_date: v.optional(v.string()),
+    end_date: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
       success: v.literal(true),
-      summary: v.any(),
+      week_start: v.string(),
+      week_end: v.string(),
+      week_meals: v.array(v.number()),
+      avg_meals: v.number(),
+      kcal_today: v.number(),
+      kcal_yesterday: v.number(),
+      cuisines: v.array(v.string()),
+      daily_calories: v.array(v.any()),
+      updated_at: v.string(),
     }),
     v.object({
       success: v.literal(false),
@@ -3452,96 +3498,48 @@ export const customerGetWeeklySummary = action({
         return { success: false as const, error: 'Authentication required' };
       }
 
+      // Calculate week start and end dates if not provided
+      let startDate: string;
+      let endDate: string;
+
+      if (args.start_date && args.end_date) {
+        startDate = args.start_date;
+        endDate = args.end_date;
+      } else {
+        // Default to current week (Monday to Sunday)
       const now = new Date();
-      const targetYear = args.year !== undefined ? args.year : now.getFullYear();
-      const targetWeek = args.week !== undefined ? args.week : getWeekNumber(now);
+        const dayOfWeek = now.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + mondayOffset);
+        monday.setHours(0, 0, 0, 0);
 
-      // Calculate week start and end dates
-      const weekStart = getWeekStartDate(targetYear, targetWeek);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
 
-      const weekStartTime = weekStart.getTime();
-      const weekEndTime = weekEnd.getTime();
-
-      // Get all orders
-      const allOrders = await ctx.runQuery(api.queries.orders.listByCustomer, {
-        customer_id: userId.toString(),
-        status: 'all',
-        order_type: 'all',
-      });
-
-      const weekOrders = allOrders.filter((order: any) => {
-        const orderDate = order.order_date || order.createdAt || order._creationTime;
-        return orderDate >= weekStartTime && orderDate <= weekEndTime;
-      });
-
-      // Calculate statistics
-      const totalOrders = weekOrders.length;
-      const totalSpent = weekOrders.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0);
-      const averageOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
-
-      // Daily breakdown
-      const dailyBreakdown: Record<string, { orders: number; spent: number }> = {};
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      days.forEach(day => {
-        dailyBreakdown[day] = { orders: 0, spent: 0 };
-      });
-
-      weekOrders.forEach((order: any) => {
-        const orderDate = new Date(order.order_date || order.createdAt || order._creationTime);
-        const dayName = days[orderDate.getDay()];
-        dailyBreakdown[dayName].orders += 1;
-        dailyBreakdown[dayName].spent += order.total_amount || 0;
-      });
-
-      // Get nutrition progress for the week
-      const nutritionDays = [];
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(weekStart);
-        date.setDate(date.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
-        try {
-          const progress = await ctx.runQuery(api.queries.nutrition.getCaloriesProgress, {
-            userId,
-            date: dateStr,
-          });
-          nutritionDays.push({
-            date: dateStr,
-            consumed: progress.consumed,
-            goal: progress.goal,
-            progress_percentage: progress.progress_percentage,
-          });
-        } catch {
-          nutritionDays.push({
-            date: dateStr,
-            consumed: 0,
-            goal: 2000,
-            progress_percentage: 0,
-          });
-        }
+        startDate = monday.toISOString().split('T')[0];
+        endDate = sunday.toISOString().split('T')[0];
       }
+
+      // Use the existing query that returns the correct structure
+      const summary = await ctx.runQuery(api.queries.stats.getWeeklySummary, {
+            userId,
+        startDate,
+        endDate,
+          });
 
       return {
         success: true as const,
-        summary: {
-          week: targetWeek,
-          year: targetYear,
-          week_start: weekStart.toISOString(),
-          week_end: weekEnd.toISOString(),
-          total_orders: totalOrders,
-          total_spent: totalSpent,
-          average_order_value: averageOrderValue,
-          daily_breakdown: dailyBreakdown,
-          nutrition_progress: nutritionDays,
-          orders: weekOrders.map((order: any) => ({
-            id: order.order_id,
-            date: order.order_date || order.createdAt,
-            total: order.total_amount,
-            status: order.order_status,
-          })),
-        },
+        week_start: summary.week_start,
+        week_end: summary.week_end,
+        week_meals: summary.week_meals,
+        avg_meals: summary.avg_meals,
+        kcal_today: summary.kcal_today,
+        kcal_yesterday: summary.kcal_yesterday,
+        cuisines: summary.cuisines,
+        daily_calories: summary.daily_calories,
+        updated_at: summary.updated_at,
       };
     } catch (error: any) {
       return { success: false as const, error: error?.message || 'Failed to get weekly summary' };
@@ -5199,6 +5197,57 @@ export const customerUpdateAllergies = action({
       };
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to update allergies';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Update Cross-Contamination Setting - for mobile app direct Convex communication
+ */
+export const customerUpdateCrossContaminationSetting = action({
+  args: {
+    sessionToken: v.string(),
+    avoid_cross_contamination: v.boolean(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      message: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Update cross-contamination setting
+      await ctx.runMutation(api.mutations.foodSafetySettings.updateCrossContamination, {
+        userId: user._id,
+        avoid_cross_contamination: args.avoid_cross_contamination,
+      });
+
+      return {
+        success: true as const,
+        message: 'Cross-contamination setting updated successfully',
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to update cross-contamination setting';
       return { success: false as const, error: errorMessage };
     }
   },
@@ -7047,6 +7096,56 @@ export const customerSetupFamilyProfile = action({
 });
 
 /**
+ * Customer Validate Family Member Email - for mobile app direct Convex communication
+ */
+export const customerValidateFamilyMemberEmail = action({
+  args: {
+    sessionToken: v.string(),
+    email: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      exists: v.boolean(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Check if email belongs to an existing user
+      const existingUser = await ctx.runQuery(api.queries.users.getByEmail, {
+        email: args.email.toLowerCase().trim(),
+      });
+
+      return {
+        success: true as const,
+        exists: !!existingUser,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to validate email';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
  * Customer Get Family Members - for mobile app direct Convex communication
  */
 export const customerGetFamilyMembers = action({
@@ -7227,6 +7326,65 @@ export const customerAcceptFamilyInvite = action({
 });
 
 /**
+ * Customer Remove Family Member - for mobile app direct Convex communication
+ */
+export const customerRemoveFamilyMember = action({
+  args: {
+    sessionToken: v.string(),
+    member_id: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get family profile
+      const profile = await ctx.runQuery(api.queries.familyProfiles.getByUserId, {
+        userId: user._id,
+      });
+
+      if (!profile) {
+        return { success: false as const, error: 'Family profile not found' };
+      }
+
+      // Remove member
+      await ctx.runMutation(api.mutations.familyProfiles.removeMember, {
+        family_profile_id: profile._id,
+        userId: user._id,
+        member_id: args.member_id,
+      });
+
+      return {
+        success: true as const,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to remove family member';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
  * Customer Get Family Orders - for mobile app direct Convex communication
  */
 export const customerGetFamilyOrders = action({
@@ -7278,6 +7436,72 @@ export const customerGetFamilyOrders = action({
       };
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to get family orders';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Create Event Chef Request - for mobile app direct Convex communication
+ */
+export const customerCreateEventChefRequest = action({
+  args: {
+    sessionToken: v.string(),
+    event_date: v.string(),
+    number_of_guests: v.number(),
+    event_type: v.string(),
+    event_location: v.string(),
+    phone_number: v.string(),
+    email: v.string(),
+    dietary_requirements: v.optional(v.string()),
+    additional_notes: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      request_id: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Create event chef request
+      const requestId = await ctx.runMutation(api.mutations.eventChefRequests.create, {
+        customer_id: user._id,
+        event_date: args.event_date,
+        number_of_guests: args.number_of_guests,
+        event_type: args.event_type,
+        event_location: args.event_location,
+        phone_number: args.phone_number,
+        email: args.email,
+        dietary_requirements: args.dietary_requirements,
+        additional_notes: args.additional_notes,
+        status: 'pending' as const,
+      });
+
+      return {
+        success: true as const,
+        request_id: requestId,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to create event chef request';
       return { success: false as const, error: errorMessage };
     }
   },
@@ -7365,6 +7589,448 @@ export const customerGetFamilySpending = action({
       };
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to get family spending';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Request Account Data Download - for mobile app direct Convex communication
+ */
+export const customerRequestAccountDataDownload = action({
+  args: {
+    sessionToken: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      download_token: v.string(),
+      download_url: v.optional(v.string()),
+      status: v.string(),
+      estimated_completion_time: v.optional(v.number()),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Generate download token
+      const downloadToken = `dd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+
+      // Create download request
+      const downloadId = await ctx.runMutation(api.mutations.dataDownloads.create, {
+        userId: user._id,
+        download_token: downloadToken,
+        expires_at: expiresAt,
+      });
+
+      // Get the created download record
+      const downloadRecord = await ctx.db.get(downloadId);
+
+      if (!downloadRecord) {
+        return { success: false as const, error: 'Failed to create download request' };
+      }
+
+      // Trigger data compilation in background (async)
+      // Note: In production, this would be handled by a scheduled function or webhook
+      // For now, we'll return the token and let the backend process it
+      ctx.scheduler.runAfter(0, api.actions.data_compilation.compileUserDataAction, {
+        userId: user._id,
+        downloadToken,
+      });
+
+      return {
+        success: true as const,
+        download_token: downloadRecord.download_token,
+        download_url: downloadRecord.download_url,
+        status: downloadRecord.status,
+        estimated_completion_time: downloadRecord.estimated_completion_time,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to request account data download';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Submit Delete Account Feedback - for mobile app direct Convex communication
+ */
+export const customerSubmitDeleteAccountFeedback = action({
+  args: {
+    sessionToken: v.string(),
+    feedback_options: v.array(v.number()),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      message: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Update feedback
+      await ctx.runMutation(api.mutations.accountDeletions.updateFeedback, {
+        userId: user._id,
+        feedback_options: args.feedback_options,
+      });
+
+      return {
+        success: true as const,
+        message: 'Feedback submitted successfully',
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to submit feedback';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Request Account Deletion - for mobile app direct Convex communication
+ */
+export const customerRequestAccountDeletion = action({
+  args: {
+    sessionToken: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      deletion_id: v.string(),
+      deletion_will_complete_at: v.number(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Set deletion to complete in 30 days (GDPR requirement)
+      const deletionWillCompleteAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
+
+      // Create account deletion request
+      const deletionId = await ctx.runMutation(api.mutations.accountDeletions.create, {
+        userId: user._id,
+        deletion_will_complete_at: deletionWillCompleteAt,
+      });
+
+      return {
+        success: true as const,
+        deletion_id: deletionId,
+        deletion_will_complete_at: deletionWillCompleteAt,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to request account deletion';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Get Convex Video Upload URL - for mobile app direct Convex communication
+ */
+export const customerGetConvexVideoUploadUrl = action({
+  args: {
+    sessionToken: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      uploadUrl: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Check if user is a chef or food creator
+      const isChef = user.roles?.includes('chef') || user.roles?.includes('staff') || user.roles?.includes('admin');
+      if (!isChef) {
+        return { success: false as const, error: 'Only chefs and food creators can upload videos' };
+      }
+
+      // Generate upload URL directly (actions have access to storage)
+      const uploadUrl = await ctx.storage.generateUploadUrl();
+
+      return {
+        success: true as const,
+        uploadUrl,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to get upload URL';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Create Video Post - for mobile app direct Convex communication
+ */
+export const customerCreateVideoPost = action({
+  args: {
+    sessionToken: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    videoStorageId: v.string(),
+    thumbnailStorageId: v.optional(v.string()),
+    kitchenId: v.optional(v.string()),
+    duration: v.number(),
+    fileSize: v.number(),
+    resolution: v.object({
+      width: v.number(),
+      height: v.number(),
+    }),
+    tags: v.array(v.string()),
+    cuisine: v.optional(v.string()),
+    difficulty: v.optional(v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    )),
+    visibility: v.optional(v.union(
+      v.literal("public"),
+      v.literal("followers"),
+      v.literal("private")
+    )),
+    isLive: v.optional(v.boolean()),
+    liveSessionId: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      videoId: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Check if user is a chef or food creator
+      const isChef = user.roles?.includes('chef') || user.roles?.includes('staff') || user.roles?.includes('admin');
+      if (!isChef) {
+        return { success: false as const, error: 'Only chefs and food creators can create video posts' };
+      }
+
+      // Create video post using userId-based mutation
+      const videoId = await ctx.runMutation(api.mutations.videoPosts.createVideoPostByUserId, {
+        userId: user._id,
+        title: args.title,
+        description: args.description,
+        videoStorageId: args.videoStorageId as Id<"_storage">,
+        thumbnailStorageId: args.thumbnailStorageId ? (args.thumbnailStorageId as Id<"_storage">) : undefined,
+        kitchenId: args.kitchenId ? (args.kitchenId as Id<"kitchens">) : undefined,
+        duration: args.duration,
+        fileSize: args.fileSize,
+        resolution: args.resolution,
+        tags: args.tags,
+        cuisine: args.cuisine,
+        difficulty: args.difficulty,
+        visibility: args.visibility,
+        isLive: args.isLive,
+        liveSessionId: args.liveSessionId ? (args.liveSessionId as Id<"liveSessions">) : undefined,
+      });
+
+      return {
+        success: true as const,
+        videoId: videoId,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to create video post';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Send AI Chat Message - for mobile app direct Convex communication
+ */
+export const customerSendAIChatMessage = action({
+  args: {
+    sessionToken: v.string(),
+    message: v.string(),
+    conversation_id: v.optional(v.string()),
+    location: v.optional(v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+    })),
+    preferences: v.optional(v.object({
+      dietaryRestrictions: v.optional(v.array(v.string())),
+      cuisinePreferences: v.optional(v.array(v.string())),
+      spiceLevel: v.optional(v.string()),
+    })),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      data: v.object({
+        message: v.string(),
+        recommendations: v.optional(v.array(v.any())),
+        conversation_id: v.string(),
+      }),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get or create channel
+      let channelId: any;
+      if (args.conversation_id) {
+        // Try to get existing channel
+        const channel = await ctx.runQuery(api.queries.aiChat.getChannelById, {
+          channelId: args.conversation_id as any,
+        });
+        if (channel) {
+          channelId = channel._id;
+        } else {
+          // Create new channel if not found
+          const newChannel = await ctx.runMutation(api.mutations.aiChat.createChannel, {
+            userId: user._id,
+          });
+          channelId = newChannel.channelId;
+        }
+      } else {
+        // Create new channel
+        const newChannel = await ctx.runMutation(api.mutations.aiChat.createChannel, {
+          userId: user._id,
+        });
+        channelId = newChannel.channelId;
+      }
+
+      // Send message
+      const messageResult = await ctx.runMutation(api.mutations.aiChat.sendMessage, {
+        channelId,
+        authorId: user._id,
+        content: args.message.trim(),
+      });
+
+      // Wait a bit for AI response to be generated (it's scheduled)
+      // In production, you might want to poll or use webhooks
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Get the AI response message
+      const messages = await ctx.runQuery(api.queries.aiChat.getMessagesByChannel, {
+        channelId,
+        limit: 10,
+      });
+
+      // Find the latest AI message
+      const aiMessage = messages
+        .filter((m: any) => m.messageType === 'assistant')
+        .sort((a: any, b: any) => b.createdAt - a.createdAt)[0];
+
+      // Parse recommendations from AI message if available
+      let recommendations: any[] = [];
+      if (aiMessage?.content) {
+        // Try to parse JSON recommendations from the message
+        // This is a simplified version - in production, the AI response format would be more structured
+        try {
+          const content = aiMessage.content;
+          // Look for JSON-like structures in the response
+          // This is a placeholder - actual implementation would depend on AI response format
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
+
+      return {
+        success: true as const,
+        data: {
+          message: aiMessage?.content || 'I received your message. Let me help you find the perfect meal!',
+          recommendations,
+          conversation_id: channelId,
+        },
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to send chat message';
       return { success: false as const, error: errorMessage };
     }
   },

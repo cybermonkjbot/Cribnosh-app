@@ -28,6 +28,7 @@ interface FeaturedKitchensSectionProps {
   showTitle?: boolean;
   isLoading?: boolean;
   useBackend?: boolean;
+  hasInitialLoadCompleted?: boolean;
 }
 
 export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = ({
@@ -38,6 +39,7 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
   showTitle = true,
   isLoading: propIsLoading = false,
   useBackend = true,
+  hasInitialLoadCompleted = false,
 }) => {
   const { isAuthenticated } = useAuthContext();
   const { getFeaturedKitchens } = useChefs();
@@ -123,6 +125,16 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
 
   // Determine loading state
   const isLoading = propIsLoading || (useBackend && backendLoading && isAuthenticated);
+  
+  // Only show skeleton during initial load, never after initial load is complete
+  if (isLoading && useBackend && !hasInitialLoadCompleted) {
+    return (
+      <SkeletonWithTimeout isLoading={isLoading}>
+        <FeaturedKitchensSectionSkeleton itemCount={4} />
+      </SkeletonWithTimeout>
+    );
+  }
+  
   const renderKitchenCard = (kitchen: Kitchen, index: number) => (
     <TouchableOpacity
       key={kitchen.id}
@@ -238,15 +250,6 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
       </View>
     </TouchableOpacity>
   );
-
-  // Show skeleton while loading
-  if (isLoading && useBackend) {
-    return (
-      <SkeletonWithTimeout isLoading={isLoading}>
-        <FeaturedKitchensSectionSkeleton itemCount={4} />
-      </SkeletonWithTimeout>
-    );
-  }
 
   // Hide section if no kitchens (don't show empty state)
   if (kitchens.length === 0) {

@@ -1,7 +1,7 @@
 import { useAppContext } from "@/utils/AppContext";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Filter, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Modal, RefreshControl, Text, TouchableOpacity, View } from "react-native";
@@ -72,15 +72,14 @@ import { TooFreshToWasteDrawer } from "./TooFreshToWasteDrawer";
 import { TopKebabs } from "./TopKebabs";
 
 // Customer API imports
+import { api } from '@/convex/_generated/api';
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCart } from "@/hooks/useCart";
 import { useChefs } from "@/hooks/useChefs";
 import { useCuisines } from "@/hooks/useCuisines";
 import { useMeals } from "@/hooks/useMeals";
 import { useOffers } from "@/hooks/useOffers";
-import {
-  useGetWeatherQuery,
-} from "@/store/customerApi";
+import { getConvexClient } from "@/lib/convexClient";
 import { Chef, Cuisine } from "@/types/customer";
 
 // Global toast imports
@@ -155,6 +154,27 @@ export function MainScreen() {
       loadCuisines();
     }
   }, [isAuthenticated, loadCuisines]);
+
+  // Mark initial load as complete once any data has been loaded
+  // Use a ref to ensure this only happens once and doesn't reset
+  // This ref persists across re-renders and navigation
+  const hasInitialLoadCompletedRef = useRef(false);
+  useEffect(() => {
+    if (isAuthenticated && (cuisinesData || chefsData || popularMealsData)) {
+      // Once set, never reset - this prevents skeletons from showing again
+      if (!hasInitialLoadCompletedRef.current) {
+        hasInitialLoadCompletedRef.current = true;
+        setHasInitialLoadCompleted(true);
+      }
+    }
+  }, [isAuthenticated, cuisinesData, chefsData, popularMealsData]);
+  
+  // Ensure hasInitialLoadCompleted stays true once set, even if component re-renders
+  useEffect(() => {
+    if (hasInitialLoadCompletedRef.current && !hasInitialLoadCompleted) {
+      setHasInitialLoadCompleted(true);
+    }
+  }, [hasInitialLoadCompleted]);
 
   // Refetch function for compatibility
   const refetchCuisines = loadCuisines;
@@ -309,20 +329,44 @@ export function MainScreen() {
   // Location hook for map functionality
   const locationState = useUserLocation();
 
-  // Fetch weather data when location is available
-  const {
-    data: weatherData,
-  } = useGetWeatherQuery(
-    locationState.location
-      ? {
-          latitude: locationState.location.latitude,
-          longitude: locationState.location.longitude,
+  // Weather state
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+
+  // Fetch weather data from Convex when location is available
+  useEffect(() => {
+    if (locationState.location) {
+      const fetchWeather = async () => {
+        try {
+          setWeatherLoading(true);
+          const convex = getConvexClient();
+          const result = await convex.action(api.actions.weather.getWeather, {
+            latitude: locationState.location!.latitude,
+            longitude: locationState.location!.longitude,
+          });
+
+          // Transform to match expected format
+          setWeatherData({
+            data: result,
+          });
+        } catch (error: any) {
+          console.error('Error fetching weather:', error);
+          // Set default weather on error
+          setWeatherData({
+            data: {
+              condition: 'clear',
+              temperature: 20,
+              description: 'Weather data unavailable',
+            },
+          });
+        } finally {
+          setWeatherLoading(false);
         }
-      : { latitude: 0, longitude: 0 }, // Dummy values to skip query
-    {
-      skip: !locationState.location, // Skip if no location
+      };
+
+      fetchWeather();
     }
-  );
+  }, [locationState.location]);
 
   // Data transformation functions
   const transformCuisinesData = useCallback((apiCuisines: Cuisine[] | undefined) => {
@@ -734,6 +778,7 @@ export function MainScreen() {
   const categoryChipsOpacity = useSharedValue(0);
   const contentFadeAnim = useSharedValue(1);
   const isHeaderStickyShared = useSharedValue(false);
+  const isRestoringScrollPositionShared = useSharedValue(false);
   const scrollViewRef = useRef<Animated.ScrollView>(null);
 
   // Pull-up easter egg gesture state
@@ -742,6 +787,7 @@ export function MainScreen() {
   const isAtBottomShared = useSharedValue(false);
   const pullProgress = useSharedValue(0);
   const pullTranslation = useSharedValue(0);
+  const isNavigatingShared = useSharedValue(false);
   
   // Constants for pull gesture
   const PULL_THRESHOLD = 150; // pixels to pull
@@ -751,6 +797,22 @@ export function MainScreen() {
   const isScrolling = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollPosition = useRef(0);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [hasInitialLoadCompleted, setHasInitialLoadCompleted] = useState(false);
+  const savedScrollPositionRef = useRef<number | null>(null);
+  
+  // Refs to track all setTimeout calls for proper cleanup
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Flag to track when scroll position is being restored (prevents scroll handler conflicts)
+  const isRestoringScrollPositionRef = useRef(false);
+  
+  // Debounce ref for scroll-to-top to prevent rapid successive calls
+  const scrollToTopDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScrollToTopCallRef = useRef<number>(0);
 
   // Callback to update state - ensures consistent state updates
   // MUST be defined before any useEffect hooks or scrollHandler that use it
@@ -773,9 +835,59 @@ export function MainScreen() {
     }
   }, []);
 
+  // Helper to reset scrolling state after scroll ends
+  const resetScrollingState = useCallback(() => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      isScrolling.current = false;
+      setIsUserScrolling(false);
+    }, 150);
+  }, []);
+
   // Register scroll-to-top callback
+  // Use a ref to track if we're navigating to prevent scroll reset during navigation
+  const isNavigatingRef = useRef(false);
   useEffect(() => {
     const scrollToTop = () => {
+      // Don't scroll to top if we're currently navigating (e.g., to nosh-heaven)
+      // Use ref for JS thread check to avoid reading shared value during render
+      if (isNavigatingRef.current) {
+        return;
+      }
+      
+      // Don't scroll to top if we're restoring scroll position
+      // Use ref for JS thread check to avoid reading shared value during render
+      if (isRestoringScrollPositionRef.current) {
+        return;
+      }
+      
+      // Don't scroll to top if nosh heaven trigger is visible (prevents scroll when notice appears)
+      if (showPullTrigger) {
+        return;
+      }
+      
+      // Debounce scroll-to-top calls (prevent rapid successive calls)
+      const now = Date.now();
+      const timeSinceLastCall = now - lastScrollToTopCallRef.current;
+      const DEBOUNCE_DELAY = 300; // 300ms debounce
+      
+      // Clear any existing debounce timeout
+      if (scrollToTopDebounceRef.current) {
+        clearTimeout(scrollToTopDebounceRef.current);
+      }
+      
+      // If called too soon after last call, debounce it
+      if (timeSinceLastCall < DEBOUNCE_DELAY) {
+        scrollToTopDebounceRef.current = setTimeout(() => {
+          scrollToTop();
+        }, DEBOUNCE_DELAY - timeSinceLastCall);
+        return;
+      }
+      
+      lastScrollToTopCallRef.current = now;
+      
       if (scrollViewRef.current) {
         // Set shared value first to prevent race conditions with scroll handler
         isHeaderStickyShared.value = false;
@@ -804,6 +916,14 @@ export function MainScreen() {
     };
 
     registerScrollToTopCallback(scrollToTop);
+    
+    // Cleanup debounce timeout on unmount
+    return () => {
+      if (scrollToTopDebounceRef.current) {
+        clearTimeout(scrollToTopDebounceRef.current);
+        scrollToTopDebounceRef.current = null;
+      }
+    };
   }, [
     registerScrollToTopCallback,
     isHeaderStickyShared,
@@ -811,6 +931,9 @@ export function MainScreen() {
     normalHeaderOpacity,
     categoryChipsOpacity,
     updateHeaderStickyState,
+    isNavigatingShared,
+    isRestoringScrollPositionShared,
+    showPullTrigger,
   ]);
 
   // Ensure initial state is correct - start with normal header (not sticky)
@@ -828,10 +951,30 @@ export function MainScreen() {
     return () => {
       // Comprehensive cleanup on unmount
       try {
-        // Clear any pending timeouts
+        // Clear all pending timeouts
         if (scrollTimeoutRef.current) {
           clearTimeout(scrollTimeoutRef.current);
           scrollTimeoutRef.current = null;
+        }
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+          refreshTimeoutRef.current = null;
+        }
+        if (navigationTimeoutRef.current) {
+          clearTimeout(navigationTimeoutRef.current);
+          navigationTimeoutRef.current = null;
+        }
+        if (layoutTimeoutRef.current) {
+          clearTimeout(layoutTimeoutRef.current);
+          layoutTimeoutRef.current = null;
+        }
+        if (focusTimeoutRef.current) {
+          clearTimeout(focusTimeoutRef.current);
+          focusTimeoutRef.current = null;
+        }
+        if (scrollToTopDebounceRef.current) {
+          clearTimeout(scrollToTopDebounceRef.current);
+          scrollToTopDebounceRef.current = null;
         }
 
         // Reset states
@@ -850,6 +993,11 @@ export function MainScreen() {
         // Reset refs
         isScrolling.current = false;
         lastScrollPosition.current = 0;
+        isNavigatingRef.current = false;
+        isNavigatingShared.value = false;
+        isRestoringScrollPositionRef.current = false;
+        isRestoringScrollPositionShared.value = false;
+        savedScrollPositionRef.current = null;
       } catch {
         // Silently handle cleanup errors
       }
@@ -861,6 +1009,7 @@ export function MainScreen() {
     categoryChipsOpacity,
     contentFadeAnim,
     isHeaderStickyShared,
+    isNavigatingShared,
   ]);
 
 
@@ -873,6 +1022,97 @@ export function MainScreen() {
       }
     };
   }, []);
+
+  // Consolidated scroll position restoration function
+  const restoreScrollPosition = useCallback(() => {
+    // Don't restore if navigating, already restoring, or no saved position
+    // Use refs for JS thread checks to avoid reading shared values during render
+    if (
+      isNavigatingRef.current ||
+      isRestoringScrollPositionRef.current ||
+      savedScrollPositionRef.current === null ||
+      savedScrollPositionRef.current === Number.MAX_SAFE_INTEGER ||
+      !scrollViewRef.current
+    ) {
+      return;
+    }
+
+    const savedPos = savedScrollPositionRef.current;
+    
+    // Only restore if position is valid
+    if (savedPos <= 0) {
+      savedScrollPositionRef.current = null;
+      return;
+    }
+
+    // Mark that we're restoring to prevent conflicts (both ref and shared value)
+    isRestoringScrollPositionRef.current = true;
+    isRestoringScrollPositionShared.value = true;
+    
+    // Clear any existing layout timeout
+    if (layoutTimeoutRef.current) {
+      clearTimeout(layoutTimeoutRef.current);
+    }
+    
+    // Small delay to ensure layout is complete
+    layoutTimeoutRef.current = setTimeout(() => {
+      if (
+        scrollViewRef.current &&
+        !isNavigatingRef.current &&
+        !isRestoringScrollPositionRef.current &&
+        savedScrollPositionRef.current === savedPos
+      ) {
+        scrollViewRef.current.scrollTo({ y: savedPos, animated: false });
+        savedScrollPositionRef.current = null;
+      }
+      isRestoringScrollPositionRef.current = false;
+      isRestoringScrollPositionShared.value = false;
+      layoutTimeoutRef.current = null;
+    }, 150);
+  }, [isNavigatingShared, isRestoringScrollPositionShared]);
+
+  // Restore scroll position when screen comes back into focus (e.g., after closing nosh-heaven modal)
+  useFocusEffect(
+    useCallback(() => {
+      // CRITICAL: Ensure hasInitialLoadCompleted stays true when screen comes into focus
+      // This prevents skeletons from showing when returning from modal
+      if (hasInitialLoadCompletedRef.current) {
+        setHasInitialLoadCompleted(true);
+      }
+      
+      // Reset navigation flags when screen comes into focus
+      // This ensures flags are cleared even if navigation timeout didn't fire
+      // Use ref for JS thread check to avoid reading shared value during render
+      if (isNavigatingRef.current) {
+        isNavigatingRef.current = false;
+        isNavigatingShared.value = false;
+        
+        // Clear navigation timeout if it exists
+        if (navigationTimeoutRef.current) {
+          clearTimeout(navigationTimeoutRef.current);
+          navigationTimeoutRef.current = null;
+        }
+      }
+      
+      // Clear any existing focus timeout
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+      
+      // Small delay to ensure screen is fully focused before restoring
+      focusTimeoutRef.current = setTimeout(() => {
+        restoreScrollPosition();
+        focusTimeoutRef.current = null;
+      }, 100);
+      
+      return () => {
+        if (focusTimeoutRef.current) {
+          clearTimeout(focusTimeoutRef.current);
+          focusTimeoutRef.current = null;
+        }
+      };
+    }, [restoreScrollPosition])
+  );
 
   const loadingStates = [
     {
@@ -890,6 +1130,11 @@ export function MainScreen() {
   ];
 
   const onRefresh = useCallback(async () => {
+    // Clear any existing refresh timeout
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
     // Show loader immediately without any delays
     setShowLoader(true);
     setRefreshing(true);
@@ -904,18 +1149,22 @@ export function MainScreen() {
       }
 
       // Simulate the loading process with artificial delay
-      setTimeout(() => {
+      refreshTimeoutRef.current = setTimeout(() => {
+        // Only update state if component is still mounted
         setShowLoader(false);
         setRefreshing(false);
 
         // Fade in the content
         contentFadeAnim.value = withTiming(1, { duration: 300 });
+        
+        refreshTimeoutRef.current = null;
       }, 2000); // Reduced to 2 seconds for better UX
     } catch {
       showError("Failed to refresh data", "Please try again");
       setShowLoader(false);
       setRefreshing(false);
       contentFadeAnim.value = withTiming(1, { duration: 300 });
+      refreshTimeoutRef.current = null;
     }
   }, [
     contentFadeAnim,
@@ -963,8 +1212,28 @@ export function MainScreen() {
       onScroll: (event) => {
         "worklet";
         try {
+          // Don't process scroll events if we're navigating (prevents scroll reset)
+          if (isNavigatingShared.value) {
+            return;
+          }
+          
+          // Don't process scroll events if we're restoring scroll position
+          // This prevents the handler from interfering with programmatic scrolls
+          if (isRestoringScrollPositionShared.value) {
+            return;
+          }
+          
           const scrollPosition = event.contentOffset.y;
           scrollY.value = scrollPosition;
+          
+          // Track if user is scrolling
+          if (!isScrolling.current) {
+            isScrolling.current = true;
+            runOnJS(setIsUserScrolling)(true);
+          }
+          
+          // Reset scrolling state after scroll ends
+          runOnJS(resetScrollingState)();
 
           // Improved header sticky logic with better threshold and edge case handling
           // Use 10px threshold for more sensitive detection
@@ -1058,8 +1327,10 @@ export function MainScreen() {
       isAtBottomShared,
       pullProgress,
       pullTranslation,
+      isNavigatingShared,
       updateHeaderStickyState,
       triggerHapticFeedback,
+      resetScrollingState,
     ]
   );
   
@@ -1119,14 +1390,57 @@ export function MainScreen() {
   const handleNoshHeavenTrigger = useCallback(() => {
     try {
       console.log('[NoshHeaven] Navigating to Nosh Heaven modal');
+      
+      // Clear any existing navigation timeout
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+      
+      // CRITICAL: Ensure initial load completed flag is ALWAYS true before navigation
+      // This prevents skeletons from showing when returning from modal
+      hasInitialLoadCompletedRef.current = true;
+      setHasInitialLoadCompleted(true);
+      
+      // Scroll position should already be saved in savedScrollPositionRef from onScrollEndDrag/onMomentumScrollEnd
+      // If not saved yet, we're at bottom so use special value
+      if (savedScrollPositionRef.current === null) {
+        savedScrollPositionRef.current = Number.MAX_SAFE_INTEGER; // Special value to indicate "at bottom"
+      }
+      
+      // Mark that we're navigating using both ref and shared value
+      // This prevents scroll-to-top and scroll handler from processing
+      isNavigatingRef.current = true;
+      isNavigatingShared.value = true;
+      
+      // Reset pull trigger state before navigation to prevent any side effects
       setShowPullTrigger(false);
       pullProgress.value = 0;
       pullTranslation.value = 0;
+      
+      // Navigate immediately - don't delay
       router.push('/nosh-heaven');
+      
+      // Reset navigation flags after navigation completes
+      // Use a reasonable delay, but also reset on focus/blur events
+      navigationTimeoutRef.current = setTimeout(() => {
+        // Only reset if still navigating (might have been reset by focus handler)
+        if (isNavigatingRef.current) {
+          isNavigatingRef.current = false;
+          isNavigatingShared.value = false;
+        }
+        navigationTimeoutRef.current = null;
+      }, 2000);
     } catch (error) {
       console.error('[NoshHeaven] Error navigating:', error);
+      isNavigatingRef.current = false;
+      isNavigatingShared.value = false;
+      savedScrollPositionRef.current = null;
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+        navigationTimeoutRef.current = null;
+      }
     }
-  }, [router, pullProgress, pullTranslation]);
+  }, [router, pullProgress, pullTranslation, isNavigatingShared]);
 
   // Handlers for new sections
   const handleCuisinePress = useCallback((cuisine: any) => {
@@ -1633,6 +1947,9 @@ export function MainScreen() {
             showsVerticalScrollIndicator={false}
             bounces={true}
             alwaysBounceVertical={true}
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+            }}
             contentContainerStyle={{
               paddingBottom: 300, // Increased padding for better bottom spacing
               paddingTop: 282, // Fixed padding for header height (header is absolutely positioned)
@@ -1655,15 +1972,23 @@ export function MainScreen() {
             onScroll={scrollHandler}
             scrollEventThrottle={8}
             onScrollEndDrag={(e) => {
+              // Don't process scroll end drag if we're navigating
+              // Use ref for JS thread check to avoid reading shared value during render
+              if (isNavigatingRef.current) {
+                return;
+              }
+              
               // Detect overscroll at bottom when user releases
               if (isAtBottom) {
                 const contentHeight = e.nativeEvent.contentSize.height;
                 const layoutHeight = e.nativeEvent.layoutMeasurement.height;
-                const scrollY = e.nativeEvent.contentOffset.y;
-                const overscroll = contentHeight - (scrollY + layoutHeight);
+                const scrollYPos = e.nativeEvent.contentOffset.y;
+                const overscroll = contentHeight - (scrollYPos + layoutHeight);
                 
                 // If overscrolled upward (negative overscroll) and threshold reached, trigger
                 if (overscroll < 0 && Math.abs(overscroll) >= PULL_THRESHOLD * ACTIVATION_THRESHOLD) {
+                  // Save scroll position from native event before triggering
+                  savedScrollPositionRef.current = scrollYPos;
                   handleNoshHeavenTrigger();
                 } else if (pullProgress.value > 0) {
                   // Reset progress if threshold not reached
@@ -1673,12 +1998,39 @@ export function MainScreen() {
               }
             }}
             onMomentumScrollEnd={(e) => {
+              // Don't process momentum scroll end if we're navigating
+              // Use ref for JS thread check to avoid reading shared value during render
+              if (isNavigatingRef.current) {
+                return;
+              }
+              
               // Also check on momentum scroll end
               if (isAtBottom && pullProgress.value >= ACTIVATION_THRESHOLD) {
+                // Save scroll position from native event before triggering
+                const scrollYPos = e.nativeEvent.contentOffset.y;
+                savedScrollPositionRef.current = scrollYPos;
                 handleNoshHeavenTrigger();
               } else if (pullProgress.value > 0) {
                 pullProgress.value = withSpring(0, { damping: 15 });
                 pullTranslation.value = 0;
+              }
+            }}
+            onLayout={() => {
+              // CRITICAL: Ensure hasInitialLoadCompleted stays true on layout
+              // This prevents skeletons from showing when layout changes
+              if (hasInitialLoadCompletedRef.current) {
+                setHasInitialLoadCompleted(true);
+              }
+              
+              // Use consolidated restore function instead of duplicate logic
+              // Only restore if not already restoring and conditions are met
+              if (
+                !isRestoringScrollPositionRef.current &&
+                savedScrollPositionRef.current !== null &&
+                savedScrollPositionRef.current !== Number.MAX_SAFE_INTEGER &&
+                !isNavigatingRef.current
+              ) {
+                restoreScrollPosition();
               }
             }}
           >
@@ -1721,6 +2073,7 @@ export function MainScreen() {
                 isHeaderSticky={isHeaderSticky}
                 isAuthenticated={isAuthenticated}
                 shouldShow={activeCategoryFilter === 'all'}
+                hasInitialLoadCompleted={hasInitialLoadCompleted}
                 onItemPress={(item) => {
                   // Navigate to meal details from order item
                   handleMealPress({
@@ -1740,52 +2093,67 @@ export function MainScreen() {
                   <CuisinesSection 
                     onCuisinePress={handleCuisinePress} 
                     onSeeAllPress={handleOpenCuisinesDrawer}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                   />
                   <CuisineCategoriesSection
                     onCuisinePress={handleCuisinePress}
                     onSeeAllPress={handleOpenCuisineCategoriesDrawer}
                     useBackend={true}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                   />
                   <FeaturedKitchensSection
                     onKitchenPress={handleFeaturedKitchenPress}
                     onSeeAllPress={handleOpenFeaturedKitchensDrawer}
                     useBackend={true}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                   />
                   <PopularMealsSection
                     onMealPress={handleMealPress}
                     onSeeAllPress={handleOpenPopularMealsDrawer}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                   />
                   
                   {/* Recommended For You Section */}
                   <RecommendedMealsSection
                     onMealPress={handleMealPress}
                     limit={8}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                   />
 
                   {/* Hidden Sections - dynamically shown based on conditions */}
                   {orderedSections.some((section) => section.isHidden) && (
-                    <HiddenSections userBehavior={userBehavior} />
+                    <HiddenSections 
+                      userBehavior={userBehavior}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    />
                   )}
 
                   <SpecialOffersSection
                     onOfferPress={handleOfferPress}
                     onSeeAllPress={handleOpenSpecialOffersDrawer}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                   />
                   <KitchensNearMe 
                     onKitchenPress={handleFeaturedKitchenPress}
                     onMapPress={handleMapToggle}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                   />
                   <TopKebabs 
                     onOpenDrawer={handleOpenTopKebabsDrawer}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                     onKebabPress={(kebab) => {
                       // Filter by kebab cuisine
                       handleCuisinePress({ id: kebab.id, name: kebab.name, image: kebab.image });
                     }}
                   />
-                  <TakeAways onOpenDrawer={handleOpenTakeawayDrawer} />
+                  <TakeAways 
+                    onOpenDrawer={handleOpenTakeawayDrawer}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
+                  />
                   <TooFreshToWaste
                     onOpenDrawer={handleOpenTooFreshDrawer}
                     onOpenSustainability={handleOpenSustainabilityDrawer}
+                    hasInitialLoadCompleted={hasInitialLoadCompleted}
                     onItemPress={(item) => {
                       // Navigate to meal details from sustainability item
                       handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
@@ -1848,6 +2216,7 @@ export function MainScreen() {
                           onCuisinePress={handleCuisinePress}
                           showTitle={false}
                           isLoading={cuisinesLoading}
+                          hasInitialLoadCompleted={hasInitialLoadCompleted}
                         />
                       )}
                       {filteredKitchens.length > 0 && (
@@ -1856,6 +2225,7 @@ export function MainScreen() {
                           onKitchenPress={handleFeaturedKitchenPress}
                           showTitle={false}
                           isLoading={chefsLoading}
+                          hasInitialLoadCompleted={hasInitialLoadCompleted}
                         />
                       )}
                       {filteredMeals.length > 0 && (
@@ -1865,6 +2235,7 @@ export function MainScreen() {
                           showTitle={false}
                           useBackend={false}
                           isLoading={mealsLoading}
+                          hasInitialLoadCompleted={hasInitialLoadCompleted}
                         />
                       )}
                     </View>

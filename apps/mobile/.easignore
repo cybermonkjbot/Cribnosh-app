@@ -1,0 +1,160 @@
+# IMPORTANT: node_modules, package.json, and all dependencies are INCLUDED by default
+# Only explicitly listed patterns below are excluded
+
+# Other apps (not needed for mobile build)
+../apps/web
+../apps/driver-app
+
+# Native directories (using CNG / Prebuild)
+/ios
+
+# Documentation files
+*.md
+**/*.md
+
+# Backup files
+*.zip
+**/*.zip
+**/backups
+**/backups/**
+
+# Test files
+**/tests
+**/tests/**
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+test-*.ts
+test-*.tsx
+
+# Build artifacts
+*.tsbuildinfo
+**/*.tsbuildinfo
+dist/
+build/
+.next/
+web-build/
+
+# Docker and infrastructure
+**/Dockerfile*
+**/docker-compose*.yaml
+**/docker-compose*.yml
+**/infrastructure
+**/infrastructure/**
+**/nginx.conf
+**/entrypoint.sh
+**/nixpacks.toml
+
+# Scripts (not needed for build)
+**/scripts
+**/scripts/**
+
+# Large files
+*.pkg
+*.log
+**/*.log
+combined.log
+error.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Environment and config templates
+env.example
+env.template
+**/env.example
+**/env.template
+
+# Service account keys (should be in environment)
+**/google-service-account.json
+deep-rigging-*.json
+elite-clarity-*.json
+# Only ignore specific service account JSON files, not all JSON files with dashes
+
+# Convex generated files - needed for build, but will be regenerated if missing
+# Note: These are included in the build as they're required for TypeScript compilation
+# The paths below are commented out to ensure Convex generated files are included
+# ../../packages/convex/convex/_generated
+# ../../packages/convex/convex/**/_generated
+
+# Chrome extension
+**/chrome-extension
+
+# Cloudflare worker
+**/cloudflare-worker
+
+# AWS CLI
+**/AWSCLIV2.pkg
+
+# Email templates (if not needed)
+**/emails
+
+# Sentry config (if not needed for build)
+**/sentry.*.config.ts
+
+# Jest and test configs
+jest.config.js
+vitest.config.ts
+**/jest.config.*
+**/vitest.config.*
+
+# TypeScript test configs
+tsconfig.test.json
+
+# Basehub
+**/basehub.config.ts
+**/basehub.d.ts
+
+# Package tgz files
+*.tgz
+expo-keep-awake-*.tgz
+
+# Convex backups
+../packages/convex/dev_backup_*.zip
+
+# Apple keys (should be in environment)
+../packages/convex/*.p8
+
+# Migration and status docs
+../*MIGRATION*.md
+../*STATUS*.md
+../*FIX*.md
+../*REQUIRED*.md
+../*CHECKLIST*.md
+../*TYPES*.md
+../*GUIDE*.md
+../*PLAN*.md
+../*SUMMARY*.md
+../*CONFIGURATION*.md
+../*TROUBLESHOOTING*.md
+../*TEST*.md
+../*SCREEN*.md
+../*UPDATES*.md
+../*VARIABLES*.md
+../*NEEDED*.md
+../AUTH_*.md
+../COMPREHENSIVE_*.md
+../ENVIRONMENT_*.md
+../REMAINING_*.md
+../STRIPE_*.md
+
+# Root level configs not needed
+../convex.json
+../bunfig.toml
+../ios/Podfile
+
+# Assets not in this app
+../assets
+
+# Package directory
+../package
+

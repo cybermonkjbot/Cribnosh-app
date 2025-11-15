@@ -3,7 +3,7 @@ import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
 import { Link, router, useFocusEffect } from "expo-router";
 import { CarFront, Utensils } from "lucide-react-native";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import IncrementalOrderAmount from "../IncrementalOrderAmount";
@@ -13,69 +13,64 @@ import { NoshPassModal } from "./NoshPassModal";
 import { SkeletonBox } from "./MealItemDetails/Skeletons/ShimmerBox";
 import { CustomerAddress } from "@/types/customer";
 import { useAddressSelection } from "@/contexts/AddressSelectionContext";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { getSessionToken } from "@/lib/convexClient";
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from "@/contexts/AuthContext";
 import { getAbsoluteImageUrl } from "@/utils/imageUrl";
+import { useQuery } from "convex/react";
 
 export default function CartScreen() {
   const [cutleryIncluded, setCutleryIncluded] = useState(false);
-  const [cartData, setCartData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isNoshPassModalVisible, setIsNoshPassModalVisible] = useState(false);
   const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
-  const hasInitialLoadRef = useRef(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Use cart hook for Convex actions
-  const { getCart, updateCartItem, removeFromCart, isLoading: cartLoading } = useCart();
+  // Use cart hook for Convex mutations (update, remove)
+  const { updateCartItem, removeFromCart } = useCart();
   const { isAuthenticated } = useAuthContext();
 
-  // Profile state
-  const [profileData, setProfileData] = useState<any>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-
-  // Fetch profile data from Convex
-  const fetchProfile = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      setIsLoadingProfile(true);
-      const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-
-      if (!sessionToken) {
-        return;
+  // Load session token for reactive queries
+  useEffect(() => {
+    const loadToken = async () => {
+      if (isAuthenticated) {
+        const token = await getSessionToken();
+        setSessionToken(token);
+      } else {
+        setSessionToken(null);
       }
-
-      const result = await convex.action(api.actions.users.customerGetProfile, {
-        sessionToken,
-      });
-
-      if (result.success === false) {
-        return;
-      }
-
-      // Transform to match expected format
-      setProfileData({
-        data: {
-          ...result.user,
-        },
-      });
-    } catch (error: any) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setIsLoadingProfile(false);
-    }
+    };
+    loadToken();
   }, [isAuthenticated]);
 
-  // Fetch profile on mount and when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProfile();
-    }
-  }, [isAuthenticated, fetchProfile]);
+  // Use reactive Convex query for cart data - this will automatically update when cart changes
+  const cartData = useQuery(
+    api.queries.orders.getEnrichedCartBySessionToken,
+    sessionToken ? { sessionToken } : "skip"
+  );
 
-  const refetchProfile = fetchProfile;
+  // Get user by session token (reactive query)
+  const user = useQuery(
+    api.queries.users.getUserBySessionToken,
+    sessionToken ? { sessionToken } : "skip"
+  );
+
+  // Get user profile (reactive query)
+  const profileDataRaw = useQuery(
+    api.queries.users.getUserProfile,
+    user?._id && sessionToken ? { userId: user._id, sessionToken } : "skip"
+  );
+
+  // Transform profile data to match expected format
+  const profileData = useMemo(() => {
+    if (!profileDataRaw) return null;
+    return {
+      data: {
+        ...profileDataRaw,
+      },
+    };
+  }, [profileDataRaw]);
+
+  const isLoadingProfile = user === undefined || (user && profileDataRaw === undefined);
 
   // Address selection context
   const { setOnSelectAddress, selectedAddress, setSelectedAddress } = useAddressSelection();
@@ -83,37 +78,11 @@ export default function CartScreen() {
   const userAddress = profileData?.data?.address;
   const hasAddress = userAddress && userAddress.street && userAddress.street.trim().length > 0;
 
-  // Fetch cart function
-  const fetchCart = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const result = await getCart();
-      if (result.success && result.data) {
-        setCartData(result.data);
-      }
-    } catch (error) {
-      console.error('Error fetching cart:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getCart]);
-
-  // Fetch cart when screen comes into focus
-  // Only refresh on initial load, not when navigating from add to cart
-  useFocusEffect(
-    useCallback(() => {
-      // Only fetch on initial load
-      if (!hasInitialLoadRef.current) {
-        fetchCart();
-        hasInitialLoadRef.current = true;
-      }
-    }, [fetchCart])
-  );
-
-  // Get cart items from data or fallback to empty array
+  // Get cart items from reactive query data or fallback to empty array
   const cartItems = cartData?.items || [];
   const hasItems = cartItems.length > 0;
-  const isEmpty = !isLoading && !cartLoading && (!cartData || cartItems.length === 0);
+  const isLoading = cartData === undefined; // undefined means query is loading
+  const isEmpty = cartData !== undefined && cartItems.length === 0;
 
   const handleBack = () => {
     router.back();
@@ -127,11 +96,7 @@ export default function CartScreen() {
       // Remove item if quantity is 0
       try {
         await removeFromCart(item._id);
-        // Refresh cart after removal
-        const result = await getCart();
-        if (result.success && result.data) {
-          setCartData(result.data);
-        }
+        // Cart will automatically update via reactive query, no need to manually refresh
       } catch (error) {
         console.error('Error removing item:', error);
       }
@@ -139,16 +104,12 @@ export default function CartScreen() {
       // Update quantity
       try {
         await updateCartItem(item._id, newQuantity);
-        // Refresh cart after update
-        const result = await getCart();
-        if (result.success && result.data) {
-          setCartData(result.data);
-        }
+        // Cart will automatically update via reactive query, no need to manually refresh
       } catch (error) {
         console.error('Error updating quantity:', error);
       }
     }
-  }, [cartItems, removeFromCart, getCart, updateCartItem]);
+  }, [cartItems, removeFromCart, updateCartItem]);
 
   const handleCutleryToggle = () => {
     setCutleryIncluded(!cutleryIncluded);
@@ -307,8 +268,7 @@ export default function CartScreen() {
               await Promise.all(
                 cartItems.map((item: any) => removeFromCart(item._id))
               );
-              // Refresh cart after clearing
-              await fetchCart();
+              // Cart will automatically update via reactive query, no need to manually refresh
             } catch (error) {
               console.error('Error clearing cart:', error);
             }
@@ -338,6 +298,7 @@ export default function CartScreen() {
           <SkeletonBox width={79} height={36} borderRadius={10} />
         </View>
       ))}
+      {/* Delivery Address Section */}
       <View style={styles.skeletonSection}>
         <View style={styles.skeletonSectionRow}>
           <SkeletonBox width={32} height={32} borderRadius={16} />
@@ -347,16 +308,63 @@ export default function CartScreen() {
           </View>
         </View>
       </View>
+      {/* Nosh Pass Section */}
+      <View style={[styles.skeletonSection, styles.skeletonSectionSpacing]}>
+        <View style={styles.skeletonSectionRow}>
+          <SkeletonBox width={32} height={32} borderRadius={4} />
+          <SkeletonBox width={100} height={18} borderRadius={4} />
+          <SkeletonBox width={80} height={18} borderRadius={4} />
+        </View>
+      </View>
+      {/* Cutlery Section */}
+      <View style={[styles.skeletonSection, styles.skeletonSectionSpacing]}>
+        <View style={styles.skeletonSectionRow}>
+          <SkeletonBox width={32} height={32} borderRadius={4} />
+          <View style={styles.skeletonSectionText}>
+            <SkeletonBox width={100} height={18} borderRadius={4} style={{ marginBottom: 4 }} />
+            <SkeletonBox width={250} height={14} borderRadius={4} />
+          </View>
+          <SkeletonBox width={80} height={36} borderRadius={16} />
+        </View>
+      </View>
+      {/* Ask a friend to pay Section */}
+      <View style={[styles.skeletonSection, styles.skeletonSectionSpacing]}>
+        <View style={styles.skeletonSectionRow}>
+          <SkeletonBox width={32} height={32} borderRadius={4} />
+          <View style={styles.skeletonSectionText}>
+            <SkeletonBox width={150} height={18} borderRadius={4} style={{ marginBottom: 4 }} />
+            <SkeletonBox width={220} height={14} borderRadius={4} />
+          </View>
+          <SkeletonBox width={80} height={36} borderRadius={16} />
+        </View>
+      </View>
+      {/* Summary Section */}
+      <View style={styles.skeletonSummary}>
+        <View style={styles.skeletonSummaryRow}>
+          <SkeletonBox width={100} height={18} borderRadius={4} />
+          <SkeletonBox width={60} height={18} borderRadius={4} />
+        </View>
+        <View style={styles.skeletonSummaryRow}>
+          <SkeletonBox width={60} height={18} borderRadius={4} />
+          <SkeletonBox width={80} height={18} borderRadius={4} />
+        </View>
+      </View>
     </View>
   );
 
   // Show loading state with skeleton
-  if (isLoading || cartLoading) {
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <SkeletonWithTimeout isLoading={isLoading || cartLoading}>
-          <CartSkeleton />
-        </SkeletonWithTimeout>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: 120 }}
+        >
+          <SkeletonWithTimeout isLoading={isLoading || cartLoading}>
+            <CartSkeleton />
+          </SkeletonWithTimeout>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -689,15 +697,29 @@ const styles = StyleSheet.create({
   },
   skeletonSection: {
     marginTop: 32,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 8,
+  },
+  skeletonSectionSpacing: {
+    marginTop: 20,
   },
   skeletonSectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingBottom: 8,
   },
   skeletonSectionText: {
     flex: 1,
+  },
+  skeletonSummary: {
+    marginTop: 48,
+  },
+  skeletonSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   itemsContainer: {
     // empty className

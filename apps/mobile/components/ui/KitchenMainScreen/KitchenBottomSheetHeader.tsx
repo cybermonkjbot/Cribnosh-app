@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Circle, Path, Svg } from 'react-native-svg';
 import HearEmoteIcon from '../HearEmoteIcon';
-import { useGetKitchenFavoriteStatusQuery, useAddKitchenFavoriteMutation, useRemoveKitchenFavoriteMutation } from '@/store/customerApi';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 
 interface KitchenBottomSheetHeaderProps {
   deliveryTime: string;
@@ -27,19 +28,46 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
   const titleText = currentSnapPoint === 1 ? kitchenName : "Kitchen Story";
   const isExpanded = currentSnapPoint === 1;
 
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+
   // Fetch favorite status if kitchenId is provided
-  const {
-    data: favoriteStatus,
-    isLoading: isLoadingFavorite,
-  } = useGetKitchenFavoriteStatusQuery(
-    { kitchenId: kitchenId || '' },
-    { skip: !kitchenId }
-  );
+  useEffect(() => {
+    const loadFavoriteStatus = async () => {
+      if (!kitchenId) {
+        setIsFavorited(false);
+        return;
+      }
 
-  const [addFavorite] = useAddKitchenFavoriteMutation();
-  const [removeFavorite] = useRemoveKitchenFavoriteMutation();
+      try {
+        setIsLoadingFavorite(true);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
 
-  const isFavorited = favoriteStatus?.data?.isFavorited || false;
+        if (!sessionToken) {
+          setIsFavorited(false);
+          setIsLoadingFavorite(false);
+          return;
+        }
+
+        const result = await convex.action(api.actions.users.customerGetKitchenFavoriteStatus, {
+          sessionToken,
+          kitchenId,
+        });
+
+        if (result.success) {
+          setIsFavorited(result.isFavorited);
+        }
+      } catch (error) {
+        console.error('Failed to load favorite status:', error);
+        setIsFavorited(false);
+      } finally {
+        setIsLoadingFavorite(false);
+      }
+    };
+
+    loadFavoriteStatus();
+  }, [kitchenId]);
 
   const handleHeartPress = async () => {
     if (!kitchenId) {
@@ -48,14 +76,37 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
     }
 
     try {
+      setIsLoadingFavorite(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        setIsLoadingFavorite(false);
+        return;
+      }
+
       if (isFavorited) {
-        await removeFavorite({ kitchenId }).unwrap();
+        const result = await convex.action(api.actions.users.customerRemoveKitchenFavorite, {
+          sessionToken,
+          kitchenId,
+        });
+        if (result.success) {
+          setIsFavorited(false);
+        }
       } else {
-        await addFavorite({ kitchenId }).unwrap();
+        const result = await convex.action(api.actions.users.customerAddKitchenFavorite, {
+          sessionToken,
+          kitchenId,
+        });
+        if (result.success) {
+          setIsFavorited(true);
+        }
       }
       onHeartPress?.();
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
+    } finally {
+      setIsLoadingFavorite(false);
     }
   };
 

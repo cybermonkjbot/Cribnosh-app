@@ -1,15 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withDelay,
-    withSequence,
-    withSpring,
-    withTiming
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
 // App color constants - matching the home page and app theme
@@ -40,29 +38,28 @@ interface CalorieCompareCardProps {
 
 // Memoize the component to prevent unnecessary re-renders
 const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo(({
-  kcalToday = 1420,
-  kcalYesterday = 1680,
+  kcalToday,
+  kcalYesterday,
   onPress,
 }) => {
-  const difference = kcalYesterday - kcalToday;
-  const isLess = difference > 0;
-  const dayNames = ['Monday', 'Sunday']; // Yesterday and day before
+  // Use 0 as defaults if no data
+  const safeKcalToday = kcalToday ?? 0;
+  const safeKcalYesterday = kcalYesterday ?? 0;
+  const difference = safeKcalToday - safeKcalYesterday;
+  const isMore = difference > 0;
+  const absDifference = Math.abs(difference);
 
   // Animation values
   const cardScale = useSharedValue(1);
   const cardOpacity = useSharedValue(0);
   const cardTranslateY = useSharedValue(20);
   const barsProgress = useSharedValue(0);
-  const iconScale = useSharedValue(0.8);
-  const iconRotation = useSharedValue(0);
   const numbersScale = useSharedValue(0.8);
 
   // Derived values for safe access
   const currentCardOpacity = useDerivedValue(() => cardOpacity.value);
   const currentCardScale = useDerivedValue(() => cardScale.value);
   const currentCardTranslateY = useDerivedValue(() => cardTranslateY.value);
-  const currentIconScale = useDerivedValue(() => iconScale.value);
-  const currentIconRotation = useDerivedValue(() => `${iconRotation.value}deg`);
   const currentNumbersScale = useDerivedValue(() => numbersScale.value);
   const currentBarsProgress = useDerivedValue(() => barsProgress.value);
 
@@ -82,12 +79,6 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
     ],
   }));
 
-  const iconAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: currentIconScale.value },
-      { rotate: currentIconRotation.value }
-    ],
-  }));
 
   const numbersAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: currentNumbersScale.value }],
@@ -98,10 +89,6 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
     // Card entrance
     cardOpacity.value = withTiming(1, { duration: 600 });
     cardTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
-    
-    // Icon animation
-    iconScale.value = withDelay(200, withSpring(1, { damping: 10, stiffness: 200 }));
-    iconRotation.value = withDelay(200, withSpring(360, { damping: 15, stiffness: 150 }));
     
     // Numbers animation
     numbersScale.value = withDelay(400, withSpring(1, { damping: 15, stiffness: 200 }));
@@ -119,12 +106,6 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
   };
 
   const handlePress = () => {
-    // Trigger icon bounce animation
-    iconScale.value = withSequence(
-      withSpring(1.2, { damping: 8, stiffness: 300 }),
-      withSpring(1, { damping: 15, stiffness: 300 })
-    );
-    
     if (onPress) {
       onPress();
     }
@@ -140,18 +121,14 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Animated.View style={[styles.icon, iconAnimatedStyle]}>
-              <Ionicons name="flame" size={16} color={COLORS.accent} />
-            </Animated.View>
             <Text style={styles.title}>Calories Logged</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
         </View>
 
         {/* Summary Text */}
         <Text style={styles.summaryText}>
-          You consumed {Math.abs(difference)} kcal {isLess ? 'fewer' : 'more'} yesterday than the day before.
+          {absDifference > 0 
+            ? `You consumed ${absDifference.toLocaleString()} kcal ${isMore ? 'more' : 'less'} today compared to yesterday.`
+            : 'Your calorie intake is the same as yesterday.'}
         </Text>
 
         {/* Separator */}
@@ -159,9 +136,9 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
 
         {/* Data Display */}
         <View style={styles.dataSection}>
-          {/* Yesterday */}
+          {/* Today */}
           <View style={styles.dataItem}>
-            <Animated.Text style={[styles.dataValue, numbersAnimatedStyle]}>{kcalToday}</Animated.Text>
+            <Animated.Text style={[styles.dataValue, numbersAnimatedStyle]}>{safeKcalToday.toLocaleString()}</Animated.Text>
             <Text style={styles.dataUnit}>kcal</Text>
             <Animated.View 
               style={[
@@ -172,12 +149,12 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
                 }
               ]} 
             />
-            <Text style={styles.dayLabel}>{dayNames[0]}</Text>
+            <Text style={styles.dayLabel}>Today</Text>
           </View>
 
-          {/* Day Before */}
+          {/* Yesterday */}
           <View style={styles.dataItem}>
-            <Animated.Text style={[styles.dataValue, numbersAnimatedStyle]}>{kcalYesterday}</Animated.Text>
+            <Animated.Text style={[styles.dataValue, numbersAnimatedStyle]}>{safeKcalYesterday.toLocaleString()}</Animated.Text>
             <Text style={styles.dataUnit}>kcal</Text>
             <Animated.View 
               style={[
@@ -189,7 +166,7 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
               ]} 
             />
             <View style={styles.dayHighlight}>
-              <Text style={styles.dayLabel}>{dayNames[1]}</Text>
+              <Text style={styles.dayLabel}>Yesterday</Text>
             </View>
           </View>
         </View>
@@ -223,22 +200,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  icon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.accent,
-  },
-  chevron: {
-    fontSize: 16,
-    color: COLORS.text.muted,
   },
   summaryText: {
     fontSize: 16,

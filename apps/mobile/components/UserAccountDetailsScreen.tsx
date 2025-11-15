@@ -1,16 +1,17 @@
+import { useAddressSelection } from '@/contexts/AddressSelectionContext';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { CustomerAddress } from '@/types/customer';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { getAbsoluteImageUrl } from '@/utils/imageUrl';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import { ProfileAvatar } from './ProfileAvatar';
 import { VerificationBanner } from './VerificationBanner';
 import { SkeletonWithTimeout } from './ui/SkeletonWithTimeout';
-import { useAddressSelection } from '@/contexts/AddressSelectionContext';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
+import { useQuery } from 'convex/react';
 
 interface UserAccountDetailsScreenProps {
   userName?: string;
@@ -114,103 +115,91 @@ export function UserAccountDetailsScreen({
   // Address selection context
   const { setOnSelectAddress, selectedAddress, setSelectedAddress } = useAddressSelection();
 
-  // Profile state
-  const [profileData, setProfileData] = useState<any>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [profileError, setProfileError] = useState<any>(null);
-
-  // Fetch profile data from Convex
-  const fetchProfile = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      setIsLoadingProfile(true);
-      setProfileError(null);
-      const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-
-      if (!sessionToken) {
-        setProfileError(new Error('Not authenticated'));
-        return;
+  // Get session token for reactive queries
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const loadToken = async () => {
+      if (isAuthenticated) {
+        const token = await getSessionToken();
+        setSessionToken(token);
+      } else {
+        setSessionToken(null);
       }
-
-      const result = await convex.action(api.actions.users.customerGetProfile, {
-        sessionToken,
-      });
-
-      if (result.success === false) {
-        setProfileError(new Error(result.error || 'Failed to fetch profile'));
-        return;
-      }
-
-      // Transform to match expected format
-      setProfileData({
-        data: {
-          ...result.user,
-          is_verified: result.user.roles?.includes('verified') || false,
-        },
-      });
-    } catch (error: any) {
-      setProfileError(error);
-      console.error('Error fetching profile:', error);
-    } finally {
-      setIsLoadingProfile(false);
-    }
+    };
+    loadToken();
   }, [isAuthenticated]);
 
-  // Fetch profile on mount and when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProfile();
-    }
-  }, [isAuthenticated, fetchProfile]);
+  // Get user by session token (reactive query)
+  const user = useQuery(
+    api.queries.users.getUserBySessionToken,
+    sessionToken ? { sessionToken } : "skip"
+  );
 
-  const refetchProfile = fetchProfile;
+  // Get user profile (reactive query)
+  const profileData = useQuery(
+    api.queries.users.getUserProfile,
+    user?._id && sessionToken ? { userId: user._id, sessionToken } : "skip"
+  );
+
+  // Transform profile data to match expected format
+  const transformedProfileData = useMemo(() => {
+    if (!profileData) return null;
+    return {
+      data: {
+        ...profileData,
+        is_verified: profileData.roles?.includes('verified') || false,
+      },
+    };
+  }, [profileData]);
+
+  const isLoadingProfile = user === undefined || (user && profileData === undefined);
+  const profileError = user === null && sessionToken ? new Error('Not authenticated') : null;
 
   // Get user data from API or fallback to prop
-  const userName = profileData?.data?.name || propUserName || "User";
-  const isVerified = profileData?.data?.is_verified ?? false;
-  const profileAddress = profileData?.data?.address;
+  const userName = transformedProfileData?.data?.name || propUserName || "User";
+  const isVerified = transformedProfileData?.data?.is_verified ?? false;
+  const profileAddress = transformedProfileData?.data?.address;
   
   // Check if profile is complete
   // Profile is complete if it has: name, email or phone, address, and is verified
   const isProfileComplete = useMemo(() => {
-    if (!profileData?.data) {
+    if (!transformedProfileData?.data) {
       return false;
     }
     
-    const hasName = !!profileData.data.name && profileData.data.name.trim().length > 0;
-    const hasEmail = !!profileData.data.email && profileData.data.email.trim().length > 0;
-    const hasPhone = !!profileData.data.phone && profileData.data.phone.trim().length > 0;
+    const hasName = !!transformedProfileData.data.name && transformedProfileData.data.name.trim().length > 0;
+    const hasEmail = !!transformedProfileData.data.email && transformedProfileData.data.email.trim().length > 0;
+    const hasPhone = !!transformedProfileData.data.phone && transformedProfileData.data.phone.trim().length > 0;
     const hasContact = hasEmail || hasPhone;
     const hasAddress = !!profileAddress && !!profileAddress.street && profileAddress.street.trim().length > 0;
     
     return hasName && hasContact && hasAddress && isVerified;
-  }, [profileData?.data, profileAddress, isVerified]);
+  }, [transformedProfileData?.data, profileAddress, isVerified]);
   
   // Convert profile picture URL to absolute if needed
   // Check multiple possible locations for the picture field
   const profilePictureUrl = useMemo(() => {
-    if (!profileData?.data) {
+    if (!transformedProfileData?.data) {
       return undefined;
     }
     
     // Check multiple possible locations for the picture
     const picture = 
-      profileData.data.picture || 
-      (profileData.data as any)?.user?.picture || 
-      (profileData.data as any)?.user?.avatar ||
-      (profileData.data as any)?.avatar;
+      transformedProfileData.data.picture || 
+      (transformedProfileData.data as any)?.user?.picture || 
+      (transformedProfileData.data as any)?.user?.avatar ||
+      (transformedProfileData.data as any)?.avatar;
     
     // Debug: Log the profile data structure
     console.log('Account Details Screen - Profile Data:', {
-      hasData: !!profileData.data,
+      hasData: !!transformedProfileData.data,
       picture: picture,
-      dataPicture: profileData.data.picture,
-      userPicture: (profileData.data as any)?.user?.picture,
-      userAvatar: (profileData.data as any)?.user?.avatar,
-      dataAvatar: (profileData.data as any)?.avatar,
-      dataKeys: Object.keys(profileData.data),
+      dataPicture: transformedProfileData.data.picture,
+      userPicture: (transformedProfileData.data as any)?.user?.picture,
+      userAvatar: (transformedProfileData.data as any)?.user?.avatar,
+      dataAvatar: (transformedProfileData.data as any)?.avatar,
+      dataKeys: Object.keys(transformedProfileData.data),
     });
     
     if (picture) {
@@ -223,7 +212,7 @@ export function UserAccountDetailsScreen({
     }
     
     return undefined;
-  }, [profileData?.data]);
+  }, [transformedProfileData]);
   
   // Use profile picture from API or selected local image
   const displayPicture = selectedProfileImage || profilePictureUrl;
@@ -278,8 +267,7 @@ export function UserAccountDetailsScreen({
         setSelectedProfileImage(undefined);
       }
 
-      // Refetch profile to get updated picture URL from backend
-      await refetchProfile();
+      // Profile will automatically update via reactive query
     } catch (error: any) {
       console.error('Error uploading profile picture:', error);
       Alert.alert(
@@ -326,36 +314,103 @@ export function UserAccountDetailsScreen({
         const sessionToken = await getSessionToken();
 
         if (!sessionToken) {
-          throw new Error('Not authenticated');
+          // Clear invalid state and show user-friendly message
+          setSelectedAddress(null);
+          Alert.alert(
+            'Authentication Required',
+            'Please sign in to save your address.',
+            [{ text: 'OK' }]
+          );
+          return;
         }
 
-        if (!address || !address.street) {
-          throw new Error('Invalid address provided');
+        // Validate address more thoroughly
+        if (!address) {
+          setSelectedAddress(null);
+          Alert.alert(
+            'Invalid Address',
+            'Please select a valid address to continue.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+
+        // Validate required fields
+        const street = address.street?.trim();
+        if (!street || street.length === 0) {
+          setSelectedAddress(null);
+          Alert.alert(
+            'Invalid Address',
+            'Please provide a street address.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+
+        // Validate address has minimum required information
+        const city = address.city?.trim() || '';
+        const state = address.state?.trim() || '';
+        const postalCode = address.postal_code?.trim() || '';
+        const country = address.country?.trim() || 'UK';
+
+        if (!city && !state && !postalCode) {
+          setSelectedAddress(null);
+          Alert.alert(
+            'Incomplete Address',
+            'Please provide at least a city, state, or postal code.',
+            [{ text: 'OK' }]
+          );
+          return;
         }
 
         const result = await convex.action(api.actions.users.customerUpdateProfile, {
           sessionToken,
           address: {
-            street: address.street,
-            city: address.city || '',
-            state: address.state || '',
-            postal_code: address.postal_code || '',
-            country: address.country || 'UK',
+            street,
+            city,
+            state,
+            postal_code: postalCode,
+            country,
           },
         });
 
         if (result.success === false) {
-          throw new Error(result.error || 'Failed to save address');
+          const errorMessage = result.error || 'Failed to save address';
+          setSelectedAddress(null);
+          Alert.alert(
+            'Unable to Save Address',
+            errorMessage.includes('Invalid') 
+              ? 'The address provided is not valid. Please check and try again.'
+              : errorMessage,
+            [{ text: 'OK' }]
+          );
+          return;
         }
 
-        // Refetch profile to get updated address
-        await refetchProfile();
-        setSelectedAddress(null); // Clear after handling
+        // Success - profile will automatically update via reactive query
+        setSelectedAddress(null); // Clear after successful handling
       } catch (error: any) {
+        // Always clear invalid state on error
+        setSelectedAddress(null);
+        
+        // Log error for debugging
         console.error('Error saving address:', error);
+        
+        // Provide user-friendly error message
+        const errorMessage = error?.message || 'An unexpected error occurred';
+        let userMessage = 'Unable to save your address. Please try again.';
+        
+        if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+          userMessage = 'Network error. Please check your connection and try again.';
+        } else if (errorMessage.includes('Invalid address')) {
+          userMessage = 'The address provided is not valid. Please check and try again.';
+        } else if (errorMessage.includes('Not authenticated')) {
+          userMessage = 'Please sign in to save your address.';
+        }
+        
         Alert.alert(
-          'Error',
-          error?.message || 'Failed to save address. Please try again.',
+          'Error Saving Address',
+          userMessage,
           [{ text: 'OK' }]
         );
       }
@@ -364,54 +419,116 @@ export function UserAccountDetailsScreen({
     return () => {
       setOnSelectAddress(null);
     };
-  }, [setOnSelectAddress, refetchProfile, setSelectedAddress]);
+  }, [setOnSelectAddress, setSelectedAddress]);
 
   // Handle address selection when returning from modal
   useFocusEffect(
     useCallback(() => {
-      if (selectedAddress) {
+      // Only process if we have a valid address with required fields
+      if (selectedAddress && selectedAddress.street && typeof selectedAddress.street === 'string' && selectedAddress.street.trim().length > 0) {
         const handleSelected = async () => {
           try {
             const convex = getConvexClient();
             const sessionToken = await getSessionToken();
 
             if (!sessionToken) {
-              throw new Error('Not authenticated');
+              // Clear invalid state and show user-friendly message
+              setSelectedAddress(null);
+              Alert.alert(
+                'Authentication Required',
+                'Please sign in to save your address.',
+                [{ text: 'OK' }]
+              );
+              return;
             }
 
-            if (!selectedAddress || !selectedAddress.street) {
-              throw new Error('Invalid address provided');
+            // Validate address more thoroughly
+            const street = selectedAddress.street?.trim();
+            if (!street || street.length === 0) {
+              setSelectedAddress(null);
+              Alert.alert(
+                'Invalid Address',
+                'Please provide a street address.',
+                [{ text: 'OK' }]
+              );
+              return;
+            }
+
+            // Validate address has minimum required information
+            const city = selectedAddress.city?.trim() || '';
+            const state = selectedAddress.state?.trim() || '';
+            const postalCode = selectedAddress.postal_code?.trim() || '';
+            const country = selectedAddress.country?.trim() || 'UK';
+
+            if (!city && !state && !postalCode) {
+              setSelectedAddress(null);
+              Alert.alert(
+                'Incomplete Address',
+                'Please provide at least a city, state, or postal code.',
+                [{ text: 'OK' }]
+              );
+              return;
             }
 
             const result = await convex.action(api.actions.users.customerUpdateProfile, {
               sessionToken,
               address: {
-                street: selectedAddress.street,
-                city: selectedAddress.city || '',
-                state: selectedAddress.state || '',
-                postal_code: selectedAddress.postal_code || '',
-                country: selectedAddress.country || 'UK',
+                street,
+                city,
+                state,
+                postal_code: postalCode,
+                country,
               },
             });
 
             if (result.success === false) {
-              throw new Error(result.error || 'Failed to save address');
+              const errorMessage = result.error || 'Failed to save address';
+              setSelectedAddress(null);
+              Alert.alert(
+                'Unable to Save Address',
+                errorMessage.includes('Invalid') 
+                  ? 'The address provided is not valid. Please check and try again.'
+                  : errorMessage,
+                [{ text: 'OK' }]
+              );
+              return;
             }
 
+            // Success - refetch profile to get updated address
             await refetchProfile();
-            setSelectedAddress(null); // Clear after handling
+            setSelectedAddress(null); // Clear after successful handling
           } catch (error: any) {
+            // Always clear invalid state on error
+            setSelectedAddress(null);
+            
+            // Log error for debugging
             console.error('Error saving address:', error);
+            
+            // Provide user-friendly error message
+            const errorMessage = error?.message || 'An unexpected error occurred';
+            let userMessage = 'Unable to save your address. Please try again.';
+            
+            if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+              userMessage = 'Network error. Please check your connection and try again.';
+            } else if (errorMessage.includes('Invalid address')) {
+              userMessage = 'The address provided is not valid. Please check and try again.';
+            } else if (errorMessage.includes('Not authenticated')) {
+              userMessage = 'Please sign in to save your address.';
+            }
+            
             Alert.alert(
-              'Error',
-              error?.message || 'Failed to save address. Please try again.',
+              'Error Saving Address',
+              userMessage,
               [{ text: 'OK' }]
             );
           }
         };
         handleSelected();
+      } else if (selectedAddress) {
+        // Invalid address in context, clear it silently
+        setSelectedAddress(null);
       }
-    }, [selectedAddress, refetchProfile, setSelectedAddress])
+    }, [selectedAddress, setSelectedAddress])
   );
 
   // Handle address sheet opening
@@ -460,7 +577,7 @@ export function UserAccountDetailsScreen({
   }
 
   // Error state
-  if (profileError && !profileData) {
+  if (profileError && !transformedProfileData) {
     return (
       <View style={styles.mainContainer}>
         <View style={styles.customHeader}>
@@ -481,7 +598,16 @@ export function UserAccountDetailsScreen({
             </Text>
             <TouchableOpacity 
               style={styles.retryButton} 
-              onPress={() => refetchProfile()}
+              onPress={() => {
+                // Reactive queries will automatically retry and update
+                // Force a re-render by updating session token state
+                const refreshToken = async () => {
+                  const token = await getSessionToken();
+                  setSessionToken(null);
+                  setTimeout(() => setSessionToken(token), 100);
+                };
+                refreshToken();
+              }}
             >
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>

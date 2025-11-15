@@ -30,6 +30,7 @@ interface OrderAgainSectionProps {
   isAuthenticated?: boolean;
   shouldShow?: boolean; // Controls visibility while maintaining hook consistency
   onItemPress?: (item: OrderItem) => void;
+  hasInitialLoadCompleted?: boolean;
 }
 
 export function OrderAgainSection({
@@ -37,6 +38,7 @@ export function OrderAgainSection({
   isAuthenticated = false,
   shouldShow = true, // Default to showing
   onItemPress,
+  hasInitialLoadCompleted = false,
 }: OrderAgainSectionProps) {
   const horizontalScrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -142,8 +144,8 @@ export function OrderAgainSection({
     return null;
   }
 
-  // Show skeleton while loading (after all hooks are called)
-  if (dishesLoading && isAuthenticated) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (dishesLoading && isAuthenticated && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={dishesLoading}>
         <OrderAgainSectionSkeleton itemCount={3} />

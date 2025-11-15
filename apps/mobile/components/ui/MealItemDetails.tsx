@@ -91,7 +91,7 @@ export function MealItemDetails({
   onSimilarMealPress,
   onKitchenNamePress,
 }: MealItemDetailsProps) {
-  const [quantity] = useState(2);
+  const [quantity] = useState(1);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();

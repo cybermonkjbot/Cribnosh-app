@@ -3,7 +3,9 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOp
 import { SvgXml } from 'react-native-svg';
 import { BottomSheetBase } from '../BottomSheetBase';
 import { useToast } from '@/lib/ToastContext';
-import { useInviteFamilyMemberMutation } from '@/store/customerApi';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -22,11 +24,44 @@ export function AddFamilyMemberSheet({
   onSuccess,
 }: AddFamilyMemberSheetProps) {
   const { showToast } = useToast();
-  const [inviteMember, { isLoading }] = useInviteFamilyMemberMutation();
+  const { isAuthenticated } = useAuthContext();
+  const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [relationship, setRelationship] = useState('');
+
+  // Invite family member function
+  const inviteMember = useCallback(async (data: {
+    member: {
+      name: string;
+      email: string;
+      phone?: string;
+      relationship: string;
+    };
+  }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.users.customerInviteFamilyMember, {
+      sessionToken,
+      member: data.member,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to invite family member');
+    }
+
+    // Transform to match expected format
+    return {
+      success: true,
+      data: result,
+    };
+  }, []);
 
   const snapPoints = useMemo(() => ['75%', '90%'], []);
 
@@ -66,6 +101,7 @@ export function AddFamilyMemberSheet({
     }
 
     try {
+      setIsLoading(true);
       const result = await inviteMember({
         member: {
           name: name.trim(),
@@ -73,9 +109,8 @@ export function AddFamilyMemberSheet({
           phone: phone.trim() || undefined,
           relationship: relationship.trim(),
         },
-      }).unwrap();
+      });
 
-      if (result.success) {
         showToast({
           type: 'success',
           title: 'Invitation Sent',
@@ -84,14 +119,15 @@ export function AddFamilyMemberSheet({
         });
         handleClose();
         onSuccess?.();
-      }
     } catch (error: any) {
       showToast({
         type: 'error',
         title: 'Invitation Failed',
-        message: error?.data?.message || error?.message || 'Failed to send invitation. Please try again.',
+        message: error?.message || 'Failed to send invitation. Please try again.',
         duration: 4000,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 

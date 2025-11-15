@@ -89,7 +89,7 @@ export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: 
   const [selectedMeal, setSelectedMeal] = useState<ShakeMeal | null>(null);
   const [isInCooldown, setIsInCooldown] = useState(false);
   const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const availableMealsRef = useRef<ShakeMeal[]>(FALLBACK_MEALS);
+  const availableMealsShared = useSharedValue<ShakeMeal[]>(FALLBACK_MEALS);
   const [randomMealsData, setRandomMealsData] = useState<any>(null);
 
   // Fetch random meals from API for shake-to-eat feature
@@ -157,14 +157,14 @@ export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: 
         })
         .filter((meal): meal is ShakeMeal => meal !== null);
       
-      // Update ref with transformed meals if available, otherwise fallback
+      // Update shared value with transformed meals if available, otherwise fallback
       const meals = transformedMeals.length > 0 ? transformedMeals : FALLBACK_MEALS;
-      availableMealsRef.current = meals; // Update ref for worklet access
+      availableMealsShared.value = meals; // Update shared value for worklet access
       return meals;
     }
     
     // Use fallback meals if API not available or not authenticated
-    availableMealsRef.current = FALLBACK_MEALS;
+    availableMealsShared.value = FALLBACK_MEALS;
     return FALLBACK_MEALS;
   }, [randomMealsData, transformMealToShakeFormat]);
 
@@ -424,8 +424,8 @@ const startFoodDiscoveryAnimation = () => {
     'worklet';
     if (finished) {
       // Select random meal from available meals (API or fallback)
-      // Use ref to access meals in worklet context
-      const meals = availableMealsRef.current;
+      // Use shared value to access meals in worklet context
+      const meals = availableMealsShared.value;
       if (meals && meals.length > 0) {
         const randomMeal = meals[Math.floor(Math.random() * meals.length)];
         runOnJS(setSelectedMeal)(randomMeal);

@@ -1,13 +1,14 @@
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { useDownloadAccountDataMutation } from '@/store/customerApi';
 import { useToast } from '../lib/ToastContext';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -53,9 +54,35 @@ export default function DownloadAccountDataScreen() {
   const { showToast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   const insets = useSafeAreaInsets();
-  const { token } = useAuthContext();
+  const { token, isAuthenticated } = useAuthContext();
 
-  const [downloadAccountData] = useDownloadAccountDataMutation();
+  // Request account data download function
+  const downloadAccountData = useCallback(async () => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.users.customerRequestAccountDataDownload, {
+      sessionToken,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to request account data download');
+    }
+
+    // Transform to match expected format
+    return {
+      data: {
+        download_url: result.download_url,
+        download_token: result.download_token,
+        status: result.status,
+        estimated_completion_time: result.estimated_completion_time,
+      },
+    };
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -64,13 +91,13 @@ export default function DownloadAccountDataScreen() {
   const handleDownloadData = async () => {
     try {
       setIsDownloading(true);
-      const result = await downloadAccountData(undefined).unwrap();
+      const result = await downloadAccountData();
       
       if (result.data?.download_url) {
         // Download the file from the URL
         const downloadUrl = result.data.download_url;
         const fileName = `cribnosh-account-data-${Date.now()}.zip`;
-        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        const fileUri = `${(FileSystem as any).documentDirectory || FileSystem.cacheDirectory || ''}${fileName}`;
 
         // Download the file
         const downloadResult = await FileSystem.downloadAsync(

@@ -22,12 +22,14 @@ interface KitchensNearMeProps {
   onKitchenPress?: (kitchen: Kitchen) => void;
   onMapPress?: () => void;
   useBackend?: boolean;
+  hasInitialLoadCompleted?: boolean;
 }
 
 export function KitchensNearMe({ 
   onKitchenPress, 
   onMapPress,
   useBackend = true,
+  hasInitialLoadCompleted = false,
 }: KitchensNearMeProps) {
   const { isAuthenticated } = useAuthContext();
   const locationState = useUserLocation();
@@ -104,8 +106,8 @@ export function KitchensNearMe({
 
   // Error state is shown in UI - no toast needed
 
-  // Show skeleton while loading
-  if (useBackend && backendLoading) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (useBackend && backendLoading && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={backendLoading}>
         <KitchensNearMeSkeleton itemCount={2} />

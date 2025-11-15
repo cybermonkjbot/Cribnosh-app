@@ -5,10 +5,11 @@ import ScatteredGroupMembers from '@/components/ui/ScatteredGroupMembers';
 import { SharedOrderingHeader } from '@/components/ui/SharedOrderingHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGetUserConnectionsQuery } from '@/store/customerApi';
 import { useRouter } from 'expo-router';
 import { SearchIcon, X } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,13 +22,44 @@ export default function ChooseFriends() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [connectionsData, setConnectionsData] = useState<any>(null);
 
-  // Fetch real connections/friends from API
-  const {
-    data: connectionsData,
-  } = useGetUserConnectionsQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  // Fetch real connections/friends from Convex
+  const fetchConnections = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetConnections, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        console.error('Error fetching connections:', result.error);
+        return;
+      }
+
+      // Transform to match expected format
+      setConnectionsData({
+        success: true,
+        data: result.connections || [],
+      });
+    } catch (error: any) {
+      console.error('Error fetching connections:', error);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchConnections();
+    }
+  }, [isAuthenticated, fetchConnections]);
 
   // Transform API connections to friend format
   const friends = useMemo(() => {

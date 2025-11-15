@@ -29,7 +29,13 @@ interface UsualDinnerItem {
 }
 
 // Usual Dinner Section Component
-export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavior }) {
+export function UsualDinnerSection({ 
+  userBehavior,
+  hasInitialLoadCompleted = false,
+}: { 
+  userBehavior: UserBehavior;
+  hasInitialLoadCompleted?: boolean;
+}) {
   const { isAuthenticated } = useAuthContext();
   const router = useRouter();
   const { getUsualDinnerItems } = useOrders();
@@ -90,8 +96,8 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
     }
   }, [router]);
 
-  // Show skeleton while loading
-  if (dinnerItemsLoading && isAuthenticated) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (dinnerItemsLoading && isAuthenticated && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={dinnerItemsLoading}>
         <UsualDinnerSectionSkeleton itemCount={4} />
@@ -212,7 +218,13 @@ export function UsualDinnerSection({ userBehavior }: { userBehavior: UserBehavio
 }
 
 // Play to Win Section Component
-export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior }) {
+export function PlayToWinSection({ 
+  userBehavior,
+  hasInitialLoadCompleted = false,
+}: { 
+  userBehavior: UserBehavior;
+  hasInitialLoadCompleted?: boolean;
+}) {
   const { isAuthenticated } = useAuthContext();
   const router = useRouter();
   const { getConnections } = useConnections();
@@ -313,8 +325,8 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
     router.push('/play-to-win/invite');
   }, [router]);
 
-  // Show skeleton while loading
-  if (colleaguesLoading && isAuthenticated) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (colleaguesLoading && isAuthenticated && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={colleaguesLoading}>
         <PlayToWinSectionSkeleton />
@@ -464,11 +476,23 @@ export function PlayToWinSection({ userBehavior }: { userBehavior: UserBehavior 
 }
 
 // Main Hidden Sections Component
-export function HiddenSections({ userBehavior }: { userBehavior: UserBehavior }) {
+export function HiddenSections({ 
+  userBehavior,
+  hasInitialLoadCompleted = false,
+}: { 
+  userBehavior: UserBehavior;
+  hasInitialLoadCompleted?: boolean;
+}) {
   return (
     <View>
-      <UsualDinnerSection userBehavior={userBehavior} />
-      <PlayToWinSection userBehavior={userBehavior} />
+      <UsualDinnerSection 
+        userBehavior={userBehavior}
+        hasInitialLoadCompleted={hasInitialLoadCompleted}
+      />
+      <PlayToWinSection 
+        userBehavior={userBehavior}
+        hasInitialLoadCompleted={hasInitialLoadCompleted}
+      />
     </View>
   );
 } 

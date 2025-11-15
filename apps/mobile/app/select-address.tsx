@@ -10,6 +10,7 @@ export default function SelectAddressModalScreen() {
     addressLabel?: 'home' | 'work' | 'custom';
     selectedStreet?: string;
     selectedCity?: string;
+    mode?: 'add' | 'select';
   }>();
 
   const handleClose = () => {
@@ -45,6 +46,7 @@ export default function SelectAddressModalScreen() {
         onClose={handleClose}
         onSelectAddress={handleSelectAddress}
         addressLabel={params.addressLabel}
+        mode={params.mode || (params.addressLabel ? 'add' : 'select')}
         selectedAddress={
           params.selectedStreet && params.selectedCity
             ? {

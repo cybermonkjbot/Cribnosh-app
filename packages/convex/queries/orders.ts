@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { query } from '../_generated/server';
 import { isAdmin, isStaff, requireAuth, getAuthenticatedUser } from '../utils/auth';
+import { api } from '../_generated/api';
 
 export const listByChef = query({
   args: { 
@@ -499,6 +500,129 @@ export const getUserCartBySessionToken = query({
   },
 });
 
+// Get enriched order by session token and order ID (for reactive order details in mobile app)
+export const getEnrichedOrderBySessionToken = query({
+  args: { 
+    sessionToken: v.string(),
+    order_id: v.string()
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    if (!user) {
+      return null;
+    }
+
+    // The order_id parameter can be either:
+    // 1. A Convex document ID (like "k123abc" - starts with a letter)
+    // 2. An order_id string field (like "order_1234567890_abc123")
+    let order = null;
+    
+    // First, try to get by document ID if it looks like a Convex ID
+    // Convex IDs typically start with a lowercase letter (k, j, etc.)
+    if (args.order_id.match(/^[a-z][a-z0-9]*$/)) {
+      try {
+        // Try to get by document ID
+        order = await ctx.db.get(args.order_id as any);
+        // If found but it's not from the 'orders' table, set to null
+        if (order && !('order_id' in order || 'customer_id' in order)) {
+          order = null;
+        }
+      } catch (error) {
+        // Not a valid document ID or doesn't exist, continue to search by order_id field
+        order = null;
+      }
+    }
+    
+    // If not found by document ID, try searching by order_id field
+    if (!order) {
+      order = await ctx.db
+        .query('orders')
+        .filter(q => q.eq(q.field('order_id'), args.order_id))
+        .first();
+    }
+    
+    if (!order) {
+      return null;
+    }
+
+    // Verify ownership
+    if (!isAdmin(user) && !isStaff(user)) {
+      if (order.customer_id !== user._id && order.customer_id.toString() !== user._id.toString()) {
+        return null; // Return null instead of throwing for better UX
+      }
+    }
+
+    // Fetch chef/kitchen name if available
+    let kitchenName = 'Unknown Kitchen';
+    try {
+      const chef = await ctx.runQuery(api.queries.chefs.getById, {
+        chefId: order.chef_id as any,
+      });
+      kitchenName = chef?.name || 'Unknown Kitchen';
+    } catch (error) {
+      // Chef not found, use default
+    }
+
+    // Transform delivery_address to match expected format (postcode -> postal_code, add state if missing)
+    let deliveryAddress = null;
+    if (order.delivery_address) {
+      deliveryAddress = {
+        street: order.delivery_address.street || '',
+        city: order.delivery_address.city || '',
+        state: order.delivery_address.state || '', // May not exist in schema
+        postal_code: order.delivery_address.postcode || order.delivery_address.postal_code || '',
+        country: order.delivery_address.country || 'UK',
+      };
+    }
+
+    // Calculate subtotal from order items if not stored
+    const subtotal = order.subtotal || (order.order_items || []).reduce((sum: number, item: any) => {
+      return sum + ((item.price || 0) * (item.quantity || 1));
+    }, 0);
+
+    // Transform to standardized format (matching the action format and screen expectations)
+    const orderData = {
+      id: order._id,
+      _id: order._id,
+      customerId: order.customer_id,
+      chefId: order.chef_id,
+      orderDate: new Date(order.order_date || order.createdAt || Date.now()).toISOString(),
+      totalAmount: order.total_amount,
+      total: order.total_amount,
+      orderStatus: order.order_status,
+      status: order.order_status,
+      specialInstructions: order.special_instructions || null,
+      special_instructions: order.special_instructions || null,
+      estimatedPrepTimeMinutes: order.estimated_prep_time_minutes || null,
+      estimated_prep_time_minutes: order.estimated_prep_time_minutes || null,
+      chefNotes: order.chef_notes || null,
+      chef_notes: order.chef_notes || null,
+      paymentStatus: order.payment_status,
+      payment_status: order.payment_status,
+      orderItems: order.order_items || [],
+      items: (order.order_items || []).map((item: any) => ({
+        ...item,
+        dish_name: item.name || item.dish_name || 'Unknown Dish',
+        id: item.dish_id || item.id,
+      })),
+      // Additional fields that might be needed
+      kitchen_id: order.chef_id,
+      kitchen_name: kitchenName,
+      delivery_address: deliveryAddress,
+      delivery_fee: order.delivery_fee || 0,
+      subtotal: subtotal,
+      tax: order.tax || 0,
+      created_at: order.created_at || order.createdAt || new Date().toISOString(),
+      updated_at: order.updated_at || order.updatedAt || new Date().toISOString(),
+      estimated_delivery_time: order.estimated_delivery_time || order.delivery_time,
+    };
+
+    return orderData;
+  },
+});
+
 // Get cart item count by session token (for reactive cart count in mobile app)
 export const getCartItemCountBySessionToken = query({
   args: { 
@@ -524,5 +648,127 @@ export const getCartItemCountBySessionToken = query({
     
     // Calculate total item count (sum of all quantities)
     return cart.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+  },
+});
+
+// Get enriched cart by session token (for reactive cart in mobile app)
+// This query enriches cart items with meal details, chef info, and image URLs
+export const getEnrichedCartBySessionToken = query({
+  args: { 
+    sessionToken: v.string()
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    if (!user) {
+      return {
+        items: [],
+        userId: null,
+        updatedAt: Date.now(),
+      };
+    }
+    
+    // Get cart from database
+    const cart = await ctx.db
+      .query('carts')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first();
+    
+    if (!cart || !cart.items || cart.items.length === 0) {
+      return {
+        items: [],
+        userId: user._id,
+        updatedAt: Date.now(),
+      };
+    }
+
+    // Enrich cart items with meal and chef details
+    const enrichedItems = await Promise.all(
+      cart.items.map(async (item: any) => {
+        try {
+          // Get meal details
+          const meal = await ctx.runQuery(api.queries.meals.getById, {
+            mealId: item.id as any,
+          });
+
+          // Get chef details if available
+          let chefName: string | undefined;
+          if (meal?.chefId) {
+            try {
+              const chef = await ctx.runQuery(api.queries.chefs.getById, {
+                chefId: meal.chefId as any,
+              });
+              chefName = chef?.name;
+            } catch (error) {
+              // Chef not found, continue without chef name
+            }
+          }
+
+          // Get first image URL if available
+          let imageUrl: string | undefined = undefined;
+          if (meal?.images && Array.isArray(meal.images) && meal.images.length > 0) {
+            const firstImage = meal.images[0];
+            // Check if it's a Convex storage ID (starts with 'k' and is a valid ID format)
+            // or if it's already a URL
+            if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+              imageUrl = firstImage;
+            } else if (firstImage.startsWith('k')) {
+              // It's likely a Convex storage ID, get the URL
+              try {
+                imageUrl = await ctx.storage.getUrl(firstImage as any);
+              } catch (error) {
+                console.error('Failed to get storage URL for image:', firstImage, error);
+                // Fallback to relative path
+                imageUrl = `/api/files/${firstImage}`;
+              }
+            } else {
+              // Fallback to relative path
+              imageUrl = `/api/files/${firstImage}`;
+            }
+          }
+
+          // Include sides if they exist
+          const sides = item.sides || [];
+
+          return {
+            _id: item.id,
+            dish_id: item.id,
+            quantity: item.quantity,
+            price: item.price || meal?.price || 0,
+            total_price: (item.price || meal?.price || 0) * item.quantity,
+            name: item.name || meal?.name || 'Unknown Dish',
+            dish_name: item.name || meal?.name || 'Unknown Dish', // Also include dish_name for compatibility
+            image_url: imageUrl,
+            chef_id: meal?.chefId || undefined,
+            chef_name: chefName,
+            added_at: item.updatedAt || Date.now(),
+            sides: sides.length > 0 ? sides : undefined,
+          };
+        } catch (error) {
+          // If meal not found, return item with available data
+          return {
+            _id: item.id,
+            dish_id: item.id,
+            quantity: item.quantity,
+            price: item.price || 0,
+            total_price: (item.price || 0) * item.quantity,
+            name: item.name || 'Unknown Dish',
+            dish_name: item.name || 'Unknown Dish', // Also include dish_name for compatibility
+            image_url: undefined,
+            chef_id: undefined,
+            chef_name: undefined,
+            added_at: item.updatedAt || Date.now(),
+            sides: item.sides || undefined,
+          };
+        }
+      })
+    );
+
+    return {
+      items: enrichedItems,
+      userId: user._id,
+      updatedAt: cart.updatedAt || Date.now(),
+    };
   },
 });

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle, Image } from 'react-native';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -29,6 +29,15 @@ interface GroupOrder {
   isActive: boolean;
 }
 
+interface OrderItemWithImage {
+  _id?: string;
+  dish_id?: string;
+  name?: string;
+  image_url?: string;
+  image_urls?: string[];
+  images?: string[];
+}
+
 interface OrderCardProps {
   time: string;
   description: string;
@@ -37,6 +46,7 @@ interface OrderCardProps {
   estimatedTime?: string;
   orderNumber?: string;
   items?: string[];
+  orderItems?: OrderItemWithImage[];
   orderType?: OrderType;
   groupOrder?: GroupOrder;
   icon?: React.ReactNode;
@@ -136,6 +146,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   estimatedTime,
   orderNumber,
   items,
+  orderItems,
   orderType,
   groupOrder,
   icon,
@@ -170,6 +181,93 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const isOngoingOrder = status && status !== 'delivered' && status !== 'cancelled';
   const isGroupOrder = orderType === 'group' && groupOrder;
 
+  // Get items with images for stacking
+  // Flatten items to include all images (one item per image)
+  const itemsWithImages: OrderItemWithImage[] = [];
+  if (orderItems && orderItems.length > 0) {
+    orderItems.forEach((item) => {
+      // Get images from various possible fields
+      const images = item.image_urls || item.images || (item.image_url ? [item.image_url] : []);
+      if (images.length > 0) {
+        // Create one entry per image for stacking
+        images.forEach((imageUrl, idx) => {
+          itemsWithImages.push({
+            ...item,
+            _id: `${item._id || item.dish_id || idx}_${idx}`,
+            image_url: imageUrl,
+          });
+        });
+      }
+    });
+  }
+
+  // Render stacked images or fallback to icon
+  const renderImageStack = () => {
+    if (itemsWithImages.length > 0) {
+      const itemsToShow = itemsWithImages.slice(0, 4);
+      return (
+        <View style={styles.imageStackContainer}>
+          {itemsToShow.map((item, idx) => {
+            const offset = idx * 8;
+            const rotation = (idx % 2 === 0 ? 1 : -1) * (idx * 3);
+            return (
+              <View
+                key={item._id || item.dish_id || idx}
+                style={[
+                  styles.stackedImage,
+                  {
+                    transform: [
+                      { translateX: offset },
+                      { translateY: offset * 0.5 },
+                      { rotate: `${rotation}deg` },
+                    ],
+                    zIndex: itemsWithImages.length - idx,
+                  },
+                ]}
+              >
+                {item.image_url ? (
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={styles.stackedImageContent}
+                  />
+                ) : (
+                  <View style={[styles.stackedImageContent, styles.placeholderImage]}>
+                    <Ionicons name="cube-outline" size={20} color="#9CA3AF" />
+                  </View>
+                )}
+              </View>
+            );
+          })}
+          {itemsWithImages.length > 4 && (
+            <View
+              style={[
+                styles.stackedImage,
+                styles.moreItemsOverlay,
+                {
+                  transform: [
+                    { translateX: 4 * 8 },
+                    { translateY: 4 * 8 * 0.5 },
+                  ],
+                  zIndex: 0,
+                },
+              ]}
+            >
+              <View style={[styles.stackedImageContent, styles.moreItemsContainer]}>
+                <Text style={styles.moreItemsText}>+{itemsWithImages.length - 4}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      );
+    }
+    // Fallback to icon if no images available
+    return (
+      <View style={styles.iconContainer}>
+        {icon}
+      </View>
+    );
+  };
+
   const CardContent = (
     <Animated.View 
       style={[
@@ -178,9 +276,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         animatedStyle,
       ]}
     >
-      <View style={styles.iconContainer}>
-        {icon}
-      </View>
+      {renderImageStack()}
       <View style={styles.orderDetails}>
         <View style={styles.orderHeader}>
           <View style={styles.timeAndOrderNumber}>
@@ -463,5 +559,55 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(229, 231, 235, 0.5)',
     marginTop: 8,
     marginHorizontal: 12,
+  },
+  imageStackContainer: {
+    position: 'relative',
+    width: 48,
+    height: 48,
+    marginRight: 12,
+    marginLeft: 4,
+    marginTop: 2,
+  },
+  stackedImage: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#EAEAEA',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  stackedImageContent: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
+  },
+  placeholderImage: {
+    backgroundColor: '#EAEAEA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreItemsOverlay: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(229, 231, 235, 0.5)',
+  },
+  moreItemsContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  moreItemsText: {
+    color: '#111827',
+    fontSize: 12,
+    fontWeight: '700',
   },
 }); 

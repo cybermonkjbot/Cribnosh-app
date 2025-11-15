@@ -37,17 +37,24 @@ config.resolver.alias = {
   "@/convex": path.join(workspaceRoot, 'packages', 'convex', 'convex'),
 };
 
-// Force React and react-dom to resolve from mobile app's node_modules only
-// This is critical to prevent multiple React instances, even when other packages
-// like expo-keep-awake or react-native are in root node_modules
+// Check if we're in a monorepo by seeing if workspace root node_modules exists
+const isMonorepo = fs.existsSync(workspaceNodeModulesPath) && fs.existsSync(path.join(workspaceRoot, 'package.json'));
+
+// ALWAYS ensure React resolves from mobile app's node_modules (critical for EAS builds)
+// This ensures React is found even if monorepo detection fails or in EAS build environment
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),
-  // Always force React and react-dom from mobile app's node_modules (they exist there)
-  'react': path.join(mobileNodeModules, 'react'),
-  'react-dom': path.join(mobileNodeModules, 'react-dom'),
-  'react/jsx-runtime': path.join(mobileNodeModules, 'react/jsx-runtime'),
-  'react/jsx-dev-runtime': path.join(mobileNodeModules, 'react/jsx-dev-runtime'),
-  // Only add other packages if they exist in mobile app's node_modules
+  // Always try to resolve React from mobile app's node_modules first
+  ...(fs.existsSync(path.join(mobileNodeModules, 'react')) ? {
+    'react': path.join(mobileNodeModules, 'react'),
+  } : {}),
+  ...(fs.existsSync(path.join(mobileNodeModules, 'react-dom')) ? {
+    'react-dom': path.join(mobileNodeModules, 'react-dom'),
+  } : {}),
+  // Note: react/jsx-runtime is a package.json subpath export
+  // Metro's default resolver will handle this correctly as long as React is found
+  // We don't need to alias it - just ensure React itself is resolved correctly above
+  // Add other React-related packages if they exist in mobile app's node_modules
   ...reactPackages.slice(5).reduce((acc, pkg) => {
     const pkgPath = path.join(mobileNodeModules, pkg);
     if (fs.existsSync(pkgPath)) {
@@ -56,27 +63,34 @@ config.resolver.extraNodeModules = {
     return acc;
   }, {}),
   // Resolve @stripe packages from workspace root if not in mobile app's node_modules
-  '@stripe/stripe-react-native': fs.existsSync(path.join(mobileNodeModules, '@stripe', 'stripe-react-native'))
-    ? path.join(mobileNodeModules, '@stripe', 'stripe-react-native')
-    : path.join(workspaceNodeModulesPath, '@stripe', 'stripe-react-native'),
+  ...(fs.existsSync(path.join(mobileNodeModules, '@stripe', 'stripe-react-native'))
+    ? { '@stripe/stripe-react-native': path.join(mobileNodeModules, '@stripe', 'stripe-react-native') }
+    : isMonorepo && fs.existsSync(path.join(workspaceNodeModulesPath, '@stripe', 'stripe-react-native'))
+    ? { '@stripe/stripe-react-native': path.join(workspaceNodeModulesPath, '@stripe', 'stripe-react-native') }
+    : {}),
 };
 
 // Block resolution from parent node_modules for React and react-dom
 // This ensures only the mobile app's React instance is used (19.1.0)
-// Note: We don't block react-native from root since it may not exist in mobile app's node_modules
-const workspaceNodeModules = path.join(workspaceRoot, 'node_modules').replace(/\\/g, '/');
-config.resolver.blockList = [
-  ...(config.resolver.blockList || []),
-  // Block React and react-dom from workspace root node_modules (prevents version mismatch)
-  new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react/.*`),
-  new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react-dom/.*`),
-];
+// Only apply blockList in monorepo setup (local dev)
+if (isMonorepo) {
+  const workspaceNodeModules = path.join(workspaceRoot, 'node_modules').replace(/\\/g, '/');
+  if (fs.existsSync(workspaceNodeModules)) {
+    config.resolver.blockList = [
+      ...(config.resolver.blockList || []),
+      // Block React and react-dom from workspace root node_modules (prevents version mismatch)
+      new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react/.*`),
+      new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react-dom/.*`),
+    ];
+  }
+}
 
 // Ensure node_modules resolution can find packages in both locations
-// but prioritize mobile app's node_modules (for React packages)
+// ALWAYS prioritize mobile app's node_modules first (critical for EAS builds)
+// This ensures React and other dependencies are found from the mobile app's node_modules
 config.resolver.nodeModulesPaths = [
   mobileNodeModules,
-  workspaceNodeModulesPath,
+  ...(isMonorepo && fs.existsSync(workspaceNodeModulesPath) ? [workspaceNodeModulesPath] : []),
 ];
 
 // Add watchFolders to include the packages directory for monorepo support
@@ -89,5 +103,9 @@ config.watchFolders = [
 
 // Ensure Metro only processes files within the mobile app directory
 config.projectRoot = projectRoot;
+
+// Ensure React can be resolved from multiple locations (critical for EAS builds)
+// Metro's default resolver will handle subpath exports (react/jsx-runtime) correctly
+// as long as React is found in one of the node_modules paths
 
 module.exports = config;

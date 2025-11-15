@@ -19,6 +19,7 @@ interface CuisinesSectionProps {
   onCuisinePress?: (cuisine: Cuisine) => void;
   onSeeAllPress?: () => void;
   useBackend?: boolean;
+  hasInitialLoadCompleted?: boolean;
 }
 
 export function CuisinesSection({ 
@@ -26,6 +27,7 @@ export function CuisinesSection({
   onCuisinePress, 
   onSeeAllPress,
   useBackend = true,
+  hasInitialLoadCompleted = false,
 }: CuisinesSectionProps) {
   const { isAuthenticated } = useAuthContext();
   const { getCuisines, isLoading: backendLoading } = useCuisines();
@@ -92,8 +94,8 @@ export function CuisinesSection({
     return [];
   }, [propCuisines, cuisinesData, useBackend, transformCuisineData]);
 
-  // Show skeleton while loading
-  if (useBackend && backendLoading && !propCuisines) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (useBackend && backendLoading && !propCuisines && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={backendLoading}>
         <CuisinesSectionSkeleton itemCount={3} />

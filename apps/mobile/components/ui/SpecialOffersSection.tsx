@@ -69,6 +69,7 @@ interface SpecialOffersSectionProps {
   onOfferPress?: (offer: SpecialOffer) => void;
   onSeeAllPress?: () => void;
   useBackend?: boolean;
+  hasInitialLoadCompleted?: boolean;
 }
 
 export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
@@ -76,6 +77,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
   onOfferPress,
   onSeeAllPress,
   useBackend = true,
+  hasInitialLoadCompleted = false,
 }) => {
   const { isAuthenticated } = useAuthContext();
   const { getActiveOffers, isLoading: backendLoading } = useOffersAndTreats();
@@ -154,8 +156,8 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
   }, [offersData, useBackend, transformOfferData]);
 
 
-  // Show skeleton while loading
-  if (useBackend && backendLoading) {
+  // Only show skeleton during initial load, never after initial load is complete
+  if (useBackend && backendLoading && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={backendLoading}>
         <SpecialOffersSectionSkeleton itemCount={3} />

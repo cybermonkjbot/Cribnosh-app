@@ -8,11 +8,31 @@ import { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 
 // Initialize Stripe client
+// TODO: REMOVE HARDCODED TEST KEY - This is a temporary fallback for testing
 const getStripe = () => {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
+  // TEMPORARY TEST KEY - REMOVE BEFORE PRODUCTION
+  const FALLBACK_TEST_KEY = 'sk_test_51QTHZNGAiAa3ySTVYw75S6tYEYn2uFwRcf24pIobEpVhgF4uhq7toOtwQeH2RTn67PynAKRjiEhNPe0dkTtILQnB00qEyEuMav';
+  
+  // Get from environment variable, fallback to hardcoded test key
+  const envKey = process.env.STRIPE_SECRET_KEY;
+  const usingFallback = !envKey || envKey.trim().length === 0;
+  const stripeSecretKey = usingFallback ? FALLBACK_TEST_KEY : envKey.trim();
+  
+  // Debug logging (only in development)
+  if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+    console.log('Stripe Key Status:', {
+      hasEnvKey: !!envKey,
+      envKeyLength: envKey?.length || 0,
+      usingFallback,
+      keyPrefix: stripeSecretKey.substring(0, 20) + '...',
+    });
+  }
+  
   if (!stripeSecretKey || stripeSecretKey.length === 0) {
+    console.error('Stripe secret key is empty or invalid');
     return null;
   }
+  
   return new Stripe(stripeSecretKey, {
     apiVersion: '2025-07-30.basil' as Stripe.LatestApiVersion,
   });
@@ -802,6 +822,7 @@ export const customerCreateSetupIntent = action({
 
       const stripe = getStripe();
       if (!stripe) {
+        console.error('getStripe() returned null - Stripe initialization failed');
         return {
           success: false as const,
           error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.',
@@ -809,17 +830,40 @@ export const customerCreateSetupIntent = action({
       }
 
       // Get or create Stripe customer
-      const stripeCustomerId = await getOrCreateStripeCustomer(
-        ctx,
-        user._id,
-        user.email || 'customer@cribnosh.com'
-      );
+      let stripeCustomerId: string;
+      try {
+        stripeCustomerId = await getOrCreateStripeCustomer(
+          ctx,
+          user._id,
+          user.email || 'customer@cribnosh.com'
+        );
+      } catch (error: any) {
+        console.error('Failed to get or create Stripe customer:', error);
+        return {
+          success: false as const,
+          error: `Failed to create Stripe customer: ${error?.message || 'Unknown error'}`,
+        };
+      }
 
       // Create setup intent
-      const setupIntent = await stripe.setupIntents.create({
-        customer: stripeCustomerId,
-        payment_method_types: ['card'],
-      });
+      let setupIntent;
+      try {
+        setupIntent = await stripe.setupIntents.create({
+          customer: stripeCustomerId,
+          payment_method_types: ['card'],
+        });
+      } catch (error: any) {
+        console.error('Failed to create setup intent:', {
+          error: error.message,
+          type: error.type,
+          code: error.code,
+          customerId: stripeCustomerId,
+        });
+        return {
+          success: false as const,
+          error: `Failed to create setup intent: ${error?.message || 'Unknown error'}`,
+        };
+      }
 
       // Debug: Log setup intent creation (only in development)
       const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();

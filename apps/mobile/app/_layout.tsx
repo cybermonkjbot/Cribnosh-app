@@ -59,23 +59,9 @@ export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
   const colorScheme = useColorScheme();
 
-  // Initialize Stripe with publishable key (backup method)
-  useEffect(() => {
-    if (initStripe && STRIPE_CONFIG.publishableKey && !isExpoGo) {
-      try {
-        initStripe({
-          publishableKey: STRIPE_CONFIG.publishableKey,
-          merchantIdentifier: 'merchant.com.cribnosh.co.uk',
-          urlScheme: 'cribnosh',
-        });
-        if (__DEV__) {
-          console.log('✅ Stripe initialized via initStripe');
-        }
-      } catch (error) {
-        console.error('Failed to initialize Stripe via initStripe:', error);
-      }
-    }
-  }, []);
+  // Note: We use StripeProvider instead of initStripe
+  // According to Stripe React Native docs, you should use one or the other, not both
+  // StripeProvider is the recommended approach and handles initialization automatically
 
   // Check for updates on app load
   useEffect(() => {
@@ -280,17 +266,35 @@ export default function RootLayout() {
     }
   }
 
-  const wrappedContent = StripeProvider && STRIPE_CONFIG.publishableKey ? (
+  // Ensure publishable key is valid before wrapping
+  const isValidKey = STRIPE_CONFIG.publishableKey && 
+    (STRIPE_CONFIG.publishableKey.startsWith('pk_test_') || STRIPE_CONFIG.publishableKey.startsWith('pk_live_'));
+  
+  const wrappedContent = StripeProvider && isValidKey ? (
     <StripeProvider 
       publishableKey={STRIPE_CONFIG.publishableKey}
       merchantIdentifier="merchant.com.cribnosh.co.uk"
       urlScheme="cribnosh" // Required for 3D Secure and redirects
+      threeDSecureParams={{
+        timeout: 5,
+      }}
     >
       {appContent}
     </StripeProvider>
   ) : (
     appContent
   );
+  
+  // Log warning if StripeProvider is not wrapping content
+  if (__DEV__ && (!StripeProvider || !isValidKey)) {
+    if (!StripeProvider) {
+      console.warn('⚠️ StripeProvider is not available. Stripe features will not work.');
+    }
+    if (!isValidKey) {
+      console.warn('⚠️ Stripe publishable key is invalid or missing. StripeProvider will not wrap content.');
+      console.warn('   Key:', STRIPE_CONFIG.publishableKey ? `${STRIPE_CONFIG.publishableKey.substring(0, 30)}...` : 'MISSING');
+    }
+  }
 
   const convexClient = getConvexReactClient();
 

@@ -1,6 +1,7 @@
 import { DietaryPreferencesSheet } from '@/components/ui/DietaryPreferencesSheet';
 import { ManageAllergiesSheet } from '@/components/ui/ManageAllergiesSheet';
-import { useUpdateCrossContaminationSettingMutation } from '@/store/customerApi';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -20,8 +21,6 @@ const chevronRightIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fil
 export default function FoodSafetyScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-
-  const [updateCrossContamination] = useUpdateCrossContaminationSettingMutation();
 
   // Sheet visibility states
   const [isAllergiesSheetVisible, setIsAllergiesSheetVisible] = useState(false);
@@ -45,9 +44,26 @@ export default function FoodSafetyScreen() {
   };
 
   const handleCrossContaminationToggle = async (value: boolean) => {
+    // Optimistically update UI first
+    setCrossContaminationEnabled(value);
+    
     try {
-      await updateCrossContamination({ avoid_cross_contamination: value }).unwrap();
-      setCrossContaminationEnabled(value);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error("Please sign in to update your food safety settings.");
+      }
+
+      const result = await convex.action(api.actions.users.customerUpdateCrossContaminationSetting, {
+        sessionToken,
+        avoid_cross_contamination: value,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || "Failed to update setting");
+      }
+
       showToast({
         type: value ? "success" : "info",
         title: value ? "Cross-Contamination Protection Enabled" : "Settings Updated",
@@ -57,20 +73,39 @@ export default function FoodSafetyScreen() {
         duration: value ? 5000 : 3000,
       });
     } catch (error: any) {
-      console.error("Error updating cross-contamination setting:", error);
-      const errorMessage = 
-        error?.data?.error?.message ||
-        error?.data?.message ||
-        error?.message ||
-        "Failed to update cross-contamination setting. Please try again.";
+      // Revert the toggle on error
+      setCrossContaminationEnabled(!value);
+      
+      // Handle error gracefully
+      const errorMessage = error?.message || error?.data?.error?.message || error?.data?.message || '';
+      
+      // Only log unexpected errors
+      if (!errorMessage.includes('Server Error') && !errorMessage.includes('sign in')) {
+        console.warn("Error updating cross-contamination setting:", {
+          message: errorMessage,
+        });
+      }
+      
+      // Provide user-friendly error message
+      let userMessage = "Unable to update your setting. Please try again.";
+      
+      if (errorMessage.includes('Server Error') || errorMessage.includes('temporarily unavailable')) {
+        userMessage = "The server is temporarily unavailable. Your setting was not saved. Please try again in a moment.";
+      } else if (errorMessage.includes('sign in') || errorMessage.includes('Authentication')) {
+        userMessage = "Please sign in to update your food safety settings.";
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        userMessage = "Network error. Please check your connection and try again.";
+      } else if (errorMessage) {
+        // Use the error message if it's user-friendly
+        userMessage = errorMessage;
+      }
+      
       showToast({
         type: "error",
         title: "Update Failed",
-        message: errorMessage,
+        message: userMessage,
         duration: 4000,
       });
-      // Revert the toggle on error
-      setCrossContaminationEnabled(!value);
     }
   };
 

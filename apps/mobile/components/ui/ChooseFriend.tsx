@@ -1,15 +1,18 @@
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useGetUserConnectionsQuery } from "@/store/customerApi";
 import { Entypo } from "@expo/vector-icons";
 import { SearchIcon, X } from "lucide-react-native";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { api } from "@/convex/_generated/api";
+import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View, Share, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthContext } from "../../contexts/AuthContext";
 import GroupOrderMember from "../GroupOrderMember";
 import { Avatar } from "./Avatar";
 import { Input } from "./Input";
-import LinkModal from "./LinkModal";
+import { useCart } from "@/hooks/useCart";
+import { useToast } from "@/lib/ToastContext";
+import * as Clipboard from 'expo-clipboard';
 
 interface Item {
   items: any;
@@ -28,17 +31,50 @@ interface ChooseFriendModal {
 
 export default function ChooseFriend({ isOpen, onClick }: ChooseFriendModal) {
   const { isAuthenticated } = useAuthContext();
-  const [linkModal, setLinkModal] = useState(false);
+  const { getCart } = useCart();
+  const { showError, showSuccess, showInfo } = useToast();
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [connectionsData, setConnectionsData] = useState<any>(null);
+  const [isSharing, setIsSharing] = useState(false);
   
-  // Fetch real connections/friends from API
-  const {
-    data: connectionsData,
-  } = useGetUserConnectionsQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  // Fetch real connections/friends from Convex
+  const fetchConnections = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.users.customerGetConnections, {
+        sessionToken,
+      });
+
+      if (result.success === false) {
+        console.error('Error fetching connections:', result.error);
+        return;
+      }
+
+      // Transform to match expected format
+      setConnectionsData({
+        success: true,
+        data: result.connections || [],
+      });
+    } catch (error: any) {
+      console.error('Error fetching connections:', error);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchConnections();
+    }
+  }, [isAuthenticated, fetchConnections]);
 
   // Transform API connections to friend format
   const availableFriends = useMemo(() => {
@@ -119,11 +155,116 @@ export default function ChooseFriend({ isOpen, onClick }: ChooseFriendModal) {
 
   const handleFriendPress = (friendId: string) => {
     toggleUserSelection(friendId);
-    // Open link modal when a friend is selected
-    if (!selectedUsers.includes(friendId)) {
-      setLinkModal(true);
-    }
   };
+
+  const handleShare = useCallback(async () => {
+    // Check if friends are selected
+    if (selectedUsers.length === 0) {
+      showError('No friends selected', 'Please select at least one friend to share with');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      showError('Authentication required', 'Please sign in to share payment links');
+      return;
+    }
+
+    try {
+      setIsSharing(true);
+      showInfo('Preparing share link', 'Creating your payment link...');
+
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      // Get cart to calculate total
+      let cartTotal = 0;
+      try {
+        const cartResult = await getCart();
+        if (cartResult.success && cartResult.data?.items) {
+          cartTotal = cartResult.data.items.reduce((sum: number, item: any) => {
+            return sum + (item.price || 0) * (item.quantity || 1);
+          }, 0);
+        }
+      } catch (error) {
+        console.warn('Could not fetch cart, using default budget:', error);
+      }
+
+      // Create a custom order for sharing
+      const customOrderResult = await convex.action(api.actions.orders.customerCreateCustomOrder, {
+        sessionToken,
+        requirements: 'Payment link for friend to pay',
+        serving_size: 2,
+        desired_delivery_time: new Date().toISOString(),
+        budget: cartTotal > 0 ? Math.round(cartTotal * 100) : undefined, // Convert to pence if cart total exists
+      });
+
+      if (!customOrderResult.success || !customOrderResult.custom_order?._id) {
+        throw new Error(customOrderResult.error || 'Failed to create custom order');
+      }
+
+      const orderId = customOrderResult.custom_order._id;
+
+      // Generate share link
+      const linkResult = await convex.action(api.actions.orders.customerGenerateSharedOrderLink, {
+        sessionToken,
+        order_id: orderId,
+      });
+
+      if (!linkResult.success || !linkResult.shareLink) {
+        throw new Error(linkResult.error || 'Failed to generate share link');
+      }
+
+      const shareLink = linkResult.shareLink;
+
+      // Get selected friend names for the message
+      const selectedFriendNames = selectedUsers
+        .map(userId => {
+          const friend = availableFriends.find(f => f.id === userId);
+          return friend?.name;
+        })
+        .filter(Boolean)
+        .join(', ');
+
+      // Create share message
+      const shareMessage = selectedFriendNames
+        ? `Hey ${selectedFriendNames}! 👋\n\nI'd like you to help pay for this order. Use this link to complete the payment:\n\n${shareLink}`
+        : `Hey! 👋\n\nI'd like you to help pay for this order. Use this link to complete the payment:\n\n${shareLink}`;
+
+      // Open native share sheet
+      try {
+        const result = await Share.share({
+          message: shareMessage,
+          title: 'Share Payment Link',
+        });
+
+        if (result.action === Share.sharedAction) {
+          showSuccess('Link shared!', 'The payment link has been shared successfully');
+          // Close modal after successful share
+          setTimeout(() => {
+            onClick();
+          }, 1500);
+        } else if (result.action === Share.dismissedAction) {
+          // User dismissed share sheet - copy to clipboard as fallback
+          await Clipboard.setStringAsync(shareLink);
+          showInfo('Link copied', 'The payment link has been copied to your clipboard');
+        }
+      } catch (shareError: any) {
+        // If share fails, copy to clipboard
+        console.error('Share error:', shareError);
+        await Clipboard.setStringAsync(shareLink);
+        showInfo('Link copied', 'The payment link has been copied to your clipboard');
+      }
+    } catch (error: any) {
+      console.error('Error sharing payment link:', error);
+      showError('Failed to share', error?.message || 'Please try again later');
+    } finally {
+      setIsSharing(false);
+    }
+  }, [selectedUsers, isAuthenticated, availableFriends, getCart, showError, showSuccess, showInfo, onClick]);
   
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -153,10 +294,18 @@ export default function ChooseFriend({ isOpen, onClick }: ChooseFriendModal) {
             <Pressable onPress={onClick}>
               <Entypo name="chevron-down" size={24} color="#ffffff" />
             </Pressable>
-            <Pressable>
-              <Text style={styles.shareButton}>
-                Share
-              </Text>
+            <Pressable 
+              onPress={handleShare}
+              disabled={isSharing || selectedUsers.length === 0}
+              style={[isSharing || selectedUsers.length === 0 ? styles.shareButtonDisabled : null]}
+            >
+              {isSharing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={[styles.shareButton, selectedUsers.length === 0 && styles.shareButtonDisabled]}>
+                  {selectedUsers.length > 0 ? `Share (${selectedUsers.length})` : 'Share'}
+                </Text>
+              )}
             </Pressable>
           </View>
         )}
@@ -290,8 +439,6 @@ export default function ChooseFriend({ isOpen, onClick }: ChooseFriendModal) {
           </>
         )}
       </ScrollView>
-      
-      <LinkModal isOpen={linkModal} onClick={() => setLinkModal(false)} />
     </SafeAreaView>
   );
 }
@@ -335,6 +482,9 @@ const styles = StyleSheet.create({
     fontWeight: '500', // font-medium
     textAlign: 'center', // text-center
     color: '#FFFFFF', // text-white
+  },
+  shareButtonDisabled: {
+    opacity: 0.5,
   },
   scrollView: {
     flex: 1,

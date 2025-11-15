@@ -6,7 +6,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Dimensions, Image, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useCreateVideoPostMutation, useGetConvexVideoUploadUrlMutation } from '@/store/customerApi';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { showError, showSuccess } from '@/lib/GlobalToastManager';
 import * as FileSystem from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
@@ -51,10 +52,6 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
   // Upload state
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  
-  // API mutations
-  const [createVideoPost] = useCreateVideoPostMutation();
-  const [getConvexVideoUploadUrl] = useGetConvexVideoUploadUrlMutation();
   
   // Close handler
   const handleClose = useCallback(() => {
@@ -244,15 +241,24 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       }
       
       // Get Convex upload URL with timeout
-      const uploadUrlPromise = getConvexVideoUploadUrl({} as Record<string, never>).unwrap();
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Please sign in to upload videos.');
+      }
+
+      const uploadUrlPromise = convex.action(api.actions.users.customerGetConvexVideoUploadUrl, {
+        sessionToken,
+      });
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Request timeout: Failed to get upload URL')), 30000);
       });
       
-      const uploadUrlResult = await Promise.race([uploadUrlPromise, timeoutPromise]) as { uploadUrl: string };
+      const uploadUrlResult = await Promise.race([uploadUrlPromise, timeoutPromise]) as { success: boolean; uploadUrl?: string; error?: string };
       
-      if (!uploadUrlResult.uploadUrl) {
-        throw new Error('Failed to get upload URL from server');
+      if (!uploadUrlResult.success || !uploadUrlResult.uploadUrl) {
+        throw new Error(uploadUrlResult.error || 'Failed to get upload URL from server');
       }
       
       // Read file as base64 with error handling
@@ -273,7 +279,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       }
       
       // Upload to Convex storage (POST method, not PUT) with timeout
-      const uploadPromise = fetch(uploadUrlResult.uploadUrl, {
+      const uploadPromise = fetch(uploadUrlResult.uploadUrl!, {
         method: 'POST',
         headers: {
           'Content-Type': fileInfo.mimeType,
@@ -328,7 +334,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         throw new Error('Failed to upload file. Please check your connection and try again.');
       }
     }
-  }, [getConvexVideoUploadUrl, getFileInfo]);
+  }, [getFileInfo]);
   
   // Get video duration
   const getVideoDuration = useCallback(async (videoUri: string): Promise<number> => {
@@ -508,7 +514,8 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       
       // Create video post
       setUploadProgress(0.8);
-      const result = await createVideoPost({
+      const result = await convex.action(api.actions.users.customerCreateVideoPost, {
+        sessionToken: sessionToken!,
         title: title.trim(),
         description: description.trim() || undefined,
         videoStorageId, // Convex storage ID
@@ -521,7 +528,11 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         },
         tags: postTags,
         isLive: false,
-      }).unwrap();
+      });
+      
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to create video post');
+      }
       
       setUploadProgress(1);
       showSuccess('Post Created!', 'Your post has been shared to Nosh Heaven.');
@@ -529,9 +540,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
     } catch (error: any) {
       console.error('Error creating post:', error);
       let errorMessage = 'Please try again.';
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
+      if (error?.message) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
         errorMessage = error;
@@ -541,7 +550,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [isAuthenticated, mediaFile, title, description, postType, tags, createVideoPost, uploadMediaToStorage, getFileInfo, generateThumbnail, getVideoDuration, handleClose]);
+  }, [isAuthenticated, mediaFile, title, description, postType, tags, uploadMediaToStorage, getFileInfo, generateThumbnail, getVideoDuration, handleClose]);
   
   // Handle post type selection
   const handlePostTypeSelect = useCallback((type: PostType) => {

@@ -82,6 +82,67 @@ export function MapView({
 
   // Fallback UI when maps are not available (e.g., Expo Go)
   if (!isMapsAvailable) {
+    // Check if this is a delivery tracking scenario (has "Your Location" or "On the way" markers)
+    const isDeliveryTracking = chefs.some(
+      chef => chef.kitchen_name === 'Your Location' || chef.cuisine === 'On the way' || chef.cuisine === 'Destination'
+    );
+
+    if (isDeliveryTracking) {
+      // Better fallback for delivery tracking
+      return (
+        <View style={[styles.container, style, styles.fallbackContainer]}>
+          <View style={[
+            styles.fallbackContent,
+            { backgroundColor: '#02120A' }
+          ]}>
+            <MapPin size={48} color="#E6FFE8" />
+            <Text style={styles.fallbackTitleDelivery}>
+              Real-time tracking unavailable
+            </Text>
+            <Text style={styles.fallbackSubtitleDelivery}>
+              Your order is on the way. Check back soon for live updates.
+            </Text>
+            
+            {/* Delivery Status Cards */}
+            <View style={styles.deliveryStatusContainer}>
+              {chefs.map((chef) => {
+                if (chef.kitchen_name === 'Your Location' || chef.cuisine === 'Destination') {
+                  return (
+                    <View key={chef.id} style={styles.deliveryStatusCard}>
+                      <View style={styles.deliveryStatusIcon}>
+                        <MapPin size={20} color="#094327" />
+                      </View>
+                      <View style={styles.deliveryStatusText}>
+                        <Text style={styles.deliveryStatusTitle}>Your Location</Text>
+                        <Text style={styles.deliveryStatusSubtitle}>Delivery destination</Text>
+                      </View>
+                    </View>
+                  );
+                }
+                if (chef.cuisine === 'On the way') {
+                  return (
+                    <View key={chef.id} style={styles.deliveryStatusCard}>
+                      <View style={styles.deliveryStatusIcon}>
+                        <MapPin size={20} color="#FF3B30" />
+                      </View>
+                      <View style={styles.deliveryStatusText}>
+                        <Text style={styles.deliveryStatusTitle}>{chef.kitchen_name}</Text>
+                        <Text style={styles.deliveryStatusSubtitle}>
+                          {chef.delivery_time || 'On the way'}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                }
+                return null;
+              })}
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    // Original fallback for regular chef list
     return (
       <View style={[styles.container, style, styles.fallbackContainer]}>
         <View style={[
@@ -279,6 +340,57 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     opacity: 0.6,
+  },
+  fallbackTitleDelivery: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+    color: '#E6FFE8',
+    textAlign: 'center',
+  },
+  fallbackSubtitleDelivery: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 32,
+    color: '#C0DCC0',
+    opacity: 0.9,
+  },
+  deliveryStatusContainer: {
+    width: '100%',
+    gap: 16,
+    paddingHorizontal: 20,
+  },
+  deliveryStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 255, 232, 0.2)',
+  },
+  deliveryStatusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E6FFE8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  deliveryStatusText: {
+    flex: 1,
+  },
+  deliveryStatusTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#E6FFE8',
+    marginBottom: 4,
+  },
+  deliveryStatusSubtitle: {
+    fontSize: 14,
+    color: '#C0DCC0',
   },
 });
 

@@ -40,34 +40,48 @@ export const API_CONFIG = {
 
 // Stripe Configuration
 // Try multiple sources for the publishable key
-const publishableKey = (
-  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
-  (typeof Constants !== 'undefined' && Constants.expoConfig?.extra?.stripePublishableKey) ||
-  ''
-).trim();
-
-// Debug: Log configuration (only in development)
-if (__DEV__) {
-  console.log('🔑 Stripe Key Check:', {
-    fromEnv: !!process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-    fromConstants: !!(typeof Constants !== 'undefined' && Constants.expoConfig?.extra?.stripePublishableKey),
-    keyLength: publishableKey.length,
-    keyPrefix: publishableKey ? publishableKey.substring(0, 20) + '...' : 'MISSING',
-  });
-  
-  if (!publishableKey) {
-    console.warn('⚠️ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set! Stripe features will not work.');
-    console.warn('   Make sure:');
-    console.warn('   1. .env file exists in apps/mobile/');
-    console.warn('   2. EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is set in .env');
-    console.warn('   3. You have restarted the dev server with --clear flag');
-  }
-}
+// TODO: REMOVE HARDCODED TEST KEY - This is a temporary fallback for testing
+const envKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
+const constantsKey = typeof Constants !== 'undefined' && Constants.expoConfig?.extra?.stripePublishableKey?.trim();
+const FALLBACK_TEST_KEY = 'pk_test_51QTHZNGAiAa3ySTV7uMSXj9skUWaiDHpeoBgCHilmzSmcY3CN7NjbpMeF49tjISaAHnJiwzTQeFdDSr9oAyyuxO900GS4YbEIT'; // TEMPORARY TEST KEY - REMOVE BEFORE PRODUCTION
 
 // Validate publishable key format
 const isValidPublishableKey = (key: string): boolean => {
   return key.startsWith('pk_test_') || key.startsWith('pk_live_');
 };
+
+// Use env key if it's non-empty, otherwise try constants, otherwise use fallback
+const publishableKey = (envKey && envKey.length > 0) 
+  ? envKey 
+  : (constantsKey && constantsKey.length > 0)
+  ? constantsKey
+  : FALLBACK_TEST_KEY;
+
+// Debug: Log configuration (only in development)
+if (__DEV__) {
+  const usingEnv = !!(envKey && envKey.length > 0);
+  const usingConstants = !!(constantsKey && constantsKey.length > 0);
+  const usingFallback = !usingEnv && !usingConstants;
+  
+  console.log('🔑 Stripe Key Check:', {
+    fromEnv: usingEnv,
+    fromConstants: usingConstants,
+    usingFallback,
+    keyLength: publishableKey.length,
+    keyPrefix: publishableKey ? publishableKey.substring(0, 20) + '...' : 'MISSING',
+    isValid: isValidPublishableKey(publishableKey),
+  });
+  
+  if (!publishableKey || publishableKey.length === 0) {
+    console.warn('⚠️ Stripe publishable key is missing! Stripe features will not work.');
+    console.warn('   Make sure:');
+    console.warn('   1. .env file exists in apps/mobile/');
+    console.warn('   2. EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is set in .env (non-empty)');
+    console.warn('   3. You have restarted the dev server with --clear flag');
+  } else if (usingFallback) {
+    console.warn('⚠️ Using hardcoded fallback Stripe key. Set EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY in .env for production.');
+  }
+}
 
 export const STRIPE_CONFIG = {
   publishableKey: isValidPublishableKey(publishableKey) ? publishableKey : '',

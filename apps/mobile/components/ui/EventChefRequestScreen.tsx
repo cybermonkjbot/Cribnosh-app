@@ -1,5 +1,7 @@
-import { useCreateEventChefRequestMutation } from '@/store/customerApi';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from '@/contexts/AuthContext';
 import {
   Briefcase,
   Cake,
@@ -52,7 +54,49 @@ const STEPS = [
 
 export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps) {
   const { showToast } = useToast();
-  const [createEventChefRequest, { isLoading: isCreating }] = useCreateEventChefRequestMutation();
+  const { isAuthenticated } = useAuthContext();
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Create event chef request function
+  const createEventChefRequest = async (data: {
+    event_date: string;
+    number_of_guests: number;
+    event_type: string;
+    event_location: string;
+    phone_number: string;
+    email: string;
+    dietary_requirements?: string;
+    additional_notes?: string;
+  }) => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.users.customerCreateEventChefRequest, {
+      sessionToken,
+      event_date: data.event_date,
+      number_of_guests: data.number_of_guests,
+      event_type: data.event_type,
+      event_location: data.event_location,
+      phone_number: data.phone_number,
+      email: data.email,
+      dietary_requirements: data.dietary_requirements,
+      additional_notes: data.additional_notes,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to create event chef request');
+    }
+
+    // Transform to match expected format
+    return {
+      success: true,
+      data: result,
+    };
+  };
 
   // Form state
   const [eventDate, setEventDate] = useState<Date | null>(null);
@@ -165,6 +209,7 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
     }
 
     try {
+      setIsCreating(true);
       await createEventChefRequest({
         event_date: formatDateForSubmission(eventDate),
         number_of_guests: guestsNumber,
@@ -174,7 +219,7 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
         email: email,
         dietary_requirements: dietaryRequirements || undefined,
         additional_notes: additionalNotes || undefined,
-      }).unwrap();
+      });
 
       setIsSubmitted(true);
       showToast({
@@ -185,8 +230,6 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
       });
     } catch (error: any) {
       const errorMessage =
-        error?.data?.error?.message ||
-        error?.data?.message ||
         error?.message ||
         'Failed to submit your request. Please try again.';
       showToast({
@@ -195,6 +238,8 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
         message: errorMessage,
         duration: 4000,
       });
+    } finally {
+      setIsCreating(false);
     }
   };
 

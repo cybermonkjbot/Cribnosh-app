@@ -2,8 +2,9 @@ import { RelationshipSelectionSheet } from '@/components/ui/RelationshipSelectio
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/lib/ToastContext';
-import { useSetupFamilyProfileMutation, useValidateFamilyMemberEmailMutation } from '@/store/customerApi';
 import { Stack, useRouter } from 'expo-router';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 import { CheckCircle, Plus, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -43,8 +44,7 @@ export default function FamilyProfileSetupScreen() {
   const { user } = useAuthContext();
   const [step, setStep] = useState(1);
   const [members, setMembers] = useState<FamilyMemberForm[]>([]);
-  const [setupFamilyProfile, { isLoading }] = useSetupFamilyProfileMutation();
-  const [validateFamilyMemberEmail] = useValidateFamilyMemberEmailMutation();
+  const [isLoading, setIsLoading] = useState(false);
   const [relationshipSheetIndex, setRelationshipSheetIndex] = useState<number | null>(null);
   const [memberValidationStatus, setMemberValidationStatus] = useState<Map<number, MemberValidation>>(new Map());
   const validationTimeoutRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
@@ -167,12 +167,26 @@ export default function FamilyProfileSetupScreen() {
     setMemberValidationStatus(newStatus);
 
     try {
-      const result = await validateFamilyMemberEmail({ email: normalizedEmail }).unwrap();
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.users.customerValidateFamilyMemberEmail, {
+        sessionToken,
+        email: normalizedEmail,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to validate email');
+      }
       
       // Update validation status
       const updatedStatus = new Map(memberValidationStatus);
       updatedStatus.set(index, {
-        exists: result.data?.exists || false,
+        exists: result.exists || false,
         isLoading: false,
         isDuplicate: false,
         isSelfEmail: false,
@@ -341,7 +355,16 @@ export default function FamilyProfileSetupScreen() {
 
   const handleSubmit = async () => {
     try {
-      const result = await setupFamilyProfile({
+      setIsLoading(true);
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.users.customerSetupFamilyProfile, {
+        sessionToken,
         family_members: members.map((m) => ({
           name: m.name.trim(),
           email: m.email.trim(),
@@ -355,9 +378,12 @@ export default function FamilyProfileSetupScreen() {
           require_approval_for_orders: false,
           spending_notifications: true,
         },
-      }).unwrap();
+      });
 
-      if (result.success) {
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to create family profile');
+      }
+
         showToast({
           type: 'success',
           title: 'Family Profile Created',
@@ -365,14 +391,15 @@ export default function FamilyProfileSetupScreen() {
           duration: 3000,
         });
         router.replace('/family-profile/manage');
-      }
     } catch (error: any) {
       showToast({
         type: 'error',
         title: 'Setup Failed',
-        message: error?.data?.message || error?.message || 'Failed to create family profile. Please try again.',
+        message: error?.message || 'Failed to create family profile. Please try again.',
         duration: 4000,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 

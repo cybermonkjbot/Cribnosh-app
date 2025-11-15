@@ -1,10 +1,11 @@
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Modal, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import { useDeleteAccountMutation } from '@/store/customerApi';
 import { useToast } from '../lib/ToastContext';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 
 // Back arrow icon SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -15,7 +16,31 @@ export default function DeleteAccountScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [deleteAccount, { isLoading: isDeleting }] = useDeleteAccountMutation();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Request account deletion function
+  const deleteAccount = useCallback(async () => {
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
+    if (!sessionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const result = await convex.action(api.actions.users.customerRequestAccountDeletion, {
+      sessionToken,
+    });
+
+    if (result.success === false) {
+      throw new Error(result.error || 'Failed to request account deletion');
+    }
+
+    // Transform to match expected format
+    return {
+      success: true,
+      data: result,
+    };
+  }, []);
 
   const handleBackPress = () => {
     router.back();
@@ -28,7 +53,9 @@ export default function DeleteAccountScreen() {
   const handleConfirmDelete = async () => {
     try {
       setShowConfirmationModal(false);
-      await deleteAccount().unwrap();
+      setIsDeleting(true);
+      await deleteAccount();
+      setIsDeleting(false);
       
       showToast({
         type: "success",
@@ -40,10 +67,9 @@ export default function DeleteAccountScreen() {
       // Navigate to the survey screen
       router.push('/delete-account-survey');
     } catch (error: any) {
+      setIsDeleting(false);
       console.error("Error deleting account:", error);
       const errorMessage = 
-        error?.data?.error?.message ||
-        error?.data?.message ||
         error?.message ||
         "Failed to delete account. Please try again.";
       showToast({

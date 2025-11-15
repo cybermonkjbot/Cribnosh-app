@@ -1,7 +1,5 @@
-import {
-  useGetDataSharingPreferencesQuery,
-  useUpdateDataSharingPreferencesMutation,
-} from '@/store/customerApi';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -49,31 +47,42 @@ export default function PrivacyScreen() {
   const router = useRouter();
   const { showToast } = useToast();
 
-  // Fetch data sharing preferences from API
-  const { data: dataSharingData, isLoading } = useGetDataSharingPreferencesQuery(undefined, {
-    skip: false,
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [personalizationEnabled, setPersonalizationEnabled] = useState(true);
+  const [marketingEnabled, setMarketingEnabled] = useState(false);
 
-  const [updateDataSharing] = useUpdateDataSharingPreferencesMutation();
-
-  const [analyticsEnabled, setAnalyticsEnabled] = useState(
-    dataSharingData?.data?.analytics_enabled ?? true
-  );
-  const [personalizationEnabled, setPersonalizationEnabled] = useState(
-    dataSharingData?.data?.personalization_enabled ?? true
-  );
-  const [marketingEnabled, setMarketingEnabled] = useState(
-    dataSharingData?.data?.marketing_enabled ?? false
-  );
-
-  // Sync state with API data when it loads
+  // Fetch data sharing preferences from Convex
   useEffect(() => {
-    if (dataSharingData?.data) {
-      setAnalyticsEnabled(dataSharingData.data.analytics_enabled);
-      setPersonalizationEnabled(dataSharingData.data.personalization_enabled);
-      setMarketingEnabled(dataSharingData.data.marketing_enabled);
-    }
-  }, [dataSharingData]);
+    const loadPreferences = async () => {
+      try {
+        setIsLoading(true);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          setIsLoading(false);
+          return;
+        }
+
+        const result = await convex.action(api.actions.users.customerGetDataSharingPreferences, {
+          sessionToken,
+        });
+
+        if (result.success) {
+          setAnalyticsEnabled(result.analytics_enabled);
+          setPersonalizationEnabled(result.personalization_enabled);
+          setMarketingEnabled(result.marketing_enabled);
+        }
+      } catch (error: any) {
+        console.error('Error loading data sharing preferences:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPreferences();
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -84,15 +93,32 @@ export default function PrivacyScreen() {
     value: boolean
   ) => {
     try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error("Please sign in to update your privacy preferences.");
+      }
+
       const updateData: any = {
-        analytics_enabled: analyticsEnabled,
-        personalization_enabled: personalizationEnabled,
-        marketing_enabled: marketingEnabled,
+        analytics_enabled: field === 'analytics' ? value : analyticsEnabled,
+        personalization_enabled: field === 'personalization' ? value : personalizationEnabled,
+        marketing_enabled: field === 'marketing' ? value : marketingEnabled,
       };
 
-      updateData[`${field}_enabled`] = value;
+      const result = await convex.action(api.actions.users.customerUpdateDataSharingPreferences, {
+        sessionToken,
+        ...updateData,
+      });
 
-      await updateDataSharing(updateData).unwrap();
+      if (result.success === false) {
+        throw new Error(result.error || "Failed to update preferences");
+      }
+
+      // Update local state with the returned values
+      setAnalyticsEnabled(result.analytics_enabled);
+      setPersonalizationEnabled(result.personalization_enabled);
+      setMarketingEnabled(result.marketing_enabled);
 
       showToast({
         type: 'success',
@@ -108,9 +134,9 @@ export default function PrivacyScreen() {
       if (field === 'marketing') setMarketingEnabled(!value);
 
       const errorMessage =
+        error?.message ||
         error?.data?.error?.message ||
         error?.data?.message ||
-        error?.message ||
         'Failed to update preferences. Please try again.';
       showToast({
         type: 'error',

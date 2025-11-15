@@ -95,14 +95,7 @@ export const useAnalytics = () => {
 
         return {
           success: true,
-          data: {
-            month: result.month,
-            period_label: result.period_label,
-            meals: result.meals,
-            calories: result.calories,
-            streak: result.streak,
-            updated_at: result.updated_at,
-          },
+          data: result.overview,
         };
       } catch (error: any) {
         const errorMessage =
