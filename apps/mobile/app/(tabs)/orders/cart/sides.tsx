@@ -1,8 +1,8 @@
 import IncrementalOrderAmount from "@/components/IncrementalOrderAmount";
 import Entypo from "@expo/vector-icons/Entypo";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
 import { AppleIcon } from "@/components/AppleIcon";
@@ -56,6 +56,7 @@ export default function SidesScreen() {
   const { getCart } = useCart();
   const { getSidesForCart, addSideToCartItem, updateSideQuantity, removeSideFromCartItem, isLoading: sidesLoading } = useSides();
   const { getPaymentMethods } = usePayments();
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
 
   // Load cart data and sides when screen comes into focus
   useFocusEffect(
@@ -129,31 +130,79 @@ export default function SidesScreen() {
     router.back();
   };
 
+  const triggerShake = () => {
+    shakeAnimation.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeAnimation, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: -10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: -10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
   const handleProceedToPayment = async () => {
     // Check if user has a valid payment method
+    if (!selectedPaymentMethod) {
+      // No payment method selected, trigger shake animation
+      triggerShake();
+      setIsAddCardSheetVisible(true);
+      return;
+    }
+
+    // If selected payment method is Apple Pay or balance, they don't need to be in the API
+    // as they're handled differently (Apple Pay via Stripe SDK, balance via internal system)
+    const isApplePayOrBalance = selectedPaymentMethod.iconType === 'apple' || selectedPaymentMethod.iconType === 'balance';
+    
+    if (isApplePayOrBalance) {
+      // Apple Pay and balance are valid payment methods, proceed to payment
+      router.push("/orders/cart/payment");
+      return;
+    }
+
+    // For card payment methods, verify it still exists in the API
     try {
       const paymentMethods = await getPaymentMethods();
       
-      // Check if there are any valid card payment methods
-      const hasValidCard = paymentMethods && paymentMethods.some((method: any) => 
-        method.type === 'card' && method.id
-      );
+      // Check if the selected payment method exists in the API response
+      const hasValidPaymentMethod = paymentMethods && paymentMethods.some((method: any) => {
+        // Check if method matches the selected payment method by ID
+        return method.id === selectedPaymentMethod.id && method.type === 'card';
+      });
       
-      // Also check if there's a stored payment method (could be Apple Pay, etc.)
-      const storedPaymentMethod = await SecureStore.getItemAsync(PAYMENT_METHOD_STORAGE_KEY);
-      const hasStoredMethod = !!storedPaymentMethod;
-      
-      if (!hasValidCard && !hasStoredMethod) {
-        // No valid payment method, show add card sheet
+      if (!hasValidPaymentMethod) {
+        // Card payment method no longer exists, trigger shake and show add card sheet
+        triggerShake();
         setIsAddCardSheetVisible(true);
         return;
       }
       
-      // Has valid payment method, proceed to payment
+      // Has valid card payment method, proceed to payment
       router.push("/orders/cart/payment");
     } catch (error) {
       console.error('Error checking payment methods:', error);
-      // On error, show add card sheet to be safe
+      // On error, trigger shake and show add card sheet to be safe
+      triggerShake();
       setIsAddCardSheetVisible(true);
     }
   };
@@ -580,12 +629,30 @@ export default function SidesScreen() {
 
       {/* Floating Payment Button */}
       <View style={styles.footer}>
-        <Pressable
-          onPress={handleProceedToPayment}
-          style={styles.paymentButton}
+        <Animated.View
+          style={[
+            {
+              transform: [{ translateX: shakeAnimation }],
+            },
+          ]}
         >
-          <Text style={styles.paymentButtonText}>Proceed to Payment</Text>
-        </Pressable>
+          <Pressable
+            onPress={handleProceedToPayment}
+            style={[
+              styles.paymentButton,
+              !selectedPaymentMethod && styles.paymentButtonDisabled,
+            ]}
+          >
+            <Text
+              style={[
+                styles.paymentButtonText,
+                !selectedPaymentMethod && styles.paymentButtonTextDisabled,
+              ]}
+            >
+              Proceed to Payment
+            </Text>
+          </Pressable>
+        </Animated.View>
       </View>
 
       {/* Add Card Sheet */}
@@ -787,10 +854,17 @@ const styles = StyleSheet.create({
     alignItems: 'center', // items-center
     justifyContent: 'center', // justify-center
   },
+  paymentButtonDisabled: {
+    backgroundColor: '#6B7280', // gray-500
+    opacity: 0.6,
+  },
   paymentButtonText: {
     fontSize: 18, // text-lg
     fontWeight: '700', // font-bold
     color: '#FFFFFF', // text-white
+  },
+  paymentButtonTextDisabled: {
+    opacity: 0.7,
   },
   skeletonContainer: {
     flex: 1,

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -19,6 +20,18 @@ import {
 import * as SecureStore from "expo-secure-store";
 import { RegionAvailabilityModal } from "./RegionAvailabilityModal";
 import { MultipleChefsWarningModal } from "./MultipleChefsWarningModal";
+import { useStripe } from "@stripe/stripe-react-native";
+import Constants from "expo-constants";
+
+// Try to import expo-device to check if we're on a simulator
+let Device: any = null;
+try {
+  Device = require('expo-device');
+} catch {
+  // expo-device not available
+}
+
+const PAYMENT_METHOD_STORAGE_KEY = "cart_selected_payment_method";
 
 interface PaymentScreenProps {
   orderTotal?: number;
@@ -54,6 +67,8 @@ export default function PaymentScreen({
   const { createCheckout } = usePayments();
   const { createOrderFromCart } = useOrders();
   const [cartData, setCartData] = useState<any>(null);
+  const stripe = useStripe();
+  const { confirmPayment, presentApplePay, isApplePaySupported } = stripe || {};
 
   // Load cart data if orderTotal is not provided
   useEffect(() => {
@@ -157,16 +172,149 @@ export default function PaymentScreen({
       }
 
       const paymentIntentId = paymentIntent.id;
+      const clientSecret = paymentIntent.client_secret;
 
-      // Step 2: Simulate payment confirmation
-      // TODO: Replace this with actual Stripe SDK payment confirmation
-      // For now, we'll simulate payment success after a delay
-      // In production, you would use:
-      // import { useStripe } from '@stripe/stripe-react-native';
-      // const { confirmPayment } = useStripe();
-      // const { error, paymentIntent: confirmedIntent } = await confirmPayment(paymentIntent.client_secret, { ... });
+      if (!clientSecret) {
+        throw new Error("Payment intent client secret is missing");
+      }
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Step 2: Get selected payment method
+      const storedPaymentMethod = await SecureStore.getItemAsync(PAYMENT_METHOD_STORAGE_KEY);
+      let selectedPaymentMethod: { iconType?: string; id?: string } | null = null;
+      
+      if (storedPaymentMethod) {
+        try {
+          selectedPaymentMethod = JSON.parse(storedPaymentMethod);
+        } catch (error) {
+          console.warn('Failed to parse stored payment method:', error);
+        }
+      }
+
+      // Step 3: Confirm payment based on payment method type
+      let confirmedPaymentIntent: any = null;
+
+      if (selectedPaymentMethod?.iconType === 'apple') {
+        // Apple Pay flow
+        if (!presentApplePay || !isApplePaySupported) {
+          // Check if we're on a simulator
+          const isSimulator = Device?.isDevice === false || 
+                               (Platform.OS === 'ios' && Constants.executionEnvironment !== 'storeClient' && !Device?.isDevice);
+          
+          if (isSimulator) {
+            throw new Error(
+              "Apple Pay is not available on iOS simulators. " +
+              "Please test Apple Pay on a real iOS device. " +
+              "You can change your payment method to a card for testing."
+            );
+          }
+          
+          throw new Error(
+            "Apple Pay is not available on this device. " +
+            "Please ensure Apple Pay is set up in your device settings, " +
+            "or select a different payment method."
+          );
+        }
+
+        // Build cart items for Apple Pay
+        const cartItems = [];
+        
+        // Add individual items
+        if (cartData?.data?.items) {
+          for (const item of cartData.data.items) {
+            cartItems.push({
+              label: item.name || 'Item',
+              amount: String((item.price * item.quantity) / 100),
+              type: 'final' as const,
+            });
+          }
+        }
+        
+        // Add delivery fee if applicable
+        if (calculatedDeliveryFee && calculatedDeliveryFee > 0) {
+          cartItems.push({
+            label: 'Delivery Fee',
+            amount: String(calculatedDeliveryFee / 100),
+            type: 'final' as const,
+          });
+        }
+        
+        // Note: Apple Pay automatically calculates the total from the sum of all items
+
+        // Present Apple Pay sheet
+        const { error: applePayError, paymentMethod: applePayPaymentMethod } = await presentApplePay({
+          cartItems,
+          country: 'GB',
+          currency: 'GBP',
+          requiredShippingAddressFields: deliveryAddress ? [] : ['all'],
+        });
+
+        if (applePayError) {
+          throw new Error(applePayError.message || 'Apple Pay payment failed');
+        }
+
+        if (!applePayPaymentMethod) {
+          throw new Error('Apple Pay payment method not returned');
+        }
+
+        // Confirm payment with Apple Pay payment method
+        if (!confirmPayment) {
+          throw new Error("Stripe confirmPayment is not available");
+        }
+
+        // Confirm payment intent with the Apple Pay payment method
+        const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
+          clientSecret,
+          {
+            paymentMethodType: 'ApplePay',
+            paymentMethodId: applePayPaymentMethod.id,
+          }
+        );
+
+        if (confirmError) {
+          throw new Error(confirmError.message || 'Payment confirmation failed');
+        }
+
+        confirmedPaymentIntent = confirmedIntent;
+      } else if (selectedPaymentMethod?.id) {
+        // Card payment flow - payment method already attached to payment intent
+        if (!confirmPayment) {
+          throw new Error("Stripe confirmPayment is not available");
+        }
+
+        const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
+          clientSecret,
+          undefined // Payment method already attached, no options needed
+        );
+
+        if (confirmError) {
+          throw new Error(confirmError.message || 'Payment confirmation failed');
+        }
+
+        confirmedPaymentIntent = confirmedIntent;
+      } else {
+        // No payment method selected - fallback to card collection
+        if (!confirmPayment) {
+          throw new Error("Stripe confirmPayment is not available");
+        }
+
+        const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
+          clientSecret,
+          {
+            paymentMethodType: 'Card',
+          }
+        );
+
+        if (confirmError) {
+          throw new Error(confirmError.message || 'Payment confirmation failed');
+        }
+
+        confirmedPaymentIntent = confirmedIntent;
+      }
+
+      // Verify payment was successful
+      if (!confirmedPaymentIntent || confirmedPaymentIntent.status !== 'Succeeded') {
+        throw new Error(`Payment not completed. Status: ${confirmedPaymentIntent?.status || 'unknown'}`);
+      }
 
       // Step 3: Get discount info from storage
       let noshPointsApplied: number | undefined = undefined;
