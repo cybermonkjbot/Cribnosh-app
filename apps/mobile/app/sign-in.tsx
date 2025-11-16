@@ -2,7 +2,7 @@ import { SignInScreen } from '@/components/SignInScreen';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { markSignInAsVisible, markSignInAsHidden } from '@/utils/signInNavigationGuard';
 
 export default function SignInModal() {
@@ -17,6 +17,17 @@ export default function SignInModal() {
   
   // Parse notDismissable from params (comes as string from URL)
   const notDismissable = params.notDismissable === 'true';
+
+  // Dynamic screen options based on notDismissable
+  // Keep presentation as 'modal' (page sheet) in both cases to maintain consistent appearance
+  // Only control gesture dismissal based on notDismissable
+  const screenOptions = useMemo(() => ({
+    headerShown: false,
+    presentation: 'modal' as const,
+    animation: 'slide_from_bottom' as const,
+    gestureEnabled: !notDismissable, // Disable gesture dismissal when notDismissable is true
+    animationTypeForReplace: 'push' as const,
+  }), [notDismissable]);
 
   // Mark sign-in as visible when component mounts
   useEffect(() => {
@@ -127,7 +138,7 @@ export default function SignInModal() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={screenOptions} />
       <SignInScreen 
         onClose={handleClose} 
         onAppleSignIn={handleAppleSignIn}

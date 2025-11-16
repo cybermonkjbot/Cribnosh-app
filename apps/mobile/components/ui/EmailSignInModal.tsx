@@ -36,11 +36,13 @@ export function EmailSignInModal({
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [step, setStep] = useState<"email" | "password">("email");
-  const [isCompletingSignIn, setIsCompletingSignIn] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"email" | "otp">("email");
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { handleEmailSignInOrSignUp } = useAuth();
+  const [testOtp, setTestOtp] = useState<string | undefined>(undefined);
+  const { handleSendEmailOTP, handleVerifyEmailOTP } = useAuth();
   const { login } = useAuthContext();
 
   // Reset to email step when modal closes
@@ -48,29 +50,78 @@ export function EmailSignInModal({
     if (!isVisible) {
       setStep("email");
       setEmail("");
-      setPassword("");
+      setOtp("");
       setErrorMessage(null);
+      setTestOtp(undefined);
     }
   }, [isVisible]);
 
   const handleEmailSubmit = async () => {
+    if (isSendingOTP) return;
+    
+    // Clear any previous error messages
+    setErrorMessage(null);
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showError("Invalid Email", "Please enter a valid email address");
+      return;
+    }
+
+    setIsSendingOTP(true);
     try {
-      // Basic email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        showError("Invalid Email", "Please enter a valid email address");
-        return;
+      // Haptic feedback on button press
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {
+        // Silently fail if haptics not available
       }
 
-      onEmailSubmit?.(email);
-      setStep("password");
-    } catch {
-      showError("Error", "Please try again");
+      const res = await handleSendEmailOTP(email);
+      
+      if (res.data?.success) {
+        // Store test OTP if provided (development only)
+        if (res.data.testOtp) {
+          setTestOtp(res.data.testOtp);
+        }
+        
+        // Haptic feedback for success
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {
+          // Silently fail if haptics not available
+        }
+
+        showSuccess("Code Sent", "Verification code sent to your email");
+        onEmailSubmit?.(email);
+        setStep("otp");
+      } else {
+        throw new Error(res.data?.message || "Failed to send verification code");
+      }
+    } catch (error: any) {
+      // Haptic feedback for error
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch {
+        // Silently fail if haptics not available
+      }
+
+      const errorText = 
+        error?.data?.error?.message ||
+        error?.data?.error ||
+        error?.message ||
+        "Failed to send verification code. Please try again.";
+      
+      setErrorMessage(errorText);
+      showError("Error", errorText);
+    } finally {
+      setIsSendingOTP(false);
     }
   };
 
-  const handlePasswordSubmit = async () => {
-    if (isCompletingSignIn) return;
+  const handleOTPSubmit = async () => {
+    if (isVerifyingOTP) return;
     
     // Clear any previous error messages
     setErrorMessage(null);
@@ -82,32 +133,19 @@ export function EmailSignInModal({
       // Silently fail if haptics not available
     }
     
-    setIsCompletingSignIn(true);
+    setIsVerifyingOTP(true);
     try {
-      if (password.length < 6) {
-        const msg = "Password must be at least 6 characters";
+      // Validate OTP format (6 digits)
+      if (!/^\d{6}$/.test(otp)) {
+        const msg = "Please enter a valid 6-digit code";
         setErrorMessage(msg);
-        showError("Invalid Password", msg);
-        setIsCompletingSignIn(false);
+        showError("Invalid Code", msg);
+        setIsVerifyingOTP(false);
         return;
       }
 
-      // Use the unified sign-in or sign-up function
-      const res = await handleEmailSignInOrSignUp(email, password);
-      
-      // Check if 2FA is required
-      if (res.data?.requires2FA && res.data?.verificationToken) {
-        // Navigate to 2FA verification screen
-        onClose();
-        setEmail("");
-        setPassword("");
-        setStep("email");
-        router.push({
-          pathname: '/verify-2fa',
-          params: { verificationToken: res.data.verificationToken },
-        });
-        return;
-      }
+      // Verify OTP
+      const res = await handleVerifyEmailOTP(email, otp);
       
       if (res.data?.token && res.data?.user) {
         // Ensure user data has all required fields
@@ -145,8 +183,9 @@ export function EmailSignInModal({
           // Close modal and notify parent after a brief delay to show feedback
           setTimeout(() => {
             setEmail("");
-            setPassword("");
+            setOtp("");
             setStep("email");
+            setTestOtp(undefined);
             onClose();
             onSignInSuccess?.();
           }, 800); // Brief delay to show success feedback
@@ -155,15 +194,15 @@ export function EmailSignInModal({
         }
       } else {
         // If response doesn't have token/user, it's an error
-        throw new Error("Sign in failed. Please check your credentials and try again.");
+        throw new Error("Verification failed. Please check your code and try again.");
       }
     } catch (error: any) {
-      // Error completing sign in
-      console.log("Sign-in error:", JSON.stringify(error, null, 2));
+      // Error verifying OTP
+      console.log("OTP verification error:", JSON.stringify(error, null, 2));
 
       // Extract precise error message from API response
-      let errorTitle = "Sign In Failed";
-      let errorMessage = "Please check your email and password and try again";
+      let errorTitle = "Verification Failed";
+      let errorMessage = "Please check your verification code and try again";
 
       // Try multiple error paths to extract the message
       const apiError = 
@@ -182,29 +221,21 @@ export function EmailSignInModal({
         const lowerError = errorText.toLowerCase();
         
         if (
-          lowerError.includes("invalid credentials") ||
-          lowerError.includes("invalid email") ||
-          lowerError.includes("invalid password") ||
-          lowerError.includes("incorrect password") ||
-          lowerError.includes("wrong password") ||
-          lowerError.includes("authentication failed") ||
-          error?.status === 401 ||
-          error?.data?.status === 401
+          lowerError.includes("invalid") ||
+          lowerError.includes("incorrect") ||
+          lowerError.includes("wrong") ||
+          lowerError.includes("expired") ||
+          error?.status === 400 ||
+          error?.status === 401
         ) {
-          errorTitle = "Invalid Credentials";
-          errorMessage = "The email or password you entered is incorrect. Please try again.";
-        } else if (lowerError.includes("email and password are required") || lowerError.includes("missing")) {
-          errorTitle = "Missing Information";
-          errorMessage = "Please enter both email and password";
-        } else if (lowerError.includes("account not found") || lowerError.includes("user not found")) {
-          errorTitle = "Account Not Found";
-          errorMessage = "No account found with this email address";
+          errorTitle = "Invalid Code";
+          errorMessage = errorText || "The verification code is incorrect or has expired. Please try again.";
         } else if (lowerError.includes("network") || lowerError.includes("connection")) {
           errorTitle = "Connection Error";
           errorMessage = "Unable to connect. Please check your internet connection and try again.";
         } else {
           // Use the actual error message
-          errorTitle = "Sign In Failed";
+          errorTitle = "Verification Failed";
           errorMessage = errorText;
         }
       }
@@ -222,7 +253,7 @@ export function EmailSignInModal({
       // Show error toast with clear message
       showError(errorTitle, errorMessage);
     } finally {
-      setIsCompletingSignIn(false);
+      setIsVerifyingOTP(false);
     }
   };
 
@@ -230,12 +261,18 @@ export function EmailSignInModal({
     setEmail(text.toLowerCase().trim());
   };
 
-  const handlePasswordChange = (text: string) => {
-    setPassword(text);
+  const handleOTPChange = (text: string) => {
+    // Only allow digits and limit to 6 characters
+    const digitsOnly = text.replace(/[^0-9]/g, '').slice(0, 6);
+    setOtp(digitsOnly);
+    // Clear error when user starts typing
+    if (errorMessage) {
+      setErrorMessage(null);
+    }
   };
 
   const isEmailValid = email.length > 0;
-  const isPasswordValid = password.length >= 6;
+  const isOTPValid = /^\d{6}$/.test(otp);
 
   return (
     <Modal
@@ -300,7 +337,8 @@ export function EmailSignInModal({
               <EmailSignInButton
                 title="Continue"
                 onPress={handleEmailSubmit}
-                disabled={!isEmailValid}
+                disabled={!isEmailValid || isSendingOTP}
+                loading={isSendingOTP}
                 style={styles.submitButton}
               />
             </View>
@@ -310,6 +348,7 @@ export function EmailSignInModal({
                 style={styles.backButtonContainer}
                 onPress={() => {
                   setStep("email");
+                  setOtp("");
                   setErrorMessage(null);
                 }}
                 activeOpacity={0.7}
@@ -318,30 +357,33 @@ export function EmailSignInModal({
                 <Text style={styles.backButtonText}>Back</Text>
               </TouchableOpacity>
               
-              <Text style={styles.title}>Enter your password</Text>
+              <Text style={styles.title}>Enter verification code</Text>
               <Text style={styles.subtitle}>
-                Enter your password to sign in to {email}
+                We sent a 6-digit code to {email}
               </Text>
+
+              {testOtp && __DEV__ && (
+                <View style={styles.testOtpContainer}>
+                  <Text style={styles.testOtpText}>
+                    Test OTP: {testOtp}
+                  </Text>
+                </View>
+              )}
 
               <View style={styles.inputContainer}>
                 <Input
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={(text) => {
-                    handlePasswordChange(text);
-                    // Clear error when user starts typing
-                    if (errorMessage) {
-                      setErrorMessage(null);
-                    }
-                  }}
-                  secureTextEntry
+                  placeholder="000000"
+                  value={otp}
+                  onChangeText={handleOTPChange}
+                  keyboardType="number-pad"
                   autoCapitalize="none"
                   autoCorrect={false}
                   size="lg"
                   style={styles.input}
+                  maxLength={6}
                   leftIcon={
                     <Ionicons
-                      name="lock-closed-outline"
+                      name="keypad-outline"
                       size={20}
                       color="#E6FFE8"
                     />
@@ -355,11 +397,22 @@ export function EmailSignInModal({
                 )}
               </View>
 
+              <TouchableOpacity
+                style={styles.resendContainer}
+                onPress={handleEmailSubmit}
+                disabled={isSendingOTP}
+              >
+                <Text style={styles.resendText}>
+                  Didn't receive the code?{' '}
+                  <Text style={styles.resendLink}>Resend</Text>
+                </Text>
+              </TouchableOpacity>
+
               <EmailSignInButton
-                title="Sign In"
-                onPress={handlePasswordSubmit}
-                disabled={!isPasswordValid || isCompletingSignIn}
-                loading={isCompletingSignIn}
+                title="Verify"
+                onPress={handleOTPSubmit}
+                disabled={!isOTPValid || isVerifyingOTP}
+                loading={isVerifyingOTP}
                 showArrow={false}
                 style={styles.submitButton}
               />
@@ -493,6 +546,37 @@ const styles = StyleSheet.create({
     color: "#FF3B30",
     marginLeft: 6,
     flex: 1,
+  },
+  testOtpContainer: {
+    width: "100%",
+    padding: 12,
+    backgroundColor: "rgba(255, 193, 7, 0.1)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 193, 7, 0.3)",
+    marginBottom: 24,
+  },
+  testOtpText: {
+    fontFamily: "SF Pro",
+    fontSize: 14,
+    color: "#FFC107",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  resendContainer: {
+    width: "100%",
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  resendText: {
+    fontFamily: "SF Pro",
+    fontSize: 15,
+    color: "#E5E7EB",
+    textAlign: "center",
+  },
+  resendLink: {
+    color: "#FF6B35",
+    fontWeight: "600",
   },
   packagingDecoration: {
     position: "absolute",

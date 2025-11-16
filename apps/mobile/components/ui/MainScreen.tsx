@@ -2175,11 +2175,13 @@ export function MainScreen() {
         )}
       </LinearGradient>
 
-      {/* Floating Action Button */}
-      <FloatingActionButton 
-        onCameraPress={() => setIsCameraVisible(true)}
-        onRecipePress={() => setIsNoshHeavenPostModalVisible(true)}
-      />
+      {/* Floating Action Button - Only show when authenticated */}
+      {isAuthenticated && (
+        <FloatingActionButton 
+          onCameraPress={() => setIsCameraVisible(true)}
+          onRecipePress={() => setIsNoshHeavenPostModalVisible(true)}
+        />
+      )}
 
       {/* Bottom Search Drawer */}
       <BottomSearchDrawer

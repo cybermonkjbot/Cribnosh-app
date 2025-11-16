@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -596,16 +596,18 @@ export default function ProfileScreen() {
     windowSize: 5, // Reduce window size for better performance
   }), []);
 
-  // Automatically trigger sign-in when not authenticated (similar to app-wide behavior)
+  // Automatically trigger sign-in when not authenticated (only when tab is focused)
   // Make it non-dismissable so users can't dismiss and see forever loading
-  useEffect(() => {
-    if (!isAuthenticated && !authLoading) {
-      navigateToSignIn({
-        returnPath: '/(tabs)/profile',
-        notDismissable: true,
-      });
-    }
-  }, [isAuthenticated, authLoading]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated && !authLoading) {
+        navigateToSignIn({
+          returnPath: '/(tabs)/profile',
+          notDismissable: true,
+        });
+      }
+    }, [isAuthenticated, authLoading])
+  );
 
   return (
     <ProfileScreenBackground>

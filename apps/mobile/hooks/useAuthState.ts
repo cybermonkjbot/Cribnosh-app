@@ -1,16 +1,17 @@
+import { api } from '@/convex/_generated/api';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
+import { clearSessionToken, getConvexClient, resetConvexClients } from "../lib/convexClient";
 import {
   AuthState,
+  StoredUser,
   checkAuthState,
   clearAuthData,
   getStoredUser,
   storeAuthData,
-  StoredUser,
 } from "../utils/authUtils";
-import { getConvexClient, clearSessionToken } from "../lib/convexClient";
-import { api } from '@/convex/_generated/api';
 import { validateAndClearInvalidSession } from "../utils/sessionValidation";
+import { navigateToSignIn } from "../utils/signInNavigationGuard";
 
 export interface UseAuthStateReturn {
   // State
@@ -212,6 +213,9 @@ export const useAuthState = (): UseAuthStateReturn => {
       await clearAuthData();
       await clearSessionToken();
 
+      // Reset Convex client instances to clear any cached session state
+      resetConvexClients();
+
       if (!isMountedRef.current) return;
 
       // Update state
@@ -221,8 +225,9 @@ export const useAuthState = (): UseAuthStateReturn => {
         user: null,
       });
 
-      // Don't navigate here - let the app's conditional rendering handle it
-      console.log("Logout successful, auth state updated");
+      // Navigate to sign-in screen after logout
+      console.log("Logout successful, navigating to sign-in");
+      navigateToSignIn({ notDismissable: false });
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to logout";
@@ -231,9 +236,20 @@ export const useAuthState = (): UseAuthStateReturn => {
       }
       console.error("Logout error:", err);
       
-      // Even if there's an error, clear local storage
+      // Even if there's an error, clear local storage and reset clients
       await clearAuthData();
       await clearSessionToken();
+      resetConvexClients();
+      
+      // Still navigate to sign-in even on error
+      if (isMountedRef.current) {
+        setAuthState({
+          isAuthenticated: false,
+          token: null,
+          user: null,
+        });
+        navigateToSignIn({ notDismissable: false });
+      }
     }
   }, []);
 

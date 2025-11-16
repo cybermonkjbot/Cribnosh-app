@@ -4,14 +4,14 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { CustomerAddress } from '@/types/customer';
 import { getAbsoluteImageUrl } from '@/utils/imageUrl';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { ProfileAvatar } from './ProfileAvatar';
 import { VerificationBanner } from './VerificationBanner';
 import { SkeletonWithTimeout } from './ui/SkeletonWithTimeout';
-import { useQuery } from 'convex/react';
 
 interface UserAccountDetailsScreenProps {
   userName?: string;
@@ -113,7 +113,12 @@ export function UserAccountDetailsScreen({
   const { logout, isAuthenticated } = useAuthContext();
   
   // Address selection context
-  const { setOnSelectAddress, selectedAddress, setSelectedAddress } = useAddressSelection();
+  const { setOnSelectAddress, setSelectedAddress } = useAddressSelection();
+
+  // Clear any leftover address state when component mounts to prevent unwanted alerts
+  useEffect(() => {
+    setSelectedAddress(null);
+  }, [setSelectedAddress]);
 
   // Get session token for reactive queries
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -297,9 +302,14 @@ export function UserAccountDetailsScreen({
     setShowLogoutModal(true);
   }
 
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setShowLogoutModal(false);
-    logout();
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Error is already handled in logout function
+    }
   }
 
   const handleCancelLogout = () => {
@@ -307,43 +317,31 @@ export function UserAccountDetailsScreen({
   }
 
   // Set up address selection callback
+  // Only called when user explicitly selects an address from the address selection modal
   useEffect(() => {
     const handleAddressSelect = async (address: CustomerAddress) => {
+      // Early validation - silently ignore invalid addresses to prevent unwanted alerts
+      if (!address || !address.street || typeof address.street !== 'string' || address.street.trim().length === 0) {
+        // Silently clear invalid state - don't show alerts for invalid addresses
+        // as this might be called with leftover state from previous interactions
+        setSelectedAddress(null);
+        return;
+      }
+
       try {
         const convex = getConvexClient();
         const sessionToken = await getSessionToken();
 
         if (!sessionToken) {
-          // Clear invalid state and show user-friendly message
+          // Clear invalid state silently - user will be prompted to sign in when they try to use the feature
           setSelectedAddress(null);
-          Alert.alert(
-            'Authentication Required',
-            'Please sign in to save your address.',
-            [{ text: 'OK' }]
-          );
-          return;
-        }
-
-        // Validate address more thoroughly
-        if (!address) {
-          setSelectedAddress(null);
-          Alert.alert(
-            'Invalid Address',
-            'Please select a valid address to continue.',
-            [{ text: 'OK' }]
-          );
           return;
         }
 
         // Validate required fields
-        const street = address.street?.trim();
+        const street = address.street.trim();
         if (!street || street.length === 0) {
           setSelectedAddress(null);
-          Alert.alert(
-            'Invalid Address',
-            'Please provide a street address.',
-            [{ text: 'OK' }]
-          );
           return;
         }
 
@@ -354,12 +352,8 @@ export function UserAccountDetailsScreen({
         const country = address.country?.trim() || 'UK';
 
         if (!city && !state && !postalCode) {
+          // Silently ignore incomplete addresses
           setSelectedAddress(null);
-          Alert.alert(
-            'Incomplete Address',
-            'Please provide at least a city, state, or postal code.',
-            [{ text: 'OK' }]
-          );
           return;
         }
 
@@ -375,15 +369,9 @@ export function UserAccountDetailsScreen({
         });
 
         if (result.success === false) {
-          const errorMessage = result.error || 'Failed to save address';
+          // Log error but don't show alert - address selection should be user-initiated
+          console.error('Error saving address:', result.error);
           setSelectedAddress(null);
-          Alert.alert(
-            'Unable to Save Address',
-            errorMessage.includes('Invalid') 
-              ? 'The address provided is not valid. Please check and try again.'
-              : errorMessage,
-            [{ text: 'OK' }]
-          );
           return;
         }
 
@@ -393,26 +381,8 @@ export function UserAccountDetailsScreen({
         // Always clear invalid state on error
         setSelectedAddress(null);
         
-        // Log error for debugging
+        // Log error for debugging but don't show alert
         console.error('Error saving address:', error);
-        
-        // Provide user-friendly error message
-        const errorMessage = error?.message || 'An unexpected error occurred';
-        let userMessage = 'Unable to save your address. Please try again.';
-        
-        if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-          userMessage = 'Network error. Please check your connection and try again.';
-        } else if (errorMessage.includes('Invalid address')) {
-          userMessage = 'The address provided is not valid. Please check and try again.';
-        } else if (errorMessage.includes('Not authenticated')) {
-          userMessage = 'Please sign in to save your address.';
-        }
-        
-        Alert.alert(
-          'Error Saving Address',
-          userMessage,
-          [{ text: 'OK' }]
-        );
       }
     };
     setOnSelectAddress(handleAddressSelect);
@@ -420,116 +390,6 @@ export function UserAccountDetailsScreen({
       setOnSelectAddress(null);
     };
   }, [setOnSelectAddress, setSelectedAddress]);
-
-  // Handle address selection when returning from modal
-  useFocusEffect(
-    useCallback(() => {
-      // Only process if we have a valid address with required fields
-      if (selectedAddress && selectedAddress.street && typeof selectedAddress.street === 'string' && selectedAddress.street.trim().length > 0) {
-        const handleSelected = async () => {
-          try {
-            const convex = getConvexClient();
-            const sessionToken = await getSessionToken();
-
-            if (!sessionToken) {
-              // Clear invalid state and show user-friendly message
-              setSelectedAddress(null);
-              Alert.alert(
-                'Authentication Required',
-                'Please sign in to save your address.',
-                [{ text: 'OK' }]
-              );
-              return;
-            }
-
-            // Validate address more thoroughly
-            const street = selectedAddress.street?.trim();
-            if (!street || street.length === 0) {
-              setSelectedAddress(null);
-              Alert.alert(
-                'Invalid Address',
-                'Please provide a street address.',
-                [{ text: 'OK' }]
-              );
-              return;
-            }
-
-            // Validate address has minimum required information
-            const city = selectedAddress.city?.trim() || '';
-            const state = selectedAddress.state?.trim() || '';
-            const postalCode = selectedAddress.postal_code?.trim() || '';
-            const country = selectedAddress.country?.trim() || 'UK';
-
-            if (!city && !state && !postalCode) {
-              setSelectedAddress(null);
-              Alert.alert(
-                'Incomplete Address',
-                'Please provide at least a city, state, or postal code.',
-                [{ text: 'OK' }]
-              );
-              return;
-            }
-
-            const result = await convex.action(api.actions.users.customerUpdateProfile, {
-              sessionToken,
-              address: {
-                street,
-                city,
-                state,
-                postal_code: postalCode,
-                country,
-              },
-            });
-
-            if (result.success === false) {
-              const errorMessage = result.error || 'Failed to save address';
-              setSelectedAddress(null);
-              Alert.alert(
-                'Unable to Save Address',
-                errorMessage.includes('Invalid') 
-                  ? 'The address provided is not valid. Please check and try again.'
-                  : errorMessage,
-                [{ text: 'OK' }]
-              );
-              return;
-            }
-
-            // Success - refetch profile to get updated address
-            await refetchProfile();
-            setSelectedAddress(null); // Clear after successful handling
-          } catch (error: any) {
-            // Always clear invalid state on error
-            setSelectedAddress(null);
-            
-            // Log error for debugging
-            console.error('Error saving address:', error);
-            
-            // Provide user-friendly error message
-            const errorMessage = error?.message || 'An unexpected error occurred';
-            let userMessage = 'Unable to save your address. Please try again.';
-            
-            if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-              userMessage = 'Network error. Please check your connection and try again.';
-            } else if (errorMessage.includes('Invalid address')) {
-              userMessage = 'The address provided is not valid. Please check and try again.';
-            } else if (errorMessage.includes('Not authenticated')) {
-              userMessage = 'Please sign in to save your address.';
-            }
-            
-            Alert.alert(
-              'Error Saving Address',
-              userMessage,
-              [{ text: 'OK' }]
-            );
-          }
-        };
-        handleSelected();
-      } else if (selectedAddress) {
-        // Invalid address in context, clear it silently
-        setSelectedAddress(null);
-      }
-    }, [selectedAddress, setSelectedAddress])
-  );
 
   // Handle address sheet opening
   const handleOpenAddressSheet = (mode: 'home' | 'work') => {

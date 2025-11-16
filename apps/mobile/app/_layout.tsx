@@ -265,8 +265,7 @@ export default function RootLayout() {
                 name="sign-in" 
                 options={{ 
                   headerShown: false,
-                  presentation: 'modal',
-                  animationTypeForReplace: 'push'
+                  // Presentation and gesture options are set dynamically in sign-in.tsx based on notDismissable param
                 }} 
               />
               <Stack.Screen 

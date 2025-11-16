@@ -564,7 +564,7 @@ export default function OrdersScreen() {
   return (
     <GradientBackground>
       <Animated.View style={headerStyle}>
-        <PremiumHeader title="Orders" />
+        <PremiumHeader title="Orders" showInfoButton={false} />
 
         <PremiumTabs
           tabs={tabs}

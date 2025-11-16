@@ -981,6 +981,253 @@ export const customerPhoneVerifyAndLogin = action({
 });
 
 /**
+ * Customer email OTP send - for mobile app direct Convex communication (sign-in)
+ */
+export const customerEmailSendOTP = action({
+  args: {
+    email: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      message: v.string(),
+      testOtp: v.optional(v.string()),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const TEST_OTP = '123456'; // Test OTP for development
+    
+    try {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(args.email)) {
+        return { success: false as const, error: 'Invalid email format' };
+      }
+
+      // Generate OTP code
+      const otpCode = process.env.NODE_ENV === 'development' ? TEST_OTP : Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Send OTP email using Resend
+      const recipientName = args.email.split('@')[0];
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333;">Verify your email</h2>
+          <p>Hello ${recipientName},</p>
+          <p>Your CribNosh verification code is:</p>
+          <div style="background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
+            ${otpCode}
+          </div>
+          <p>This code will expire in 5 minutes.</p>
+          <p>If you didn't request this verification code, please ignore this email.</p>
+          <p>Best regards,<br>CribNosh Team</p>
+        </div>
+      `;
+
+      // Use verified from email address
+      // emails.cribnosh.com is verified in Resend
+      // Format: "Name <email@domain.com>" or just "email@domain.com"
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'CribNosh <onboarding@emails.cribnosh.com>';
+
+      try {
+        const emailId = await ctx.runAction(api.actions.resend.sendEmail, {
+          from: fromEmail,
+          to: args.email,
+          subject: `Verify your email - ${otpCode}`,
+          html: htmlContent,
+          text: `Your CribNosh verification code is: ${otpCode}\n\nThis code will expire in 5 minutes.\n\nIf you didn't request this verification code, please ignore this email.`,
+        });
+
+        console.log(`✅ OTP email sent successfully to ${args.email}, email ID: ${emailId}`);
+      } catch (emailError: any) {
+        // Always log the error for debugging
+        console.error('❌ Failed to send OTP email:', {
+          email: args.email,
+          error: emailError?.message || emailError,
+          errorDetails: emailError,
+          fromEmail,
+        });
+
+        // In development, still create OTP so testing can continue, but log the error
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ Development mode: Email sending failed, but OTP will still be created for testing');
+          console.warn('   Test OTP code:', otpCode);
+        } else {
+          // In production, fail if email can't be sent
+          return { 
+            success: false as const, 
+            error: emailError?.message || 'Failed to send verification email. Please check your email address and try again.' 
+          };
+        }
+      }
+
+      // Create OTP in database
+      await ctx.runMutation(api.mutations.otp.createEmailOTP, {
+        email: args.email,
+        code: otpCode,
+        maxAttempts: 3,
+      });
+
+      return {
+        success: true as const,
+        message: 'OTP sent successfully',
+        // In development, return the test OTP for testing purposes
+        ...(process.env.NODE_ENV === 'development' && { testOtp: TEST_OTP }),
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to send OTP. Please try again.';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer email verify and login - for mobile app direct Convex communication
+ */
+export const customerEmailVerifyAndLogin = action({
+  args: {
+    email: v.string(),
+    otp: v.string(),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      sessionToken: v.string(),
+      user: v.object({
+        user_id: v.string(),
+        email: v.string(),
+        name: v.string(),
+        roles: v.array(v.string()),
+        picture: v.optional(v.string()),
+        provider: v.optional(v.string()),
+        isNewUser: v.boolean(),
+      }),
+    }),
+    v.object({
+      success: v.literal(false),
+      requires2FA: v.literal(true),
+      verificationToken: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Verify OTP
+      await ctx.runMutation(api.mutations.otp.verifyEmailOTP, {
+        email: args.email,
+        code: args.otp,
+      });
+
+      // Find user by email
+      const user = await ctx.runQuery(api.queries.users.getUserByEmail, { email: args.email });
+      
+      let finalUser;
+      let isNewUser = false;
+
+      if (!user) {
+        // If user doesn't exist, create a new one
+        isNewUser = true;
+        const userId = await ctx.runMutation(api.mutations.users.create, {
+          name: args.email.split('@')[0], // Use email prefix as name
+          email: args.email,
+          password: '', // No password for email OTP auth
+          roles: ['customer'],
+          status: 'active',
+        });
+
+        // Get the created user using internal query (no auth required)
+        const newUser = await ctx.runQuery(api.queries.users._getUserByIdInternal, {
+          userId,
+        });
+        
+        if (!newUser) {
+          return { success: false as const, error: 'Failed to create user' };
+        }
+
+        finalUser = newUser;
+      } else {
+        finalUser = user;
+      }
+
+      // Ensure user has 'customer' role
+      let userRoles = finalUser.roles || ['user'];
+      if (!userRoles.includes('customer')) {
+        userRoles = [...userRoles, 'customer'];
+        await ctx.runMutation(api.mutations.users.updateUserRoles, {
+          userId: finalUser._id,
+          roles: userRoles,
+        });
+      }
+
+      // Check if user has 2FA enabled
+      if (finalUser.twoFactorEnabled) {
+        // Create verification session for 2FA
+        try {
+          const verificationToken = await ctx.runMutation(api.mutations.verificationSessions.createVerificationSession, {
+            userId: finalUser._id,
+          });
+          
+          if (!verificationToken) {
+            return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
+          }
+          
+          return {
+            success: false as const,
+            requires2FA: true as const,
+            verificationToken,
+          };
+        } catch (error) {
+          console.error('Error creating 2FA verification session:', error);
+          return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
+        }
+      }
+
+      // No 2FA required - create session token
+      const sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
+        userId: finalUser._id,
+        expiresInDays: 30, // 30 days expiry
+        userAgent: args.userAgent,
+        ipAddress: args.ipAddress,
+        deviceId: args.deviceId,
+        deviceName: args.deviceName,
+      });
+
+      // Update last login
+      await ctx.runMutation(api.mutations.users.updateLastLogin, {
+        userId: finalUser._id,
+      });
+
+      return {
+        success: true as const,
+        sessionToken: sessionResult.sessionToken,
+        user: {
+          user_id: finalUser._id,
+          email: finalUser.email,
+          name: finalUser.name,
+          roles: userRoles,
+          picture: finalUser.picture,
+          provider: 'email',
+          isNewUser,
+        },
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Email verification failed. Please try again.';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
  * Customer Apple Sign-In - for mobile app direct Convex communication
  * Note: This uses a simplified token verification (decoding JWT without signature verification)
  * For production, you should verify the JWT signature using Apple's public keys

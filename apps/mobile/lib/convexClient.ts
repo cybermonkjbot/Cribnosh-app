@@ -110,3 +110,12 @@ export function getConvexReactClient(): ConvexReactClient {
   }
 }
 
+/**
+ * Reset Convex client instances (useful for logout)
+ * This clears the singleton instances so they can be recreated with fresh state
+ */
+export function resetConvexClients(): void {
+  convexHttpClientInstance = null;
+  convexReactClientInstance = null;
+}
+

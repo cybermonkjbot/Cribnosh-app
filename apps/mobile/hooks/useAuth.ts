@@ -389,7 +389,120 @@ export const useAuth = () => {
   );
 
   /**
-   * Unified email sign-in or sign-up
+   * Send email OTP for sign-in (using Convex directly)
+   */
+  const handleSendEmailOTP = useCallback(
+    async (email: string) => {
+      try {
+        const convex = getConvexClient();
+        
+        if (__DEV__) {
+          console.log('📧 Sending email OTP via Convex');
+        }
+
+        // Call Convex action directly
+        const result = await convex.action(api.actions.users.customerEmailSendOTP, {
+          email,
+        });
+
+        if (result.success === false) {
+          throw {
+            status: 400,
+            data: {
+              success: false,
+              error: {
+                code: "400",
+                message: result.error || "Failed to send OTP",
+              },
+            },
+          };
+        }
+
+        return {
+          data: {
+            success: true,
+            message: result.message || 'Verification code sent to your email',
+            testOtp: result.testOtp, // Only in development
+          },
+        };
+      } catch (error: any) {
+        console.error('Send email OTP error:', error);
+        throw error;
+      }
+    },
+    []
+  );
+
+  /**
+   * Verify email OTP and sign in/up (using Convex directly)
+   */
+  const handleVerifyEmailOTP = useCallback(
+    async (email: string, otp: string) => {
+      try {
+        const convex = getConvexClient();
+        const deviceInfo = await getDeviceInfo();
+        
+        if (__DEV__) {
+          console.log('✅ Verifying email OTP via Convex');
+        }
+
+        // Call Convex action directly
+        const result = await convex.action(api.actions.users.customerEmailVerifyAndLogin, {
+          email,
+          otp,
+          ...deviceInfo,
+        });
+
+        // Handle different response types
+        if (result.success === false) {
+          // Check if it's a 2FA requirement
+          if (result.requires2FA && result.verificationToken) {
+            return {
+              data: {
+                success: true,
+                requires2FA: true,
+                verificationToken: result.verificationToken,
+              },
+            };
+          }
+          
+          // It's an error
+          throw {
+            status: 401,
+            data: {
+              success: false,
+              error: {
+                code: "401",
+                message: result.error || "Invalid verification code.",
+              },
+            },
+          };
+        }
+
+        // Success - store session token
+        if (result.success && result.sessionToken) {
+          await setSessionToken(result.sessionToken);
+        }
+
+        return {
+          data: {
+            success: true,
+            token: result.sessionToken,
+            user: result.user,
+            message: 'Sign in successful',
+            isNewUser: result.user?.isNewUser || false,
+          },
+        };
+      } catch (error: any) {
+        console.error('Verify email OTP error:', error);
+        throw error;
+      }
+    },
+    []
+  );
+
+  /**
+   * Unified email sign-in or sign-up (DEPRECATED - using OTP now)
    * This handles both sign-in (if user exists) and sign-up (if user doesn't exist)
    */
   const handleEmailSignInOrSignUp = useCallback(
@@ -589,6 +702,8 @@ export const useAuth = () => {
     handleEmailLogin,
     handleEmailRegister,
     handleEmailSignInOrSignUp,
+    handleSendEmailOTP,
+    handleVerifyEmailOTP,
     handleVerify2FA,
     handleLogout,
   };

@@ -207,7 +207,11 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
         borderWidth: 1,
         borderColor: "rgba(255, 255, 255, 0.15)",
       }}
-      onPress={() => onOfferPress?.(offer)}
+      onPress={() => {
+        if (fullOffer) {
+          handleClaimNow(fullOffer.offer_id || fullOffer._id || offer.id);
+        }
+      }}
       activeOpacity={0.8}
     >
       {/* Offer Image */}
