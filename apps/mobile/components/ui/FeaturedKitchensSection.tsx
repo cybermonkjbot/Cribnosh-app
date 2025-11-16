@@ -29,6 +29,7 @@ interface FeaturedKitchensSectionProps {
   isLoading?: boolean;
   useBackend?: boolean;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
 export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = ({
@@ -40,6 +41,7 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
   isLoading: propIsLoading = false,
   useBackend = true,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }) => {
   const { isAuthenticated } = useAuthContext();
   const { getFeaturedKitchens } = useChefs();
@@ -260,7 +262,7 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
   const shouldShowSeeAll = showTitle && onSeeAllPress;
 
   return (
-    <View style={{ marginBottom: 24 }}>
+    <View style={{ marginBottom: 24, paddingTop: isFirstSection ? 15 : 0 }}>
       {showTitle && (
         <View style={{
           flexDirection: 'row',

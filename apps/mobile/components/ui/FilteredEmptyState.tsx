@@ -5,16 +5,18 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 interface FilteredEmptyStateProps {
   filterName: string;
   onClearFilter: () => void;
+  isFirstSection?: boolean;
 }
 
 export const FilteredEmptyState: React.FC<FilteredEmptyStateProps> = ({
   filterName,
   onClearFilter,
+  isFirstSection = false,
 }) => {
   const capitalizedFilter = filterName.charAt(0).toUpperCase() + filterName.slice(1);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: isFirstSection ? 75 : 60 }]}>
       <View style={styles.iconContainer}>
         <Search size={48} color="#9CA3AF" />
       </View>

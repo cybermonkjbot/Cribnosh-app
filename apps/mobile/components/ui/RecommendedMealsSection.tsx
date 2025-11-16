@@ -29,6 +29,7 @@ interface RecommendedMealsSectionProps {
   showTitle?: boolean;
   limit?: number;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
 export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = ({
@@ -38,6 +39,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
   showTitle = true,
   limit = 8,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }) => {
   const { isAuthenticated, user } = useAuthContext();
   const { getRecommendedMeals, isLoading: isLoadingMeals } = useMeals();
@@ -230,7 +232,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
   const shouldShowSeeAll = showTitle && onSeeAllPress && meals.length > 8;
 
   return (
-    <View style={{ marginBottom: 24 }}>
+    <View style={{ marginBottom: 24, paddingTop: isFirstSection ? 15 : 0 }}>
       {showTitle && (
         <View style={{
           flexDirection: 'row',

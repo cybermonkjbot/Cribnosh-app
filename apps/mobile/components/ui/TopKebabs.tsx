@@ -19,9 +19,10 @@ interface TopKebabsProps {
   useBackend?: boolean;
   onKebabPress?: (kebab: Kebab) => void;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
-export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress, hasInitialLoadCompleted = false }: TopKebabsProps) {
+export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress, hasInitialLoadCompleted = false, isFirstSection = false }: TopKebabsProps) {
   const { isAuthenticated } = useAuthContext();
 
   const { getTopKebabs } = useMeals();
@@ -106,7 +107,7 @@ export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress, hasIn
     return null;
   }
   return (
-    <View style={{ paddingVertical: 20 }}>
+    <View style={{ paddingVertical: 20, paddingTop: isFirstSection ? 35 : 20 }}>
       <View style={{ 
         flexDirection: 'row', 
         justifyContent: 'space-between', 

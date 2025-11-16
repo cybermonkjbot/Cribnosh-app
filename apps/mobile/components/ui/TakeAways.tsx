@@ -22,9 +22,10 @@ interface TakeAwaysProps {
   onOpenDrawer?: () => void;
   useBackend?: boolean;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
-export function TakeAways({ onOpenDrawer, useBackend = true, hasInitialLoadCompleted = false }: TakeAwaysProps) {
+export function TakeAways({ onOpenDrawer, useBackend = true, hasInitialLoadCompleted = false, isFirstSection = false }: TakeAwaysProps) {
   const { addToCart } = useCart();
   const { getTakeawayItems } = useMeals();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
@@ -137,7 +138,7 @@ export function TakeAways({ onOpenDrawer, useBackend = true, hasInitialLoadCompl
   };
 
   return (
-    <View style={{ paddingVertical: 20 }}>
+    <View style={{ paddingVertical: 20, paddingTop: isFirstSection ? 35 : 20 }}>
       <View style={{ 
         flexDirection: 'row', 
         justifyContent: 'space-between', 

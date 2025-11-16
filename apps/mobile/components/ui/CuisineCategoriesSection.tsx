@@ -24,6 +24,7 @@ interface CuisineCategoriesSectionProps {
   isLoading?: boolean;
   useBackend?: boolean;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
 export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> = ({
@@ -34,6 +35,7 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
   isLoading: propIsLoading = false,
   useBackend = true,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }) => {
   const { isAuthenticated } = useAuthContext();
   const { getCuisineCategories, isLoading: backendLoading } = useCuisines();
@@ -219,7 +221,7 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
   }
 
   return (
-    <View style={{ marginBottom: 24 }}>
+    <View style={{ marginBottom: 24, paddingTop: isFirstSection ? 15 : 0 }}>
       {showTitle && (
         <View style={{
           flexDirection: 'row',

@@ -20,6 +20,7 @@ interface CuisinesSectionProps {
   onSeeAllPress?: () => void;
   useBackend?: boolean;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
 export function CuisinesSection({ 
@@ -28,6 +29,7 @@ export function CuisinesSection({
   onSeeAllPress,
   useBackend = true,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }: CuisinesSectionProps) {
   const { isAuthenticated } = useAuthContext();
   const { getCuisines, isLoading: backendLoading } = useCuisines();
@@ -108,7 +110,7 @@ export function CuisinesSection({
     return null;
   }
   return (
-    <View style={{ paddingVertical: 20 }}>
+    <View style={{ paddingVertical: 20, paddingTop: isFirstSection ? 35 : 20 }}>
       <View style={{ 
         flexDirection: 'row', 
         justifyContent: 'space-between', 

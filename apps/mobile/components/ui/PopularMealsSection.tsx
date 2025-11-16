@@ -31,6 +31,7 @@ interface PopularMealsSectionProps {
   isLoading?: boolean;
   useBackend?: boolean;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
 export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
@@ -42,6 +43,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
   isLoading: propIsLoading,
   useBackend = true,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }) => {
   const { isAuthenticated, user } = useAuthContext();
   const { getRandomMeals, isLoading: isLoadingMeals } = useMeals();
@@ -291,7 +293,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
   const shouldShowSeeAll = showTitle && onSeeAllPress;
 
   return (
-    <View style={{ marginBottom: 24 }}>
+    <View style={{ marginBottom: 24, paddingTop: isFirstSection ? 15 : 0 }}>
       {showTitle && (
         <View style={{
           flexDirection: 'row',

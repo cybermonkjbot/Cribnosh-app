@@ -101,6 +101,7 @@ interface TooFreshToWasteProps {
   useBackend?: boolean;
   onItemPress?: (item: FreshItem) => void;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
 export function TooFreshToWaste({ 
@@ -109,6 +110,7 @@ export function TooFreshToWaste({
   useBackend = true,
   onItemPress,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }: TooFreshToWasteProps) {
   const { isAuthenticated } = useAuthContext();
 
@@ -184,7 +186,7 @@ export function TooFreshToWaste({
     return null;
   }
   return (
-    <View style={{ paddingVertical: 20 }}>
+    <View style={{ paddingVertical: 20, paddingTop: isFirstSection ? 35 : 20 }}>
       <View style={{ 
         flexDirection: 'row', 
         justifyContent: 'space-between', 

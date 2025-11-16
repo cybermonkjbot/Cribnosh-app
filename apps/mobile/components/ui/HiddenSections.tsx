@@ -479,12 +479,14 @@ export function PlayToWinSection({
 export function HiddenSections({ 
   userBehavior,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }: { 
   userBehavior: UserBehavior;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }) {
   return (
-    <View>
+    <View style={{ paddingTop: isFirstSection ? 15 : 0 }}>
       <UsualDinnerSection 
         userBehavior={userBehavior}
         hasInitialLoadCompleted={hasInitialLoadCompleted}

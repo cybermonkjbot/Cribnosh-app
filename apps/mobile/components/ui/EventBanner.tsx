@@ -5,11 +5,12 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 interface EventBannerProps {
   onPress?: () => void;
+  isFirstSection?: boolean;
 }
 
-export function EventBanner({ onPress }: EventBannerProps) {
+export function EventBanner({ onPress, isFirstSection = false }: EventBannerProps) {
   return (
-    <View style={{ paddingHorizontal: 16, paddingVertical: 20 }}>
+    <View style={{ paddingHorizontal: 16, paddingVertical: 20, paddingTop: isFirstSection ? 35 : 20 }}>
       <TouchableOpacity 
         style={{ borderRadius: 16, overflow: 'hidden' }}
         onPress={onPress}

@@ -71,6 +71,7 @@ interface SpecialOffersSectionProps {
   onSeeAllPress?: () => void;
   useBackend?: boolean;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
 export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
@@ -79,6 +80,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
   onSeeAllPress,
   useBackend = true,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }) => {
   const router = useRouter();
   const { isAuthenticated } = useAuthContext();
@@ -368,7 +370,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
   };
 
   return (
-    <View style={{ marginBottom: 24 }}>
+    <View style={{ marginBottom: 24, paddingTop: isFirstSection ? 15 : 0 }}>
       <View
         style={{
           flexDirection: "row",

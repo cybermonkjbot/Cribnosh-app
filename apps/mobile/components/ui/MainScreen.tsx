@@ -600,6 +600,49 @@ export function MainScreen() {
     );
   }, [activeCategoryFilter, filteredKitchens, filteredMeals, filteredCuisines]);
 
+  // Determine which section should be marked as first
+  // This helps add top padding to the first visible section
+  // Since sections return null when they have no data, we check sections in render order
+  // and mark the first one that might have data as first
+  const firstSectionId = useMemo(() => {
+    // Skip NotLoggedInNotice, loading, error views, and OrderAgainSection per plan notes
+    
+    if (activeCategoryFilter === 'all') {
+      // Normal view - check sections in render order
+      // Check if CuisinesSection has data (it uses cuisinesData or fetches internally)
+      if (cuisinesData?.success && cuisinesData.data?.cuisines?.length > 0) {
+        return 'cuisines';
+      }
+      // If CuisinesSection has no data, it will return null, so next section is effectively first
+      // We mark CuisineCategoriesSection as first (it fetches its own data and will return null if empty)
+      // This way, whichever section actually renders first will get the padding
+      return 'cuisineCategories';
+    } else {
+      // Filtered view - check in render order
+      if (isAllSectionsEmpty) {
+        return 'filteredEmptyState';
+      }
+      // Check filtered sections in order - first one with data is first
+      if (filteredCuisines.length > 0) {
+        return 'filteredCuisineCategories';
+      }
+      if (filteredKitchens.length > 0) {
+        return 'filteredFeaturedKitchens';
+      }
+      if (filteredMeals.length > 0) {
+        return 'filteredPopularMeals';
+      }
+      return null;
+    }
+  }, [
+    activeCategoryFilter,
+    cuisinesData,
+    isAllSectionsEmpty,
+    filteredCuisines,
+    filteredKitchens,
+    filteredMeals,
+  ]);
+
   // Cart data processing - removed unused variables
 
   const [isChatVisible, setIsChatVisible] = useState(false);
@@ -1918,23 +1961,27 @@ export function MainScreen() {
                     onCuisinePress={handleCuisinePress} 
                     onSeeAllPress={handleOpenCuisinesDrawer}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'cuisines'}
                   />
                   <CuisineCategoriesSection
                     onCuisinePress={handleCuisinePress}
                     onSeeAllPress={handleOpenCuisineCategoriesDrawer}
                     useBackend={true}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'cuisineCategories'}
                   />
                   <FeaturedKitchensSection
                     onKitchenPress={handleFeaturedKitchenPress}
                     onSeeAllPress={handleOpenFeaturedKitchensDrawer}
                     useBackend={true}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'featuredKitchens'}
                   />
                   <PopularMealsSection
                     onMealPress={handleMealPress}
                     onSeeAllPress={handleOpenPopularMealsDrawer}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'popularMeals'}
                   />
                   
                   {/* Recommended For You Section */}
@@ -1942,6 +1989,7 @@ export function MainScreen() {
                     onMealPress={handleMealPress}
                     limit={8}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'recommendedMeals'}
                   />
 
                   {/* Hidden Sections - dynamically shown based on conditions */}
@@ -1949,6 +1997,7 @@ export function MainScreen() {
                     <HiddenSections 
                       userBehavior={userBehavior}
                       hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'hiddenSections'}
                     />
                   )}
 
@@ -1956,15 +2005,18 @@ export function MainScreen() {
                     onOfferPress={handleOfferPress}
                     onSeeAllPress={handleOpenSpecialOffersDrawer}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'specialOffers'}
                   />
                   <KitchensNearMe 
                     onKitchenPress={handleFeaturedKitchenPress}
                     onMapPress={handleMapToggle}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'kitchensNearMe'}
                   />
                   <TopKebabs 
                     onOpenDrawer={handleOpenTopKebabsDrawer}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'topKebabs'}
                     onKebabPress={(kebab) => {
                       // Filter by kebab cuisine
                       handleCuisinePress({ id: kebab.id, name: kebab.name, image: kebab.image });
@@ -1973,17 +2025,22 @@ export function MainScreen() {
                   <TakeAways 
                     onOpenDrawer={handleOpenTakeawayDrawer}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'takeAways'}
                   />
                   <TooFreshToWaste
                     onOpenDrawer={handleOpenTooFreshDrawer}
                     onOpenSustainability={handleOpenSustainabilityDrawer}
                     hasInitialLoadCompleted={hasInitialLoadCompleted}
+                    isFirstSection={firstSectionId === 'tooFreshToWaste'}
                     onItemPress={(item) => {
                       // Navigate to meal details from sustainability item
                       handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
                     }}
                   />
-                  <EventBanner onPress={() => router.push('/event-chef-request')} />
+                  <EventBanner 
+                    onPress={() => router.push('/event-chef-request')} 
+                    isFirstSection={firstSectionId === 'eventBanner'}
+                  />
                 </>
               ) : (
                 // Filtered View - Show only filtered sections when filter is active
@@ -2030,6 +2087,7 @@ export function MainScreen() {
                     <FilteredEmptyState
                       filterName={activeCategoryFilter}
                       onClearFilter={() => setActiveCategoryFilter('all')}
+                      isFirstSection={firstSectionId === 'filteredEmptyState'}
                     />
                   ) : (
                     <View style={{ marginHorizontal: 12 }}>
@@ -2041,6 +2099,7 @@ export function MainScreen() {
                           showTitle={false}
                           isLoading={cuisinesLoading}
                           hasInitialLoadCompleted={hasInitialLoadCompleted}
+                          isFirstSection={firstSectionId === 'filteredCuisineCategories'}
                         />
                       )}
                       {filteredKitchens.length > 0 && (
@@ -2050,6 +2109,7 @@ export function MainScreen() {
                           showTitle={false}
                           isLoading={chefsLoading}
                           hasInitialLoadCompleted={hasInitialLoadCompleted}
+                          isFirstSection={firstSectionId === 'filteredFeaturedKitchens'}
                         />
                       )}
                       {filteredMeals.length > 0 && (
@@ -2060,6 +2120,7 @@ export function MainScreen() {
                           useBackend={false}
                           isLoading={mealsLoading}
                           hasInitialLoadCompleted={hasInitialLoadCompleted}
+                          isFirstSection={firstSectionId === 'filteredPopularMeals'}
                         />
                       )}
                     </View>

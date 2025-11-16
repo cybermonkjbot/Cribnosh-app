@@ -1001,6 +1001,7 @@ export const customerGetRecentDishes = action({
           kitchen_name: dishDetails.chef?.name || 'Unknown Kitchen',
           kitchen_id: dishDetails.chefId,
           last_ordered_at: lastOrder.order._creationTime || lastOrder.order.createdAt || Date.now(),
+          last_order_id: lastOrder.order._id || lastOrder.order.id || null,
           order_count: orderItems.length,
           has_bussin_badge: (dishDetails.averageRating || 0) >= 4.5,
         });

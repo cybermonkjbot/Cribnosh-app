@@ -23,6 +23,7 @@ interface KitchensNearMeProps {
   onMapPress?: () => void;
   useBackend?: boolean;
   hasInitialLoadCompleted?: boolean;
+  isFirstSection?: boolean;
 }
 
 export function KitchensNearMe({ 
@@ -30,6 +31,7 @@ export function KitchensNearMe({
   onMapPress,
   useBackend = true,
   hasInitialLoadCompleted = false,
+  isFirstSection = false,
 }: KitchensNearMeProps) {
   const { isAuthenticated } = useAuthContext();
   const locationState = useUserLocation();
@@ -120,7 +122,7 @@ export function KitchensNearMe({
     return null;
   }
   return (
-    <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>
+    <View style={{ paddingVertical: 20, paddingHorizontal: 16, paddingTop: isFirstSection ? 35 : 20 }}>
       <View style={{ 
         flexDirection: 'row', 
         justifyContent: 'space-between', 

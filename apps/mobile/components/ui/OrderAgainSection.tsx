@@ -23,6 +23,7 @@ interface OrderItem {
   price: string;
   image: string;
   hasBussinBadge?: boolean;
+  lastOrderId?: string | null;
 }
 
 interface OrderAgainSectionProps {
@@ -81,6 +82,7 @@ export function OrderAgainSection({
       price: `£${(dish.price / 100).toFixed(2)}`, // Convert from pence to pounds
       image: dish.image_url || "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=120&h=120&fit=crop", // Default image if null
       hasBussinBadge: dish.has_bussin_badge || false,
+      lastOrderId: dish.last_order_id || null,
     }));
   }, []);
 
