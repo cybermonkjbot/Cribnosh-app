@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -7,17 +8,25 @@ interface MealImageProps {
 }
 
 export function MealImage({ imageUrl, title }: MealImageProps) {
+  const [imageError, setImageError] = useState(false);
+  const fallbackImage = require('@/assets/images/cribnoshpackaging.png');
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   return (
     <View style={styles.container}>
       {/* Food Image */}
       <Image 
         source={
-          imageUrl 
+          imageUrl && !imageError
             ? { uri: imageUrl }
-            : require('@/assets/images/cribnoshpackaging.png')
+            : fallbackImage
         }
         style={styles.foodImage}
         resizeMode="contain"
+        onError={handleImageError}
       />
     </View>
   );

@@ -45,12 +45,14 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const agentPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   // Fetch support chat
   const fetchSupportChat = useCallback(async () => {
     if (!enabled) return;
 
     try {
+      if (!isMountedRef.current) return;
       setIsLoadingChat(true);
       setChatError(null);
       const convex = getConvexClient();
@@ -64,6 +66,8 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
         sessionToken,
         caseId: caseId || undefined,
       });
+
+      if (!isMountedRef.current) return;
 
       if (result.success === false) {
         throw new Error(result.error || 'Failed to get support chat');
@@ -88,9 +92,13 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
       }
     } catch (error: any) {
       console.error('Failed to fetch support chat:', error);
-      setChatError(error);
+      if (isMountedRef.current) {
+        setChatError(error);
+      }
     } finally {
-      setIsLoadingChat(false);
+      if (isMountedRef.current) {
+        setIsLoadingChat(false);
+      }
     }
   }, [enabled, caseId]);
 
@@ -99,6 +107,7 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
     if (!enabled || !chatId) return;
 
     try {
+      if (!isMountedRef.current) return;
       setIsLoadingMessages(true);
       setMessagesError(null);
       const convex = getConvexClient();
@@ -113,6 +122,8 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
         limit: 100,
         offset: 0,
       });
+
+      if (!isMountedRef.current) return;
 
       if (result.success === false) {
         throw new Error(result.error || 'Failed to get messages');
@@ -150,9 +161,13 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
       }
     } catch (error: any) {
       console.error('Failed to fetch messages:', error);
-      setMessagesError(error);
+      if (isMountedRef.current) {
+        setMessagesError(error);
+      }
     } finally {
-      setIsLoadingMessages(false);
+      if (isMountedRef.current) {
+        setIsLoadingMessages(false);
+      }
     }
   }, [enabled, chatId, onNewMessage]);
 
@@ -161,6 +176,7 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
     if (!enabled || !chatId) return;
 
     try {
+      if (!isMountedRef.current) return;
       setIsLoadingAgent(true);
       setAgentError(null);
       const convex = getConvexClient();
@@ -173,6 +189,8 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
       const result = await convex.action(api.actions.users.customerGetSupportAgent, {
         sessionToken,
       });
+
+      if (!isMountedRef.current) return;
 
       if (result.success === false) {
         throw new Error(result.error || 'Failed to get agent info');
@@ -191,9 +209,13 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
       setAgent(newAgent);
     } catch (error: any) {
       console.error('Failed to fetch agent:', error);
-      setAgentError(error);
+      if (isMountedRef.current) {
+        setAgentError(error);
+      }
     } finally {
-      setIsLoadingAgent(false);
+      if (isMountedRef.current) {
+        setIsLoadingAgent(false);
+      }
     }
   }, [enabled, chatId, onAgentChange]);
 
@@ -202,6 +224,7 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
     if (!enabled || !chatId) return;
 
     try {
+      if (!isMountedRef.current) return;
       setIsLoadingQuickReplies(true);
       setQuickRepliesError(null);
       const convex = getConvexClient();
@@ -215,6 +238,8 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
         sessionToken,
       });
 
+      if (!isMountedRef.current) return;
+
       if (result.success === false) {
         throw new Error(result.error || 'Failed to get quick replies');
       }
@@ -222,9 +247,13 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
       setQuickReplies(result.replies.map((reply: { text: string }) => reply.text));
     } catch (error: any) {
       console.error('Failed to fetch quick replies:', error);
-      setQuickRepliesError(error);
+      if (isMountedRef.current) {
+        setQuickRepliesError(error);
+      }
     } finally {
-      setIsLoadingQuickReplies(false);
+      if (isMountedRef.current) {
+        setIsLoadingQuickReplies(false);
+      }
     }
   }, [enabled, chatId]);
 
@@ -295,6 +324,7 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
   // Send message function
   const sendSupportMessage = useCallback(async (content: string): Promise<boolean> => {
     try {
+      if (!isMountedRef.current) return false;
       setIsSendingMessage(true);
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
@@ -308,6 +338,8 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
         content,
       });
 
+      if (!isMountedRef.current) return false;
+
       if (result.success === false) {
         throw new Error(result.error || 'Failed to send message');
       }
@@ -319,7 +351,9 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
       console.error('Failed to send message:', error);
       return false;
     } finally {
-      setIsSendingMessage(false);
+      if (isMountedRef.current) {
+        setIsSendingMessage(false);
+      }
     }
   }, [fetchMessages]);
 
@@ -333,9 +367,10 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
     ]);
   }, [fetchSupportChat, fetchMessages, fetchAgent, fetchQuickReplies, chatId]);
 
-  // Cleanup polling intervals on unmount
+  // Cleanup polling intervals and mounted ref on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }

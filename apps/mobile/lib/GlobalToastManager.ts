@@ -15,6 +15,7 @@ class GlobalToastManager {
   private toasts: ToastData[] = [];
   private listeners: ((toasts: ToastData[]) => void)[] = [];
   private toastContainer: any = null;
+  private timeoutIds: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   // Register the toast container component
   setToastContainer(container: any) {
@@ -46,15 +47,33 @@ class GlobalToastManager {
     this.notify();
 
     // Auto remove after duration
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       this.hideToast(id);
+      this.timeoutIds.delete(id);
     }, toast.duration || 4000);
+    
+    this.timeoutIds.set(id, timeoutId);
   }
 
   // Remove a toast
   hideToast(id: string) {
+    // Clear timeout if it exists
+    const timeoutId = this.timeoutIds.get(id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      this.timeoutIds.delete(id);
+    }
+    
     this.toasts = this.toasts.filter((toast) => toast.id !== id);
     this.notify();
+  }
+
+  // Cleanup all timeouts (useful for cleanup on unmount)
+  cleanup() {
+    this.timeoutIds.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    this.timeoutIds.clear();
   }
 
   // Convenience methods

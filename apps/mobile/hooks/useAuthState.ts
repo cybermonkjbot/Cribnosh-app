@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AuthState,
   checkAuthState,
@@ -39,18 +39,24 @@ export const useAuthState = (): UseAuthStateReturn => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
   // Initialize auth state on mount
   useEffect(() => {
     initializeAuth();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   const initializeAuth = async () => {
     try {
+      if (!isMountedRef.current) return;
       setIsLoading(true);
       setError(null);
 
       const authData = await checkAuthState();
+      if (!isMountedRef.current) return;
       // SessionToken expiration is validated server-side
       // No need to check expiration client-side
       setAuthState(authData);
@@ -59,15 +65,20 @@ export const useAuthState = (): UseAuthStateReturn => {
         err instanceof Error
           ? err.message
           : "Failed to initialize authentication";
-      setError(errorMessage);
+      if (isMountedRef.current) {
+        setError(errorMessage);
+      }
       console.error("Auth initialization error:", err);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   const login = useCallback(async (sessionToken: string, user: StoredUser) => {
     try {
+      if (!isMountedRef.current) return;
       console.log("Login function called with sessionToken and user:", {
         sessionToken: !!sessionToken,
         user: !!user,
@@ -78,6 +89,8 @@ export const useAuthState = (): UseAuthStateReturn => {
       console.log("Storing auth data...");
       await storeAuthData(sessionToken, user);
       console.log("Auth data stored successfully");
+
+      if (!isMountedRef.current) return;
 
       // Update state
       console.log("Updating auth state...");
@@ -103,13 +116,16 @@ export const useAuthState = (): UseAuthStateReturn => {
       console.error("Login error:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Failed to login";
-      setError(errorMessage);
+      if (isMountedRef.current) {
+        setError(errorMessage);
+      }
       throw err;
     }
   }, []);
 
   const logout = useCallback(async () => {
     try {
+      if (!isMountedRef.current) return;
       setError(null);
 
       // Get session token and call Convex logout action
@@ -137,6 +153,8 @@ export const useAuthState = (): UseAuthStateReturn => {
       await clearAuthData();
       await clearSessionToken();
 
+      if (!isMountedRef.current) return;
+
       // Update state
       setAuthState({
         isAuthenticated: false,
@@ -149,7 +167,9 @@ export const useAuthState = (): UseAuthStateReturn => {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to logout";
-      setError(errorMessage);
+      if (isMountedRef.current) {
+        setError(errorMessage);
+      }
       console.error("Logout error:", err);
       
       // Even if there's an error, clear local storage
@@ -160,18 +180,24 @@ export const useAuthState = (): UseAuthStateReturn => {
 
   const refreshAuthState = useCallback(async () => {
     try {
+      if (!isMountedRef.current) return;
       setIsLoading(true);
       setError(null);
 
       const authData = await checkAuthState();
+      if (!isMountedRef.current) return;
       setAuthState(authData);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to refresh auth state";
-      setError(errorMessage);
+      if (isMountedRef.current) {
+        setError(errorMessage);
+      }
       console.error("Auth refresh error:", err);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 

@@ -79,7 +79,10 @@ const mealDocValidator = v.object({
 });
 
 export const getAllChefLocations = query({
-  args: {},
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
   returns: v.array(v.object({
     chefId: v.id('chefs'),
     userId: v.id('users'),
@@ -90,9 +93,14 @@ export const getAllChefLocations = query({
     rating: v.number(),
     status: v.string()
   })),
-  handler: async (ctx) => {
-    const chefs = await ctx.db.query('chefs').collect();
-    return chefs.map(chef => ({
+  handler: async (ctx, args) => {
+    const { limit, offset = 0 } = args;
+    
+    // Fetch all chefs (will be optimized with index in schema if needed)
+    const allChefs = await ctx.db.query('chefs').collect();
+    
+    // Map to location format
+    const mapped = allChefs.map(chef => ({
       chefId: chef._id,
       userId: chef.userId,
       city: chef.location.city,
@@ -102,15 +110,37 @@ export const getAllChefLocations = query({
       rating: chef.rating,
       status: chef.status
     }));
+    
+    // Apply pagination
+    if (limit !== undefined) {
+      return mapped.slice(offset, offset + limit);
+    }
+    
+    // If no limit, return all from offset
+    return mapped.slice(offset);
   }
 });
 
 // Get all chefs
 export const getAll = query({
-  args: {},
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
   returns: v.array(chefDocValidator),
-  handler: async (ctx) => {
-    return await ctx.db.query('chefs').collect();
+  handler: async (ctx, args) => {
+    const { limit, offset = 0 } = args;
+    
+    // Fetch all chefs (will be optimized with index in schema if needed)
+    const allChefs = await ctx.db.query('chefs').collect();
+    
+    // Apply pagination
+    if (limit !== undefined) {
+      return allChefs.slice(offset, offset + limit);
+    }
+    
+    // If no limit, return all from offset
+    return allChefs.slice(offset);
   }
 });
 

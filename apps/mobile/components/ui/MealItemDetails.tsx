@@ -112,6 +112,7 @@ export function MealItemDetails({
   const [isRemovingFavorite, setIsRemovingFavorite] = useState(false);
   const [similarDishesData, setSimilarDishesData] = useState<any>(null);
   const [isLoadingSimilarMealsFromApi, setIsLoadingSimilarMealsFromApi] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Get favorite status from API
   const isFavorite = favoriteStatus?.isFavorited ?? false;
@@ -120,6 +121,7 @@ export function MealItemDetails({
   const getDishDetailsRef = useRef(getDishDetails);
   const getDishFavoriteStatusRef = useRef(getDishFavoriteStatus);
   const getSimilarMealsRef = useRef(getSimilarMeals);
+  const isMountedRef = useRef(true);
   
   // Update refs when functions change
   useEffect(() => {
@@ -127,6 +129,14 @@ export function MealItemDetails({
     getDishFavoriteStatusRef.current = getDishFavoriteStatus;
     getSimilarMealsRef.current = getSimilarMeals;
   }, [getDishDetails, getDishFavoriteStatus, getSimilarMeals]);
+  
+  // Set mounted ref to true on mount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Check if mealData prop has all required fields to skip API calls
   const hasCompleteMealData = useMemo(() => {
@@ -166,15 +176,19 @@ export function MealItemDetails({
       fetchPromises.push(
         (async () => {
           try {
+            if (!isMountedRef.current) return;
             setIsLoadingDishDetails(true);
             const result = await getDishDetailsRef.current(mealId);
+            if (!isMountedRef.current) return;
             if (result.success) {
               setDishDetailsData({ success: true, data: result.data });
             }
           } catch (error) {
             // Error already handled in hook
           } finally {
-            setIsLoadingDishDetails(false);
+            if (isMountedRef.current) {
+              setIsLoadingDishDetails(false);
+            }
           }
         })()
       );
@@ -185,24 +199,33 @@ export function MealItemDetails({
       fetchPromises.push(
         (async () => {
           try {
+            if (!isMountedRef.current) return;
             setIsLoadingFavorite(true);
             const result = await getDishFavoriteStatusRef.current(mealId);
+            if (!isMountedRef.current) return;
             if (result.success) {
               setFavoriteStatus(result.data);
             }
           } catch (error) {
             // Error already handled in hook
           } finally {
-            setIsLoadingFavorite(false);
+            if (isMountedRef.current) {
+              setIsLoadingFavorite(false);
+            }
           }
         })()
       );
     }
 
-    // Execute all fetches in parallel
+    // Execute all fetches in parallel using Promise.allSettled for better error handling
     if (fetchPromises.length > 0) {
-      Promise.all(fetchPromises).catch((error) => {
-        console.error('Error loading meal data:', error);
+      Promise.allSettled(fetchPromises).then((results) => {
+        // Log any rejected promises
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error(`Error loading meal data (promise ${index}):`, result.reason);
+          }
+        });
       });
     }
   }, [mealId, hasCompleteMealData, isAuthenticated]);
@@ -215,21 +238,27 @@ export function MealItemDetails({
     const timeoutId = setTimeout(() => {
       const loadSimilarMeals = async () => {
         try {
+          if (!isMountedRef.current) return;
           setIsLoadingSimilarMealsFromApi(true);
           const result = await getSimilarMealsRef.current(mealId, 5);
+          if (!isMountedRef.current) return;
           if (result.success) {
             setSimilarDishesData({ success: true, data: result.data });
           }
         } catch (error) {
           // Error already handled in hook
         } finally {
-          setIsLoadingSimilarMealsFromApi(false);
+          if (isMountedRef.current) {
+            setIsLoadingSimilarMealsFromApi(false);
+          }
         }
       };
       loadSimilarMeals();
     }, 500);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [mealId]);
 
   // Transform API dish details to mealData format
@@ -301,6 +330,9 @@ export function MealItemDetails({
 
   // Memoize handleAddToCart callback to prevent unnecessary re-renders
   const handleAddToCart = useCallback(async () => {
+    // Prevent rapid clicks
+    if (isAddingToCart) return;
+    
     if (!finalMealData?.title) return;
 
     // Check authentication and token validity
@@ -327,6 +359,7 @@ export function MealItemDetails({
     }
 
     try {
+      setIsAddingToCart(true);
       const result = await addToCart(mealId, quantity);
 
       if (result.success) {
@@ -340,8 +373,10 @@ export function MealItemDetails({
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to add item to cart';
       showError('Failed to add item to cart', errorMessage);
+    } finally {
+      setIsAddingToCart(false);
     }
-  }, [finalMealData, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart, mealId, quantity, onAddToCart, router]);
+  }, [finalMealData, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart, mealId, quantity, onAddToCart, router, isAddingToCart]);
 
   // Memoize handleFavorite callback to prevent unnecessary re-renders
   const handleFavorite = useCallback(async () => {
@@ -535,6 +570,7 @@ export function MealItemDetails({
         right={20}
         buttonText="Add to Cart"
         showIcon={false}
+        disabled={isAddingToCart}
       />
     </View>
   );

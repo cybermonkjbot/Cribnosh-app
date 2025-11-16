@@ -1,6 +1,4 @@
 // store/authApi.ts
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import * as SecureStore from "expo-secure-store";
 import {
   PhoneLoginData,
   PhoneLoginResponse,
@@ -8,11 +6,45 @@ import {
   Verify2FARequest,
   Verify2FAResponse,
 } from "@/types/auth";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import * as SecureStore from "expo-secure-store";
 
 import { API_CONFIG } from '@/constants/api';
 
+// Network request timeout (30 seconds)
+const NETWORK_TIMEOUT_MS = 30000;
+
+// Helper function to add timeout to fetch requests
+// RTK Query's fetchFn expects (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+const fetchWithTimeout = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
+  
+  // Merge abort signal with existing signal if present
+  const existingSignal = init?.signal;
+  if (existingSignal) {
+    existingSignal.addEventListener('abort', () => controller.abort());
+  }
+  
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError' && !existingSignal?.aborted) {
+      throw new Error(`Request timeout: Request took longer than ${NETWORK_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  }
+};
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseUrlNoTrailing,
+  fetchFn: fetchWithTimeout,
   prepareHeaders: async (headers) => {
     // Get sessionToken from SecureStore
     const sessionToken = await SecureStore.getItemAsync("cribnosh_session_token");

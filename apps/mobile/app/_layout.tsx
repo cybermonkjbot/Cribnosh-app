@@ -33,6 +33,8 @@ import { handleDeepLink } from '../lib/deepLinkHandler';
 import { logMockStatus } from '../utils/mockConfig';
 import { ConvexProvider } from 'convex/react';
 import { getConvexReactClient } from '@/lib/convexClient';
+import { UpdateAvailableModal } from '../components/ui/UpdateAvailableModal';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 
 // Check if we're running in Expo Go (which doesn't support native modules like Stripe)
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
@@ -58,15 +60,27 @@ export default function RootLayout() {
     "Space Mono": require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
   const [showSplash, setShowSplash] = useState(true);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const colorScheme = useColorScheme();
 
   // Note: We use StripeProvider instead of initStripe
   // According to Stripe React Native docs, you should use one or the other, not both
   // StripeProvider is the recommended approach and handles initialization automatically
 
-  // Check for updates on app load
+  // Check for updates after app is fully initialized
+  // This prevents crashes by ensuring the app is ready before handling updates
   useEffect(() => {
-    async function onFetchUpdateAsync() {
+    // Only check for updates after fonts are loaded and splash is complete
+    if (!fontsLoaded && !fontError) {
+      return;
+    }
+    if (showSplash) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function checkForUpdates() {
       try {
         // Skip updates in development mode or Expo Go
         if (__DEV__) {
@@ -78,12 +92,30 @@ export default function RootLayout() {
           return;
         }
 
+        // Wait a bit to ensure app is fully initialized
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Double-check component is still mounted
+        if (!isMounted) {
+          return;
+        }
+
         const update = await Updates.checkForUpdateAsync();
 
+        if (!isMounted) {
+          return;
+        }
+
         if (update.isAvailable) {
+          // Fetch the update in the background
           await Updates.fetchUpdateAsync();
-          // Reload the app to apply the update
-          await Updates.reloadAsync();
+          
+          if (!isMounted) {
+            return;
+          }
+
+          // Show modal to user asking if they want to update
+          setShowUpdateModal(true);
         }
       } catch (error) {
         // Silently handle update errors - app should continue to work
@@ -94,15 +126,39 @@ export default function RootLayout() {
       }
     }
 
-    onFetchUpdateAsync();
-  }, []);
+    checkForUpdates();
+
+    // Cleanup function to prevent updates after unmount
+    return () => {
+      isMounted = false;
+    };
+  }, [fontsLoaded, fontError, showSplash]);
+
+  // Handle update actions
+  const handleUpdateNow = async () => {
+    try {
+      setShowUpdateModal(false);
+      await Updates.reloadAsync();
+    } catch (reloadError) {
+      // If reload fails, the update will be applied on next app launch
+      console.warn('Update reload failed, will apply on next launch:', reloadError);
+      setShowUpdateModal(false);
+    }
+  };
+
+  const handleUpdateLater = () => {
+    setShowUpdateModal(false);
+    // Update will be applied on next app launch
+  };
 
   // Initialize deep link handler and log mock status
   useEffect(() => {
+    let subscription: any = null;
+
     const initializeDeepLinks = async () => {
       try {
         // Handle deep links when app is already running
-        const subscription = Linking.addEventListener("url", handleDeepLink);
+        subscription = Linking.addEventListener("url", handleDeepLink);
 
         // Handle deep links when app is opened from a closed state
         const initialUrl = await Linking.getInitialURL();
@@ -113,11 +169,6 @@ export default function RootLayout() {
         ) {
           handleDeepLink({ url: initialUrl });
         }
-
-        // Cleanup function
-        return () => {
-          subscription?.remove();
-        };
       } catch (error) {
         console.error("Error initializing deep link handler:", error);
       }
@@ -127,6 +178,13 @@ export default function RootLayout() {
 
     // Log mock authentication status
     logMockStatus();
+
+    // Cleanup function - properly returned from useEffect
+    return () => {
+      if (subscription) {
+        subscription.remove();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -163,8 +221,14 @@ export default function RootLayout() {
   }, []);
 
   // Show animated splash while fonts are loading
+  // If fonts fail to load, continue anyway - app will use system fonts as fallback
   if (!fontsLoaded && !fontError) {
     return <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} />;
+  }
+
+  // Log font loading status for debugging
+  if (fontError && __DEV__) {
+    console.warn('Font loading error - app will use system fonts as fallback:', fontError);
   }
 
   // Show animated splash for a bit even after fonts load for better UX
@@ -309,22 +373,29 @@ export default function RootLayout() {
   const convexClient = getConvexReactClient();
 
   return (
-    <Provider store={store}>
-      <ConvexProvider client={convexClient}>
-        <AuthProvider>
-          <EmotionsUIProvider>
-            <AppProvider>
-              <AddressSelectionProvider>
-                <ModalSheetProvider>
-                  <ToastProvider>
-                    {wrappedContent}
-                  </ToastProvider>
-                </ModalSheetProvider>
-              </AddressSelectionProvider>
-            </AppProvider>
-          </EmotionsUIProvider>
-        </AuthProvider>
-      </ConvexProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <ConvexProvider client={convexClient}>
+          <AuthProvider>
+            <EmotionsUIProvider>
+              <AppProvider>
+                <AddressSelectionProvider>
+                  <ModalSheetProvider>
+                    <ToastProvider>
+                      {wrappedContent}
+                      <UpdateAvailableModal
+                        isVisible={showUpdateModal}
+                        onUpdate={handleUpdateNow}
+                        onLater={handleUpdateLater}
+                      />
+                    </ToastProvider>
+                  </ModalSheetProvider>
+                </AddressSelectionProvider>
+              </AppProvider>
+            </EmotionsUIProvider>
+          </AuthProvider>
+        </ConvexProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }

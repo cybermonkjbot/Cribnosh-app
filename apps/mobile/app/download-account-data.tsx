@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -55,6 +55,13 @@ export default function DownloadAccountDataScreen() {
   const [isDownloading, setIsDownloading] = useState(false);
   const insets = useSafeAreaInsets();
   const { token, isAuthenticated } = useAuthContext();
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Request account data download function
   const downloadAccountData = useCallback(async () => {
@@ -89,10 +96,15 @@ export default function DownloadAccountDataScreen() {
   };
 
   const handleDownloadData = async () => {
+    if (!isMountedRef.current) return;
     try {
-      setIsDownloading(true);
+      if (isMountedRef.current) {
+        setIsDownloading(true);
+      }
       const result = await downloadAccountData();
       
+      if (!isMountedRef.current) return;
+
       if (result.data?.download_url) {
         // Download the file from the URL
         const downloadUrl = result.data.download_url;
@@ -108,10 +120,14 @@ export default function DownloadAccountDataScreen() {
           }
         );
 
+        if (!isMountedRef.current) return;
+
         if (downloadResult.status === 200) {
           // Check if sharing is available
           const isAvailable = await Sharing.isAvailableAsync();
           
+          if (!isMountedRef.current) return;
+
           if (isAvailable) {
             // Share/open the file
             await Sharing.shareAsync(downloadResult.uri, {
@@ -119,47 +135,58 @@ export default function DownloadAccountDataScreen() {
               dialogTitle: 'Save Account Data',
             });
             
-            showToast({
-              type: "success",
-              title: "Download Complete",
-              message: "Your account data has been downloaded successfully.",
-              duration: 5000,
-            });
+            if (isMountedRef.current) {
+              showToast({
+                type: "success",
+                title: "Download Complete",
+                message: "Your account data has been downloaded successfully.",
+                duration: 5000,
+              });
+            }
           } else {
             // Fallback: show success message
-            showToast({
-              type: "success",
-              title: "Download Complete",
-              message: `Your account data has been saved to: ${downloadResult.uri}`,
-              duration: 5000,
-            });
+            if (isMountedRef.current) {
+              showToast({
+                type: "success",
+                title: "Download Complete",
+                message: `Your account data has been saved to: ${downloadResult.uri}`,
+                duration: 5000,
+              });
+            }
           }
         } else {
           throw new Error(`Download failed with status: ${downloadResult.status}`);
         }
       } else {
-        showToast({
-          type: "success",
-          title: "Request Submitted",
-          message: "Your data download request has been submitted. You'll receive an email when it's ready.",
-          duration: 5000,
-        });
+        if (isMountedRef.current) {
+          showToast({
+            type: "success",
+            title: "Request Submitted",
+            message: "Your data download request has been submitted. You'll receive an email when it's ready.",
+            duration: 5000,
+          });
+        }
       }
     } catch (error: any) {
       console.error("Error downloading account data:", error);
+      if (!isMountedRef.current) return;
       const errorMessage = 
         error?.data?.error?.message ||
         error?.data?.message ||
         error?.message ||
         "Failed to download account data. Please try again.";
-      showToast({
-        type: "error",
-        title: "Download Failed",
-        message: errorMessage,
-        duration: 4000,
-      });
+      if (isMountedRef.current) {
+        showToast({
+          type: "error",
+          title: "Download Failed",
+          message: errorMessage,
+          duration: 4000,
+        });
+      }
     } finally {
-      setIsDownloading(false);
+      if (isMountedRef.current) {
+        setIsDownloading(false);
+      }
     }
   };
 

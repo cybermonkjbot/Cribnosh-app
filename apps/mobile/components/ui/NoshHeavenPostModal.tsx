@@ -35,6 +35,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
   const { isAuthenticated, user } = useAuthContext();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<any>(null);
+  const isMountedRef = useRef(true);
   
   // Media state
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
@@ -451,11 +452,14 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
     }
     
     try {
+      if (!isMountedRef.current) return;
       setIsUploading(true);
       setUploadProgress(0);
       
       // Get file info
       const fileInfo = await getFileInfo(mediaFile.uri);
+      
+      if (!isMountedRef.current) return;
       
       // Validate file size (max 100MB for videos, 10MB for photos)
       const maxSize = mediaFile.type === 'video' ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
@@ -464,15 +468,19 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
           'File Too Large',
           `File size must be less than ${mediaFile.type === 'video' ? '100MB' : '10MB'}.`
         );
-        setIsUploading(false);
-        setUploadProgress(0);
+        if (isMountedRef.current) {
+          setIsUploading(false);
+          setUploadProgress(0);
+        }
         return;
       }
       
       // Get video duration if it's a video
       let duration = 1; // Default for photos
       if (mediaFile.type === 'video') {
-        setUploadProgress(0.1);
+        if (isMountedRef.current) {
+          setUploadProgress(0.1);
+        }
         try {
           duration = await getVideoDuration(mediaFile.uri);
         } catch (error) {
@@ -482,12 +490,16 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         }
       }
       
+      if (!isMountedRef.current) return;
+      
       // Upload video/photo to storage
       setUploadProgress(0.2);
       const videoStorageId = await uploadMediaToStorage(
         mediaFile.uri,
         mediaFile.type === 'video'
       );
+      
+      if (!isMountedRef.current) return;
       
       // Generate thumbnail
       setUploadProgress(0.5);
@@ -503,6 +515,8 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         }
         // If thumbnail generation fails, we'll pass undefined and let backend generate it
       }
+      
+      if (!isMountedRef.current) return;
       
       // Prepare tags
       const postTags = [...tags];
@@ -530,6 +544,8 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         isLive: false,
       });
       
+      if (!isMountedRef.current) return;
+      
       if (result.success === false) {
         throw new Error(result.error || 'Failed to create video post');
       }
@@ -547,10 +563,19 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       }
       showError('Failed to Create Post', errorMessage);
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      if (isMountedRef.current) {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
     }
   }, [isAuthenticated, mediaFile, title, description, postType, tags, uploadMediaToStorage, getFileInfo, generateThumbnail, getVideoDuration, handleClose]);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   // Handle post type selection
   const handlePostTypeSelect = useCallback((type: PostType) => {

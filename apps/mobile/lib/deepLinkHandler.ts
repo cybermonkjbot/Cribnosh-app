@@ -20,7 +20,11 @@ export const handleDeepLink = (event: { url: string }) => {
       url.includes("Failed to parse manifest JSON") ||
       url.includes("manifest")
     ) {
-      router.navigate("/shared-link");
+      try {
+        router.navigate("/shared-link");
+      } catch (navError) {
+        console.error("Navigation error in deep link handler:", navError);
+      }
       return;
     }
 
@@ -41,14 +45,22 @@ export const handleDeepLink = (event: { url: string }) => {
     if (url.includes("/treat/")) {
       handleTreatLink(url);
     } else if (url.includes("/shared-link")) {
-      router.navigate("/shared-link");
+      try {
+        router.navigate("/shared-link");
+      } catch (navError) {
+        console.error("Navigation error in deep link handler:", navError);
+      }
     } else {
       // Try to handle as treat link as fallback
       handleTreatLink(url);
     }
   } catch (error) {
     // Fallback to shared-link page
-    router.navigate("/shared-link");
+    try {
+      router.navigate("/shared-link");
+    } catch (navError) {
+      console.error("Navigation error in deep link handler fallback:", navError);
+    }
   }
 };
 
@@ -63,15 +75,33 @@ const handleTreatLink = (url: string) => {
       const decodedTreatId = decodeURIComponent(treatId);
 
       // Navigate directly to shared-link page with the treat ID as parameter
-      router.navigate({
-        pathname: "/shared-link",
-        params: { treatId: decodedTreatId },
-      });
+      try {
+        router.navigate({
+          pathname: "/shared-link",
+          params: { treatId: decodedTreatId },
+        });
+      } catch (navError) {
+        console.error("Navigation error in handleTreatLink:", navError);
+        // Fallback to simple navigation
+        try {
+          router.navigate("/shared-link");
+        } catch (fallbackError) {
+          console.error("Fallback navigation also failed:", fallbackError);
+        }
+      }
     } else {
       // Fallback to shared-link page
-      router.navigate("/shared-link");
+      try {
+        router.navigate("/shared-link");
+      } catch (navError) {
+        console.error("Navigation error in handleTreatLink fallback:", navError);
+      }
     }
   } catch (error) {
-    router.navigate("/shared-link");
+    try {
+      router.navigate("/shared-link");
+    } catch (navError) {
+      console.error("Navigation error in handleTreatLink catch:", navError);
+    }
   }
 };

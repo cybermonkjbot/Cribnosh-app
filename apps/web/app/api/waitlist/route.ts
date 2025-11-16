@@ -1,14 +1,12 @@
 // Waitlist API endpoints for managing waitlist entries
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface JWTPayload {
   user_id: string;
@@ -171,17 +169,19 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-    // Use paginated query instead of fetch-all-then-slice
-    const paginated = await convex.query(api.queries.waitlist.getAll, {
+    // Use paginated query and count query in parallel for better performance
+    // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
+    const paginatedPromise = convex.query(api.queries.waitlist.getAll, {
       sessionToken: sessionToken || undefined,
       limit,
       offset
     });
-    // Get total count for pagination info (query already handles sorting)
-    const allWaitlist = await convex.query(api.queries.waitlist.getAll, {
+    // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
+    const totalPromise = convex.query(api.queries.waitlist.getWaitlistCount, {
       sessionToken: sessionToken || undefined
     });
-    return ResponseFactory.success({ waitlist: paginated, total: allWaitlist.length, limit, offset });
+    const [paginated, total] = await Promise.all([paginatedPromise, totalPromise]) as [any[], number];
+    return ResponseFactory.success({ waitlist: paginated, total, limit, offset });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch waitlist.';
     return ResponseFactory.internalError(errorMessage);

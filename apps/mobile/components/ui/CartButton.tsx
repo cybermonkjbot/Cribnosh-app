@@ -24,6 +24,7 @@ interface CartButtonProps {
   buttonText?: string;
   showIcon?: boolean;
   containerStyle?: any;
+  disabled?: boolean;
 }
 
 export function CartButton({
@@ -41,6 +42,7 @@ export function CartButton({
   buttonText,
   showIcon = true,
   containerStyle,
+  disabled = false,
 }: CartButtonProps) {
   const insets = useSafeAreaInsets();
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -60,6 +62,7 @@ export function CartButton({
       left: left ?? (variant === 'add' ? 0 : 20),
       right: right ?? (variant === 'add' ? 0 : 20),
       width: variant === 'add' ? buttonWidth : undefined,
+      opacity: disabled ? 0.6 : 1,
     },
   ];
 
@@ -89,7 +92,12 @@ export function CartButton({
           containerStyle, 
         ]}
       >
-        <TouchableOpacity style={buttonStyle} onPress={onPress} activeOpacity={0.85}>
+        <TouchableOpacity 
+          style={buttonStyle} 
+          onPress={onPress} 
+          activeOpacity={0.85}
+          disabled={disabled}
+        >
           <View style={quantityBadgeStyle}>
             <Text style={quantityTextStyle}>{quantity}</Text>
           </View>
@@ -100,7 +108,12 @@ export function CartButton({
   }
 
   return (
-    <TouchableOpacity style={buttonStyle} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity 
+      style={buttonStyle} 
+      onPress={onPress} 
+      activeOpacity={0.85}
+      disabled={disabled}
+    >
       <View style={quantityBadgeStyle}>
         <Text style={quantityTextStyle}>{quantity}</Text>
       </View>

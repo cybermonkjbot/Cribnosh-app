@@ -62,8 +62,10 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
   // Get related posts
   let relatedPosts: any[] = [];
   try {
+    // Add limit to prevent fetching all posts (50 max for related posts)
     const allPosts = await convex.query(api.queries.blog.getBlogPosts, {
       status: "published",
+      limit: 50,
     });
     if (allPosts && Array.isArray(allPosts)) {
       relatedPosts = allPosts

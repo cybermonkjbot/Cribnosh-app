@@ -113,8 +113,7 @@ export const compileUserDataAction = action({
       { userId: args.userId }
     );
     
-    const allReviews: Review[] = await ctx.runQuery(api.queries.reviews.getAll, {});
-    const userReviews: Review[] = allReviews.filter((r: Review) => r.user_id === args.userId);
+    const userReviews: Review[] = await ctx.runQuery(api.queries.reviews.getByUserId, { userId: args.userId });
     
     const supportCasesResult: SupportCase[] = await ctx.runQuery(
       api.queries.supportCases.getByUserId,

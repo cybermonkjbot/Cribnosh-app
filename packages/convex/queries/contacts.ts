@@ -23,4 +23,13 @@ export const getAll = query({
     // If no limit, return all from offset
     return allContacts.slice(offset);
   },
+});
+
+// Get total count of contacts (optimized for pagination)
+export const getCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const allContacts = await ctx.db.query('contacts').collect();
+    return allContacts.length;
+  },
 }); 

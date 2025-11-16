@@ -37,10 +37,7 @@ export async function compileUserData(
     convex.query(api.queries.paymentMethods.getByUserId, { userId }).catch(() => []),
     convex.query(api.queries.dietaryPreferences.getByUserId, { userId }).catch(() => null),
     convex.query(api.queries.allergies.getByUserId, { userId }).catch(() => []),
-    convex.query(api.queries.reviews.getAll, {}).then((reviews: unknown[]) => {
-      const typedReviews = reviews as Array<{ user_id?: Id<'users'> }>;
-      return typedReviews.filter((r) => r.user_id === userId);
-    }).catch(() => []),
+    convex.query(api.queries.reviews.getByUserId, { userId }).catch(() => []),
     convex.query(api.queries.supportCases.getByUserId, { userId }).catch(() => []),
   ]);
 

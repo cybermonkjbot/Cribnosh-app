@@ -23,4 +23,22 @@ export const getAll = query({
     // If no limit, return all from offset
     return allBookings.slice(offset);
   }
+});
+
+// Get booking by user ID and meal ID (for review validation)
+export const getByUserIdAndMealId = query({
+  args: {
+    userId: v.id('users'),
+    mealId: v.id('meals'),
+  },
+  handler: async (ctx, args) => {
+    // Filter by user_id at database level if possible
+    const userBookings = await ctx.db
+      .query('bookings')
+      .filter((q) => q.eq(q.field('user_id'), args.userId))
+      .collect();
+    
+    // Filter by meal_id in memory (meal_id may not be in schema, but check if it exists)
+    return userBookings.find((b: any) => (b as any).meal_id === args.mealId) || null;
+  },
 }); 

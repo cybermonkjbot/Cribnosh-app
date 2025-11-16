@@ -51,13 +51,24 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
   const [showVideoPreview, setShowVideoPreview] = useState<boolean>(false);
   const [showLiveStreamSetup, setShowLiveStreamSetup] = useState<boolean>(false);
   const cameraRef = useRef<any>(null);
+  const isMountedRef = useRef(true);
+  const simulatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     (async () => {
       const { Camera } = await import('expo-camera');
       const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      if (isMountedRef.current) {
+        setHasPermission(status === 'granted');
+      }
     })();
+
+    return () => {
+      isMountedRef.current = false;
+      if (simulatorTimeoutRef.current) {
+        clearTimeout(simulatorTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleFlipCamera = () => {
@@ -75,45 +86,54 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
   };
 
   const handleCapture = async () => {
-    if (cameraRef.current && !isRecording) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8,
-          base64: true,
-        });
-        // Save the captured photo URI
+    if (!cameraRef.current || !isMountedRef.current || isRecording) {
+      return;
+    }
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        base64: true,
+      });
+      if (isMountedRef.current && photo?.uri) {
         setLastCapturedPhoto(photo.uri);
         console.log('Photo captured:', photo);
-      } catch (error) {
-        console.error('Error capturing photo:', error);
       }
+    } catch (error) {
+      console.error('Error capturing photo:', error);
     }
   };
 
   const startRecording = async () => {
-    if (cameraRef.current && !isRecording) {
-      try {
+    if (!cameraRef.current || !isMountedRef.current || isRecording) {
+      return;
+    }
+    try {
+      if (isMountedRef.current) {
         setIsRecording(true);
-        const recording = await cameraRef.current.recordAsync({
-          quality: '720p',
-          maxDuration: 60000, // 60 seconds in milliseconds
-        });
-        console.log('Video recording started:', recording);
-      } catch (error) {
-        console.error('Error starting video recording:', error);
-        // Simulator fallback - create mock recording
-        if (error instanceof Error && error.message?.includes('simulator')) {
-          console.log('Using simulator fallback for video recording');
-          // Simulate recording delay
-          setTimeout(() => {
+      }
+      const recording = await cameraRef.current.recordAsync({
+        quality: '720p',
+        maxDuration: 60000, // 60 seconds in milliseconds
+      });
+      console.log('Video recording started:', recording);
+    } catch (error) {
+      console.error('Error starting video recording:', error);
+      // Simulator fallback - create mock recording
+      if (error instanceof Error && error.message?.includes('simulator')) {
+        console.log('Using simulator fallback for video recording');
+        // Simulate recording delay
+        simulatorTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
             setIsRecording(false);
             // Create mock video URI for simulator testing
             const mockVideoUri = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
             setLastRecordedVideo(mockVideoUri);
             setShowVideoPreview(true);
             console.log('Mock video recording completed for simulator testing');
-          }, 2000); // 2 second mock recording
-        } else {
+          }
+        }, 2000); // 2 second mock recording
+      } else {
+        if (isMountedRef.current) {
           setIsRecording(false);
         }
       }
@@ -121,20 +141,25 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
   };
 
   const stopRecording = async () => {
-    if (cameraRef.current && isRecording) {
-      try {
+    if (!cameraRef.current || !isMountedRef.current || !isRecording) {
+      return;
+    }
+    try {
+      if (isMountedRef.current) {
         setIsRecording(false);
-        // Get the recorded video URI and show preview
-        if (cameraRef.current) {
-          const video = await cameraRef.current.stopRecordingAsync();
-          if (video && video.uri) {
-            setLastRecordedVideo(video.uri);
-            setShowVideoPreview(true);
-            console.log('Video recording stopped:', video);
-          }
+      }
+      // Get the recorded video URI and show preview
+      if (cameraRef.current && isMountedRef.current) {
+        const video = await cameraRef.current.stopRecordingAsync();
+        if (isMountedRef.current && video && video.uri) {
+          setLastRecordedVideo(video.uri);
+          setShowVideoPreview(true);
+          console.log('Video recording stopped:', video);
         }
-      } catch (error) {
-        console.error('Error stopping video recording:', error);
+      }
+    } catch (error) {
+      console.error('Error stopping video recording:', error);
+      if (isMountedRef.current) {
         setIsRecording(false);
       }
     }
@@ -911,15 +936,18 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
     if (isAuthenticated) {
       const loadMeals = async () => {
         try {
+          if (!isMountedRef.current) return;
           setIsLoadingMeals(true);
           const result = await getChefMeals(100, 0);
-          if (result.success) {
+          if (isMountedRef.current && result.success) {
             setMeals(result.data.meals || []);
           }
         } catch (error) {
           // Error handling is done in the hook
         } finally {
-          setIsLoadingMeals(false);
+          if (isMountedRef.current) {
+            setIsLoadingMeals(false);
+          }
         }
       };
       loadMeals();

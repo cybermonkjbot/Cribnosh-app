@@ -213,9 +213,10 @@ export async function runInference(
   if (filters.category || filters.tag) {
     try {
       const convex = getConvexClient();
+      // Add limit to prevent fetching all meals (1000 max for search)
       const allMeals = await convex.query(
         (api as any).queries.meals.getAll,
-        userId ? { userId: userId as any } : {}
+        userId ? { userId: userId as any, limit: 1000 } : { limit: 1000 }
       );
       
       const searchTerm = searchQuery ? searchQuery.toLowerCase() : '';

@@ -130,15 +130,16 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     let limit = parseInt(searchParams.get('limit') || '') || DEFAULT_LIMIT;
     const offset = parseInt(searchParams.get('offset') || '') || 0;
     if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-    // Use paginated query instead of fetch-all-then-slice
+    // Use paginated query and count query in parallel for better performance
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-    const paginated = (await convex.query(api.queries.reviews.getAll, {
-      limit,
-      offset
-    })) as any[];
-    // Get total count for pagination info (query already handles sorting)
-    const allReviews = (await convex.query(api.queries.reviews.getAll, {})) as any[];
-    return ResponseFactory.success({ reviews: paginated, total: allReviews.length, limit, offset });
+    const [paginated, total] = await Promise.all([
+      convex.query(api.queries.reviews.getAll, {
+        limit,
+        offset
+      }) as Promise<any[]>,
+      convex.query(api.queries.reviews.getCount, {}) as Promise<number>
+    ]);
+    return ResponseFactory.success({ reviews: paginated, total, limit, offset });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
       return handleConvexError(error, request);
@@ -244,10 +245,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClientFromRequest(request);
     const sessionToken = getSessionTokenFromRequest(request);
     // Check meal ownership (user must have ordered this meal)
-    const bookings = await convex.query(api.queries.bookings.getAll, {
-      sessionToken: sessionToken || undefined
+    const userBooking = await convex.query(api.queries.bookings.getByUserIdAndMealId, {
+      userId: userId as any,
+      mealId: meal_id as any
     });
-    const userBooking = bookings.find((b: any) => b.user_id === userId && b.meal_id === meal_id);
     if (!userBooking) {
       return ResponseFactory.forbidden('You can only review meals you have ordered.');
     }
@@ -280,10 +281,10 @@ async function handlePATCH(request: NextRequest): Promise<NextResponse> {
     }
     const convex = getConvexClientFromRequest(request);
     const sessionToken = getSessionTokenFromRequest(request);
-    const allReviews = (await convex.query(api.queries.reviews.getAll, {
-      sessionToken: sessionToken || undefined
-    })) as any[];
-    const review = allReviews.find((r: any) => r._id === review_id);
+    // Use get query instead of fetching all reviews
+    const review = (await convex.query(api.queries.reviews.get, {
+      id: review_id as any
+    })) as any;
     if (!review) {
       return ResponseFactory.notFound('Review not found.');
     }
@@ -318,10 +319,10 @@ async function handleDELETE(request: NextRequest): Promise<NextResponse> {
     }
     const convex = getConvexClientFromRequest(request);
     const sessionToken = getSessionTokenFromRequest(request);
-    const allReviews = (await convex.query(api.queries.reviews.getAll, {
-      sessionToken: sessionToken || undefined
-    })) as any[];
-    const review = allReviews.find((r: any) => r._id === review_id);
+    // Use get query instead of fetching all reviews
+    const review = (await convex.query(api.queries.reviews.get, {
+      id: review_id as any
+    })) as any;
     if (!review) {
       return ResponseFactory.notFound('Review not found.');
     }
@@ -389,8 +390,10 @@ async function handleExport(request: NextRequest): Promise<NextResponse> {
     }
     const convex = getConvexClientFromRequest(request);
     const sessionToken = getSessionTokenFromRequest(request);
+    // Add limit for safety (10k reviews max for export)
     const allReviews = (await convex.query(api.queries.reviews.getAll, {
-      sessionToken: sessionToken || undefined
+      limit: 10000,
+      offset: 0
     })) as any[];
     return ResponseFactory.jsonDownload(allReviews, 'reviews-export.json');
   } catch (error: unknown) {

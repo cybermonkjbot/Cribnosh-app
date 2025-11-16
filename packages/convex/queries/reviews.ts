@@ -49,4 +49,24 @@ export const getByMealId = query({
       .filter((q) => q.eq(q.field('mealId'), args.mealId))
       .collect();
   },
+});
+
+// Get reviews by user ID (optimized with database index)
+export const getByUserId = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('reviews')
+      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
+      .collect();
+  },
+});
+
+// Get total count of reviews (optimized for pagination)
+export const getCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const allReviews = await ctx.db.query('reviews').collect();
+    return allReviews.length;
+  },
 }); 
