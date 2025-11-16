@@ -1,19 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SuperButton } from '@/components/ui/SuperButton';
+import { api } from '@/convex/_generated/api';
+import { useFamilyProfile } from '@/hooks/useFamilyProfile';
+import { useToast } from '@/lib/ToastContext';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  View,
-  StatusBar,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { SuperButton } from '@/components/ui/SuperButton';
-import { useToast } from '@/lib/ToastContext';
-import { useFamilyProfile } from '@/hooks/useFamilyProfile';
 
 export default function MemberBudgetScreen() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function MemberBudgetScreen() {
     fetchFamilyProfile();
   }, [fetchFamilyProfile]);
 
-  const member = familyProfileData?.data?.family_members.find((m) => m.id === id);
+  const member = familyProfileData?.data?.family_members.find((m: any) => m.id === id);
   const [dailyLimit, setDailyLimit] = useState('');
   const [weeklyLimit, setWeeklyLimit] = useState('');
   const [monthlyLimit, setMonthlyLimit] = useState('');
@@ -55,19 +56,67 @@ export default function MemberBudgetScreen() {
   }, [member]);
 
   const handleSubmit = async () => {
-    if (!member) return;
+    if (!member || !id) return;
 
     try {
       setIsLoading(true);
-      // TODO: Implement updateMemberBudget via Convex action when available
-      // For now, show a message that this feature is coming soon
+
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const budgetSettings: {
+        daily_limit?: number;
+        weekly_limit?: number;
+        monthly_limit?: number;
+        currency?: string;
+      } = {};
+
+      if (dailyLimit.trim()) {
+        const daily = parseFloat(dailyLimit);
+        if (!isNaN(daily) && daily > 0) {
+          budgetSettings.daily_limit = daily;
+        }
+      }
+
+      if (weeklyLimit.trim()) {
+        const weekly = parseFloat(weeklyLimit);
+        if (!isNaN(weekly) && weekly > 0) {
+          budgetSettings.weekly_limit = weekly;
+        }
+      }
+
+      if (monthlyLimit.trim()) {
+        const monthly = parseFloat(monthlyLimit);
+        if (!isNaN(monthly) && monthly > 0) {
+          budgetSettings.monthly_limit = monthly;
+        }
+      }
+
+      // Default currency to GBP if not specified
+      budgetSettings.currency = 'gbp';
+
+      const result = await convex.action(api.actions.users.customerUpdateMemberBudget, {
+        sessionToken,
+        member_id: String(id),
+        budget_settings: budgetSettings,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to update budget');
+      }
+
       showToast({
-        type: 'info',
-        title: 'Coming Soon',
-        message: 'Member budget update will be available soon via Convex.',
+        type: 'success',
+        title: 'Budget Updated',
+        message: 'Member budget has been updated successfully.',
         duration: 3000,
       });
-      // router.back();
+
+      router.back();
     } catch (error: any) {
       showToast({
         type: 'error',

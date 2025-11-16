@@ -228,10 +228,15 @@ export function UserAccountDetailsScreen({
   }, [profileAddress]);
 
   const hasWorkAddress = useMemo(() => {
-    // TODO: In the future, extend to support multiple addresses
-    // For now, we'll use a simple check
+    // Check if work address exists in addresses array (when schema supports it)
+    // For now, with single address model, work address is not supported
+    // When schema is extended to support addresses array, check for address with label 'work'
+    if (profileAddress && (profileAddress as any).addresses) {
+      const addresses = (profileAddress as any).addresses;
+      return addresses.some((addr: any) => addr.label === 'work' && addr.street);
+    }
     return false; // Work address not yet supported in single address model
-  }, []);
+  }, [profileAddress]);
 
   // Update local state when profile picture changes
   useEffect(() => {

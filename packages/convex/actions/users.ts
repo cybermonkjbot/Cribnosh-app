@@ -7815,6 +7815,155 @@ export const customerInviteFamilyMember = action({
 });
 
 /**
+ * Customer Update Member Budget - for mobile app direct Convex communication
+ */
+export const customerUpdateMemberBudget = action({
+  args: {
+    sessionToken: v.string(),
+    member_id: v.string(),
+    budget_settings: v.object({
+      daily_limit: v.optional(v.number()),
+      weekly_limit: v.optional(v.number()),
+      monthly_limit: v.optional(v.number()),
+      currency: v.optional(v.string()),
+    }),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      message: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get family profile for user
+      const familyProfile = await ctx.runQuery(api.queries.familyProfiles.getByUserId, {
+        userId: user._id,
+        sessionToken: args.sessionToken,
+      });
+
+      if (!familyProfile) {
+        return { success: false as const, error: 'Family profile not found' };
+      }
+
+      // Update member budget via mutation
+      await ctx.runMutation(api.mutations.familyProfiles.updateMemberBudget, {
+        family_profile_id: familyProfile._id,
+        member_id: args.member_id,
+        userId: user._id,
+        budget_settings: args.budget_settings,
+      });
+
+      return {
+        success: true as const,
+        message: 'Member budget updated successfully',
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to update member budget';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Update Member Preferences - for mobile app direct Convex communication
+ */
+export const customerUpdateMemberPreferences = action({
+  args: {
+    sessionToken: v.string(),
+    member_id: v.string(),
+    allergy_ids: v.optional(v.array(v.id('allergies'))),
+    dietary_preference_id: v.optional(v.id('dietaryPreferences')),
+    parent_controlled: v.optional(v.boolean()),
+    allergies: v.optional(v.array(v.object({
+      name: v.string(),
+      type: v.union(v.literal('allergy'), v.literal('intolerance')),
+      severity: v.union(v.literal('mild'), v.literal('moderate'), v.literal('severe')),
+    }))),
+    dietary_preferences: v.optional(v.object({
+      preferences: v.array(v.string()),
+      religious_requirements: v.array(v.string()),
+      health_driven: v.array(v.string()),
+    })),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      message: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get family profile for user
+      const familyProfile = await ctx.runQuery(api.queries.familyProfiles.getByUserId, {
+        userId: user._id,
+        sessionToken: args.sessionToken,
+      });
+
+      if (!familyProfile) {
+        return { success: false as const, error: 'Family profile not found' };
+      }
+
+      // Update member preferences via mutation
+      await ctx.runMutation(api.mutations.familyProfiles.updateMemberPreferences, {
+        family_profile_id: familyProfile._id,
+        member_id: args.member_id,
+        userId: user._id,
+        allergy_ids: args.allergy_ids,
+        dietary_preference_id: args.dietary_preference_id,
+        parent_controlled: args.parent_controlled,
+        allergies: args.allergies,
+        dietary_preferences: args.dietary_preferences,
+      });
+
+      return {
+        success: true as const,
+        message: 'Member preferences updated successfully',
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to update member preferences';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
  * Customer Accept Family Invite - for mobile app direct Convex communication
  */
 export const customerAcceptFamilyInvite = action({

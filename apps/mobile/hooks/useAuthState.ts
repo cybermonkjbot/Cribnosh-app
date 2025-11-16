@@ -43,7 +43,7 @@ export const useAuthState = (): UseAuthStateReturn => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
-  const validationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const validationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateSubscriptionRef = useRef<any>(null);
 
   // Handle app state changes (foreground/background)
@@ -190,6 +190,7 @@ export const useAuthState = (): UseAuthStateReturn => {
 
       // Get session token and call Convex logout action
       try {
+        // @ts-ignore - Dynamic imports are only supported with certain module settings
         const { getSessionToken } = await import("../lib/convexClient");
         const sessionToken = await getSessionToken();
         

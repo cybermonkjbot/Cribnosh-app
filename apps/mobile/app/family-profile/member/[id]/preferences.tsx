@@ -16,6 +16,8 @@ import { SuperButton } from '@/components/ui/SuperButton';
 import { useToast } from '@/lib/ToastContext';
 import { useFamilyProfile } from '@/hooks/useFamilyProfile';
 import { AlertTriangle, Plus, X, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 
 interface Allergy {
   name: string;
@@ -167,19 +169,52 @@ export default function MemberPreferencesScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!member) return;
+    if (!member || !id) return;
 
     try {
       setIsLoading(true);
-      // TODO: Implement updateMemberPreferences via Convex action when available
-      // For now, show a message that this feature is coming soon
+
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      // Prepare allergies array
+      const allergiesArray = allergies.map((allergy) => ({
+        name: allergy.name,
+        type: allergy.type,
+        severity: allergy.severity,
+      }));
+
+      // Prepare dietary preferences object
+      const dietaryPrefsObject = {
+        preferences: dietaryPrefs.preferences,
+        religious_requirements: dietaryPrefs.religious_requirements,
+        health_driven: dietaryPrefs.health_driven,
+      };
+
+      const result = await convex.action(api.actions.users.customerUpdateMemberPreferences, {
+        sessionToken,
+        member_id: String(id),
+        allergies: allergiesArray.length > 0 ? allergiesArray : undefined,
+        dietary_preferences: dietaryPrefsObject,
+        parent_controlled: parentControlled,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to update preferences');
+      }
+
       showToast({
-        type: 'info',
-        title: 'Coming Soon',
-        message: 'Member preferences update will be available soon via Convex.',
+        type: 'success',
+        title: 'Preferences Updated',
+        message: 'Member preferences have been updated successfully.',
         duration: 3000,
       });
-      // router.back();
+
+      router.back();
     } catch (error: any) {
       showToast({
         type: 'error',

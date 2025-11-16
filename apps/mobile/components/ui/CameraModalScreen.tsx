@@ -1,14 +1,15 @@
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useChefs } from '@/hooks/useChefs';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView } from 'expo-camera';
-import { Radio, X } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { Radio, X } from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { useChefs } from '@/hooks/useChefs';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { CribNoshLogo } from './CribNoshLogo';
 
 const { width, height } = Dimensions.get('window');
@@ -56,6 +57,7 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
 
   React.useEffect(() => {
     (async () => {
+      // @ts-ignore - Dynamic imports are only supported with certain module settings
       const { Camera } = await import('expo-camera');
       const { status } = await Camera.requestCameraPermissionsAsync();
       if (isMountedRef.current) {
@@ -165,10 +167,42 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
     }
   };
 
-  const handleGalleryPress = () => {
-    // TODO: Implement gallery opening functionality
-    console.log('Gallery pressed');
-    // This could open image picker or navigate to gallery
+  const handleGalleryPress = async () => {
+    try {
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant permission to access your photo library.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Launch image library
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedImage = result.assets[0];
+        if (selectedImage.uri) {
+          setLastCapturedPhoto(selectedImage.uri);
+          console.log('Image selected from gallery:', selectedImage.uri);
+        }
+      }
+    } catch (error) {
+      console.error('Error opening gallery:', error);
+      Alert.alert(
+        'Error',
+        'Failed to open gallery. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleFilterSelect = (filter: string) => {
@@ -255,7 +289,7 @@ export function CameraModalScreen({ onClose }: CameraModalScreenProps) {
               setShowLiveStreamSetup(false);
               onClose();
               // Navigate to live stream broadcast screen
-              router.push(`/live/${sessionId}`);
+              router.push(`/live/${sessionId}` as any);
             }}
           />
         )}

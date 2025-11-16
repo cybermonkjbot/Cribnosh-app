@@ -1,15 +1,16 @@
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { AlertCircle, Search } from 'lucide-react-native';
 import { forwardRef, useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Circle, Rect, Svg } from 'react-native-svg';
 
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useCart } from '@/hooks/useCart';
 import { useChefs } from '@/hooks/useChefs';
 import { useMeals } from '@/hooks/useMeals';
-import { useCart } from '@/hooks/useCart';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { showWarning } from '@/lib/GlobalToastManager';
 import { navigateToSignIn } from '@/utils/signInNavigationGuard';
 import { MealAddToCartButton } from '../MealAddToCartButton';
@@ -36,6 +37,7 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
   onMealPress,
   onCartCountChange,
 }, ref) => {
+  const router = useRouter();
   // State for selected category ID and active filters
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
@@ -358,11 +360,9 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
       {tagsData?.tags && Array.isArray(tagsData.tags) && tagsData.tags.length > 0 && (
         <View style={styles.chipsContainer}>
           {tagsData.tags.slice(0, 5).map((tagItem: { tag: string; count: number }) => {
-            const tag = tagItem.tag || tagItem;
-            const tagId = typeof tag === 'string' ? tag.toLowerCase() : tag;
-            const tagLabel = typeof tag === 'string' 
-              ? tag.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-              : tag;
+            const tag = typeof tagItem === 'string' ? tagItem : tagItem.tag;
+            const tagId = tag.toLowerCase();
+            const tagLabel = tag.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
             
             // Map common tags to colors
             const tagColors: Record<string, { bg: string; border: string; shadow: string }> = {
@@ -595,9 +595,17 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
                   <TouchableOpacity
                     style={styles.mealCard}
                     onPress={() => {
-                      // Navigate to meal details or add to cart
-                      // TODO: Implement navigation to meal details page
-                      onMealPress?.(meal);
+                      // Navigate to meal details page
+                      const mealId = meal.id || meal._id || meal.mealId;
+                      if (mealId) {
+                        router.push({
+                          pathname: '/meal-details' as any,
+                          params: { mealId: String(mealId) },
+                        });
+                      } else {
+                        // Fallback to onMealPress if no meal ID
+                        onMealPress?.(meal);
+                      }
                     }}
                     activeOpacity={0.8}
                   >

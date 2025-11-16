@@ -88,13 +88,28 @@ export const getAgentInfo = query({
     
     const openCases = activeCases.filter((c: any) => c.status === 'open');
 
+    // Check if agent has any active (non-expired) sessions
+    const now = Date.now();
+    const agentSessions = await ctx.db
+      .query('sessions')
+      .withIndex('by_user', (q) => q.eq('userId', args.agentId))
+      .collect();
+    
+    // Filter for active sessions (not expired)
+    const activeSessions = agentSessions.filter((session: any) => {
+      return session.expiresAt && session.expiresAt > now;
+    });
+
+    // Agent is online if they have at least one active session
+    const isOnline = activeSessions.length > 0;
+
     return {
       _id: agent._id,
       name: agent.name || 'Support Agent',
       email: agent.email,
       avatar: agent.avatar,
       activeCases: openCases.length,
-      isOnline: true, // TODO: Implement actual online status tracking
+      isOnline,
     };
   },
 });

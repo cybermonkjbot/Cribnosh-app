@@ -1,10 +1,10 @@
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
-import { api } from '@/convex/_generated/api';
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import * as Clipboard from 'expo-clipboard';
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ChevronLeft,
   Clock,
@@ -15,6 +15,7 @@ import {
   Trash2,
   User,
 } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -110,14 +111,32 @@ export default function CustomOrderDetailsScreen() {
 
     try {
       setIsGeneratingLink(true);
-      // TODO: Implement share link generation via Convex action when available
-      // For now, generate a simple share link
-      const shareLink = `${process.env.EXPO_PUBLIC_APP_URL || 'https://cribnosh.com'}/orders/${customOrderId}`;
+      
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const result = await convex.action(api.actions.orders.customerGenerateSharedOrderLink, {
+        sessionToken,
+        order_id: customOrderId,
+      });
+
+      if (result.success === false) {
+        throw new Error(result.error || 'Failed to generate share link');
+      }
+
+      const shareLink = result.shareLink;
+      
+      // Copy to clipboard and show success
+      await Clipboard.setStringAsync(shareLink);
       
       showToast({
         type: "success",
         title: "Share Link Generated",
-        message: `Share link: ${shareLink}`,
+        message: "Share link copied to clipboard",
         duration: 5000,
       });
     } catch (error: any) {

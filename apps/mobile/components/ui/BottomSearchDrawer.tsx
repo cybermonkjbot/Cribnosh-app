@@ -15,13 +15,12 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
-  Modal,
   Platform,
   ScrollView,
   Share,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -52,6 +51,7 @@ import { SearchSuggestionsSkeleton } from "./BottomSearchDrawer/SearchSkeletons"
 import { Button } from "./Button";
 
 // Customer API imports
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useChefs } from "@/hooks/useChefs";
 import { useOffers } from "@/hooks/useOffers";
 import { useSearch } from "@/hooks/useSearch";
@@ -399,6 +399,47 @@ export function BottomSearchDrawer({
 }: BottomSearchDrawerProps) {
   const router = useRouter();
   const { setSearchDrawerExpanded } = useModalSheet();
+  const { isAuthenticated: authIsAuthenticated } = useAuthContext();
+  const effectiveIsAuthenticated = isAuthenticated || authIsAuthenticated;
+  
+  // Profile state for preferences
+  const [profileData, setProfileData] = useState<any>(null);
+  
+  // Fetch profile data to extract preferences
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!effectiveIsAuthenticated) return;
+      
+      try {
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          return;
+        }
+
+        const result = await (convex as any).action((api.actions as any).users.customerGetProfile, {
+          sessionToken,
+        });
+
+        if (result.success === false) {
+          return;
+        }
+
+        setProfileData({
+          data: {
+            ...result.user,
+          },
+        });
+      } catch (error: any) {
+        console.error('Error fetching profile for preferences:', error);
+      }
+    };
+
+    if (effectiveIsAuthenticated) {
+      fetchProfile();
+    }
+  }, [effectiveIsAuthenticated]);
   
   // Core animation values - using height instead of translateY
   const drawerHeight = useSharedValue(SNAP_POINTS.COLLAPSED);
@@ -852,7 +893,7 @@ export function BottomSearchDrawer({
         throw new Error("Not authenticated");
       }
 
-      const customOrderResult = await convex.action(api.actions.orders.customerCreateCustomOrder, {
+      const customOrderResult = await (convex as any).action((api.actions as any).orders.customerCreateCustomOrder, {
         sessionToken,
         requirements: "Shared ordering - invite a friend",
         serving_size: 2,
@@ -871,7 +912,7 @@ export function BottomSearchDrawer({
       showInfo("Generating link", "Creating your share link...");
       setIsGeneratingLink(true);
       
-      const linkResult = await convex.action(api.actions.orders.customerGenerateSharedOrderLink, {
+      const linkResult = await (convex as any).action((api.actions as any).orders.customerGenerateSharedOrderLink, {
         sessionToken,
         order_id: orderId,
       });
@@ -1899,12 +1940,17 @@ export function BottomSearchDrawer({
               throw new Error("Not authenticated");
             }
 
-            const result = await convex.action(api.actions.search.customerSearchWithEmotions, {
+            // Extract preferences from profile data
+            const preferences = profileData?.data?.preferences;
+            const emotions = preferences?.emotions || preferences?.mood || undefined;
+            const cuisine = preferences?.cuisine?.[0] || preferences?.favorite_cuisines?.[0] || undefined;
+
+            const result = await (convex as any).action((api.actions as any).search.customerSearchWithEmotions, {
               sessionToken,
               query: searchParams.query || '',
-              emotions: undefined, // TODO: Extract from preferences if needed
+              emotions: emotions ? (Array.isArray(emotions) ? emotions : [emotions]) : undefined,
               location: searchParams.location ? `${searchParams.location.latitude},${searchParams.location.longitude}` : undefined,
-              cuisine: undefined, // TODO: Extract from preferences if needed
+              cuisine: cuisine,
               limit: 20,
             });
 

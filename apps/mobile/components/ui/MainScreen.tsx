@@ -137,7 +137,7 @@ export function MainScreen() {
         setCuisinesError(null);
       } else {
         // If result is not successful, set error
-        setCuisinesError(new Error(result.error || 'Failed to load cuisines'));
+        setCuisinesError(new Error('Failed to load cuisines'));
       }
     } catch (error: any) {
       setCuisinesError(error);
@@ -146,48 +146,11 @@ export function MainScreen() {
     }
   }, [isAuthenticated, getCuisines]);
 
-  // Parallelize data loading on mount/authentication change
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Load all data in parallel instead of sequentially
-      Promise.all([
-        loadCuisines(),
-        loadPopularChefs(),
-        loadPopularMeals(),
-        loadOffers(),
-        loadCart()
-      ]).catch((error) => {
-        console.error('Error loading initial data:', error);
-      });
-    }
-  }, [isAuthenticated, loadCuisines, loadPopularChefs, loadPopularMeals, loadOffers, loadCart]);
-
-  // Mark initial load as complete once any data has been loaded
-  // Use a ref to ensure this only happens once and doesn't reset
-  // This ref persists across re-renders and navigation
-  const hasInitialLoadCompletedRef = useRef(false);
-  useEffect(() => {
-    if (isAuthenticated && (cuisinesData || chefsData || popularMealsData)) {
-      // Once set, never reset - this prevents skeletons from showing again
-      if (!hasInitialLoadCompletedRef.current) {
-        hasInitialLoadCompletedRef.current = true;
-        setHasInitialLoadCompleted(true);
-      }
-    }
-  }, [isAuthenticated, cuisinesData, chefsData, popularMealsData]);
-  
-  // Ensure hasInitialLoadCompleted stays true once set, even if component re-renders
-  useEffect(() => {
-    if (hasInitialLoadCompletedRef.current && !hasInitialLoadCompleted) {
-      setHasInitialLoadCompleted(true);
-    }
-  }, [hasInitialLoadCompleted]);
-
   // Refetch function for compatibility
   const refetchCuisines = loadCuisines;
 
   // Popular chefs using useChefs hook
-  const { getPopularChefs } = useChefs();
+  const { getPopularChefs } = useChefs(); 
   const [chefsData, setChefsData] = useState<any>(null);
   const [chefsLoading, setChefsLoading] = useState(false);
   const [chefsError, setChefsError] = useState<any>(null);
@@ -202,9 +165,6 @@ export function MainScreen() {
         setChefsData({ success: true, data: result.data });
         // Clear error on successful load
         setChefsError(null);
-      } else {
-        // If result is not successful, set error
-        setChefsError(new Error(result.error || 'Failed to load chefs'));
       }
     } catch (error: any) {
       setChefsError(error);
@@ -242,9 +202,6 @@ export function MainScreen() {
         });
         // Clear error on successful load
         setMealsError(null);
-      } else {
-        // If result is not successful, set error
-        setMealsError(new Error(result.error || 'Failed to load meals'));
       }
     } catch (error: any) {
       setMealsError(error);
@@ -305,6 +262,22 @@ export function MainScreen() {
 
   // Refetch function for compatibility
   const refetchCart = loadCart;
+
+  // Parallelize data loading on mount/authentication change
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Load all data in parallel instead of sequentially
+      Promise.all([
+        loadCuisines(),
+        loadPopularChefs(),
+        loadPopularMeals(),
+        loadOffers(),
+        loadCart()
+      ]).catch((error) => {
+        console.error('Error loading initial data:', error);
+      });
+    }
+  }, [isAuthenticated, loadCuisines, loadPopularChefs, loadPopularMeals, loadOffers, loadCart]);
 
   // Location hook for map functionality
   const locationState = useUserLocation();
@@ -417,7 +390,7 @@ export function MainScreen() {
     if (popularMealsData?.success && popularMealsData.data?.popular) {
       const transformedMeals = popularMealsData.data.popular
         .map(transformMealData)
-        .filter((meal): meal is NonNullable<ReturnType<typeof transformMealData>> => meal !== null);
+        .filter((meal: ReturnType<typeof transformMealData>): meal is NonNullable<ReturnType<typeof transformMealData>> => meal !== null);
       return transformedMeals;
     }
     return []; // Return empty array instead of mockMeals
@@ -560,7 +533,7 @@ export function MainScreen() {
     }
     
     // Filter meals by matching cuisine to the active category filter
-    return meals.filter((meal) => {
+    return meals.filter((meal: any) => {
       // First try to match by meal's cuisine if available
       if (meal.cuisine) {
         const cuisineNormalized = normalizeCuisineForFilter(meal.cuisine);
@@ -603,7 +576,24 @@ export function MainScreen() {
   // This helps add top padding to the first visible section
   // Since sections return null when they have no data, we check sections in render order
   // and mark the first one that might have data as first
-  const firstSectionId = useMemo(() => {
+  const firstSectionId = useMemo((): 
+    | 'cuisines' 
+    | 'cuisineCategories' 
+    | 'featuredKitchens'
+    | 'popularMeals'
+    | 'recommendedMeals'
+    | 'hiddenSections'
+    | 'specialOffers'
+    | 'kitchensNearMe'
+    | 'topKebabs'
+    | 'takeAways'
+    | 'tooFreshToWaste'
+    | 'eventBanner'
+    | 'filteredEmptyState'
+    | 'filteredCuisineCategories'
+    | 'filteredFeaturedKitchens'
+    | 'filteredPopularMeals'
+    | null => {
     // Skip NotLoggedInNotice, loading, error views, and OrderAgainSection per plan notes
     
     if (activeCategoryFilter === 'all') {
@@ -811,7 +801,28 @@ export function MainScreen() {
   const lastScrollPosition = useRef(0);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [hasInitialLoadCompleted, setHasInitialLoadCompleted] = useState(false);
+  const hasInitialLoadCompletedRef = useRef(false);
   const savedScrollPositionRef = useRef<number | null>(null);
+  
+  // Mark initial load as complete once any data has been loaded
+  // Use a ref to ensure this only happens once and doesn't reset
+  // This ref persists across re-renders and navigation
+  useEffect(() => {
+    if (isAuthenticated && (cuisinesData || chefsData || popularMealsData)) {
+      // Once set, never reset - this prevents skeletons from showing again
+      if (!hasInitialLoadCompletedRef.current) {
+        hasInitialLoadCompletedRef.current = true;
+        setHasInitialLoadCompleted(true);
+      }
+    }
+  }, [isAuthenticated, cuisinesData, chefsData, popularMealsData]);
+  
+  // Ensure hasInitialLoadCompleted stays true once set, even if component re-renders
+  useEffect(() => {
+    if (hasInitialLoadCompletedRef.current && !hasInitialLoadCompleted) {
+      setHasInitialLoadCompleted(true);
+    }
+  }, [hasInitialLoadCompleted]);
   
   // Refs to track all setTimeout calls for proper cleanup
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -990,7 +1001,6 @@ export function MainScreen() {
         }
 
         // Reset states
-        setShowPullTrigger(false);
         setIsChatVisible(false);
         setShowLoader(false);
         setRefreshing(false);

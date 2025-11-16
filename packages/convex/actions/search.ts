@@ -45,32 +45,111 @@ export const customerSearchWithEmotions = action({
         return { success: false as const, error: 'Authentication required' };
       }
 
-      // TODO: Implement emotion-based search logic
-      // For now, return basic search results
       const limit = args.limit || 20;
 
       let chefs: any[] = [];
       let meals: any[] = [];
+      let emotionBasedRecommendations: any[] = [];
 
-      // Search chefs (requires location, skip if not provided)
+      // Parse location if provided
+      let latitude: number | undefined;
+      let longitude: number | undefined;
       if (args.location) {
-        // Parse location if it's a string like "lat,lng"
         const locationParts = args.location.split(',');
         if (locationParts.length === 2) {
-          const latitude = parseFloat(locationParts[0]);
-          const longitude = parseFloat(locationParts[1]);
-          if (!isNaN(latitude) && !isNaN(longitude)) {
-            const chefResults = await ctx.runQuery(api.queries.chefs.searchChefsByQuery, {
-              query: args.query,
-              latitude,
-              longitude,
-              radiusKm: 50, // Default 50km radius
-              cuisine: args.cuisine,
-              limit,
-            });
-            chefs = chefResults?.chefs || [];
+          const lat = parseFloat(locationParts[0]);
+          const lng = parseFloat(locationParts[1]);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            latitude = lat;
+            longitude = lng;
           }
         }
+      }
+
+      // If emotions are provided, use emotions engine to get recommendations
+      if (args.emotions && args.emotions.length > 0) {
+        try {
+          // Get emotions engine context
+          const emotionsContext = await ctx.runAction(api.actions.emotionsEngine.getEmotionsEngineContext, {
+            userId: userId,
+            location: latitude !== undefined && longitude !== undefined ? {
+              latitude,
+              longitude,
+            } : undefined,
+          });
+
+          // Get time of day
+          const hour = new Date().getHours();
+          let timeOfDay = 'afternoon';
+          if (hour >= 5 && hour < 12) timeOfDay = 'morning';
+          else if (hour >= 12 && hour < 17) timeOfDay = 'afternoon';
+          else if (hour >= 17 && hour < 22) timeOfDay = 'evening';
+          else timeOfDay = 'night';
+
+          // Build emotions engine request
+          const emotionsRequest = {
+            user_input: args.query,
+            emotions: args.emotions,
+            mood_score: 5, // Default neutral, could be derived from emotions
+            location: args.location || 'unknown',
+            timeOfDay,
+            active_screen: 'search',
+            device_type: 'mobile',
+            user_tier: 'standard',
+            searchQuery: args.query,
+            userId: userId,
+            nearby_cuisines: emotionsContext.nearbyCuisines || [],
+            preferred_cuisine: emotionsContext.favoriteCuisines?.[0],
+            recent_orders: emotionsContext.recentOrders?.map((o: any) => o.items?.map((i: any) => i.name).join(', ')).flat() || [],
+            diet_type: emotionsContext.dietaryPreferences?.tags?.[0] || 'none',
+          };
+
+          // Call emotions engine API
+          // Try to get API URL from environment, fallback to default
+          const emotionsEngineUrl = process.env.EMOTIONS_ENGINE_URL || 
+            process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/emotions-engine` :
+            'http://localhost:3000/api/emotions-engine';
+
+          try {
+            const emotionsResponse = await fetch(emotionsEngineUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(emotionsRequest),
+            });
+
+            if (emotionsResponse.ok) {
+              const emotionsData = await emotionsResponse.json();
+              if (emotionsData.success && emotionsData.data?.dishes) {
+                emotionBasedRecommendations = emotionsData.data.dishes || [];
+              } else if (emotionsData.success && emotionsData.data?.recommendations) {
+                // If we got recommendations but not dishes, we'll need to map them
+                // For now, store the recommendations to use for filtering
+                emotionBasedRecommendations = emotionsData.data.recommendations || [];
+              }
+            }
+          } catch (fetchError) {
+            // If emotions engine API call fails, continue with basic search
+            console.error('Emotions engine API call failed:', fetchError);
+          }
+        } catch (emotionsError) {
+          // If emotions processing fails, continue with basic search
+          console.error('Emotions processing failed:', emotionsError);
+        }
+      }
+
+      // Search chefs (requires location, skip if not provided)
+      if (latitude !== undefined && longitude !== undefined) {
+        const chefResults = await ctx.runQuery(api.queries.chefs.searchChefsByQuery, {
+          query: args.query,
+          latitude,
+          longitude,
+          radiusKm: 50, // Default 50km radius
+          cuisine: args.cuisine,
+          limit,
+        });
+        chefs = chefResults?.chefs || [];
       }
 
       // Search dishes/meals
@@ -78,9 +157,50 @@ export const customerSearchWithEmotions = action({
         query: args.query,
         userId: userId,
         filters: args.cuisine ? { cuisine: args.cuisine } : undefined,
-        limit,
+        limit: limit * 2, // Get more results to merge with emotion-based ones
       });
       meals = mealResults || [];
+
+      // If we have emotion-based recommendations with dish IDs, prioritize those dishes
+      if (emotionBasedRecommendations.length > 0 && emotionBasedRecommendations[0].dish_id) {
+        // Map emotion-based recommendations to actual meals
+        const emotionDishIds = new Set(emotionBasedRecommendations.map((r: any) => r.dish_id));
+        const emotionMatchedMeals = meals.filter((meal: any) => 
+          emotionDishIds.has(meal._id) || emotionDishIds.has(meal.id)
+        );
+        const otherMeals = meals.filter((meal: any) => 
+          !emotionDishIds.has(meal._id) && !emotionDishIds.has(meal.id)
+        );
+        // Prioritize emotion-matched meals
+        meals = [...emotionMatchedMeals, ...otherMeals].slice(0, limit);
+      } else if (emotionBasedRecommendations.length > 0) {
+        // If we have recommendations with item names, try to match them to meals
+        const recommendationNames = emotionBasedRecommendations.map((r: any) => 
+          r.item_name?.toLowerCase() || r.name?.toLowerCase()
+        ).filter(Boolean);
+        
+        if (recommendationNames.length > 0) {
+          const emotionMatchedMeals = meals.filter((meal: any) => {
+            const mealName = (meal.name || '').toLowerCase();
+            const mealDesc = (meal.description || '').toLowerCase();
+            return recommendationNames.some((name: string) => 
+              mealName.includes(name) || name.includes(mealName) || mealDesc.includes(name)
+            );
+          });
+          const otherMeals = meals.filter((meal: any) => {
+            const mealName = (meal.name || '').toLowerCase();
+            const mealDesc = (meal.description || '').toLowerCase();
+            return !recommendationNames.some((name: string) => 
+              mealName.includes(name) || name.includes(mealName) || mealDesc.includes(name)
+            );
+          });
+          // Prioritize emotion-matched meals
+          meals = [...emotionMatchedMeals, ...otherMeals].slice(0, limit);
+        }
+      } else {
+        // No emotion-based recommendations, just limit the results
+        meals = meals.slice(0, limit);
+      }
 
       return {
         success: true as const,

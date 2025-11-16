@@ -27,6 +27,7 @@ export function useCartCount(): number {
   // Convex's useQuery handles errors internally and returns undefined on failure
   // This prevents the app from crashing when authentication is required
   const queryArgs = sessionToken ? { sessionToken } : "skip";
+  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const cartCount = useQuery(
     api.queries.orders.getCartItemCountBySessionToken,
     queryArgs
