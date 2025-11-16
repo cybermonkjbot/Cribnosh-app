@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Modal,
   Platform,
   ScrollView,
   Share,
@@ -46,6 +47,7 @@ import {
   DynamicContent,
   DynamicSearchContent
 } from "./BottomSearchDrawer/DynamicSearchContent";
+import { FilterDropdown, FilterOption } from "./BottomSearchDrawer/FilterDropdown";
 import { SearchSuggestionsSkeleton } from "./BottomSearchDrawer/SearchSkeletons";
 import { Button } from "./Button";
 
@@ -181,33 +183,64 @@ const RestaurantIcon = ({ size = 18, color = "#a3b3a8" }) => (
 
 // Removed unused SparkleIcon component
 
-// User/People Icon Component for Invite Friend
-const UserIcon = ({ size = 20, color = "#ffffff" }) => (
+// Nike-style Share Arrow Icon Component for Invite Friend
+const ShareArrowIcon = ({ size = 20, color = "#ffffff" }) => (
   <SafeIcon>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
+        d="M7 17L17 7M17 7H12M17 7V12"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </SafeIcon>
+);
+
+// Video Icon Component
+const VideoIcon = ({ size = 16, color = "#ffffff" }) => (
+  <SafeIcon>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 10L20.553 6.277C21.217 5.886 22 6.33 22 7.118V16.882C22 17.67 21.217 18.114 20.553 17.723L15 14V10Z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={color}
+      />
+      <Path
+        d="M3 6C3 4.89543 3.89543 4 5 4H13C14.1046 4 15 4.89543 15 6V18C15 19.1046 14.1046 20 13 20H5C3.89543 20 3 19.1046 3 18V6Z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </SafeIcon>
+);
+
+// Recipe/Book Icon Component
+const RecipeIcon = ({ size = 16, color = "#ffffff" }) => (
+  <SafeIcon>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 19.5C4 18.837 4.263 18.201 4.732 17.732C5.201 17.263 5.837 17 6.5 17H20"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M12 14a7 7 0 0 0-7 7v3h14v-3a7 7 0 0 0-7-7z"
+        d="M6.5 2H20V22H6.5C5.837 22 5.201 21.737 4.732 21.268C4.263 20.799 4 20.163 4 19.5V4.5C4 3.837 4.263 3.201 4.732 2.732C5.201 2.263 5.837 2 6.5 2Z"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M20 8h.01"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M20 12h.01"
+        d="M8 7H16M8 11H16M8 15H12"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
@@ -409,15 +442,92 @@ export function BottomSearchDrawer({
     return naturalLanguagePatterns.some((pattern) => pattern.test(query));
   }, []);
 
-  // Map filter chip IDs to dietary restrictions
+  // Map filter chip IDs to dietary restrictions and other filters
   const getDietaryFiltersFromActiveFilter = useCallback((filterId: string) => {
     switch (filterId) {
+      // Dietary Restrictions
       case "vegan":
         return { dietary_restrictions: ["vegan"] };
       case "glutenfree":
         return { dietary_restrictions: ["gluten-free"] };
+      case "vegetarian":
+        return { dietary_restrictions: ["vegetarian"] };
+      case "halal":
+        return { dietary_restrictions: ["halal"] };
+      case "kosher":
+        return { dietary_restrictions: ["kosher"] };
+      case "dairyfree":
+        return { dietary_restrictions: ["dairy-free"] };
+      case "nutfree":
+        return { dietary_restrictions: ["nut-free"] };
+      case "lowcarb":
+        return { dietary_restrictions: ["low-carb"] };
+      case "keto":
+        return { dietary_restrictions: ["keto"] };
+      case "healthy":
+        return { dietary_restrictions: ["healthy"] };
+      
+      // Spice Levels
       case "spicy":
         return { spice_level: "spicy" };
+      case "mild":
+        return { spice_level: "mild" };
+      case "medium":
+        return { spice_level: "medium" };
+      case "hot":
+        return { spice_level: "hot" };
+      case "extrahot":
+        return { spice_level: "extra-hot" };
+      
+      // Price Ranges
+      case "budget":
+      case "under15":
+        return { priceRange: { max: 15 } };
+      case "under10":
+        return { priceRange: { max: 10 } };
+      case "under20":
+        return { priceRange: { max: 20 } };
+      case "under25":
+        return { priceRange: { max: 25 } };
+      case "premium":
+        return { priceRange: { min: 25 } };
+      
+      // Delivery Time
+      case "fast":
+      case "delivery15":
+        return { delivery_time_max: 15 };
+      case "delivery30":
+        return { delivery_time_max: 30 };
+      case "delivery45":
+        return { delivery_time_max: 45 };
+      
+      // Rating
+      case "rating45":
+        return { rating_min: 4.5 };
+      case "rating4":
+        return { rating_min: 4 };
+      
+      // Cuisine Types
+      case "italian":
+      case "mexican":
+      case "chinese":
+      case "indian":
+      case "turkish":
+      case "japanese":
+      case "thai":
+      case "mediterranean":
+      case "american":
+      case "french":
+        return { cuisine: filterId };
+      
+      // Content Types
+      case "videos":
+        // Videos filter - return empty to handle separately
+        return {};
+      case "recipes":
+        // Recipes filter - return empty to handle separately
+        return {};
+      
       case "all":
       default:
         return undefined;
@@ -431,7 +541,15 @@ export function BottomSearchDrawer({
   const [isErrorSearch, setIsErrorSearch] = useState(false);
   const [searchError, setSearchError] = useState<any>(null);
   
-  const dietaryFilters = getDietaryFiltersFromActiveFilter(activeFilter);
+  // Filtered meals for display when filter is active
+  const [filteredMealsData, setFilteredMealsData] = useState<any>(null);
+  const [isLoadingFilteredMeals, setIsLoadingFilteredMeals] = useState(false);
+  const [isErrorFilteredMeals, setIsErrorFilteredMeals] = useState(false);
+  
+  // Memoize dietary filters to prevent infinite loops
+  const dietaryFilters = useMemo(() => {
+    return getDietaryFiltersFromActiveFilter(activeFilter);
+  }, [activeFilter]);
   
   // Load search results
   useEffect(() => {
@@ -469,9 +587,103 @@ export function BottomSearchDrawer({
       };
       loadSearch();
     } else {
-      setSearchData(null);
+      // Only set to null if it's not already null to prevent unnecessary updates
+      if (searchData !== null) {
+        setSearchData(null);
+      }
     }
   }, [searchQuery, isAuthenticated, activeSearchFilter, maxSuggestions, userLocation, dietaryFilters, searchAction]);
+
+  // Track which filters have resulted in empty state (cache to avoid reloading)
+  // Use ref to avoid dependency issues
+  const emptyFiltersCacheRef = useRef<Set<string>>(new Set());
+
+  // Load filtered meals when a filter is active (not "all" and no search query)
+  useEffect(() => {
+    if (
+      activeFilter !== "all" &&
+      !searchQuery.trim() &&
+      isAuthenticated
+    ) {
+      // Check if we already know this filter is empty - if so, set empty data immediately without loading
+      if (emptyFiltersCacheRef.current.has(activeFilter)) {
+        setFilteredMealsData({ success: true, data: { meals: [] } });
+        setIsLoadingFilteredMeals(false);
+        setIsErrorFilteredMeals(false);
+        return;
+      }
+      
+      // Clear old data and set loading state immediately to prevent flicker
+      setFilteredMealsData(null);
+      setIsLoadingFilteredMeals(true);
+      setIsErrorFilteredMeals(false);
+      
+      const loadFilteredMeals = async () => {
+        try {
+          // Build filters based on active filter
+          const filters: any = {};
+          if (dietaryFilters?.dietary_restrictions) {
+            filters.dietary = dietaryFilters.dietary_restrictions;
+          }
+          if (dietaryFilters?.priceRange) {
+            filters.priceRange = dietaryFilters.priceRange;
+          }
+          if (dietaryFilters?.cuisine) {
+            filters.cuisine = dietaryFilters.cuisine;
+          }
+          
+          // Use a generic search query that will match meals with the filter
+          // For cuisine filters, use the cuisine name as query
+          let searchQuery = "";
+          if (activeFilter === "spicy" || activeFilter === "hot" || activeFilter === "extrahot") {
+            searchQuery = "spicy";
+          } else if (["italian", "mexican", "chinese", "indian", "turkish", "japanese", "thai", "mediterranean", "american", "french"].includes(activeFilter)) {
+            searchQuery = activeFilter;
+          }
+          
+          const result = await searchAction({
+            query: searchQuery,
+            limit: 6, // Show 6 meals
+            location: userLocation ? {
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+            } : undefined,
+            filters: Object.keys(filters).length > 0 ? filters : undefined,
+          });
+          if (result.success) {
+            // Extract meals from search results
+            const meals = result.data?.meals || result.data?.results?.filter((r: any) => r.type === "meals").map((r: any) => r.result) || [];
+            setFilteredMealsData({ success: true, data: { meals } });
+            
+            // Track if this filter resulted in empty state
+            if (meals.length === 0) {
+              emptyFiltersCacheRef.current.add(activeFilter);
+            } else {
+              // Remove from cache if we now have meals (in case data changed)
+              emptyFiltersCacheRef.current.delete(activeFilter);
+            }
+          }
+        } catch (error: any) {
+          setIsErrorFilteredMeals(true);
+          // Remove from cache on error
+          emptyFiltersCacheRef.current.delete(activeFilter);
+        } finally {
+          setIsLoadingFilteredMeals(false);
+        }
+      };
+      loadFilteredMeals();
+    } else {
+      // Clear data when filter is "all" or search query exists
+      // Only update if needed to prevent unnecessary re-renders
+      if (filteredMealsData !== null || isLoadingFilteredMeals || isErrorFilteredMeals) {
+        setFilteredMealsData(null);
+        setIsLoadingFilteredMeals(false);
+        setIsErrorFilteredMeals(false);
+      }
+      // Don't clear the cache - keep it for when user switches back
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilter, isAuthenticated, dietaryFilters, userLocation, searchAction, searchQuery]);
 
   // Emotions search mutation for natural language queries
   const [isSearchingWithEmotions, setIsSearchingWithEmotions] = useState(false);
@@ -697,8 +909,16 @@ export function BottomSearchDrawer({
       }
     } catch (error: unknown) {
       console.error("Error in invite friend flow:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to create invite link";
-      showError("Invite failed", errorMessage);
+      
+      // Handle network errors with deduplication
+      const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
+      if (isNetworkError(error)) {
+        handleConvexError(error);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : "Failed to create invite link";
+        showError("Invite failed", errorMessage);
+      }
+      
       setIsCreatingOrder(false);
       setIsGeneratingLink(false);
     }
@@ -798,7 +1018,7 @@ export function BottomSearchDrawer({
     [enableHaptics]
   );
 
-  // Filter categories with error handling
+  // Filter categories with error handling (main chips)
   const filterCategories = [
     {
       id: "all",
@@ -842,7 +1062,227 @@ export function BottomSearchDrawer({
       color: "#ff6688",
       icon: <RestaurantIcon size={14} color="#ff6688" />,
     },
+    {
+      id: "videos",
+      label: "Videos",
+      color: "#ef4444",
+      icon: <VideoIcon size={14} color="#ef4444" />,
+    },
+    {
+      id: "recipes",
+      label: "Recipes",
+      color: "#8b5cf6",
+      icon: <RecipeIcon size={14} color="#8b5cf6" />,
+    },
   ];
+
+  // Extended filter options for dropdown (organized by category)
+  const extendedFilterOptions = useMemo(() => {
+    const options: FilterOption[] = [
+      // Quick filters (same as main chips)
+      ...filterCategories,
+      
+      // Dietary Restrictions
+      {
+        id: "vegetarian",
+        label: "Vegetarian",
+        color: "#00cc88",
+        icon: <VeganIcon size={14} color="#00cc88" />,
+      },
+      {
+        id: "halal",
+        label: "Halal",
+        color: "#4a90e2",
+        icon: <RestaurantIcon size={14} color="#4a90e2" />,
+      },
+      {
+        id: "kosher",
+        label: "Kosher",
+        color: "#8b5cf6",
+        icon: <RestaurantIcon size={14} color="#8b5cf6" />,
+      },
+      {
+        id: "dairyfree",
+        label: "Dairy Free",
+        color: "#f59e0b",
+        icon: <GlutenFreeIcon size={14} color="#f59e0b" />,
+      },
+      {
+        id: "nutfree",
+        label: "Nut Free",
+        color: "#ef4444",
+        icon: <GlutenFreeIcon size={14} color="#ef4444" />,
+      },
+      {
+        id: "lowcarb",
+        label: "Low Carb",
+        color: "#10b981",
+        icon: <VeganIcon size={14} color="#10b981" />,
+      },
+      {
+        id: "keto",
+        label: "Keto",
+        color: "#06b6d4",
+        icon: <VeganIcon size={14} color="#06b6d4" />,
+      },
+      
+      // Price Ranges
+      {
+        id: "under10",
+        label: "Under £10",
+        color: "#22c55e",
+        icon: <RestaurantIcon size={14} color="#22c55e" />,
+      },
+      {
+        id: "under15",
+        label: "Under £15",
+        color: "#ff6688",
+        icon: <RestaurantIcon size={14} color="#ff6688" />,
+      },
+      {
+        id: "under20",
+        label: "Under £20",
+        color: "#a855f7",
+        icon: <RestaurantIcon size={14} color="#a855f7" />,
+      },
+      {
+        id: "under25",
+        label: "Under £25",
+        color: "#3b82f6",
+        icon: <RestaurantIcon size={14} color="#3b82f6" />,
+      },
+      {
+        id: "premium",
+        label: "Premium (£25+)",
+        color: "#f59e0b",
+        icon: <RestaurantIcon size={14} color="#f59e0b" />,
+      },
+      
+      // Spice Levels
+      {
+        id: "mild",
+        label: "Mild",
+        color: "#fbbf24",
+        icon: <SpicyIcon size={14} color="#fbbf24" />,
+      },
+      {
+        id: "medium",
+        label: "Medium Spice",
+        color: "#f97316",
+        icon: <SpicyIcon size={14} color="#f97316" />,
+      },
+      {
+        id: "hot",
+        label: "Hot",
+        color: "#dc2626",
+        icon: <SpicyIcon size={14} color="#dc2626" />,
+      },
+      {
+        id: "extrahot",
+        label: "Extra Hot",
+        color: "#991b1b",
+        icon: <SpicyIcon size={14} color="#991b1b" />,
+      },
+      
+      // Cuisine Types
+      {
+        id: "italian",
+        label: "Italian",
+        color: "#ef4444",
+        icon: <RestaurantIcon size={14} color="#ef4444" />,
+      },
+      {
+        id: "mexican",
+        label: "Mexican",
+        color: "#f97316",
+        icon: <RestaurantIcon size={14} color="#f97316" />,
+      },
+      {
+        id: "chinese",
+        label: "Chinese",
+        color: "#dc2626",
+        icon: <RestaurantIcon size={14} color="#dc2626" />,
+      },
+      {
+        id: "indian",
+        label: "Indian",
+        color: "#f59e0b",
+        icon: <RestaurantIcon size={14} color="#f59e0b" />,
+      },
+      {
+        id: "turkish",
+        label: "Turkish",
+        color: "#eab308",
+        icon: <RestaurantIcon size={14} color="#eab308" />,
+      },
+      {
+        id: "japanese",
+        label: "Japanese",
+        color: "#8b5cf6",
+        icon: <RestaurantIcon size={14} color="#8b5cf6" />,
+      },
+      {
+        id: "thai",
+        label: "Thai",
+        color: "#ec4899",
+        icon: <RestaurantIcon size={14} color="#ec4899" />,
+      },
+      {
+        id: "mediterranean",
+        label: "Mediterranean",
+        color: "#06b6d4",
+        icon: <RestaurantIcon size={14} color="#06b6d4" />,
+      },
+      {
+        id: "american",
+        label: "American",
+        color: "#3b82f6",
+        icon: <RestaurantIcon size={14} color="#3b82f6" />,
+      },
+      {
+        id: "french",
+        label: "French",
+        color: "#6366f1",
+        icon: <RestaurantIcon size={14} color="#6366f1" />,
+      },
+      
+      // Rating Filters
+      {
+        id: "rating45",
+        label: "4.5+ Stars",
+        color: "#fbbf24",
+        icon: <RestaurantIcon size={14} color="#fbbf24" />,
+      },
+      {
+        id: "rating4",
+        label: "4+ Stars",
+        color: "#f59e0b",
+        icon: <RestaurantIcon size={14} color="#f59e0b" />,
+      },
+      
+      // Delivery Time
+      {
+        id: "delivery15",
+        label: "Under 15 min",
+        color: "#10b981",
+        icon: <LinkIcon size={14} color="#10b981" />,
+      },
+      {
+        id: "delivery30",
+        label: "Under 30 min",
+        color: "#059669",
+        icon: <LinkIcon size={14} color="#059669" />,
+      },
+      {
+        id: "delivery45",
+        label: "Under 45 min",
+        color: "#4488ff",
+        icon: <LinkIcon size={14} color="#4488ff" />,
+      },
+    ];
+    
+    return options;
+  }, []);
 
   // Search filter categories (more specific for search)
   const searchFilterCategories = [
@@ -1478,13 +1918,27 @@ export function BottomSearchDrawer({
           } catch (err: any) {
             console.error("Natural language search error:", err);
             setIsSearchingWithEmotions(false);
-            showError("Search failed", err?.message || err?.data?.message || "Please try again");
+            
+            // Handle network errors with deduplication
+            const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
+            if (isNetworkError(err)) {
+              handleConvexError(err);
+            } else {
+              showError("Search failed", err?.message || err?.data?.message || "Please try again");
+            }
           }
         }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Search failed. Please try again.";
         setError(errorMessage);
-        showError("Search failed", "Please try again");
+        
+        // Handle network errors with deduplication
+        const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
+        if (isNetworkError(error)) {
+          handleConvexError(error);
+        } else {
+          showError("Search failed", "Please try again");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -1611,9 +2065,9 @@ export function BottomSearchDrawer({
     return discoverFeaturesFromQuery(searchQuery);
   }, [searchQuery, discoverFeaturesFromQuery]);
 
-  // Notices array for swipable display
+  // Notices array for swipable display - filter-aware
   const notices = useMemo((): DynamicContent[] => {
-    return [
+    const baseNotices: DynamicContent[] = [
       {
         type: "notice",
         id: "tip-1",
@@ -1631,11 +2085,140 @@ export function BottomSearchDrawer({
         backgroundColor: "#ef4444",
       },
     ];
+
+    // Add filter-specific notices when a filter is active
+    if (activeFilter !== "all") {
+      const filterConfig = filterCategories.find(f => f.id === activeFilter);
+      if (filterConfig) {
+        const filterTips: Record<string, { title: string; description: string }> = {
+          vegan: {
+            title: "Vegan Tip",
+            description: "Use the search bar to find specific vegan dishes or browse vegan-friendly kitchens",
+          },
+          glutenfree: {
+            title: "Gluten-Free Tip",
+            description: "Search for 'gluten free' to see all available options that meet your dietary needs",
+          },
+          spicy: {
+            title: "Spicy Food Tip",
+            description: "Try searching for specific spice levels or cuisines known for their heat",
+          },
+          healthy: {
+            title: "Healthy Eating Tip",
+            description: "Look for meals with balanced nutrition and fresh ingredients",
+          },
+          fast: {
+            title: "Fast Delivery Tip",
+            description: "Check delivery times when ordering to get your food as quickly as possible",
+          },
+          budget: {
+            title: "Budget Tip",
+            description: "Filter by price range to find meals that fit your budget",
+          },
+          videos: {
+            title: "Video Content Tip",
+            description: "Watch cooking videos and discover new recipes from our food creators",
+          },
+          recipes: {
+            title: "Recipe Tip",
+            description: "Browse recipes and learn to cook amazing dishes at home",
+          },
+        };
+
+        const tip = filterTips[activeFilter];
+        if (tip) {
+          return [
+            {
+              type: "notice",
+              id: `filter-tip-${activeFilter}`,
+              title: tip.title,
+              description: tip.description,
+              badgeText: filterConfig.label.toUpperCase(),
+              backgroundColor: filterConfig.color,
+            },
+            ...baseNotices,
+          ];
+        }
+      }
+    }
+
+    return baseNotices;
+  }, [activeFilter]);
+
+  // Get filter-specific content based on active filter
+  const getFilterSpecificContent = useCallback((filterId: string): DynamicContent | null => {
+    if (filterId === "all") return null;
+
+    const filterConfig = filterCategories.find(f => f.id === filterId);
+    if (!filterConfig) return null;
+
+    const filterMessages: Record<string, { title: string; description: string }> = {
+      vegan: {
+        title: "Vegan Options",
+        description: "Discover delicious plant-based meals from our partner kitchens",
+      },
+      glutenfree: {
+        title: "Gluten-Free Meals",
+        description: "Find safe and tasty gluten-free options for your dietary needs",
+      },
+      spicy: {
+        title: "Spicy Food",
+        description: "Explore bold and flavorful spicy dishes from around the world",
+      },
+      healthy: {
+        title: "Healthy Choices",
+        description: "Nutritious and balanced meals to fuel your day",
+      },
+      fast: {
+        title: "Fast Delivery",
+        description: "Quick delivery options to satisfy your hunger fast",
+      },
+      budget: {
+        title: "Under £15",
+        description: "Great value meals that won't break the bank",
+      },
+      videos: {
+        title: "Videos",
+        description: "Watch cooking videos and discover new recipes from our food creators",
+      },
+      recipes: {
+        title: "Recipes",
+        description: "Browse recipes and learn to cook amazing dishes at home",
+      },
+    };
+
+    const message = filterMessages[filterId];
+    if (!message) return null;
+
+    return {
+      type: "feature_spotlight",
+      id: `filter-${filterId}`,
+      title: message.title,
+      description: message.description,
+      callToActionText: "Browse Options",
+      badgeText: filterConfig.label.toUpperCase(),
+      backgroundColor: filterConfig.color,
+    };
   }, []);
 
   // Determine dynamic content to show (promo, notice, or feature spotlight)
   const dynamicContent = useMemo((): DynamicContent | null => {
-    // Priority 1: Show active promo if available
+    // Priority 1: Show filter-specific content when a filter is active (and not "all")
+    if (activeFilter !== "all") {
+      const filterContent = getFilterSpecificContent(activeFilter);
+      if (filterContent) {
+        // Still show promo if available, but prioritize filter content when filter is active
+        const activeOffer = offersData?.data?.offers?.[0];
+        if (activeOffer) {
+          // Show both: filter content as primary, but we can show promo as secondary
+          // For now, prioritize filter content when filter is active
+          return filterContent;
+        }
+        return filterContent;
+      }
+    }
+
+    // Priority 2: Show active promo if available (when no filter or filter is "all")
     const activeOffer = offersData?.data?.offers?.[0];
     if (activeOffer) {
       return {
@@ -1651,7 +2234,7 @@ export function BottomSearchDrawer({
       };
     }
 
-    // Priority 2: Show feature discovery spotlight if features were discovered via search
+    // Priority 3: Show feature discovery spotlight if features were discovered via search
     if (searchQuery.trim() && discoveredFeatures.length > 0) {
       const featureNames = discoveredFeatures.map((f) => {
         if (f === "inviteFriend") return "Invite Friend";
@@ -1672,9 +2255,9 @@ export function BottomSearchDrawer({
       };
     }
 
-    // Priority 3: Return null to indicate notices should be shown (handled separately)
+    // Priority 4: Return null to indicate notices should be shown (handled separately)
     return null;
-  }, [offersData, searchQuery, discoveredFeatures]);
+  }, [offersData, searchQuery, discoveredFeatures, activeFilter, getFilterSpecificContent]);
 
   // Safe suggestion selection handler
   const handleSuggestionSelect = useCallback(
@@ -2111,6 +2694,72 @@ export function BottomSearchDrawer({
                           </TouchableOpacity>
                         );
                       })}
+                      {/* More Filters Dropdown */}
+                      <FilterDropdown
+                        options={extendedFilterOptions}
+                        selectedId={activeFilter}
+                        onSelect={handleFilterPress}
+                        position="right"
+                        maxHeight={350}
+                        enableHaptics={enableHaptics}
+                        triggerButton={
+                          <View
+                            style={{
+                              paddingHorizontal: 14,
+                              paddingVertical: 8,
+                              backgroundColor: "rgba(255, 255, 255, 0.15)",
+                              borderRadius: 18,
+                              borderWidth: 1,
+                              borderColor: "rgba(255, 255, 255, 0.25)",
+                              shadowColor: "rgba(255, 255, 255, 0.3)",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.2,
+                              shadowRadius: 6,
+                              elevation: 2,
+                              overflow: "hidden",
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <BlurView
+                              intensity={60}
+                              tint="light"
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                borderRadius: 18,
+                                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                              }}
+                            />
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                fontWeight: "500",
+                                color: "#2a2a2a",
+                                letterSpacing: 0.2,
+                                textShadowColor: "rgba(255, 255, 255, 0.8)",
+                                textShadowOffset: { width: 0, height: 1 },
+                                textShadowRadius: 2,
+                              }}
+                            >
+                              More
+                            </Text>
+                            <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                              <Path
+                                d="M6 9l6 6 6-6"
+                                stroke="#2a2a2a"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </Svg>
+                          </View>
+                        }
+                      />
                     </ScrollView>
                   </View>
 
@@ -2424,7 +3073,7 @@ export function BottomSearchDrawer({
                                 marginRight: 12,
                               }}
                             >
-                              <UserIcon size={18} color="#4a5d4f" />
+                              <ShareArrowIcon size={18} color="#4a5d4f" />
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text
@@ -2851,8 +3500,252 @@ export function BottomSearchDrawer({
                           </TouchableOpacity>
                         );
                       })}
+                      {/* More Filters Dropdown */}
+                      <FilterDropdown
+                        options={extendedFilterOptions}
+                        selectedId={activeFilter}
+                        onSelect={handleFilterPress}
+                        position="right"
+                        maxHeight={350}
+                        enableHaptics={enableHaptics}
+                        triggerButton={
+                          <View
+                            style={{
+                              borderRadius: 20,
+                              overflow: "hidden",
+                              minWidth: 60,
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.15,
+                              shadowRadius: 4,
+                              elevation: 3,
+                            }}
+                          >
+                            <BlurView
+                              intensity={70}
+                              tint="light"
+                              style={{
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                borderWidth: 1,
+                                borderColor: "rgba(255, 255, 255, 0.3)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexDirection: "row",
+                                gap: 4,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: "500",
+                                  color: "#2a2a2a",
+                                  textAlign: "center",
+                                  textShadowColor: "rgba(255, 255, 255, 0.9)",
+                                  textShadowOffset: { width: 0, height: 1 },
+                                  textShadowRadius: 2,
+                                }}
+                              >
+                                More
+                              </Text>
+                              <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                                <Path
+                                  d="M6 9l6 6 6-6"
+                                  stroke="#2a2a2a"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </Svg>
+                            </BlurView>
+                          </View>
+                        }
+                      />
                     </ScrollView>
                   </Animated.View>
+
+                  {/* Filtered Meals Section - Show when a filter is active */}
+                  {activeFilter !== "all" && !searchQuery.trim() && (
+                    <Animated.View
+                      style={[contentOpacityStyle, { marginBottom: 20 }]}
+                    >
+                      <Text
+                        style={{
+                          color: "#1a1a1a",
+                          fontSize: 18,
+                          fontWeight: "700",
+                          marginBottom: 12,
+                          letterSpacing: -0.2,
+                        }}
+                      >
+                        {filterCategories.find(f => f.id === activeFilter)?.label || "Filtered"} Options
+                      </Text>
+                      
+                      {(() => {
+                        // Check if we already know this filter is empty (cached)
+                        const isCachedEmpty = emptyFiltersCacheRef.current.has(activeFilter);
+                        
+                        // Show skeleton only when loading (not if we already know this filter is empty)
+                        if ((isLoadingFilteredMeals || !filteredMealsData) && !isCachedEmpty) {
+                          return (
+                            <View style={{ flexDirection: "row", gap: 12 }}>
+                              {[1, 2, 3].map((i) => (
+                                <View
+                                  key={i}
+                                  style={{
+                                    width: 140,
+                                    height: 180,
+                                    borderRadius: 16,
+                                    backgroundColor: "rgba(0, 0, 0, 0.05)",
+                                  }}
+                                />
+                              ))}
+                            </View>
+                          );
+                        }
+                        
+                        // Show error state
+                        if (isErrorFilteredMeals) {
+                          return (
+                            <View style={{ height: 180, justifyContent: "center", alignItems: "center" }}>
+                              <Text style={{ color: "#6a6a6a", fontSize: 14 }}>
+                                Failed to load meals
+                              </Text>
+                            </View>
+                          );
+                        }
+                        
+                        // Extract meals array safely
+                        const meals = filteredMealsData?.data?.meals || [];
+                        
+                        // Show meals if we have any
+                        if (Array.isArray(meals) && meals.length > 0) {
+                          return (
+                            <ScrollView
+                              horizontal
+                              showsHorizontalScrollIndicator={false}
+                              contentContainerStyle={{ gap: 12 }}
+                            >
+                              {meals.slice(0, 6).map((meal: any, index: number) => {
+                                const mealData = meal.meal || meal.result || meal;
+                                const mealId = mealData._id || mealData.id || meal.id;
+                                const mealName = mealData.name || mealData.title || "Meal";
+                                const mealPrice = mealData.price ? `£${mealData.price.toFixed(2)}` : "£0.00";
+                                const mealImage = mealData.image_url 
+                                  ? { uri: mealData.image_url }
+                                  : mealData.image
+                                  ? mealData.image
+                                  : require("../../assets/images/cribnoshpackaging.png");
+                                const chefName = mealData.chef?.name || mealData.kitchen || "Various Kitchens";
+
+                                return (
+                                  <TouchableOpacity
+                                    key={mealId || index}
+                                    style={{
+                                      width: 140,
+                                      borderRadius: 16,
+                                      overflow: "hidden",
+                                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                      borderWidth: 1,
+                                      borderColor: "rgba(255, 255, 255, 0.15)",
+                                    }}
+                                    onPress={() => {
+                                      if (onMealPress) {
+                                        onMealPress({
+                                          id: mealId,
+                                          name: mealName,
+                                          price: mealData.price || 0,
+                                          kitchen: chefName,
+                                          image: mealImage,
+                                          _id: mealId,
+                                        });
+                                      }
+                                    }}
+                                    activeOpacity={0.8}
+                                  >
+                                    <View style={{ position: "relative", width: "100%", height: 120 }}>
+                                      <Image
+                                        source={mealImage}
+                                        style={{ width: "100%", height: "100%", resizeMode: "cover" }}
+                                      />
+                                      {mealData.isPopular && (
+                                        <View
+                                          style={{
+                                            position: "absolute",
+                                            top: 8,
+                                            left: 8,
+                                            backgroundColor: "#ef4444",
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 4,
+                                            borderRadius: 12,
+                                          }}
+                                        >
+                                          <Text
+                                            style={{
+                                              color: "#ffffff",
+                                              fontSize: 10,
+                                              fontWeight: "600",
+                                            }}
+                                          >
+                                            POPULAR
+                                          </Text>
+                                        </View>
+                                      )}
+                                    </View>
+                                    <View style={{ padding: 12 }}>
+                                      <Text
+                                        style={{
+                                          color: "#1a1a1a",
+                                          fontSize: 14,
+                                          fontWeight: "600",
+                                          marginBottom: 4,
+                                        }}
+                                        numberOfLines={2}
+                                      >
+                                        {mealName}
+                                      </Text>
+                                      <Text
+                                        style={{
+                                          color: "#4a4a4a",
+                                          fontSize: 12,
+                                          marginBottom: 4,
+                                        }}
+                                        numberOfLines={1}
+                                      >
+                                        {chefName}
+                                      </Text>
+                                      <Text
+                                        style={{
+                                          color: "#1a1a1a",
+                                          fontSize: 15,
+                                          fontWeight: "700",
+                                        }}
+                                      >
+                                        {mealPrice}
+                                      </Text>
+                                    </View>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </ScrollView>
+                          );
+                        }
+                        
+                        // Empty state with same height as skeleton to prevent flicker
+                        return (
+                          <View style={{ height: 180, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 }}>
+                            <Text style={{ color: "#1a1a1a", fontSize: 16, fontWeight: "600", textAlign: "center", marginBottom: 8 }}>
+                              No {filterCategories.find(f => f.id === activeFilter)?.label.toLowerCase() || "filtered"} options yet
+                            </Text>
+                            <Text style={{ color: "#6a6a6a", fontSize: 14, textAlign: "center", lineHeight: 20 }}>
+                              As more food creators join us, there will be more options for everyone
+                            </Text>
+                          </View>
+                        );
+                      })()}
+                    </Animated.View>
+                  )}
 
                   {/* Discovered Features Banner - Show when searching and features are discovered */}
                   {searchQuery.trim() && discoveredFeatures.length > 0 && (
@@ -2904,8 +3797,39 @@ export function BottomSearchDrawer({
                       <DynamicSearchContent
                         content={dynamicContent}
                         onFeatureDiscovery={() => {
-                          // Scroll to discovered features or highlight them
-                          // This could trigger a focus on the features section
+                          // Scroll to discovered features section if visible
+                          // The features are already shown below in search focus mode
+                        }}
+                        onFilterCardPress={(filterId) => {
+                          // Filter card clicked - ensure filter is active and scroll to filtered meals
+                          if (filterId !== activeFilter) {
+                            handleFilterPress(filterId);
+                          }
+                          // Scroll to filtered meals section (already visible when filter is active)
+                          triggerHaptic();
+                        }}
+                        onNoticePress={(noticeId, noticeType) => {
+                          // Handle notice-specific actions
+                          if (noticeId.includes("nosh-heaven") || noticeId.includes("Nosh Heaven")) {
+                            router.push("/nosh-heaven" as any);
+                          } else if (noticeId.includes("tip")) {
+                            // Tips are informational, maybe expand search or show more
+                            if (snapPointState === SNAP_POINTS.COLLAPSED) {
+                              animateToSnapPoint(SNAP_POINTS.EXPANDED);
+                            }
+                          }
+                          triggerHaptic();
+                        }}
+                        onInviteFriend={handleInviteFriend}
+                        onSetupFamily={handleSetupFamily}
+                        onGroupOrder={handleNavigate}
+                        onNoshHeaven={() => {
+                          triggerHaptic();
+                          if (searchInputRef.current) {
+                            searchInputRef.current.blur();
+                          }
+                          handleSearchBlur();
+                          router.push("/nosh-heaven" as any);
                         }}
                       />
                     )}
@@ -2916,7 +3840,34 @@ export function BottomSearchDrawer({
                         content={null}
                         notices={notices}
                         onFeatureDiscovery={() => {
-                          // Scroll to discovered features or highlight them
+                          // Scroll to discovered features section if visible
+                        }}
+                        onFilterCardPress={(filterId) => {
+                          if (filterId !== activeFilter) {
+                            handleFilterPress(filterId);
+                          }
+                          triggerHaptic();
+                        }}
+                        onNoticePress={(noticeId, noticeType) => {
+                          if (noticeId.includes("nosh-heaven") || noticeId.includes("Nosh Heaven")) {
+                            router.push("/nosh-heaven" as any);
+                          } else if (noticeId.includes("tip")) {
+                            if (snapPointState === SNAP_POINTS.COLLAPSED) {
+                              animateToSnapPoint(SNAP_POINTS.EXPANDED);
+                            }
+                          }
+                          triggerHaptic();
+                        }}
+                        onInviteFriend={handleInviteFriend}
+                        onSetupFamily={handleSetupFamily}
+                        onGroupOrder={handleNavigate}
+                        onNoshHeaven={() => {
+                          triggerHaptic();
+                          if (searchInputRef.current) {
+                            searchInputRef.current.blur();
+                          }
+                          handleSearchBlur();
+                          router.push("/nosh-heaven" as any);
                         }}
                       />
                     )}
@@ -2924,29 +3875,66 @@ export function BottomSearchDrawer({
                     {/* Fallback: Try It's on me Section - Only show if no dynamic content and no notices */}
                     {!dynamicContent && notices.length === 0 && (
                       <>
-                        <Text
-                          style={{
-                            color: "#1a1a1a",
-                            fontSize: 18,
-                            fontWeight: "700",
-                            lineHeight: 22,
-                            marginBottom: 6,
-                          }}
-                        >
-                          Try It&apos;s on me
-                        </Text>
-                        <Text
-                          style={{
-                            color: "#4a4a4a",
-                            fontSize: 13,
-                            lineHeight: 17,
-                            fontWeight: "400",
-                            marginBottom: 16,
-                          }}
-                        >
-                          Send a link to a friend so they can order{"\n"}food on
-                          you.
-                        </Text>
+                        {activeFilter !== "all" ? (
+                          <>
+                            <Text
+                              style={{
+                                color: "#1a1a1a",
+                                fontSize: 18,
+                                fontWeight: "700",
+                                lineHeight: 22,
+                                marginBottom: 6,
+                              }}
+                            >
+                              {filterCategories.find(f => f.id === activeFilter)?.label || "Filtered"} Options
+                            </Text>
+                            <Text
+                              style={{
+                                color: "#4a4a4a",
+                                fontSize: 13,
+                                lineHeight: 17,
+                                fontWeight: "400",
+                                marginBottom: 16,
+                              }}
+                            >
+                              {activeFilter === "vegan" && "Share plant-based meals with friends"}
+                              {activeFilter === "glutenfree" && "Send gluten-free options to someone special"}
+                              {activeFilter === "spicy" && "Treat a friend to some spicy food"}
+                              {activeFilter === "healthy" && "Share healthy meal options"}
+                              {activeFilter === "fast" && "Quick delivery options for friends"}
+                              {activeFilter === "budget" && "Great value meals to share"}
+                              {activeFilter === "videos" && "Share cooking videos with friends"}
+                              {activeFilter === "recipes" && "Share recipes with friends"}
+                              {!["vegan", "glutenfree", "spicy", "healthy", "fast", "budget", "videos", "recipes"].includes(activeFilter) && "Send a link to a friend so they can order food on you."}
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Text
+                              style={{
+                                color: "#1a1a1a",
+                                fontSize: 18,
+                                fontWeight: "700",
+                                lineHeight: 22,
+                                marginBottom: 6,
+                              }}
+                            >
+                              Try It&apos;s on me
+                            </Text>
+                            <Text
+                              style={{
+                                color: "#4a4a4a",
+                                fontSize: 13,
+                                lineHeight: 17,
+                                fontWeight: "400",
+                                marginBottom: 16,
+                              }}
+                            >
+                              Send a link to a friend so they can order{"\n"}food on
+                              you.
+                            </Text>
+                          </>
+                        )}
                       </>
                     )}
                   </Animated.View>
@@ -3007,7 +3995,7 @@ export function BottomSearchDrawer({
                                 >
                                   Invite Friend
                                 </Text>
-                                <UserIcon size={12} />
+                                <ShareArrowIcon size={12} />
                               </>
                             )}
                           </View>

@@ -48,7 +48,14 @@ async function handlePOST(request: NextRequest) {
     if (user) {
       const convex = getConvexClientFromRequest(request);
       const sessionToken = getSessionTokenFromRequest(request);
-      await convex.mutation(api.mutations.users.setSessionToken, { userId: user._id, sessionToken: '', sessionExpiry: 0 });
+      
+      if (sessionToken) {
+        // Delete ONLY this device's session from the sessions table
+        // This only affects the current device - other devices' sessions remain active
+        await convex.mutation(api.mutations.sessions.deleteSessionByToken, {
+          sessionToken: sessionToken,
+        });
+      }
     }
     const response = ResponseFactory.success({ success: true });
     response.cookies.set('convex-auth-token', '', {

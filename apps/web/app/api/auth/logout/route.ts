@@ -57,21 +57,15 @@ import { logger } from '@/lib/utils/logger';
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     const convex = getConvexClient();
-    let userId: string | null = null;
     
     // Check for session token in cookies (web apps)
     const cookieToken = request.cookies.get('convex-auth-token')?.value;
     if (cookieToken) {
-      const user = await convex.query(api.queries.users.getUserBySessionToken, { sessionToken: cookieToken });
-      if (user) {
-        userId = user._id;
-        // Invalidate session token for web
-        await convex.mutation(api.mutations.users.setSessionToken, { 
-          userId: user._id, 
-          sessionToken: '', 
-          sessionExpiry: 0 
-        });
-      }
+      // Delete ONLY this device's session from the sessions table
+      // This only affects the current device - other devices' sessions remain active
+      await convex.mutation(api.mutations.sessions.deleteSessionByToken, {
+        sessionToken: cookieToken,
+      });
     }
     
     // Create response - always return success to allow client-side cleanup

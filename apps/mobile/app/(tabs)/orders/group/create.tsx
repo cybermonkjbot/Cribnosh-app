@@ -2,12 +2,13 @@ import AmountInput from '@/components/AmountInput';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthState } from '@/hooks/useAuthState';
-import { useChefs } from '@/hooks/useChefs';
 import { useGroupOrders } from '@/hooks/useGroupOrders';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { Chef, CustomerAddress } from '@/types/customer';
+import { getConvexReactClient } from '@/lib/convexClient';
+import { api } from '@/convex/_generated/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Search as SearchIcon } from 'lucide-react-native';
+import { Search as SearchIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,6 +16,7 @@ import {
   FlatList,
   Image,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -22,6 +24,12 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
+
+// Back arrow SVG matching profile settings style
+const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M19 12H5M12 19L5 12L12 5" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
 
 export default function CreateGroupOrderScreen() {
   const router = useRouter();
@@ -49,86 +57,80 @@ export default function CreateGroupOrderScreen() {
   const [expiresInHours, setExpiresInHours] = useState('24');
   
   const { createGroupOrder, isLoading: isCreating } = useGroupOrders();
-  const { getNearbyChefs, searchChefs } = useChefs();
   
-  const [nearbyChefsData, setNearbyChefsData] = useState<any>(null);
-  const [searchChefsData, setSearchChefsData] = useState<any>(null);
-  const [isLoadingNearbyChefs, setIsLoadingNearbyChefs] = useState(false);
-  const [isLoadingSearchChefs, setIsLoadingSearchChefs] = useState(false);
+  const [kitchensData, setKitchensData] = useState<any>(null);
+  const [isLoadingKitchens, setIsLoadingKitchens] = useState(false);
   
-  // Fetch nearby chefs
+  // Fetch nearby kitchens or search kitchens using Convex queries directly
   useEffect(() => {
-    if (showChefSelection && userLocation && !searchQuery) {
-      const loadNearbyChefs = async () => {
+    if (showChefSelection && userLocation) {
+      const loadKitchens = async () => {
         try {
-          setIsLoadingNearbyChefs(true);
-          const result = await getNearbyChefs({
-            latitude: userLocation.latitude,
-            longitude: userLocation.longitude,
-            radius: 5,
-            limit: 20,
-            page: 1,
-          });
-          if (result.success) {
-            setNearbyChefsData({ success: true, data: result.data });
-          }
-        } catch (error) {
-          // Error already handled in hook
-        } finally {
-          setIsLoadingNearbyChefs(false);
-        }
-      };
-      loadNearbyChefs();
-    } else {
-      setNearbyChefsData(null);
-    }
-  }, [showChefSelection, userLocation, searchQuery, getNearbyChefs]);
-  
-  // Search chefs
-  useEffect(() => {
-    if (showChefSelection && searchQuery && searchQuery.length >= 2) {
-      const loadSearchChefs = async () => {
-        try {
-          setIsLoadingSearchChefs(true);
-          const result = await searchChefs({
-            query: searchQuery,
-            limit: 20,
-            ...(userLocation ? {
+          setIsLoadingKitchens(true);
+          const convex = getConvexReactClient();
+          
+          let chefs: any[] = [];
+          
+          if (searchQuery && searchQuery.length >= 2) {
+            // Search kitchens/chefs by query
+            const searchResult = await convex.query(api.queries.chefs.searchChefsByQuery, {
+              query: searchQuery,
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
-              radius: 10,
-            } : {}),
-          });
-          if (result.success) {
-            setSearchChefsData({ success: true, data: result.data });
+              radiusKm: 10,
+              limit: 20,
+            });
+            chefs = searchResult.chefs || [];
+          } else {
+            // Get nearby kitchens/chefs
+            const nearbyResult = await convex.query(api.queries.chefs.findNearbyChefs, {
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+              maxDistanceKm: 5,
+            });
+            chefs = nearbyResult || [];
           }
+          
+          console.log('Loaded chefs:', chefs.length);
+          
+          // Transform to expected format
+          const transformedChefs = chefs.map((chef: any) => ({
+            id: chef._id,
+            name: chef.kitchenName || chef.name || 'Unknown Kitchen',
+            kitchen_name: chef.kitchenName || chef.name,
+            cuisine: chef.specialties?.[0] || 'Other',
+            image_url: chef.imageUrl || chef.image_url || chef.profileImage || null,
+            delivery_time: chef.deliveryTime || null,
+            distance: chef.distance || 0,
+            rating: chef.rating || null,
+          }));
+          
+          setKitchensData({ success: true, data: { chefs: transformedChefs } });
         } catch (error) {
-          // Error already handled in hook
+          console.error('Failed to load kitchens:', error);
+          setKitchensData({ success: false, data: { chefs: [] } });
         } finally {
-          setIsLoadingSearchChefs(false);
+          setIsLoadingKitchens(false);
         }
       };
-      loadSearchChefs();
+      loadKitchens();
     } else {
-      setSearchChefsData(null);
+      setKitchensData(null);
     }
-  }, [showChefSelection, searchQuery, userLocation, searchChefs]);
+  }, [showChefSelection, userLocation, searchQuery]);
   
   const chefId = selectedChef?.chef_id || '';
   const restaurantName = selectedChef?.restaurant_name || '';
   
-  // Get chefs list (from search or nearby)
+  // Get kitchens list (from search results)
   const chefs = useMemo(() => {
-    if (searchQuery && searchChefsData?.data?.chefs) {
-      return searchChefsData.data.chefs;
-    }
-    if (nearbyChefsData?.data?.chefs) {
-      return nearbyChefsData.data.chefs;
+    if (kitchensData?.data?.chefs) {
+      return kitchensData.data.chefs;
     }
     return [];
-  }, [searchQuery, searchChefsData, nearbyChefsData]);
+  }, [kitchensData]);
   
-  const isLoadingChefs = isLoadingNearbyChefs || isLoadingSearchChefs;
+  const isLoadingChefs = isLoadingKitchens;
   
   // Default title
   const defaultTitle = useMemo(() => {
@@ -266,21 +268,23 @@ export default function CreateGroupOrderScreen() {
   if (showChefSelection || !chefId || !restaurantName) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ChevronLeft color="#E6FFE8" size={24} />
+            <SvgXml xml={backArrowSVG} width={24} height={24} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Select Restaurant</Text>
+          <Text style={styles.headerTitle}>Select Food Creator</Text>
+          <View style={styles.headerSpacer} />
         </View>
         
         {/* Search Input */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputWrapper}>
-            <SearchIcon size={20} color="#E6FFE8" style={styles.searchIcon} />
+            <SearchIcon size={20} color="#9CA3AF" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search for restaurants..."
-              placeholderTextColor="#999"
+              placeholder="Search for food creators..."
+              placeholderTextColor="#9CA3AF"
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -301,16 +305,16 @@ export default function CreateGroupOrderScreen() {
           {isLoadingChefs ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#E6FFE8" />
-              <Text style={styles.loadingText}>Loading restaurants...</Text>
+              <Text style={styles.loadingText}>Loading food creators...</Text>
             </View>
           ) : chefs.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'No restaurants found' : 'No restaurants nearby'}
+                {searchQuery ? 'No food creators found' : 'No food creators nearby'}
               </Text>
               {!searchQuery && (
                 <Text style={styles.emptySubtext}>
-                  Try searching for a restaurant name
+                  Try searching for a food creator name
                 </Text>
               )}
             </View>
@@ -341,11 +345,9 @@ export default function CreateGroupOrderScreen() {
                       </Text>
                     )}
                   </View>
-                  <ChevronLeft 
-                    size={20} 
-                    color="#E6FFE8" 
-                    style={styles.chevron}
-                  />
+                  <SvgXml xml={`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M7 4L13 10L7 16" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`} width={20} height={20} />
                 </TouchableOpacity>
               )}
               contentContainerStyle={styles.chefsListContent}
@@ -359,11 +361,12 @@ export default function CreateGroupOrderScreen() {
   
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ChevronLeft color="#E6FFE8" size={24} />
+          <SvgXml xml={backArrowSVG} width={24} height={24} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Group Order</Text>
+        <View style={styles.headerSpacer} />
       </View>
       
       <ScrollView 
@@ -371,10 +374,10 @@ export default function CreateGroupOrderScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Restaurant Info Card */}
+        {/* Food Creator Info Card */}
         <View style={styles.infoCard}>
           <View style={styles.infoCardHeader}>
-            <Text style={styles.infoLabel}>Restaurant</Text>
+            <Text style={styles.infoLabel}>Food Creator</Text>
             <TouchableOpacity 
               onPress={handleBackToChefSelection}
               style={styles.changeButton}
@@ -489,23 +492,34 @@ export default function CreateGroupOrderScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#02120A',
+    backgroundColor: '#FAFFFA',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+    backgroundColor: '#FAFFFA',
     gap: 12,
   },
   backButton: {
     padding: 8,
     borderRadius: 8,
+    backgroundColor: '#FFFFFF',
   },
   headerTitle: {
-    color: '#E6FFE8',
+    fontFamily: 'Archivo',
+    fontStyle: 'normal',
+    fontWeight: '700',
     fontSize: 20,
-    fontWeight: '600',
+    lineHeight: 28,
+    color: '#094327',
+    flex: 1,
+  },
+  headerSpacer: {
+    width: 40,
   },
   content: {
     flex: 1,
@@ -629,27 +643,26 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(230, 255, 232, 0.1)',
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(230, 255, 232, 0.1)',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(230, 255, 232, 0.2)',
+    borderColor: '#E5E5E5',
   },
   searchIcon: {
     marginRight: 12,
   },
   searchInput: {
     flex: 1,
-    color: '#E6FFE8',
+    color: '#1a1a1a',
     fontSize: 16,
   },
   clearButton: {
@@ -657,7 +670,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   clearButtonText: {
-    color: '#E6FFE8',
+    color: '#094327',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -666,48 +679,51 @@ const styles = StyleSheet.create({
   },
   chefsListContent: {
     padding: 20,
+    paddingTop: 8,
     paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
-    gap: 16,
+    paddingVertical: 80,
+    gap: 20,
   },
   loadingText: {
-    color: '#E6FFE8',
+    color: '#6B7280',
     fontSize: 16,
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   emptyText: {
-    color: '#E6FFE8',
-    fontSize: 18,
-    fontWeight: '600',
+    color: '#1a1a1a',
+    fontSize: 20,
+    fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    letterSpacing: -0.3,
   },
   emptySubtext: {
-    color: '#EAEAEA',
-    fontSize: 14,
+    color: '#6B7280',
+    fontSize: 15,
     textAlign: 'center',
-    opacity: 0.8,
+    lineHeight: 22,
   },
   chefCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(230, 255, 232, 0.1)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(230, 255, 232, 0.2)',
+    borderColor: '#E5E5E5',
   },
   chefImage: {
     width: 60,
@@ -719,21 +735,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chefName: {
-    color: '#E6FFE8',
+    color: '#1a1a1a',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
   },
   chefCuisine: {
-    color: '#EAEAEA',
+    color: '#6B7280',
     fontSize: 14,
     marginBottom: 4,
-    opacity: 0.8,
   },
   chefDeliveryTime: {
-    color: '#EAEAEA',
+    color: '#9CA3AF',
     fontSize: 12,
-    opacity: 0.6,
   },
   chevron: {
     transform: [{ rotate: '180deg' }],

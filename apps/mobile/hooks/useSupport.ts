@@ -230,6 +230,13 @@ export const useSupport = () => {
           },
         };
       } catch (error: any) {
+        // Handle network errors with deduplication
+        const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
+        if (isNetworkError(error)) {
+          handleConvexError(error);
+          throw error;
+        }
+
         const errorMessage =
           error?.message ||
           error?.data?.error?.message ||

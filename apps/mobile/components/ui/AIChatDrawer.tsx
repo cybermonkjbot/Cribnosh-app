@@ -708,17 +708,23 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
       const errorMessage = err?.message || 'Failed to get AI response';
       setError(errorMessage);
       
-      // Add error message to chat
-      const errorMessageObj: Message = {
-        id: Date.now() + 1,
-          type: 'ai',
-        content: 'Sorry, I\'m having trouble processing your request. Please try again.',
-        products: undefined,
-        title: undefined,
-      };
-      setMessages(prev => [...prev, errorMessageObj]);
-      
-      showError('Request failed', errorMessage);
+      // Handle network errors with deduplication
+      const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
+      if (isNetworkError(err)) {
+        handleConvexError(err);
+      } else {
+        // Add error message to chat
+        const errorMessageObj: Message = {
+          id: Date.now() + 1,
+            type: 'ai',
+          content: 'Sorry, I\'m having trouble processing your request. Please try again.',
+          products: undefined,
+          title: undefined,
+        };
+        setMessages(prev => [...prev, errorMessageObj]);
+        
+        showError('Request failed', errorMessage);
+      }
     } finally {
       setIsLoadingMessage(false);
     }

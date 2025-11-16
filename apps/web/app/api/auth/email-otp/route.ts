@@ -244,9 +244,22 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         const userRoles = newUser.roles || ['customer'];
 
         // Create session sessionToken using Convex mutation
+        const userAgent = request.headers.get('user-agent') || undefined;
+        const ipAddress = request.headers.get('x-real-ip') || 
+                          request.headers.get('cf-connecting-ip') || 
+                          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                          undefined;
+        const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
+        const body = await request.json().catch(() => ({}));
+        const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
+        
         const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
           userId: newUser._id,
           expiresInDays: 30, // 30 days expiry
+          userAgent,
+          ipAddress,
+          deviceId: deviceInfo.deviceId,
+          deviceName: deviceInfo.deviceName,
         });
         
         // Update last login
@@ -289,10 +302,23 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
       // User exists, create JWT sessionResult.sessionToken
       // Create session sessionResult.sessionToken using Convex mutation
-    const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
-      userId: user._id,
-      expiresInDays: 30, // 30 days expiry
-    });
+      const userAgent = request.headers.get('user-agent') || undefined;
+      const ipAddress = request.headers.get('x-real-ip') || 
+                        request.headers.get('cf-connecting-ip') || 
+                        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                        undefined;
+      const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
+      const body = await request.json().catch(() => ({}));
+      const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
+      
+      const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
+        userId: user._id,
+        expiresInDays: 30, // 30 days expiry
+        userAgent,
+        ipAddress,
+        deviceId: deviceInfo.deviceId,
+        deviceName: deviceInfo.deviceName,
+      });
     
     // Update last login
     await convex.mutation(api.mutations.users.updateLastLogin, {

@@ -25,6 +25,12 @@ interface DynamicSearchContentProps {
   content: DynamicContent | null;
   notices?: DynamicContent[];
   onFeatureDiscovery?: () => void;
+  onFilterCardPress?: (filterId: string) => void;
+  onNoticePress?: (noticeId: string, noticeType: string) => void;
+  onInviteFriend?: () => void;
+  onSetupFamily?: () => void;
+  onGroupOrder?: () => void;
+  onNoshHeaven?: () => void;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -192,26 +198,95 @@ export function DynamicSearchContent({
   content,
   notices,
   onFeatureDiscovery,
+  onFilterCardPress,
+  onNoticePress,
+  onInviteFriend,
+  onSetupFamily,
+  onGroupOrder,
+  onNoshHeaven,
 }: DynamicSearchContentProps) {
   const router = useRouter();
 
   const handlePress = useCallback((item: DynamicContent) => {
     if (!item) return;
 
+    // Priority 1: Custom onPress handler (highest priority)
     if (item.onPress) {
       item.onPress();
-    } else if (item.type === "promo" && item.offer) {
-      // Handle promo actions
+      return;
+    }
+
+    // Priority 2: Handle promo cards
+    if (item.type === "promo" && item.offer) {
       const offer = item.offer;
       if (offer.action_type === "group_order") {
-        router.push("/orders/group/create");
+        if (onGroupOrder) {
+          onGroupOrder();
+        } else {
+          router.push("/orders/group/create");
+        }
       } else if (offer.action_type === "navigate") {
         router.push(offer.action_target as any);
       }
-    } else if (item.type === "feature_spotlight" && onFeatureDiscovery) {
-      onFeatureDiscovery();
+      return;
     }
-  }, [onFeatureDiscovery, router]);
+
+    // Priority 3: Handle feature spotlight cards
+    if (item.type === "feature_spotlight") {
+      // Check if it's a filter-specific card
+      if (item.id.startsWith("filter-")) {
+        const filterId = item.id.replace("filter-", "");
+        if (onFilterCardPress) {
+          onFilterCardPress(filterId);
+        }
+        return;
+      }
+
+      // Check if it's a feature discovery card
+      if (item.id.startsWith("feature-spotlight-")) {
+        const featureIds = item.id.replace("feature-spotlight-", "").split("-");
+        
+        // Navigate to the first discovered feature or scroll to features section
+        if (featureIds.includes("inviteFriend") && onInviteFriend) {
+          onInviteFriend();
+        } else if (featureIds.includes("setupFamily") && onSetupFamily) {
+          onSetupFamily();
+        } else if (featureIds.includes("groupOrder") && onGroupOrder) {
+          onGroupOrder();
+        } else if (featureIds.includes("noshHeaven") && onNoshHeaven) {
+          onNoshHeaven();
+        } else if (onFeatureDiscovery) {
+          // Fallback: scroll to discovered features section
+          onFeatureDiscovery();
+        }
+        return;
+      }
+
+      // Generic feature spotlight
+      if (onFeatureDiscovery) {
+        onFeatureDiscovery();
+      }
+      return;
+    }
+
+    // Priority 4: Handle notice cards
+    if (item.type === "notice") {
+      if (onNoticePress) {
+        onNoticePress(item.id, item.type);
+      }
+      // Notices can be informational, so no action is also acceptable
+      return;
+    }
+  }, [
+    onFeatureDiscovery,
+    onFilterCardPress,
+    onNoticePress,
+    onInviteFriend,
+    onSetupFamily,
+    onGroupOrder,
+    onNoshHeaven,
+    router,
+  ]);
 
   const hexToRgba = useCallback((hex: string, alpha: number = 0.85) => {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -296,11 +371,20 @@ export function DynamicSearchContent({
             onPress={() => handlePress(item)}
             activeOpacity={0.9}
           >
-            <View style={{ position: "relative", minHeight: 120 }}>
+            <View style={{ position: "relative" }}>
+              {/* Background image - positioned absolutely to fill container */}
               {item.backgroundImageUrl ? (
                 <Image
                   source={{ uri: item.backgroundImageUrl }}
-                  style={{ width: "100%", minHeight: 120 }}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: "100%",
+                    height: "100%",
+                  }}
                   contentFit="cover"
                 />
               ) : null}
@@ -317,47 +401,44 @@ export function DynamicSearchContent({
                 }}
               />
 
-              {/* Main content */}
+              {/* Main content - using flexbox for natural height expansion */}
               <View
                 style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  justifyContent: "flex-start",
-                  paddingLeft: 16,
-                  paddingRight: 16,
-                  paddingTop: 16,
-                  paddingBottom: 16,
+                  flexDirection: "column",
+                  paddingHorizontal: 14,
+                  paddingTop: 12,
+                  paddingBottom: 14, // Sufficient padding to ensure button visibility
+                  minHeight: 90, // Compact minimum height
                 }}
               >
                 {/* Icon for promo type */}
                 {item.type === "promo" && (
-                  <View style={{ marginBottom: 8 }}>
-                    <Sparkles size={20} color="#fff" />
+                  <View style={{ marginBottom: 4 }}>
+                    <Sparkles size={16} color="#fff" />
                   </View>
                 )}
                 
                 <Text
                   style={{
                     color: "#fff",
-                    fontSize: 18,
+                    fontSize: 15,
                     fontWeight: "700",
-                    marginBottom: 4,
+                    marginBottom: 2,
                     letterSpacing: -0.2,
                   }}
+                  numberOfLines={2}
                 >
                   {item.title}
                 </Text>
                 <Text
                   style={{
                     color: "#fff",
-                    fontSize: 13,
+                    fontSize: 11,
                     opacity: 0.95,
-                    marginBottom: item.callToActionText ? 12 : 0,
-                    lineHeight: 18,
+                    marginBottom: item.callToActionText ? 8 : 0,
+                    lineHeight: 14,
                   }}
+                  numberOfLines={2}
                 >
                   {item.description}
                 </Text>
@@ -365,17 +446,17 @@ export function DynamicSearchContent({
                   <View
                     style={{
                       backgroundColor: "rgba(255, 255, 255, 0.2)",
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 18,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
                       alignSelf: "flex-start",
-                      marginTop: 4,
+                      marginTop: 2,
                     }}
                   >
                     <Text
                       style={{
                         color: "#fff",
-                        fontSize: 12,
+                        fontSize: 10,
                         fontWeight: "600",
                       }}
                     >
@@ -442,11 +523,20 @@ export function DynamicSearchContent({
           onPress={() => handlePress(content)}
           activeOpacity={0.9}
         >
-          <View style={{ position: "relative", minHeight: 120 }}>
+          <View style={{ position: "relative" }}>
+            {/* Background image - positioned absolutely to fill container */}
             {content.backgroundImageUrl ? (
               <Image
                 source={{ uri: content.backgroundImageUrl }}
-                style={{ width: "100%", minHeight: 120 }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: "100%",
+                  height: "100%",
+                }}
                 contentFit="cover"
               />
             ) : null}
@@ -463,18 +553,14 @@ export function DynamicSearchContent({
               }}
             />
 
-            {/* Main content */}
+            {/* Main content - using flexbox for natural height expansion */}
             <View
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                justifyContent: "flex-start",
-                paddingHorizontal: 16,
-                paddingTop: 16,
-                paddingBottom: 16,
+                flexDirection: "column",
+                paddingHorizontal: 14,
+                paddingTop: 12,
+                paddingBottom: 14, // Sufficient padding to ensure button visibility
+                minHeight: 90, // Compact minimum height
               }}
             >
               {icon && content.type !== "notice" && (
@@ -482,7 +568,7 @@ export function DynamicSearchContent({
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    marginBottom: 8,
+                    marginBottom: 4,
                   }}
                 >
                   {icon}
@@ -514,22 +600,24 @@ export function DynamicSearchContent({
               <Text
                 style={{
                   color: "#fff",
-                  fontSize: 18,
+                  fontSize: 15,
                   fontWeight: "700",
-                  marginBottom: 4,
+                  marginBottom: 2,
                   letterSpacing: -0.2,
                 }}
+                numberOfLines={2}
               >
                 {content.title}
               </Text>
               <Text
                 style={{
                   color: "#fff",
-                  fontSize: 13,
+                  fontSize: 11,
                   opacity: 0.95,
-                  marginBottom: content.callToActionText ? 12 : 0,
-                  lineHeight: 18,
+                  marginBottom: content.callToActionText ? 8 : 0,
+                  lineHeight: 14,
                 }}
+                numberOfLines={2}
               >
                 {content.description}
               </Text>
@@ -537,17 +625,17 @@ export function DynamicSearchContent({
                 <View
                   style={{
                     backgroundColor: "rgba(255, 255, 255, 0.2)",
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 18,
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 14,
                     alignSelf: "flex-start",
-                    marginTop: 4,
+                    marginTop: 2,
                   }}
                 >
                   <Text
                     style={{
                       color: "#fff",
-                      fontSize: 12,
+                      fontSize: 10,
                       fontWeight: "600",
                     }}
                   >

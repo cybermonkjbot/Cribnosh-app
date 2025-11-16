@@ -170,7 +170,7 @@ export const extendSession = mutation({
   },
 });
 
-// Delete session from sessions table (for JWT-based sessions)
+// Delete session from sessions table by sessionId
 export const deleteUserSession = mutation({
   args: {
     sessionId: v.id("sessions"),
@@ -183,6 +183,26 @@ export const deleteUserSession = mutation({
     }
 
     await ctx.db.delete(sessionId);
+    return true;
+  },
+});
+
+// Delete session from sessions table by sessionToken
+export const deleteSessionByToken = mutation({
+  args: {
+    sessionToken: v.string(),
+  },
+  handler: async (ctx: MutationCtx, { sessionToken }) => {
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("sessionToken", sessionToken))
+      .first();
+    
+    if (!session) {
+      return false;
+    }
+
+    await ctx.db.delete(session._id);
     return true;
   },
 }); 

@@ -38,6 +38,8 @@ export const loginAndCreateSession = action({
     password: v.string(),
     userAgent: v.optional(v.string()), // User agent for session tracking
     ipAddress: v.optional(v.string()), // IP address for session tracking
+    deviceId: v.optional(v.string()), // Unique device identifier for tracking specific devices
+    deviceName: v.optional(v.string()), // Human-readable device name
   },
   handler: async (ctx, args) => {
     // Find user by email
@@ -78,6 +80,8 @@ export const loginAndCreateSession = action({
       expiresInDays: ONE_YEAR_DAYS,
       userAgent: args.userAgent,
       ipAddress: args.ipAddress,
+      deviceId: args.deviceId,
+      deviceName: args.deviceName,
     });
     return { sessionToken: sessionResult.sessionToken };
   }
@@ -112,11 +116,13 @@ export const createUserWithHashedPassword = action({
  * This allows customers (non-staff) to login via email/password
  */
 export const customerEmailLogin = action({
-  args: { 
-    email: v.string(), 
+  args: {
+    email: v.string(),
     password: v.string(),
     userAgent: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
@@ -216,6 +222,8 @@ export const customerEmailLogin = action({
       expiresInDays: 30, // 30 days expiry
       userAgent: args.userAgent,
       ipAddress: args.ipAddress,
+      deviceId: args.deviceId,
+      deviceName: args.deviceName,
     });
     
     return {
@@ -593,6 +601,8 @@ export const customerEmailSignInOrSignUp = action({
     name: v.optional(v.string()), // Optional name - if not provided, will be generated from email
     userAgent: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
@@ -762,6 +772,8 @@ export const customerEmailSignInOrSignUp = action({
       expiresInDays: 30, // 30 days expiry
       userAgent: args.userAgent,
       ipAddress: args.ipAddress,
+      deviceId: args.deviceId,
+      deviceName: args.deviceName,
     });
     
     return {
@@ -830,6 +842,8 @@ export const customerPhoneVerifyAndLogin = action({
     otp: v.string(),
     userAgent: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
@@ -938,6 +952,8 @@ export const customerPhoneVerifyAndLogin = action({
         expiresInDays: 30, // 30 days expiry
         userAgent: args.userAgent,
         ipAddress: args.ipAddress,
+        deviceId: args.deviceId,
+        deviceName: args.deviceName,
       });
 
       // Update last login
@@ -974,6 +990,8 @@ export const customerAppleSignIn = action({
     identityToken: v.string(),
     userAgent: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
@@ -1087,6 +1105,8 @@ export const customerAppleSignIn = action({
         expiresInDays: 30, // 30 days expiry
         userAgent: args.userAgent,
         ipAddress: args.ipAddress,
+        deviceId: args.deviceId,
+        deviceName: args.deviceName,
       });
 
       return {
@@ -1118,6 +1138,8 @@ export const customerVerify2FA = action({
     code: v.string(),
     userAgent: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
@@ -1251,6 +1273,8 @@ export const customerVerify2FA = action({
         expiresInDays: 30, // 30 days expiry
         userAgent: args.userAgent,
         ipAddress: args.ipAddress,
+        deviceId: args.deviceId,
+        deviceName: args.deviceName,
       });
       
       return {
@@ -1284,20 +1308,13 @@ export const customerLogout = action({
   }),
   handler: async (ctx, args) => {
     try {
-      // If session token provided, invalidate it
+      // If session token provided, delete ONLY this device's session
       if (args.sessionToken) {
-        const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        // Delete the session from the sessions table (primary storage)
+        // This only affects the current device - other devices' sessions remain active
+        await ctx.runMutation(api.mutations.sessions.deleteSessionByToken, {
           sessionToken: args.sessionToken,
         });
-        
-        if (user) {
-          // Clear session token
-          await ctx.runMutation(api.mutations.users.setSessionToken, {
-            userId: user._id,
-            sessionToken: '',
-            sessionExpiry: 0,
-          });
-        }
       }
       
       // Always return success - mobile app handles SecureStore cleanup locally
@@ -2026,6 +2043,7 @@ export const customerGetSessions = action({
       sessions: v.array(v.object({
         session_id: v.string(),
         device: v.string(),
+        device_id: v.optional(v.string()),
         location: v.string(),
         created_at: v.string(),
         expires_at: v.string(),
@@ -2059,16 +2077,22 @@ export const customerGetSessions = action({
       });
 
       // Filter active sessions (expiresAt > now)
+      // Also include sessions without expiresAt (legacy sessions) if they're not explicitly expired
       const now = Date.now();
       const activeSessions = (sessions || []).filter((session: any) => {
-        return session.expiresAt && session.expiresAt > now;
+        // If expiresAt exists, check if it's in the future
+        if (session.expiresAt) {
+          return session.expiresAt > now;
+        }
+        // If no expiresAt, include it (legacy session - assume active)
+        return true;
       });
 
       // Format sessions for response
       const formattedSessions = activeSessions.map((session: any) => {
-        // Extract device info from userAgent
-        let device = 'Unknown Device';
-        if (session.userAgent) {
+        // Use deviceName if available, otherwise extract device info from userAgent
+        let device = session.deviceName || 'Unknown Device';
+        if (!session.deviceName && session.userAgent) {
           const ua = session.userAgent.toLowerCase();
           if (ua.includes('iphone') || ua.includes('ipad')) {
             device = 'iOS Device';
@@ -2091,6 +2115,7 @@ export const customerGetSessions = action({
         return {
           session_id: session._id,
           device: device,
+          device_id: session.deviceId || undefined, // Include deviceId for client-side tracking
           location: session.ipAddress || 'Unknown',
           created_at: new Date(session.createdAt).toISOString(),
           expires_at: new Date(session.expiresAt).toISOString(),

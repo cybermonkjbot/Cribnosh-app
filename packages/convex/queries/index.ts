@@ -19,6 +19,10 @@ export {
   getTransactions as getCustomerBalanceTransactions
 } from './customerBalance';
 export {
+  getByUserId as getCustomerBalanceTransactionsByUserId,
+  getCountByUserId as getCustomerBalanceTransactionsCountByUserId
+} from './customerBalanceTransactions';
+export {
   getRecentByUserId as getRecentDataDownloadsByUserId
 } from './dataDownloads';
 export {

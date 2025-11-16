@@ -290,7 +290,7 @@ export default function RootLayout() {
                 name="claim-offer" 
                 options={{ 
                   headerShown: false,
-                  presentation: 'fullScreenModal',
+                  presentation: 'modal',
                   animation: 'slide_from_bottom',
                   gestureEnabled: true,
                 }} 

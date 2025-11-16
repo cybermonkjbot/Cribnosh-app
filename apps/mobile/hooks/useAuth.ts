@@ -11,6 +11,7 @@ import { useCallback } from "react";
 import { getConvexClient, setSessionToken, clearSessionToken } from "@/lib/convexClient";
 // Import from the convex package using @/convex alias
 import { api } from '@/convex/_generated/api';
+import { getDeviceInfo } from '../utils/device';
 // Mock imports commented out - keeping for future use if needed
 // import { mockPhoneLogin, mockSendOTP } from "../utils/mockAuthUtils";
 // import { isMockModeEnabled } from "../utils/mockConfig";
@@ -57,6 +58,13 @@ export const useAuth = () => {
           },
         };
       } catch (error: any) {
+        // Handle network errors with deduplication
+        const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
+        if (isNetworkError(error)) {
+          handleConvexError(error);
+          throw error;
+        }
+
         const errorMessage = 
           error?.data?.error?.message ||
           error?.data?.error ||
@@ -95,11 +103,13 @@ export const useAuth = () => {
     async (phone: string, otp: string) => {
       try {
         const convex = getConvexClient();
+        const deviceInfo = await getDeviceInfo();
         
         // Call Convex action directly
         const result = await convex.action(api.actions.users.customerPhoneVerifyAndLogin, {
           phone,
           otp,
+          ...deviceInfo,
         });
 
         // Handle different response types
@@ -168,10 +178,12 @@ export const useAuth = () => {
     async (identityToken: string) => {
       try {
         const convex = getConvexClient();
+        const deviceInfo = await getDeviceInfo();
         
         // Call Convex action directly
         const result = await convex.action(api.actions.users.customerAppleSignIn, {
           identityToken,
+          ...deviceInfo,
         });
 
         // Handle different response types
@@ -246,11 +258,13 @@ export const useAuth = () => {
     async (email: string, password: string) => {
       try {
         const convex = getConvexClient();
+        const deviceInfo = await getDeviceInfo();
         
         // Call Convex action directly using HTTP client
         const result = await convex.action(api.actions.users.customerEmailLogin, {
           email,
           password,
+          ...deviceInfo,
         });
 
         // Handle different response types
@@ -382,12 +396,14 @@ export const useAuth = () => {
     async (email: string, password: string, name?: string) => {
       try {
         const convex = getConvexClient();
+        const deviceInfo = await getDeviceInfo();
         
         // Call the unified Convex action
         const result = await convex.action(api.actions.users.customerEmailSignInOrSignUp, {
           email,
           password,
           name,
+          ...deviceInfo,
         });
 
         // Handle different response types
@@ -459,11 +475,13 @@ export const useAuth = () => {
     async (verificationToken: string, code: string) => {
       try {
         const convex = getConvexClient();
+        const deviceInfo = await getDeviceInfo();
         
         // Call Convex action directly
         const result = await convex.action(api.actions.users.customerVerify2FA, {
           verificationToken,
           code,
+          ...deviceInfo,
         });
 
         if (result.success === false) {

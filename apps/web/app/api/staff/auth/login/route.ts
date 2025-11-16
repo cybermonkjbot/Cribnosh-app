@@ -112,12 +112,20 @@ async function handlePOST(request: NextRequest) {
                       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                       undefined;
     
+    // Get device information (from request body or generate it)
+    const { deviceId, deviceName } = body;
+    const deviceInfo = deviceId && deviceName 
+      ? { deviceId, deviceName }
+      : (await import('@/lib/utils/device')).getDeviceInfo();
+    
     // Call Convex action to validate credentials and create session
     const result = await convex.action(api.actions.users.loginAndCreateSession, { 
       email: sanitizedEmail, 
       password,
       userAgent,
       ipAddress,
+      deviceId: deviceInfo.deviceId,
+      deviceName: deviceInfo.deviceName,
     });
     if (!result || !result.sessionToken) {
       return ResponseFactory.unauthorized(result?.error || 'Invalid credentials' );

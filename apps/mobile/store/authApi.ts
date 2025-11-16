@@ -8,6 +8,7 @@ import {
 } from "@/types/auth";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
+import { getDeviceInfo } from "../utils/device";
 
 import { API_CONFIG } from '@/constants/api';
 
@@ -249,18 +250,24 @@ export const authApi = createApi({
   tagTypes: ["Auth", "User"],
   endpoints: (builder) => ({
     sendLoginOTP: builder.mutation<SendLoginOTPResponse, PhoneLoginData>({
-      query: (data) => ({
-        url: "/auth/phone-signin",
-        method: "POST",
-        body: data,
-      }),
+      query: async (data) => {
+        const deviceInfo = await getDeviceInfo();
+        return {
+          url: "/auth/phone-signin",
+          method: "POST",
+          body: { ...data, ...deviceInfo },
+        };
+      },
     }),
     phoneLogin: builder.mutation<PhoneLoginResponse, PhoneLoginData>({
-      query: (data) => ({
-        url: "/auth/phone-signin",
-        method: "POST",
-        body: data,
-      }),
+      query: async (data) => {
+        const deviceInfo = await getDeviceInfo();
+        return {
+          url: "/auth/phone-signin",
+          method: "POST",
+          body: { ...data, ...deviceInfo },
+        };
+      },
       transformResponse: async (response: any) => {
         // Store sessionToken if present in response
         if (response?.data?.sessionToken) {
@@ -293,11 +300,14 @@ export const authApi = createApi({
       },
       { identityToken: string }
     >({
-      query: (data) => ({
-        url: "/auth/apple-signin",
-        method: "POST",
-        body: data,
-      }),
+      query: async (data) => {
+        const deviceInfo = await getDeviceInfo();
+        return {
+          url: "/auth/apple-signin",
+          method: "POST",
+          body: { ...data, ...deviceInfo },
+        };
+      },
       transformResponse: async (response: any) => {
         // Store sessionToken if present in response
         if (response?.data?.sessionToken) {
@@ -307,11 +317,14 @@ export const authApi = createApi({
       },
     }),
     verify2FA: builder.mutation<Verify2FAResponse, Verify2FARequest>({
-      query: (data) => ({
-        url: "/auth/verify-2fa",
-        method: "POST",
-        body: data,
-      }),
+      query: async (data) => {
+        const deviceInfo = await getDeviceInfo();
+        return {
+          url: "/auth/verify-2fa",
+          method: "POST",
+          body: { ...data, ...deviceInfo },
+        };
+      },
       transformResponse: async (response: any) => {
         // Store sessionToken if present in response (after 2FA verification)
         if (response?.data?.sessionToken) {
@@ -321,11 +334,14 @@ export const authApi = createApi({
       },
     }),
     emailLogin: builder.mutation<PhoneLoginResponse, { email: string; password: string }>({
-      query: (data) => ({
-        url: "/auth/login",
-        method: "POST",
-        body: data,
-      }),
+      query: async (data) => {
+        const deviceInfo = await getDeviceInfo();
+        return {
+          url: "/auth/login",
+          method: "POST",
+          body: { ...data, ...deviceInfo },
+        };
+      },
       transformResponse: async (response: any) => {
         // Store sessionToken if present in response
         if (response?.data?.sessionToken) {

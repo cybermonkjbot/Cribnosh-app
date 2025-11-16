@@ -62,7 +62,7 @@ export default function ClaimOfferScreen() {
       <Stack.Screen
         options={{
           headerShown: false,
-          presentation: 'fullScreenModal',
+          presentation: 'modal',
           animation: 'slide_from_bottom',
           gestureEnabled: true,
         }}

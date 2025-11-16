@@ -208,6 +208,13 @@ export default function PaymentMethodSelection() {
   };
 
   const handleConfirm = async () => {
+    // Check if user selected "card" (generic Credit/Debit Card) and has no saved cards
+    if (selectedPaymentMethod === "card" && savedCards.length === 0) {
+      // Show add card sheet instead of navigating back
+      setIsAddCardSheetVisible(true);
+      return;
+    }
+
     // Save selected payment method to secure store
     const selectedMethod = paymentMethods.find(m => m.id === selectedPaymentMethod);
     if (selectedMethod) {

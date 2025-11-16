@@ -87,9 +87,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     // Format sessions for response
     const formattedSessions = activeSessions.map((session: any) => {
-      // Extract device info from userAgent
-      let device = 'Unknown Device';
-      if (session.userAgent) {
+      // Use deviceName if available, otherwise extract device info from userAgent
+      let device = session.deviceName || 'Unknown Device';
+      if (!session.deviceName && session.userAgent) {
         // Simple device detection from userAgent
         const ua = session.userAgent.toLowerCase();
         if (ua.includes('iphone') || ua.includes('ipad')) {
@@ -107,14 +107,13 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         }
       }
 
-      // Determine if this is the current session (compare sessionToken with JWT)
-      // Note: We can't directly compare sessionToken with JWT, so we'll mark it based on creation time
-      // The most recent session is likely the current one
-      const isCurrent = false; // TODO: Implement proper current session detection
+      // Determine if this is the current session
+      const isCurrent = session.sessionToken === sessionToken;
 
       return {
         session_id: session._id,
         device: device,
+        device_id: session.deviceId || undefined, // Include deviceId for client-side tracking
         location: session.ipAddress || 'Unknown',
         created_at: new Date(session.createdAt).toISOString(),
         expires_at: new Date(session.expiresAt).toISOString(),

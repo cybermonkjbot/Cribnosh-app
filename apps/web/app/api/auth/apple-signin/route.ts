@@ -383,12 +383,25 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
 
     // No 2FA required - create session token using Convex mutation
+    const userAgent = request.headers.get('user-agent') || undefined;
+    const ipAddress = request.headers.get('x-real-ip') || 
+                      request.headers.get('cf-connecting-ip') || 
+                      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      undefined;
+    const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
+    const body = await request.json().catch(() => ({}));
+    const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
+    
     let sessionResult: { sessionToken: string; sessionExpiry: number };
     try {
       // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
       sessionResult = await fetchMutation(api.mutations.users.createAndSetSessionToken, {
         userId: userDetails._id,
         expiresInDays: 30, // 30 days expiry
+        userAgent,
+        ipAddress,
+        deviceId: deviceInfo.deviceId,
+        deviceName: deviceInfo.deviceName,
       }) as { sessionToken: string; sessionExpiry: number };
     } catch (sessionError) {
       logger.error('Failed to create session token:', sessionError);

@@ -72,6 +72,7 @@ export async function getAuthenticatedUser(
 
 /**
  * Get authenticated user by session token (for staff portal)
+ * Now supports multiple devices by checking the sessions table
  */
 export async function getAuthenticatedUserBySessionToken(
   ctx: QueryCtx | MutationCtx,
@@ -82,6 +83,40 @@ export async function getAuthenticatedUserBySessionToken(
       return null;
     }
 
+    // First, check the sessions table (supports multiple devices)
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q: any) => q.eq("sessionToken", sessionToken))
+      .first();
+
+    if (session) {
+      // Check if session is expired
+      if (session.expiresAt && session.expiresAt < Date.now()) {
+        return null;
+      }
+
+      // Get the user associated with this session
+      const user = await ctx.db.get(session.userId);
+      if (!user) {
+        return null;
+      }
+
+      // Check if user is active
+      if (user.status === "suspended" || user.status === "inactive") {
+        return null;
+      }
+
+      return {
+        _id: user._id,
+        email: user.email,
+        roles: (user.roles || []) as UserRole[],
+        status: user.status,
+        sessionToken: session.sessionToken,
+        sessionExpiry: session.expiresAt,
+      };
+    }
+
+    // Fallback: Check user document for backward compatibility (legacy sessions)
     const user = await ctx.db
       .query("users")
       .filter((q: any) => q.eq(q.field("sessionToken"), sessionToken))

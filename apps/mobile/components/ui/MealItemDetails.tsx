@@ -1,7 +1,6 @@
 import { useCart } from "@/hooks/useCart";
 import { useMeals } from "@/hooks/useMeals";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -93,7 +92,6 @@ export function MealItemDetails({
 }: MealItemDetailsProps) {
   const [quantity] = useState(1);
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
   const { addToCart } = useCart();
   const {
@@ -113,6 +111,7 @@ export function MealItemDetails({
   const [similarDishesData, setSimilarDishesData] = useState<any>(null);
   const [isLoadingSimilarMealsFromApi, setIsLoadingSimilarMealsFromApi] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isAddedToCart, setIsAddedToCart] = useState(false);
 
   // Get favorite status from API
   const isFavorite = favoriteStatus?.isFavorited ?? false;
@@ -156,6 +155,7 @@ export function MealItemDetails({
       setDishDetailsData(null);
       setFavoriteStatus(null);
       setSimilarDishesData(null);
+      setIsAddedToCart(false);
     }
   }, [mealId]);
 
@@ -366,9 +366,12 @@ export function MealItemDetails({
         showSuccess('Added to Cart!', result.data?.item?.name || finalMealData.title);
         // Call the optional callback if provided (for backwards compatibility)
         onAddToCart?.(mealId, quantity);
-        // Use absolute path with tabs prefix to ensure correct navigation
-        // This prevents navigation through group orders stack
-        router.push("/(tabs)/orders/cart" as any);
+        // Set added state to show "Added" button state
+        setIsAddedToCart(true);
+        // Reset added state after 3 seconds
+        setTimeout(() => {
+          setIsAddedToCart(false);
+        }, 3000);
       }
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to add item to cart';
@@ -376,7 +379,7 @@ export function MealItemDetails({
     } finally {
       setIsAddingToCart(false);
     }
-  }, [finalMealData, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart, mealId, quantity, onAddToCart, router, isAddingToCart]);
+  }, [finalMealData, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart, mealId, quantity, onAddToCart, isAddingToCart]);
 
   // Memoize handleFavorite callback to prevent unnecessary re-renders
   const handleFavorite = useCallback(async () => {
@@ -568,9 +571,9 @@ export function MealItemDetails({
         bottom={Math.max(insets.bottom, 30)}
         left={20}
         right={20}
-        buttonText="Add to Cart"
+        buttonText={isAddedToCart ? "Added" : "Add to Cart"}
         showIcon={false}
-        disabled={isAddingToCart}
+        disabled={isAddingToCart || isAddedToCart}
       />
     </View>
   );

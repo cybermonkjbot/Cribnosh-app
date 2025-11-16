@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -44,23 +43,12 @@ const shieldIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="non
 export default function LoginSecurityScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [sessionsData, setSessionsData] = useState<any>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
-  // Password form state
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   // Use account hook for Convex actions
   const {
-    changePassword,
     getSessions,
     revokeSession,
     setup2FA,
@@ -116,53 +104,6 @@ export default function LoginSecurityScreen() {
     router.back();
   };
 
-  const handleChangePassword = async () => {
-    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
-      showToast({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'All password fields are required.',
-        duration: 3000,
-      });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      showToast({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'New passwords do not match.',
-        duration: 3000,
-      });
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      showToast({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'Password must be at least 8 characters long.',
-        duration: 3000,
-      });
-      return;
-    }
-
-    setIsChangingPassword(true);
-    try {
-      await changePassword(currentPassword, newPassword);
-
-      // Reset form
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setShowPasswordForm(false);
-    } catch (error: any) {
-      console.error('Error changing password:', error);
-      // Error handling is done in the hook
-    } finally {
-      setIsChangingPassword(false);
-    }
-  };
 
   const handleToggleTwoFactor = async (value: boolean) => {
     try {
@@ -273,118 +214,17 @@ export default function LoginSecurityScreen() {
               <Text style={styles.sectionTitle}>Password</Text>
             </View>
 
-            {!showPasswordForm ? (
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => setShowPasswordForm(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.actionButtonText}>Change Password</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.passwordForm}>
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Current Password</Text>
-                  <View style={styles.passwordInputContainer}>
-                    <TextInput
-                      style={styles.passwordInput}
-                      value={currentPassword}
-                      onChangeText={setCurrentPassword}
-                      placeholder="Enter current password"
-                      placeholderTextColor="#9CA3AF"
-                      secureTextEntry={!showCurrentPassword}
-                      autoCapitalize="none"
-                    />
-                    <TouchableOpacity
-                      style={styles.eyeButton}
-                      onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-                    >
-                      <Text style={styles.eyeButtonText}>
-                        {showCurrentPassword ? 'Hide' : 'Show'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>New Password</Text>
-                  <View style={styles.passwordInputContainer}>
-                    <TextInput
-                      style={styles.passwordInput}
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      placeholder="Enter new password"
-                      placeholderTextColor="#9CA3AF"
-                      secureTextEntry={!showNewPassword}
-                      autoCapitalize="none"
-                    />
-                    <TouchableOpacity
-                      style={styles.eyeButton}
-                      onPress={() => setShowNewPassword(!showNewPassword)}
-                    >
-                      <Text style={styles.eyeButtonText}>
-                        {showNewPassword ? 'Hide' : 'Show'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Confirm New Password</Text>
-                  <View style={styles.passwordInputContainer}>
-                    <TextInput
-                      style={styles.passwordInput}
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      placeholder="Confirm new password"
-                      placeholderTextColor="#9CA3AF"
-                      secureTextEntry={!showConfirmPassword}
-                      autoCapitalize="none"
-                    />
-                    <TouchableOpacity
-                      style={styles.eyeButton}
-                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      <Text style={styles.eyeButtonText}>
-                        {showConfirmPassword ? 'Hide' : 'Show'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.passwordFormActions}>
-                  <TouchableOpacity
-                    style={[styles.cancelButton, isChangingPassword && styles.buttonDisabled]}
-                    onPress={() => {
-                      setShowPasswordForm(false);
-                      setCurrentPassword('');
-                      setNewPassword('');
-                      setConfirmPassword('');
-                    }}
-                    disabled={isChangingPassword}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.saveButton,
-                      isChangingPassword && styles.buttonDisabled,
-                    ]}
-                    onPress={handleChangePassword}
-                    disabled={isChangingPassword}
-                  >
-                    {isChangingPassword ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>Save</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push('/change-password')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionButtonText}>Change Password</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Two-Factor Authentication Section */}
+          {/* Two-Factor Authentication Section - Hidden for now */}
+          {/* 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIcon}>
@@ -407,6 +247,7 @@ export default function LoginSecurityScreen() {
               />
             </View>
           </View>
+          */}
 
           {/* Active Sessions Section */}
           <View style={styles.section}>
@@ -616,90 +457,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#094327',
-  },
-  passwordForm: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  fieldContainer: {
-    marginBottom: 20,
-  },
-  fieldLabel: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FAFFFA',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontFamily: 'Inter',
-    fontWeight: '400',
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#111827',
-  },
-  eyeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  eyeButtonText: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#094327',
-  },
-  passwordFormActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 8,
-  },
-  cancelButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-  },
-  cancelButtonText: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#6B7280',
-  },
-  saveButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    backgroundColor: '#FF3B30',
-  },
-  saveButtonText: {
-    fontFamily: 'Inter',
-    fontWeight: '600',
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#FFFFFF',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
   },
   toggleItem: {
     backgroundColor: '#FFFFFF',

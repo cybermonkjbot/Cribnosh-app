@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 import { SvgXml } from 'react-native-svg';
-import { BottomSheetBase } from '../BottomSheetBase';
 import { usePayments } from '@/hooks/usePayments';
 
 // Close icon SVG
@@ -19,10 +18,10 @@ export function BalanceTransactionsSheet({
   isVisible,
   onClose,
 }: BalanceTransactionsSheetProps) {
-  const snapPoints = useMemo(() => ['75%', '90%'], []);
   const { getBalanceTransactions } = usePayments();
   const [transactionsData, setTransactionsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Load transactions when sheet becomes visible
   useEffect(() => {
@@ -31,11 +30,14 @@ export function BalanceTransactionsSheet({
         try {
           setIsLoading(true);
           const result = await getBalanceTransactions(1, 50);
-          if (result) {
-            setTransactionsData({ data: result });
+          if (result && result.success) {
+            setTransactionsData(result);
+          } else {
+            setTransactionsData(null);
           }
         } catch (error) {
           // Error already handled in hook
+          setTransactionsData(null);
         } finally {
           setIsLoading(false);
         }
@@ -46,22 +48,23 @@ export function BalanceTransactionsSheet({
 
   const refetch = useCallback(async () => {
     try {
-      setIsLoading(true);
+      setIsRefreshing(true);
       const result = await getBalanceTransactions(1, 50);
-      if (result) {
-        setTransactionsData({ data: result });
+      if (result && result.success) {
+        setTransactionsData(result);
+      } else {
+        setTransactionsData(null);
       }
     } catch (error) {
       // Error already handled in hook
+      setTransactionsData(null);
     } finally {
-      setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [getBalanceTransactions]);
 
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) {
-      onClose();
-    }
+  const handleClose = useCallback(() => {
+    onClose();
   }, [onClose]);
 
   const formatDate = (dateString: string) => {
@@ -122,56 +125,54 @@ export function BalanceTransactionsSheet({
     </View>
   );
 
-  if (!isVisible) {
-    return null;
-  }
-
-  const transactions = transactionsData?.data?.transactions || transactionsData?.transactions || [];
+  const transactions = transactionsData?.transactions || [];
 
   return (
-    <BottomSheetBase
-      snapPoints={snapPoints}
-      index={0}
-      onChange={handleSheetChanges}
-      enablePanDownToClose={true}
-      backgroundStyle={{
-        backgroundColor: '#FAFFFA',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-      }}
+    <Modal
+      visible={isVisible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+      statusBarTranslucent={true}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Balance Transactions</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <SvgXml xml={closeIconSVG} width={24} height={24} />
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Balance Transactions</Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <SvgXml xml={closeIconSVG} width={24} height={24} />
+            </TouchableOpacity>
+          </View>
 
-        {isLoading ? (
-          <SkeletonWithTimeout isLoading={isLoading}>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#094327" />
-            </View>
-          </SkeletonWithTimeout>
-        ) : (
-          <FlatList
-            data={transactions}
-            renderItem={renderTransaction}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={renderEmpty}
-            showsVerticalScrollIndicator={false}
-            onRefresh={refetch}
-            refreshing={false}
-          />
-        )}
-      </View>
-    </BottomSheetBase>
+          {isLoading ? (
+            <SkeletonWithTimeout isLoading={isLoading}>
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#094327" />
+              </View>
+            </SkeletonWithTimeout>
+          ) : (
+            <FlatList
+              data={transactions}
+              renderItem={renderTransaction}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              ListEmptyComponent={renderEmpty}
+              showsVerticalScrollIndicator={false}
+              onRefresh={refetch}
+              refreshing={isRefreshing}
+            />
+          )}
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FAFFFA',
+  },
   container: {
     flex: 1,
     paddingHorizontal: 20,

@@ -846,13 +846,15 @@ export const createAndSetSessionToken = mutation({
     expiresInDays: v.optional(v.number()), // Default to 30 days if not provided
     userAgent: v.optional(v.string()), // User agent for session tracking
     ipAddress: v.optional(v.string()), // IP address for session tracking
+    deviceId: v.optional(v.string()), // Unique device identifier for tracking specific devices
+    deviceName: v.optional(v.string()), // Human-readable device name (e.g., "John's iPhone", "Chrome on Mac")
   },
   returns: v.object({
     sessionToken: v.string(),
     sessionExpiry: v.number(),
   }),
   handler: async (ctx: MutationCtx, args) => {
-    const { userId, expiresInDays = 30, userAgent, ipAddress } = args;
+    const { userId, expiresInDays = 30, userAgent, ipAddress, deviceId, deviceName } = args;
     
     // Generate secure session token using Convex-native crypto
     const sessionToken = generateSecureSessionToken();
@@ -862,14 +864,8 @@ export const createAndSetSessionToken = mutation({
     const sessionExpiry = Date.now() + expiresInMs;
     const now = Date.now();
     
-    // Store token and expiry atomically on user document
-    await ctx.db.patch(userId, {
-      sessionToken,
-      sessionExpiry,
-      lastModified: now,
-    });
-    
-    // Also create an entry in the sessions table for session management
+    // Create an entry in the sessions table for session management (primary storage)
+    // This supports multiple devices - each device gets its own session entry
     await ctx.db.insert("sessions", {
       userId,
       sessionToken,
@@ -877,6 +873,17 @@ export const createAndSetSessionToken = mutation({
       createdAt: now,
       userAgent: userAgent || undefined,
       ipAddress: ipAddress || undefined,
+      deviceId: deviceId || undefined,
+      deviceName: deviceName || undefined,
+    });
+    
+    // Also update user document for backward compatibility
+    // Note: This will overwrite any existing sessionToken on the user document,
+    // but validation now primarily uses the sessions table, so this is okay
+    await ctx.db.patch(userId, {
+      sessionToken,
+      sessionExpiry,
+      lastModified: now,
     });
     
     return {

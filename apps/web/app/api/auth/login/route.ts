@@ -7,6 +7,7 @@ import { scryptSync, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { logger } from '@/lib/utils/logger';
+import { getDeviceInfo } from '@/lib/utils/device';
 
 // Endpoint: /v1/auth/login
 // Group: auth
@@ -102,12 +103,23 @@ import { logger } from '@/lib/utils/logger';
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const { email, password, deviceId, deviceName } = body;
     if (!email || !password) {
       return ResponseFactory.validationError('Email and password are required.');
     }
     const convex = getConvexClient();
     const sessionToken = getSessionTokenFromRequest(request);
+    
+    // Get device information (from request body or generate it)
+    const deviceInfo = deviceId && deviceName 
+      ? { deviceId, deviceName }
+      : getDeviceInfo();
+    const userAgent = request.headers.get('user-agent') || undefined;
+    const ipAddress = request.headers.get('x-real-ip') || 
+                      request.headers.get('cf-connecting-ip') || 
+                      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      undefined;
     
     let user;
     try {
@@ -197,7 +209,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
         userId: user._id,
         expiresInDays: 30, // 30 days expiry,
-        sessionToken: sessionToken || undefined
+        sessionToken: sessionToken || undefined,
+        userAgent,
+        ipAddress,
+        deviceId: deviceInfo.deviceId,
+        deviceName: deviceInfo.deviceName,
       });
       
       if (!sessionResult || !sessionResult.sessionToken) {

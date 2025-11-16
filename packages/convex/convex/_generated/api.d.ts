@@ -158,6 +158,7 @@ import type * as queries_content from "../queries/content.js";
 import type * as queries_coupons from "../queries/coupons.js";
 import type * as queries_custom_orders from "../queries/custom_orders.js";
 import type * as queries_customerBalance from "../queries/customerBalance.js";
+import type * as queries_customerBalanceTransactions from "../queries/customerBalanceTransactions.js";
 import type * as queries_dashboardStats from "../queries/dashboardStats.js";
 import type * as queries_dataDownloads from "../queries/dataDownloads.js";
 import type * as queries_dataSharingPreferences from "../queries/dataSharingPreferences.js";
@@ -383,6 +384,7 @@ declare const fullApi: ApiFromModules<{
   "queries/coupons": typeof queries_coupons;
   "queries/custom_orders": typeof queries_custom_orders;
   "queries/customerBalance": typeof queries_customerBalance;
+  "queries/customerBalanceTransactions": typeof queries_customerBalanceTransactions;
   "queries/dashboardStats": typeof queries_dashboardStats;
   "queries/dataDownloads": typeof queries_dataDownloads;
   "queries/dataSharingPreferences": typeof queries_dataSharingPreferences;

@@ -434,6 +434,29 @@ export const getUserByNameOrEmail = query({
 export const getUserBySessionToken = query({
   args: { sessionToken: v.string() },
   handler: async (ctx, args) => {
+    // First, check the sessions table (supports multiple devices)
+    const session = await ctx.db
+      .query('sessions')
+      .withIndex('by_token', (q) => q.eq('sessionToken', args.sessionToken))
+      .first();
+    
+    if (session) {
+      // Check if session is expired
+      if (session.expiresAt && session.expiresAt < Date.now()) {
+        return null;
+      }
+      
+      // Get the user associated with this session
+      const user = await ctx.db.get(session.userId);
+      if (!user || user.status === 'suspended' || user.status === 'inactive') {
+        return null;
+      }
+      
+      return user;
+    }
+    
+    // Fallback: Check user document for backward compatibility (legacy sessions)
+    // This allows old sessions that were created before the sessions table existed
     const user = await ctx.db
       .query('users')
       .filter(q => q.eq(q.field('sessionToken'), args.sessionToken))

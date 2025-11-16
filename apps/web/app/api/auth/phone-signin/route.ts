@@ -204,9 +204,21 @@ async function handlePOST(request: NextRequest) {
         }
 
         // No 2FA required - create session token using Convex mutation
+        const userAgent = request.headers.get('user-agent') || undefined;
+        const ipAddress = request.headers.get('x-real-ip') || 
+                          request.headers.get('cf-connecting-ip') || 
+                          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                          undefined;
+        const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
+        const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
+        
         const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
           userId: newUser._id,
           expiresInDays: 30, // 30 days expiry
+          userAgent,
+          ipAddress,
+          deviceId: deviceInfo.deviceId,
+          deviceName: deviceInfo.deviceName,
         });
 
         // Set session token cookie
@@ -268,9 +280,21 @@ async function handlePOST(request: NextRequest) {
       }
 
       // No 2FA required - create session token using Convex mutation
+      const userAgent = request.headers.get('user-agent') || undefined;
+      const ipAddress = request.headers.get('x-real-ip') || 
+                        request.headers.get('cf-connecting-ip') || 
+                        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                        undefined;
+      const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
+      const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
+      
       const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
         userId: user._id,
         expiresInDays: 30, // 30 days expiry
+        userAgent,
+        ipAddress,
+        deviceId: deviceInfo.deviceId,
+        deviceName: deviceInfo.deviceName,
       });
 
       // Update last login

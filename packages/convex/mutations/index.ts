@@ -75,7 +75,8 @@ export {
 // Export sessions mutations with explicit naming to avoid conflicts
 export {
   // Rename the conflicting 'deleteSession' to 'deleteUserSession' for clarity
-  deleteSession as deleteUserSession
+  deleteSession as deleteUserSession,
+  deleteSessionByToken
 } from './sessions';
 
 export * from './specialOffers';

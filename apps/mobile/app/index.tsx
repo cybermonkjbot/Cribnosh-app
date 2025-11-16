@@ -1,7 +1,7 @@
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Stack, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function Index() {
   const router = useRouter();
@@ -9,20 +9,14 @@ export default function Index() {
   const navigatedRef = useRef(false);
   const [splashCompleted, setSplashCompleted] = useState(false);
 
-  const navigateToTabs = useCallback(() => {
-    if (!navigatedRef.current) {
+  useEffect(() => {
+    // If both splash is complete and auth is loaded, navigate
+    if (splashCompleted && !isLoading && !navigatedRef.current) {
       navigatedRef.current = true;
       console.log('Index: Navigating to /(tabs)');
       router.replace('/(tabs)');
     }
-  }, [router]);
-
-  useEffect(() => {
-    // If both splash is complete and auth is loaded, navigate
-    if (splashCompleted && !isLoading) {
-      navigateToTabs();
-    }
-  }, [splashCompleted, isLoading, navigateToTabs]);
+  }, [splashCompleted, isLoading, router]);
 
   const handleSplashComplete = () => {
     setSplashCompleted(true);

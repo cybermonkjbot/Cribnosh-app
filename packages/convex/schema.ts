@@ -744,9 +744,12 @@ export default defineSchema({
     createdAt: v.number(),
     userAgent: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()), // Unique device identifier for tracking specific devices
+    deviceName: v.optional(v.string()), // Human-readable device name (e.g., "John's iPhone", "Chrome on Mac")
   }).index("by_user", ["userId"])
     .index("by_token", ["sessionToken"])
-    .index("by_expiry", ["expiresAt"]),
+    .index("by_expiry", ["expiresAt"])
+    .index("by_device", ["userId", "deviceId"]), // Index for finding sessions by device
   content: defineTable({
     title: v.string(),
     type: v.union(v.literal("blog"), v.literal("story"), v.literal("recipe"), v.literal("page")),

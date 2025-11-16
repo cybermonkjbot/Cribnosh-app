@@ -255,7 +255,7 @@ export function TopUpBalanceSheet({
     <Modal
       visible={isVisible}
       animationType="slide"
-      presentationStyle="fullScreen"
+      presentationStyle="pageSheet"
       onRequestClose={handleClose}
       statusBarTranslucent={true}
     >

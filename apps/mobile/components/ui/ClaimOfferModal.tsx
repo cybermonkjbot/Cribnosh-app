@@ -7,6 +7,7 @@ import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { useOffersAndTreats } from '@/hooks/useOffersAndTreats';
+import * as Haptics from 'expo-haptics';
 import {
   ActivityIndicator,
   ScrollView,
@@ -18,16 +19,18 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
+import { X, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withTiming,
-  interpolate,
+  withSpring,
+  withSequence,
   Easing,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import {
   showError,
@@ -36,6 +39,18 @@ import {
 } from '../../lib/GlobalToastManager';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
 import { getAbsoluteImageUrl } from '@/utils/imageUrl';
+
+// Brand colors
+const BRAND_COLORS = {
+  primary: '#094327',      // Dark green
+  secondary: '#0B9E58',    // Green
+  accent: '#FF3B30',       // Cribnosh orange-red
+  background: '#FAFFFA',   // Light green background
+  lightGreen: '#E6FFE8',   // Lighter green
+  white: '#FFFFFF',
+  darkGray: '#111827',
+  gray: '#6B7280',
+};
 
 interface ClaimOfferModalProps {
   onClose: () => void;
@@ -63,6 +78,7 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
   const [isLoadingMeals, setIsLoadingMeals] = useState(false);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [isClaimed, setIsClaimed] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // Load session token for reactive queries
   useEffect(() => {
@@ -87,7 +103,6 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
   const cartTotal = useMemo(() => {
     if (!cartData?.items) return 0;
     return cartData.items.reduce((total: number, item: any) => {
-      // Use total_price if available, otherwise calculate from price * quantity
       if (item.total_price !== undefined) {
         return total + item.total_price;
       }
@@ -105,25 +120,31 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
     } else if (offer.discount_type === 'fixed_amount') {
       return offer.discount_value;
     }
-    return 0; // free_delivery doesn't have a monetary discount
+    return 0;
   }, [cartTotal, offer]);
 
   // Calculate minimum order amount needed
   const minOrderAmount = offer.min_order_amount || 0;
   const amountNeeded = Math.max(0, minOrderAmount - cartTotal);
-
-  // Check if offer is activated
+  const progressPercentage = Math.min(100, (cartTotal / minOrderAmount) * 100);
   const isOfferActivated = cartTotal >= minOrderAmount;
 
   // Claim the offer when modal opens
   useEffect(() => {
     const claimTheOffer = async () => {
-      if (!isAuthenticated) return;
+      if (!isAuthenticated || isClaimed) return;
       
       try {
         const result = await claimOffer(offer.offer_id);
         if (result.success) {
           setIsClaimed(true);
+          setShowCelebration(true);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          
+          // Hide celebration after animation
+          setTimeout(() => {
+            setShowCelebration(false);
+          }, 2000);
         }
       } catch (error) {
         console.error('Error claiming offer:', error);
@@ -131,7 +152,7 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
     };
 
     claimTheOffer();
-  }, [isAuthenticated, offer.offer_id, claimOffer]);
+  }, [isAuthenticated, offer.offer_id, claimOffer, isClaimed]);
 
   // Load meals for browsing
   useEffect(() => {
@@ -142,11 +163,10 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
         setIsLoadingMeals(true);
         const result = await search({
           query: '',
-          limit: 30,
+          limit: 20,
         });
         
         if (result.success) {
-          // Search API returns dishes in result.data.results.dishes
           const dishes = result.data?.results?.dishes || result.data?.dishes || result.data || [];
           setMealsData({
             success: true,
@@ -189,6 +209,7 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
       const result = await addToCart(dishId, 1);
       if (result.success) {
         showSuccess('Added to Cart!', result.data?.item?.name || 'Item');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to add item to cart';
@@ -208,12 +229,11 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
     } else if (offer.discount_type === 'fixed_amount') {
       return `${formatPrice(offer.discount_value)} OFF`;
     }
-    return 'Free Delivery';
+    return 'FREE DELIVERY';
   };
 
   const meals = useMemo(() => {
     if (!mealsData?.data) return [];
-    // Handle different data structures
     if (Array.isArray(mealsData.data)) {
       return mealsData.data;
     }
@@ -226,141 +246,156 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
     return [];
   }, [mealsData]);
 
-  // Shimmer animation for discount card
-  const shimmerTranslate = useSharedValue(-200);
-  
-  useEffect(() => {
-    shimmerTranslate.value = withRepeat(
-      withTiming(200, {
-        duration: 2000,
-        easing: Easing.linear,
-      }),
-      -1,
-      false
-    );
-  }, []);
+  // Celebration animations
+  const scale = useSharedValue(1);
+  const rotate = useSharedValue(0);
+  const sparkleOpacity = useSharedValue(0);
 
-  const shimmerStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: shimmerTranslate.value }],
-    };
-  });
+  useEffect(() => {
+    if (showCelebration) {
+      scale.value = withSequence(
+        withSpring(1.2, { damping: 8, stiffness: 200 }),
+        withSpring(1, { damping: 10, stiffness: 150 })
+      );
+      rotate.value = withSequence(
+        withTiming(-10, { duration: 100 }),
+        withTiming(10, { duration: 100 }),
+        withTiming(0, { duration: 100 })
+      );
+      sparkleOpacity.value = withSequence(
+        withTiming(1, { duration: 300 }),
+        withTiming(0, { duration: 700 })
+      );
+    }
+  }, [showCelebration]);
+
+  const celebrationStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scale.value },
+      { rotate: `${rotate.value}deg` },
+    ],
+  }));
+
+  const sparkleStyle = useAnimatedStyle(() => ({
+    opacity: sparkleOpacity.value,
+  }));
+
+  // Progress bar animation
+  const progressWidth = useSharedValue(0);
+  useEffect(() => {
+    progressWidth.value = withTiming(progressPercentage, {
+      duration: 500,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [progressPercentage]);
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value}%`,
+  }));
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Claim Your Offer</Text>
+          <Text style={styles.headerTitle}>Special Offer</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color="#1a1a1a" />
+            <X size={24} color={BRAND_COLORS.darkGray} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Discount Display Section */}
-        <View style={styles.discountSection}>
-          <View style={styles.discountCardContainer}>
+        {/* Hero Offer Card */}
+        <View style={styles.heroSection}>
+          <Animated.View style={[styles.offerCard, celebrationStyle]}>
             <LinearGradient
-              colors={['#ef4444', '#dc2626', '#b91c1c']}
+              colors={[BRAND_COLORS.accent, '#FF6B35']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.discountCardGradient}
+              style={styles.offerCardGradient}
             >
-              {/* Shimmer overlay */}
-              <Animated.View style={[styles.shimmerOverlay, shimmerStyle]}>
-                <LinearGradient
-                  colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.shimmerGradient}
-                />
-              </Animated.View>
+              {showCelebration && (
+                <Animated.View style={[styles.sparkles, sparkleStyle]}>
+                  <Sparkles size={24} color={BRAND_COLORS.white} />
+                </Animated.View>
+              )}
               
-              {/* Glow effect */}
-              <View style={styles.glowEffect} />
-              
-              <View style={styles.discountCardContent}>
-                <Text style={styles.discountLabel}>You're Saving</Text>
-                <Text style={styles.discountAmount}>
-                  {offer.discount_type === 'free_delivery' 
-                    ? 'Free Delivery' 
-                    : formatPrice(discountAmount)}
-                </Text>
-                <Text style={styles.discountSubtext}>
-                  {formatDiscount()} on your order
-                </Text>
+              <View style={styles.offerCardContent}>
+                <Text style={styles.offerBadge}>OFFER CLAIMED</Text>
+                <Text style={styles.offerDiscount}>{formatDiscount()}</Text>
+                {offer.discount_type !== 'free_delivery' && (
+                  <Text style={styles.offerSavings}>
+                    Save up to {formatPrice(discountAmount)}
+                  </Text>
+                )}
+                {offer.description && (
+                  <Text style={styles.offerDescription}>{offer.description}</Text>
+                )}
               </View>
             </LinearGradient>
-          </View>
+          </Animated.View>
 
-          {/* Progress Section */}
-          <View style={styles.progressSectionContainer}>
-            <BlurView intensity={20} tint="light" style={styles.progressSectionBlur}>
-              {!isOfferActivated ? (
-                <>
-                  <Text style={styles.progressTitle}>
-                    Add {formatPrice(amountNeeded)} more to activate this offer
+          {/* Progress Section - Only show if min order required */}
+          {minOrderAmount > 0 && (
+            <View style={styles.progressCard}>
+              {isOfferActivated ? (
+                <View style={styles.activatedState}>
+                  <LinearGradient
+                    colors={[BRAND_COLORS.secondary, '#059669']}
+                    style={styles.activatedBadge}
+                  >
+                    <Text style={styles.activatedText}>
+                      ✓ Offer Active! You're saving {formatPrice(discountAmount)}
+                    </Text>
+                  </LinearGradient>
+                </View>
+              ) : (
+                <View style={styles.progressState}>
+                  <Text style={styles.progressLabel}>
+                    Add {formatPrice(amountNeeded)} more to unlock
                   </Text>
                   <View style={styles.progressBarContainer}>
-                    <View style={styles.progressBar}>
-                      <LinearGradient
-                        colors={['#ef4444', '#f97316', '#ef4444']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={[
-                          styles.progressFill,
-                          {
-                            width: `${Math.min(100, (cartTotal / minOrderAmount) * 100)}%`,
-                          },
-                        ]}
-                      />
+                    <View style={styles.progressBarBackground}>
+                      <Animated.View style={[styles.progressBarFill, progressStyle]}>
+                        <LinearGradient
+                          colors={[BRAND_COLORS.secondary, BRAND_COLORS.primary]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.progressGradient}
+                        />
+                      </Animated.View>
                     </View>
                   </View>
                   <View style={styles.progressTextRow}>
                     <Text style={styles.progressText}>
-                      Current: {formatPrice(cartTotal)}
+                      {formatPrice(cartTotal)} / {formatPrice(minOrderAmount)}
                     </Text>
-                    <Text style={styles.progressText}>
-                      Target: {formatPrice(minOrderAmount)}
+                    <Text style={styles.progressPercent}>
+                      {Math.round(progressPercentage)}%
                     </Text>
                   </View>
-                </>
-              ) : (
-                <LinearGradient
-                  colors={['#10b981', '#059669', '#047857']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.activatedBadge}
-                >
-                  <View style={styles.activatedGlow} />
-                  <Text style={styles.activatedText}>
-                    Offer Activated! You're saving {formatPrice(discountAmount)}
-                  </Text>
-                </LinearGradient>
+                </View>
               )}
-            </BlurView>
-          </View>
+            </View>
+          )}
         </View>
 
         {/* Browse Meals Section */}
         <View style={styles.mealsSection}>
-          <Text style={styles.sectionTitle}>Browse & Add Items</Text>
+          <Text style={styles.sectionTitle}>Add Items to Your Order</Text>
           
           {isLoadingMeals ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#ef4444" />
+              <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
             </View>
           ) : meals.length > 0 ? (
             <View style={styles.mealsGrid}>
               {meals.map((meal: any) => {
-                // Handle different meal data structures
                 const mealData = meal.dish || meal.meal || meal;
                 const mealId = mealData._id || mealData.id || meal._id || meal.id;
                 const mealPrice = mealData.price || meal.price || 0;
                 const mealName = mealData.name || meal.name || 'Unknown Meal';
-                // Extract image URL from various possible locations
                 const mealImage = 
                   mealData.image_url || 
                   mealData.image || 
@@ -372,72 +407,58 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
                   undefined;
                 const kitchenName = mealData.chef?.kitchen_name || mealData.kitchen_name || meal.chef?.kitchen_name || meal.kitchen_name;
                 const isAdding = addingToCart === mealId;
-                
-                // Get absolute image URL
                 const imageUrl = mealImage ? getAbsoluteImageUrl(mealImage) : undefined;
                 
                 return (
                   <TouchableOpacity
                     key={mealId}
-                    style={styles.mealCardContainer}
+                    style={styles.mealCard}
                     onPress={() => handleAddToCart(mealId)}
                     disabled={isAdding}
                     activeOpacity={0.8}
                   >
-                    <BlurView intensity={15} tint="light" style={styles.mealCard}>
-                      <View style={styles.mealImageContainer}>
-                        {imageUrl ? (
-                          <Image
-                            source={{ uri: imageUrl }}
-                            style={styles.mealImage}
-                            contentFit="cover"
-                            placeholder={require('@/assets/images/cribnoshpackaging.png')}
-                            transition={200}
-                            cachePolicy="memory-disk"
-                          />
-                        ) : (
-                          <Image
-                            source={require('@/assets/images/cribnoshpackaging.png')}
-                            style={styles.mealImage}
-                            contentFit="cover"
-                          />
-                        )}
-                        <LinearGradient
-                          colors={['transparent', 'rgba(0,0,0,0.3)']}
-                          style={styles.mealImageOverlay}
+                    <View style={styles.mealImageContainer}>
+                      {imageUrl ? (
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={styles.mealImage}
+                          contentFit="cover"
+                          placeholder={require('@/assets/images/cribnoshpackaging.png')}
+                          transition={200}
                         />
-                      </View>
-                      <View style={styles.mealInfo}>
-                        <Text style={styles.mealName} numberOfLines={2}>
-                          {mealName}
+                      ) : (
+                        <Image
+                          source={require('@/assets/images/cribnoshpackaging.png')}
+                          style={styles.mealImage}
+                          contentFit="cover"
+                        />
+                      )}
+                    </View>
+                    <View style={styles.mealInfo}>
+                      <Text style={styles.mealName} numberOfLines={2}>
+                        {mealName}
+                      </Text>
+                      {kitchenName && (
+                        <Text style={styles.mealKitchen} numberOfLines={1}>
+                          {kitchenName}
                         </Text>
+                      )}
+                      <View style={styles.mealFooter}>
                         <Text style={styles.mealPrice}>
                           {formatPrice(mealPrice)}
                         </Text>
-                        {kitchenName && (
-                          <Text style={styles.mealKitchen} numberOfLines={1}>
-                            {kitchenName}
-                          </Text>
+                        {isAdding ? (
+                          <ActivityIndicator size="small" color={BRAND_COLORS.accent} />
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={() => handleAddToCart(mealId)}
+                          >
+                            <Text style={styles.addButtonText}>+</Text>
+                          </TouchableOpacity>
                         )}
                       </View>
-                      {isAdding ? (
-                        <LinearGradient
-                          colors={['#ef4444', '#dc2626']}
-                          style={styles.addingIndicator}
-                        >
-                          <ActivityIndicator size="small" color="#ffffff" />
-                        </LinearGradient>
-                      ) : (
-                        <LinearGradient
-                          colors={['#ef4444', '#dc2626', '#b91c1c']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={styles.addButton}
-                        >
-                          <Text style={styles.addButtonText}>Add</Text>
-                        </LinearGradient>
-                      )}
-                    </BlurView>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -451,9 +472,9 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
       </ScrollView>
 
       {/* Bottom Action Bar */}
-      <BlurView intensity={30} tint="light" style={[styles.bottomBar, { paddingBottom: insets.bottom }]}>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom }]}>
         <View style={styles.bottomBarContent}>
-          <View style={styles.cartTotalContainer}>
+          <View>
             <Text style={styles.cartTotalLabel}>Cart Total</Text>
             <Text style={styles.cartTotalAmount}>
               {formatPrice(cartTotal)}
@@ -467,24 +488,20 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
             disabled={cartTotal === 0}
             activeOpacity={0.8}
           >
-            {cartTotal === 0 ? (
-              <View style={styles.viewCartButtonDisabled}>
-                <Text style={styles.viewCartButtonText}>View Cart</Text>
-              </View>
-            ) : (
-              <LinearGradient
-                colors={['#ef4444', '#dc2626', '#b91c1c']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.viewCartButton}
-              >
-                <View style={styles.buttonGlow} />
-                <Text style={styles.viewCartButtonText}>View Cart</Text>
-              </LinearGradient>
-            )}
+            <LinearGradient
+              colors={cartTotal === 0 
+                ? ['#D1D5DB', '#9CA3AF']
+                : [BRAND_COLORS.primary, BRAND_COLORS.secondary]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.viewCartButton}
+            >
+              <Text style={styles.viewCartButtonText}>View Cart</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      </BlurView>
+      </View>
     </View>
   );
 }
@@ -492,25 +509,26 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: BRAND_COLORS.background,
   },
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: BRAND_COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 16,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: BRAND_COLORS.primary,
+    fontFamily: 'Archivo',
   },
   closeButton: {
     padding: 4,
@@ -518,88 +536,76 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  discountSection: {
-    padding: 16,
-    backgroundColor: '#fafafa',
+  heroSection: {
+    padding: 20,
   },
-  discountCardContainer: {
+  offerCard: {
     borderRadius: 20,
     marginBottom: 16,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#ef4444',
+        shadowColor: BRAND_COLORS.accent,
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
+        shadowOpacity: 0.3,
         shadowRadius: 16,
       },
       android: {
-        elevation: 12,
+        elevation: 8,
       },
     }),
   },
-  discountCardGradient: {
-    borderRadius: 20,
+  offerCardGradient: {
     padding: 24,
     alignItems: 'center',
     position: 'relative',
-    overflow: 'hidden',
   },
-  shimmerOverlay: {
+  sparkles: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '300%',
-    zIndex: 1,
+    top: 16,
+    right: 16,
   },
-  shimmerGradient: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  glowEffect: {
-    position: 'absolute',
-    top: -50,
-    left: -50,
-    right: -50,
-    bottom: -50,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 100,
-    opacity: 0.6,
-  },
-  discountCardContent: {
-    position: 'relative',
-    zIndex: 2,
+  offerCardContent: {
     alignItems: 'center',
   },
-  discountLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-    opacity: 0.9,
-    marginBottom: 8,
-  },
-  discountAmount: {
-    fontSize: 48,
+  offerBadge: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 4,
+    color: BRAND_COLORS.white,
+    letterSpacing: 1.2,
+    marginBottom: 12,
+    opacity: 0.95,
   },
-  discountSubtext: {
+  offerDiscount: {
+    fontSize: 48,
+    fontWeight: '800',
+    color: BRAND_COLORS.white,
+    marginBottom: 8,
+    fontFamily: 'Archivo',
+  },
+  offerSavings: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BRAND_COLORS.white,
+    marginBottom: 8,
+    opacity: 0.95,
+  },
+  offerDescription: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#ffffff',
+    fontWeight: '400',
+    color: BRAND_COLORS.white,
+    textAlign: 'center',
     opacity: 0.9,
+    marginTop: 4,
   },
-  progressSectionContainer: {
+  progressCard: {
+    backgroundColor: BRAND_COLORS.white,
     borderRadius: 16,
-    overflow: 'hidden',
+    padding: 16,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
       },
@@ -608,95 +614,72 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  progressSectionBlur: {
-    borderRadius: 16,
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+  progressState: {
+    gap: 12,
   },
-  progressTitle: {
-    fontSize: 16,
+  progressLabel: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 12,
+    color: BRAND_COLORS.darkGray,
     textAlign: 'center',
   },
   progressBarContainer: {
-    marginBottom: 8,
+    marginVertical: 8,
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
+  progressBarBackground: {
+    height: 10,
+    backgroundColor: BRAND_COLORS.lightGreen,
+    borderRadius: 5,
     overflow: 'hidden',
   },
-  progressFill: {
+  progressBarFill: {
     height: '100%',
-    borderRadius: 4,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#ef4444',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.6,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    borderRadius: 5,
+  },
+  progressGradient: {
+    flex: 1,
+    borderRadius: 5,
   },
   progressTextRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
   },
   progressText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#666666',
+    color: BRAND_COLORS.gray,
+  },
+  progressPercent: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BRAND_COLORS.primary,
+  },
+  activatedState: {
+    alignItems: 'center',
   },
   activatedBadge: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    padding: 16,
+    width: '100%',
     alignItems: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#10b981',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  activatedGlow: {
-    position: 'absolute',
-    top: -20,
-    left: -20,
-    right: -20,
-    bottom: -20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 50,
-    opacity: 0.5,
   },
   activatedText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: BRAND_COLORS.white,
   },
   mealsSection: {
-    padding: 16,
+    padding: 20,
+    paddingTop: 0,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: BRAND_COLORS.primary,
     marginBottom: 16,
+    fontFamily: 'Archivo',
   },
   loadingContainer: {
     padding: 40,
@@ -706,55 +689,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 12,
   },
-  mealCardContainer: {
+  mealCard: {
     width: '48%',
-    marginBottom: 16,
+    backgroundColor: BRAND_COLORS.white,
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
         shadowRadius: 8,
       },
       android: {
-        elevation: 6,
+        elevation: 4,
       },
     }),
   },
-  mealCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-  },
   mealImageContainer: {
-    position: 'relative',
     width: '100%',
     height: 120,
     overflow: 'hidden',
-  },
-  mealImageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 40,
   },
   mealImage: {
     width: '100%',
     height: 120,
-    backgroundColor: '#f0f0f0',
-  },
-  mealImagePlaceholder: {
-    width: '100%',
-    height: 120,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: BRAND_COLORS.lightGreen,
   },
   mealInfo: {
     padding: 12,
@@ -762,56 +724,37 @@ const styles = StyleSheet.create({
   mealName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  mealPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ef4444',
+    color: BRAND_COLORS.darkGray,
     marginBottom: 4,
   },
   mealKitchen: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#666666',
+    color: BRAND_COLORS.gray,
+    marginBottom: 8,
+  },
+  mealFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mealPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: BRAND_COLORS.accent,
   },
   addButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    alignSelf: 'flex-end',
-    marginTop: 8,
-    position: 'relative',
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#ef4444',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  addButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  addingIndicator: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    alignSelf: 'flex-end',
-    marginTop: 8,
-    minWidth: 60,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: BRAND_COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addButtonText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: BRAND_COLORS.white,
   },
   emptyContainer: {
     padding: 40,
@@ -820,25 +763,14 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666666',
+    color: BRAND_COLORS.gray,
   },
   bottomBar: {
+    backgroundColor: BRAND_COLORS.white,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+    borderTopColor: '#E5E7EB',
     paddingVertical: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-  },
-  cartTotalContainer: {
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-    }),
+    paddingHorizontal: 20,
   },
   bottomBarContent: {
     flexDirection: 'row',
@@ -848,57 +780,33 @@ const styles = StyleSheet.create({
   cartTotalLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#666666',
+    color: BRAND_COLORS.gray,
     marginBottom: 4,
   },
   cartTotalAmount: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: BRAND_COLORS.primary,
   },
   viewCartButton: {
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 24,
-    position: 'relative',
-    overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#ef4444',
+        shadowColor: BRAND_COLORS.primary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
+        shadowOpacity: 0.3,
         shadowRadius: 8,
       },
       android: {
-        elevation: 8,
-      },
-    }),
-  },
-  buttonGlow: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 30,
-    opacity: 0.6,
-  },
-  viewCartButtonDisabled: {
-    backgroundColor: '#d1d5db',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 24,
-    ...Platform.select({
-      android: {
-        elevation: 2,
+        elevation: 6,
       },
     }),
   },
   viewCartButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: BRAND_COLORS.white,
   },
 });
-

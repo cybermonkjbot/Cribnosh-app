@@ -854,7 +854,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
     <Modal
       visible={isVisible}
       animationType="slide"
-      presentationStyle="fullScreen"
+      presentationStyle="pageSheet"
       statusBarTranslucent
       onRequestClose={handleClose}
     >
