@@ -285,6 +285,7 @@ export function MainScreen() {
   const [cartData, setCartData] = useState<any>(null);
   const [cartError, setCartError] = useState<any>(null);
   const [cartLoading, setCartLoading] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Load cart function
   const loadCart = useCallback(async () => {
@@ -1616,6 +1617,9 @@ export function MainScreen() {
 
   const handleDrawerAddToCart = useCallback(
     async (id: string) => {
+      // Prevent rapid clicks
+      if (isAddingToCart) return;
+
       // Check authentication and token validity
       if (!isAuthenticated || !token) {
         showWarning(
@@ -1640,6 +1644,7 @@ export function MainScreen() {
       }
 
       try {
+        setIsAddingToCart(true);
         const result = await addToCartAction(id, 1);
 
         if (result.success) {
@@ -1649,9 +1654,11 @@ export function MainScreen() {
         }
       } catch {
         showError("Failed to add item to cart", "Please try again");
+      } finally {
+        setIsAddingToCart(false);
       }
     },
-    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCartAction, refetchCart]
+    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCartAction, refetchCart, isAddingToCart]
   );
 
   const handleDrawerItemPress = useCallback((id: string) => {

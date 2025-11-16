@@ -37,6 +37,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   const { getCart, addToCart: addToCartAction, updateCartItem: updateCartItemAction } = useCart();
   const [cartData, setCartData] = useState<any>(null);
   const [cartLoading, setCartLoading] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const insets = useSafeAreaInsets();
   
   // Detect if this is a mock ID (simple numeric string like "1", "2", etc.)
@@ -424,6 +425,9 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   };
 
   const handleAddToCart = useCallback(async () => {
+    // Prevent rapid clicks
+    if (isAddingToCart) return;
+
     // Check authentication and token validity
     if (!isAuthenticated || !token) {
       showWarning(
@@ -453,6 +457,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     }
 
     try {
+      setIsAddingToCart(true);
       const result = await addToCartAction(sessionData.data.meal._id, 1);
 
       if (result.success) {
@@ -463,8 +468,10 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     } catch (err: any) {
       const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add item to cart';
       showError('Failed to add item to cart', errorMessage);
+    } finally {
+      setIsAddingToCart(false);
     }
-  }, [isAuthenticated, token, checkTokenExpiration, refreshAuthState, sessionData, addToCart, router, refetchCart]);
+  }, [isAuthenticated, token, checkTokenExpiration, refreshAuthState, sessionData, addToCartAction, router, refetchCart, isAddingToCart]);
 
   const handleQuantityChange = useCallback(async (quantity: number) => {
     if (!isAuthenticated || !sessionData?.data?.meal?._id) {
