@@ -201,6 +201,8 @@ import type * as queries_streaks from "../queries/streaks.js";
 import type * as queries_supportAgents from "../queries/supportAgents.js";
 import type * as queries_supportCases from "../queries/supportCases.js";
 import type * as queries_systemHealth from "../queries/systemHealth.js";
+import type * as queries_testFriendsQuery from "../queries/testFriendsQuery.js";
+import type * as queries_testListUsers from "../queries/testListUsers.js";
 import type * as queries_timeTracking from "../queries/timeTracking.js";
 import type * as queries_timelogs from "../queries/timelogs.js";
 import type * as queries_treats from "../queries/treats.js";
@@ -428,6 +430,8 @@ declare const fullApi: ApiFromModules<{
   "queries/supportAgents": typeof queries_supportAgents;
   "queries/supportCases": typeof queries_supportCases;
   "queries/systemHealth": typeof queries_systemHealth;
+  "queries/testFriendsQuery": typeof queries_testFriendsQuery;
+  "queries/testListUsers": typeof queries_testListUsers;
   "queries/timeTracking": typeof queries_timeTracking;
   "queries/timelogs": typeof queries_timelogs;
   "queries/treats": typeof queries_treats;

@@ -1164,9 +1164,13 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("confirmed"),
       v.literal("preparing"),
+      v.literal("ready"),
       v.literal("on_the_way"),
+      v.literal("out_for_delivery"),
+      v.literal("delivered"),
       v.literal("cancelled"),
-      v.literal("completed")
+      v.literal("completed"),
+      v.literal("refunded")
     ),
     payment_status: v.union(
       v.literal("pending"),

@@ -1,11 +1,11 @@
 /**
  * Test script for getAllUserConnections query
- * Run with: npx convex run queries/test-friends-query:testGetAllUserConnections --user_id <user_id>
+ * Run with: npx convex run queries/testFriendsQuery:testGetAllUserConnections --user_id <user_id>
  */
 
-import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api } from "../_generated/api";
+import { query } from "../_generated/server";
 
 // Test query to get all user connections with detailed breakdown
 export const testGetAllUserConnections = query({

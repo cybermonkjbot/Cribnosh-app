@@ -66,7 +66,7 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
   
   // Sync value with external isOrdered state
   useEffect(() => {
-    if (externalIsOrdered !== undefined && externalIsO  rdered && !internalIsOrdered) {
+    if (externalIsOrdered !== undefined && externalIsOrdered && !internalIsOrdered) {
       setInternalIsOrdered(true);
     }
   }, [externalIsOrdered, internalIsOrdered]);
