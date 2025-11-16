@@ -62,6 +62,9 @@ if (buildRootNodeModules && fs.existsSync(buildRootNodeModules)) {
 
 config.resolver.nodeModulesPaths = nodeModulesPaths;
 
+// Define app's node_modules path early for use in React resolution
+const appNodeModules = path.resolve(projectRoot, 'node_modules');
+
 // 3. Force React to resolve from app's node_modules only (in local dev)
 // In EAS builds, React will resolve from build root which is fine
 // Block React and react-dom from workspace root to prevent conflicts in local dev
@@ -70,19 +73,101 @@ const workspaceNodeModules = path.resolve(workspaceRoot, 'node_modules');
 const isEASBuild = !!buildRootNodeModules && buildRootNodeModules !== workspaceNodeModules;
 
 // Only block React from workspace root in local dev (not in EAS builds)
+// But only block if React exists in app's node_modules to avoid blocking when React isn't available
 if (!isEASBuild) {
-  const blockListPatterns = [
-    new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react/.*`),
-    new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react-dom/.*`),
-  ];
+  const appReactPath = path.join(appNodeModules, 'react');
+  const appReactDomPath = path.join(appNodeModules, 'react-dom');
+  
+  // Only block workspace React if app's React exists
+  // This prevents blocking when React isn't available, which would cause null resolution
+  if (fs.existsSync(appReactPath) || fs.existsSync(appReactDomPath)) {
+    const blockListPatterns = [
+      new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react/.*`),
+      new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react-dom/.*`),
+    ];
 
-  config.resolver.blockList = [
-    ...(config.resolver.blockList || []),
-    ...blockListPatterns,
-  ];
+    config.resolver.blockList = [
+      ...(config.resolver.blockList || []),
+      ...blockListPatterns,
+    ];
+  }
 }
 
-// Add support for @ alias
+// Add support for @ alias and explicitly resolve React
+let reactPath = path.join(appNodeModules, 'react');
+let reactDomPath = path.join(appNodeModules, 'react-dom');
+
+// For EAS builds, React might be in build root instead of app's node_modules
+if (!fs.existsSync(reactPath) && buildRootNodeModules) {
+  const buildReactPath = path.join(buildRootNodeModules, 'react');
+  if (fs.existsSync(buildReactPath)) {
+    reactPath = buildReactPath;
+  }
+}
+if (!fs.existsSync(reactDomPath) && buildRootNodeModules) {
+  const buildReactDomPath = path.join(buildRootNodeModules, 'react-dom');
+  if (fs.existsSync(buildReactDomPath)) {
+    reactDomPath = buildReactDomPath;
+  }
+}
+
+// Use extraNodeModules to force React resolution (more reliable than alias)
+// This ensures ALL React imports resolve to the same instance
+// Critical for preventing "Invalid hook call" errors from multiple React instances
+const extraNodeModules = {
+  ...(config.resolver.extraNodeModules || {}),
+};
+
+// Explicitly resolve React from app's node_modules (local dev) or build root (EAS)
+// Use directory paths (Metro expects directories for extraNodeModules)
+if (fs.existsSync(reactPath)) {
+  extraNodeModules['react'] = reactPath;
+  // Also resolve React subpath exports to the same instance
+  extraNodeModules['react/jsx-runtime'] = reactPath;
+  extraNodeModules['react/jsx-dev-runtime'] = reactPath;
+}
+if (fs.existsSync(reactDomPath)) {
+  extraNodeModules['react-dom'] = reactDomPath;
+}
+
+config.resolver.extraNodeModules = extraNodeModules;
+
+// Add a custom resolver to force React resolution
+// Works in both local dev and EAS builds by using the resolved path from extraNodeModules
+// This ensures a single React instance is used everywhere
+if (extraNodeModules['react']) {
+  const originalResolveRequest = config.resolver.resolveRequest;
+  config.resolver.resolveRequest = (context, moduleName, platform) => {
+    // Force React to use our explicitly resolved path BEFORE any other resolution
+    // Works for both local dev (app's node_modules) and EAS builds (build root)
+    if (moduleName === 'react' && extraNodeModules['react']) {
+      const reactIndexPath = path.join(extraNodeModules['react'], 'index.js');
+      if (fs.existsSync(reactIndexPath)) {
+        return { filePath: reactIndexPath, type: 'sourceFile' };
+      }
+      // Fallback: let Metro resolve it normally but from our path
+      return originalResolveRequest 
+        ? originalResolveRequest({ ...context, originModulePath: extraNodeModules['react'] }, './index', platform)
+        : context.resolveRequest({ ...context, originModulePath: extraNodeModules['react'] }, './index', platform);
+    }
+    if (moduleName === 'react-dom' && extraNodeModules['react-dom']) {
+      const reactDomIndexPath = path.join(extraNodeModules['react-dom'], 'index.js');
+      if (fs.existsSync(reactDomIndexPath)) {
+        return { filePath: reactDomIndexPath, type: 'sourceFile' };
+      }
+      return originalResolveRequest 
+        ? originalResolveRequest({ ...context, originModulePath: extraNodeModules['react-dom'] }, './index', platform)
+        : context.resolveRequest({ ...context, originModulePath: extraNodeModules['react-dom'] }, './index', platform);
+    }
+    // Use default resolver for everything else
+    if (originalResolveRequest) {
+      return originalResolveRequest(context, moduleName, platform);
+    }
+    return context.resolveRequest(context, moduleName, platform);
+  };
+}
+
+// Add support for @ alias (separate from React resolution)
 config.resolver.alias = {
   ...(config.resolver.alias || {}),
   '@': path.resolve(projectRoot),

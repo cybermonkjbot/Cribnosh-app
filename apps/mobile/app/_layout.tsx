@@ -1,4 +1,6 @@
 // react-native-reanimated must be imported FIRST, before any other imports
+import 'react-native-reanimated';
+
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import {
   DarkTheme,
@@ -14,7 +16,6 @@ import * as Updates from 'expo-updates';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Platform, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 
