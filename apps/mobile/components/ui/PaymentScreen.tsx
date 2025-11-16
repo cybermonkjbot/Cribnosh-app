@@ -47,6 +47,7 @@ export default function PaymentScreen({
   const [showRegionModal, setShowRegionModal] = useState(false);
   const [showMultipleChefsModal, setShowMultipleChefsModal] = useState(false);
   const [hasCheckedMultipleChefs, setHasCheckedMultipleChefs] = useState(false);
+  const [cartOrderNote, setCartOrderNote] = useState<string | undefined>(undefined);
 
   // Use hooks instead of RTK Query
   const { getCart } = useCart();
@@ -70,6 +71,21 @@ export default function PaymentScreen({
       loadCart();
     }
   }, [orderTotal, getCart]);
+
+  // Load order note from storage
+  useEffect(() => {
+    const loadOrderNote = async () => {
+      try {
+        const savedNote = await SecureStore.getItemAsync('cart_order_note');
+        if (savedNote && savedNote.trim()) {
+          setCartOrderNote(savedNote);
+        }
+      } catch (error) {
+        console.warn('Failed to load order note:', error);
+      }
+    };
+    loadOrderNote();
+  }, []);
 
   // Regional availability check
   const { checkAddress, isChecking: isCheckingRegion } =
@@ -167,6 +183,9 @@ export default function PaymentScreen({
       }
 
       // Step 4: Create order from cart after payment
+      // Use note from props, storage, or empty string
+      const finalSpecialInstructions = specialInstructions || cartOrderNote || undefined;
+      
       const orderResult = await createOrderFromCart({
         payment_intent_id: paymentIntentId,
         delivery_address: deliveryAddress
@@ -178,7 +197,7 @@ export default function PaymentScreen({
               country: deliveryAddress.country,
             }
           : undefined,
-        special_instructions: specialInstructions,
+        special_instructions: finalSpecialInstructions,
         nosh_points_applied: noshPointsApplied,
       });
 
@@ -186,11 +205,12 @@ export default function PaymentScreen({
         throw new Error("Failed to create order: Order result is invalid");
       }
 
-      // Clear discount info after successful order
+      // Clear discount info and order note after successful order
       try {
         await SecureStore.deleteItemAsync('cart_discount_info');
+        await SecureStore.deleteItemAsync('cart_order_note');
       } catch (error) {
-        console.warn('Failed to clear discount info:', error);
+        console.warn('Failed to clear cart data:', error);
       }
 
       const orderId = orderResult.order_id;

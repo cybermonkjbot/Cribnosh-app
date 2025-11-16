@@ -7,15 +7,13 @@ import { OrdersCampaignBanner } from "@/components/ui/OrdersCampaignBanner";
 import { PremiumHeader } from "@/components/ui/PremiumHeader";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { Order as ApiOrder, CustomOrder } from "@/types/customer";
-import { useRouter } from "expo-router";
-import { useState, useEffect, useCallback } from "react";
-import { useOrders } from "@/hooks/useOrders";
-import { getSessionToken } from "@/lib/convexClient";
-import { useQuery } from "convex/react";
-import { useMemo } from "react";
-import { api } from '@/convex/_generated/api';
 import { useAuthContext } from "@/contexts/AuthContext";
+import { api } from '@/convex/_generated/api';
+import { getSessionToken } from "@/lib/convexClient";
+import { Order as ApiOrder, CustomOrder } from "@/types/customer";
+import { useQuery } from "convex/react";
+import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import Animated, {
   Extrapolate,
@@ -227,46 +225,19 @@ export default function OrdersScreen() {
 
     // Get order items with images for stacking
     const orderItemsWithImages = apiOrder.order_items
-      ? apiOrder.order_items.map((item: any) => {
-          const imageUrl = item.image_url || item.imageUrl || item.image;
-          // Debug: log image URL availability
-          if (!imageUrl) {
-            console.log('Order item missing image:', {
-              name: item.name || item.dish_name,
-              dish_id: item.dish_id,
-              has_image_url: !!item.image_url,
-              has_imageUrl: !!item.imageUrl,
-              has_image: !!item.image,
-              fullItem: item,
-            });
-          }
-          return {
+        ? apiOrder.order_items.map((item: any) => ({
             _id: item._id || item.id,
             dish_id: item.dish_id || item.id,
             name: item.name || item.dish_name,
-            image_url: imageUrl,
-          };
-        })
+            image_url: item.image_url || item.imageUrl || item.image,
+          }))
       : apiOrder.items
-        ? apiOrder.items.map((item: any) => {
-            const imageUrl = item.image_url || item.imageUrl || item.image;
-            if (!imageUrl) {
-              console.log('Order item (items array) missing image:', {
-                name: item.dish_name || item.name,
-                dish_id: item.dish_id,
-                has_image_url: !!item.image_url,
-                has_imageUrl: !!item.imageUrl,
-                has_image: !!item.image,
-                fullItem: item,
-              });
-            }
-            return {
-              _id: item._id || item.id,
-              dish_id: item.dish_id || item.id,
-              name: item.dish_name || item.name,
-              image_url: imageUrl,
-            };
-          })
+        ? apiOrder.items.map((item: any) => ({
+            _id: item._id || item.id,
+            dish_id: item.dish_id || item.id,
+            name: item.dish_name || item.name,
+            image_url: item.image_url || item.imageUrl || item.image,
+          }))
         : [];
 
     // Get description

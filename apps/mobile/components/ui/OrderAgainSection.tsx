@@ -33,7 +33,6 @@ interface OrderAgainSectionProps {
   onItemPress?: (item: OrderItem) => void;
   onAddItem?: (itemId: string) => Promise<void>;
   onAddEntireOrder?: (orderId: string) => Promise<void>;
-  onViewDetails?: (itemId: string) => void;
   hasInitialLoadCompleted?: boolean;
 }
 
@@ -44,7 +43,6 @@ export function OrderAgainSection({
   onItemPress,
   onAddItem,
   onAddEntireOrder,
-  onViewDetails,
   hasInitialLoadCompleted = false,
 }: OrderAgainSectionProps) {
   const horizontalScrollRef = useRef<ScrollView>(null);
@@ -226,7 +224,7 @@ export function OrderAgainSection({
               elevation: 3,
             }}
             onPress={() => {
-              if (onAddItem || onAddEntireOrder || onViewDetails) {
+              if (onAddItem || onAddEntireOrder) {
                 setSelectedItem(item);
                 setModalVisible(true);
               } else {
@@ -308,7 +306,6 @@ export function OrderAgainSection({
         item={selectedItem}
         onAddItem={onAddItem || (async () => {})}
         onAddEntireOrder={onAddEntireOrder || (async () => {})}
-        onViewDetails={onViewDetails || (() => {})}
       />
     </Animated.View>
   );

@@ -1556,16 +1556,6 @@ export function MainScreen() {
     }
   }, [addOrderToCart]);
 
-  // Handler for viewing details from OrderAgainSection
-  const handleViewDetailsFromOrderAgain = useCallback((itemId: string) => {
-    handleMealPress({
-      id: itemId,
-      name: '',
-      price: '',
-      kitchen: '',
-      image: undefined,
-    });
-  }, [handleMealPress]);
 
   const handleSimilarMealPress = useCallback((mealId: string) => {
     // Update selected meal with new mealId - MealItemDetails will automatically fetch the data
@@ -1971,7 +1961,6 @@ export function MainScreen() {
                 hasInitialLoadCompleted={hasInitialLoadCompleted}
                 onAddItem={handleAddItemFromOrderAgain}
                 onAddEntireOrder={handleAddEntireOrderFromOrderAgain}
-                onViewDetails={handleViewDetailsFromOrderAgain}
               />
               
               {/* Conditional Rendering: Normal View vs Filtered View */}

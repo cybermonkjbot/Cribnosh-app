@@ -12,6 +12,7 @@ import { usePayments } from "@/hooks/usePayments";
 import { SkeletonBox } from "@/components/ui/MealItemDetails/Skeletons/ShimmerBox";
 import { SkeletonWithTimeout } from "@/components/ui/SkeletonWithTimeout";
 import { AddCardSheet } from "@/components/ui/AddCardSheet";
+import { ImageStack } from "@/components/ui/ImageStack";
 
 const PAYMENT_METHOD_STORAGE_KEY = "cart_selected_payment_method";
 
@@ -441,58 +442,7 @@ export default function SidesScreen() {
               <View style={styles.itemsContainer}>
                 {/* Stacked Image Gallery with "Your order" text */}
                 <View style={styles.orderHeaderSection}>
-                  <View style={styles.imageStackContainer}>
-                    {cartData.items.slice(0, 4).map((item, index) => {
-                      const offset = index * 8; // Stagger offset for scattered effect
-                      const rotation = (index % 2 === 0 ? 1 : -1) * (index * 3); // Alternate rotation
-                      return (
-                        <View
-                          key={item._id}
-                          style={[
-                            styles.stackedImage,
-                            {
-                              transform: [
-                                { translateX: offset },
-                                { translateY: offset * 0.5 },
-                                { rotate: `${rotation}deg` },
-                              ],
-                              zIndex: cartData.items.length - index,
-                            },
-                          ]}
-                        >
-                          {item.image_url ? (
-                            <Image
-                              source={{ uri: item.image_url }}
-                              style={styles.stackedImageContent}
-                            />
-                          ) : (
-                            <View style={[styles.stackedImageContent, styles.placeholderImage]}>
-                              <Text style={styles.placeholderText}>📦</Text>
-                            </View>
-                          )}
-                        </View>
-                      );
-                    })}
-                    {cartData.items.length > 4 && (
-                      <View
-                        style={[
-                          styles.stackedImage,
-                          styles.moreItemsOverlay,
-                          {
-                            transform: [
-                              { translateX: 4 * 8 },
-                              { translateY: 4 * 8 * 0.5 },
-                            ],
-                            zIndex: 0,
-                          },
-                        ]}
-                      >
-                        <View style={[styles.stackedImageContent, styles.moreItemsContainer]}>
-                          <Text style={styles.moreItemsText}>+{cartData.items.length - 4}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
+                  <ImageStack items={cartData.items} size="large" maxItems={4} />
                   <View style={styles.orderTextContainer}>
                     <Text style={styles.yourOrderText}>Your order</Text>
                     <View style={styles.orderDetailsRow}>
@@ -930,13 +880,6 @@ const styles = StyleSheet.create({
   mainItemRow: {
     marginBottom: 16,
   },
-  placeholderImage: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 32,
-  },
   sidesSection: {
     marginTop: 16,
   },
@@ -1008,48 +951,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
     gap: 16,
-  },
-  imageStackContainer: {
-    position: 'relative',
-    width: 120,
-    height: 120,
-  },
-  stackedImage: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#EAEAEA',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  stackedImageContent: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-  },
-  moreItemsOverlay: {
-    backgroundColor: '#02120A',
-    borderColor: '#374151',
-  },
-  moreItemsContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#02120A',
-  },
-  moreItemsText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
   },
   yourOrderText: {
     fontSize: 24,

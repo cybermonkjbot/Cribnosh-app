@@ -1,5 +1,6 @@
 import { api } from '@/convex/_generated/api';
 import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -427,6 +428,23 @@ export default function ProfileScreen() {
     };
   });
 
+  // Blur overlay style - appears when sheet is expanded
+  const blurOverlayStyle = useAnimatedStyle(() => {
+    'worklet';
+    const progress = (sheetHeight.value - SHEET_COLLAPSED_HEIGHT) / (SHEET_EXPANDED_HEIGHT - SHEET_COLLAPSED_HEIGHT);
+    const clampedProgress = Math.min(Math.max(progress, 0), 1);
+    const opacity = interpolate(
+      clampedProgress,
+      [0, 0.2],
+      [0, 1],
+      Extrapolate.CLAMP
+    );
+    return {
+      opacity,
+      pointerEvents: opacity > 0 ? 'auto' : 'none',
+    };
+  });
+
 
 
   // Safe scroll to function - removed unused function
@@ -714,6 +732,15 @@ export default function ProfileScreen() {
             <View style={styles.bottomPadding} />
           </Animated.ScrollView>
 
+          {/* Blur overlay - appears when sheet is expanded */}
+          <Animated.View style={[styles.blurOverlay, blurOverlayStyle]} pointerEvents="none">
+            <BlurView 
+              intensity={50} 
+              tint="light" 
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
+
           {/* Bragging Cards Section - Sheet (Positioned absolutely at bottom) */}
             <GestureDetector gesture={sheetGesture}>
             <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
@@ -729,11 +756,6 @@ export default function ProfileScreen() {
                         <Text style={styles.sheetTitle}>
                           Your Food Stats
                         </Text>
-                        <TouchableOpacity onPress={refreshBraggingData} activeOpacity={0.7}>
-                          <Text style={styles.sheetRefresh}>
-                            Refresh
-                          </Text>
-                        </TouchableOpacity>
                     </Animated.View>
                       
                     <ScrollView
@@ -918,22 +940,13 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 16,
     paddingHorizontal: 4,
   },
   sheetTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#094327', // Cribnosh green
-    fontFamily: 'Mukta',
-  },
-  sheetRefresh: {
-    fontSize: 14,
-    color: '#094327', // Cribnosh green
-    opacity: 0.8,
+    color: '#031A0E', // Dark green
     fontFamily: 'Mukta',
   },
   bottomPadding: {
@@ -965,5 +978,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: 'Mukta',
     letterSpacing: 0.2,
+  },
+  blurOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+    pointerEvents: 'none',
   },
 }); 

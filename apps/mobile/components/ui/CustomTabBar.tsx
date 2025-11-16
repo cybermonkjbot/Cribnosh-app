@@ -7,11 +7,13 @@ import { CustomHomeIcon } from './CustomHomeIcon';
 import { CustomOrdersIcon } from './CustomOrdersIcon';
 import { CustomProfileIcon } from './CustomProfileIcon';
 import { IconSymbol } from './IconSymbol';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { scrollToTop, setActiveHeaderTab } = useAppContext();
+  const router = useRouter();
   const lastTapRef = useRef<number>(0);
   const doubleTapDelay = 300; // milliseconds
 
@@ -21,6 +23,16 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       target: route.key,
       canPreventDefault: true,
     });
+
+    // Special handling for orders tab - always navigate to root regardless of stack
+    if (route.name === 'orders') {
+      if (!event.defaultPrevented) {
+        // Always use router.replace to ensure we go to orders root, resetting any nested stack
+        // This works whether we're switching from another tab or already on orders tab
+        router.replace('/(tabs)/orders');
+      }
+      return;
+    }
 
     if (!isFocused && !event.defaultPrevented) {
       navigation.navigate(route.name);

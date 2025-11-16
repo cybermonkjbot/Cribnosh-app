@@ -2,9 +2,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
 import { Link, router } from "expo-router";
-import { CarFront, Utensils } from "lucide-react-native";
+import { CarFront, Utensils, MessageSquare } from "lucide-react-native";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import IncrementalOrderAmount from "../IncrementalOrderAmount";
@@ -32,6 +32,7 @@ export default function CartScreen() {
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [freeDelivery, setFreeDelivery] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [orderNote, setOrderNote] = useState<string>("");
 
   // Use cart hook for Convex mutations (update, remove)
   const { updateCartItem, removeFromCart } = useCart();
@@ -49,6 +50,39 @@ export default function CartScreen() {
     };
     loadToken();
   }, [isAuthenticated]);
+
+  // Load saved order note from storage
+  useEffect(() => {
+    const loadOrderNote = async () => {
+      try {
+        const savedNote = await SecureStore.getItemAsync('cart_order_note');
+        if (savedNote) {
+          setOrderNote(savedNote);
+        }
+      } catch (error) {
+        console.warn('Failed to load order note:', error);
+      }
+    };
+    loadOrderNote();
+  }, []);
+
+  // Save order note to storage when it changes
+  useEffect(() => {
+    const saveOrderNote = async () => {
+      try {
+        if (orderNote.trim()) {
+          await SecureStore.setItemAsync('cart_order_note', orderNote);
+        } else {
+          await SecureStore.deleteItemAsync('cart_order_note');
+        }
+      } catch (error) {
+        console.warn('Failed to save order note:', error);
+      }
+    };
+    // Debounce saving to avoid too many writes
+    const timeoutId = setTimeout(saveOrderNote, 500);
+    return () => clearTimeout(timeoutId);
+  }, [orderNote]);
 
   // Use reactive Convex query for cart data - this will automatically update when cart changes
   const cartData = useQuery(
@@ -93,7 +127,20 @@ export default function CartScreen() {
   const isEmpty = cartData !== undefined && cartItems.length === 0;
 
   const handleBack = () => {
-    router.back();
+    // Cart is nested under /orders/cart, so going back once takes us to /orders
+    // We need to go back twice to skip the orders screen and get to where we actually came from
+    if (router.canGoBack()) {
+      router.back();
+      // Go back again after a short delay to skip the orders screen
+      setTimeout(() => {
+        if (router.canGoBack()) {
+          router.back();
+        }
+      }, 50);
+    } else {
+      // Can't go back, navigate to home
+      router.replace("/(tabs)");
+    }
   };
 
   const handleQuantityChange = useCallback(async (index: number, newQuantity: number) => {
@@ -642,6 +689,33 @@ export default function CartScreen() {
                   </Pressable>
                 </View>
               </View>
+
+              {/* Order Note Section */}
+              <View style={[styles.sectionRow, styles.sectionRowSpacing]}>
+                <View style={styles.sectionLeft}>
+                  <View style={styles.iconContainer}>
+                    <MessageSquare size={32} color="#094327" />
+                  </View>
+                  <View style={styles.sectionText}>
+                    <Text style={styles.sectionTitle}>Order Note</Text>
+                    <Text style={styles.sectionDescription}>
+                      Add special instructions for your order
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.noteInputWrapper}>
+                <TextInput
+                  style={styles.noteInput}
+                  placeholder="E.g., Please leave at the door, No onions, etc."
+                  placeholderTextColor="#9CA3AF"
+                  value={orderNote}
+                  onChangeText={setOrderNote}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </View>
             </View>
           </View>
 
@@ -957,5 +1031,21 @@ const styles = StyleSheet.create({
     fontSize: 18, // text-lg
     fontWeight: '700', // font-bold
     color: '#FFFFFF', // text-white
+  },
+  noteInputWrapper: {
+    marginTop: 12,
+    marginBottom: 8,
+    paddingLeft: 48, // Align with text below icon (iconContainer 32px + padding 8px + gap 8px)
+  },
+  noteInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    color: '#111827',
+    minHeight: 80,
+    backgroundColor: '#FFFFFF',
+    textAlignVertical: 'top',
   },
 });

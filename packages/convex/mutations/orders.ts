@@ -31,7 +31,7 @@ type OrderItem = {
 };
 
 // Define OrderStatus and PaymentStatus types
-type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'on_the_way' | 'out_for_delivery' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
 type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed';
 
 // Create a new order
@@ -496,9 +496,12 @@ export const updateStatus = mutation({
       v.literal('confirmed'),
       v.literal('preparing'),
       v.literal('ready'),
+      v.literal('on_the_way'),
+      v.literal('out_for_delivery'),
       v.literal('delivered'),
+      v.literal('completed'),
       v.literal('cancelled'),
-      v.literal('completed')
+      v.literal('refunded')
     ) 
   },
   handler: async (ctx, args) => {

@@ -7,6 +7,7 @@ import {
   Package,
   Star,
   Phone,
+  FileText,
 } from "lucide-react-native";
 import { useState, useEffect } from "react";
 import { useOrders } from "@/hooks/useOrders";
@@ -28,13 +29,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // Helper function to check if order is active
 const isOrderActive = (status: string): boolean => {
-  const activeStatuses = ["pending", "confirmed", "preparing", "on-the-way", "on_the_way"];
+  const activeStatuses = [
+    "pending", 
+    "confirmed", 
+    "preparing", 
+    "ready",
+    "on-the-way", 
+    "on_the_way",
+    "out_for_delivery"
+  ];
   return activeStatuses.includes(status.toLowerCase());
 };
 
 // Helper function to check if order is completed
 const isOrderCompleted = (status: string): boolean => {
-  return status.toLowerCase() === "completed";
+  const completedStatuses = ["completed", "delivered"];
+  return completedStatuses.includes(status.toLowerCase());
 };
 
 export default function OrderDetailsScreen() {
@@ -183,13 +193,20 @@ export default function OrderDetailsScreen() {
         return "#3B82F6";
       case "preparing":
         return "#F59E0B";
+      case "ready":
+        return "#F59E0B"; // Same as preparing
       case "on-the-way":
       case "on_the_way":
+      case "out_for_delivery":
         return "#3B82F6";
-      case "cancelled":
-        return "#EF4444";
+      case "delivered":
+        return "#10B981"; // Same as completed
       case "completed":
         return "#10B981";
+      case "cancelled":
+        return "#EF4444";
+      case "refunded":
+        return "#6B7280"; // Gray for refunded
       default:
         return "#6B7280";
     }
@@ -203,15 +220,26 @@ export default function OrderDetailsScreen() {
         return "Confirmed";
       case "preparing":
         return "Preparing";
+      case "ready":
+        return "Ready";
       case "on-the-way":
       case "on_the_way":
+      case "out_for_delivery":
         return "On the Way";
-      case "cancelled":
-        return "Cancelled";
+      case "delivered":
+        return "Delivered";
       case "completed":
         return "Completed";
+      case "cancelled":
+        return "Cancelled";
+      case "refunded":
+        return "Refunded";
       default:
-        return status;
+        // Capitalize first letter and replace underscores with spaces
+        return status
+          .split("_")
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(" ");
     }
   };
 
@@ -300,8 +328,8 @@ export default function OrderDetailsScreen() {
 
             {/* Order Status */}
             <View style={styles.statusContainer}>
-              <View style={styles.statusIndicator} />
-              <Text style={styles.statusText}>{getStatusText(order.status).toLowerCase()}</Text>
+              <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(order.status) }]} />
+              <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>{getStatusText(order.status)}</Text>
             </View>
 
             {/* Kitchen Info */}
@@ -322,6 +350,21 @@ export default function OrderDetailsScreen() {
                 <Text style={styles.callKitchenText}>Call</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Order Note */}
+            {(order.special_instructions || order.specialInstructions) && (
+              <View style={styles.noteSection}>
+                <View style={styles.noteHeader}>
+                  <View style={styles.iconBadge}>
+                    <FileText size={16} color="white" />
+                  </View>
+                  <Text style={styles.sectionTitle}>Order Note</Text>
+                </View>
+                <Text style={styles.noteText}>
+                  {order.special_instructions || order.specialInstructions}
+                </Text>
+              </View>
+            )}
 
             {/* Order Items */}
             <View style={styles.itemsSection}>
@@ -368,21 +411,111 @@ export default function OrderDetailsScreen() {
         {/* Footer with Action Buttons */}
         <SafeAreaView style={styles.footerContainer} edges={['bottom']}>
           <View style={styles.footer}>
-            {isActive ? (
-              <TouchableOpacity
-                style={styles.trackButton}
-                onPress={handleTrackOrder}
-              >
-                <Text style={styles.trackButtonText}>Track Order</Text>
-              </TouchableOpacity>
-            ) : order.status === "completed" ? (
-              <TouchableOpacity
-                style={styles.trackButton}
-                onPress={handleNavigateToRateOrder}
-              >
-                <Text style={styles.trackButtonText}>Rate Order</Text>
-              </TouchableOpacity>
-            ) : null}
+            {(() => {
+              const status = order.status?.toLowerCase();
+              
+              // Pending: Show Cancel only (nothing to track yet)
+              if (status === "pending") {
+                return (
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={handleCancelOrder}
+                    disabled={isCancelling}
+                  >
+                    <Text style={styles.cancelButtonText}>
+                      {isCancelling ? "Cancelling..." : "Cancel Order"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }
+              
+              // Confirmed: Show Track Order and Cancel options
+              if (status === "confirmed") {
+                return (
+                  <View style={styles.footerButtonsRow}>
+                    <TouchableOpacity
+                      style={[styles.trackButton, styles.footerButtonHalf]}
+                      onPress={handleTrackOrder}
+                    >
+                      <Text style={styles.trackButtonText}>Track Order</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.cancelButton, styles.footerButtonHalf]}
+                      onPress={handleCancelOrder}
+                      disabled={isCancelling}
+                    >
+                      <Text style={styles.cancelButtonText}>
+                        {isCancelling ? "Cancelling..." : "Cancel"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+              
+              // Preparing, Ready: Show Track Order only (not cancellable at this stage)
+              if (status === "preparing" || status === "ready") {
+                return (
+                  <TouchableOpacity
+                    style={styles.trackButton}
+                    onPress={handleTrackOrder}
+                  >
+                    <Text style={styles.trackButtonText}>Track Order</Text>
+                  </TouchableOpacity>
+                );
+              }
+              
+              // On the Way / Out for Delivery: Show Track Order only
+              if (status === "on-the-way" || status === "on_the_way" || status === "out_for_delivery") {
+                return (
+                  <TouchableOpacity
+                    style={styles.trackButton}
+                    onPress={handleTrackOrder}
+                  >
+                    <Text style={styles.trackButtonText}>Track Order</Text>
+                  </TouchableOpacity>
+                );
+              }
+              
+              // Completed or Delivered: Show Rate Order
+              if (status === "completed" || status === "delivered") {
+                return (
+                  <TouchableOpacity
+                    style={styles.trackButton}
+                    onPress={handleNavigateToRateOrder}
+                  >
+                    <Text style={styles.trackButtonText}>Rate Order</Text>
+                  </TouchableOpacity>
+                );
+              }
+              
+              // Cancelled: Show message
+              if (status === "cancelled") {
+                return (
+                  <View style={styles.cancelledMessage}>
+                    <Text style={styles.cancelledText}>This order has been cancelled</Text>
+                  </View>
+                );
+              }
+              
+              // Refunded: Show message
+              if (status === "refunded") {
+                return (
+                  <View style={styles.cancelledMessage}>
+                    <Text style={styles.cancelledText}>This order has been refunded</Text>
+                  </View>
+                );
+              }
+              
+              // Default: Show Track Order for any other status (fallback)
+              return (
+                <TouchableOpacity
+                  style={styles.trackButton}
+                  onPress={handleTrackOrder}
+                >
+                  <Text style={styles.trackButtonText}>Track Order</Text>
+                </TouchableOpacity>
+              );
+            })()}
           </View>
         </SafeAreaView>
 
@@ -496,12 +629,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#111827",
     marginRight: 8,
   },
   statusText: {
-    color: "#6B7280",
     fontSize: 14,
+    fontWeight: '500',
     textTransform: "capitalize",
   },
   sectionRow: {
@@ -538,6 +670,24 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 18,
     fontWeight: "600",
+  },
+  noteSection: {
+    marginTop: 32,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 16,
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  noteText: {
+    color: "#111827",
+    fontSize: 16,
+    lineHeight: 24,
+    paddingLeft: 40, // Align with text below icon
   },
   callKitchenButton: {
     backgroundColor: '#F3F4F6',
@@ -632,6 +782,24 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
+  footerButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  footerButtonHalf: {
+    flex: 1,
+  },
+  cancelledMessage: {
+    padding: 16,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  cancelledText: {
+    color: '#DC2626',
+    fontSize: 16,
+    fontWeight: '500',
+  },
   trackButton: {
     backgroundColor: '#FF3B30',
     borderRadius: 16,
@@ -645,6 +813,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+  cancelButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   actionButton: {
     borderRadius: 16,
     padding: 20,
@@ -652,16 +833,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#dc2626',
-  },
   rateButton: {
     backgroundColor: '#FF3B30',
-  },
-  cancelButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
   },
   rateButtonText: {
     color: '#FFFFFF',

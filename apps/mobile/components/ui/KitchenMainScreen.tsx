@@ -1,7 +1,6 @@
 import { useChefs } from '@/hooks/useChefs';
 import { useTopPosition } from '@/utils/positioning';
 import { BlurView } from 'expo-blur';
-import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -13,9 +12,8 @@ import Animated, {
 import { Circle, Path, Svg } from 'react-native-svg';
 import { Mascot } from '../Mascot';
 import { AIChatDrawer } from './AIChatDrawer';
-import { GeneratingSuggestionsDemo } from './GeneratingSuggestionsDemo';
+import { GeneratingSuggestionsLoader } from './GeneratingSuggestionsLoader';
 import { BackgroundElements } from './KitchenMainScreen/BackgroundElements';
-import { FoodIllustrations } from './KitchenMainScreen/FoodIllustrations';
 import { KitchenBottomSheet } from './KitchenMainScreen/KitchenBottomSheet';
 import { KitchenIntroCard } from './KitchenMainScreen/KitchenIntroCard';
 import { NoshHeavenPlayer } from './NoshHeavenPlayer';
@@ -52,7 +50,6 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   onClose,
   onMealPress,
 }) => {
-  const router = useRouter();
   const topPosition = useTopPosition(20);
   const playIconScale = useSharedValue(1);
   const { getKitchenDetails, getKitchenFeaturedVideo } = useChefs();
@@ -88,7 +85,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
           if (details) {
             setKitchenDetails({ data: details });
           }
-        } catch (error) {
+        } catch {
           // Error already handled in hook
         } finally {
           setIsLoadingKitchenDetails(false);
@@ -108,7 +105,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
           if (video) {
             setFeaturedVideoData({ data: video });
           }
-        } catch (error) {
+        } catch {
           // Error already handled in hook
         } finally {
           setIsLoadingVideo(false);
@@ -184,7 +181,6 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       {/* Background with blur */}
       <View style={styles.background}>
         <BackgroundElements />
-        <FoodIllustrations />
         
         {/* Blur overlay */}
         <BlurView intensity={82.5} tint="light" style={styles.blurOverlay} />
@@ -274,7 +270,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       />
 
       {/* AI Chat Components */}
-      <GeneratingSuggestionsDemo
+      <GeneratingSuggestionsLoader
         isVisible={isGeneratingSuggestions}
         onComplete={handleGeneratingSuggestionsComplete}
       />

@@ -7,6 +7,7 @@ import Animated, {
     withDelay,
     withTiming,
 } from 'react-native-reanimated';
+import { ImageStack } from './ImageStack';
 
 // Import the OrderStatus type from the orders page
 export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'on-the-way' | 'cancelled' | 'completed';
@@ -56,82 +57,6 @@ interface OrderCardProps {
   index?: number;
 }
 
-// Order Item Image Component with error handling
-const OrderItemImage: React.FC<{
-  item: OrderItemWithImage;
-  offset: number;
-  rotation: number;
-  zIndex: number;
-}> = ({ item, offset, rotation, zIndex }) => {
-  const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
-
-  // Reset error state when image_url changes
-  useEffect(() => {
-    setImageError(false);
-    setImageLoading(true);
-  }, [item.image_url]);
-
-  if (!item.image_url || imageError) {
-    return (
-      <View
-        style={[
-          styles.stackedImage,
-          {
-            transform: [
-              { translateX: offset },
-              { translateY: offset * 0.5 },
-              { rotate: `${rotation}deg` },
-            ],
-            zIndex,
-          },
-        ]}
-      >
-        <View style={[styles.stackedImageContent, styles.placeholderImage]}>
-          <Ionicons name="cube-outline" size={20} color="#9CA3AF" />
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View
-      style={[
-        styles.stackedImage,
-        {
-          transform: [
-            { translateX: offset },
-            { translateY: offset * 0.5 },
-            { rotate: `${rotation}deg` },
-          ],
-          zIndex,
-        },
-      ]}
-    >
-      <Image
-        source={{ uri: item.image_url }}
-        style={styles.stackedImageContent}
-        onError={(error) => {
-          console.log('Image load error for order item:', item.name, item.image_url, error);
-          setImageError(true);
-          setImageLoading(false);
-        }}
-        onLoad={() => {
-          console.log('Image loaded successfully:', item.name, item.image_url);
-          setImageLoading(false);
-        }}
-        onLoadStart={() => {
-          setImageLoading(true);
-        }}
-      />
-      {imageLoading && (
-        <View style={[styles.stackedImageContent, styles.imageLoadingOverlay]}>
-          <Ionicons name="cube-outline" size={16} color="#9CA3AF" />
-        </View>
-      )}
-    </View>
-  );
-};
 
 // Group Avatar Component
 const GroupAvatars: React.FC<{ users: GroupUser[]; totalUsers: number }> = ({ users, totalUsers }) => {
@@ -272,30 +197,18 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     orderItems.forEach((item) => {
       // Get images from various possible fields
       const images = item.image_urls || item.images || (item.image_url ? [item.image_url] : []);
-      // Debug: log if no images found
-      if (images.length === 0) {
-        console.log('No images found for order item:', {
-          name: item.name,
-          dish_id: item.dish_id,
-          has_image_url: !!item.image_url,
-          has_imageUrl: !!item.imageUrl,
-          has_image: !!item.image,
-          has_image_urls: !!item.image_urls,
-          has_images: !!item.images,
-        });
-      }
       if (images.length > 0) {
         // Filter out invalid/empty URLs
         const validImages = images.filter(url => url && typeof url === 'string' && url.trim().length > 0);
         if (validImages.length > 0) {
-          // Create one entry per image for stacking
+        // Create one entry per image for stacking
           validImages.forEach((imageUrl, idx) => {
-            itemsWithImages.push({
-              ...item,
-              _id: `${item._id || item.dish_id || idx}_${idx}`,
-              image_url: imageUrl,
-            });
+          itemsWithImages.push({
+            ...item,
+            _id: `${item._id || item.dish_id || idx}_${idx}`,
+            image_url: imageUrl,
           });
+        });
         }
       }
     });
@@ -304,41 +217,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   // Render stacked images or fallback to icon
   const renderImageStack = () => {
     if (itemsWithImages.length > 0) {
-      const itemsToShow = itemsWithImages.slice(0, 4);
       return (
         <View style={styles.imageStackContainer}>
-          {itemsToShow.map((item, idx) => {
-            const offset = idx * 8;
-            const rotation = (idx % 2 === 0 ? 1 : -1) * (idx * 3);
-            return (
-              <OrderItemImage
-                key={item._id || item.dish_id || idx}
-                item={item}
-                offset={offset}
-                rotation={rotation}
-                zIndex={itemsWithImages.length - idx}
-              />
-            );
-          })}
-          {itemsWithImages.length > 4 && (
-            <View
-              style={[
-                styles.stackedImage,
-                styles.moreItemsOverlay,
-                {
-                  transform: [
-                    { translateX: 4 * 8 },
-                    { translateY: 4 * 8 * 0.5 },
-                  ],
-                  zIndex: 0,
-                },
-              ]}
-            >
-              <View style={[styles.stackedImageContent, styles.moreItemsContainer]}>
-                <Text style={styles.moreItemsText}>+{itemsWithImages.length - 4}</Text>
-              </View>
-            </View>
-          )}
+          <ImageStack items={itemsWithImages} size="small" maxItems={4} />
         </View>
       );
     }
@@ -641,63 +522,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   imageStackContainer: {
-    position: 'relative',
-    width: 48,
-    height: 48,
     marginRight: 12,
     marginLeft: 4,
     marginTop: 2,
-  },
-  stackedImage: {
-    position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#EAEAEA',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  stackedImageContent: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 6,
-  },
-  placeholderImage: {
-    backgroundColor: '#EAEAEA',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  moreItemsOverlay: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderColor: 'rgba(229, 231, 235, 0.5)',
-  },
-  moreItemsContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  moreItemsText: {
-    color: '#111827',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  imageLoadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 }); 

@@ -1,8 +1,8 @@
 import { v } from 'convex/values';
+import { api } from '../_generated/api';
 import { Id } from '../_generated/dataModel';
 import { query } from '../_generated/server';
-import { isAdmin, isStaff, requireAuth, getAuthenticatedUser } from '../utils/auth';
-import { api } from '../_generated/api';
+import { getAuthenticatedUser, isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 export const listByChef = query({
   args: { 
@@ -424,23 +424,37 @@ export const listByCustomer = query({
             let imageUrl: string | undefined = undefined;
             if (meal?.images && Array.isArray(meal.images) && meal.images.length > 0) {
               const firstImage = meal.images[0];
-              // Check if it's a Convex storage ID (starts with 'k' and is a valid ID format)
-              // or if it's already a URL
+              
+              // Check if it's already a URL
               if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
                 imageUrl = firstImage;
-              } else if (firstImage.startsWith('k')) {
-                // It's likely a Convex storage ID, get the URL
-                try {
-                  imageUrl = await ctx.storage.getUrl(firstImage as any);
-                } catch (error) {
-                  console.error('Failed to get storage URL for image:', firstImage, error);
-                  // Fallback to relative path
-                  imageUrl = `/api/files/${firstImage}`;
-                }
               } else {
-                // Fallback to relative path
-                imageUrl = `/api/files/${firstImage}`;
+                // Assume it's a Convex storage ID - try to get URL
+                try {
+                  // Convex storage IDs are valid Id<'storage'> types
+                  imageUrl = await ctx.storage.getUrl(firstImage as any);
+                  if (!imageUrl) {
+                    console.error('Storage getUrl returned null for:', firstImage, 'meal:', meal._id);
+                  }
+                } catch (error) {
+                  console.error('Failed to get storage URL for image:', {
+                    imageId: firstImage,
+                    mealId: meal._id,
+                    mealName: meal.name,
+                    error: error instanceof Error ? error.message : String(error),
+                  });
+                  // Don't set imageUrl if storage.getUrl fails
+                  imageUrl = undefined;
+                }
               }
+            } else {
+              console.log('Meal has no images:', {
+                mealId: meal?._id,
+                mealName: meal?.name,
+                dish_id: item.dish_id,
+                hasImages: !!meal?.images,
+                imagesLength: meal?.images?.length || 0,
+              });
             }
 
             return {
@@ -450,7 +464,11 @@ export const listByCustomer = query({
             };
           } catch (error) {
             // If meal not found, return item without image
-            console.error('Error enriching order item with meal data:', error);
+            console.error('Error enriching order item with meal data:', {
+              dish_id: item.dish_id,
+              itemName: item.name,
+              error: error instanceof Error ? error.message : String(error),
+            });
             return {
               ...item,
               image_url: undefined,
@@ -751,18 +769,35 @@ export const getEnrichedOrderBySessionToken = query({
             let imageUrl: string | undefined = undefined;
             if (meal?.images && Array.isArray(meal.images) && meal.images.length > 0) {
               const firstImage = meal.images[0];
+              
+              // Check if it's already a URL
               if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
                 imageUrl = firstImage;
-              } else if (firstImage.startsWith('k')) {
+              } else {
+                // Assume it's a Convex storage ID - try to get URL
                 try {
                   imageUrl = await ctx.storage.getUrl(firstImage as any);
+                  if (!imageUrl) {
+                    console.error('Storage getUrl returned null for:', firstImage, 'meal:', meal._id);
+                  }
                 } catch (error) {
-                  console.error('Failed to get storage URL for image:', firstImage, error);
-                  imageUrl = `/api/files/${firstImage}`;
+                  console.error('Failed to get storage URL for image:', {
+                    imageId: firstImage,
+                    mealId: meal._id,
+                    mealName: meal.name,
+                    error: error instanceof Error ? error.message : String(error),
+                  });
+                  imageUrl = undefined;
                 }
-              } else {
-                imageUrl = `/api/files/${firstImage}`;
               }
+            } else {
+              console.log('Meal has no images:', {
+                mealId: meal?._id,
+                mealName: meal?.name,
+                dish_id: item.dish_id,
+                hasImages: !!meal?.images,
+                imagesLength: meal?.images?.length || 0,
+              });
             }
 
             return {
@@ -771,7 +806,11 @@ export const getEnrichedOrderBySessionToken = query({
               imageUrl: imageUrl,
             };
           } catch (error) {
-            console.error('Error enriching order item with meal data:', error);
+            console.error('Error enriching order item with meal data:', {
+              dish_id: item.dish_id,
+              itemName: item.name,
+              error: error instanceof Error ? error.message : String(error),
+            });
             return {
               ...item,
               image_url: undefined,

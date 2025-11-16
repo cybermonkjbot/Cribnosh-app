@@ -17,9 +17,12 @@ export const updateOrderStatus = mutation({
       v.literal('confirmed'),
       v.literal('preparing'),
       v.literal('ready'),
+      v.literal('on_the_way'),
+      v.literal('out_for_delivery'),
       v.literal('delivered'),
+      v.literal('completed'),
       v.literal('cancelled'),
-      v.literal('completed')
+      v.literal('refunded')
     ),
     reason: v.optional(v.string())
   },

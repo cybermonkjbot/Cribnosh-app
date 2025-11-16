@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import {
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,7 +10,9 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { X } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
+import { BlurEffect } from '@/utils/blurEffects';
 
 interface OrderAgainQuickActionModalProps {
   isVisible: boolean;
@@ -25,7 +26,6 @@ interface OrderAgainQuickActionModalProps {
   } | null;
   onAddItem: (itemId: string) => Promise<void>;
   onAddEntireOrder: (orderId: string) => Promise<void>;
-  onViewDetails: (itemId: string) => void;
 }
 
 export function OrderAgainQuickActionModal({
@@ -34,7 +34,6 @@ export function OrderAgainQuickActionModal({
   item,
   onAddItem,
   onAddEntireOrder,
-  onViewDetails,
 }: OrderAgainQuickActionModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -71,12 +70,6 @@ export function OrderAgainQuickActionModal({
     }
   }, [item, onAddEntireOrder, onClose, isLoading]);
 
-  const handleViewDetails = useCallback(() => {
-    if (!item || isLoading) return;
-    onViewDetails(item.id);
-    onClose();
-  }, [item, onViewDetails, onClose, isLoading]);
-
   if (!isVisible || !item) {
     return null;
   }
@@ -94,6 +87,24 @@ export function OrderAgainQuickActionModal({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        {/* Blur Background */}
+        <View style={StyleSheet.absoluteFill}>
+          {Platform.OS === 'ios' ? (
+            <BlurView
+              intensity={80}
+              tint="light"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            <BlurEffect
+              intensity={80}
+              tint="light"
+              useGradient={true}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+        </View>
+
         <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.container}>
             {/* Header */}
@@ -104,23 +115,16 @@ export function OrderAgainQuickActionModal({
                 style={styles.closeButton} 
                 disabled={isLoading}
               >
-                <Ionicons name="close" size={24} color="#111827" />
+                <X size={24} color="#111827" />
               </TouchableOpacity>
             </View>
 
-            {/* Item Info */}
+            {/* Item Info - Centered */}
             <View style={styles.itemInfo}>
-              <Image
-                source={{ uri: item.image }}
-                style={styles.itemImage}
-                resizeMode="cover"
-              />
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemName} numberOfLines={2}>
-                  {item.name}
-                </Text>
-                <Text style={styles.itemPrice}>{item.price}</Text>
-              </View>
+              <Text style={styles.itemName} numberOfLines={2}>
+                {item.name}
+              </Text>
+              <Text style={styles.itemPrice}>{item.price}</Text>
             </View>
 
             {/* Action Buttons */}
@@ -134,10 +138,7 @@ export function OrderAgainQuickActionModal({
                 {loadingAction === 'add-item' ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <>
-                    <Ionicons name="add-circle-outline" size={20} color="#fff" />
-                    <Text style={styles.primaryButtonText}>Add just this item</Text>
-                  </>
+                  <Text style={styles.primaryButtonText}>Add just this item</Text>
                 )}
               </TouchableOpacity>
 
@@ -149,24 +150,12 @@ export function OrderAgainQuickActionModal({
                   activeOpacity={0.8}
                 >
                   {loadingAction === 'add-order' ? (
-                    <ActivityIndicator color="#094327" size="small" />
+                    <ActivityIndicator color="#ff3b30" size="small" />
                   ) : (
-                    <>
-                      <Ionicons name="receipt-outline" size={20} color="#094327" />
-                      <Text style={styles.secondaryButtonText}>Add entire last order</Text>
-                    </>
+                    <Text style={styles.secondaryButtonText}>Add entire last order</Text>
                   )}
                 </TouchableOpacity>
               )}
-
-              <TouchableOpacity
-                style={styles.tertiaryButton}
-                onPress={handleViewDetails}
-                disabled={isLoading}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.tertiaryButtonText}>View Details</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </SafeAreaView>
@@ -178,7 +167,6 @@ export function OrderAgainQuickActionModal({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FAFFFA',
   },
   container: {
     flex: 1,
@@ -206,36 +194,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   itemInfo: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  itemImage: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    marginRight: 16,
-  },
-  itemDetails: {
-    flex: 1,
-    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingBottom: 24,
   },
   itemName: {
     fontFamily: 'Inter',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     lineHeight: 24,
     color: '#111827',
-    marginBottom: 6,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   itemPrice: {
     fontFamily: 'Inter',
     fontSize: 18,
     fontWeight: '700',
     lineHeight: 24,
-    color: '#094327',
+    color: '#111827',
+    textAlign: 'center',
   },
   actionsContainer: {
     gap: 12,
@@ -250,7 +228,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButton: {
-    backgroundColor: '#094327',
+    backgroundColor: '#ff3b30',
   },
   primaryButtonText: {
     fontFamily: 'Inter',
@@ -260,29 +238,16 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   secondaryButton: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#094327',
+    borderColor: '#ff3b30',
   },
   secondaryButtonText: {
     fontFamily: 'Inter',
-    color: '#094327',
+    color: '#ff3b30',
     fontSize: 16,
     fontWeight: '600',
     lineHeight: 24,
-  },
-  tertiaryButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tertiaryButtonText: {
-    fontFamily: 'Inter',
-    color: '#094327',
-    fontSize: 16,
-    fontWeight: '600',
-    lineHeight: 24,
-    textDecorationLine: 'underline',
   },
 });
 
