@@ -7,7 +7,7 @@ export default defineSchema({
     url: v.string(), // Original URL or path
     storageId: v.id('_storage'), // Convex storage ID
     contentType: v.string(),
-    purpose: v.string(), // e.g., 'welcome-email', 'logo', 'social-icon'
+    purpose: v.string(),
     alt: v.optional(v.string()),
     metadata: v.optional(v.object({
       width: v.optional(v.number()),
