@@ -847,6 +847,12 @@ export function MainScreen() {
     }
   }, []);
 
+  // Helper to set scrolling state (called from worklet via runOnJS)
+  const setScrollingState = useCallback((isScrollingValue: boolean) => {
+    isScrolling.current = isScrollingValue;
+    setIsUserScrolling(isScrollingValue);
+  }, []);
+
   // Helper to reset scrolling state after scroll ends
   const resetScrollingState = useCallback(() => {
     if (scrollTimeoutRef.current) {
@@ -1232,11 +1238,9 @@ export function MainScreen() {
           const scrollPosition = event.contentOffset.y;
           scrollY.value = scrollPosition;
           
-          // Track if user is scrolling
-          if (!isScrolling.current) {
-            isScrolling.current = true;
-            runOnJS(setIsUserScrolling)(true);
-          }
+          // Track if user is scrolling - use runOnJS to update ref from JS thread
+          // We need to check and set this on the JS thread to avoid ref access in worklet
+          runOnJS(setScrollingState)(true);
           
           // Reset scrolling state after scroll ends
           runOnJS(resetScrollingState)();
@@ -1290,6 +1294,7 @@ export function MainScreen() {
       updateHeaderStickyState,
       triggerHapticFeedback,
       resetScrollingState,
+      setScrollingState,
     ]
   );
   

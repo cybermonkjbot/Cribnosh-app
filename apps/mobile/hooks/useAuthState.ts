@@ -1,4 +1,5 @@
 import { api } from '@/convex/_generated/api';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { clearSessionToken, getConvexClient, resetConvexClients } from "../lib/convexClient";
@@ -11,7 +12,6 @@ import {
   storeAuthData,
 } from "../utils/authUtils";
 import { validateAndClearInvalidSession } from "../utils/sessionValidation";
-import { navigateToSignIn } from "../utils/signInNavigationGuard";
 
 export interface UseAuthStateReturn {
   // State
@@ -225,9 +225,9 @@ export const useAuthState = (): UseAuthStateReturn => {
         user: null,
       });
 
-      // Navigate to sign-in screen after logout
-      console.log("Logout successful, navigating to sign-in");
-      navigateToSignIn({ notDismissable: false });
+      // Navigate to home after logout
+      console.log("Logout successful, navigating to home");
+      router.replace('/(tabs)');
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to logout";
@@ -241,14 +241,14 @@ export const useAuthState = (): UseAuthStateReturn => {
       await clearSessionToken();
       resetConvexClients();
       
-      // Still navigate to sign-in even on error
+      // Still navigate to home even on error
       if (isMountedRef.current) {
         setAuthState({
           isAuthenticated: false,
           token: null,
           user: null,
         });
-        navigateToSignIn({ notDismissable: false });
+        router.replace('/(tabs)');
       }
     }
   }, []);

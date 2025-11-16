@@ -1,11 +1,23 @@
-import { Stack } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback } from 'react';
 import { UserAccountDetailsScreen } from '../components/UserAccountDetailsScreen';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function AccountDetailsScreen() {
-  const { user } = useAuthContext();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthContext();
+  const router = useRouter();
+
+  // Redirect to home when not authenticated
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated && !authLoading) {
+        router.replace('/(tabs)');
+      }
+    }, [isAuthenticated, authLoading, router])
+  );
+
   return (
     <>
       <Stack.Screen 

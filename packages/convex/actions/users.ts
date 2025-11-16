@@ -3980,6 +3980,27 @@ function getWeekStartDate(year: number, week: number): Date {
   return ISOweekStart;
 }
 
+// Helper to normalize kitchen ID - validates and converts string to Convex ID
+async function normalizeKitchenId(ctx: any, id: string): Promise<Id<'kitchens'> | null> {
+  // Try to validate the ID by attempting to use it in a query
+  // If it's not a valid Convex ID format, the query will throw a validation error
+  try {
+    const kitchenId = id as Id<'kitchens'>;
+    // Use getKitchenDetails query to validate the ID exists
+    // This will throw if the ID format is invalid or return null if kitchen doesn't exist
+    const kitchenDetails = await ctx.runQuery(api.queries.kitchens.getKitchenDetails, {
+      kitchenId,
+    });
+    if (kitchenDetails) {
+      return kitchenId;
+    }
+    return null;
+  } catch (error) {
+    // If it's not a valid ID format or query fails, return null
+    return null;
+  }
+}
+
 /**
  * Customer Get Kitchen Meals - for mobile app direct Convex communication
  */
@@ -4013,9 +4034,15 @@ export const customerGetKitchenMeals = action({
         return { success: false as const, error: 'Authentication required' };
       }
 
+      // Normalize kitchen ID (validate and convert to Convex ID)
+      const kitchenId = await normalizeKitchenId(ctx, args.kitchen_id);
+      if (!kitchenId) {
+        return { success: false as const, error: 'Kitchen not found' };
+      }
+
       // Get chefId from kitchenId
       const chefId = await ctx.runQuery(api.queries.kitchens.getChefByKitchenId, {
-        kitchenId: args.kitchenId as Id<'kitchens'>,
+        kitchenId,
       });
 
       if (!chefId) {
@@ -4073,9 +4100,15 @@ export const customerGetPopularKitchenMeals = action({
         return { success: false as const, error: 'Authentication required' };
       }
 
+      // Normalize kitchen ID (validate and convert to Convex ID)
+      const kitchenId = await normalizeKitchenId(ctx, args.kitchen_id);
+      if (!kitchenId) {
+        return { success: false as const, error: 'Kitchen not found' };
+      }
+
       // Get chefId from kitchenId
       const chefId = await ctx.runQuery(api.queries.kitchens.getChefByKitchenId, {
-        kitchenId: args.kitchenId as Id<'kitchens'>,
+        kitchenId,
       });
 
       if (!chefId) {
@@ -4133,9 +4166,15 @@ export const customerSearchKitchenMeals = action({
         return { success: false as const, error: 'Authentication required' };
       }
 
+      // Normalize kitchen ID (validate and convert to Convex ID)
+      const kitchenId = await normalizeKitchenId(ctx, args.kitchen_id);
+      if (!kitchenId) {
+        return { success: false as const, error: 'Kitchen not found' };
+      }
+
       // Get chefId from kitchenId
       const chefId = await ctx.runQuery(api.queries.kitchens.getChefByKitchenId, {
-        kitchenId: args.kitchenId as Id<'kitchens'>,
+        kitchenId,
       });
 
       if (!chefId) {
@@ -6186,10 +6225,16 @@ export const customerGetKitchenFavoriteStatus = action({
         return { success: false as const, error: 'Authentication required' };
       }
 
+      // Normalize kitchen ID (validate and convert to Convex ID)
+      const kitchenId = await normalizeKitchenId(ctx, args.kitchenId);
+      if (!kitchenId) {
+        return { success: false as const, error: 'Kitchen not found' };
+      }
+
       // Get kitchen favorite status
       const favoriteStatus = await ctx.runQuery(api.queries.userFavorites.isKitchenFavorited, {
         userId: user._id,
-        kitchenId: args.kitchenId as Id<'kitchens'>,
+        kitchenId,
       });
 
       return {
@@ -6241,10 +6286,16 @@ export const customerAddKitchenFavorite = action({
         return { success: false as const, error: 'Access denied. Customer role required.' };
       }
 
+      // Normalize kitchen ID (validate and convert to Convex ID)
+      const kitchenId = await normalizeKitchenId(ctx, args.kitchenId);
+      if (!kitchenId) {
+        return { success: false as const, error: 'Kitchen not found' };
+      }
+
       // Get chefId from kitchenId
       const favoriteStatus = await ctx.runQuery(api.queries.userFavorites.isKitchenFavorited, {
         userId: user._id,
-        kitchenId: args.kitchenId as Id<'kitchens'>,
+        kitchenId,
       });
 
       if (!favoriteStatus.chefId) {
@@ -6304,10 +6355,16 @@ export const customerRemoveKitchenFavorite = action({
         return { success: false as const, error: 'Access denied. Customer role required.' };
       }
 
+      // Normalize kitchen ID (validate and convert to Convex ID)
+      const kitchenId = await normalizeKitchenId(ctx, args.kitchenId);
+      if (!kitchenId) {
+        return { success: false as const, error: 'Kitchen not found' };
+      }
+
       // Get chefId from kitchenId
       const favoriteStatus = await ctx.runQuery(api.queries.userFavorites.isKitchenFavorited, {
         userId: user._id,
-        kitchenId: args.kitchenId as Id<'kitchens'>,
+        kitchenId,
       });
 
       if (!favoriteStatus.chefId) {

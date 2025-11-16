@@ -295,56 +295,58 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false, 
           <CribNoshLogo size={120} variant="default" />
         </Animated.View>
         
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity onPress={handleNotificationsPress}>
-            <Animated.View 
-              style={[
-                { 
-                  width: 44, 
-                  height: 44, 
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                },
-                notificationAnimatedStyle
-              ]}
-            >
-              <View style={{ position: 'relative' }}>
-                <Bell size={24} color="#374151" />
-                {showBadge && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </Animated.View>
-          </TouchableOpacity>
+        {isAuthenticated && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity onPress={handleNotificationsPress}>
+              <Animated.View 
+                style={[
+                  { 
+                    width: 44, 
+                    height: 44, 
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  },
+                  notificationAnimatedStyle
+                ]}
+              >
+                <View style={{ position: 'relative' }}>
+                  <Bell size={24} color="#374151" />
+                  {showBadge && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </Animated.View>
+            </TouchableOpacity>
 
-          {/* Pill Selector with Animation */}
-          <TouchableOpacity onPress={handlePillSelectorPress}>
-            <Animated.View 
-              style={[
-                {
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: 24,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  backgroundColor: '#fff',
-                  borderWidth: 1,
-                  borderColor: '#e5e7eb',
-                  minHeight: 44,
-                  justifyContent: 'center',
-                  gap: 8,
-                },
-                pillSelectorAnimatedStyle
-              ]}
-            >
-              <Settings size={20} color="#374151" />
-            </Animated.View>
-          </TouchableOpacity>
-        </View>
+            {/* Pill Selector with Animation */}
+            <TouchableOpacity onPress={handlePillSelectorPress}>
+              <Animated.View 
+                style={[
+                  {
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 24,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: '#fff',
+                    borderWidth: 1,
+                    borderColor: '#e5e7eb',
+                    minHeight: 44,
+                    justifyContent: 'center',
+                    gap: 8,
+                  },
+                  pillSelectorAnimatedStyle
+                ]}
+              >
+                <Settings size={20} color="#374151" />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Greeting with Animation */}

@@ -597,13 +597,13 @@ export default function ProfileScreen() {
   }), []);
 
   // Automatically trigger sign-in when not authenticated (only when tab is focused)
-  // Make it non-dismissable so users can't dismiss and see forever loading
+  // Allow dismissal but redirect to home when dismissed to prevent seeing profile in unauthenticated state
   useFocusEffect(
     useCallback(() => {
       if (!isAuthenticated && !authLoading) {
         navigateToSignIn({
           returnPath: '/(tabs)/profile',
-          notDismissable: true,
+          notDismissable: false, // Allow dismissal since we have a close button
         });
       }
     }, [isAuthenticated, authLoading])

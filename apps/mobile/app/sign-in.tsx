@@ -82,6 +82,12 @@ export default function SignInModal() {
     // Mark as hidden before closing
     markSignInAsHidden();
     
+    // Special handling for profile screen: redirect to home to prevent seeing profile in unauthenticated state
+    if (params.returnPath === '/(tabs)/profile') {
+      router.replace('/(tabs)');
+      return;
+    }
+    
     // When user cancels from sign-in:
     // - If we have a returnPath (came from 401 redirect from a modal),
     //   we need to dismiss both modals (sign-in and the previous one like shared-ordering)
