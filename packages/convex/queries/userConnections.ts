@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
-import { query } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
+import { query } from '../_generated/server';
 
 // Get all connections for a user
 export const getConnectionsByUser = query({

@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { validateSessionWithBackend } from "./sessionValidation";
 
 export interface StoredUser {
   user_id: string;
@@ -18,9 +19,13 @@ export interface AuthState {
 
 /**
  * Checks if user is authenticated by verifying stored token and user data
+ * Now includes proactive session validation with the backend
+ * @param skipBackendValidation - If true, skips backend validation (for performance in some cases)
  * @returns Promise<AuthState> - Authentication state with token and user data
  */
-export const checkAuthState = async (): Promise<AuthState> => {
+export const checkAuthState = async (
+  skipBackendValidation: boolean = false
+): Promise<AuthState> => {
   try {
     // Get stored sessionToken and user data
     const [sessionToken, userData] = await Promise.all([
@@ -49,6 +54,21 @@ export const checkAuthState = async (): Promise<AuthState> => {
         token: null,
         user: null,
       };
+    }
+
+    // Proactively validate session with backend (unless skipped for performance)
+    if (!skipBackendValidation) {
+      const isValid = await validateSessionWithBackend(sessionToken);
+      if (!isValid) {
+        // Session is invalid or expired, clear storage
+        console.log("Session validation failed during checkAuthState - clearing invalid session");
+        await clearAuthData();
+        return {
+          isAuthenticated: false,
+          token: null,
+          user: null,
+        };
+      }
     }
 
     return {

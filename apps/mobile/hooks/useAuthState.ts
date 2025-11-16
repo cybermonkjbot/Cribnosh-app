@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import {
   AuthState,
   checkAuthState,
@@ -9,6 +10,7 @@ import {
 } from "../utils/authUtils";
 import { getConvexClient, clearSessionToken } from "../lib/convexClient";
 import { api } from '@/convex/_generated/api';
+import { validateAndClearInvalidSession } from "../utils/sessionValidation";
 
 export interface UseAuthStateReturn {
   // State
@@ -40,14 +42,71 @@ export const useAuthState = (): UseAuthStateReturn => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
+  const validationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const appStateSubscriptionRef = useRef<any>(null);
 
-  // Initialize auth state on mount
+  // Handle app state changes (foreground/background)
+  const handleAppStateChange = useCallback((nextAppState: AppStateStatus) => {
+    if (nextAppState === "active") {
+      // App came to foreground, validate session if authenticated
+      const currentToken = authState.token;
+      if (currentToken) {
+        validateAndClearInvalidSession().then((isValid) => {
+          if (!isValid && isMountedRef.current) {
+            // Session was invalid and cleared, update auth state
+            setAuthState({
+              isAuthenticated: false,
+              token: null,
+              user: null,
+            });
+          }
+        });
+      }
+    }
+  }, [authState.token]);
+
+  // Initialize auth state on mount and set up periodic validation
   useEffect(() => {
     initializeAuth();
+
     return () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  // Set up periodic session validation and app state listener
+  useEffect(() => {
+    // Set up periodic session validation (every 5 minutes)
+    validationIntervalRef.current = setInterval(() => {
+      if (isMountedRef.current && authState.isAuthenticated) {
+        validateAndClearInvalidSession().then((isValid) => {
+          if (!isValid && isMountedRef.current) {
+            // Session was invalid and cleared, update auth state
+            setAuthState({
+              isAuthenticated: false,
+              token: null,
+              user: null,
+            });
+          }
+        });
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    // Set up app state listener to validate session on app resume
+    appStateSubscriptionRef.current = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    return () => {
+      if (validationIntervalRef.current) {
+        clearInterval(validationIntervalRef.current);
+      }
+      if (appStateSubscriptionRef.current) {
+        appStateSubscriptionRef.current.remove();
+      }
+    };
+  }, [authState.isAuthenticated, handleAppStateChange]);
 
   const initializeAuth = async () => {
     try {
