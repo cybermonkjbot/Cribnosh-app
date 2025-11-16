@@ -122,6 +122,19 @@ export default function PaymentSettingsScreen() {
     setIsTopUpVisible(true);
   };
 
+  const handleCloseTopUp = async () => {
+    setIsTopUpVisible(false);
+    // Refresh balance after top-up
+    const balance = await getBalance();
+    if (balance) setBalanceData({ data: balance });
+  };
+
+  const handleCardAdded = async () => {
+    // Refresh payment methods after adding a card
+    const methods = await getPaymentMethods();
+    if (methods) setPaymentMethodsData({ data: methods });
+  };
+
   return (
     <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
@@ -141,7 +154,11 @@ export default function PaymentSettingsScreen() {
           
           {/* Cribnosh Balance Section */}
           <View style={styles.balanceSection}>
-            <View style={styles.balanceCard}>
+            <TouchableOpacity 
+              style={styles.balanceCard} 
+              onPress={handleTopUpBalance}
+              activeOpacity={0.7}
+            >
               <Text style={styles.balanceTitle}>Cribnosh balance</Text>
               <Text style={styles.balanceAmount}>
                 {balanceData?.data
@@ -153,7 +170,7 @@ export default function PaymentSettingsScreen() {
                   ? "Your Cribnosh balance"
                   : "Cribnosh balance is not available with this payment method"}
               </Text>
-            </View>
+            </TouchableOpacity>
             
             <TouchableOpacity style={styles.balanceItem} onPress={handleBalanceInfo}>
               <View style={styles.itemLeft}>
@@ -294,13 +311,14 @@ export default function PaymentSettingsScreen() {
         {/* Top Up Balance Sheet */}
         <TopUpBalanceSheet
           isVisible={isTopUpVisible}
-          onClose={() => setIsTopUpVisible(false)}
+          onClose={handleCloseTopUp}
         />
 
         {/* Add Card Sheet */}
         <AddCardSheet
           isVisible={isAddCardVisible}
           onClose={() => setIsAddCardVisible(false)}
+          onSuccess={handleCardAdded}
         />
       </SafeAreaView>
   );

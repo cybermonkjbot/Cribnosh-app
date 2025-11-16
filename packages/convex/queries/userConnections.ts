@@ -63,6 +63,7 @@ export const areUsersConnected = query({
 export const getAllUserConnections = query({
   args: { user_id: v.id('users') },
   handler: async (ctx, args) => {
+    console.log(`[getAllUserConnections] Starting for user_id: ${args.user_id}`);
     const connections: Array<{
       user_id: Id<'users'>;
       user_name: string;
@@ -72,6 +73,7 @@ export const getAllUserConnections = query({
     }> = [];
     
     // 1. Family members from familyProfiles
+    console.log(`[getAllUserConnections] Step 1: Fetching family members...`);
     const familyProfiles = await ctx.db
       .query('familyProfiles')
       .withIndex('by_user', q => q.eq('userId', args.user_id))
@@ -95,14 +97,17 @@ export const getAllUserConnections = query({
         }
       }
     }
+    console.log(`[getAllUserConnections] Step 1 complete: Found ${connections.length} family members`);
     
     // 2. Referrals (users who were invited by this user)
+    console.log(`[getAllUserConnections] Step 2: Fetching forward referrals (users invited by this user)...`);
     const referrals = await ctx.db
       .query('referrals')
       .withIndex('by_referrer', q => q.eq('referrerId', args.user_id))
       .filter(q => q.eq(q.field('status'), 'completed'))
       .collect();
     
+    const forwardReferralCount = connections.length;
     for (const referral of referrals) {
       if (referral.referredUserId) {
         const referredUser = await ctx.db.get(referral.referredUserId);
@@ -120,8 +125,42 @@ export const getAllUserConnections = query({
         }
       }
     }
+    const forwardReferralsAdded = connections.length - forwardReferralCount;
+    console.log(`[getAllUserConnections] Step 2 complete: Found ${referrals.length} referral records, added ${forwardReferralsAdded} forward referrals`);
+    
+    // 2b. Reverse referrals (users who referred this user)
+    console.log(`[getAllUserConnections] Step 2b: Fetching reverse referrals (users who referred this user)...`);
+    const reverseReferrals = await ctx.db
+      .query('referrals')
+      .withIndex('by_referred_user', q => q.eq('referredUserId', args.user_id))
+      .filter(q => q.eq(q.field('status'), 'completed'))
+      .collect();
+    
+    console.log(`[getAllUserConnections] Step 2b: Found ${reverseReferrals.length} reverse referral records`);
+    const reverseReferralCount = connections.length;
+    for (const referral of reverseReferrals) {
+      const referrerUser = await ctx.db.get(referral.referrerId);
+      if (referrerUser) {
+        console.log(`[getAllUserConnections] Step 2b: Adding reverse referral - referrer: ${referrerUser.name} (${referral.referrerId})`);
+        connections.push({
+          user_id: referral.referrerId,
+          user_name: referrerUser.name,
+          connection_type: 'referral',
+          source: 'referral_reverse',
+          metadata: {
+            referral_id: referral._id,
+            completed_at: referral.completedAt,
+          },
+        });
+      } else {
+        console.log(`[getAllUserConnections] Step 2b: Warning - referrer user not found for referral ${referral._id}, referrerId: ${referral.referrerId}`);
+      }
+    }
+    const reverseReferralsAdded = connections.length - reverseReferralCount;
+    console.log(`[getAllUserConnections] Step 2b complete: Added ${reverseReferralsAdded} reverse referrals`);
     
     // 3. Treats (both directions)
+    console.log(`[getAllUserConnections] Step 3: Fetching treats (both directions)...`);
     // User treated others
     const treatsGiven = await ctx.db
       .query('treats')
@@ -129,6 +168,7 @@ export const getAllUserConnections = query({
       .filter(q => q.eq(q.field('status'), 'claimed'))
       .collect();
     
+    const treatsGivenCount = connections.length;
     for (const treat of treatsGiven) {
       if (treat.treated_user_id) {
         const treatedUser = await ctx.db.get(treat.treated_user_id);
@@ -147,6 +187,8 @@ export const getAllUserConnections = query({
         }
       }
     }
+    const treatsGivenAdded = connections.length - treatsGivenCount;
+    console.log(`[getAllUserConnections] Step 3a: Found ${treatsGiven.length} treats given, added ${treatsGivenAdded} connections`);
     
     // User was treated by others
     const treatsReceived = await ctx.db
@@ -155,6 +197,7 @@ export const getAllUserConnections = query({
       .filter(q => q.eq(q.field('status'), 'claimed'))
       .collect();
     
+    const treatsReceivedCount = connections.length;
     for (const treat of treatsReceived) {
       const treaterUser = await ctx.db.get(treat.treater_id);
       if (treaterUser) {
@@ -171,8 +214,12 @@ export const getAllUserConnections = query({
         });
       }
     }
+    const treatsReceivedAdded = connections.length - treatsReceivedCount;
+    console.log(`[getAllUserConnections] Step 3b: Found ${treatsReceived.length} treats received, added ${treatsReceivedAdded} connections`);
+    console.log(`[getAllUserConnections] Step 3 complete: Total treats connections added: ${treatsGivenAdded + treatsReceivedAdded}`);
     
     // 4. Group order participants
+    console.log(`[getAllUserConnections] Step 4: Fetching group order participants...`);
     const groupOrders = await ctx.db
       .query('group_orders')
       .withIndex('by_creator', q => q.eq('created_by', args.user_id))
@@ -185,7 +232,9 @@ export const getAllUserConnections = query({
     );
     
     const allRelevantGroupOrders = [...groupOrders, ...participantGroupOrders];
+    console.log(`[getAllUserConnections] Step 4: Found ${groupOrders.length} created group orders, ${participantGroupOrders.length} participant group orders (${allRelevantGroupOrders.length} total)`);
     
+    const groupOrderCount = connections.length;
     for (const groupOrder of allRelevantGroupOrders) {
       for (const participant of groupOrder.participants) {
         if (participant.user_id !== args.user_id) {
@@ -209,14 +258,18 @@ export const getAllUserConnections = query({
         }
       }
     }
+    const groupOrderConnectionsAdded = connections.length - groupOrderCount;
+    console.log(`[getAllUserConnections] Step 4 complete: Added ${groupOrderConnectionsAdded} group order connections`);
     
     // 5. Manual connections from user_connections
+    console.log(`[getAllUserConnections] Step 5: Fetching manual connections...`);
     const manualConnections = await ctx.db
       .query('user_connections')
       .withIndex('by_user', q => q.eq('user_id', args.user_id))
       .filter(q => q.eq(q.field('status'), 'active'))
       .collect();
     
+    const manualConnectionsCount = connections.length;
     for (const connection of manualConnections) {
       const connectedUser = await ctx.db.get(connection.connected_user_id);
       if (connectedUser) {
@@ -232,16 +285,22 @@ export const getAllUserConnections = query({
         });
       }
     }
+    const manualConnectionsAdded = connections.length - manualConnectionsCount;
+    console.log(`[getAllUserConnections] Step 5 complete: Found ${manualConnections.length} manual connections, added ${manualConnectionsAdded} connections`);
     
     // 6. Inferred colleagues from shared company
+    console.log(`[getAllUserConnections] Step 6: Fetching inferred colleagues from shared company...`);
     const user = await ctx.db.get(args.user_id);
     if (user && user.company) {
+      console.log(`[getAllUserConnections] Step 6: User has company: ${user.company}`);
       const allUsers = await ctx.db.query('users').collect();
       const inferredColleagues = allUsers.filter(u => 
         u._id !== args.user_id && 
         u.company === user.company
       );
+      console.log(`[getAllUserConnections] Step 6: Found ${inferredColleagues.length} potential colleagues with same company`);
       
+      const inferredColleaguesCount = connections.length;
       for (const colleague of inferredColleagues) {
         // Check if already added as manual connection
         const exists = connections.some(c => 
@@ -260,18 +319,47 @@ export const getAllUserConnections = query({
           });
         }
       }
+      const inferredColleaguesAdded = connections.length - inferredColleaguesCount;
+      console.log(`[getAllUserConnections] Step 6 complete: Added ${inferredColleaguesAdded} inferred colleagues`);
+    } else {
+      console.log(`[getAllUserConnections] Step 6: Skipped - user has no company`);
     }
     
     // Deduplicate by user_id, keeping the first occurrence
+    console.log(`[getAllUserConnections] Deduplication: Starting with ${connections.length} total connections`);
     const uniqueConnections = new Map<string, typeof connections[0]>();
+    const duplicates: string[] = [];
     for (const conn of connections) {
       const key = conn.user_id;
       if (!uniqueConnections.has(key)) {
         uniqueConnections.set(key, conn);
+      } else {
+        duplicates.push(`${conn.user_id} (${conn.user_name}, source: ${conn.source})`);
       }
     }
     
-    return Array.from(uniqueConnections.values());
+    const finalConnections = Array.from(uniqueConnections.values());
+    console.log(`[getAllUserConnections] Deduplication complete: ${finalConnections.length} unique connections (removed ${connections.length - finalConnections.length} duplicates)`);
+    if (duplicates.length > 0) {
+      console.log(`[getAllUserConnections] Duplicates removed: ${duplicates.slice(0, 5).join(', ')}${duplicates.length > 5 ? '...' : ''}`);
+    }
+    
+    // Summary by source
+    const summaryBySource = finalConnections.reduce((acc: Record<string, number>, conn) => {
+      acc[conn.source] = (acc[conn.source] || 0) + 1;
+      return acc;
+    }, {});
+    console.log(`[getAllUserConnections] Final summary by source:`, JSON.stringify(summaryBySource, null, 2));
+    
+    // Summary by connection type
+    const summaryByType = finalConnections.reduce((acc: Record<string, number>, conn) => {
+      acc[conn.connection_type] = (acc[conn.connection_type] || 0) + 1;
+      return acc;
+    }, {});
+    console.log(`[getAllUserConnections] Final summary by type:`, JSON.stringify(summaryByType, null, 2));
+    
+    console.log(`[getAllUserConnections] Complete: Returning ${finalConnections.length} connections for user ${args.user_id}`);
+    return finalConnections;
   },
 });
 

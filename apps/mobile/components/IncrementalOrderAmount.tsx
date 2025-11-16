@@ -9,6 +9,7 @@ interface IncrementalOrderAmountProps {
   onOrder?: () => void;
   isOrdered?: boolean;
   buttonText?: string; // Custom text for the initial button (default: "Order")
+  onRemoveRequest?: () => void; // Called when trying to decrement from min to 0 (for confirmation)
 }
 
 const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
@@ -19,6 +20,7 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
   onOrder,
   isOrdered: externalIsOrdered,
   buttonText = "Order",
+  onRemoveRequest,
 }) => {
   const [value, setValue] = useState(initialValue);
   const [internalIsOrdered, setInternalIsOrdered] = useState(false);
@@ -43,6 +45,13 @@ const IncrementalOrderAmount: React.FC<IncrementalOrderAmountProps> = ({
       setValue(newValue);
       // Call onChange directly - the parent should handle async operations
       onChange?.(newValue);
+    } else if (value === min && min === 0 && onRemoveRequest) {
+      // If at min (0) and trying to go below, call onRemoveRequest for confirmation
+      onRemoveRequest();
+    } else if (value === min && min > 0 && onRemoveRequest) {
+      // If at min (1) and trying to go to 0, call onRemoveRequest for confirmation
+      // Don't update state - let parent handle confirmation first
+      onRemoveRequest();
     }
   };
 

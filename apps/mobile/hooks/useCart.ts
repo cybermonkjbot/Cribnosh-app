@@ -163,9 +163,11 @@ export const useCart = () => {
 
   /**
    * Remove item from cart
+   * @param cartItemId - The ID of the cart item to remove
+   * @param suppressToast - If true, suppresses the success toast (useful for batch removals)
    */
   const removeFromCart = useCallback(
-    async (cartItemId: string) => {
+    async (cartItemId: string, suppressToast: boolean = false) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -187,12 +189,14 @@ export const useCart = () => {
           throw new Error(result.error || "Failed to remove item from cart");
         }
 
-        showToast({
-          type: "success",
-          title: "Removed",
-          message: "Item removed from cart",
-          duration: 2000,
-        });
+        if (!suppressToast) {
+          showToast({
+            type: "success",
+            title: "Removed",
+            message: "Item removed from cart",
+            duration: 2000,
+          });
+        }
 
         return {
           success: true,

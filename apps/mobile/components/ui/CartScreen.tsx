@@ -1,24 +1,25 @@
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useAddressSelection } from "@/contexts/AddressSelectionContext";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { api } from '@/convex/_generated/api';
+import { useCart } from "@/hooks/useCart";
+import { useToast } from "@/lib/ToastContext";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { CustomerAddress } from "@/types/customer";
+import { getAbsoluteImageUrl } from "@/utils/imageUrl";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
-import { Link, router } from "expo-router";
-import { CarFront, Utensils, MessageSquare } from "lucide-react-native";
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useQuery } from "convex/react";
+import { Link, router, usePathname } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { CarFront, MessageSquare, Utensils } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import IncrementalOrderAmount from "../IncrementalOrderAmount";
-import { useCart } from "@/hooks/useCart";
-import { SkeletonWithTimeout } from "./SkeletonWithTimeout";
-import { NoshPassModal } from "./NoshPassModal";
 import { SkeletonBox } from "./MealItemDetails/Skeletons/ShimmerBox";
-import { CustomerAddress } from "@/types/customer";
-import { useAddressSelection } from "@/contexts/AddressSelectionContext";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
-import { api } from '@/convex/_generated/api';
-import { useAuthContext } from "@/contexts/AuthContext";
-import { getAbsoluteImageUrl } from "@/utils/imageUrl";
-import { useQuery } from "convex/react";
+import { NoshPassModal } from "./NoshPassModal";
+import { SkeletonWithTimeout } from "./SkeletonWithTimeout";
 
 type CouponType = 'nosh_pass' | 'discount';
 
@@ -34,9 +35,13 @@ export default function CartScreen() {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [orderNote, setOrderNote] = useState<string>("");
 
+  // Refs for keyboard handling
+  const scrollViewRef = useRef<ScrollView>(null);
+
   // Use cart hook for Convex mutations (update, remove)
   const { updateCartItem, removeFromCart } = useCart();
   const { isAuthenticated } = useAuthContext();
+  const { showToast } = useToast();
 
   // Load session token for reactive queries
   useEffect(() => {
@@ -84,6 +89,15 @@ export default function CartScreen() {
     return () => clearTimeout(timeoutId);
   }, [orderNote]);
 
+  // Handle order note input focus - scroll to input when keyboard appears
+  const handleNoteInputFocus = () => {
+    // Use setTimeout to ensure the keyboard animation has started
+    setTimeout(() => {
+      // Scroll to end of content where the input is located
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
+
   // Use reactive Convex query for cart data - this will automatically update when cart changes
   const cartData = useQuery(
     api.queries.orders.getEnrichedCartBySessionToken,
@@ -126,22 +140,59 @@ export default function CartScreen() {
   const isLoading = cartData === undefined; // undefined means query is loading
   const isEmpty = cartData !== undefined && cartItems.length === 0;
 
+  const pathname = usePathname();
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previousPathnameRef = useRef<string>(pathname);
+  
+  // Track pathname changes to detect navigation
+  useEffect(() => {
+    previousPathnameRef.current = pathname;
+  }, [pathname]);
+  
   const handleBack = () => {
-    // Cart is nested under /orders/cart, so going back once takes us to /orders
-    // We need to go back twice to skip the orders screen and get to where we actually came from
+    // Clear any existing timeout
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+    
     if (router.canGoBack()) {
+      // Go back once
       router.back();
-      // Go back again after a short delay to skip the orders screen
-      setTimeout(() => {
-        if (router.canGoBack()) {
-          router.back();
+      
+      // After navigation completes, check if we landed on the orders screen
+      // If so, navigate to home to skip it
+      navigationTimeoutRef.current = setTimeout(() => {
+        // Check current pathname - if we're on /orders (but not /orders/cart), navigate to home
+        // Use the ref which should be updated by the useEffect when pathname changes
+        const currentPath = previousPathnameRef.current;
+        // Check if we're on the orders list screen (not cart or other order screens)
+        const isOnOrdersListScreen = currentPath === '/(tabs)/orders' || 
+          (currentPath?.includes('/orders') && !currentPath?.includes('/cart') && !currentPath?.includes('/group'));
+        
+        if (isOnOrdersListScreen) {
+          // We're on the orders list screen, navigate to home to skip it
+          router.replace("/(tabs)");
+        } else if (!router.canGoBack()) {
+          // Can't go back further - navigate to home as fallback
+          router.replace("/(tabs)");
         }
-      }, 50);
+        // If we're not on orders list and can go back, we're at the right place - do nothing
+        navigationTimeoutRef.current = null;
+      }, 200);
     } else {
       // Can't go back, navigate to home
       router.replace("/(tabs)");
     }
   };
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleQuantityChange = useCallback(async (index: number, newQuantity: number) => {
     const item = cartItems[index];
@@ -165,6 +216,35 @@ export default function CartScreen() {
       }
     }
   }, [cartItems, removeFromCart, updateCartItem]);
+
+  const handleRemoveRequest = useCallback((index: number) => {
+    const item = cartItems[index];
+    if (!item || !item._id) return;
+
+    // Show confirmation before removing
+    Alert.alert(
+      "Remove Item",
+      `Are you sure you want to remove "${item.dish_name || item.name || 'this item'}" from your cart?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeFromCart(item._id);
+              // Cart will automatically update via reactive query, no need to manually refresh
+            } catch (error) {
+              console.error('Error removing item:', error);
+            }
+          },
+        },
+      ]
+    );
+  }, [cartItems, removeFromCart]);
 
   const handleCutleryToggle = () => {
     setCutleryIncluded(!cutleryIncluded);
@@ -348,10 +428,19 @@ export default function CartScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Remove all items from cart
+              // Remove all items from cart (suppress individual toasts)
               await Promise.all(
-                cartItems.map((item: any) => removeFromCart(item._id))
+                cartItems.map((item: any) => removeFromCart(item._id, true))
               );
+              
+              // Show single toast after all items are removed
+              showToast({
+                type: "success",
+                title: "Cart Cleared",
+                message: "All items removed from cart",
+                duration: 2000,
+              });
+              
               // Cart will automatically update via reactive query, no need to manually refresh
             } catch (error) {
               console.error('Error clearing cart:', error);
@@ -447,11 +536,13 @@ export default function CartScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
           style={styles.scrollView}
           contentContainerStyle={{ paddingBottom: 120 }}
+          keyboardShouldPersistTaps="handled"
         >
-          <SkeletonWithTimeout isLoading={isLoading || cartLoading}>
+          <SkeletonWithTimeout isLoading={isLoading}>
             <CartSkeleton />
           </SkeletonWithTimeout>
         </ScrollView>
@@ -505,9 +596,11 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}
         contentContainerStyle={{ paddingBottom: 120 }}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
           <View style={styles.mainContent}>
@@ -558,11 +651,15 @@ export default function CartScreen() {
 
                   <IncrementalOrderAmount
                     initialValue={item.quantity || 1}
+                    min={1}
                     onChange={(newQuantity) => {
                       // Use setTimeout to defer the async operation and prevent blocking
                       setTimeout(() => {
                         handleQuantityChange(index, newQuantity);
                       }, 0);
+                    }}
+                    onRemoveRequest={() => {
+                      handleRemoveRequest(index);
                     }}
                     isOrdered={true}
                     key={item._id} // Add key to force re-render on quantity change
@@ -711,6 +808,7 @@ export default function CartScreen() {
                   placeholderTextColor="#9CA3AF"
                   value={orderNote}
                   onChangeText={setOrderNote}
+                  onFocus={handleNoteInputFocus}
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
@@ -889,6 +987,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F3F4F6', // Light gray background for icon
+    padding: 8, // p-2
   },
   itemPrice: {
     fontWeight: '700', // font-bold
@@ -939,9 +1038,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontWeight: '700', // font-bold
     color: '#094327', // text-dark-green
-  },
-  iconContainer: {
-    padding: 8, // p-2
   },
   smallIcon: {
     width: 32, // w-8

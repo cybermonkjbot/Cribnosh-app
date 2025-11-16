@@ -26,6 +26,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ImageStack } from "@/components/ui/ImageStack";
+import { getAbsoluteImageUrl } from "@/utils/imageUrl";
 
 // Helper function to check if order is active
 const isOrderActive = (status: string): boolean => {
@@ -98,7 +100,7 @@ export default function OrderDetailsScreen() {
         style: "destructive",
         onPress: async () => {
           const success = await cancelOrder(
-            order.id || order._id || orderId || "",
+            order.order_id || order.id || order._id || orderId || "",
             "Customer requested cancellation",
             "full_refund"
           );
@@ -115,7 +117,7 @@ export default function OrderDetailsScreen() {
     if (!order || rating === 0) return;
 
     const result = await rateOrder({
-      order_id: order.id || order._id || orderId || "",
+      order_id: order.order_id || order.id || order._id || orderId || "",
       rating,
       review: review.trim() || undefined,
     });
@@ -185,6 +187,19 @@ export default function OrderDetailsScreen() {
     });
   };
 
+  // Format order ID to show last 6 characters (same as orders list screen)
+  const formatOrderId = (orderId: string | undefined): string => {
+    if (!orderId) return "";
+    // Remove any existing # prefix
+    const cleanId = orderId.replace(/^#/, "");
+    // If it's a short ID (8 chars or less), return as is
+    if (cleanId.length <= 8) {
+      return `#${cleanId.toUpperCase()}`;
+    }
+    // Otherwise, show last 6 characters
+    return `#${cleanId.slice(-6).toUpperCase()}`;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "pending":
@@ -210,6 +225,16 @@ export default function OrderDetailsScreen() {
       default:
         return "#6B7280";
     }
+  };
+
+  const getStatusChipBackgroundColor = (status: string) => {
+    const color = getStatusColor(status);
+    // Convert hex to rgba with 20% opacity (0.2)
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.12)`;
   };
 
   const getStatusText = (status: string) => {
@@ -323,13 +348,17 @@ export default function OrderDetailsScreen() {
             {/* Order Header */}
             <View style={styles.orderHeader}>
               <Text style={styles.orderTitle}>Order</Text>
-              <Text style={styles.orderId}>#{order.id}</Text>
+              <Text style={styles.orderId}>
+                {formatOrderId(order.order_id || order.id || order._id)}
+              </Text>
             </View>
 
             {/* Order Status */}
             <View style={styles.statusContainer}>
-              <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(order.status) }]} />
-              <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>{getStatusText(order.status)}</Text>
+              <View style={[styles.statusChip, { backgroundColor: getStatusChipBackgroundColor(order.status) }]}>
+                <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(order.status) }]} />
+                <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>{getStatusText(order.status)}</Text>
+              </View>
             </View>
 
             {/* Kitchen Info */}
@@ -368,15 +397,56 @@ export default function OrderDetailsScreen() {
 
             {/* Order Items */}
             <View style={styles.itemsSection}>
-              <Text style={styles.sectionTitle}>Order Items</Text>
-              {order.items.map((item: any, index: number) => (
-                <View key={item.id || index} style={styles.orderItem}>
+              <View style={styles.itemsSectionHeader}>
+                <Text style={styles.sectionTitle}>Order Items</Text>
+                {/* ImageStack for order items */}
+                {(() => {
+                  // Get order items with images for stacking (same logic as OrderCard)
+                  const orderItems = order.items || order.order_items || [];
+                  const itemsWithImages: any[] = [];
+                  
+                  if (orderItems.length > 0) {
+                    orderItems.forEach((item: any) => {
+                      // Get images from various possible fields (arrays or single)
+                      const images = item.image_urls || item.images || (item.image_url ? [item.image_url] : []);
+                      if (images.length > 0) {
+                        // Filter out invalid/empty URLs
+                        const validImages = images.filter((url: string) => url && typeof url === 'string' && url.trim().length > 0);
+                        if (validImages.length > 0) {
+                          // Create one entry per image for stacking (flatten multiple images)
+                          validImages.forEach((imageUrl: string, idx: number) => {
+                            const absoluteUrl = getAbsoluteImageUrl(imageUrl);
+                            if (absoluteUrl) {
+                              itemsWithImages.push({
+                                _id: `${item._id || item.dish_id || item.id || idx}_${idx}`,
+                                dish_id: item.dish_id || item.id,
+                                image_url: absoluteUrl,
+                              });
+                            }
+                          });
+                        }
+                      }
+                    });
+                  }
+                  
+                  if (itemsWithImages.length > 0) {
+                    return (
+                      <View style={styles.imageStackContainer}>
+                        <ImageStack items={itemsWithImages} size="large" maxItems={4} />
+                      </View>
+                    );
+                  }
+                  return null;
+                })()}
+              </View>
+              {(order.items || order.order_items || []).map((item: any, index: number) => (
+                <View key={item.id || item._id || index} style={styles.orderItem}>
                   <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{item.dish_name}</Text>
+                    <Text style={styles.itemName}>{item.dish_name || item.name}</Text>
                     <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
                   </View>
                   <Text style={styles.itemPrice}>
-                    {formatPrice(item.price * item.quantity)}
+                    {formatPrice((item.price || 0) * (item.quantity || 1))}
                   </Text>
                 </View>
               ))}
@@ -625,6 +695,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 32,
   },
+  statusChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
   statusIndicator: {
     width: 8,
     height: 8,
@@ -708,6 +786,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     paddingBottom: 8,
+  },
+  itemsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  imageStackContainer: {
+    marginLeft: 16,
   },
   orderItem: {
     flexDirection: "row",

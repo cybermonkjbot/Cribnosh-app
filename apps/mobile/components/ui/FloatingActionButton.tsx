@@ -184,6 +184,11 @@ export function FloatingActionButton({
     }
   };
 
+  // Main button long press handler - always opens menu
+  const handleMainButtonLongPress = () => {
+    setIsActionMenuOpen(true);
+  };
+
   // Badge animation style
   const badgeAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -315,6 +320,7 @@ export function FloatingActionButton({
           isActionMenuOpen && styles.mainActionButtonOpen
         ]}
         onPress={handleMainButtonPress}
+        onLongPress={handleMainButtonLongPress}
         activeOpacity={0.8}
       >
         {/* Glassy/Frosted Blur Effect */}

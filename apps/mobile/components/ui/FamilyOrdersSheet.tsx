@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { BottomSheetBase } from '../BottomSheetBase';
 import { useFamilyProfile } from '@/hooks/useFamilyProfile';
 import { formatOrderDate } from '@/utils/dateFormat';
 import { Package } from 'lucide-react-native';
@@ -9,12 +8,6 @@ import { Package } from 'lucide-react-native';
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path d="M18 6L6 18M6 6L18 18" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
-// Empty state icon SVG
-const emptyIconSVG = `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="32" cy="32" r="30" stroke="#E5E7EB" stroke-width="2"/>
-  <path d="M32 24V32M32 40H32.01" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
 </svg>`;
 
 interface FamilyOrdersSheetProps {
@@ -54,12 +47,8 @@ export function FamilyOrdersSheet({
 
   const orders = ordersData?.data || [];
 
-  const snapPoints = useMemo(() => ['75%', '90%'], []);
-
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) {
-      onClose();
-    }
+  const handleClose = useCallback(() => {
+    onClose();
   }, [onClose]);
 
   const handleOrderPress = useCallback((orderId: string) => {
@@ -89,29 +78,22 @@ export function FamilyOrdersSheet({
     return `£${pounds.toFixed(2)}`;
   };
 
-  if (!isVisible) {
-    return null;
-  }
-
   return (
-    <BottomSheetBase
-      snapPoints={snapPoints}
-      index={0}
-      onChange={handleSheetChanges}
-      enablePanDownToClose={true}
-      backgroundStyle={{
-        backgroundColor: '#FAFFFA',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-      }}
+    <Modal
+      visible={isVisible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+      statusBarTranslucent={true}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Family Orders</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <SvgXml xml={closeIconSVG} width={24} height={24} />
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Family Orders</Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <SvgXml xml={closeIconSVG} width={24} height={24} />
+            </TouchableOpacity>
+          </View>
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -120,7 +102,9 @@ export function FamilyOrdersSheet({
           </View>
         ) : orders.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <SvgXml xml={emptyIconSVG} width={64} height={64} />
+            <View style={styles.emptyIconContainer}>
+              <Package size={64} color="#9CA3AF" strokeWidth={1.5} />
+            </View>
             <Text style={styles.emptyTitle}>No orders found</Text>
             <Text style={styles.emptySubtitle}>
               No orders have been placed by family members yet.
@@ -173,15 +157,20 @@ export function FamilyOrdersSheet({
             })}
           </ScrollView>
         )}
-      </View>
-    </BottomSheetBase>
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FAFFFA',
+  },
   container: {
     flex: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     paddingTop: 20,
   },
   header: {
@@ -219,6 +208,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 60,
     paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   emptyTitle: {
     fontFamily: 'Archivo',

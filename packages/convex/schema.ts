@@ -976,7 +976,8 @@ export default defineSchema({
   })
     .index("by_referrer", ["referrerId"]) 
     .index("by_referrer_and_device", ["referrerId", "deviceId"]) 
-    .index("by_referrer_device_ip", ["referrerId", "deviceId", "ip"]),
+    .index("by_referrer_device_ip", ["referrerId", "deviceId", "ip"])
+    .index("by_referred_user", ["referredUserId"]),
   waitlistSessions: defineTable({
     userId: v.id("users"),
     expiresAt: v.number(),
