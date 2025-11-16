@@ -2,20 +2,19 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
-  Modal,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    Dimensions,
+    Modal,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Animated, {
-  FadeIn,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    FadeIn,
+    FadeOut,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 
@@ -48,8 +47,10 @@ export function FilterDropdown({
   enableHaptics = true,
 }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 200 });
+  const [isPositioned, setIsPositioned] = useState(false);
   const triggerRef = useRef<View>(null);
+  const positioningRef = useRef(false);
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.95);
 
@@ -62,41 +63,81 @@ export function FilterDropdown({
   }, [enableHaptics]);
 
   const measureTrigger = useCallback(() => {
+    positioningRef.current = false;
     if (triggerRef.current) {
-      triggerRef.current.measureInWindow((x, y, width, height) => {
-        let left = x;
-        const top = y + height + 8; // 8px gap below button
+      // Use requestAnimationFrame to ensure the view is laid out
+      requestAnimationFrame(() => {
+        if (triggerRef.current) {
+          triggerRef.current.measureInWindow((x, y, width, height) => {
+            let left = x;
+            const top = y + height + 8; // 8px gap below button
 
-        // Adjust position based on preference
-        if (position === "right") {
-          left = x + width - 200; // Align dropdown to right edge of button
-        } else if (position === "center") {
-          left = x + (width - 200) / 2; // Center dropdown relative to button
+            // Adjust position based on preference
+            if (position === "right") {
+              left = x + width - 200; // Align dropdown to right edge of button
+            } else if (position === "center") {
+              left = x + (width - 200) / 2; // Center dropdown relative to button
+            }
+            // "left" keeps the original x position
+
+            const fixedHeight = 230; // Fixed dropdown height
+            const screenHeight = Dimensions.get("window").height;
+            
+            setDropdownPosition({
+              top: Math.min(top, screenHeight - fixedHeight - 20),
+              left: Math.max(8, Math.min(left, SCREEN_WIDTH - 208)), // Ensure it fits on screen
+              width: 200,
+            });
+            positioningRef.current = true;
+            setIsPositioned(true);
+          });
         }
-        // "left" keeps the original x position
-
-        setDropdownPosition({
-          top: Math.min(top, Dimensions.get("window").height - maxHeight - 20),
-          left: Math.max(8, Math.min(left, SCREEN_WIDTH - 208)), // Ensure it fits on screen
-          width: 200,
-        });
       });
+    } else {
+      // Fallback position if ref is not available
+      const screenHeight = Dimensions.get("window").height;
+      setDropdownPosition({
+        top: screenHeight / 2 - 115, // Center vertically
+        left: position === "right" ? SCREEN_WIDTH - 208 : 8,
+        width: 200,
+      });
+      positioningRef.current = true;
+      setIsPositioned(true);
     }
-  }, [position, maxHeight]);
+  }, [position]);
 
   const handleToggle = useCallback(() => {
     if (!isOpen) {
+      setIsPositioned(false);
       measureTrigger();
+      // Small delay to ensure measurement completes, with fallback
+      setTimeout(() => {
+        // If still not positioned, use fallback
+        if (!positioningRef.current) {
+          const screenHeight = Dimensions.get("window").height;
+          setDropdownPosition({
+            top: screenHeight / 2 - 115,
+            left: position === "right" ? SCREEN_WIDTH - 208 : 8,
+            width: 200,
+          });
+          setIsPositioned(true);
+        }
+        triggerHaptic();
+        setIsOpen(true);
+      }, 100);
+    } else {
+      triggerHaptic();
+      setIsOpen(false);
+      setIsPositioned(false);
     }
-    triggerHaptic();
-    setIsOpen((prev) => !prev);
-  }, [isOpen, measureTrigger, triggerHaptic]);
+  }, [isOpen, measureTrigger, triggerHaptic, position]);
 
   const handleSelect = useCallback(
     (filterId: string) => {
       triggerHaptic();
       onSelect(filterId);
       setIsOpen(false);
+      setIsPositioned(false);
     },
     [onSelect, triggerHaptic]
   );
@@ -125,7 +166,7 @@ export function FilterDropdown({
       </View>
 
       <Modal
-        visible={isOpen}
+        visible={isOpen && isPositioned}
         transparent={true}
         animationType="none"
         onRequestClose={() => setIsOpen(false)}
@@ -142,7 +183,7 @@ export function FilterDropdown({
                 top: dropdownPosition.top,
                 left: dropdownPosition.left,
                 width: dropdownPosition.width,
-                maxHeight: maxHeight, // Fixed max height, content will scroll if needed
+                height: 230, // Fixed height of 230px, content will scroll if needed
                 zIndex: 10000,
               },
               animatedStyle,
@@ -151,6 +192,7 @@ export function FilterDropdown({
             exiting={FadeOut.duration(100)}
           >
             <View
+              onStartShouldSetResponder={() => true}
               style={{
                 backgroundColor: "rgba(255, 255, 255, 0.95)",
                 borderRadius: 16,
@@ -160,6 +202,7 @@ export function FilterDropdown({
                 shadowRadius: 12,
                 elevation: 20,
                 overflow: "hidden",
+                flex: 1,
               }}
             >
               <BlurView

@@ -131,11 +131,10 @@ export interface Order {
     | "pending"
     | "confirmed"
     | "preparing"
-    | "ready"
     | "on_the_way"
     | "on-the-way"
-    | "delivered"
-    | "cancelled";
+    | "cancelled"
+    | "completed";
   order_status?: string;
   items: OrderItem[];
   order_items?: {

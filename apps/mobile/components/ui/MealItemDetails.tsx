@@ -1,8 +1,8 @@
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { useMeals } from "@/hooks/useMeals";
-import { useAuthContext } from "@/contexts/AuthContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View, Alert } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showError, showSuccess, showWarning } from "../../lib/GlobalToastManager";
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
@@ -296,6 +296,9 @@ export function MealItemDetails({
       chefName: (dish as any).chef?.name,
       chefStory: (dish as any).chef?.story || (dish as any).chef?.bio,
       chefTips: (dish as any).chef_tips || (dish as any).tips || [],
+      // Extract reviews and sentiment for sentiment bar
+      reviews: dish.reviews || [],
+      sentiment: dish.sentiment || undefined,
     };
   }, [dishDetailsData]);
 
@@ -516,7 +519,11 @@ export function MealItemDetails({
 
           {/* Diet Compatibility Bar Component */}
           {hasDietCompatibility ? (
-            <DietCompatibilityBar compatibility={finalMealData.dietCompatibility} />
+            <DietCompatibilityBar 
+              compatibility={finalMealData.dietCompatibility} 
+              reviews={(finalMealData as any).reviews}
+              sentiment={(finalMealData as any).sentiment}
+            />
           ) : (
             <DietCompatibilityBarSkeleton />
           )}

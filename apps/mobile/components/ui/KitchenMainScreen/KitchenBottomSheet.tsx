@@ -1,9 +1,20 @@
 import { useChefs } from '@/hooks/useChefs';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView } from '@gorhom/bottom-sheet';
+import { BlurEffect } from '@/utils/blurEffects';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Users } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Extrapolate,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import SearchArea from '../../SearchArea';
 import { CartButton } from '../CartButton';
 import { KitchenBottomSheetContent } from './KitchenBottomSheetContent';
@@ -20,7 +31,29 @@ interface KitchenBottomSheetProps {
   onSearchPress?: () => void;
   onSearchSubmit?: (query: string) => void;
   onMealPress?: (meal: any) => void;
+  onCartCountChange?: (count: number) => void;
+  onOpenAIChat?: () => void;
 }
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const COLLAPSED_HEIGHT = Math.round(SCREEN_HEIGHT * 0.57); // 57% of screen
+const EXPANDED_HEIGHT = Math.round(SCREEN_HEIGHT * 0.90); // 90% of screen
+
+const SNAP_POINTS = {
+  COLLAPSED: COLLAPSED_HEIGHT,
+  EXPANDED: EXPANDED_HEIGHT,
+};
+
+type SnapPoint = number;
+
+const SPRING_CONFIG = {
+  damping: 50,
+  stiffness: 400,
+  mass: 0.8,
+};
+
+const VELOCITY_THRESHOLD = 500;
+const GESTURE_THRESHOLD = 50;
 
 export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   deliveryTime,
@@ -33,16 +66,25 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   onSearchPress,
   onSearchSubmit,
   onMealPress,
+  onCartCountChange,
+  onOpenAIChat,
 }) => {
   const router = useRouter();
-  const bottomSheetRef = useRef<BottomSheet>(null);
   const contentScrollRef = useRef<ScrollView>(null);
   const searchInputRef = useRef<TextInput>(null);
-  const [currentSnapPoint, setCurrentSnapPoint] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { getKitchenDetails } = useChefs();
   const [kitchenDetails, setKitchenDetails] = useState<any>(null);
+
+  // Core animation values
+  const drawerHeight = useSharedValue(SNAP_POINTS.COLLAPSED);
+  const currentSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
+  const gestureState = useSharedValue<"idle" | "dragging" | "settling">("idle");
+  const initialTouchY = useSharedValue(0);
+  const lastSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
+  const startHeight = useSharedValue(0);
+  const startSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
 
   // Load kitchen details
   useEffect(() => {
@@ -65,201 +107,426 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   const apiKitchenName = kitchenDetails?.data?.kitchenName;
 
   // Use fetched kitchen name from API
-  // If kitchenId is provided, prioritize API data and don't use demo name from prop
-  // Only use prop if it's not the demo name "Amara's Kitchen"
   const isDemoName = propKitchenName === "Amara's Kitchen";
   const kitchenName = kitchenId 
     ? (apiKitchenName || (!isDemoName && propKitchenName) || "Amara's Kitchen")
     : (propKitchenName || "Amara's Kitchen");
 
-  const snapPoints = ['57%', '90%'];
-  const isExpanded = currentSnapPoint === 1;
+  // Initialize drawer to collapsed state
+  useEffect(() => {
+    drawerHeight.value = SNAP_POINTS.COLLAPSED;
+    currentSnapPoint.value = SNAP_POINTS.COLLAPSED;
+    lastSnapPoint.value = SNAP_POINTS.COLLAPSED;
+  }, []);
 
-  const handleSheetChanges = (index: number) => {
-    setCurrentSnapPoint(index);
+  // State for JSX access
+  const [currentSnapPointState, setCurrentSnapPointState] = useState(0);
+  const [isExpandedState, setIsExpandedState] = useState(false);
+
+  // Update state from derived values
+  useDerivedValue(() => {
+    const isExpanded = drawerHeight.value > SNAP_POINTS.COLLAPSED + 50;
+    runOnJS(setIsExpandedState)(isExpanded);
+    const snapIndex = isExpanded ? 1 : 0;
+    runOnJS(setCurrentSnapPointState)(snapIndex);
+  });
+
+  const handleSheetChanges = useCallback((index: number) => {
     if (index === 0 && contentScrollRef.current) {
       contentScrollRef.current.scrollTo({ y: 0, animated: true });
     }
-  };
+  }, []);
 
-  const handleSearchPress = () => {
+  const handleSearchPress = useCallback(() => {
     setIsSearchMode(true);
     setSearchQuery('');
-    bottomSheetRef.current?.snapToIndex(1);
+    animateToSnapPoint(SNAP_POINTS.EXPANDED);
     setTimeout(() => searchInputRef.current?.focus(), 100);
-  };
+  }, []);
 
-  const handleSearchSubmit = (query: string) => {
+  const handleSearchSubmit = useCallback((query: string) => {
     const trimmed = query.trim();
     if (trimmed) {
       onSearchSubmit?.(trimmed);
       setIsSearchMode(false);
       setSearchQuery('');
     }
-  };
+  }, [onSearchSubmit]);
 
-  const handleSearchCancel = () => {
+  const handleSearchCancel = useCallback(() => {
     setIsSearchMode(false);
     setSearchQuery('');
     searchInputRef.current?.blur();
-  };
-  
-  const handleCreateGroupOrder = () => {
-    if (!kitchenId || !kitchenName) {
-      return;
-    }
-    
-    // Navigate to create group order screen with chef_id and restaurant_name
-    router.push({
-      pathname: '/orders/group/create',
-      params: {
-        chef_id: kitchenId,
-        restaurant_name: kitchenName,
-      },
-    });
-  };
+  }, []);
 
-  const renderBackdrop = (props: BottomSheetBackdropProps) => (
-    <BottomSheetBackdrop
-      {...props}
-      disappearsOnIndex={-1}
-      appearsOnIndex={0}
-      opacity={0.3}
-    />
+  const handleBackdropPress = useCallback(() => {
+    if (isExpandedState) {
+      animateToSnapPoint(SNAP_POINTS.COLLAPSED);
+    }
+  }, [isExpandedState]);
+
+
+  // Haptic feedback helper
+  const triggerHaptic = useCallback(() => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } catch {
+      // Ignore haptic errors
+    }
+  }, []);
+
+  // Smooth spring animation to snap point
+  const animateToSnapPoint = useCallback(
+    (snapPoint: SnapPoint, velocity = 0) => {
+      "worklet";
+
+      gestureState.value = "settling";
+      currentSnapPoint.value = snapPoint;
+      lastSnapPoint.value = snapPoint;
+
+      const springConfig = {
+        ...SPRING_CONFIG,
+        velocity: velocity * 0.3,
+      };
+
+      drawerHeight.value = withSpring(snapPoint, springConfig, (finished) => {
+        if (finished) {
+          gestureState.value = "idle";
+        }
+      });
+    },
+    [] // Shared values don't need to be in dependencies
   );
 
+  // Intelligent snap point calculation
+  const calculateSnapPoint = useCallback(
+    (currentHeight: number, velocityY: number, gestureDistance: number) => {
+      "worklet";
+
+      const hasSignificantVelocity = Math.abs(velocityY) > VELOCITY_THRESHOLD;
+      const hasSignificantDistance = Math.abs(gestureDistance) > GESTURE_THRESHOLD;
+
+      if (!hasSignificantVelocity && !hasSignificantDistance) {
+        return lastSnapPoint.value;
+      }
+
+      if (hasSignificantVelocity) {
+        if (velocityY > 0) {
+          return SNAP_POINTS.COLLAPSED;
+        } else {
+          return SNAP_POINTS.EXPANDED;
+        }
+      }
+
+      const midPoint = (SNAP_POINTS.COLLAPSED + SNAP_POINTS.EXPANDED) / 2;
+      if (currentHeight < midPoint) {
+        return SNAP_POINTS.COLLAPSED;
+      } else {
+        return SNAP_POINTS.EXPANDED;
+      }
+    },
+    [] // Shared values don't need to be in dependencies
+  );
+
+  // Gesture handler
+  const panGesture = Gesture.Pan()
+    .minDistance(10)
+    .activeOffsetY([-10, 10])
+    .onStart((event) => {
+      "worklet";
+      gestureState.value = "dragging";
+      startHeight.value = drawerHeight.value;
+      startSnapPoint.value = currentSnapPoint.value;
+      initialTouchY.value = event.absoluteY;
+      runOnJS(triggerHaptic)();
+    })
+    .onUpdate((event) => {
+      "worklet";
+      let newHeight = startHeight.value - event.translationY;
+
+      // Apply rubber band effect at boundaries
+      if (newHeight < SNAP_POINTS.COLLAPSED) {
+        const excess = SNAP_POINTS.COLLAPSED - newHeight;
+        const resistance = Math.min(excess / 50, 0.9);
+        newHeight = SNAP_POINTS.COLLAPSED - excess * (1 - resistance);
+      } else if (newHeight > SNAP_POINTS.EXPANDED) {
+        const excess = newHeight - SNAP_POINTS.EXPANDED;
+        const resistance = Math.min(excess / 100, 0.8);
+        newHeight = SNAP_POINTS.EXPANDED + excess * (1 - resistance);
+      }
+
+      drawerHeight.value = Math.max(SNAP_POINTS.COLLAPSED, newHeight);
+
+      if (newHeight <= SNAP_POINTS.COLLAPSED + 50) {
+        currentSnapPoint.value = SNAP_POINTS.COLLAPSED;
+      } else {
+        currentSnapPoint.value = SNAP_POINTS.EXPANDED;
+      }
+    })
+    .onEnd((event) => {
+      "worklet";
+      const gestureDistance = Math.abs(event.absoluteY - initialTouchY.value);
+      const targetSnapPoint = calculateSnapPoint(
+        drawerHeight.value,
+        event.velocityY,
+        gestureDistance
+      );
+      animateToSnapPoint(targetSnapPoint, -event.velocityY);
+    })
+    .onFinalize(() => {
+      "worklet";
+      if (gestureState.value === "dragging") {
+        animateToSnapPoint(startSnapPoint.value);
+      }
+    });
+
+  // Main container style
+  const containerStyle = useAnimatedStyle(() => {
+    "worklet";
+    const finalHeight = Math.max(SNAP_POINTS.COLLAPSED, drawerHeight.value);
+    return {
+      height: finalHeight,
+    };
+  });
+
+  // Background color style
+  const backgroundColorStyle = useAnimatedStyle(() => {
+    "worklet";
+    return {
+      backgroundColor: '#02120A',
+    };
+  });
+
+  // Backdrop style
+  const backdropStyle = useAnimatedStyle(() => {
+    "worklet";
+    const isExpanded = drawerHeight.value > SNAP_POINTS.COLLAPSED + 50;
+    const opacity = isExpanded
+      ? interpolate(
+          drawerHeight.value,
+          [SNAP_POINTS.COLLAPSED + 50, SNAP_POINTS.EXPANDED],
+          [0.1, 0.3],
+          Extrapolate.CLAMP
+        )
+      : 0;
+
+    return {
+      opacity,
+      pointerEvents: isExpanded ? "auto" : "none",
+    };
+  });
+
+  const isExpanded = isExpandedState;
+  const currentSnapPointIndex = currentSnapPointState;
+
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      onChange={handleSheetChanges}
-      enablePanDownToClose={false}
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={styles.handleIndicator}
-      backgroundStyle={styles.bottomSheetBackground}
-      containerStyle={styles.container}
-      handleStyle={styles.handleStyle}
-    >
-      <BottomSheetView style={styles.content}>
-        {isSearchMode ? (
-          // Search Mode Interface
-          <View style={styles.searchContainer}>
-            {/* Search Header */}
-            <View style={styles.searchHeader}>
-              <TouchableOpacity onPress={handleSearchCancel} style={styles.cancelButton}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {/* Search Input */}
-            <View style={styles.searchInputContainer}>
-              <SearchArea 
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={setSearchQuery}
-                returnKeyType="search"
-                placeholder="Search for dishes, ingredients..."
-                onSubmitEditing={() => handleSearchSubmit(searchQuery)}
-                autoFocus={true}
-                editable={true}
-              />
-            </View>
-            
-            {/* Search Results - Content component handles displaying search results */}
-            <KitchenBottomSheetContent 
-              ref={contentScrollRef}
-              isExpanded={true}
-              deliveryTime={deliveryTime}
-              kitchenId={kitchenId}
-              kitchenName={kitchenName}
-              searchQuery={searchQuery}
-              onMealPress={onMealPress}
-            />
-          </View>
-        ) : (
-          // Normal Content Interface
-          <>
-            {/* Header */}
-            <KitchenBottomSheetHeader
-              deliveryTime={deliveryTime}
-              kitchenName={kitchenName}
-              currentSnapPoint={currentSnapPoint}
-              distance={distance}
-              kitchenId={kitchenId}
-              onHeartPress={onHeartPress}
-              onSearchPress={handleSearchPress}
-            />
-            
-            {/* Content */}
-            <KitchenBottomSheetContent 
-              ref={contentScrollRef}
-              isExpanded={isExpanded}
-              onScrollAttempt={() => !isExpanded && bottomSheetRef.current?.snapToIndex(1)}
-              deliveryTime={deliveryTime}
-              kitchenId={kitchenId}
-              kitchenName={kitchenName}
-              searchQuery={isSearchMode ? searchQuery : undefined}
-              onMealPress={onMealPress}
-            />
-          </>
-        )}
-        
-        {/* Action Buttons */}
-        <View style={styles.actionButtonsContainer}>
-          {/* Create Group Order Button */}
+    <>
+      {/* Backdrop */}
+      {isExpanded ? (
+        <Animated.View
+          style={[
+            backdropStyle,
+            {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 1)",
+              zIndex: 9997, // Below play button (9998) but above other content
+            },
+          ]}
+        >
           <TouchableOpacity
-            style={styles.createGroupOrderButton}
-            onPress={handleCreateGroupOrder}
-            activeOpacity={0.8}
-          >
-            <Users size={20} color="#E6FFE8" />
-            <Text style={styles.createGroupOrderText}>Create Group Order</Text>
-          </TouchableOpacity>
-          
-          {/* Cart Button */}
-          <CartButton
-            quantity={cartItems}
-            onPress={onCartPress ?? (() => {})}
-            variant="view"
-            position="relative"
-            bottom={0}
-            left={0}
-            right={0}
-            showIcon={true}
+            style={{ flex: 1 }}
+            onPress={handleBackdropPress}
+            activeOpacity={1}
           />
-        </View>
-      </BottomSheetView>
-    </BottomSheet>
+        </Animated.View>
+      ) : null}
+
+      {/* Main Drawer */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View
+          style={[
+            containerStyle,
+            {
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 16,
+              elevation: 20,
+              overflow: "hidden",
+              zIndex: 9999,
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              {
+                flex: 1,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                position: "relative",
+              },
+              backgroundColorStyle,
+            ]}
+          >
+            {/* Blur Overlay */}
+            <Animated.View
+              style={[
+                {
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  overflow: "hidden",
+                },
+              ]}
+            >
+              {Platform.OS === 'ios' ? (
+                <BlurView
+                  intensity={80}
+                  tint="dark"
+                  style={{
+                    flex: 1,
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                  }}
+                />
+              ) : (
+                <BlurEffect
+                  intensity={80}
+                  tint="dark"
+                  useGradient={true}
+                  style={{
+                    flex: 1,
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                  }}
+                />
+              )}
+            </Animated.View>
+
+            {/* Drag Indicator */}
+            <View style={styles.dragIndicator} />
+
+            {/* Content */}
+            <View style={styles.content}>
+              {isSearchMode ? (
+                // Search Mode Interface
+                <View style={styles.searchContainer}>
+                  {/* Search Header */}
+                  <View style={styles.searchHeader}>
+                    <TouchableOpacity onPress={handleSearchCancel} style={styles.cancelButton}>
+                      <Text style={styles.cancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Search Input */}
+                  <View style={styles.searchInputContainer}>
+                    <SearchArea 
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      returnKeyType="search"
+                      placeholder="Search for dishes, ingredients..."
+                      onSubmitEditing={() => handleSearchSubmit(searchQuery)}
+                      autoFocus={true}
+                      editable={true}
+                      onSparklesPress={onOpenAIChat || (() => router.push('/nosh-heaven' as any))}
+                    />
+                  </View>
+                  
+                  {/* Search Results */}
+                  <KitchenBottomSheetContent 
+                    ref={contentScrollRef}
+                    isExpanded={true}
+                    deliveryTime={deliveryTime}
+                    kitchenId={kitchenId}
+                    kitchenName={kitchenName}
+                    searchQuery={searchQuery}
+                    onMealPress={onMealPress}
+                    onCartCountChange={onCartCountChange}
+                  />
+                </View>
+              ) : (
+                // Normal Content Interface
+                <>
+                  {/* Header */}
+                  <KitchenBottomSheetHeader
+                    deliveryTime={deliveryTime}
+                    kitchenName={kitchenName}
+                    currentSnapPoint={currentSnapPointIndex}
+                    distance={distance}
+                    kitchenId={kitchenId}
+                    onHeartPress={onHeartPress}
+                    onSearchPress={handleSearchPress}
+                  />
+                  
+                  {/* Content */}
+                  <KitchenBottomSheetContent 
+                    ref={contentScrollRef}
+                    isExpanded={isExpanded}
+                    onScrollAttempt={() => !isExpanded && animateToSnapPoint(SNAP_POINTS.EXPANDED)}
+                    deliveryTime={deliveryTime}
+                    kitchenId={kitchenId}
+                    kitchenName={kitchenName}
+                    searchQuery={isSearchMode ? searchQuery : undefined}
+                    onMealPress={onMealPress}
+                    onCartCountChange={onCartCountChange}
+                  />
+                </>
+              )}
+              
+              {/* Action Buttons */}
+              <View style={styles.actionButtonsContainer}>
+                {/* Cart Button */}
+                <CartButton
+                  quantity={cartItems}
+                  onPress={onCartPress ?? (() => router.push('/orders/cart' as any))}
+                  variant="view"
+                  position="relative"
+                  bottom={0}
+                  left={0}
+                  right={0}
+                  showIcon={true}
+                />
+              </View>
+            </View>
+          </Animated.View>
+        </Animated.View>
+      </GestureDetector>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    zIndex: 9999, // Highest z-index to ensure it's above everything
-  },
-  content: {
-    flex: 1,
-  },
-  bottomSheetBackground: {
-    backgroundColor: '#02120A',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  handleIndicator: {
+  dragIndicator: {
     width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: '#EDEDED',
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 10,
   },
-  handleStyle: {
-    display: 'none', // Hide the handle bar
+  content: {
+    flex: 1,
   },
   searchContainer: {
     flex: 1,
     paddingVertical: 20,
-    paddingHorizontal: 10, // Reduced horizontal padding for search mode
+    paddingHorizontal: 10,
   },
   searchHeader: {
     flexDirection: 'row',
@@ -278,42 +545,10 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 10,
   },
-  searchResultsContainer: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    marginTop: -100,
-    paddingTop: 185,
-  },
-  searchResultsText: {
-    color: '#888888',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  mascotContainer: {
-    marginBottom: 20,
-  },
   actionButtonsContainer: {
     position: 'absolute',
     bottom: 20,
     left: 20,
     right: 20,
-    gap: 12,
   },
-  createGroupOrderButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF3B30',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    gap: 8,
-  },
-  createGroupOrderText: {
-    color: '#E6FFE8',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-}); 
+});

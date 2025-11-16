@@ -371,6 +371,20 @@ export default defineSchema({
     rating: v.optional(v.number()),
     images: v.array(v.string()),
     calories: v.optional(v.number()),
+    ingredients: v.optional(v.array(v.object({
+      name: v.string(),
+      quantity: v.optional(v.string()),
+      isAllergen: v.optional(v.boolean()),
+      allergenType: v.optional(v.string()),
+    }))),
+    fat: v.optional(v.string()),
+    protein: v.optional(v.string()),
+    carbs: v.optional(v.string()),
+    prepTime: v.optional(v.string()),
+    deliveryTime: v.optional(v.string()),
+    dietCompatibility: v.optional(v.number()),
+    dietMessage: v.optional(v.string()),
+    chefTips: v.optional(v.array(v.string())),
   }),
   // Bookings table
   bookings: defineTable({
@@ -1149,8 +1163,7 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("confirmed"),
       v.literal("preparing"),
-      v.literal("ready"),
-      v.literal("delivered"),
+      v.literal("on_the_way"),
       v.literal("cancelled"),
       v.literal("completed")
     ),

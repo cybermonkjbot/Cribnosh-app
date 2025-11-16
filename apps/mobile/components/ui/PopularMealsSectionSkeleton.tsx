@@ -13,8 +13,14 @@ export const PopularMealsSectionSkeleton: React.FC<PopularMealsSectionSkeletonPr
       key={index}
       style={styles.skeletonCard}
     >
-      {/* Image skeleton */}
-      <View style={styles.skeletonImage} />
+      {/* Image skeleton with badge overlays */}
+      <View style={styles.skeletonImageContainer}>
+        <View style={styles.skeletonImage} />
+        {/* Popular Badge skeleton (left side) */}
+        <View style={styles.skeletonPopularBadge} />
+        {/* New Badge skeleton (right side) */}
+        <View style={styles.skeletonNewBadge} />
+      </View>
       
       {/* Content skeleton */}
       <View style={styles.skeletonContent}>
@@ -99,10 +105,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
+  skeletonImageContainer: {
+    position: 'relative',
+  },
   skeletonImage: {
     width: '100%',
     height: 120,
     backgroundColor: 'rgba(156, 163, 175, 0.3)',
+  },
+  skeletonPopularBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 60,
+    height: 20,
+    borderRadius: 12,
+    backgroundColor: 'rgba(156, 163, 175, 0.2)',
+  },
+  skeletonNewBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 40,
+    height: 20,
+    borderRadius: 12,
+    backgroundColor: 'rgba(156, 163, 175, 0.2)',
   },
   skeletonContent: {
     padding: 12,

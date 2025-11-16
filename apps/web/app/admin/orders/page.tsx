@@ -187,10 +187,11 @@ export default function OrderManagementPage() {
       pending: { color: 'bg-gray-100 text-gray-800', icon: Clock },
       confirmed: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
       preparing: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: ChefHat },
-      ready: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Package },
       out_for_delivery: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Truck },
-      delivered: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
+      on_the_way: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Truck },
+      'on-the-way': { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: Truck },
       cancelled: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
+      completed: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
       refunded: { color: 'bg-gray-100 text-gray-800', icon: RefreshCw }
     };
     

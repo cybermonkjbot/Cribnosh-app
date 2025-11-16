@@ -13,7 +13,7 @@ import {
 import { useOrders } from "@/hooks/useOrders";
 
 // Global toast imports
-import { showError } from "../../lib/GlobalToastManager";
+import { OrderAgainQuickActionModal } from "./OrderAgainQuickActionModal";
 import { OrderAgainSectionSkeleton } from "./OrderAgainSectionSkeleton";
 import { SkeletonWithTimeout } from "./SkeletonWithTimeout";
 
@@ -31,6 +31,9 @@ interface OrderAgainSectionProps {
   isAuthenticated?: boolean;
   shouldShow?: boolean; // Controls visibility while maintaining hook consistency
   onItemPress?: (item: OrderItem) => void;
+  onAddItem?: (itemId: string) => Promise<void>;
+  onAddEntireOrder?: (orderId: string) => Promise<void>;
+  onViewDetails?: (itemId: string) => void;
   hasInitialLoadCompleted?: boolean;
 }
 
@@ -39,11 +42,16 @@ export function OrderAgainSection({
   isAuthenticated = false,
   shouldShow = true, // Default to showing
   onItemPress,
+  onAddItem,
+  onAddEntireOrder,
+  onViewDetails,
   hasInitialLoadCompleted = false,
 }: OrderAgainSectionProps) {
   const horizontalScrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
 
   // Recent dishes using useOrders hook
   const { getRecentDishes } = useOrders();
@@ -217,7 +225,14 @@ export function OrderAgainSection({
               shadowRadius: 8,
               elevation: 3,
             }}
-            onPress={() => onItemPress?.(item)}
+            onPress={() => {
+              if (onAddItem || onAddEntireOrder || onViewDetails) {
+                setSelectedItem(item);
+                setModalVisible(true);
+              } else {
+                onItemPress?.(item);
+              }
+            }}
             activeOpacity={0.8}
           >
             <View style={{ position: "relative", marginBottom: 8 }}>
@@ -282,6 +297,19 @@ export function OrderAgainSection({
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Quick Action Modal */}
+      <OrderAgainQuickActionModal
+        isVisible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedItem(null);
+        }}
+        item={selectedItem}
+        onAddItem={onAddItem || (async () => {})}
+        onAddEntireOrder={onAddEntireOrder || (async () => {})}
+        onViewDetails={onViewDetails || (() => {})}
+      />
     </Animated.View>
   );
 }

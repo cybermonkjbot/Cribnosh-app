@@ -27,11 +27,12 @@ import Animated, {
 
 // Define order status types
 export type OrderStatus =
+  | "pending"
+  | "confirmed"
   | "preparing"
-  | "ready"
   | "on-the-way"
-  | "delivered"
-  | "cancelled";
+  | "cancelled"
+  | "completed";
 
 // Define order types
 export type OrderType = "individual" | "group";
@@ -170,17 +171,30 @@ export default function OrdersScreen() {
     }
   };
 
+  // Helper function to format order ID (show last 6 characters)
+  const formatOrderId = (orderId: string | undefined): string => {
+    if (!orderId) return "";
+    // Remove any existing # prefix
+    const cleanId = orderId.replace(/^#/, "");
+    // If it's a short ID (8 chars or less), return as is
+    if (cleanId.length <= 8) {
+      return `#${cleanId.toUpperCase()}`;
+    }
+    // Otherwise, show last 6 characters
+    return `#${cleanId.slice(-6).toUpperCase()}`;
+  };
+
   // Convert API orders to UI Order format
   const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     const statusMap: Record<string, OrderStatus> = {
-      pending: "preparing",
-      confirmed: "preparing",
+      pending: "pending",
+      confirmed: "confirmed",
       preparing: "preparing",
-      ready: "ready",
       on_the_way: "on-the-way",
       "on-the-way": "on-the-way",
-      delivered: "delivered",
+      delivered: "completed", // Map delivered to completed
       cancelled: "cancelled",
+      completed: "completed",
     };
 
     // Format timestamp
@@ -198,7 +212,7 @@ export default function OrdersScreen() {
     const formattedTime = `${hours}:${minutes} • ${day}${getOrdinalSuffix(day)} ${monthName}`;
 
     // Format estimated time
-    let estimatedTime = "TBD";
+    let estimatedTime: string | undefined;
     if (apiOrder.estimated_prep_time_minutes) {
       const mins = apiOrder.estimated_prep_time_minutes;
       estimatedTime = `${mins}-${mins + 5} min`;
@@ -213,39 +227,67 @@ export default function OrdersScreen() {
 
     // Get order items with images for stacking
     const orderItemsWithImages = apiOrder.order_items
-      ? apiOrder.order_items.map((item: any) => ({
-          _id: item._id || item.id,
-          dish_id: item.dish_id || item.id,
-          name: item.name || item.dish_name,
-          image_url: item.image_url || item.imageUrl || item.image,
-        }))
-      : apiOrder.items
-        ? apiOrder.items.map((item: any) => ({
+      ? apiOrder.order_items.map((item: any) => {
+          const imageUrl = item.image_url || item.imageUrl || item.image;
+          // Debug: log image URL availability
+          if (!imageUrl) {
+            console.log('Order item missing image:', {
+              name: item.name || item.dish_name,
+              dish_id: item.dish_id,
+              has_image_url: !!item.image_url,
+              has_imageUrl: !!item.imageUrl,
+              has_image: !!item.image,
+              fullItem: item,
+            });
+          }
+          return {
             _id: item._id || item.id,
             dish_id: item.dish_id || item.id,
-            name: item.dish_name || item.name,
-            image_url: item.image_url || item.imageUrl || item.image,
-          }))
+            name: item.name || item.dish_name,
+            image_url: imageUrl,
+          };
+        })
+      : apiOrder.items
+        ? apiOrder.items.map((item: any) => {
+            const imageUrl = item.image_url || item.imageUrl || item.image;
+            if (!imageUrl) {
+              console.log('Order item (items array) missing image:', {
+                name: item.dish_name || item.name,
+                dish_id: item.dish_id,
+                has_image_url: !!item.image_url,
+                has_imageUrl: !!item.imageUrl,
+                has_image: !!item.image,
+                fullItem: item,
+              });
+            }
+            return {
+              _id: item._id || item.id,
+              dish_id: item.dish_id || item.id,
+              name: item.dish_name || item.name,
+              image_url: imageUrl,
+            };
+          })
         : [];
 
     // Get description
     const kitchenName =
-      apiOrder.kitchen_name || apiOrder.restaurant_name || "Kitchen";
+      apiOrder.kitchen_name || apiOrder.restaurant_name || null;
     const description =
       items.length > 0
-        ? `${items.slice(0, 2).join(", ")}${items.length > 2 ? `, +${items.length - 2} more` : ""} from ${kitchenName}`
-        : `Order from ${kitchenName}`;
+        ? kitchenName
+          ? `${items.slice(0, 2).join(", ")}${items.length > 2 ? `, +${items.length - 2} more` : ""} from ${kitchenName}`
+          : `${items.slice(0, 2).join(", ")}${items.length > 2 ? `, +${items.length - 2} more` : ""}`
+        : kitchenName
+          ? `Order from ${kitchenName}`
+          : "Order";
 
     // Get price
     const totalAmount = apiOrder.total_amount || apiOrder.total || 0;
     const price = `£${(totalAmount / 100).toFixed(2)}`;
 
-    // Get order number
-    const orderNumber = apiOrder.order_id
-      ? `#${apiOrder.order_id}`
-      : apiOrder.id
-        ? `#${apiOrder.id}`
-        : `#${apiOrder._id || "ORD-001"}`;
+    // Get order number (formatted to show last 6 characters)
+    const rawOrderId = apiOrder.order_id || apiOrder.id || apiOrder._id;
+    const orderNumber = formatOrderId(rawOrderId);
 
     // Generate a unique ID for the order
     const uniqueId =
@@ -294,7 +336,7 @@ export default function OrdersScreen() {
           totalUsers:
             groupData.total_participants || groupData.participants.length,
           isActive:
-            (apiOrder.order_status || apiOrder.status) !== "delivered" &&
+            (apiOrder.order_status || apiOrder.status) !== "completed" &&
             (apiOrder.order_status || apiOrder.status) !== "cancelled",
         };
       }
@@ -306,13 +348,14 @@ export default function OrdersScreen() {
   // Convert custom orders to Order format
   const convertCustomOrderToOrder = (customOrder: CustomOrder): Order => {
     const statusMap: Record<string, OrderStatus> = {
-      pending: "preparing",
+      pending: "pending",
       processing: "preparing",
-      accepted: "preparing",
+      accepted: "confirmed",
+      confirmed: "confirmed",
       preparing: "preparing",
-      ready: "ready",
-      delivered: "delivered",
+      delivered: "completed", // Map delivered to completed
       cancelled: "cancelled",
+      completed: "completed",
     };
 
     // Generate a unique ID for the custom order
@@ -334,10 +377,9 @@ export default function OrdersScreen() {
         ? `£${customOrder.estimatedPrice}`
         : "TBD",
       status: statusMap[customOrder.status] || "preparing",
-      estimatedTime:
-        customOrder.status === "ready" ? "Ready for pickup" : "Processing",
+      estimatedTime: "Processing",
       kitchenName: "Custom Kitchen",
-      orderNumber: customOrder.custom_order_id,
+      orderNumber: formatOrderId(customOrder.custom_order_id),
       items: [customOrder.requirements],
       orderType: "individual",
       // Store unique identifier for key generation
@@ -401,27 +443,35 @@ export default function OrdersScreen() {
   ];
 
   // Combine API orders with custom orders
+  // Ongoing orders: pending, confirmed, preparing, on-the-way
   const allOngoingOrders = [
     ...apiOrdersAsOrders.filter(
       (order) =>
+        order.status === "pending" ||
+        order.status === "confirmed" ||
         order.status === "preparing" ||
-        order.status === "ready" ||
         order.status === "on-the-way"
     ),
     ...customOrdersAsOrders.filter(
       (order) =>
+        order.status === "pending" ||
+        order.status === "confirmed" ||
         order.status === "preparing" ||
-        order.status === "ready" ||
         order.status === "on-the-way"
     ),
   ];
 
+  // Past orders: cancelled, completed
   const allPastOrders = [
     ...apiOrdersAsOrders.filter(
-      (order) => order.status === "delivered" || order.status === "cancelled"
+      (order) => 
+        order.status === "cancelled" ||
+        order.status === "completed"
     ),
     ...customOrdersAsOrders.filter(
-      (order) => order.status === "delivered" || order.status === "cancelled"
+      (order) => 
+        order.status === "cancelled" ||
+        order.status === "completed"
     ),
   ];
 

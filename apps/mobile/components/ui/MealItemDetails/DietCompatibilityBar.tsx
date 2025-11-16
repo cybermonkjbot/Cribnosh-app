@@ -1,12 +1,40 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface DietCompatibilityBarProps {
-  compatibility: number; // percentage
+  compatibility: number; // percentage (fallback if no reviews)
+  reviews?: { rating: number }[];
+  sentiment?: string;
 }
 
-export function DietCompatibilityBar({ compatibility }: DietCompatibilityBarProps) {
+export function DietCompatibilityBar({ 
+  compatibility, 
+  reviews, 
+  sentiment 
+}: DietCompatibilityBarProps) {
+  // Calculate sentiment percentage from reviews
+  const sentimentPercentage = useMemo(() => {
+    if (!reviews || reviews.length === 0) {
+      return compatibility;
+    }
+
+    // Positive reviews: rating >= 4
+    // Negative reviews: rating < 4
+    const positiveReviews = reviews.filter(review => review.rating >= 4).length;
+    const totalReviews = reviews.length;
+    
+    // Calculate percentage: (positive reviews / total reviews) * 100
+    const percentage = (positiveReviews / totalReviews) * 100;
+    
+    // Ensure percentage is between 0 and 100
+    return Math.round(Math.max(0, Math.min(100, percentage)));
+  }, [reviews, compatibility]);
+
+  // Show fire icon only when sentiment is "fire"
+  const showFireIcon = sentiment === 'fire';
+
   return (
     <View style={styles.container}>
       {/* Nosh Sentiment Bar Label */}
@@ -23,7 +51,7 @@ export function DietCompatibilityBar({ compatibility }: DietCompatibilityBarProp
             end={{ x: 1, y: 0 }}
             style={[
               styles.progressBarFilled,
-              { width: `${compatibility}%` }
+              { width: `${sentimentPercentage}%` }
             ]}
           />
           
@@ -31,18 +59,20 @@ export function DietCompatibilityBar({ compatibility }: DietCompatibilityBarProp
           <View 
             style={[
               styles.progressIndicator,
-              { left: `${compatibility}%` }
+              { left: `${sentimentPercentage}%` }
             ]} 
           />
         </View>
         
         {/* Percentage Display */}
-        <Text style={styles.percentageText}>{compatibility}%</Text>
+        <Text style={styles.percentageText}>{sentimentPercentage}%</Text>
         
-        {/* Fire Icon */}
-        <View style={styles.fireIconContainer}>
-          <Ionicons name="flame" size={20} color="#FF6B35" />
-        </View>
+        {/* Fire Icon - Only show when sentiment is "fire" */}
+        {showFireIcon && (
+          <View style={styles.fireIconContainer}>
+            <Ionicons name="flame" size={20} color="#FF6B35" />
+          </View>
+        )}
       </View>
     </View>
   );

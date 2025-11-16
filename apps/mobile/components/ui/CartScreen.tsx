@@ -343,6 +343,7 @@ export default function CartScreen() {
             <SkeletonBox width={150} height={18} borderRadius={4} style={{ marginBottom: 4 }} />
             <SkeletonBox width={200} height={16} borderRadius={4} />
           </View>
+          <SkeletonBox width={24} height={24} borderRadius={4} />
         </View>
       </View>
       {/* Nosh Pass Section */}
@@ -351,6 +352,7 @@ export default function CartScreen() {
           <SkeletonBox width={32} height={32} borderRadius={4} />
           <SkeletonBox width={100} height={18} borderRadius={4} />
           <SkeletonBox width={80} height={18} borderRadius={4} />
+          <SkeletonBox width={24} height={24} borderRadius={4} />
         </View>
       </View>
       {/* Cutlery Section */}
@@ -377,6 +379,10 @@ export default function CartScreen() {
       </View>
       {/* Summary Section */}
       <View style={styles.skeletonSummary}>
+        <View style={styles.skeletonSummaryRow}>
+          <SkeletonBox width={100} height={18} borderRadius={4} />
+          <SkeletonBox width={60} height={18} borderRadius={4} />
+        </View>
         <View style={styles.skeletonSummaryRow}>
           <SkeletonBox width={100} height={18} borderRadius={4} />
           <SkeletonBox width={60} height={18} borderRadius={4} />

@@ -2,7 +2,7 @@ import { useChefs } from '@/hooks/useChefs';
 import { useTopPosition } from '@/utils/positioning';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -12,10 +12,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Circle, Path, Svg } from 'react-native-svg';
 import { Mascot } from '../Mascot';
+import { AIChatDrawer } from './AIChatDrawer';
+import { GeneratingSuggestionsDemo } from './GeneratingSuggestionsDemo';
 import { BackgroundElements } from './KitchenMainScreen/BackgroundElements';
 import { FoodIllustrations } from './KitchenMainScreen/FoodIllustrations';
 import { KitchenBottomSheet } from './KitchenMainScreen/KitchenBottomSheet';
 import { KitchenIntroCard } from './KitchenMainScreen/KitchenIntroCard';
+import { NoshHeavenPlayer } from './NoshHeavenPlayer';
 
 const { width, height } = Dimensions.get('window');
 
@@ -39,7 +42,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   kitchenName: propKitchenName,
   cuisine = "Nigerian",
   deliveryTime = "30-45 Mins",
-  cartItems = 2,
+  cartItems: initialCartItems = 2,
   distance = "0.8 km",
   kitchenId,
   foodcreatorId,
@@ -57,6 +60,23 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   const [featuredVideoData, setFeaturedVideoData] = useState<any>(null);
   const [isLoadingKitchenDetails, setIsLoadingKitchenDetails] = useState(false);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [isPlayerVisible, setIsPlayerVisible] = useState(false);
+  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [isChatVisible, setIsChatVisible] = useState(false);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+
+  const handleOpenAIChat = () => {
+    setIsGeneratingSuggestions(true);
+  };
+
+  const handleCloseAIChat = () => {
+    setIsChatVisible(false);
+  };
+
+  const handleGeneratingSuggestionsComplete = () => {
+    setIsChatVisible(true);
+    setIsGeneratingSuggestions(false);
+  };
 
   // Fetch kitchen details if kitchenId is provided
   useEffect(() => {
@@ -125,76 +145,38 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
     };
   });
 
-  const handlePlayPress = () => {
-    console.log('Play button pressed', {
-      kitchenId,
-      foodcreatorId,
-      isLoadingVideo,
-      hasVideoData: !!featuredVideoData,
-      videoData: featuredVideoData,
-      videoError,
-    });
+  // Transform featured video data to kitchenIntroVideo format
+  const kitchenIntroVideo = useMemo(() => {
+    const videoData = featuredVideoData?.data?.data || featuredVideoData?.data;
+    if (!videoData || !videoData.videoUrl) {
+      return null;
+    }
 
-    if (!kitchenId || !foodcreatorId) {
-      console.warn('Kitchen ID or Food Creator ID missing', { kitchenId, foodcreatorId });
+    return {
+      id: videoData._id || videoData.id || 'kitchen-intro',
+      videoSource: videoData.videoUrl,
+      title: videoData.title || kitchenName || 'Kitchen Story',
+      description: videoData.description || undefined,
+      kitchenName: kitchenName || 'Kitchen',
+      chef: videoData.creator?.name || videoData.chef || undefined,
+    };
+  }, [featuredVideoData, kitchenName]);
+
+  const handlePlayPress = () => {
+    if (isLoadingVideo) {
       return;
     }
 
-    // The API response structure from ResponseFactory.success():
-    // { success: true, data: { _id: ..., ... }, message: "..." }
-    // RTK Query wraps this as: { data: { success: true, data: {...}, message: "..." } }
-    // So we need to access: featuredVideoData?.data?.data?._id
-    // However, some endpoints might unwrap automatically, so check both paths
-    const videoData = featuredVideoData?.data?.data || featuredVideoData?.data;
-    const videoId = videoData?._id;
-
-    console.log('Video data extraction:', {
-      rawData: featuredVideoData,
-      dataPath1: featuredVideoData?.data,
-      dataPath2: featuredVideoData?.data?.data,
-      videoData,
-      videoId,
-    });
-
-    if (videoId) {
-      console.log('Navigating to video page:', {
-        pathname: '/foodcreator/[foodcreatorId]/kitchen/[kitchenId]/video/[videoId]',
-        params: {
-          foodcreatorId,
-          kitchenId,
-          videoId,
-        },
-      });
-      
-      try {
-        router.push({
-          pathname: '/foodcreator/[foodcreatorId]/kitchen/[kitchenId]/video/[videoId]',
-          params: {
-            foodcreatorId: String(foodcreatorId),
-            kitchenId: String(kitchenId),
-            videoId: String(videoId),
-          },
-        });
-        console.log('Navigation triggered successfully');
-      } catch (error) {
-        console.error('Navigation error:', error);
-      }
-    } else if (videoError) {
-      console.error('Error loading featured video:', videoError);
-      // Could show an error toast here
-    } else if (!isLoadingVideo) {
-      // Video not found or not available
-      console.warn('Featured video not available for this kitchen', {
-        featuredVideoData,
-        videoData,
-        checkedPaths: {
-          path1: featuredVideoData?.data?._id,
-          path2: featuredVideoData?.data?.data?._id,
-        },
-      });
-    } else {
-      console.log('Still loading video data...');
+    if (!kitchenIntroVideo) {
+      console.warn('Featured video not available for this kitchen');
+      return;
     }
+
+    setIsPlayerVisible(true);
+  };
+
+  const handleClosePlayer = () => {
+    setIsPlayerVisible(false);
   };
 
   return (
@@ -211,20 +193,14 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       {/* Header Container with Kitchen Info Card and Close Button */}
       <View style={[styles.headerContainer, { top: topPosition }]}>
         {/* Kitchen Intro Card */}
-        <View style={{ 
-          flexDirection: 'row', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: 16, 
-          paddingHorizontal: 16 
-        }}>
+        <View style={styles.introCardWrapper}>
           <KitchenIntroCard 
             kitchenName={kitchenName}
             cuisine={cuisine}
           />
         </View>
 
-        {/* Close button */}
+        {/* Close button - aligned with KitchenIntroCard */}
         <TouchableOpacity 
           style={styles.closeButton} 
           onPress={onClose} 
@@ -242,22 +218,9 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Sheet */}
-      <KitchenBottomSheet
-        deliveryTime={deliveryTime}
-        cartItems={cartItems}
-        kitchenName={kitchenName}
-        distance={distance}
-        kitchenId={kitchenId}
-        onCartPress={onCartPress}
-        onHeartPress={onHeartPress}
-        onSearchSubmit={(query) => console.log('Search submitted:', query)}
-        onMealPress={onMealPress}
-      />
-
-      {/* Floating Play Button */}
+      {/* Floating Play Button - Render before bottom sheet to ensure proper z-index */}
       <TouchableOpacity 
-        style={styles.floatingPlayButton} 
+        style={styles.floatingPlayButton}
         onPress={handlePlayPress} 
         activeOpacity={0.8}
         disabled={
@@ -266,6 +229,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
           !foodcreatorId || 
           !(featuredVideoData?.data?.data?._id || featuredVideoData?.data?._id)
         }
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <BlurView
           intensity={60}
@@ -294,10 +258,42 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
         )}
       </TouchableOpacity>
 
+      {/* Bottom Sheet */}
+      <KitchenBottomSheet
+        deliveryTime={deliveryTime}
+        cartItems={cartItems}
+        kitchenName={kitchenName}
+        distance={distance}
+        kitchenId={kitchenId}
+        onCartPress={onCartPress}
+        onHeartPress={onHeartPress}
+        onSearchSubmit={(query) => console.log('Search submitted:', query)}
+        onMealPress={onMealPress}
+        onCartCountChange={(count) => setCartItems(count)}
+        onOpenAIChat={handleOpenAIChat}
+      />
+
+      {/* AI Chat Components */}
+      <GeneratingSuggestionsDemo
+        isVisible={isGeneratingSuggestions}
+        onComplete={handleGeneratingSuggestionsComplete}
+      />
+      <AIChatDrawer isVisible={isChatVisible} onClose={handleCloseAIChat} />
+
       {/* Mascot */}
       <View style={styles.mascotContainer}>
         <Mascot emotion="excited" size={320} />
       </View>
+
+      {/* NoshHeaven Player for Kitchen Intro Video */}
+      {kitchenIntroVideo && (
+        <NoshHeavenPlayer
+          isVisible={isPlayerVisible}
+          mode="kitchenIntro"
+          kitchenIntroVideo={kitchenIntroVideo}
+          onClose={handleClosePlayer}
+        />
+      )}
     </View>
   );
 };
@@ -331,6 +327,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     zIndex: 100,
   },
+  introCardWrapper: {
+    flex: 1,
+    marginRight: 12,
+  },
   introCardContainer: {
     flex: 1,
     marginRight: 16,
@@ -350,6 +350,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    alignSelf: 'center', // Align with KitchenIntroCard center
   },
   floatingPlayButton: {
     position: 'absolute',
@@ -372,13 +373,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    zIndex: 9998, // High z-index, but below bottom sheet (9999)
+    zIndex: 100, // Same z-index as cancel button
+    pointerEvents: 'auto', // Ensure button can receive touches
   },
   mascotContainer: {
     position: 'absolute',
     bottom: height * 0.5,
     left: 20,
-    zIndex: 50,
+    zIndex: 1, // Lowest z-index, just above background
   },
 });
 

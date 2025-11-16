@@ -15,6 +15,9 @@ export const FeaturedKitchensSectionSkeleton: React.FC<FeaturedKitchensSectionSk
     >
       <View style={styles.skeletonImageContainer}>
         <View style={styles.skeletonImage} />
+        {/* LIVE Badge skeleton (left side) */}
+        <View style={styles.skeletonLiveBadge} />
+        {/* Sentiment Badge skeleton (right side) */}
         <View style={styles.skeletonBadge} />
       </View>
       <View style={styles.skeletonContent}>
@@ -87,6 +90,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 100,
     backgroundColor: 'rgba(156, 163, 175, 0.3)',
+  },
+  skeletonLiveBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 50,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(156, 163, 175, 0.2)',
   },
   skeletonBadge: {
     position: 'absolute',

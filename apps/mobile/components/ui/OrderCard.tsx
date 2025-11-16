@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ViewStyle, Image } from 'react-native';
 import Animated, {
     useAnimatedStyle,
@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // Import the OrderStatus type from the orders page
-export type OrderStatus = 'preparing' | 'ready' | 'on-the-way' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'on-the-way' | 'cancelled' | 'completed';
 export type OrderType = 'individual' | 'group';
 
 // User interface for group orders
@@ -56,6 +56,83 @@ interface OrderCardProps {
   index?: number;
 }
 
+// Order Item Image Component with error handling
+const OrderItemImage: React.FC<{
+  item: OrderItemWithImage;
+  offset: number;
+  rotation: number;
+  zIndex: number;
+}> = ({ item, offset, rotation, zIndex }) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  // Reset error state when image_url changes
+  useEffect(() => {
+    setImageError(false);
+    setImageLoading(true);
+  }, [item.image_url]);
+
+  if (!item.image_url || imageError) {
+    return (
+      <View
+        style={[
+          styles.stackedImage,
+          {
+            transform: [
+              { translateX: offset },
+              { translateY: offset * 0.5 },
+              { rotate: `${rotation}deg` },
+            ],
+            zIndex,
+          },
+        ]}
+      >
+        <View style={[styles.stackedImageContent, styles.placeholderImage]}>
+          <Ionicons name="cube-outline" size={20} color="#9CA3AF" />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.stackedImage,
+        {
+          transform: [
+            { translateX: offset },
+            { translateY: offset * 0.5 },
+            { rotate: `${rotation}deg` },
+          ],
+          zIndex,
+        },
+      ]}
+    >
+      <Image
+        source={{ uri: item.image_url }}
+        style={styles.stackedImageContent}
+        onError={(error) => {
+          console.log('Image load error for order item:', item.name, item.image_url, error);
+          setImageError(true);
+          setImageLoading(false);
+        }}
+        onLoad={() => {
+          console.log('Image loaded successfully:', item.name, item.image_url);
+          setImageLoading(false);
+        }}
+        onLoadStart={() => {
+          setImageLoading(true);
+        }}
+      />
+      {imageLoading && (
+        <View style={[styles.stackedImageContent, styles.imageLoadingOverlay]}>
+          <Ionicons name="cube-outline" size={16} color="#9CA3AF" />
+        </View>
+      )}
+    </View>
+  );
+};
+
 // Group Avatar Component
 const GroupAvatars: React.FC<{ users: GroupUser[]; totalUsers: number }> = ({ users, totalUsers }) => {
   const maxVisibleAvatars = 3;
@@ -93,19 +170,26 @@ const GroupAvatars: React.FC<{ users: GroupUser[]; totalUsers: number }> = ({ us
 // Helper function to get status styling
 const getStatusStyle = (status: OrderStatus) => {
   switch (status) {
+    case 'pending':
+      return {
+        backgroundColor: 'rgba(158, 158, 158, 0.12)',
+        textColor: '#616161',
+        text: 'Pending',
+        icon: 'hourglass-outline' as keyof typeof Ionicons.glyphMap,
+      };
+    case 'confirmed':
+      return {
+        backgroundColor: 'rgba(33, 150, 243, 0.12)',
+        textColor: '#1565C0',
+        text: 'Confirmed',
+        icon: 'checkmark-circle-outline' as keyof typeof Ionicons.glyphMap,
+      };
     case 'preparing':
       return {
         backgroundColor: 'rgba(255, 193, 7, 0.12)',
         textColor: '#B8860B',
         text: 'Preparing',
         icon: 'time-outline' as keyof typeof Ionicons.glyphMap,
-      };
-    case 'ready':
-      return {
-        backgroundColor: 'rgba(76, 175, 80, 0.12)',
-        textColor: '#2E7D32',
-        text: 'Ready',
-        icon: 'checkmark-circle-outline' as keyof typeof Ionicons.glyphMap,
       };
     case 'on-the-way':
       return {
@@ -114,19 +198,19 @@ const getStatusStyle = (status: OrderStatus) => {
         text: 'On the way',
         icon: 'car-outline' as keyof typeof Ionicons.glyphMap,
       };
-    case 'delivered':
-      return {
-        backgroundColor: 'rgba(156, 39, 176, 0.12)',
-        textColor: '#7B1FA2',
-        text: 'Delivered',
-        icon: 'checkmark-done-circle-outline' as keyof typeof Ionicons.glyphMap,
-      };
     case 'cancelled':
       return {
         backgroundColor: 'rgba(244, 67, 54, 0.12)',
         textColor: '#C62828',
         text: 'Cancelled',
         icon: 'close-circle-outline' as keyof typeof Ionicons.glyphMap,
+      };
+    case 'completed':
+      return {
+        backgroundColor: 'rgba(76, 175, 80, 0.12)',
+        textColor: '#2E7D32',
+        text: 'Completed',
+        icon: 'checkmark-done-circle-outline' as keyof typeof Ionicons.glyphMap,
       };
     default:
       return {
@@ -178,7 +262,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   });
 
   const statusStyle = status ? getStatusStyle(status) : null;
-  const isOngoingOrder = status && status !== 'delivered' && status !== 'cancelled';
+  const isOngoingOrder = status && status !== 'cancelled' && status !== 'completed';
   const isGroupOrder = orderType === 'group' && groupOrder;
 
   // Get items with images for stacking
@@ -188,15 +272,31 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     orderItems.forEach((item) => {
       // Get images from various possible fields
       const images = item.image_urls || item.images || (item.image_url ? [item.image_url] : []);
-      if (images.length > 0) {
-        // Create one entry per image for stacking
-        images.forEach((imageUrl, idx) => {
-          itemsWithImages.push({
-            ...item,
-            _id: `${item._id || item.dish_id || idx}_${idx}`,
-            image_url: imageUrl,
-          });
+      // Debug: log if no images found
+      if (images.length === 0) {
+        console.log('No images found for order item:', {
+          name: item.name,
+          dish_id: item.dish_id,
+          has_image_url: !!item.image_url,
+          has_imageUrl: !!item.imageUrl,
+          has_image: !!item.image,
+          has_image_urls: !!item.image_urls,
+          has_images: !!item.images,
         });
+      }
+      if (images.length > 0) {
+        // Filter out invalid/empty URLs
+        const validImages = images.filter(url => url && typeof url === 'string' && url.trim().length > 0);
+        if (validImages.length > 0) {
+          // Create one entry per image for stacking
+          validImages.forEach((imageUrl, idx) => {
+            itemsWithImages.push({
+              ...item,
+              _id: `${item._id || item.dish_id || idx}_${idx}`,
+              image_url: imageUrl,
+            });
+          });
+        }
       }
     });
   }
@@ -211,31 +311,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             const offset = idx * 8;
             const rotation = (idx % 2 === 0 ? 1 : -1) * (idx * 3);
             return (
-              <View
+              <OrderItemImage
                 key={item._id || item.dish_id || idx}
-                style={[
-                  styles.stackedImage,
-                  {
-                    transform: [
-                      { translateX: offset },
-                      { translateY: offset * 0.5 },
-                      { rotate: `${rotation}deg` },
-                    ],
-                    zIndex: itemsWithImages.length - idx,
-                  },
-                ]}
-              >
-                {item.image_url ? (
-                  <Image
-                    source={{ uri: item.image_url }}
-                    style={styles.stackedImageContent}
-                  />
-                ) : (
-                  <View style={[styles.stackedImageContent, styles.placeholderImage]}>
-                    <Ionicons name="cube-outline" size={20} color="#9CA3AF" />
-                  </View>
-                )}
-              </View>
+                item={item}
+                offset={offset}
+                rotation={rotation}
+                zIndex={itemsWithImages.length - idx}
+              />
             );
           })}
           {itemsWithImages.length > 4 && (
@@ -349,9 +431,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </View>
       </View>
-      <View style={styles.arrowContainer}>
-        <Text style={styles.arrow}>›</Text>
-      </View>
     </Animated.View>
   );
 
@@ -437,8 +516,9 @@ const styles = StyleSheet.create({
   },
   orderNumber: {
     fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '400',
+    color: '#6B7280',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   groupAvatarsContainer: {
     flexDirection: 'row',
@@ -609,5 +689,15 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontSize: 12,
     fontWeight: '700',
+  },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 

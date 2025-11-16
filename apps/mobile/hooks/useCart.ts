@@ -217,10 +217,67 @@ export const useCart = () => {
     [showToast]
   );
 
+  /**
+   * Add entire order to cart
+   */
+  const addOrderToCart = useCallback(
+    async (orderId: string) => {
+      try {
+        setIsLoading(true);
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+
+        if (!sessionToken) {
+          throw new Error("Not authenticated");
+        }
+
+        const result = await convex.action(api.actions.users.customerAddOrderToCart, {
+          sessionToken,
+          order_id: orderId,
+        });
+
+        if (result.success === false) {
+          throw new Error(result.error || "Failed to add order to cart");
+        }
+
+        showToast({
+          type: "success",
+          title: "Order Added to Cart",
+          message: result.message,
+          duration: 3000,
+        });
+
+        return {
+          success: true,
+          data: {
+            items: result.items,
+            message: result.message,
+          },
+        };
+      } catch (error: any) {
+        const errorMessage =
+          error?.message ||
+          error?.data?.error?.message ||
+          "Failed to add order to cart";
+        showToast({
+          type: "error",
+          title: "Add Order Failed",
+          message: errorMessage,
+          duration: 4000,
+        });
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [showToast]
+  );
+
   return {
     isLoading,
     getCart,
     addToCart,
+    addOrderToCart,
     updateCartItem,
     removeFromCart,
   };

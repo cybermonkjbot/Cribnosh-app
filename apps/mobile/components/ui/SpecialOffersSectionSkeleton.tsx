@@ -13,8 +13,12 @@ export const SpecialOffersSectionSkeleton: React.FC<SpecialOffersSectionSkeleton
       key={index}
       style={styles.skeletonCard}
     >
-      {/* Image skeleton */}
-      <View style={styles.skeletonImage} />
+      {/* Image skeleton with badge overlay */}
+      <View style={styles.skeletonImageContainer}>
+        <View style={styles.skeletonImage} />
+        {/* Discount Badge skeleton */}
+        <View style={styles.skeletonDiscountBadge} />
+      </View>
       
       {/* Content skeleton */}
       <View style={styles.skeletonContent}>
@@ -80,10 +84,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
+  skeletonImageContainer: {
+    position: 'relative',
+  },
   skeletonImage: {
     width: '100%',
     height: 140,
     backgroundColor: 'rgba(156, 163, 175, 0.3)',
+  },
+  skeletonDiscountBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    width: 80,
+    height: 28,
+    borderRadius: 16,
+    backgroundColor: 'rgba(156, 163, 175, 0.2)',
   },
   skeletonContent: {
     padding: 16,

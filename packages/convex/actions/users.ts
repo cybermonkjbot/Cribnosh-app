@@ -2628,6 +2628,146 @@ export const customerAddToCart = action({
 });
 
 /**
+ * Customer Add Order to Cart - adds all items from a previous order to cart
+ */
+export const customerAddOrderToCart = action({
+  args: {
+    sessionToken: v.string(),
+    order_id: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      items: v.array(v.object({
+        _id: v.string(),
+        dish_id: v.string(),
+        quantity: v.number(),
+        price: v.number(),
+        name: v.string(),
+        chef_id: v.optional(v.string()),
+        added_at: v.number(),
+      })),
+      message: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Get user from session token
+      const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+        sessionToken: args.sessionToken,
+      });
+
+      if (!user) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      // Ensure user has 'customer' role
+      if (!user.roles?.includes('customer')) {
+        return { success: false as const, error: 'Access denied. Customer role required.' };
+      }
+
+      // Get order by ID
+      const order = await ctx.runQuery(api.queries.orders.getById, {
+        order_id: args.order_id,
+        sessionToken: args.sessionToken,
+      });
+
+      if (!order) {
+        return { success: false as const, error: 'Order not found' };
+      }
+
+      // Verify ownership
+      if (order.customer_id !== user._id && order.customer_id.toString() !== user._id.toString()) {
+        return { success: false as const, error: 'Order not found or not owned by customer' };
+      }
+
+      // Check if order has items
+      if (!order.order_items || !Array.isArray(order.order_items) || order.order_items.length === 0) {
+        return { success: false as const, error: 'Order has no items to add' };
+      }
+
+      // Add each item from the order to cart
+      const addedItems: any[] = [];
+      const errors: string[] = [];
+
+      for (const orderItem of order.order_items) {
+        const dishId = orderItem.dish_id || orderItem.dishId;
+        if (!dishId) {
+          errors.push(`Item "${orderItem.name || 'Unknown'}" has no dish ID`);
+          continue;
+        }
+
+        try {
+          // Add item to cart using mutation
+          const updatedCart = await ctx.runMutation(api.mutations.orders.addToCart, {
+            userId: user._id,
+            dishId: dishId as any,
+            quantity: orderItem.quantity || 1,
+          });
+
+          // Find the added item in the cart
+          const addedItem = updatedCart.items.find((item: any) => item.id === dishId);
+
+          if (addedItem) {
+            // Get meal details for enrichment
+            let meal: any = null;
+            try {
+              meal = await ctx.runQuery(api.queries.meals.getById, {
+                mealId: dishId as any,
+              });
+            } catch (error) {
+              // Meal not found, use item data
+            }
+
+            addedItems.push({
+              _id: addedItem.id,
+              dish_id: addedItem.id,
+              quantity: addedItem.quantity,
+              price: addedItem.price || meal?.price || orderItem.price || 0,
+              name: addedItem.name || meal?.name || orderItem.name || 'Unknown Dish',
+              chef_id: meal?.chefId || undefined,
+              added_at: addedItem.updatedAt || Date.now(),
+            });
+          } else {
+            errors.push(`Failed to add "${orderItem.name || 'Unknown'}" to cart`);
+          }
+        } catch (error: any) {
+          errors.push(`Failed to add "${orderItem.name || 'Unknown'}": ${error?.message || 'Unknown error'}`);
+        }
+      }
+
+      // If no items were added, return error
+      if (addedItems.length === 0) {
+        return { 
+          success: false as const, 
+          error: errors.length > 0 
+            ? errors.join('; ') 
+            : 'Failed to add any items from order to cart' 
+        };
+      }
+
+      // Return success with added items
+      const message = addedItems.length === order.order_items.length
+        ? `Added ${addedItems.length} item${addedItems.length > 1 ? 's' : ''} to cart`
+        : `Added ${addedItems.length} of ${order.order_items.length} items to cart${errors.length > 0 ? '. Some items could not be added.' : ''}`;
+
+      return {
+        success: true as const,
+        items: addedItems,
+        message,
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to add order to cart';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
  * Customer Update Cart Item - for mobile app direct Convex communication
  */
 export const customerUpdateCartItem = action({
@@ -4403,23 +4543,56 @@ export const customerGetDishDetails = action({
         }
       }
 
-      // Build dish details
+      // Build dish details with all expected fields for frontend
+      const mealAny = meal as any;
+      const chefAny = chef as any;
+      
       const dishDetails = {
         ...meal,
+        // Image URL mapping
+        image_url: mealAny.images?.[0] || mealAny.image_url || null,
+        // Kitchen/Chef information mapping
+        kitchen_name: chefAny?.name || mealAny.kitchen_name || null,
+        kitchen_image: chefAny?.profileImage || mealAny.kitchen_image || null,
+        kitchen_id: chefAny?._id || mealAny.kitchen_id || null,
+        // Chef object with all expected fields
         chef: chef ? {
           _id: chef._id,
+          id: chef._id, // Also include as 'id' for consistency
           name: chef.name,
           bio: chef.bio,
+          story: chef.bio, // Map bio to story for consistency
           specialties: chef.specialties || [],
           rating: chef.rating || 0,
           profileImage: chef.profileImage,
+          profile_image: chef.profileImage, // Also include as snake_case
         } : null,
+        // Reviews
         reviews: mealReviews,
         reviewCount: mealReviews.length,
         averageRating: mealReviews.length > 0
           ? mealReviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / mealReviews.length
           : meal.rating || 0,
+        // Favorite status
         isFavorited,
+        // Dietary information
+        is_vegetarian: mealAny.dietary?.includes('vegetarian') || mealAny.is_vegetarian || false,
+        // Nutritional information (if present in meal)
+        fat: mealAny.fat || null,
+        protein: mealAny.protein || null,
+        carbs: mealAny.carbs || null,
+        // Ingredients (if present in meal)
+        ingredients: mealAny.ingredients || null,
+        // Timing information
+        prep_time: mealAny.prepTime || mealAny.prep_time || null,
+        preparation_time: mealAny.prepTime || mealAny.prep_time || null, // Both formats
+        delivery_time: mealAny.deliveryTime || mealAny.delivery_time || null,
+        // Diet compatibility
+        diet_compatibility: mealAny.dietCompatibility || mealAny.diet_compatibility || null,
+        diet_message: mealAny.dietMessage || mealAny.diet_message || null,
+        // Chef tips
+        chef_tips: mealAny.chefTips || mealAny.chef_tips || mealAny.tips || null,
+        tips: mealAny.chefTips || mealAny.chef_tips || mealAny.tips || null, // Both formats
       };
 
       return {
@@ -4659,7 +4832,8 @@ export const customerGetSimilarMeals = action({
   returns: v.union(
     v.object({
       success: v.literal(true),
-      meals: v.array(v.any()),
+      dishes: v.array(v.any()),
+      total: v.optional(v.number()),
     }),
     v.object({
       success: v.literal(false),
@@ -4693,9 +4867,48 @@ export const customerGetSimilarMeals = action({
         limit: args.limit || 5,
       });
 
+      // Transform meals to dishes format expected by frontend
+      const dishes = await Promise.all(
+        (similarMeals || []).map(async (meal: any) => {
+          // Get chef data for each meal
+          const chef = await ctx.runQuery(api.queries.chefs.getById, {
+            chefId: meal.chefId,
+          });
+
+          const mealAny = meal as any;
+          const chefAny = chef as any;
+
+          // Transform to expected format
+          return {
+            id: meal._id || meal.id,
+            _id: meal._id,
+            name: meal.name,
+            price: typeof meal.price === 'number' ? meal.price.toString() : meal.price || '0',
+            imageUrl: mealAny.images?.[0] || mealAny.image_url || mealAny.imageUrl || null,
+            image_url: mealAny.images?.[0] || mealAny.image_url || null,
+            sentiment: mealAny.sentiment || null,
+            isVegetarian: mealAny.dietary?.includes('vegetarian') || mealAny.is_vegetarian || false,
+            is_vegetarian: mealAny.dietary?.includes('vegetarian') || mealAny.is_vegetarian || false,
+            // Include additional fields for compatibility
+            description: meal.description || null,
+            cuisine: meal.cuisine || [],
+            dietary: meal.dietary || [],
+            rating: meal.rating || null,
+            calories: meal.calories || null,
+            chefId: meal.chefId,
+            chef: chef ? {
+              _id: chef._id,
+              id: chef._id,
+              name: chef.name,
+            } : null,
+          };
+        })
+      );
+
       return {
         success: true as const,
-        meals: similarMeals || [],
+        dishes: dishes,
+        total: dishes.length,
       };
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to get similar meals';

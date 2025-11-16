@@ -28,8 +28,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // Helper function to check if order is active
 const isOrderActive = (status: string): boolean => {
-  const activeStatuses = ["pending", "confirmed", "preparing", "ready", "on-the-way", "on_the_way"];
+  const activeStatuses = ["pending", "confirmed", "preparing", "on-the-way", "on_the_way"];
   return activeStatuses.includes(status.toLowerCase());
+};
+
+// Helper function to check if order is completed
+const isOrderCompleted = (status: string): boolean => {
+  return status.toLowerCase() === "completed";
 };
 
 export default function OrderDetailsScreen() {
@@ -171,30 +176,40 @@ export default function OrderDetailsScreen() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "#6B7280";
+      case "confirmed":
+        return "#3B82F6";
       case "preparing":
         return "#F59E0B";
-      case "ready":
-        return "#10B981";
-      case "delivered":
-        return "#059669";
+      case "on-the-way":
+      case "on_the_way":
+        return "#3B82F6";
       case "cancelled":
         return "#EF4444";
+      case "completed":
+        return "#10B981";
       default:
         return "#6B7280";
     }
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "Pending";
+      case "confirmed":
+        return "Confirmed";
       case "preparing":
         return "Preparing";
-      case "ready":
-        return "Ready for Pickup";
-      case "delivered":
-        return "Delivered";
+      case "on-the-way":
+      case "on_the_way":
+        return "On the Way";
       case "cancelled":
         return "Cancelled";
+      case "completed":
+        return "Completed";
       default:
         return status;
     }
@@ -360,7 +375,7 @@ export default function OrderDetailsScreen() {
               >
                 <Text style={styles.trackButtonText}>Track Order</Text>
               </TouchableOpacity>
-            ) : order.status === "delivered" ? (
+            ) : order.status === "completed" ? (
               <TouchableOpacity
                 style={styles.trackButton}
                 onPress={handleNavigateToRateOrder}

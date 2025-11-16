@@ -8,6 +8,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
+import { useEffect, useRef } from 'react';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 interface CartButtonProps {
   quantity: number;
@@ -46,12 +53,39 @@ export function CartButton({
 }: CartButtonProps) {
   const insets = useSafeAreaInsets();
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
-  
+  const prevQuantityRef = useRef(quantity);
+  const badgeScale = useSharedValue(1);
+  const badgeOpacity = useSharedValue(1);
+
+  // Animate badge when quantity changes
+  useEffect(() => {
+    if (quantity !== prevQuantityRef.current && quantity > 0) {
+      // Pulse animation when count changes
+      badgeScale.value = withSpring(1.2, {
+        damping: 10,
+        stiffness: 200,
+      }, () => {
+        badgeScale.value = withSpring(1, {
+          damping: 15,
+          stiffness: 150,
+        });
+      });
+    }
+    prevQuantityRef.current = quantity;
+  }, [quantity, badgeScale]);
 
   // const buttonWidth = width - (isSmallScreen ? 40 : 48); // 20 or 24px padding on each side
   const buttonWidth = SCREEN_WIDTH - 32; // 20 or 24px padding on each side
 
   const finalButtonText = buttonText || (variant === 'add' ? 'Add to Cart' : 'Items in cart');
+
+  // Animated style for badge
+  const badgeAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: badgeScale.value }],
+      opacity: badgeOpacity.value,
+    };
+  });
 
   const buttonStyle = [
     styles.button,
@@ -98,9 +132,9 @@ export function CartButton({
           activeOpacity={0.85}
           disabled={disabled}
         >
-          <View style={quantityBadgeStyle}>
+          <Animated.View style={[quantityBadgeStyle, badgeAnimatedStyle]}>
             <Text style={quantityTextStyle}>{quantity}</Text>
-          </View>
+          </Animated.View>
           <Text style={buttonTextStyle}>{finalButtonText}</Text>
         </TouchableOpacity>
       </View>
@@ -114,9 +148,9 @@ export function CartButton({
       activeOpacity={0.85}
       disabled={disabled}
     >
-      <View style={quantityBadgeStyle}>
+      <Animated.View style={[quantityBadgeStyle, badgeAnimatedStyle]}>
         <Text style={quantityTextStyle}>{quantity}</Text>
-      </View>
+      </Animated.View>
       <Text style={[buttonTextStyle, styles.viewButtonText]}>{finalButtonText}</Text>
       {showIcon && (
         <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">

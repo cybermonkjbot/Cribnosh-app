@@ -11,10 +11,11 @@ const statusConfig = {
   pending: { label: 'Pending', color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: Clock },
   confirmed: { label: 'Confirmed', color: 'text-blue-600', bgColor: 'bg-blue-50', icon: CheckCircle },
   preparing: { label: 'Preparing', color: 'text-orange-600', bgColor: 'bg-orange-50', icon: ChefHat },
-  ready: { label: 'Ready', color: 'text-green-600', bgColor: 'bg-green-50', icon: Package },
   out_for_delivery: { label: 'Out for Delivery', color: 'text-indigo-600', bgColor: 'bg-indigo-50', icon: Truck },
-  delivered: { label: 'Delivered', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
+  on_the_way: { label: 'On the Way', color: 'text-indigo-600', bgColor: 'bg-indigo-50', icon: Truck },
+  'on-the-way': { label: 'On the Way', color: 'text-indigo-600', bgColor: 'bg-indigo-50', icon: Truck },
   cancelled: { label: 'Cancelled', color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle },
+  completed: { label: 'Completed', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
 };
 
 function formatDate(dateString: string | number | undefined): string {

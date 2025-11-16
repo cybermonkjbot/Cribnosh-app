@@ -397,12 +397,81 @@ export const listByCustomer = query({
       paginated = filtered.slice(offset, offset + limit);
     }
     
-    // Enrich with group order data if applicable
+    // Enrich with group order data and kitchen name
     const enriched = await Promise.all(paginated.map(async (order) => {
+      // Fetch kitchen/chef name
+      let kitchenName = null;
+      try {
+        const chef = await ctx.runQuery(api.queries.chefs.getById, {
+          chefId: order.chef_id as any,
+        });
+        kitchenName = chef?.name || null;
+      } catch (error) {
+        // If chef not found, kitchenName remains null
+        console.error('Error fetching chef for order:', error);
+      }
+
+      // Enrich order items with meal images
+      const enrichedOrderItems = await Promise.all(
+        (order.order_items || []).map(async (item: any) => {
+          try {
+            // Get meal details using dish_id
+            const meal = await ctx.runQuery(api.queries.meals.getById, {
+              mealId: item.dish_id as any,
+            });
+
+            // Get first image URL if available
+            let imageUrl: string | undefined = undefined;
+            if (meal?.images && Array.isArray(meal.images) && meal.images.length > 0) {
+              const firstImage = meal.images[0];
+              // Check if it's a Convex storage ID (starts with 'k' and is a valid ID format)
+              // or if it's already a URL
+              if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+                imageUrl = firstImage;
+              } else if (firstImage.startsWith('k')) {
+                // It's likely a Convex storage ID, get the URL
+                try {
+                  imageUrl = await ctx.storage.getUrl(firstImage as any);
+                } catch (error) {
+                  console.error('Failed to get storage URL for image:', firstImage, error);
+                  // Fallback to relative path
+                  imageUrl = `/api/files/${firstImage}`;
+                }
+              } else {
+                // Fallback to relative path
+                imageUrl = `/api/files/${firstImage}`;
+              }
+            }
+
+            return {
+              ...item,
+              image_url: imageUrl,
+              imageUrl: imageUrl, // Also include imageUrl for compatibility
+            };
+          } catch (error) {
+            // If meal not found, return item without image
+            console.error('Error enriching order item with meal data:', error);
+            return {
+              ...item,
+              image_url: undefined,
+              imageUrl: undefined,
+            };
+          }
+        })
+      );
+
+      const baseOrder = {
+        ...order,
+        kitchen_name: kitchenName,
+        restaurant_name: kitchenName, // Also set restaurant_name for compatibility
+        order_items: enrichedOrderItems, // Replace with enriched items
+      };
+
+      // Enrich with group order data if applicable
       if (order.is_group_order && order.group_order_id) {
         const groupOrder = await ctx.db.get(order.group_order_id);
         return {
-          ...order,
+          ...baseOrder,
           group_order_details: groupOrder ? {
             participants: groupOrder.participants.map(p => ({
               user_id: p.user_id,
@@ -415,7 +484,7 @@ export const listByCustomer = query({
           } : null,
         };
       }
-      return order;
+      return baseOrder;
     }));
     
     return enriched;
@@ -669,7 +738,48 @@ export const getEnrichedOrderBySessionToken = query({
       chef_notes: order.chef_notes || null,
       paymentStatus: order.payment_status,
       payment_status: order.payment_status,
-      orderItems: order.order_items || [],
+      // Enrich order items with meal images
+      orderItems: await Promise.all(
+        (order.order_items || []).map(async (item: any) => {
+          try {
+            // Get meal details using dish_id
+            const meal = await ctx.runQuery(api.queries.meals.getById, {
+              mealId: item.dish_id as any,
+            });
+
+            // Get first image URL if available
+            let imageUrl: string | undefined = undefined;
+            if (meal?.images && Array.isArray(meal.images) && meal.images.length > 0) {
+              const firstImage = meal.images[0];
+              if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+                imageUrl = firstImage;
+              } else if (firstImage.startsWith('k')) {
+                try {
+                  imageUrl = await ctx.storage.getUrl(firstImage as any);
+                } catch (error) {
+                  console.error('Failed to get storage URL for image:', firstImage, error);
+                  imageUrl = `/api/files/${firstImage}`;
+                }
+              } else {
+                imageUrl = `/api/files/${firstImage}`;
+              }
+            }
+
+            return {
+              ...item,
+              image_url: imageUrl,
+              imageUrl: imageUrl,
+            };
+          } catch (error) {
+            console.error('Error enriching order item with meal data:', error);
+            return {
+              ...item,
+              image_url: undefined,
+              imageUrl: undefined,
+            };
+          }
+        })
+      ),
       items: (order.order_items || []).map((item: any) => ({
         ...item,
         dish_name: item.name || item.dish_name || 'Unknown Dish',

@@ -27,9 +27,20 @@ export interface MealData {
   comments: number;
 }
 
+type PlayerMode = 'meals' | 'kitchenIntro';
+
 interface NoshHeavenPlayerProps {
   isVisible: boolean;
-  meals: MealData[];
+  meals?: MealData[];
+  mode?: PlayerMode;
+  kitchenIntroVideo?: {
+    id: string;
+    videoSource: string;
+    title: string;
+    description?: string;
+    kitchenName: string;
+    chef?: string;
+  };
   onClose: () => void;
   onLoadMore?: () => void;
   onMealLike?: (mealId: string) => void;
@@ -41,7 +52,9 @@ interface NoshHeavenPlayerProps {
 
 export function NoshHeavenPlayer({
   isVisible,
-  meals,
+  meals = [],
+  mode = 'meals',
+  kitchenIntroVideo,
   onClose,
   onLoadMore,
   onMealLike,
@@ -56,6 +69,32 @@ export function NoshHeavenPlayer({
   const [preloadedVideos, setPreloadedVideos] = useState<Set<string>>(new Set());
   const flatListRef = useRef<FlatList>(null);
   const isMountedRef = useRef(true);
+
+  // Convert kitchen intro video to MealData format
+  const kitchenIntroMeal: MealData | null = useMemo(() => {
+    if (mode === 'kitchenIntro' && kitchenIntroVideo) {
+      return {
+        id: kitchenIntroVideo.id,
+        videoSource: kitchenIntroVideo.videoSource,
+        title: kitchenIntroVideo.title,
+        description: kitchenIntroVideo.description || '',
+        kitchenName: kitchenIntroVideo.kitchenName,
+        chef: kitchenIntroVideo.chef,
+        price: '',
+        likes: 0,
+        comments: 0,
+      };
+    }
+    return null;
+  }, [mode, kitchenIntroVideo]);
+
+  // Determine which meals array to use
+  const displayMeals = useMemo(() => {
+    if (mode === 'kitchenIntro' && kitchenIntroMeal) {
+      return [kitchenIntroMeal];
+    }
+    return meals;
+  }, [mode, kitchenIntroMeal, meals]);
 
   // Auto-hide animation for swipe down message
   const swipeMessageOpacity = useSharedValue(1);
@@ -93,44 +132,46 @@ export function NoshHeavenPlayer({
 
   // Preload next videos when current index changes
   useEffect(() => {
-    if (!isVisible || meals.length === 0 || !isMountedRef.current) return;
+    if (!isVisible || displayMeals.length === 0 || !isMountedRef.current) return;
 
     const preloadTasks: (() => void)[] = [];
 
     // Preload current video
-    if (meals[currentIndex]) {
-      const cleanup1 = preloadVideo(meals[currentIndex].videoSource);
+    if (displayMeals[currentIndex]) {
+      const cleanup1 = preloadVideo(displayMeals[currentIndex].videoSource);
       if (cleanup1) preloadTasks.push(cleanup1);
     }
 
-    // Preload next 2 videos
-    for (let i = 1; i <= 2; i++) {
-      const nextIndex = currentIndex + i;
-      if (nextIndex < meals.length && meals[nextIndex]) {
-        const cleanup = preloadVideo(meals[nextIndex].videoSource);
+    // Preload next 2 videos (only if not in kitchen intro mode)
+    if (mode === 'meals') {
+      for (let i = 1; i <= 2; i++) {
+        const nextIndex = currentIndex + i;
+        if (nextIndex < displayMeals.length && displayMeals[nextIndex]) {
+          const cleanup = preloadVideo(displayMeals[nextIndex].videoSource);
+          if (cleanup) preloadTasks.push(cleanup);
+        }
+      }
+
+      // Preload previous video for smooth back navigation
+      const prevIndex = currentIndex - 1;
+      if (prevIndex >= 0 && displayMeals[prevIndex]) {
+        const cleanup = preloadVideo(displayMeals[prevIndex].videoSource);
         if (cleanup) preloadTasks.push(cleanup);
       }
-    }
-
-    // Preload previous video for smooth back navigation
-    const prevIndex = currentIndex - 1;
-    if (prevIndex >= 0 && meals[prevIndex]) {
-      const cleanup = preloadVideo(meals[prevIndex].videoSource);
-      if (cleanup) preloadTasks.push(cleanup);
     }
 
     // Cleanup function
     return () => {
       preloadTasks.forEach(cleanup => cleanup());
     };
-  }, [currentIndex, meals, isVisible, preloadVideo]);
+  }, [currentIndex, displayMeals, isVisible, preloadVideo, mode]);
 
   // Preload initial videos when component mounts
   useEffect(() => {
-    if (!isVisible || meals.length === 0 || !isMountedRef.current) return;
+    if (!isVisible || displayMeals.length === 0 || !isMountedRef.current) return;
 
-    // Preload first 3 videos
-    const initialVideos = meals.slice(0, 3);
+    // Preload first 3 videos (or just the one video in kitchen intro mode)
+    const initialVideos = displayMeals.slice(0, mode === 'kitchenIntro' ? 1 : 3);
     const cleanupTasks: (() => void)[] = [];
     
     initialVideos.forEach(meal => {
@@ -141,7 +182,7 @@ export function NoshHeavenPlayer({
     return () => {
       cleanupTasks.forEach(cleanup => cleanup());
     };
-  }, [meals, isVisible, preloadVideo]);
+  }, [displayMeals, isVisible, preloadVideo, mode]);
 
   // Auto-hide swipe message after 3 seconds
   useEffect(() => {
@@ -202,15 +243,15 @@ export function NoshHeavenPlayer({
       if (typeof newIndex === 'number' && newIndex >= 0 && newIndex !== currentIndex) {
         setCurrentIndex(newIndex);
         
-        // Load more meals when approaching the end
-        if (newIndex >= meals.length - 2 && typeof onLoadMore === 'function') {
+        // Load more meals when approaching the end (only in meals mode)
+        if (mode === 'meals' && newIndex >= displayMeals.length - 2 && typeof onLoadMore === 'function') {
           onLoadMore();
         }
       }
     } catch (error) {
       console.warn('Viewable items changed error:', error);
     }
-  }, [currentIndex, meals.length, onLoadMore]);
+  }, [currentIndex, displayMeals.length, onLoadMore, mode]);
 
   // Memoize viewability config for better performance
   const viewabilityConfig = useMemo(() => ({
@@ -256,7 +297,7 @@ export function NoshHeavenPlayer({
   }, [currentIndex, preloadedVideos, onMealLike, onMealComment, onMealShare, onAddToCart, onKitchenPress]);
 
   // Validate props - moved after all hooks
-  if (!Array.isArray(meals) || meals.length === 0) {
+  if (!Array.isArray(displayMeals) || displayMeals.length === 0) {
     // Show skeleton loader when no meals are available
     return (
       <View style={{
@@ -299,7 +340,7 @@ export function NoshHeavenPlayer({
   }
 
   // Early return check moved after all hooks
-  console.log('[NoshHeavenPlayer] Render check, isVisible:', isVisible, 'meals.length:', meals.length);
+  console.log('[NoshHeavenPlayer] Render check, isVisible:', isVisible, 'displayMeals.length:', displayMeals.length, 'mode:', mode);
   if (!isVisible) {
     console.log('[NoshHeavenPlayer] Not visible, returning null');
     return null;
@@ -316,18 +357,19 @@ export function NoshHeavenPlayer({
       {/* Optimized FlatList with performance configurations */}
       <FlatList
         ref={flatListRef}
-        data={meals}
+        data={displayMeals}
         renderItem={renderMealItem}
         keyExtractor={keyExtractor}
         getItemLayout={getItemLayout}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
-        pagingEnabled
+        pagingEnabled={mode === 'meals'}
         showsVerticalScrollIndicator={false}
         decelerationRate="fast"
-        snapToInterval={SCREEN_HEIGHT}
+        snapToInterval={mode === 'meals' ? SCREEN_HEIGHT : undefined}
         snapToAlignment="start"
-        disableIntervalMomentum
+        disableIntervalMomentum={mode === 'meals'}
+        scrollEnabled={mode === 'meals'}
         // Performance optimizations
         removeClippedSubviews={true}
         maxToRenderPerBatch={2}
@@ -368,35 +410,37 @@ export function NoshHeavenPlayer({
         <CribNoshLogo size={100} variant="white" />
       </View>
 
-      {/* Auto-hiding swipe down message */}
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            top: topPosition + 54,
-            left: 0,
-            right: 0,
-            alignItems: 'center',
-            zIndex: 10000, // Above the video content
-          },
-          swipeMessageStyle,
-        ]}
-      >
-        <Text style={{
-          color: '#fff',
-          fontSize: 16,
-          textAlign: 'center',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          borderRadius: 20,
-          textShadowColor: 'rgba(0, 0, 0, 0.75)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 2,
-        }}>
-          Swipe down to exit
-        </Text>
-      </Animated.View>
+      {/* Auto-hiding swipe down message (only in meals mode) */}
+      {mode === 'meals' && (
+        <Animated.View
+          style={[
+            {
+              position: 'absolute',
+              top: topPosition + 54,
+              left: 0,
+              right: 0,
+              alignItems: 'center',
+              zIndex: 10000, // Above the video content
+            },
+            swipeMessageStyle,
+          ]}
+        >
+          <Text style={{
+            color: '#fff',
+            fontSize: 16,
+            textAlign: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 20,
+            textShadowColor: 'rgba(0, 0, 0, 0.75)',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 2,
+          }}>
+            Swipe down to exit
+          </Text>
+        </Animated.View>
+      )}
     </View>
   );
 } 

@@ -19,40 +19,32 @@ async function authenticateUser(ctx: any, sessionToken: string): Promise<Id<'use
 
 // Helper to normalize kitchen ID - converts chef ID to kitchen ID if needed
 async function normalizeKitchenId(ctx: any, id: string): Promise<Id<'kitchens'> | null> {
-  // Try as kitchen ID first
+  // First, try to get the kitchen directly (this won't validate ID type)
   try {
     const kitchenId = id as Id<'kitchens'>;
-    const kitchen = await ctx.runQuery(api.queries.kitchens.getKitchenDetails, {
-      kitchenId,
-    });
+    const kitchen = await ctx.db.get(kitchenId);
     if (kitchen) {
       return kitchenId;
     }
-  } catch (error: any) {
-    // If validation error indicates it's a chef ID, try conversion
-    const errorMessage = error?.message || '';
-    if (errorMessage.includes('chefs') && errorMessage.includes('does not match')) {
-      try {
-        const chefId = id as Id<'chefs'>;
-        const kitchenId = await ctx.runQuery(api.queries.kitchens.getKitchenByChefId, {
-          chefId,
-        });
-        return kitchenId;
-      } catch (conversionError) {
-        return null;
-      }
-    }
-    // If it's a different error (like kitchen not found), still try chef ID conversion
-    // as the ID might be a chef ID
+  } catch (error) {
+    // If it's not a valid ID format, continue to try chef ID
   }
   
-  // If kitchen ID lookup failed (returned null or error), try chef ID conversion
+  // If kitchen lookup failed, try as chef ID and convert
   try {
     const chefId = id as Id<'chefs'>;
-    const kitchenId = await ctx.runQuery(api.queries.kitchens.getKitchenByChefId, {
-      chefId,
-    });
-    return kitchenId;
+    const chef = await ctx.db.get(chefId);
+    if (!chef) {
+      return null;
+    }
+    
+    // Find kitchen by owner_id (chef userId)
+    const kitchen = await ctx.db
+      .query("kitchens")
+      .filter((q) => q.eq(q.field("owner_id"), chef.userId))
+      .first();
+    
+    return kitchen?._id || null;
   } catch (error) {
     // If both fail, return null
     return null;

@@ -74,11 +74,10 @@ export function FamilyOrdersSheet({
       pending: 'Pending',
       confirmed: 'Confirmed',
       preparing: 'Preparing',
-      ready: 'Ready',
       on_the_way: 'On the way',
       'on-the-way': 'On the way',
-      delivered: 'Delivered',
       cancelled: 'Cancelled',
+      completed: 'Completed',
     };
     return statusMap[status] || status;
   };
@@ -162,9 +161,9 @@ export function FamilyOrdersSheet({
                     <Text style={styles.orderAmount}>{formatPrice(totalAmount)}</Text>
                     <View style={[
                       styles.statusBadge,
-                      status === 'delivered' && styles.statusBadgeDelivered,
+                      status === 'completed' && styles.statusBadgeDelivered,
                       status === 'cancelled' && styles.statusBadgeCancelled,
-                      (status === 'preparing' || status === 'confirmed' || status === 'ready') && styles.statusBadgeActive,
+                      (status === 'pending' || status === 'confirmed' || status === 'preparing' || status === 'on-the-way' || status === 'on_the_way') && styles.statusBadgeActive,
                     ]}>
                       <Text style={styles.statusText}>{formatOrderStatus(status)}</Text>
                     </View>

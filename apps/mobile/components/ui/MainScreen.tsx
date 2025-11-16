@@ -11,8 +11,7 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
+  withTiming
 } from "react-native-reanimated";
 import { useAuthContext } from "../../contexts/AuthContext";
 
@@ -281,7 +280,7 @@ export function MainScreen() {
   }, [isAuthenticated, getActiveOffers]);
 
   // Cart using useCart hook
-  const { getCart, addToCart: addToCartAction } = useCart();
+  const { getCart, addToCart: addToCartAction, addOrderToCart } = useCart();
   const [cartData, setCartData] = useState<any>(null);
   const [cartError, setCartError] = useState<any>(null);
   const [cartLoading, setCartLoading] = useState(false);
@@ -1539,6 +1538,35 @@ export function MainScreen() {
     setIsMealDetailsVisible(true);
   }, []);
 
+  // Handler for adding a single item from OrderAgainSection
+  const handleAddItemFromOrderAgain = useCallback(async (itemId: string) => {
+    try {
+      await addToCartAction(itemId, 1);
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  }, [addToCartAction]);
+
+  // Handler for adding entire order from OrderAgainSection
+  const handleAddEntireOrderFromOrderAgain = useCallback(async (orderId: string) => {
+    try {
+      await addOrderToCart(orderId);
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  }, [addOrderToCart]);
+
+  // Handler for viewing details from OrderAgainSection
+  const handleViewDetailsFromOrderAgain = useCallback((itemId: string) => {
+    handleMealPress({
+      id: itemId,
+      name: '',
+      price: '',
+      kitchen: '',
+      image: undefined,
+    });
+  }, [handleMealPress]);
+
   const handleSimilarMealPress = useCallback((mealId: string) => {
     // Update selected meal with new mealId - MealItemDetails will automatically fetch the data
     setSelectedMeal({ id: mealId, data: undefined });
@@ -1941,16 +1969,9 @@ export function MainScreen() {
                 isAuthenticated={isAuthenticated}
                 shouldShow={activeCategoryFilter === 'all'}
                 hasInitialLoadCompleted={hasInitialLoadCompleted}
-                onItemPress={(item) => {
-                  // Navigate to meal details from order item
-                  handleMealPress({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    kitchen: '', // Order items don't have kitchen info
-                    image: { uri: item.image },
-                  });
-                }}
+                onAddItem={handleAddItemFromOrderAgain}
+                onAddEntireOrder={handleAddEntireOrderFromOrderAgain}
+                onViewDetails={handleViewDetailsFromOrderAgain}
               />
               
               {/* Conditional Rendering: Normal View vs Filtered View */}

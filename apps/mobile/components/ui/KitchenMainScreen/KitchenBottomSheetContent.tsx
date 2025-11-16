@@ -2,12 +2,17 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { AlertCircle, Search } from 'lucide-react-native';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Circle, Rect, Svg } from 'react-native-svg';
 
 import { useChefs } from '@/hooks/useChefs';
 import { useMeals } from '@/hooks/useMeals';
+import { useCart } from '@/hooks/useCart';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { showWarning } from '@/lib/GlobalToastManager';
+import { navigateToSignIn } from '@/utils/signInNavigationGuard';
+import { MealAddToCartButton } from '../MealAddToCartButton';
 import { CategoriesSkeleton, MealsSkeleton } from './KitchenSkeletons';
 
 interface KitchenBottomSheetContentProps {
@@ -18,6 +23,7 @@ interface KitchenBottomSheetContentProps {
   kitchenName?: string;
   searchQuery?: string;
   onMealPress?: (meal: any) => void;
+  onCartCountChange?: (count: number) => void;
 }
 
 const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetContentProps>(({
@@ -28,10 +34,16 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
   kitchenName,
   searchQuery,
   onMealPress,
+  onCartCountChange,
 }, ref) => {
   // State for selected category ID and active filters
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  // Cart and auth hooks
+  const { addToCart, getCart } = useCart();
+  const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
 
   const { getKitchenMeals, getPopularKitchenMeals, searchKitchenMeals } = useMeals();
   const { getKitchenCategories, getKitchenTags } = useChefs();
@@ -229,6 +241,61 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
     });
   };
 
+  // Handle add to cart
+  const handleAddToCart = useCallback(
+    async (mealId: string) => {
+      // Prevent rapid clicks
+      if (isAddingToCart) return;
+
+      // Check authentication and token validity
+      if (!isAuthenticated || !token) {
+        showWarning(
+          "Authentication Required",
+          "Please sign in to add items to cart"
+        );
+        navigateToSignIn();
+        return;
+      }
+
+      // Check if token is expired and refresh auth state if needed
+      const isExpired = checkTokenExpiration();
+      if (isExpired) {
+        // Refresh auth state to update isAuthenticated
+        await refreshAuthState();
+        showWarning(
+          "Session Expired",
+          "Please sign in again to add items to cart"
+        );
+        navigateToSignIn();
+        return;
+      }
+
+      try {
+        setIsAddingToCart(true);
+        const result = await addToCart(mealId, 1);
+
+        if (result.success) {
+          // Refetch cart to get updated count
+          const cartData = await getCart();
+          if (cartData.success && cartData.data?.items) {
+            const totalCount = cartData.data.items.reduce(
+              (sum: number, item: any) => sum + (item.quantity || 0),
+              0
+            );
+            // Notify parent of cart count change
+            onCartCountChange?.(totalCount);
+          }
+        }
+      } catch (error) {
+        // Error handling is done in useCart hook (toast shown)
+        console.error('Failed to add item to cart:', error);
+      } finally {
+        setIsAddingToCart(false);
+      }
+    },
+    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart, getCart, onCartCountChange, isAddingToCart]
+  );
+
   // Use real data only
   const realPopularMeals = (popularMealsData as any)?.data?.meals || popularMealsData?.meals || [];
   const filteredMeals = (filteredMealsData as any)?.data?.meals || filteredMealsData?.meals || [];
@@ -367,12 +434,14 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
       )}
 
       {/* Today's Menu Categories */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today&apos;s Menu</Text>
-        
-        {isLoadingCategories ? (
+      {isLoadingCategories ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Today&apos;s Menu</Text>
           <CategoriesSkeleton />
-        ) : categories.length > 0 ? (
+        </View>
+      ) : categories.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Today&apos;s Menu</Text>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -401,167 +470,182 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
               );
             })}
           </ScrollView>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconContainer}>
-              <Search size={32} color="#6B7280" />
-            </View>
-            <Text style={styles.emptyText}>No categories available</Text>
-          </View>
-        )}
-      </View>
+        </View>
+      ) : null}
 
       {/* Show search results if search query is provided, otherwise show filtered/popular meals */}
       {searchQuery && searchQuery.trim().length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Search Results</Text>
-          {isLoadingSearch ? (
+        isLoadingSearch ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Search Results</Text>
             <MealsSkeleton />
-          ) : isErrorSearch ? (
+          </View>
+        ) : isErrorSearch ? (
+          <View style={styles.section}>
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconContainer}>
                 <AlertCircle size={32} color="#6B7280" />
               </View>
               <Text style={styles.emptyText}>Failed to search meals. Please try again.</Text>
             </View>
-          ) : displayMeals.length > 0 ? (
+          </View>
+        ) : displayMeals.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Search Results</Text>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.mealsContainer}
             >
               {displayMeals.map((meal: any) => (
-                <TouchableOpacity
-                  key={meal.id}
-                  style={styles.mealCard}
-                  onPress={() => {
-                    if (onMealPress) {
-                      // Pass the original meal data if available, otherwise use display meal
-                      const mealData = meal.originalMeal || meal;
-                      onMealPress({
-                        id: mealData._id || mealData.id || meal.id,
-                        name: mealData.name || meal.name,
-                        price: mealData.price || meal.price,
-                        kitchen: kitchenName || '',
-                        image: meal.image,
-                        _id: mealData._id || mealData.id,
-                      });
-                    }
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.mealImageContainer}>
-                    <Image 
-                      source={meal.image} 
-                      style={styles.mealImage} 
-                    />
-                    {meal.isPopular && (
-                      <View style={styles.popularBadge}>
-                        <Text style={styles.badgeText}>Popular</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.mealInfo}>
-                    <Text style={styles.mealName} numberOfLines={1}>{meal.name}</Text>
-                    <View style={styles.mealPriceRow}>
-                      <Text style={styles.mealPrice}>{meal.price}</Text>
-                      {meal.originalPrice && (
-                        <Text style={styles.originalPrice}>{meal.originalPrice}</Text>
+                <View key={meal.id} style={styles.mealCardWrapper}>
+                  <TouchableOpacity
+                    style={styles.mealCard}
+                    onPress={() => {
+                      if (onMealPress) {
+                        // Pass the original meal data if available, otherwise use display meal
+                        const mealData = meal.originalMeal || meal;
+                        onMealPress({
+                          id: mealData._id || mealData.id || meal.id,
+                          name: mealData.name || meal.name,
+                          price: mealData.price || meal.price,
+                          kitchen: kitchenName || '',
+                          image: meal.image,
+                          _id: mealData._id || mealData.id,
+                        });
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.mealImageContainer}>
+                      <Image 
+                        source={meal.image} 
+                        style={styles.mealImage} 
+                      />
+                      {meal.isPopular && (
+                        <View style={styles.popularBadge}>
+                          <Text style={styles.badgeText}>Popular</Text>
+                        </View>
                       )}
                     </View>
-                    <Text style={styles.deliveryTime}>{meal.deliveryTime}</Text>
-                  </View>
-                </TouchableOpacity>
+                    <View style={styles.mealInfo}>
+                      <Text style={styles.mealName} numberOfLines={1}>{meal.name}</Text>
+                      <View style={styles.mealPriceRow}>
+                        <Text style={styles.mealPrice}>{meal.price}</Text>
+                        {meal.originalPrice && (
+                          <Text style={styles.originalPrice}>{meal.originalPrice}</Text>
+                        )}
+                      </View>
+                      <Text style={styles.deliveryTime}>{meal.deliveryTime}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <MealAddToCartButton
+                    mealId={meal.id}
+                    onAddToCart={handleAddToCart}
+                    isLoading={isAddingToCart}
+                  />
+                </View>
               ))}
             </ScrollView>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconContainer}>
-                <Search size={32} color="#6B7280" />
-              </View>
-              <Text style={styles.emptyText}>No meals found</Text>
-            </View>
-          )}
-        </View>
-      ) : (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {selectedCategoryId || activeFilters.size > 0 ? 'Filtered Meals' : 'Popular Meals'}
-            </Text>
-            {(selectedCategoryId || activeFilters.size > 0) && (
-              <TouchableOpacity onPress={() => { setSelectedCategoryId(null); setActiveFilters(new Set()); }}>
-                <Text style={styles.seeAllText}>Clear filters</Text>
-              </TouchableOpacity>
-            )}
-            {!selectedCategoryId && activeFilters.size === 0 && (
-              <TouchableOpacity onPress={() => {
-                // All items are already shown when no filters are active
-                // This button can be used to scroll to top or trigger expansion
-              }}>
-                <Text style={styles.seeAllText}>See all</Text>
-              </TouchableOpacity>
-            )}
           </View>
-          
-          {isLoadingMeals ? (
+        ) : null
+      ) : (
+        isLoadingMeals ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {selectedCategoryId || activeFilters.size > 0 ? 'Filtered Meals' : 'Popular Meals'}
+              </Text>
+              {(selectedCategoryId || activeFilters.size > 0) && (
+                <TouchableOpacity onPress={() => { setSelectedCategoryId(null); setActiveFilters(new Set()); }}>
+                  <Text style={styles.seeAllText}>Clear filters</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <MealsSkeleton />
-          ) : isErrorMeals ? (
+          </View>
+        ) : isErrorMeals ? (
+          <View style={styles.section}>
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconContainer}>
                 <AlertCircle size={32} color="#6B7280" />
               </View>
               <Text style={styles.emptyText}>Failed to load meals. Please try again.</Text>
             </View>
-          ) : displayMeals.length > 0 ? (
+          </View>
+        ) : displayMeals.length > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {selectedCategoryId || activeFilters.size > 0 ? 'Filtered Meals' : 'Popular Meals'}
+              </Text>
+              {(selectedCategoryId || activeFilters.size > 0) && (
+                <TouchableOpacity onPress={() => { setSelectedCategoryId(null); setActiveFilters(new Set()); }}>
+                  <Text style={styles.seeAllText}>Clear filters</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.mealsContainer}
             >
               {displayMeals.map((meal: any) => (
-                <TouchableOpacity
-                  key={meal.id}
-                  style={styles.mealCard}
-                  onPress={() => {
-                    // Navigate to meal details or add to cart
-                    // TODO: Implement navigation to meal details page
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.mealImageContainer}>
-                    <Image source={meal.image} style={styles.mealImage} />
-                    {meal.isPopular && (
-                      <View style={styles.popularBadge}>
-                        <Text style={styles.badgeText}>Popular</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.mealInfo}>
-                    <Text style={styles.mealName} numberOfLines={1}>{meal.name}</Text>
-                    <View style={styles.mealPriceRow}>
-                      <Text style={styles.mealPrice}>{meal.price}</Text>
-                      {meal.originalPrice && (
-                        <Text style={styles.originalPrice}>{meal.originalPrice}</Text>
+                <View key={meal.id} style={styles.mealCardWrapper}>
+                  <TouchableOpacity
+                    style={styles.mealCard}
+                    onPress={() => {
+                      // Navigate to meal details or add to cart
+                      // TODO: Implement navigation to meal details page
+                      onMealPress?.(meal);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.mealImageContainer}>
+                      <Image source={meal.image} style={styles.mealImage} />
+                      {meal.isPopular && (
+                        <View style={styles.popularBadge}>
+                          <Text style={styles.badgeText}>Popular</Text>
+                        </View>
                       )}
                     </View>
-                    <Text style={styles.deliveryTime}>{meal.deliveryTime}</Text>
-                  </View>
-                </TouchableOpacity>
+                    <View style={styles.mealInfo}>
+                      <Text style={styles.mealName} numberOfLines={1}>{meal.name}</Text>
+                      <View style={styles.mealPriceRow}>
+                        <Text style={styles.mealPrice}>{meal.price}</Text>
+                        {meal.originalPrice && (
+                          <Text style={styles.originalPrice}>{meal.originalPrice}</Text>
+                        )}
+                      </View>
+                      <Text style={styles.deliveryTime}>{meal.deliveryTime}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <MealAddToCartButton
+                    mealId={meal.id}
+                    onAddToCart={handleAddToCart}
+                    isLoading={isAddingToCart}
+                  />
+                </View>
               ))}
             </ScrollView>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconContainer}>
-                <Search size={32} color="#6B7280" />
-              </View>
-              <Text style={styles.emptyText}>
-                {selectedCategoryId || activeFilters.size > 0 
-                  ? 'No meals found with selected filters'
-                  : 'No meals available'}
-              </Text>
-            </View>
-          )}
+          </View>
+        ) : null
+      )}
+
+      {/* Unified empty state - only show if all sections are empty and not loading */}
+      {!isLoadingCategories && 
+       !isLoadingMeals && 
+       !isLoadingSearch && 
+       !isErrorMeals && 
+       !isErrorSearch &&
+       categories.length === 0 && 
+       displayMeals.length === 0 && 
+       (!searchQuery || searchQuery.trim().length === 0) && (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconContainer}>
+            <Search size={32} color="#6B7280" />
+          </View>
+          <Text style={styles.emptyText}>This food creator doesn&apos;t have anything on the menu yet</Text>
         </View>
       )}
     </ScrollView>
@@ -586,8 +670,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     letterSpacing: 0.03,
     color: '#FAFAFA',
+    marginTop: 15,
     marginBottom: 15,
-    paddingHorizontal: 5, // Reduced horizontal padding
+    paddingHorizontal: 8,
     paddingVertical: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 10,
@@ -662,10 +747,13 @@ const styles = StyleSheet.create({
   mealsContainer: {
     // Removed paddingRight completely
   },
+  mealCardWrapper: {
+    position: 'relative',
+    marginRight: 10, // Reduced margin for better horizontal space utilization
+  },
   mealCard: {
     width: 150,
     height: 200,
-    marginRight: 10, // Reduced margin for better horizontal space utilization
     backgroundColor: 'rgba(255, 255, 255, 0.1)', // Changed to semi-transparent white for dark background
     borderRadius: 10,
     overflow: 'hidden',

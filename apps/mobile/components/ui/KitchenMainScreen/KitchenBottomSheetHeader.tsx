@@ -112,9 +112,6 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
 
   return (
     <View style={styles.container}>
-      {/* Drag indicator */}
-      <View style={styles.dragIndicator} />
-      
       {/* Title and action buttons */}
       <View style={styles.titleRow}>
         <View style={styles.titleContainer}>
@@ -149,16 +146,8 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 25,
+    paddingHorizontal: 10,
     paddingTop: 15,
-  },
-  dragIndicator: {
-    width: 85,
-    height: 5,
-    backgroundColor: '#EDEDED',
-    borderRadius: 20,
-    alignSelf: 'center',
-    marginBottom: 20,
   },
   titleRow: {
     flexDirection: 'row',

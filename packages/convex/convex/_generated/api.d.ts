@@ -20,6 +20,7 @@ import type * as actions_liveStreaming from "../actions/liveStreaming.js";
 import type * as actions_orders from "../actions/orders.js";
 import type * as actions_password from "../actions/password.js";
 import type * as actions_payments from "../actions/payments.js";
+import type * as actions_populateEmptyTables from "../actions/populateEmptyTables.js";
 import type * as actions_prelaunchEmails from "../actions/prelaunchEmails.js";
 import type * as actions_resend from "../actions/resend.js";
 import type * as actions_search from "../actions/search.js";
@@ -246,6 +247,7 @@ declare const fullApi: ApiFromModules<{
   "actions/orders": typeof actions_orders;
   "actions/password": typeof actions_password;
   "actions/payments": typeof actions_payments;
+  "actions/populateEmptyTables": typeof actions_populateEmptyTables;
   "actions/prelaunchEmails": typeof actions_prelaunchEmails;
   "actions/resend": typeof actions_resend;
   "actions/search": typeof actions_search;

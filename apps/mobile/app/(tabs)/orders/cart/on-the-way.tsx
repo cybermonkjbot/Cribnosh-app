@@ -60,16 +60,29 @@ export default function OnTheWayScreen() {
   };
 
   const getDriverStatus = (): string => {
-    if (orderStatus === 'on_the_way' || orderStatus === 'on-the-way') {
+    const status = orderStatus?.toLowerCase();
+    if (status === 'on_the_way' || status === 'on-the-way') {
       return 'Delivering to you now';
     }
-    if (orderStatus === 'ready') {
+    if (status === 'ready') {
       return 'Ready for pickup';
     }
-    if (orderStatus === 'preparing') {
+    if (status === 'preparing') {
       return 'Preparing your order';
     }
-    return 'Delivering to you now'; // Default
+    if (status === 'confirmed') {
+      return 'Order confirmed';
+    }
+    if (status === 'pending') {
+      return 'Order pending';
+    }
+    if (status === 'delivered' || status === 'completed') {
+      return 'Order completed';
+    }
+    if (status === 'cancelled') {
+      return 'Order cancelled';
+    }
+    return 'Processing your order'; // Default
   };
 
   const handleCallDeliveryPerson = async () => {

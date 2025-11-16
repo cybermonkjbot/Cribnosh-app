@@ -5,11 +5,10 @@ export type OrderStatus =
   | 'pending'
   | 'confirmed'
   | 'preparing'
-  | 'ready'
   | 'out_for_delivery'
   | 'on_the_way'
-  | 'delivered'
-  | 'cancelled';
+  | 'cancelled'
+  | 'completed';
 
 export interface OrderLiveActivityState {
   orderId: string;
@@ -48,20 +47,18 @@ export function isLiveActivitySupported(): boolean {
 function getStatusText(status: OrderStatus): string {
   switch (status) {
     case 'pending':
-      return 'Order Confirmed';
+      return 'Order Pending';
     case 'confirmed':
       return 'Order Confirmed';
     case 'preparing':
       return 'Preparing';
-    case 'ready':
-      return 'Ready for Pickup';
     case 'out_for_delivery':
     case 'on_the_way':
       return 'On the Way';
-    case 'delivered':
-      return 'Delivered';
     case 'cancelled':
       return 'Cancelled';
+    case 'completed':
+      return 'Completed';
     default:
       return 'Processing';
   }

@@ -2,10 +2,16 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { SuperButton } from "@/components/ui/SuperButton";
-import * as Linking from "expo-linking";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
-import { api } from '@/convex/_generated/api';
 import { useAuthContext } from "@/contexts/AuthContext";
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import {
+  endOrderLiveActivity,
+  hasActiveLiveActivity,
+  startOrderLiveActivity,
+  updateOrderLiveActivity,
+} from "@/lib/live-activity/orderLiveActivity";
+import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   CheckCircle,
@@ -17,6 +23,7 @@ import {
   Phone,
   Truck,
 } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -28,13 +35,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomSheetBase } from "../components/BottomSheetBase";
-import { useEffect, useRef, useState } from "react";
-import {
-  startOrderLiveActivity,
-  updateOrderLiveActivity,
-  endOrderLiveActivity,
-  hasActiveLiveActivity,
-} from "@/lib/live-activity/orderLiveActivity";
 
 export default function OrderStatusTrackingScreen() {
   const router = useRouter();
@@ -132,7 +132,7 @@ export default function OrderStatusTrackingScreen() {
         }
 
         // End Live Activity for completed orders
-        if (normalizedStatus === 'delivered' || normalizedStatus === 'cancelled') {
+        if (normalizedStatus === 'cancelled' || normalizedStatus === 'completed') {
           if (hasActiveLiveActivity(orderId)) {
             await endOrderLiveActivity(orderId, normalizedStatus as any);
           }
@@ -222,51 +222,60 @@ export default function OrderStatusTrackingScreen() {
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "pending":
         return <Circle size={20} color="#6B7280" />;
+      case "confirmed":
+        return <CheckCircle size={20} color="#3B82F6" />;
       case "preparing":
         return <Package size={20} color="#F59E0B" />;
-      case "ready":
-        return <CheckCircle size={20} color="#10B981" />;
       case "on-the-way":
+      case "on_the_way":
         return <Truck size={20} color="#3B82F6" />;
-      case "delivered":
-        return <CheckCircle size={20} color="#059669" />;
+      case "cancelled":
+        return <Circle size={20} color="#EF4444" />;
+      case "completed":
+        return <CheckCircle size={20} color="#10B981" />;
       default:
         return <Circle size={20} color="#6B7280" />;
     }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "pending":
         return "#6B7280";
+      case "confirmed":
+        return "#3B82F6";
       case "preparing":
         return "#F59E0B";
-      case "ready":
-        return "#10B981";
       case "on-the-way":
+      case "on_the_way":
         return "#3B82F6";
-      case "delivered":
-        return "#059669";
+      case "cancelled":
+        return "#EF4444";
+      case "completed":
+        return "#10B981";
       default:
         return "#6B7280";
     }
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "pending":
+        return "Order Pending";
+      case "confirmed":
         return "Order Confirmed";
       case "preparing":
         return "Preparing";
-      case "ready":
-        return "Ready for Pickup";
       case "on-the-way":
+      case "on_the_way":
         return "On the Way";
-      case "delivered":
-        return "Delivered";
+      case "cancelled":
+        return "Cancelled";
+      case "completed":
+        return "Completed";
       default:
         return status;
     }
