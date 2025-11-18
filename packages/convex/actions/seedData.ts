@@ -127,7 +127,7 @@ export const seedAllHomeScreenData = action({
       console.log("Creating cuisines...");
       const cuisineIds: Id<"cuisines">[] = [];
       for (const cuisine of cuisinesToCreate) {
-        const result = await ctx.runMutation(api.mutations.chefs.createCuisine, {
+        const result = await ctx.runMutation(internal.mutations.chefs.createCuisineForSeed, {
           name: cuisine.name,
           description: cuisine.description,
           status: "approved",
@@ -161,7 +161,7 @@ export const seedAllHomeScreenData = action({
           status: "active",
         });
 
-        const chefId = await ctx.runMutation(api.mutations.chefs.createChef, {
+        const chefId = await ctx.runMutation(internal.mutations.chefs.createChefForSeed, {
           userId: chefUserId,
           name: chefData.name,
           bio: chefData.bio,
@@ -209,8 +209,8 @@ export const seedAllHomeScreenData = action({
           }
         }
         
-        const mealId = await ctx.runMutation(api.mutations.meals.createMeal, {
-          chefId: assignedChefId as string,
+        const mealId = await ctx.runMutation(internal.mutations.meals.createMealForSeed, {
+          chefId: assignedChefId,
           name: dish.name,
           description: dish.description,
           price: dish.price,
@@ -444,6 +444,604 @@ export const seedAllHomeScreenData = action({
         console.log(`Created order: ${orderDocId} (${orderData.daysAgo} days ago)`);
       }
 
+      // 7. Create recipes for Nosh Heaven
+      console.log("Creating recipes...");
+      const recipesToCreate = [
+        {
+          title: "Classic Chicken Tikka Masala",
+          description: "A creamy, aromatic curry that's a British favorite. Tender chicken pieces in a rich tomato-based sauce with Indian spices.",
+          ingredients: [
+            { name: "chicken breast", amount: "500", unit: "g" },
+            { name: "plain yogurt", amount: "200", unit: "ml" },
+            { name: "garlic", amount: "4", unit: "cloves" },
+            { name: "ginger", amount: "2", unit: "cm piece" },
+            { name: "ground cumin", amount: "1", unit: "tsp" },
+            { name: "ground coriander", amount: "1", unit: "tsp" },
+            { name: "turmeric", amount: "0.5", unit: "tsp" },
+            { name: "tomatoes", amount: "400", unit: "g" },
+            { name: "double cream", amount: "200", unit: "ml" },
+            { name: "butter", amount: "50", unit: "g" },
+            { name: "onion", amount: "1", unit: "large" },
+            { name: "garam masala", amount: "1", unit: "tsp" },
+          ],
+          instructions: [
+            "Cut chicken into bite-sized pieces and marinate in yogurt, half the garlic, half the ginger, cumin, coriander, and turmeric for at least 2 hours.",
+            "Heat butter in a large pan and cook the marinated chicken until golden brown. Remove and set aside.",
+            "In the same pan, sauté the onion until soft, then add remaining garlic and ginger.",
+            "Add tomatoes and cook until they break down into a sauce.",
+            "Return chicken to the pan, add cream and garam masala, and simmer for 15 minutes.",
+            "Season with salt and serve with basmati rice or naan bread.",
+          ],
+          prepTime: 30,
+          cookTime: 45,
+          servings: 4,
+          difficulty: "medium" as const,
+          cuisine: "Indian",
+          dietary: ["Gluten-free"],
+          author: "Chef Priya",
+          featuredImage: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Perfect Margherita Pizza",
+          description: "The classic Italian pizza with fresh mozzarella, basil, and a simple tomato sauce. Simple ingredients, incredible flavor.",
+          ingredients: [
+            { name: "strong bread flour", amount: "500", unit: "g" },
+            { name: "active dry yeast", amount: "7", unit: "g" },
+            { name: "salt", amount: "10", unit: "g" },
+            { name: "olive oil", amount: "2", unit: "tbsp" },
+            { name: "warm water", amount: "325", unit: "ml" },
+            { name: "canned tomatoes", amount: "400", unit: "g" },
+            { name: "fresh mozzarella", amount: "250", unit: "g" },
+            { name: "fresh basil", amount: "20", unit: "leaves" },
+            { name: "garlic", amount: "2", unit: "cloves" },
+          ],
+          instructions: [
+            "Mix flour, yeast, and salt in a large bowl. Make a well and add warm water and olive oil.",
+            "Knead for 10 minutes until smooth and elastic. Place in oiled bowl, cover, and rise for 1 hour.",
+            "For the sauce, blend tomatoes with garlic and a pinch of salt until smooth.",
+            "Preheat oven to 250°C (or as high as it goes) with a pizza stone if you have one.",
+            "Divide dough into 2-3 balls. Roll out one ball on a floured surface.",
+            "Spread sauce thinly, top with torn mozzarella, and bake for 8-10 minutes until golden.",
+            "Remove from oven, top with fresh basil leaves, and drizzle with olive oil.",
+          ],
+          prepTime: 90,
+          cookTime: 15,
+          servings: 2,
+          difficulty: "medium" as const,
+          cuisine: "Italian",
+          dietary: ["Vegetarian"],
+          author: "Chef Marco",
+          featuredImage: "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Homemade Sushi Rolls",
+          description: "Learn to make perfect sushi rolls at home. Fresh salmon, avocado, and cucumber wrapped in seasoned rice and nori.",
+          ingredients: [
+            { name: "sushi rice", amount: "300", unit: "g" },
+            { name: "rice vinegar", amount: "60", unit: "ml" },
+            { name: "sugar", amount: "2", unit: "tbsp" },
+            { name: "salt", amount: "1", unit: "tsp" },
+            { name: "nori sheets", amount: "6", unit: "sheets" },
+            { name: "fresh salmon", amount: "200", unit: "g" },
+            { name: "avocado", amount: "1", unit: "ripe" },
+            { name: "cucumber", amount: "0.5", unit: "medium" },
+            { name: "wasabi", amount: "1", unit: "tsp" },
+            { name: "soy sauce", amount: "50", unit: "ml" },
+          ],
+          instructions: [
+            "Rinse rice until water runs clear. Cook according to package instructions.",
+            "Mix rice vinegar, sugar, and salt. Gently fold into warm rice and let cool.",
+            "Cut salmon into thin strips. Slice avocado and cucumber into matchsticks.",
+            "Place nori sheet shiny side down on a bamboo mat. Spread rice evenly, leaving 1cm at top.",
+            "Add salmon, avocado, and cucumber in a line near the bottom edge.",
+            "Roll tightly using the mat, wetting the top edge to seal.",
+            "Cut into 6-8 pieces with a sharp, wet knife. Serve with wasabi and soy sauce.",
+          ],
+          prepTime: 60,
+          cookTime: 20,
+          servings: 3,
+          difficulty: "hard" as const,
+          cuisine: "Japanese",
+          dietary: ["Pescatarian"],
+          author: "Chef Yuki",
+          featuredImage: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Authentic Jollof Rice",
+          description: "The ultimate West African one-pot dish. Fragrant rice cooked in a rich tomato and pepper sauce with spices.",
+          ingredients: [
+            { name: "long grain rice", amount: "400", unit: "g" },
+            { name: "tomatoes", amount: "4", unit: "large" },
+            { name: "red bell peppers", amount: "2", unit: "large" },
+            { name: "onion", amount: "1", unit: "large" },
+            { name: "garlic", amount: "4", unit: "cloves" },
+            { name: "ginger", amount: "2", unit: "cm piece" },
+            { name: "tomato paste", amount: "2", unit: "tbsp" },
+            { name: "chicken stock", amount: "500", unit: "ml" },
+            { name: "curry powder", amount: "1", unit: "tsp" },
+            { name: "thyme", amount: "1", unit: "tsp" },
+            { name: "bay leaves", amount: "2", unit: "leaves" },
+            { name: "vegetable oil", amount: "3", unit: "tbsp" },
+          ],
+          instructions: [
+            "Blend tomatoes, peppers, onion, garlic, and ginger until smooth.",
+            "Heat oil in a large pot and fry the blended mixture for 10 minutes until reduced.",
+            "Add tomato paste, curry powder, and thyme. Cook for 2 more minutes.",
+            "Add rice and stir to coat. Pour in stock and add bay leaves.",
+            "Bring to boil, then reduce heat, cover, and simmer for 25-30 minutes.",
+            "Remove from heat and let steam for 10 minutes. Fluff with fork and serve.",
+          ],
+          prepTime: 20,
+          cookTime: 45,
+          servings: 6,
+          difficulty: "medium" as const,
+          cuisine: "Nigerian",
+          dietary: ["Vegetarian", "Vegan"],
+          author: "Chef Amara",
+          featuredImage: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Pad Thai Noodles",
+          description: "The iconic Thai street food dish. Sweet, sour, and savory flavors in every bite with perfectly balanced noodles.",
+          ingredients: [
+            { name: "rice noodles", amount: "200", unit: "g" },
+            { name: "shrimp", amount: "200", unit: "g" },
+            { name: "firm tofu", amount: "150", unit: "g" },
+            { name: "eggs", amount: "2", unit: "large" },
+            { name: "bean sprouts", amount: "100", unit: "g" },
+            { name: "garlic chives", amount: "50", unit: "g" },
+            { name: "tamarind paste", amount: "2", unit: "tbsp" },
+            { name: "fish sauce", amount: "2", unit: "tbsp" },
+            { name: "palm sugar", amount: "2", unit: "tbsp" },
+            { name: "lime", amount: "1", unit: "juice" },
+            { name: "peanuts", amount: "50", unit: "g" },
+            { name: "red chili", amount: "1", unit: "small" },
+          ],
+          instructions: [
+            "Soak rice noodles in warm water for 30 minutes until pliable but not soft.",
+            "Mix tamarind paste, fish sauce, and palm sugar to make the sauce.",
+            "Heat oil in a wok and scramble eggs. Push to one side.",
+            "Add shrimp and tofu, cook until shrimp is pink.",
+            "Add noodles and sauce. Toss everything together for 2-3 minutes.",
+            "Add bean sprouts and chives. Toss once more.",
+            "Serve immediately with lime wedges, crushed peanuts, and chili flakes.",
+          ],
+          prepTime: 40,
+          cookTime: 10,
+          servings: 2,
+          difficulty: "medium" as const,
+          cuisine: "Thai",
+          dietary: ["Pescatarian"],
+          author: "Chef Somchai",
+          featuredImage: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Beef Bulgogi",
+          description: "Korean marinated beef that's sweet, savory, and incredibly tender. Perfect for grilling or pan-frying.",
+          ingredients: [
+            { name: "ribeye steak", amount: "500", unit: "g" },
+            { name: "soy sauce", amount: "60", unit: "ml" },
+            { name: "pear", amount: "0.5", unit: "medium" },
+            { name: "onion", amount: "0.5", unit: "medium" },
+            { name: "garlic", amount: "4", unit: "cloves" },
+            { name: "ginger", amount: "2", unit: "cm piece" },
+            { name: "brown sugar", amount: "2", unit: "tbsp" },
+            { name: "sesame oil", amount: "1", unit: "tbsp" },
+            { name: "black pepper", amount: "0.5", unit: "tsp" },
+            { name: "spring onions", amount: "3", unit: "stalks" },
+          ],
+          instructions: [
+            "Slice beef very thinly against the grain. Freeze for 30 minutes first to make slicing easier.",
+            "Blend pear, onion, garlic, and ginger until smooth.",
+            "Mix with soy sauce, sugar, sesame oil, and pepper to make marinade.",
+            "Marinate beef for at least 2 hours, or overnight for best results.",
+            "Heat a large pan or grill to high heat. Cook beef in batches for 2-3 minutes per side.",
+            "Garnish with sliced spring onions and serve with rice and kimchi.",
+          ],
+          prepTime: 30,
+          cookTime: 10,
+          servings: 4,
+          difficulty: "easy" as const,
+          cuisine: "Korean",
+          dietary: [],
+          author: "Chef Min-jun",
+          featuredImage: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Chicken Doner Kebab",
+          description: "Tender, spiced chicken cooked on a vertical rotisserie, served in warm pita with fresh vegetables and sauces.",
+          ingredients: [
+            { name: "chicken thighs", amount: "600", unit: "g" },
+            { name: "plain yogurt", amount: "150", unit: "ml" },
+            { name: "olive oil", amount: "3", unit: "tbsp" },
+            { name: "lemon juice", amount: "2", unit: "tbsp" },
+            { name: "garlic", amount: "4", unit: "cloves" },
+            { name: "paprika", amount: "1", unit: "tsp" },
+            { name: "cumin", amount: "1", unit: "tsp" },
+            { name: "coriander", amount: "1", unit: "tsp" },
+            { name: "oregano", amount: "1", unit: "tsp" },
+            { name: "pita bread", amount: "4", unit: "pieces" },
+            { name: "lettuce", amount: "100", unit: "g" },
+            { name: "tomatoes", amount: "2", unit: "medium" },
+            { name: "red onion", amount: "0.5", unit: "medium" },
+            { name: "tzatziki", amount: "100", unit: "ml" },
+          ],
+          instructions: [
+            "Cut chicken into thin strips and mix with yogurt, oil, lemon, garlic, and all spices.",
+            "Marinate for at least 4 hours, preferably overnight.",
+            "Thread chicken onto skewers or stack for vertical cooking.",
+            "Cook on high heat, turning regularly, until golden and cooked through (15-20 minutes).",
+            "Warm pita bread. Slice cooked chicken thinly.",
+            "Fill pita with chicken, lettuce, tomatoes, onion, and tzatziki.",
+            "Serve immediately while hot.",
+          ],
+          prepTime: 20,
+          cookTime: 20,
+          servings: 4,
+          difficulty: "easy" as const,
+          cuisine: "Kebab",
+          dietary: [],
+          author: "Chef Mehmet",
+          featuredImage: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Spaghetti Carbonara",
+          description: "The authentic Roman pasta dish. Creamy, rich, and made without cream - just eggs, cheese, and pancetta.",
+          ingredients: [
+            { name: "spaghetti", amount: "400", unit: "g" },
+            { name: "pancetta", amount: "200", unit: "g" },
+            { name: "eggs", amount: "4", unit: "large" },
+            { name: "pecorino romano", amount: "100", unit: "g" },
+            { name: "black pepper", amount: "1", unit: "tsp" },
+            { name: "garlic", amount: "2", unit: "cloves" },
+          ],
+          instructions: [
+            "Cook spaghetti in salted boiling water until al dente. Reserve a cup of pasta water.",
+            "Cut pancetta into small cubes and fry until crispy. Remove from pan.",
+            "Whisk eggs with grated pecorino and black pepper in a bowl.",
+            "Drain pasta and immediately add to the pan with pancetta (off heat).",
+            "Quickly toss pasta, then add egg mixture, stirring constantly.",
+            "Add pasta water a little at a time until creamy. Serve immediately with extra cheese.",
+          ],
+          prepTime: 10,
+          cookTime: 15,
+          servings: 4,
+          difficulty: "medium" as const,
+          cuisine: "Italian",
+          dietary: [],
+          author: "Chef Marco",
+          featuredImage: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
+        },
+      ];
+
+      const recipeIds: Id<"recipes">[] = [];
+      for (const recipeData of recipesToCreate) {
+        const recipeId = await ctx.runMutation(internal.mutations.recipes.createRecipeForSeed, {
+          ...recipeData,
+          status: "published" as const,
+        });
+        recipeIds.push(recipeId);
+        console.log(`Created recipe: ${recipeData.title} (${recipeId})`);
+      }
+
+      // Create sample blog posts (stories) with images
+      const blogPostsToCreate = [
+        {
+          title: "The Art of Perfect Pasta",
+          content: "<p>Discover the secrets to making perfect pasta at home. From choosing the right flour to mastering the dough, this guide covers everything you need to know.</p>",
+          excerpt: "Learn the techniques that professional chefs use to create perfect pasta every time.",
+          body: [
+            "Pasta making is both an art and a science. The key is in the ingredients and technique.",
+            "Start with high-quality flour and fresh eggs for the best results.",
+            "Kneading the dough properly is crucial for developing the right texture.",
+          ],
+          author: {
+            name: "Chef Marco",
+            avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
+          },
+          categories: ["Cooking", "Italian"],
+          date: "January 2025",
+          coverImage: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
+          featuredImage: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
+          tags: ["pasta", "cooking", "italian"],
+          status: "published" as const,
+        },
+        {
+          title: "Exploring Street Food Culture",
+          content: "<p>Street food is more than just quick meals - it's a window into the culture and traditions of a place. Join us as we explore the vibrant street food scenes around the world.</p>",
+          excerpt: "A journey through the world's most exciting street food destinations and their unique flavors.",
+          body: [
+            "Street food offers an authentic taste of local culture.",
+            "From Bangkok's night markets to Mexico City's taco stands, each destination has its own character.",
+            "The best street food vendors have been perfecting their recipes for generations.",
+          ],
+          author: {
+            name: "Food Explorer",
+            avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
+          },
+          categories: ["Travel", "Food Culture"],
+          date: "January 2025",
+          coverImage: "https://images.unsplash.com/photo-1565299585323-38174c3d1e3d?w=800&h=600&fit=crop",
+          featuredImage: "https://images.unsplash.com/photo-1565299585323-38174c3d1e3d?w=800&h=600&fit=crop",
+          tags: ["street food", "travel", "culture"],
+          status: "published" as const,
+        },
+        {
+          title: "Sustainable Cooking Practices",
+          content: "<p>Learn how to reduce food waste and cook more sustainably. Small changes in the kitchen can make a big impact on the environment.</p>",
+          excerpt: "Practical tips for reducing waste and making your cooking more environmentally friendly.",
+          body: [
+            "Sustainable cooking starts with mindful shopping and meal planning.",
+            "Using every part of the ingredient reduces waste and adds flavor.",
+            "Composting and proper storage extend the life of your ingredients.",
+          ],
+          author: {
+            name: "Eco Chef",
+            avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
+          },
+          categories: ["Sustainability", "Tips"],
+          date: "January 2025",
+          coverImage: "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=800&h=600&fit=crop",
+          featuredImage: "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=800&h=600&fit=crop",
+          tags: ["sustainability", "eco-friendly", "tips"],
+          status: "published" as const,
+        },
+        {
+          title: "The Science of Flavor Pairing",
+          content: "<p>Understanding flavor chemistry can help you create more exciting and balanced dishes. Discover the principles behind successful flavor combinations.</p>",
+          excerpt: "Explore the science behind why certain flavors work so well together.",
+          body: [
+            "Flavor pairing is based on shared chemical compounds between ingredients.",
+            "Understanding these connections can help you create unexpected but harmonious combinations.",
+            "Experimentation is key to discovering your own favorite pairings.",
+          ],
+          author: {
+            name: "Chef Scientist",
+            avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
+          },
+          categories: ["Science", "Cooking"],
+          date: "January 2025",
+          coverImage: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=800&h=600&fit=crop",
+          featuredImage: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=800&h=600&fit=crop",
+          tags: ["flavor", "science", "cooking"],
+          status: "published" as const,
+        },
+        {
+          title: "Mastering the Art of Fermentation",
+          content: "<p>Fermentation is one of the oldest food preservation techniques, and it's making a comeback. Learn how to ferment vegetables, make sourdough, and more.</p>",
+          excerpt: "A beginner's guide to fermentation and how it can transform your cooking.",
+          body: [
+            "Fermentation adds complex flavors and beneficial probiotics to your food.",
+            "Starting with simple ferments like sauerkraut is a great way to begin.",
+            "Patience and proper technique are essential for successful fermentation.",
+          ],
+          author: {
+            name: "Fermentation Expert",
+            avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
+          },
+          categories: ["Techniques", "Preservation"],
+          date: "January 2025",
+          coverImage: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=800&h=600&fit=crop",
+          featuredImage: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=800&h=600&fit=crop",
+          tags: ["fermentation", "preservation", "techniques"],
+          status: "published" as const,
+        },
+      ];
+
+      const blogPostIds: Id<"blogPosts">[] = [];
+      for (const postData of blogPostsToCreate) {
+        const postId = await ctx.runMutation(internal.mutations.blog.createBlogPostForSeed, postData);
+        blogPostIds.push(postId);
+        console.log(`Created blog post: ${postData.title} (${postId})`);
+      }
+
+      // 8. Create videos for Nosh Heaven
+      console.log("Creating videos for Nosh Heaven...");
+      const videosToCreate = [
+        {
+          title: "How to Make Perfect Pasta Carbonara",
+          description: "Learn the authentic Italian technique for making creamy carbonara without cream. This classic Roman dish is simpler than you think!",
+          tags: ["pasta", "italian", "carbonara", "cooking", "tutorial"],
+          cuisine: "Italian",
+          difficulty: "intermediate" as const,
+          duration: 300, // 5 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Chicken Tikka Masala from Scratch",
+          description: "Master this British-Indian favorite with tender chicken in a rich, creamy tomato sauce. Perfect for dinner parties!",
+          tags: ["chicken", "indian", "curry", "tikka", "masala"],
+          cuisine: "Indian",
+          difficulty: "intermediate" as const,
+          duration: 420, // 7 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Homemade Sushi Rolls Tutorial",
+          description: "Step-by-step guide to making perfect sushi rolls at home. Fresh salmon, avocado, and perfectly seasoned rice.",
+          tags: ["sushi", "japanese", "seafood", "healthy", "tutorial"],
+          cuisine: "Japanese",
+          difficulty: "advanced" as const,
+          duration: 600, // 10 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Authentic Jollof Rice Recipe",
+          description: "The ultimate West African one-pot dish. Fragrant rice cooked in a rich tomato and pepper sauce with spices.",
+          tags: ["jollof", "nigerian", "rice", "african", "one-pot"],
+          cuisine: "Nigerian",
+          difficulty: "intermediate" as const,
+          duration: 480, // 8 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Pad Thai Street Food Style",
+          description: "Recreate the iconic Thai street food at home. Sweet, sour, and savory flavors in every bite.",
+          tags: ["pad thai", "thai", "noodles", "street food", "stir-fry"],
+          cuisine: "Thai",
+          difficulty: "intermediate" as const,
+          duration: 360, // 6 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Perfect Margherita Pizza",
+          description: "The classic Italian pizza with fresh mozzarella, basil, and simple tomato sauce. Simple ingredients, incredible flavor.",
+          tags: ["pizza", "italian", "margherita", "vegetarian", "baking"],
+          cuisine: "Italian",
+          difficulty: "intermediate" as const,
+          duration: 540, // 9 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Korean Bulgogi Beef",
+          description: "Sweet, savory, and incredibly tender marinated beef. Perfect for grilling or pan-frying.",
+          tags: ["bulgogi", "korean", "beef", "bbq", "marinated"],
+          cuisine: "Korean",
+          difficulty: "beginner" as const,
+          duration: 300, // 5 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Chicken Doner Kebab",
+          description: "Tender, spiced chicken cooked on a vertical rotisserie, served in warm pita with fresh vegetables and sauces.",
+          tags: ["kebab", "chicken", "middle eastern", "street food", "wrap"],
+          cuisine: "Kebab",
+          difficulty: "beginner" as const,
+          duration: 450, // 7.5 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Classic Fish and Chips",
+          description: "Crispy battered fish with golden chips. The ultimate British comfort food, made at home.",
+          tags: ["fish", "chips", "british", "fried", "comfort food"],
+          cuisine: "British",
+          difficulty: "intermediate" as const,
+          duration: 480, // 8 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
+        },
+        {
+          title: "Spicy Green Curry",
+          description: "Aromatic Thai green curry with vegetables. Learn the secret to balancing heat and flavor.",
+          tags: ["curry", "thai", "green curry", "vegetarian", "spicy"],
+          cuisine: "Thai",
+          difficulty: "beginner" as const,
+          duration: 360, // 6 minutes
+          thumbnailUrl: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=800&h=600&fit=crop",
+        },
+      ];
+
+      const videoIds: Id<"videoPosts">[] = [];
+      
+      // Helper function to upload a placeholder file and get storage ID
+      const uploadPlaceholderFile = async (contentType: string, fileName: string): Promise<Id<"_storage">> => {
+        // Generate upload URL
+        const uploadUrl = await ctx.storage.generateUploadUrl();
+        
+        // Create a minimal placeholder file
+        // For videos, we'll use a very small test video file
+        // For thumbnails, we'll use a 1x1 pixel PNG
+        let fileContent: Buffer;
+        if (contentType.startsWith('video/')) {
+          // Use a minimal MP4 file (1 second of black video)
+          // In a real scenario, you'd download a test video or create one
+          // For now, we'll create a minimal valid MP4 header
+          // This is a very basic approach - in production you'd use actual video files
+          fileContent = Buffer.from([
+            0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, // ftyp box
+            0x69, 0x73, 0x6F, 0x6D, 0x00, 0x00, 0x02, 0x00,
+            0x69, 0x73, 0x6F, 0x6D, 0x69, 0x73, 0x6F, 0x32,
+            0x6D, 0x70, 0x34, 0x31, 0x00, 0x00, 0x00, 0x08,
+            0x6D, 0x64, 0x61, 0x74, 0x00, 0x00, 0x00, 0x00
+          ]);
+        } else {
+          // 1x1 pixel transparent PNG
+          fileContent = Buffer.from([
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+            0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+            0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+            0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+            0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+            0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+            0x42, 0x60, 0x82
+          ]);
+        }
+        
+        // Upload the file
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': contentType,
+          },
+          body: fileContent,
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload ${fileName}: ${uploadResponse.statusText}`);
+        }
+        
+        const result = await uploadResponse.json();
+        if (!result.storageId) {
+          throw new Error(`No storageId in upload response for ${fileName}`);
+        }
+        
+        return result.storageId as Id<"_storage">;
+      };
+
+      for (const videoData of videosToCreate) {
+        try {
+          // Assign video to a random chef
+          const randomChefIndex = Math.floor(Math.random() * chefIds.length);
+          const chefId = chefIds[randomChefIndex];
+          
+          // Get the chef's user ID
+          const chef = await ctx.runQuery(api.queries.chefs.getChefById, { chefId });
+          if (!chef || !chef.userId) {
+            console.warn(`Skipping video ${videoData.title} - chef not found`);
+            continue;
+          }
+          
+          // Upload placeholder video and thumbnail
+          const videoStorageId = await uploadPlaceholderFile('video/mp4', `video-${Date.now()}.mp4`);
+          const thumbnailStorageId = await uploadPlaceholderFile('image/png', `thumbnail-${Date.now()}.png`);
+          
+          // Create video post using mutation that accepts userId
+          const videoId = await ctx.runMutation(api.mutations.videoPosts.createVideoPostByUserId, {
+            userId: chef.userId,
+            title: videoData.title,
+            description: videoData.description,
+            videoStorageId,
+            thumbnailStorageId,
+            duration: videoData.duration,
+            fileSize: 5 * 1024 * 1024, // 5MB placeholder
+            resolution: {
+              width: 1920,
+              height: 1080,
+            },
+            tags: videoData.tags,
+            cuisine: videoData.cuisine,
+            difficulty: videoData.difficulty,
+            visibility: "public",
+            isLive: false,
+          });
+          
+          // Publish the video using internal mutation (bypasses auth)
+          await ctx.runMutation(internal.mutations.videoPosts.publishVideoPostForSeed, {
+            videoId,
+          });
+          
+          // Note: Engagement metrics (likes, views, comments, shares) start at 0
+          // They will be updated as users interact with the videos
+          
+          videoIds.push(videoId);
+          console.log(`Created video: ${videoData.title} (${videoId})`);
+        } catch (error) {
+          console.error(`Error creating video ${videoData.title}:`, error);
+          // Continue with other videos
+        }
+      }
+
       console.log("Seed data injection completed successfully!");
       return {
         success: true,
@@ -453,10 +1051,16 @@ export const seedAllHomeScreenData = action({
         mealIds,
         cuisineIds,
         offerIds,
+        recipeIds,
+        blogPostIds,
+        videoIds,
         totalChefs: chefIds.length,
         totalMeals: mealIds.length,
         totalCuisines: cuisineIds.length,
         totalOffers: offerIds.length,
+        totalRecipes: recipeIds.length,
+        totalBlogPosts: blogPostIds.length,
+        totalVideos: videoIds.length,
       };
     } catch (error) {
       console.error("Error seeding data:", error);

@@ -377,6 +377,47 @@ export const customerShareVideo = action({
 });
 
 /**
+ * Customer Add Video Comment - for mobile app direct Convex communication
+ */
+export const customerAddVideoComment = action({
+  args: {
+    sessionToken: v.string(),
+    videoId: v.string(),
+    content: v.string(),
+    parentCommentId: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      commentId: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      const userId = await authenticateUser(ctx, args.sessionToken);
+      if (!userId) {
+        return { success: false as const, error: 'Authentication required' };
+      }
+
+      const commentId = await ctx.runMutation(api.mutations.videoComments.addComment, {
+        videoId: args.videoId as any,
+        content: args.content,
+        parentCommentId: args.parentCommentId ? (args.parentCommentId as any) : undefined,
+      });
+
+      return { success: true as const, commentId };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to add comment';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
  * Customer Record Video View - for mobile app direct Convex communication
  */
 export const customerRecordVideoView = action({

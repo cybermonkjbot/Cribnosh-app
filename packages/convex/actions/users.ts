@@ -6454,7 +6454,8 @@ export const customerSearchChefsByLocation = action({
 });
 
 /**
- * Customer Search - General search across dishes, chefs, kitchens - for mobile app direct Convex communication
+ * Customer Search - General search across dishes, chefs, kitchens, videos, recipes, stories, and livestreams
+ * for mobile app direct Convex communication
  */
 export const customerSearch = action({
   args: {
@@ -6472,6 +6473,14 @@ export const customerSearch = action({
       })),
       dietary: v.optional(v.array(v.string())),
     })),
+    contentTypes: v.optional(v.array(v.union(
+      v.literal("dishes"),
+      v.literal("chefs"),
+      v.literal("videos"),
+      v.literal("recipes"),
+      v.literal("stories"),
+      v.literal("livestreams")
+    ))),
     limit: v.optional(v.number()),
   },
   returns: v.union(
@@ -6481,6 +6490,10 @@ export const customerSearch = action({
         dishes: v.array(v.any()),
         chefs: v.array(v.any()),
         kitchens: v.array(v.any()),
+        videos: v.array(v.any()),
+        recipes: v.array(v.any()),
+        stories: v.array(v.any()),
+        livestreams: v.array(v.any()),
         total: v.number(),
       }),
     }),
@@ -6500,48 +6513,155 @@ export const customerSearch = action({
         userId = user?._id;
       }
 
+      // Determine which content types to search (default: all)
+      const searchAll = !args.contentTypes || args.contentTypes.length === 0;
+      const shouldSearchDishes = searchAll || args.contentTypes.includes("dishes");
+      const shouldSearchChefs = searchAll || args.contentTypes.includes("chefs");
+      const shouldSearchVideos = searchAll || args.contentTypes.includes("videos");
+      const shouldSearchRecipes = searchAll || args.contentTypes.includes("recipes");
+      const shouldSearchStories = searchAll || args.contentTypes.includes("stories");
+      const shouldSearchLivestreams = searchAll || args.contentTypes.includes("livestreams");
+
+      // Per-type limit to prevent overwhelming response
+      const perTypeLimit = Math.floor((args.limit || 20) / 6) || 5; // Distribute limit across types
+
+      // Run searches in parallel for better performance
+      const searchPromises: Promise<any>[] = [];
+
       // Search meals/dishes
-      const meals = await ctx.runQuery(api.queries.meals.searchMeals, {
-        query: args.query,
-        userId,
-        filters: args.filters,
-      });
+      if (shouldSearchDishes) {
+        searchPromises.push(
+          ctx.runQuery(api.queries.meals.searchMeals, {
+            query: args.query,
+            userId,
+            filters: args.filters,
+          }).then(meals => ({ type: 'dishes', data: Array.isArray(meals) ? meals : [] }))
+            .catch(() => ({ type: 'dishes', data: [] }))
+        );
+      } else {
+        searchPromises.push(Promise.resolve({ type: 'dishes', data: [] }));
+      }
 
       // Search chefs
-      let chefs: any[] = [];
-      if (args.location) {
-        const chefResult = await ctx.runQuery(api.queries.chefs.searchChefsByQuery, {
-          query: args.query,
-          latitude: args.location.latitude,
-          longitude: args.location.longitude,
-          radiusKm: 10,
-          limit: args.limit || 10,
-        });
-        chefs = chefResult.chefs || [];
+      if (shouldSearchChefs) {
+        if (args.location) {
+          searchPromises.push(
+            ctx.runQuery(api.queries.chefs.searchChefsByQuery, {
+              query: args.query,
+              latitude: args.location.latitude,
+              longitude: args.location.longitude,
+              radiusKm: 10,
+              limit: perTypeLimit,
+            }).then(chefResult => ({ type: 'chefs', data: chefResult.chefs || [] }))
+              .catch(() => ({ type: 'chefs', data: [] }))
+          );
+        } else {
+          searchPromises.push(
+            ctx.runQuery(api.queries.chefs.getAll, {})
+              .then((allChefs: any[]) => {
+                const queryLower = args.query.toLowerCase();
+                const chefs = allChefs
+                  .filter((chef: any) =>
+                    chef.name?.toLowerCase().includes(queryLower) ||
+                    chef.specialties?.some((s: string) => s.toLowerCase().includes(queryLower)) ||
+                    chef.bio?.toLowerCase().includes(queryLower)
+                  )
+                  .slice(0, perTypeLimit);
+                return { type: 'chefs', data: chefs };
+              })
+              .catch(() => ({ type: 'chefs', data: [] }))
+          );
+        }
       } else {
-        // Simple search without location
-        const allChefs = await ctx.runQuery(api.queries.chefs.getAll, {});
-        const queryLower = args.query.toLowerCase();
-        chefs = allChefs
-          .filter((chef: any) =>
-            chef.name?.toLowerCase().includes(queryLower) ||
-            chef.specialties?.some((s: string) => s.toLowerCase().includes(queryLower)) ||
-            chef.bio?.toLowerCase().includes(queryLower)
-          )
-          .slice(0, args.limit || 10);
+        searchPromises.push(Promise.resolve({ type: 'chefs', data: [] }));
       }
+
+      // Search videos
+      if (shouldSearchVideos) {
+        searchPromises.push(
+          ctx.runQuery(api.queries.videoPosts.searchVideos, {
+            query: args.query,
+            limit: perTypeLimit,
+          }).then(result => ({ type: 'videos', data: result.videos || [] }))
+            .catch(() => ({ type: 'videos', data: [] }))
+        );
+      } else {
+        searchPromises.push(Promise.resolve({ type: 'videos', data: [] }));
+      }
+
+      // Search recipes
+      if (shouldSearchRecipes) {
+        searchPromises.push(
+          ctx.runQuery(api.queries.recipes.getRecipes, {
+            search: args.query,
+            limit: perTypeLimit,
+          }).then(result => ({ type: 'recipes', data: result.recipes || [] }))
+            .catch(() => ({ type: 'recipes', data: [] }))
+        );
+      } else {
+        searchPromises.push(Promise.resolve({ type: 'recipes', data: [] }));
+      }
+
+      // Search stories
+      if (shouldSearchStories) {
+        searchPromises.push(
+          ctx.runQuery(api.queries.blog.getBlogPosts, {
+            search: args.query,
+            status: "published",
+            limit: perTypeLimit,
+          }).then(result => ({ type: 'stories', data: Array.isArray(result) ? result : [] }))
+            .catch(() => ({ type: 'stories', data: [] }))
+        );
+      } else {
+        searchPromises.push(Promise.resolve({ type: 'stories', data: [] }));
+      }
+
+      // Search livestreams (requires authentication)
+      if (shouldSearchLivestreams && args.sessionToken) {
+        searchPromises.push(
+          ctx.runAction(api.actions.noshHeaven.getNoshHeavenFeed, {
+            sessionToken: args.sessionToken,
+            category: "live",
+            limit: perTypeLimit,
+            search: args.query,
+          }).then(result => {
+            if (result.success) {
+              return { type: 'livestreams', data: result.items || [] };
+            }
+            return { type: 'livestreams', data: [] };
+          })
+            .catch(() => ({ type: 'livestreams', data: [] }))
+        );
+      } else {
+        searchPromises.push(Promise.resolve({ type: 'livestreams', data: [] }));
+      }
+
+      // Wait for all searches to complete
+      const results = await Promise.all(searchPromises);
+
+      // Extract results by type
+      const dishes = results.find(r => r.type === 'dishes')?.data || [];
+      const chefs = results.find(r => r.type === 'chefs')?.data || [];
+      const videos = results.find(r => r.type === 'videos')?.data || [];
+      const recipes = results.find(r => r.type === 'recipes')?.data || [];
+      const stories = results.find(r => r.type === 'stories')?.data || [];
+      const livestreams = results.find(r => r.type === 'livestreams')?.data || [];
 
       // For now, kitchens are represented by chefs, so we can return empty or derive from chefs
       const kitchens: any[] = [];
 
-      const total = meals.length + chefs.length + kitchens.length;
+      const total = dishes.length + chefs.length + kitchens.length + videos.length + recipes.length + stories.length + livestreams.length;
 
       return {
         success: true as const,
         results: {
-          dishes: meals.slice(0, args.limit || 20),
-          chefs: chefs.slice(0, args.limit || 20),
+          dishes: dishes.slice(0, perTypeLimit),
+          chefs: chefs.slice(0, perTypeLimit),
           kitchens,
+          videos: videos.slice(0, perTypeLimit),
+          recipes: recipes.slice(0, perTypeLimit),
+          stories: stories.slice(0, perTypeLimit),
+          livestreams: livestreams.slice(0, perTypeLimit),
           total,
         },
       };
@@ -8664,65 +8784,132 @@ export const customerSendAIChatMessage = action({
         } else {
           // Create new channel if not found
           const newChannel = await ctx.runMutation(api.mutations.aiChat.createChannel, {
-            userId: user._id,
+            name: `Chat with ${user.name || 'User'}`,
+            createdBy: user._id,
           });
           channelId = newChannel.channelId;
         }
       } else {
         // Create new channel
         const newChannel = await ctx.runMutation(api.mutations.aiChat.createChannel, {
-          userId: user._id,
+          name: `Chat with ${user.name || 'User'}`,
+          createdBy: user._id,
         });
         channelId = newChannel.channelId;
       }
 
+      // Generate embedding for the user message to enable vector search
+      let queryEmbedding: number[] | undefined;
+      let mealRecommendations: any[] = [];
+      
+      try {
+        // Generate embedding for semantic meal search
+        const embeddingResult = await ctx.runAction(api.actions.generateEmbeddings.generateQueryEmbedding, {
+          query: args.message.trim(),
+        });
+        queryEmbedding = embeddingResult.embedding;
+
+        // Perform vector search for meal recommendations
+        if (queryEmbedding && queryEmbedding.length > 0) {
+          const vectorSearchResults = await ctx.runQuery(api.queries.mealRecommendations.searchMealsByVector, {
+            queryEmbedding,
+            limit: 5,
+            userId: user._id,
+          });
+          mealRecommendations = vectorSearchResults || [];
+        }
+      } catch (error: any) {
+        // Check if it's a quota/rate limit error
+        const errorMessage = error?.message || String(error);
+        if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+          // Return user-friendly message for quota errors
+          return {
+            success: false as const,
+            error: 'CribNosh AI is temporarily unavailable. Please try again later.',
+          };
+        }
+        // If vector search fails for other reasons, continue without it
+        console.error('Vector search error:', error);
+      }
+
       // Send message
-      const messageResult = await ctx.runMutation(api.mutations.aiChat.sendMessage, {
-        channelId,
-        authorId: user._id,
-        content: args.message.trim(),
-      });
+      let messageResult: any;
+      try {
+        messageResult = await ctx.runMutation(api.mutations.aiChat.sendMessage, {
+          channelId,
+          authorId: user._id,
+          content: args.message.trim(),
+        });
+      } catch (error: any) {
+        // Check if it's a quota/rate limit error
+        const errorMessage = error?.message || String(error);
+        if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+          return {
+            success: false as const,
+            error: 'CribNosh AI is temporarily unavailable. Please try again later.',
+          };
+        }
+        // Re-throw other errors to be caught by outer catch
+        throw error;
+      }
 
       // Wait a bit for AI response to be generated (it's scheduled)
-      // In production, you might want to poll or use webhooks
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Poll for the AI response with timeout
+      let aiMessage: any = null;
+      const maxWaitTime = 10000; // 10 seconds
+      const pollInterval = 500; // 500ms
+      const startTime = Date.now();
 
-      // Get the AI response message
-      const messages = await ctx.runQuery(api.queries.aiChat.getMessagesByChannel, {
-        channelId,
-        limit: 10,
-      });
+      while (!aiMessage && (Date.now() - startTime) < maxWaitTime) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        
+        const messages = await ctx.runQuery(api.queries.aiChat.getMessagesByChannel, {
+          channelId,
+          limit: 10,
+        });
 
-      // Find the latest AI message
-      const aiMessage = messages
-        .filter((m: any) => m.messageType === 'assistant')
-        .sort((a: any, b: any) => b.createdAt - a.createdAt)[0];
+        // Find the latest AI message
+        const latestAiMessage = messages
+          .filter((m: any) => m.messageType === 'ai' || m.messageType === 'assistant')
+          .sort((a: any, b: any) => b.createdAt - a.createdAt)[0];
 
-      // Parse recommendations from AI message if available
-      let recommendations: any[] = [];
-      if (aiMessage?.content) {
-        // Try to parse JSON recommendations from the message
-        // This is a simplified version - in production, the AI response format would be more structured
-        try {
-          const content = aiMessage.content;
-          // Look for JSON-like structures in the response
-          // This is a placeholder - actual implementation would depend on AI response format
-        } catch (e) {
-          // Ignore parsing errors
+        if (latestAiMessage && latestAiMessage.createdAt > messageResult.messageId) {
+          aiMessage = latestAiMessage;
+          break;
         }
+      }
+
+      // If no AI message found, use meal recommendations as fallback
+      if (!aiMessage && mealRecommendations.length > 0) {
+        aiMessage = {
+          content: `I found ${mealRecommendations.length} meal(s) that might interest you based on your message.`,
+        };
       }
 
       return {
         success: true as const,
         data: {
           message: aiMessage?.content || 'I received your message. Let me help you find the perfect meal!',
-          recommendations,
+          recommendations: mealRecommendations.length > 0 ? mealRecommendations : [],
           conversation_id: channelId,
         },
       };
     } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to send chat message';
-      return { success: false as const, error: errorMessage };
+      // Check if it's a quota/rate limit error
+      const errorMessage = error?.message || String(error);
+      if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+        return {
+          success: false as const,
+          error: 'CribNosh AI is temporarily unavailable. Please try again later.',
+        };
+      }
+      
+      // For other errors, return generic message
+      console.error('AI chat error:', error);
+      return {
+        success: false as const,
+        error: 'Failed to send chat message. Please try again.',
+      };
     }
   },
 });

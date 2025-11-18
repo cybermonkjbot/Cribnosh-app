@@ -37,17 +37,15 @@ export function AnimatedMoodButton({
   const rotation = useSharedValue(0);
   const glowOpacity = useSharedValue(0);
 
-  // Derived values for safe access
-  const currentScale = useDerivedValue(() => scale.value);
+  // Derived values for string interpolation and calculations
   const currentRotation = useDerivedValue(() => `${rotation.value}deg`);
-  const currentGlowOpacity = useDerivedValue(() => glowOpacity.value);
   const currentGlowScale = useDerivedValue(() => interpolate(glowOpacity.value, [0, 1], [0.8, 1.2]));
 
-  // Animated styles
+  // Animated styles - use shared values directly (safe in worklet context)
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { scale: currentScale.value },
+        { scale: scale.value },
         { rotate: currentRotation.value },
       ],
     };
@@ -55,7 +53,7 @@ export function AnimatedMoodButton({
 
   const glowStyle = useAnimatedStyle(() => {
     return {
-      opacity: currentGlowOpacity.value,
+      opacity: glowOpacity.value,
       transform: [
         { scale: currentGlowScale.value },
       ],

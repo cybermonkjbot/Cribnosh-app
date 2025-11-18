@@ -36,12 +36,6 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
   const barsProgress = useSharedValue(0);
   const averageLineProgress = useSharedValue(0);
 
-  // Derived values for safe access
-  const currentCardOpacity = useDerivedValue(() => cardOpacity.value);
-  const currentCardScale = useDerivedValue(() => cardScale.value);
-  const currentCardTranslateY = useDerivedValue(() => cardTranslateY.value);
-  const currentAverageLineProgress = useDerivedValue(() => averageLineProgress.value);
-
   // State for JSX access
   const [barsProgressState, setBarsProgressState] = useState(0);
   const [averageLineProgressState, setAverageLineProgressState] = useState(0);
@@ -53,12 +47,12 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
     runOnJS(setAverageLineProgressState)(averageLineProgress.value);
   }, [averageLineProgress]);
 
-  // Animated styles
+  // Animated styles - use shared values directly (safe in worklet context)
   const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: currentCardOpacity.value,
+    opacity: cardOpacity.value,
     transform: [
-      { scale: currentCardScale.value },
-      { translateY: currentCardTranslateY.value }
+      { scale: cardScale.value },
+      { translateY: cardTranslateY.value }
     ],
   }));
 

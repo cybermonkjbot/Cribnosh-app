@@ -1,6 +1,7 @@
 import { mutation } from '../_generated/server';
 import { v } from 'convex/values';
 import { requireAuth, isAdmin, isStaff } from '../utils/auth';
+import { api } from '../_generated/api';
 
 export const create = mutation({
   args: {
@@ -200,6 +201,21 @@ export const createReviewWithChefRatingUpdate = mutation({
       } catch (error) {
         console.error('Failed to update chef rating:', error);
         // Continue - review is created, rating update can be retried
+      }
+    }
+
+    // Award NOSH Points (15 points for review written) - only for order reviews
+    if (args.order_id) {
+      try {
+        await ctx.runMutation(api.mutations.noshPoints.addPoints, {
+          userId: args.user_id,
+          points: 15,
+          reason: 'Review written',
+          orderId: args.order_id,
+        });
+      } catch (error) {
+        console.error('Failed to award NOSH points:', error);
+        // Continue - review is created, points award can be retried
       }
     }
 

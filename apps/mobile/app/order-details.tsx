@@ -122,7 +122,7 @@ export default function OrderDetailsScreen() {
       review: review.trim() || undefined,
     });
     if (result) {
-      Alert.alert("Success", "Thank you for your rating!");
+      Alert.alert("Success", "Thank you for your rating! You earned 15 NOSH Points");
       setShowRatingModal(false);
       setRating(0);
       setReview("");

@@ -309,3 +309,109 @@ export function rankMealsByRelevance<T extends { rating?: number; reviewCount?: 
   );
 }
 
+/**
+ * Search meals using vector similarity search
+ * This function performs semantic search on meal embeddings
+ */
+export async function searchMealsBySemanticQuery(
+  ctx: QueryCtx,
+  queryEmbedding: number[],
+  limit: number = 10,
+  userId?: Id<'users'>
+): Promise<unknown[]> {
+  // Perform vector search
+  const results = await ctx.db
+    .vectorSearch('meals', 'by_embedding', {
+      vector: queryEmbedding,
+      limit: limit * 2, // Get more results for filtering
+    });
+
+  // Get full meal documents
+  const mealIds = results.map((result) => result._id);
+  const meals = await Promise.all(
+    mealIds.map((id) => ctx.db.get(id))
+  );
+
+  // Filter out nulls and get chef/review data
+  const mealsWithData = await Promise.all(
+    meals
+      .filter((meal): meal is MealDoc => meal !== null)
+      .map(async (meal: MealDoc) => {
+        const chef = await ctx.db.get(meal.chefId);
+        const reviews = await ctx.db
+          .query('reviews')
+          .filter((q) => q.eq(q.field('mealId'), meal._id))
+          .collect();
+
+        return {
+          ...meal,
+          chef: chef ? {
+            _id: (chef as ChefDoc)._id,
+            name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
+            bio: (chef as ChefDoc).bio,
+            specialties: (chef as ChefDoc).specialties || [],
+            rating: (chef as ChefDoc).rating || 0,
+            profileImage: (chef as ChefDoc).profileImage
+          } : {
+            _id: meal.chefId,
+            name: `Chef ${meal.chefId}`,
+            bio: '',
+            specialties: [],
+            rating: 0,
+            profileImage: null
+          },
+          reviewCount: reviews.length,
+          averageRating: reviews.length > 0 
+            ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
+            : meal.rating || 0,
+          // Include similarity score from vector search
+          similarityScore: results.find((r) => r._id === meal._id)?.score || 0,
+        };
+      })
+  );
+
+  // Apply user preference filtering if userId provided
+  if (userId) {
+    const preferences = await getUserPreferences(ctx, userId);
+    const tasteProfile = await extractTasteProfile(ctx, userId);
+    const scoredMeals = await filterAndRankMealsByPreferencesWithTasteProfile(
+      ctx,
+      mealsWithData,
+      preferences,
+      tasteProfile,
+      (meal: MealDoc & { similarityScore?: number; averageRating?: number; reviewCount?: number }) => 
+        (meal.similarityScore || 0) * 100 + // Weight vector similarity heavily
+        (meal.averageRating || 0) * 10 + 
+        (meal.reviewCount || 0)
+    );
+    return scoredMeals.slice(0, limit).map((s: { meal: unknown }) => s.meal);
+  }
+
+  // Sort by similarity score and return top results
+  return mealsWithData
+    .sort((a: { similarityScore?: number }, b: { similarityScore?: number }) => 
+      (b.similarityScore || 0) - (a.similarityScore || 0)
+    )
+    .slice(0, limit);
+}
+
+/**
+ * Get personalized meals with optional vector search enhancement
+ * If a searchQuery is provided, uses vector search; otherwise falls back to preference-based
+ */
+export async function getPersonalizedMealsWithVectorSearch(
+  ctx: DatabaseCtx,
+  userId: Id<'users'>,
+  searchQuery?: string,
+  queryEmbedding?: number[],
+  limit: number = 20
+): Promise<unknown[]> {
+  // If we have a search query and embedding, use vector search
+  if (searchQuery && queryEmbedding && queryEmbedding.length > 0) {
+    return await searchMealsBySemanticQuery(ctx as QueryCtx, queryEmbedding, limit, userId);
+  }
+
+  // Otherwise, fall back to regular personalized meals
+  return await getPersonalizedMeals(ctx, userId, limit);
+}
+

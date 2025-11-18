@@ -300,7 +300,7 @@ export const useOrders = () => {
           return null;
         }
 
-        showToast('Thank you for your rating!', 'success');
+        showToast('Thank you for your rating! You earned 15 NOSH Points', 'success');
         return result;
       } catch (error: any) {
         const errorMessage = error?.message || 'Failed to submit rating';

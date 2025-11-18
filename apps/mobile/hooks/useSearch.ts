@@ -8,7 +8,7 @@ export const useSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * General search across dishes, chefs, kitchens
+   * General search across dishes, chefs, kitchens, videos, recipes, stories, and livestreams
    */
   const search = useCallback(
     async (data: {
@@ -19,6 +19,7 @@ export const useSearch = () => {
         priceRange?: { min?: number; max?: number };
         dietary?: string[];
       };
+      contentTypes?: Array<"dishes" | "chefs" | "videos" | "recipes" | "stories" | "livestreams">;
       limit?: number;
     }) => {
       try {
@@ -31,6 +32,7 @@ export const useSearch = () => {
           query: data.query,
           location: data.location,
           filters: data.filters,
+          contentTypes: data.contentTypes,
           limit: data.limit,
         });
 

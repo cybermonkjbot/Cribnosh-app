@@ -196,9 +196,9 @@ export default function PaymentScreen({
       if (selectedPaymentMethod?.iconType === 'apple') {
         // Apple Pay flow
         if (!presentApplePay || !isApplePaySupported) {
-          // Check if we're on a simulator
-          const isSimulator = Device?.isDevice === false || 
-                               (Platform.OS === 'ios' && Constants.executionEnvironment !== 'storeClient' && !Device?.isDevice);
+          // Check if we're on a simulator - only if Device is available and explicitly says it's not a device
+          // We need to be careful: Device?.isDevice === false means simulator, but undefined means we don't know
+          const isSimulator = Device && Device.isDevice === false;
           
           if (isSimulator) {
             throw new Error(

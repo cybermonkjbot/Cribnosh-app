@@ -32,8 +32,37 @@ export const listMessages = query({
   },
 });
 
+// Get messages by channel (alias for listMessages, for backward compatibility)
+export const getMessagesByChannel = query({
+  args: {
+    channelId: v.id('channels'),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 10;
+    const messages = await ctx.db
+      .query('aiMessages')
+      .withIndex('by_channel', (q) => q.eq('channelId', args.channelId))
+      .order('desc')
+      .take(limit);
+
+    // Reverse to get chronological order (oldest first)
+    return messages.reverse();
+  },
+});
+
 // Get a specific channel
 export const getChannel = query({
+  args: {
+    channelId: v.id('channels'),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.channelId);
+  },
+});
+
+// Get channel by ID (alias for getChannel, for backward compatibility)
+export const getChannelById = query({
   args: {
     channelId: v.id('channels'),
   },

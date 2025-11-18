@@ -58,16 +58,15 @@ function SpinnerItem({ item, index, isSpinning, isSelected }: SpinnerItemProps) 
     }
   }, [isSpinning, isSelected]);
 
-  // Derived values for safe access
-  const currentTranslateY = useDerivedValue(() => translateY.value);
-  const currentScale = useDerivedValue(() => scale.value);
+  // Derived value for rotation string interpolation
   const currentRotation = useDerivedValue(() => `${rotation.value}deg`);
 
+  // Animated style - use shared values directly (safe in worklet context)
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateY: currentTranslateY.value },
-        { scale: currentScale.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
         { rotate: currentRotation.value },
       ],
     };
@@ -161,12 +160,10 @@ export function GachaMealSpinner({
     };
   }, [isSpinning, items, onComplete]);
 
-  // Derived values for safe access
-  const currentContainerScale = useDerivedValue(() => containerScale.value);
-
+  // Animated style - use shared value directly (safe in worklet context)
   const containerStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: currentContainerScale.value }],
+      transform: [{ scale: containerScale.value }],
       opacity: containerOpacity.value,
     };
   });

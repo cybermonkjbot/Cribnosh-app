@@ -105,8 +105,8 @@ export default function CitiesManagementPage() {
 
   // Fetch data
   const sessionToken = useSessionToken();
-  const cities = useQuery(api.queries.cities.getCities, sessionToken ? { sessionToken } : "skip");
-  const countries = useQuery(api.queries.cities.getCountries, sessionToken ? { sessionToken } : "skip");
+  const cities = useQuery(api.queries.cities.getCities, sessionToken ? {} : "skip");
+  const countries = useQuery(api.queries.cities.getCountries, sessionToken ? {} : "skip");
 
   // Mutations
   const createCity = useMutation(api.mutations.cities.createCity);

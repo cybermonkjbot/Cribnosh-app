@@ -478,6 +478,55 @@ export const list = query({
   },
 });
 
+// Admin: Get all live sessions with enriched data (chef info)
+export const getAllForAdmin = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.email) {
+      throw new Error("Not authenticated");
+    }
+
+    // Check if user is admin
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email!))
+      .first();
+
+    if (!user || !Array.isArray(user.roles) || !user.roles.includes("admin")) {
+      throw new Error("Not authorized");
+    }
+
+    const limit = args.limit || 1000;
+    const sessions = await ctx.db
+      .query("liveSessions")
+      .order("desc")
+      .take(limit);
+
+    // Enrich with chef data
+    const sessionsWithChef = await Promise.all(
+      sessions.map(async (session) => {
+        const chef = await ctx.db.get(session.chef_id);
+        return {
+          ...session,
+          chef: chef ? {
+            _id: chef._id,
+            name: chef.name || `Chef ${chef._id}`,
+            bio: chef.bio,
+            specialties: chef.specialties || [],
+            rating: chef.rating || 0,
+            profileImage: chef.profileImage,
+          } : null,
+        };
+      })
+    );
+
+    return sessionsWithChef;
+  },
+});
+
 // Get live comments for a session
 export const getLiveComments = query({
   args: {

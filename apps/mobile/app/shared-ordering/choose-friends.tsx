@@ -1,15 +1,15 @@
 import { Mascot } from '@/components/Mascot';
+import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import ScatteredGroupMembers from '@/components/ui/ScatteredGroupMembers';
 import { SharedOrderingHeader } from '@/components/ui/SharedOrderingHeader';
-import { Avatar } from '@/components/ui/Avatar';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { useRouter } from 'expo-router';
 import { SearchIcon, X } from 'lucide-react-native';
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -59,7 +59,9 @@ export default function ChooseFriends() {
     if (isAuthenticated) {
       fetchConnections();
     }
-  }, [isAuthenticated, fetchConnections]);
+    // Only depend on isAuthenticated, not fetchConnections to avoid dependency loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Transform API connections to friend format
   const friends = useMemo(() => {
@@ -78,7 +80,7 @@ export default function ChooseFriends() {
     if (selectedFriends.length === 0) return [];
     
     return selectedFriends.map((friendId, index) => {
-      const friend = friends.find(f => f.id === friendId);
+      const friend = friends.find((f: { id: string }) => f.id === friendId);
       if (!friend) return null;
       
       return {
@@ -147,7 +149,7 @@ export default function ChooseFriends() {
     setRefreshKey(prev => prev + 1);
   };
 
-  const filteredFriends = friends.filter(friend =>
+  const filteredFriends = friends.filter((friend: { name: string; id: string }) =>
     friend.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -227,7 +229,7 @@ export default function ChooseFriends() {
                 <Text style={styles.searchResultsTitle}>
                   Found {filteredFriends.length} people
                 </Text>
-                {filteredFriends.map((friend) => (
+                {filteredFriends.map((friend: { id: string; name: string; avatar?: string }) => (
                   <View key={friend.id} style={styles.userResultItem}>
                     <TouchableOpacity 
                       style={styles.userResultContent}
@@ -283,7 +285,7 @@ export default function ChooseFriends() {
               </View>
             ) : (
               <View style={{ marginTop: 20 }}>
-                {friends.map((friend) => (
+                {friends.map((friend: { id: string; name: string; avatar?: string }) => (
                   <View key={friend.id} style={styles.userResultItem}>
                     <TouchableOpacity 
                       style={styles.userResultContent}

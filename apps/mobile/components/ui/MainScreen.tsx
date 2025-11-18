@@ -1,17 +1,20 @@
 import { useAppContext } from "@/utils/AppContext";
+import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
+import * as Updates from "expo-updates";
 import { Filter, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Modal, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
-  runOnJS,
-  useAnimatedReaction,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming
+    runOnJS,
+    runOnUI,
+    useAnimatedReaction,
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming
 } from "react-native-reanimated";
 import { useAuthContext } from "../../contexts/AuthContext";
 
@@ -21,15 +24,16 @@ import { useUserLocation } from "../../hooks/useUserLocation";
 import { getDirections } from "../../utils/appleMapsService";
 import { UserBehavior } from "../../utils/hiddenSections";
 import {
-  OrderingContext,
-  getCurrentTimeContext,
-  getOrderedSectionsWithHidden,
+    OrderingContext,
+    getCurrentTimeContext,
+    getOrderedSectionsWithHidden,
 } from "../../utils/sectionOrdering";
 import { NotLoggedInNotice } from "../NotLoggedInNotice";
 import { AIChatDrawer } from "./AIChatDrawer";
 import { BottomSearchDrawer } from "./BottomSearchDrawer";
 import { CameraModalScreen } from "./CameraModalScreen";
 import { CategoryFilterChips } from "./CategoryFilterChips";
+import { NoshHeavenFilterChips, NoshHeavenCategory } from "./NoshHeavenFilterChips";
 import { CategoryFullDrawer } from "./CategoryFullDrawer";
 import { CuisineCategoriesSection } from "./CuisineCategoriesSection";
 import { CuisinesSection } from "./CuisinesSection";
@@ -55,6 +59,7 @@ import { PopularMealsDrawer } from "./PopularMealsDrawer";
 import { PopularMealsSection } from "./PopularMealsSection";
 import { RecommendedMealsSection } from "./RecommendedMealsSection";
 import { SessionExpiredModal } from "./SessionExpiredModal";
+import { UpdateAvailableModal } from "./UpdateAvailableModal";
 // import { ShakeDebugger } from './ShakeDebugger';
 import { CuisineCategoriesDrawer } from "./CuisineCategoriesDrawer";
 import { CuisineCategoryDrawer } from "./CuisineCategoryDrawer";
@@ -82,10 +87,10 @@ import { Chef, Cuisine } from "@/types/customer";
 
 // Global toast imports
 import {
-  showError,
-  showInfo,
-  showSuccess,
-  showWarning,
+    showError,
+    showInfo,
+    showSuccess,
+    showWarning,
 } from "../../lib/GlobalToastManager";
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
 
@@ -697,10 +702,14 @@ export function MainScreen() {
   // Camera modal state management
   const [isCameraVisible, setIsCameraVisible] = useState(false);
   const [isNoshHeavenPostModalVisible, setIsNoshHeavenPostModalVisible] = useState(false);
+  const [noshHeavenCategory, setNoshHeavenCategory] = useState<NoshHeavenCategory>('all');
   
   // Map state management
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [mapChefs, setMapChefs] = useState<ChefMarker[]>([]);
+
+  // EAS Update state management
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   // Periodic token expiration check
   useEffect(() => {
@@ -963,11 +972,15 @@ export function MainScreen() {
   // This prevents both headers from being non-interactive on initial render
   useEffect(() => {
     // Initialize to non-sticky state if not already set
-    if (isHeaderStickyShared.value !== false) {
-      isHeaderStickyShared.value = false;
-      updateHeaderStickyState(false);
-    }
-  }, [isHeaderStickyShared, updateHeaderStickyState]);
+    // Use runOnUI to safely access shared value
+    runOnUI(() => {
+      'worklet';
+      if (isHeaderStickyShared.value !== false) {
+        isHeaderStickyShared.value = false;
+        runOnJS(updateHeaderStickyState)(false);
+      }
+    })();
+  }, [updateHeaderStickyState]);
 
   // Cleanup effect to reset states and prevent crashes
   useEffect(() => {
@@ -1142,7 +1155,7 @@ export function MainScreen() {
       emotion: "excited" as const,
     },
     {
-      text: "Preparing your fresh experience...",
+      text: "Preparing experience...",
       emotion: "hungry" as const,
     },
     {
@@ -1168,6 +1181,32 @@ export function MainScreen() {
       // Refetch API data when authenticated
       if (isAuthenticated) {
         await Promise.all([refetchCuisines(), refetchChefs(), refetchMeals(), refetchCart()]);
+      }
+
+      // Sometimes check for EAS updates (25% chance)
+      // Only check in production builds, not in development
+      const shouldCheckForUpdates = Math.random() < 0.25;
+      if (shouldCheckForUpdates && !__DEV__) {
+        try {
+          // Check if Updates is available (not available in Expo Go)
+          if (Updates.isEnabled && Updates.checkForUpdateAsync) {
+            const update = await Updates.checkForUpdateAsync();
+            
+            if (update.isAvailable) {
+              // Fetch the update in the background
+              await Updates.fetchUpdateAsync();
+              
+              // Show modal to user asking if they want to update
+              setShowUpdateModal(true);
+            }
+          }
+        } catch (updateError) {
+          // Silently handle update errors - app should continue to work
+          // This is expected in Expo Go where Updates is not available
+          if (Constants.executionEnvironment !== 'storeClient') {
+            console.warn('Error checking for updates:', updateError);
+          }
+        }
       }
 
       // Simulate the loading process with artificial delay
@@ -1885,7 +1924,14 @@ export function MainScreen() {
             categoryChipsStyle,
           ]}
         >
-          <CategoryFilterChips />
+          {activeHeaderTab === "for-you" ? (
+            <CategoryFilterChips />
+          ) : (
+            <NoshHeavenFilterChips
+              activeCategory={noshHeavenCategory}
+              onCategoryChange={setNoshHeavenCategory}
+            />
+          )}
         </Animated.View>
 
         {activeHeaderTab === "for-you" ? (
@@ -2164,7 +2210,8 @@ export function MainScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             onScroll={scrollHandler}
-            isAuthenticated={isAuthenticated}
+            activeCategory={noshHeavenCategory}
+            onCategoryChange={setNoshHeavenCategory}
           />
         )}
 
@@ -2340,6 +2387,25 @@ export function MainScreen() {
       <SessionExpiredModal
         isVisible={isSessionExpired}
         onRelogin={handleSessionExpiredRelogin}
+      />
+
+      {/* EAS Update Available Modal */}
+      <UpdateAvailableModal
+        isVisible={showUpdateModal}
+        onUpdate={async () => {
+          try {
+            setShowUpdateModal(false);
+            await Updates.reloadAsync();
+          } catch (reloadError) {
+            // If reload fails, the update will be applied on next app launch
+            console.warn('Update reload failed, will apply on next launch:', reloadError);
+            setShowUpdateModal(false);
+          }
+        }}
+        onLater={() => {
+          setShowUpdateModal(false);
+          // Update will be applied on next app launch
+        }}
       />
 
       {/* Add KitchenMainScreen Modal */}

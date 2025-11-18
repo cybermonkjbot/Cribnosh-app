@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { PlayfulTooltip } from '../PlayfulTooltip';
 
 interface NutritionalInfoProps {
   calories: number;
@@ -18,6 +19,11 @@ export function NutritionalInfo({
   carbs, 
   dietMessage 
 }: NutritionalInfoProps) {
+  const [showCaloriesTooltip, setShowCaloriesTooltip] = useState(false);
+  const [showFatTooltip, setShowFatTooltip] = useState(false);
+  const [showProteinTooltip, setShowProteinTooltip] = useState(false);
+  const [showCarbsTooltip, setShowCarbsTooltip] = useState(false);
+
   return (
     <View style={styles.container}>
       {/* Main Heading */}
@@ -32,20 +38,26 @@ export function NutritionalInfo({
       <View style={styles.nutritionSection}>
         {/* Left Side - Calories */}
         <View style={styles.caloriesSection}>
-          <View style={styles.caloriesContainer}>
+          <Pressable 
+            style={styles.caloriesContainer}
+            onPress={() => setShowCaloriesTooltip(true)}
+          >
             <View style={styles.caloriesIcon}>
               <Ionicons name="flame" size={8.17} color="#FF6B35" />
             </View>
             <Text style={styles.caloriesLabel}>Calories</Text>
             <Text style={styles.caloriesValue}>{calories.toLocaleString()}</Text>
-          </View>
+          </Pressable>
         </View>
         
         {/* Right Side - Macronutrients with Circular Progress Rings */}
         <View style={styles.macrosSection}>
           {/* Fat Circle */}
           <View style={styles.macroItem}>
-            <View style={styles.circleContainer}>
+            <Pressable 
+              style={styles.circleContainer}
+              onPress={() => setShowFatTooltip(true)}
+            >
               {/* Background Circle */}
               <View style={styles.circleBackground} />
               {/* Progress Circle - Fat (30% filled) */}
@@ -55,12 +67,15 @@ export function NutritionalInfo({
                 <Text style={styles.macroValue}>{fat}</Text>
                 <Text style={styles.macroLabel}>Fat</Text>
               </View>
-            </View>
+            </Pressable>
           </View>
           
           {/* Protein Circle */}
           <View style={styles.macroItem}>
-            <View style={styles.circleContainer}>
+            <Pressable 
+              style={styles.circleContainer}
+              onPress={() => setShowProteinTooltip(true)}
+            >
               {/* Background Circle */}
               <View style={styles.circleBackground} />
               {/* Progress Circle - Protein (70% filled) */}
@@ -70,12 +85,15 @@ export function NutritionalInfo({
                 <Text style={styles.macroValue}>{protein}</Text>
                 <Text style={styles.macroLabel}>Pro</Text>
               </View>
-            </View>
+            </Pressable>
           </View>
           
           {/* Carbs Circle */}
           <View style={styles.macroItem}>
-            <View style={styles.circleContainer}>
+            <Pressable 
+              style={styles.circleContainer}
+              onPress={() => setShowCarbsTooltip(true)}
+            >
               {/* Background Circle */}
               <View style={styles.circleBackground} />
               {/* Progress Circle - Carbs (60% filled) */}
@@ -85,10 +103,36 @@ export function NutritionalInfo({
                 <Text style={styles.macroValue}>{carbs}</Text>
                 <Text style={styles.macroLabel}>Carb</Text>
               </View>
-            </View>
+            </Pressable>
           </View>
         </View>
       </View>
+
+      {/* Tooltips */}
+      <PlayfulTooltip
+        isVisible={showCaloriesTooltip}
+        message={`This meal adds ${calories.toLocaleString()} calories to your daily intake`}
+        onClose={() => setShowCaloriesTooltip(false)}
+        mascotEmotion="happy"
+      />
+      <PlayfulTooltip
+        isVisible={showFatTooltip}
+        message={`This meal adds ${fat} of fat to your daily intake`}
+        onClose={() => setShowFatTooltip(false)}
+        mascotEmotion="happy"
+      />
+      <PlayfulTooltip
+        isVisible={showProteinTooltip}
+        message={`This meal adds ${protein} of protein to your daily intake`}
+        onClose={() => setShowProteinTooltip(false)}
+        mascotEmotion="happy"
+      />
+      <PlayfulTooltip
+        isVisible={showCarbsTooltip}
+        message={`This meal adds ${carbs} of carbs to your daily intake`}
+        onClose={() => setShowCarbsTooltip(false)}
+        mascotEmotion="happy"
+      />
       
       {/* Diet Message */}
       <View style={styles.dietMessageContainer}>

@@ -33,41 +33,28 @@ const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
   const scoreScale = useSharedValue(0.8);
   const tagsProgress = useSharedValue(0);
 
-  // Derived values for safe access in JSX
-  const currentTagsProgress = useDerivedValue(() => tagsProgress.value);
-  const currentTagsOpacity = useDerivedValue(() => currentTagsProgress.value);
-  const currentTagsTranslateX = useDerivedValue(() => (1 - currentTagsProgress.value) * 20);
-
   // State for JSX access
   const [tagsOpacityState, setTagsOpacityState] = useState(0);
   const [tagsTranslateXState, setTagsTranslateXState] = useState(0);
 
-  // Update state from derived values
+  // Update state from shared values
   useDerivedValue(() => {
-    runOnJS(setTagsOpacityState)(currentTagsOpacity.value);
-  });
+    const progress = tagsProgress.value;
+    runOnJS(setTagsOpacityState)(progress);
+    runOnJS(setTagsTranslateXState)((1 - progress) * 20);
+  }, [tagsProgress]);
 
-  useDerivedValue(() => {
-    runOnJS(setTagsTranslateXState)(currentTagsTranslateX.value);
-  });
-
-  // Derived values for safe access
-  const currentCardOpacity = useDerivedValue(() => cardOpacity.value);
-  const currentCardScale = useDerivedValue(() => cardScale.value);
-  const currentCardTranslateY = useDerivedValue(() => cardTranslateY.value);
-  const currentScoreScale = useDerivedValue(() => scoreScale.value);
-
+  // Animated styles - use shared values directly (safe in worklet context)
   const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: currentCardOpacity.value,
+    opacity: cardOpacity.value,
     transform: [
-      { scale: currentCardScale.value },
-      { translateY: currentCardTranslateY.value }
+      { scale: cardScale.value },
+      { translateY: cardTranslateY.value }
     ],
   }));
 
-
   const scoreAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: currentScoreScale.value }],
+    transform: [{ scale: scoreScale.value }],
   }));
 
 

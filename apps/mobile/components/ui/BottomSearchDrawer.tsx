@@ -1,54 +1,55 @@
 import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { AlertCircle, Play, Search } from "lucide-react-native";
+import { AlertCircle, BookOpen, Clock, Play, Search, Video } from "lucide-react-native";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {
-  AccessibilityInfo,
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  Platform,
-  ScrollView,
-  Share,
-  Text,
-  TouchableOpacity,
-  View
+    AccessibilityInfo,
+    ActivityIndicator,
+    Dimensions,
+    Platform,
+    ScrollView,
+    Share,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  Extrapolate,
-  interpolate,
-  runOnJS,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withSpring,
+    Extrapolate,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import {
-  HeaderMessage,
-  getCompleteDynamicHeader,
+    HeaderMessage,
+    getCompleteDynamicHeader,
 } from "../../utils/dynamicHeaderMessages";
 import {
-  SearchPrompt,
-  getDynamicSearchPrompt,
+    SearchPrompt,
+    getDynamicSearchPrompt,
 } from "../../utils/dynamicSearchPrompts";
 import SearchArea from "../SearchArea";
 import {
-  DynamicContent,
-  DynamicSearchContent
+    DynamicContent,
+    DynamicSearchContent
 } from "./BottomSearchDrawer/DynamicSearchContent";
 import { FilterDropdown, FilterOption } from "./BottomSearchDrawer/FilterDropdown";
 import { SearchSuggestionsSkeleton } from "./BottomSearchDrawer/SearchSkeletons";
 import { Button } from "./Button";
+import { RecipeDetailScreen } from "./RecipeDetailScreen";
 
 // Customer API imports
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -57,10 +58,9 @@ import { useOffers } from "@/hooks/useOffers";
 import { useSearch } from "@/hooks/useSearch";
 import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import {
-  SearchChef,
-  SearchResult,
-  SearchSuggestion,
-  TrendingItem,
+    SearchChef,
+    SearchSuggestion,
+    TrendingItem
 } from "@/types/customer";
 import { api } from "../../../../packages/convex/_generated/api";
 
@@ -75,6 +75,12 @@ import { BlurEffect } from "@/utils/blurEffects";
 
 // Modal/Sheet context
 import { useModalSheet } from "@/context/ModalSheetContext";
+
+// AI Chat components
+import { AISearchResponseOverlay, ProductCardProps } from "./AISearchResponseOverlay";
+import { InlineAILoader } from "./InlineAILoader";
+import { sendChatMessage, transformDishToProductCard } from "@/utils/aiChatUtils";
+import { AIChatDrawer } from "./AIChatDrawer";
 
 // Error boundary for icon components
 const SafeIcon = ({
@@ -405,6 +411,9 @@ export function BottomSearchDrawer({
   // Profile state for preferences
   const [profileData, setProfileData] = useState<any>(null);
   
+  // Recipe detail modal state
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
+  
   // Fetch profile data to extract preferences
   useEffect(() => {
     const fetchProfile = async () => {
@@ -466,19 +475,150 @@ export function BottomSearchDrawer({
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeSearchFilter, setActiveSearchFilter] = useState("all");
 
+  // AI response state
+  const [isAIModeActive, setIsAIModeActive] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiResponse, setAiResponse] = useState<{
+    message: string;
+    products: ProductCardProps[];
+    dishIds: string[];
+  } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiConversationId, setAiConversationId] = useState<string | undefined>();
+  const [isAIChatDrawerVisible, setIsAIChatDrawerVisible] = useState(false);
+
   // Location hook
   const locationState = useUserLocation();
   const userLocation = locationState.location;
 
+  // Track search query when AI mode is activated
+  const searchQueryWhenAIActivatedRef = useRef<string>('');
+
+  // Handle AI sparkles button press
+  const handleAISparklesPress = useCallback(async () => {
+    // Capture current search query before activating AI mode
+    searchQueryWhenAIActivatedRef.current = searchQuery;
+    setIsAIModeActive(true);
+    setIsGeneratingAI(true);
+    setAiError(null);
+    setAiResponse(null);
+
+    try {
+      // Use search query or default prompt
+      const message = searchQuery.trim() || "What are some great meal recommendations for me?";
+      
+      // Prepare location data
+      const location = userLocation ? {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+      } : undefined;
+
+      // Send chat message
+      const response = await sendChatMessage({
+        message,
+        conversation_id: aiConversationId,
+        location,
+      });
+
+      // Transform recommendations to product cards
+      const products: ProductCardProps[] = response.data.recommendations
+        ? response.data.recommendations.map(transformDishToProductCard)
+        : [];
+
+      // Store dish IDs for cart operations
+      const dishIds = response.data.recommendations?.map(r => r.dish_id) || [];
+
+      setAiResponse({
+        message: response.data.message,
+        products,
+        dishIds,
+      });
+      setAiConversationId(response.data.conversation_id);
+    } catch (err: any) {
+      // Use the error message from the server (which is user-friendly)
+      const errorMessage = err?.message || 'Failed to get AI response';
+      setAiError(errorMessage);
+      // Show toast notification for better visibility
+      showError('AI Unavailable', errorMessage);
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  }, [searchQuery, userLocation, aiConversationId]);
+
+  // Handle continue conversation - open full chat drawer
+  const handleContinueConversation = useCallback(() => {
+    setIsAIChatDrawerVisible(true);
+    setIsAIModeActive(false);
+  }, []);
+
+  // Handle close AI chat drawer
+  const handleCloseAIChatDrawer = useCallback(() => {
+    setIsAIChatDrawerVisible(false);
+  }, []);
+
+  // Handle retry AI request
+  const handleRetryAI = useCallback(() => {
+    handleAISparklesPress();
+  }, [handleAISparklesPress]);
+
+  // Dismiss AI mode when user starts typing (search query changes from when AI was activated)
+  useEffect(() => {
+    if (isAIModeActive && searchQuery !== searchQueryWhenAIActivatedRef.current) {
+      setIsAIModeActive(false);
+      setAiResponse(null);
+      setAiError(null);
+    }
+  }, [searchQuery, isAIModeActive]);
+
+  // Reset AI state when search drawer goes back to resting/collapsed state
+  useEffect(() => {
+    if (!isSearchFocused && snapPointState === SNAP_POINTS.COLLAPSED) {
+      setIsAIModeActive(false);
+      setAiResponse(null);
+      setAiError(null);
+      setIsGeneratingAI(false);
+      searchQueryWhenAIActivatedRef.current = '';
+    }
+  }, [isSearchFocused, snapPointState]);
+
   // Natural language detection helper
   const isNaturalLanguageQuery = useCallback((query: string): boolean => {
     const naturalLanguagePatterns = [
+      // Existing patterns
       /^show me /i,
       /^i want /i,
       /^i need /i,
       /^find me /i,
       /what.*for (lunch|dinner|breakfast|meal)/i,
       /(lunch|dinner|breakfast|meal) options/i,
+      // Questions
+      /^(what|where|when|how|which|who).*\?/i,
+      /^(what|where|when|how|which|who) (should|can|could|would|do|is|are|was|were)/i,
+      // Intent phrases
+      /^(i'm|i am|im) (craving|feeling|looking|wanting|needing)/i,
+      /^(i'm|i am|im) in the mood for/i,
+      /^i feel like/i,
+      /^looking for/i,
+      /^want something/i,
+      /^need something/i,
+      /^craving/i,
+      /^in the mood/i,
+      // Time-based
+      /for (breakfast|lunch|dinner|brunch|snack|dessert)/i,
+      /(breakfast|lunch|dinner|brunch|snack|dessert) (ideas|options|suggestions|recommendations)/i,
+      /(morning|afternoon|evening|night|midnight) (food|meal|snack)/i,
+      // Mood-based
+      /when i'm (sad|happy|tired|stressed|excited|bored|hungry|thirsty)/i,
+      /comfort food/i,
+      /something (light|heavy|sweet|spicy|healthy|indulgent|quick|fancy|casual)/i,
+      /(feeling|mood) (for|like)/i,
+      // Other natural language patterns
+      /^give me/i,
+      /^suggest/i,
+      /^recommend/i,
+      /^help me find/i,
+      /^what (do|should|can) (you|i) (recommend|suggest|order|get)/i,
+      /^something (to|for) (eat|order|get)/i,
     ];
     return naturalLanguagePatterns.some((pattern) => pattern.test(query));
   }, []);
@@ -520,18 +660,18 @@ export function BottomSearchDrawer({
       case "extrahot":
         return { spice_level: "extra-hot" };
       
-      // Price Ranges
+      // Price Ranges (prices are stored in pence, so multiply by 100)
       case "budget":
       case "under15":
-        return { priceRange: { max: 15 } };
+        return { priceRange: { max: 1500 } }; // £15.00 = 1500 pence
       case "under10":
-        return { priceRange: { max: 10 } };
+        return { priceRange: { max: 1000 } }; // £10.00 = 1000 pence
       case "under20":
-        return { priceRange: { max: 20 } };
+        return { priceRange: { max: 2000 } }; // £20.00 = 2000 pence
       case "under25":
-        return { priceRange: { max: 25 } };
+        return { priceRange: { max: 2500 } }; // £25.00 = 2500 pence
       case "premium":
-        return { priceRange: { min: 25 } };
+        return { priceRange: { min: 2500 } }; // £25.00 = 2500 pence
       
       // Delivery Time
       case "fast":
@@ -582,6 +722,12 @@ export function BottomSearchDrawer({
   const [isErrorSearch, setIsErrorSearch] = useState(false);
   const [searchError, setSearchError] = useState<any>(null);
   
+  // Natural language search (emotions) state
+  const [emotionsSearchData, setEmotionsSearchData] = useState<any>(null);
+  const [isLoadingEmotionsSearch, setIsLoadingEmotionsSearch] = useState(false);
+  const [isErrorEmotionsSearch, setIsErrorEmotionsSearch] = useState(false);
+  const [emotionsSearchError, setEmotionsSearchError] = useState<any>(null);
+  
   // Filtered meals for display when filter is active
   const [filteredMealsData, setFilteredMealsData] = useState<any>(null);
   const [isLoadingFilteredMeals, setIsLoadingFilteredMeals] = useState(false);
@@ -592,13 +738,37 @@ export function BottomSearchDrawer({
     return getDietaryFiltersFromActiveFilter(activeFilter);
   }, [activeFilter]);
   
-  // Load search results
+  // Load unified search results (all content types)
   useEffect(() => {
+    // Determine which content types to search based on active filter
+    let contentTypes: ("dishes" | "chefs" | "videos" | "recipes" | "stories" | "livestreams")[] | undefined;
+    
+    if (activeSearchFilter === "all") {
+      // Search all content types
+      contentTypes = undefined;
+    } else if (activeSearchFilter === "meals") {
+      contentTypes = ["dishes"];
+    } else if (activeSearchFilter === "chefs" || activeSearchFilter === "kitchens") {
+      contentTypes = ["chefs"];
+    } else if (activeSearchFilter === "videos") {
+      contentTypes = ["videos"];
+    } else if (activeSearchFilter === "recipes") {
+      contentTypes = ["recipes"];
+    } else if (activeSearchFilter === "stories") {
+      contentTypes = ["stories"];
+    } else if (activeSearchFilter === "livestreams") {
+      contentTypes = ["livestreams"];
+    } else {
+      // For other filters (cuisines, ingredients, dietary), search dishes by default
+      contentTypes = ["dishes"];
+    }
+    
+    // Only search if we have a query and it's not a natural language query
+    // Natural language queries use the emotions search (requires authentication)
+    // Regular search works for both authenticated and unauthenticated users
     if (
       searchQuery.trim() &&
-      isAuthenticated &&
-      !isNaturalLanguageQuery(searchQuery) &&
-      activeSearchFilter !== "chefs"
+      !isNaturalLanguageQuery(searchQuery)
     ) {
       const loadSearch = async () => {
         try {
@@ -615,9 +785,13 @@ export function BottomSearchDrawer({
             filters: dietaryFilters ? {
               dietary: dietaryFilters.dietary_restrictions,
             } : undefined,
+            contentTypes: contentTypes,
           });
           if (result.success) {
+            console.log('[BottomSearchDrawer] Unified search results:', result.data);
             setSearchData({ success: true, data: result.data });
+          } else {
+            console.log('[BottomSearchDrawer] Search failed:', result);
           }
         } catch (error: any) {
           setIsErrorSearch(true);
@@ -633,18 +807,17 @@ export function BottomSearchDrawer({
         setSearchData(null);
       }
     }
-  }, [searchQuery, isAuthenticated, activeSearchFilter, maxSuggestions, userLocation, dietaryFilters, searchAction]);
+  }, [searchQuery, isAuthenticated, activeSearchFilter, maxSuggestions, userLocation, dietaryFilters, searchAction, isNaturalLanguageQuery]);
 
   // Track which filters have resulted in empty state (cache to avoid reloading)
   // Use ref to avoid dependency issues
   const emptyFiltersCacheRef = useRef<Set<string>>(new Set());
 
-  // Load filtered meals when a filter is active (not "all" and no search query)
+  // Load filtered content when a filter is active (not "all" and no search query)
   useEffect(() => {
     if (
       activeFilter !== "all" &&
-      !searchQuery.trim() &&
-      isAuthenticated
+      !searchQuery.trim()
     ) {
       // Check if we already know this filter is empty - if so, set empty data immediately without loading
       if (emptyFiltersCacheRef.current.has(activeFilter)) {
@@ -659,8 +832,24 @@ export function BottomSearchDrawer({
       setIsLoadingFilteredMeals(true);
       setIsErrorFilteredMeals(false);
       
-      const loadFilteredMeals = async () => {
+      const loadFilteredContent = async () => {
         try {
+          // Determine content type based on active filter
+          let contentTypes: ("dishes" | "chefs" | "videos" | "recipes" | "stories" | "livestreams")[] = ["dishes"];
+          
+          if (activeFilter === "videos") {
+            contentTypes = ["videos"];
+          } else if (activeFilter === "recipes") {
+            contentTypes = ["recipes"];
+          } else if (activeFilter === "stories") {
+            contentTypes = ["stories"];
+          } else if (activeFilter === "livestreams") {
+            contentTypes = ["livestreams"];
+          } else if (activeFilter === "chefs" || activeFilter === "kitchens") {
+            contentTypes = ["chefs"];
+          }
+          // For dietary, price, cuisine, and other filters, default to dishes
+          
           // Build filters based on active filter
           const filters: any = {};
           if (dietaryFilters?.dietary_restrictions) {
@@ -673,7 +862,7 @@ export function BottomSearchDrawer({
             filters.cuisine = dietaryFilters.cuisine;
           }
           
-          // Use a generic search query that will match meals with the filter
+          // Use a generic search query that will match content with the filter
           // For cuisine filters, use the cuisine name as query
           let searchQuery = "";
           if (activeFilter === "spicy" || activeFilter === "hot" || activeFilter === "extrahot") {
@@ -684,35 +873,58 @@ export function BottomSearchDrawer({
           
           const result = await searchAction({
             query: searchQuery,
-            limit: 6, // Show 6 meals
+            limit: 20, // Show more results for videos/recipes/stories
             location: userLocation ? {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
             } : undefined,
             filters: Object.keys(filters).length > 0 ? filters : undefined,
+            contentTypes: contentTypes,
           });
           if (result.success) {
-            // Extract meals from search results
-            const meals = result.data?.meals || result.data?.results?.filter((r: any) => r.type === "meals").map((r: any) => r.result) || [];
-            setFilteredMealsData({ success: true, data: { meals } });
+            // Extract content from unified search results based on content type
+            let content: any[] = [];
+            if (contentTypes.includes("videos")) {
+              content = result.data?.videos || [];
+            } else if (contentTypes.includes("recipes")) {
+              content = result.data?.recipes || [];
+            } else if (contentTypes.includes("stories")) {
+              content = result.data?.stories || [];
+            } else if (contentTypes.includes("livestreams")) {
+              content = result.data?.livestreams || [];
+            } else if (contentTypes.includes("chefs")) {
+              content = result.data?.chefs || [];
+            } else {
+              // Default to dishes/meals
+              content = result.data?.dishes || [];
+            }
+            
+            // Store as meals for backward compatibility (the component expects meals structure)
+            setFilteredMealsData({ success: true, data: { meals: content } });
             
             // Track if this filter resulted in empty state
-            if (meals.length === 0) {
+            if (content.length === 0) {
               emptyFiltersCacheRef.current.add(activeFilter);
             } else {
-              // Remove from cache if we now have meals (in case data changed)
+              // Remove from cache if we now have content (in case data changed)
               emptyFiltersCacheRef.current.delete(activeFilter);
             }
+          } else {
+            // If search failed, set empty results
+            setFilteredMealsData({ success: true, data: { meals: [] } });
+            emptyFiltersCacheRef.current.add(activeFilter);
           }
         } catch (error: any) {
+          console.error("Error loading filtered content:", error);
           setIsErrorFilteredMeals(true);
+          setFilteredMealsData({ success: false, data: { meals: [] } });
           // Remove from cache on error
           emptyFiltersCacheRef.current.delete(activeFilter);
         } finally {
           setIsLoadingFilteredMeals(false);
         }
       };
-      loadFilteredMeals();
+      loadFilteredContent();
     } else {
       // Clear data when filter is "all" or search query exists
       // Only update if needed to prevent unnecessary re-renders
@@ -724,53 +936,25 @@ export function BottomSearchDrawer({
       // Don't clear the cache - keep it for when user switches back
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFilter, isAuthenticated, dietaryFilters, userLocation, searchAction, searchQuery]);
+  }, [activeFilter, dietaryFilters, userLocation, searchAction, searchQuery]);
 
   // Emotions search mutation for natural language queries
   const [isSearchingWithEmotions, setIsSearchingWithEmotions] = useState(false);
   
-  // Chef search using useChefs hook
+  // Chef search using useChefs hook (kept for backward compatibility, but unified search will be primary)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { searchChefs } = useChefs();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [chefSearchData, setChefSearchData] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoadingChefSearch, setIsLoadingChefSearch] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isErrorChefSearch, setIsErrorChefSearch] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [chefSearchError, setChefSearchError] = useState<any>(null);
 
-  // Load chef search results
-  useEffect(() => {
-    if (
-      searchQuery.trim() &&
-      isAuthenticated &&
-      activeSearchFilter === "chefs"
-    ) {
-      const loadChefSearch = async () => {
-        try {
-          setIsLoadingChefSearch(true);
-          setIsErrorChefSearch(false);
-          setChefSearchError(null);
-          const result = await searchChefs({
-            query: searchQuery,
-            limit: maxSuggestions,
-            location: userLocation ? {
-              latitude: userLocation.latitude,
-              longitude: userLocation.longitude,
-            } : undefined,
-          });
-          if (result.success) {
-            setChefSearchData({ success: true, data: result.data });
-          }
-        } catch (error: any) {
-          setIsErrorChefSearch(true);
-          setChefSearchError(error);
-        } finally {
-          setIsLoadingChefSearch(false);
-        }
-      };
-      loadChefSearch();
-    } else {
-      setChefSearchData(null);
-    }
-  }, [searchQuery, isAuthenticated, activeSearchFilter, maxSuggestions, userLocation, searchChefs]);
+  // Chef search is now handled by unified search, but keeping this for backward compatibility
+  // when chef-specific search is needed separately
 
   // Search suggestions hook
   const { getSearchSuggestions } = useSearch();
@@ -780,7 +964,7 @@ export function BottomSearchDrawer({
   const [suggestionsError, setSuggestionsError] = useState<any>(null);
   
   useEffect(() => {
-    if (searchQuery.trim() && isAuthenticated) {
+    if (searchQuery.trim()) {
       const loadSuggestions = async () => {
         try {
           setIsLoadingSuggestionsQuery(true);
@@ -801,7 +985,7 @@ export function BottomSearchDrawer({
     } else {
       setSuggestionsData(null);
     }
-  }, [searchQuery, isAuthenticated, maxSuggestions, getSearchSuggestions]);
+  }, [searchQuery, maxSuggestions, getSearchSuggestions]);
 
   // Trending search hook
   const { getTrendingSearches } = useSearch();
@@ -811,28 +995,29 @@ export function BottomSearchDrawer({
   const [trendingError, setTrendingError] = useState<any>(null);
   
   useEffect(() => {
-    if (isAuthenticated) {
-      const loadTrending = async () => {
-        try {
-          setIsLoadingTrendingQuery(true);
-          setIsErrorTrendingQuery(false);
-          setTrendingError(null);
-          const result = await getTrendingSearches({ limit: maxSuggestions });
-          if (result.success) {
-            setTrendingData({ success: true, data: { trending: result.data.trending } });
-          }
-        } catch (error: any) {
-          setIsErrorTrendingQuery(true);
-          setTrendingError(error);
-        } finally {
-          setIsLoadingTrendingQuery(false);
+    const loadTrending = async () => {
+      try {
+        setIsLoadingTrendingQuery(true);
+        setIsErrorTrendingQuery(false);
+        setTrendingError(null);
+        const result = await getTrendingSearches({ limit: maxSuggestions });
+        if (result.success) {
+          setTrendingData({ success: true, data: { trending: result.data.trending || [] } });
+        } else {
+          setTrendingData({ success: false, data: { trending: [] } });
         }
-      };
-      loadTrending();
-    } else {
-      setTrendingData(null);
-    }
-  }, [isAuthenticated, maxSuggestions, getTrendingSearches]);
+      } catch (error: any) {
+        setIsErrorTrendingQuery(true);
+        setTrendingError(error);
+        setTrendingData({ success: false, data: { trending: [] } });
+      } finally {
+        setIsLoadingTrendingQuery(false);
+      }
+    };
+    
+    // Load trending data regardless of authentication status
+    loadTrending();
+  }, [maxSuggestions, getTrendingSearches]);
 
   // Active offers using useOffers hook
   const { getActiveOffers } = useOffers();
@@ -862,7 +1047,7 @@ export function BottomSearchDrawer({
   }, [isAuthenticated, getActiveOffers]);
 
   // Combined loading state for all search operations
-  const isSearching = isLoading || isSearchingWithEmotions || isLoadingSearch || isLoadingChefSearch || isLoadingSuggestionsQuery || isLoadingTrendingQuery;
+  const isSearching = isLoading || isSearchingWithEmotions || isLoadingSearch || isLoadingChefSearch || isLoadingSuggestionsQuery || isLoadingTrendingQuery || isLoadingEmotionsSearch;
 
   // Removed unused bottomSheetRef
   const handleNavigate = (): void => {
@@ -1330,6 +1515,10 @@ export function BottomSearchDrawer({
     { id: "all", label: "All", color: "#ef4444" },
     { id: "meals", label: "Meals", color: "#ff6b35" },
     { id: "kitchens", label: "Kitchens", color: "#4f46e5" },
+    { id: "videos", label: "Videos", color: "#ef4444" },
+    { id: "recipes", label: "Recipes", color: "#8b5cf6" },
+    { id: "stories", label: "Stories", color: "#10b981" },
+    { id: "livestreams", label: "Live", color: "#f59e0b" },
     { id: "cuisines", label: "Cuisines", color: "#059669" },
     { id: "ingredients", label: "Ingredients", color: "#dc2626" },
     { id: "dietary", label: "Dietary", color: "#7c3aed" },
@@ -1704,11 +1893,9 @@ export function BottomSearchDrawer({
   // Handle search area tap when collapsed - should focus input
   const handleSearchTap = useCallback(() => {
     if (snapPointState === SNAP_POINTS.COLLAPSED) {
+      setIsSearchFocused(true);
       animateToSnapPoint(SNAP_POINTS.EXPANDED);
-      // Focus the search input after expansion
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 300); // Wait for animation to complete
+      // Focus will be handled by useEffect when isSearchFocused becomes true
     }
   }, [animateToSnapPoint, snapPointState]);
 
@@ -1726,33 +1913,207 @@ export function BottomSearchDrawer({
     setSearchQuery("");
   }, []);
 
+  // Focus input when entering search focus mode (only once)
+  const hasFocusedRef = useRef(false);
+  const shouldMaintainFocusRef = useRef(false);
+  
+  useEffect(() => {
+    if (isSearchFocused && !hasFocusedRef.current) {
+      // Small delay to ensure the input is mounted
+      const timer = setTimeout(() => {
+        searchInputRef.current?.focus();
+        hasFocusedRef.current = true;
+        shouldMaintainFocusRef.current = true;
+      }, 100);
+      return () => clearTimeout(timer);
+    } else if (!isSearchFocused) {
+      // Reset the ref when leaving search focus mode
+      hasFocusedRef.current = false;
+      shouldMaintainFocusRef.current = false;
+    }
+  }, [isSearchFocused]);
+
+  // Maintain focus when search results return (prevent keyboard dismissal)
+  useEffect(() => {
+    if (shouldMaintainFocusRef.current && isSearchFocused && !isLoadingSearch && searchInputRef.current) {
+      // When search results return, refocus the input to prevent keyboard dismissal
+      const timer = setTimeout(() => {
+        if (searchInputRef.current && isSearchFocused) {
+          searchInputRef.current.focus();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingSearch, isSearchFocused]);
+
   // Transform API search results to component format
-  const transformSearchResults = useCallback((apiResults: SearchResult[]) => {
-    return apiResults.map((result) => ({
-      id: result.id,
-      text: result.title,
-      category:
-        result.type === "chef"
-          ? "Kitchen"
-          : result.type === "dish"
-            ? "Meal"
-            : "Cuisine",
-      kitchen: result.type === "chef" ? result.title : "Various Kitchens",
-      time: result.delivery_time || "25 min",
-      distance: result.distance || "1.0 mi",
-      type:
-        result.type === "chef"
-          ? "kitchens"
-          : result.type === "dish"
-            ? "meals"
-            : "cuisines",
-      rating: result.rating ? result.rating.toString() : "4.5",
-      relevance_score: result.relevance_score,
-      originalResult: result, // Preserve original result data for navigation
-    }));
+  // Handles unified search response: { dishes: [], chefs: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
+  const transformSearchResults = useCallback((apiResults: any) => {
+    console.log('[BottomSearchDrawer] Transforming unified search results:', apiResults);
+    
+    // Handle unified API format: { dishes: [], chefs: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
+    if (apiResults && typeof apiResults === 'object' && !Array.isArray(apiResults)) {
+      const results: any[] = [];
+      
+      // Transform dishes/meals
+      if (Array.isArray(apiResults.dishes)) {
+        console.log('[BottomSearchDrawer] Found', apiResults.dishes.length, 'dishes');
+        apiResults.dishes.forEach((dish: any) => {
+          results.push({
+            id: dish._id || dish.id || `dish-${Math.random()}`,
+            text: dish.name || dish.title || "Unknown Meal",
+            category: dish.cuisine || dish.category || "Meal",
+            kitchen: dish.chef?.name || dish.kitchen_name || dish.kitchen || "Various Kitchens",
+            time: dish.delivery_time || dish.prep_time || "25 min",
+            distance: dish.distance || "Nearby",
+            type: "meals",
+            rating: dish.rating ? dish.rating.toString() : "4.5",
+            price: dish.price,
+            image_url: dish.image_url || dish.image,
+            originalResult: dish,
+          });
+        });
+      }
+      
+      // Transform chefs
+      if (Array.isArray(apiResults.chefs)) {
+        console.log('[BottomSearchDrawer] Found', apiResults.chefs.length, 'chefs');
+        apiResults.chefs.forEach((chef: any) => {
+          results.push({
+            id: chef._id || chef.id || `chef-${Math.random()}`,
+            text: chef.name || "Unknown Kitchen",
+            category: chef.cuisines?.join(", ") || chef.cuisine || "Kitchen",
+            kitchen: chef.name || "Unknown Kitchen",
+            time: "25 min",
+            distance: chef.distance || chef.location || "Nearby",
+            type: "kitchens",
+            rating: chef.rating ? chef.rating.toString() : "4.5",
+            originalResult: chef,
+          });
+        });
+      }
+      
+      // Transform videos
+      if (Array.isArray(apiResults.videos)) {
+        console.log('[BottomSearchDrawer] Found', apiResults.videos.length, 'videos');
+        apiResults.videos.forEach((video: any) => {
+          results.push({
+            id: video._id || video.id || `video-${Math.random()}`,
+            text: video.title || "Untitled Video",
+            category: video.cuisine || video.difficulty || "Video",
+            kitchen: video.creator?.name || "Food Creator",
+            time: video.duration ? `${Math.floor(video.duration / 60)} min` : "Video",
+            distance: "Nosh Heaven",
+            type: "videos",
+            rating: video.viewsCount ? (video.viewsCount / 1000).toFixed(1) + "k views" : "0 views",
+            thumbnailUrl: video.thumbnailUrl,
+            videoUrl: video.videoUrl,
+            likesCount: video.likesCount || 0,
+            commentsCount: video.commentsCount || 0,
+            originalResult: video,
+          });
+        });
+      }
+      
+      // Transform recipes
+      if (Array.isArray(apiResults.recipes)) {
+        console.log('[BottomSearchDrawer] Found', apiResults.recipes.length, 'recipes');
+        apiResults.recipes.forEach((recipe: any) => {
+          results.push({
+            id: recipe._id || recipe.id || `recipe-${Math.random()}`,
+            text: recipe.title || "Untitled Recipe",
+            category: recipe.cuisine || recipe.difficulty || "Recipe",
+            kitchen: recipe.author || "Chef",
+            time: recipe.prepTime && recipe.cookTime ? `${recipe.prepTime + recipe.cookTime} min` : "Recipe",
+            distance: "Recipes",
+            type: "recipes",
+            rating: recipe.servings ? `${recipe.servings} servings` : "Recipe",
+            image: recipe.featuredImage || recipe.image,
+            prepTime: recipe.prepTime,
+            cookTime: recipe.cookTime,
+            servings: recipe.servings,
+            originalResult: recipe,
+          });
+        });
+      }
+      
+      // Transform stories
+      if (Array.isArray(apiResults.stories)) {
+        console.log('[BottomSearchDrawer] Found', apiResults.stories.length, 'stories');
+        apiResults.stories.forEach((story: any) => {
+          results.push({
+            id: story._id || story.id || `story-${Math.random()}`,
+            text: story.title || "Untitled Story",
+            category: story.categories?.join(", ") || "Story",
+            kitchen: story.author?.name || story.author || "Writer",
+            time: story.publishedAt ? new Date(story.publishedAt).toLocaleDateString() : "Story",
+            distance: "Blog",
+            type: "stories",
+            rating: story.viewCount ? `${story.viewCount} views` : "0 views",
+            image: story.coverImage || story.featuredImage || story.image,
+            excerpt: story.excerpt || story.description,
+            tags: story.tags || [],
+            originalResult: story,
+          });
+        });
+      }
+      
+      // Transform livestreams
+      if (Array.isArray(apiResults.livestreams)) {
+        console.log('[BottomSearchDrawer] Found', apiResults.livestreams.length, 'livestreams');
+        apiResults.livestreams.forEach((stream: any) => {
+          results.push({
+            id: stream.id || stream._id || `livestream-${Math.random()}`,
+            text: stream.title || stream.kitchen_name || "Live Stream",
+            category: "Live",
+            kitchen: stream.chefName || stream.kitchen_name || "Chef",
+            time: stream.isLive ? "LIVE NOW" : "Ended",
+            distance: "Live Streaming",
+            type: "livestreams",
+            rating: stream.viewerCount ? `${stream.viewerCount} viewers` : "0 viewers",
+            thumbnailUrl: stream.thumbnailUrl,
+            isLive: stream.isLive,
+            startedAt: stream.startedAt,
+            originalResult: stream,
+          });
+        });
+      }
+      
+      console.log('[BottomSearchDrawer] Transformed', results.length, 'total results from unified search');
+      return results;
+    }
+    
+    // Handle old format: SearchResult[] array (for backward compatibility)
+    if (Array.isArray(apiResults)) {
+      return apiResults.map((result: any) => ({
+        id: result.id || result._id,
+        text: result.title || result.name,
+        category:
+          result.type === "chef"
+            ? "Kitchen"
+            : result.type === "dish"
+              ? "Meal"
+              : "Cuisine",
+        kitchen: result.type === "chef" ? (result.title || result.name) : (result.kitchen || "Various Kitchens"),
+        time: result.delivery_time || "25 min",
+        distance: result.distance || "1.0 mi",
+        type:
+          result.type === "chef"
+            ? "kitchens"
+            : result.type === "dish"
+              ? "meals"
+              : "cuisines",
+        rating: result.rating ? result.rating.toString() : "4.5",
+        relevance_score: result.relevance_score,
+        originalResult: result,
+      }));
+    }
+    
+    return [];
   }, []);
 
-  // Transform chef search results to component format
+  // Transform chef search results to component format (kept for backward compatibility, but unified search handles this now)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const transformChefResults = useCallback((chefs: SearchChef[]) => {
     return chefs.map((chef) => ({
       id: chef._id,
@@ -1819,47 +2180,92 @@ export function BottomSearchDrawer({
     }));
   }, []);
 
+  // Transform natural language search results (emotions) to component format
+  const transformEmotionsSearchResults = useCallback((chefs: any[], dishes: any[]) => {
+    const results: any[] = [];
+    
+    // Transform chefs
+    if (Array.isArray(chefs)) {
+      chefs.forEach((chef) => {
+        results.push({
+          id: chef._id || chef.id || `chef-${Math.random()}`,
+          text: chef.name || chef.kitchen_name || "Unknown Kitchen",
+          category: chef.cuisines?.join(", ") || chef.cuisine || "Various",
+          kitchen: chef.name || chef.kitchen_name || "Unknown Kitchen",
+          time: chef.delivery_time || "25 min",
+          distance: chef.distance || chef.location || "Nearby",
+          type: "kitchens",
+          rating: chef.rating ? chef.rating.toString() : "4.5",
+          relevance_score: chef.relevance_score || 0.5,
+          originalResult: chef,
+        });
+      });
+    }
+    
+    // Transform dishes/meals
+    if (Array.isArray(dishes)) {
+      dishes.forEach((dish) => {
+        results.push({
+          id: dish._id || dish.id || `dish-${Math.random()}`,
+          text: dish.name || dish.title || "Unknown Meal",
+          category: dish.cuisine || dish.category || "Meal",
+          kitchen: dish.chef?.name || dish.kitchen_name || dish.kitchen || "Various Kitchens",
+          time: dish.delivery_time || "25 min",
+          distance: dish.distance || "Nearby",
+          type: "meals",
+          rating: dish.rating ? dish.rating.toString() : "4.5",
+          relevance_score: dish.relevance_score || 0.5,
+          originalResult: dish,
+        });
+      });
+    }
+    
+    return results;
+  }, []);
+
+  // Individual transform functions removed - now integrated into transformSearchResults
+
   // Determine which loading state to use based on active query
   const isLoadingSuggestions = searchQuery.trim() 
-    ? (activeSearchFilter === "chefs" ? isLoadingChefSearch : isLoadingSuggestionsQuery || isLoadingSearch)
+    ? (isNaturalLanguageQuery(searchQuery) && isLoadingEmotionsSearch
+        ? isLoadingEmotionsSearch
+        : isLoadingSuggestionsQuery || isLoadingSearch)
     : isLoadingTrendingQuery;
 
   // Determine which error state to use based on active query
   const isErrorSuggestions = searchQuery.trim()
-    ? (activeSearchFilter === "chefs" ? isErrorChefSearch : isErrorSuggestionsQuery || isErrorSearch)
+    ? (isNaturalLanguageQuery(searchQuery) && isErrorEmotionsSearch
+        ? isErrorEmotionsSearch
+        : isErrorSuggestionsQuery || isErrorSearch)
     : isErrorTrendingQuery;
 
-  // Process search suggestions from multiple API sources - no fallback to mock data
+  // Process search suggestions from unified API - no fallback to mock data
   const searchSuggestions = useMemo(() => {
-    // If not authenticated, return empty array (no mock data)
-    if (!isAuthenticated) {
-      return [];
-    }
-
     let apiResults: any[] = [];
 
-    // Priority 1: Use search suggestions API if available
+    // Priority 1: Use natural language search results (emotions) if available
     if (
-      suggestionsData?.success &&
-      suggestionsData.data?.suggestions &&
-      searchQuery.trim()
+      emotionsSearchData?.success &&
+      emotionsSearchData.data &&
+      searchQuery.trim() &&
+      isNaturalLanguageQuery(searchQuery)
     ) {
-      apiResults = transformSuggestionResults(suggestionsData.data.suggestions);
+      const { chefs = [], dishes = [] } = emotionsSearchData.data;
+      apiResults = transformEmotionsSearchResults(chefs, dishes);
     }
-    // Priority 2: Use chef search API if searching for chefs specifically
-    else if (
-      chefSearchData?.success &&
-      chefSearchData.data?.chefs &&
-      activeSearchFilter === "chefs" &&
-      searchQuery.trim()
-    ) {
-      apiResults = transformChefResults(chefSearchData.data.chefs);
+    // Priority 2: Use unified search results (handles all content types)
+    else if (searchQuery.trim()) {
+      // Use unified search results (handles all content types including chefs)
+      if (searchData?.success && searchData.data) {
+        // searchData.data is now { dishes: [], chefs: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
+        apiResults = transformSearchResults(searchData.data);
+      }
+      // Fallback to search suggestions API if unified search not available
+      else if (suggestionsData?.success && suggestionsData.data?.suggestions) {
+        apiResults = transformSuggestionResults(suggestionsData.data.suggestions);
+      }
     }
-    // Priority 3: Use general search API if available
-    else if (searchData?.success && searchData.data && searchQuery.trim()) {
-      apiResults = transformSearchResults(searchData.data);
-    }
-    // Priority 4: Use trending search API if no query
+    // Priority 3: Use trending search API if no query
     else if (
       trendingData?.success &&
       trendingData.data?.trending &&
@@ -1872,16 +2278,15 @@ export function BottomSearchDrawer({
     return apiResults;
   }, [
     searchData,
-    chefSearchData,
     suggestionsData,
     trendingData,
-    isAuthenticated,
+    emotionsSearchData,
     searchQuery,
-    activeSearchFilter,
+    isNaturalLanguageQuery,
     transformSearchResults,
-    transformChefResults,
     transformSuggestionResults,
     transformTrendingResults,
+    transformEmotionsSearchResults,
   ]);
 
   // Filter suggestions based on active search filter with error handling
@@ -1890,7 +2295,21 @@ export function BottomSearchDrawer({
       const filtered = searchSuggestions.filter((suggestion) => {
         if (!suggestion || !suggestion.type) return false;
         if (activeSearchFilter === "all") return true;
-        return suggestion.type === activeSearchFilter;
+        
+        // Map filter IDs to suggestion types
+        const filterTypeMap: Record<string, string> = {
+          "meals": "meals",
+          "kitchens": "kitchens",
+          "chefs": "kitchens",
+          "videos": "videos",
+          "recipes": "recipes",
+          "stories": "stories",
+          "livestreams": "livestreams",
+          "cuisines": "cuisines",
+        };
+        
+        const expectedType = filterTypeMap[activeSearchFilter];
+        return expectedType ? suggestion.type === expectedType : false;
       });
 
       // Limit suggestions to prevent performance issues
@@ -1899,6 +2318,130 @@ export function BottomSearchDrawer({
       return [];
     }
   }, [searchSuggestions, activeSearchFilter, maxSuggestions]);
+
+  // Group results by type for section-based display (handles search, filtered, and trending data)
+  const groupedSearchResults = useMemo(() => {
+    const emptyGroups = {
+      dishes: [],
+      chefs: [],
+      videos: [],
+      recipes: [],
+      stories: [],
+      livestreams: [],
+    };
+
+    // Priority 1: Use search results if available and there's a query
+    if (searchQuery.trim() && searchData?.success && searchData.data) {
+      const data = searchData.data;
+      const groups: any = {
+        dishes: Array.isArray(data.dishes) ? data.dishes : [],
+        chefs: Array.isArray(data.chefs) ? data.chefs : [],
+        videos: Array.isArray(data.videos) ? data.videos : [],
+        recipes: Array.isArray(data.recipes) ? data.recipes : [],
+        stories: Array.isArray(data.stories) ? data.stories : [],
+        livestreams: Array.isArray(data.livestreams) ? data.livestreams : [],
+      };
+
+      // Filter by activeSearchFilter if not "all"
+      if (activeSearchFilter !== "all") {
+        const filterTypeMap: Record<string, keyof typeof groups> = {
+          "meals": "dishes",
+          "kitchens": "chefs",
+          "chefs": "chefs",
+          "videos": "videos",
+          "recipes": "recipes",
+          "stories": "stories",
+          "livestreams": "livestreams",
+        };
+
+        const targetType = filterTypeMap[activeSearchFilter];
+        if (targetType) {
+          return Object.keys(groups).reduce((acc, key) => {
+            acc[key as keyof typeof groups] = key === targetType ? groups[key] : [];
+            return acc;
+          }, {} as typeof groups);
+        }
+      }
+
+      return groups;
+    }
+
+    // Priority 2: Use filtered meals data when filter is active but no search query
+    if (!searchQuery.trim() && filteredMealsData?.success && filteredMealsData.data) {
+      const meals = Array.isArray(filteredMealsData.data.meals) ? filteredMealsData.data.meals : [];
+      return {
+        ...emptyGroups,
+        dishes: meals,
+      };
+    }
+
+    // Priority 3: Use trending data when no query and no filter (or filter is "all")
+    if (!searchQuery.trim() && (activeFilter === "all" || !activeFilter) && trendingData?.success && trendingData.data?.trending) {
+      const trending = trendingData.data.trending;
+      const groups: any = { ...emptyGroups };
+      
+      // Transform trending items into grouped format
+      if (Array.isArray(trending)) {
+        trending.forEach((item: any) => {
+          if (item.type === "dish" || item.type === "meal") {
+            groups.dishes.push({
+              _id: item.id,
+              id: item.id,
+              name: item.name,
+              cuisine: item.cuisine,
+              chef: item.chef_name ? { name: item.chef_name } : null,
+              kitchen: item.chef_name,
+              price: item.price || 0,
+              image_url: item.image,
+              rating: item.rating,
+              delivery_time: "25 min",
+            });
+          } else if (item.type === "chef" || item.type === "kitchen") {
+            groups.chefs.push({
+              _id: item.id,
+              id: item.id,
+              name: item.name || item.chef_name,
+              cuisines: item.cuisine ? [item.cuisine] : [],
+              cuisine: item.cuisine,
+              rating: item.rating,
+            });
+          }
+        });
+      }
+
+      // Filter by activeSearchFilter if not "all"
+      if (activeSearchFilter !== "all") {
+        const filterTypeMap: Record<string, keyof typeof groups> = {
+          "meals": "dishes",
+          "kitchens": "chefs",
+          "chefs": "chefs",
+          "videos": "videos",
+          "recipes": "recipes",
+          "stories": "stories",
+          "livestreams": "livestreams",
+        };
+
+        const targetType = filterTypeMap[activeSearchFilter];
+        if (targetType) {
+          return Object.keys(groups).reduce((acc, key) => {
+            acc[key as keyof typeof groups] = key === targetType ? groups[key] : [];
+            return acc;
+          }, {} as typeof groups);
+        }
+      }
+
+      return groups;
+    }
+
+    return emptyGroups;
+  }, [searchData, searchQuery, filteredMealsData, trendingData, activeFilter, activeSearchFilter]);
+
+  // Memoized onSubmitEditing handler to prevent re-renders
+  const handleSubmitEditing = useCallback(() => {
+    if (searchQuery.trim()) {
+      handleSearchSubmit(searchQuery);
+    }
+  }, [searchQuery, handleSearchSubmit]);
 
   // Safe search submission handler
   const handleSearchSubmit = useCallback(
@@ -1914,25 +2457,16 @@ export function BottomSearchDrawer({
 
         if (onSearchSubmit) {
           onSearchSubmit(trimmedQuery, activeSearchFilter);
-        } else if (isNaturalLanguage && isAuthenticated) {
+        }
+        
+        // Try natural language search if detected, with fallback to regular search
+        if (isNaturalLanguage && isAuthenticated) {
           // Use emotions engine for natural language queries
           try {
-            const searchParams = {
-              query: trimmedQuery,
-              searchQuery: trimmedQuery,
-              location: userLocation
-                ? {
-                    latitude: userLocation.latitude,
-                    longitude: userLocation.longitude,
-                  }
-                : undefined,
-              preferences: {
-                dietaryRestrictions: dietaryFilters?.dietary_restrictions,
-                spiceLevel: dietaryFilters?.spice_level,
-              },
-            };
-
-            setIsSearchingWithEmotions(true);
+            setIsLoadingEmotionsSearch(true);
+            setIsErrorEmotionsSearch(false);
+            setEmotionsSearchError(null);
+            
             const convex = getConvexClient();
             const sessionToken = await getSessionToken();
 
@@ -1947,9 +2481,9 @@ export function BottomSearchDrawer({
 
             const result = await (convex as any).action((api.actions as any).search.customerSearchWithEmotions, {
               sessionToken,
-              query: searchParams.query || '',
+              query: trimmedQuery,
               emotions: emotions ? (Array.isArray(emotions) ? emotions : [emotions]) : undefined,
-              location: searchParams.location ? `${searchParams.location.latitude},${searchParams.location.longitude}` : undefined,
+              location: userLocation ? `${userLocation.latitude},${userLocation.longitude}` : undefined,
               cuisine: cuisine,
               limit: 20,
             });
@@ -1958,19 +2492,63 @@ export function BottomSearchDrawer({
               throw new Error(result.error || 'Search failed');
             }
 
-            // Note: The search result is handled by the search hook/component
-            // This just triggers the search action
+            // Store natural language search results
+            setEmotionsSearchData({
+              success: true,
+              data: {
+                chefs: result.chefs || [],
+                dishes: result.dishes || [],
+              },
+            });
+            setIsLoadingEmotionsSearch(false);
             setIsSearchingWithEmotions(false);
           } catch (err: any) {
             console.error("Natural language search error:", err);
+            setIsLoadingEmotionsSearch(false);
+            setIsErrorEmotionsSearch(true);
+            setEmotionsSearchError(err);
             setIsSearchingWithEmotions(false);
+            
+            // Fallback to regular search if natural language search fails
+            let fallbackSucceeded = false;
+            try {
+              setIsLoadingSearch(true);
+              setIsErrorSearch(false);
+              setSearchError(null);
+              
+              const fallbackResult = await searchAction({
+                query: trimmedQuery,
+                limit: maxSuggestions,
+                location: userLocation ? {
+                  latitude: userLocation.latitude,
+                  longitude: userLocation.longitude,
+                } : undefined,
+                filters: dietaryFilters ? {
+                  dietary: dietaryFilters.dietary_restrictions,
+                } : undefined,
+              });
+              
+              if (fallbackResult.success) {
+                setSearchData({ success: true, data: fallbackResult.data });
+                fallbackSucceeded = true;
+              }
+            } catch (fallbackError: any) {
+              setIsErrorSearch(true);
+              setSearchError(fallbackError);
+              fallbackSucceeded = false;
+            } finally {
+              setIsLoadingSearch(false);
+            }
             
             // Handle network errors with deduplication
             const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
             if (isNetworkError(err)) {
               handleConvexError(err);
             } else {
-              showError("Search failed", err?.message || err?.data?.message || "Please try again");
+              // Don't show error if fallback succeeded
+              if (!fallbackSucceeded) {
+                showError("Search failed", err?.message || err?.data?.message || "Please try again");
+              }
             }
           }
         }
@@ -1996,6 +2574,9 @@ export function BottomSearchDrawer({
       isAuthenticated,
       userLocation,
       dietaryFilters,
+      profileData,
+      searchAction,
+      maxSuggestions,
     ]
   );
 
@@ -2013,12 +2594,18 @@ export function BottomSearchDrawer({
     if (trendingError && isAuthenticated) {
       showError("Trending search failed", "Please try again");
     }
+    if (emotionsSearchError && isAuthenticated && !isErrorSearch) {
+      // Only show error if fallback also failed (error already shown in handleSearchSubmit)
+      // This prevents duplicate error messages
+    }
   }, [
     searchError,
     chefSearchError,
     suggestionsError,
     trendingError,
+    emotionsSearchError,
     isAuthenticated,
+    isErrorSearch,
   ]);
 
   // Feature discovery logic - analyzes search query and matches to relevant features
@@ -2308,35 +2895,62 @@ export function BottomSearchDrawer({
   // Safe suggestion selection handler
   const handleSuggestionSelect = useCallback(
     (suggestion: any) => {
-      if (!suggestion || !suggestion.text) return;
+      if (!suggestion) return;
+      
+      // Allow suggestions without text if they have an id and type
+      if (!suggestion.text && !suggestion.id) return;
 
       try {
-        // If it's a meal item and onMealPress is provided, navigate to meal details
-        if (suggestion.type === "meals" && onMealPress && suggestion.originalResult) {
+        // Handle different content types - check type first
+        if (suggestion.type === "videos" && suggestion.originalResult) {
+          // Navigate to video detail or Nosh Heaven
+          router.push(`/nosh-heaven?video=${suggestion.id}` as any);
+          return;
+        } else if (suggestion.type === "recipes" && suggestion.originalResult) {
+          // Open recipe detail modal
+          setSelectedRecipeId(suggestion.id);
+          return;
+        } else if (suggestion.type === "stories" && suggestion.originalResult) {
+          // Navigate to story detail
+          router.push(`/stories/${suggestion.id}` as any);
+          return;
+        } else if (suggestion.type === "livestreams" && suggestion.originalResult) {
+          // Navigate to livestream
+          router.push(`/live/${suggestion.id}` as any);
+          return;
+        } else if (suggestion.type === "kitchens" && suggestion.originalResult) {
+          // Navigate to kitchen/chef detail
+          router.push(`/kitchens/${suggestion.id}` as any);
+          return;
+        } else if ((suggestion.type === "meals" || suggestion.type === "dishes" || !suggestion.type) && onMealPress && suggestion.originalResult) {
+          // Handle meals/dishes - default to meal press if no type specified
           const result = suggestion.originalResult;
           onMealPress({
-            id: result.id || result._id,
-            name: result.title || suggestion.text,
+            id: result.id || result._id || suggestion.id,
+            name: result.name || result.title || suggestion.text || "Meal",
             price: result.price || 0,
-            kitchen: result.kitchen || suggestion.kitchen || "Various Kitchens",
-            image: result.image_url ? { uri: result.image_url } : undefined,
-            _id: result.id || result._id,
+            kitchen: result.chef?.name || result.kitchen || suggestion.kitchen || "Various Kitchens",
+            image: result.image_url ? { uri: result.image_url } : result.image ? result.image : undefined,
+            _id: result.id || result._id || suggestion.id,
           });
           return;
         }
 
-        setSearchQuery(suggestion.text);
+        // Fallback: set search query if text is available
+        if (suggestion.text) {
+          setSearchQuery(suggestion.text);
+        }
 
+        // Call external handler if provided
         if (onSuggestionSelect) {
           onSuggestionSelect(suggestion);
-        } else {
-          // Suggestion selection would be implemented here
         }
-      } catch {
+      } catch (error) {
+        console.error("Error in handleSuggestionSelect:", error);
         setError("Failed to select suggestion. Please try again.");
       }
     },
-    [onSuggestionSelect, onMealPress]
+    [onSuggestionSelect, onMealPress, router, setSelectedRecipeId]
   );
 
   // Update header message when drawer expands
@@ -2628,6 +3242,8 @@ export function BottomSearchDrawer({
               }}
               showsVerticalScrollIndicator={false}
               scrollEnabled={scrollEnabledState}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
             >
               {/* Search Focus Mode - Only show when search is focused */}
               {isSearchFocused ? (
@@ -2657,18 +3273,48 @@ export function BottomSearchDrawer({
                   {/* Search Input */}
                   <View style={{ marginBottom: 16 }}>
                     <SearchArea
+                      key="search-focused-input"
                       ref={searchInputRef}
                       value={searchQuery}
                       onChange={setSearchQuery}
                       returnKeyType="search"
                       placeholder={searchPrompt.placeholder}
-                      onSubmitEditing={() => {
-                        handleSearchSubmit(searchQuery);
-                      }}
-                      autoFocus={true}
-                      editable={!isSearching}
+                      onSubmitEditing={handleSubmitEditing}
+                      editable={true}
+                      onSparklesPress={handleAISparklesPress}
+                      isAIModeActive={isAIModeActive}
                     />
                   </View>
+
+                  {/* AI Response Overlay */}
+                  {isAIModeActive && (
+                    <>
+                      {isGeneratingAI && <InlineAILoader isVisible={true} />}
+                      {aiResponse && !isGeneratingAI && (
+                        <AISearchResponseOverlay
+                          message={aiResponse.message}
+                          products={aiResponse.products}
+                          dishIds={aiResponse.dishIds}
+                          isLoading={false}
+                          error={null}
+                          onContinueConversation={handleContinueConversation}
+                          conversationId={aiConversationId}
+                        />
+                      )}
+                      {aiError && !isGeneratingAI && (
+                        <AISearchResponseOverlay
+                          message=""
+                          products={[]}
+                          dishIds={[]}
+                          isLoading={false}
+                          error={aiError}
+                          onRetry={handleRetryAI}
+                          onContinueConversation={handleContinueConversation}
+                          conversationId={aiConversationId}
+                        />
+                      )}
+                    </>
+                  )}
 
                   {/* Search Filter Chips */}
                   <View style={{ marginBottom: 16 }}>
@@ -2877,7 +3523,7 @@ export function BottomSearchDrawer({
                               opacity: 0.8,
                             }}
                           >
-                            {filteredSuggestions.length} RESULTS FOR &quot;
+                            {Object.values(groupedSearchResults).flat().length} RESULTS FOR &quot;
                             {searchQuery.toUpperCase()}&quot;
                           </Text>
                         ) : (
@@ -2896,7 +3542,348 @@ export function BottomSearchDrawer({
                           </Text>
                         )}
 
-                        {filteredSuggestions.length > 0 ? (
+                        {/* Show loading state when trending is loading and no search query */}
+                        {!searchQuery.trim() && isLoadingTrendingQuery && !trendingData && (
+                          <View style={{
+                            alignItems: "center",
+                            paddingVertical: 48,
+                            paddingHorizontal: 24,
+                          }}>
+                            <ActivityIndicator size="large" color="#ef4444" />
+                            <Text style={{
+                              color: "#6a6a6a",
+                              fontSize: 14,
+                              marginTop: 16,
+                              textAlign: "center",
+                            }}>
+                              Loading trending items...
+                            </Text>
+                          </View>
+                        )}
+
+                        {/* Render sections with cards instead of suggestion list */}
+                        {(searchQuery.trim() && searchData?.success) || (!searchQuery.trim() && (filteredMealsData?.success || (trendingData?.success && trendingData.data?.trending && Array.isArray(trendingData.data.trending) && trendingData.data.trending.length > 0))) ? (
+                          <>
+                            {/* Meals Section */}
+                            {groupedSearchResults.dishes.length > 0 && (
+                              <View style={{ marginBottom: 24 }}>
+                                <Text style={{
+                                  color: "#1a1a1a",
+                                  fontSize: 20,
+                                  fontWeight: "700",
+                                  marginBottom: 12,
+                                  paddingHorizontal: 12,
+                                }}>
+                                  Meals
+                                </Text>
+                                <ScrollView
+                                  horizontal
+                                  showsHorizontalScrollIndicator={false}
+                                  contentContainerStyle={{ paddingLeft: 12, gap: 12 }}
+                                >
+                                  {groupedSearchResults.dishes.map((meal: any) => (
+                                    <TouchableOpacity
+                                      key={meal._id || meal.id}
+                                      onPress={() => {
+                                        if (onMealPress) {
+                                          onMealPress({
+                                            id: meal._id || meal.id,
+                                            name: meal.name || "Meal",
+                                            price: meal.price || 0,
+                                            kitchen: meal.chef?.name || meal.kitchen || "Kitchen",
+                                            image: meal.image_url ? { uri: meal.image_url } : meal.image ? meal.image : undefined,
+                                            _id: meal._id || meal.id,
+                                          });
+                                        }
+                                      }}
+                                      style={{
+                                        width: 160,
+                                        backgroundColor: "#fff",
+                                        borderRadius: 16,
+                                        overflow: "hidden",
+                                        shadowColor: "#000",
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.1,
+                                        shadowRadius: 8,
+                                        elevation: 3,
+                                      }}
+                                      activeOpacity={0.8}
+                                    >
+                                      <View style={{ position: "relative", width: "100%", height: 120 }}>
+                                        <Image
+                                          source={meal.image_url ? { uri: meal.image_url } : require("../../assets/images/cribnoshpackaging.png")}
+                                          style={{ width: "100%", height: "100%" }}
+                                          contentFit="cover"
+                                        />
+                                      </View>
+                                      <View style={{ padding: 12 }}>
+                                        <Text
+                                          style={{
+                                            fontSize: 14,
+                                            fontWeight: "600",
+                                            color: "#1a1a1a",
+                                            marginBottom: 4,
+                                          }}
+                                          numberOfLines={1}
+                                        >
+                                          {meal.name}
+                                        </Text>
+                                        <Text
+                                          style={{
+                                            fontSize: 12,
+                                            color: "#666",
+                                            marginBottom: 8,
+                                          }}
+                                          numberOfLines={1}
+                                        >
+                                          {meal.chef?.name || meal.kitchen || "Kitchen"}
+                                        </Text>
+                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                                          <Text style={{
+                                            fontSize: 14,
+                                            fontWeight: "700",
+                                            color: "#ef4444",
+                                          }}>
+                                            £{typeof meal.price === "number" ? (meal.price / 100).toFixed(2) : meal.price || "0.00"}
+                                          </Text>
+                                          {meal.delivery_time && (
+                                            <Text style={{
+                                              fontSize: 10,
+                                              color: "#999",
+                                            }}>
+                                              {meal.delivery_time}
+                                            </Text>
+                                          )}
+                                        </View>
+                                      </View>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
+
+                            {/* Recipes Section */}
+                            {groupedSearchResults.recipes.length > 0 && (
+                              <View style={{ marginBottom: 24 }}>
+                                <Text style={{
+                                  color: "#1a1a1a",
+                                  fontSize: 20,
+                                  fontWeight: "700",
+                                  marginBottom: 12,
+                                  paddingHorizontal: 12,
+                                }}>
+                                  Recipes
+                                </Text>
+                                <ScrollView
+                                  horizontal
+                                  showsHorizontalScrollIndicator={false}
+                                  contentContainerStyle={{ paddingLeft: 12, gap: 12 }}
+                                >
+                                  {groupedSearchResults.recipes.map((recipe: any) => (
+                                    <TouchableOpacity
+                                      key={recipe._id || recipe.id}
+                                      onPress={() => setSelectedRecipeId(recipe._id || recipe.id)}
+                                      style={{
+                                        width: 160,
+                                        backgroundColor: "#fff",
+                                        borderRadius: 12,
+                                        overflow: "hidden",
+                                        shadowColor: "#FF3B30",
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.15,
+                                        shadowRadius: 6,
+                                        elevation: 3,
+                                        borderWidth: 1,
+                                        borderColor: "rgba(255, 59, 48, 0.1)",
+                                      }}
+                                      activeOpacity={0.8}
+                                    >
+                                      <View style={{ position: "relative", height: 140 }}>
+                                        {recipe.featuredImage ? (
+                                          <Image
+                                            source={{ uri: recipe.featuredImage }}
+                                            style={{ width: "100%", height: "100%" }}
+                                            contentFit="cover"
+                                          />
+                                        ) : (
+                                          <View style={{ width: "100%", height: "100%", backgroundColor: "#F3F4F6" }} />
+                                        )}
+                                        <View style={{
+                                          position: "absolute",
+                                          top: 8,
+                                          left: 8,
+                                          backgroundColor: "#fff",
+                                          borderRadius: 8,
+                                          padding: 6,
+                                        }}>
+                                          <BookOpen size={12} color="#FF3B30" />
+                                        </View>
+                                        <View style={{
+                                          position: "absolute",
+                                          bottom: 8,
+                                          right: 8,
+                                          flexDirection: "row",
+                                          alignItems: "center",
+                                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                                          borderRadius: 6,
+                                          paddingHorizontal: 6,
+                                          paddingVertical: 3,
+                                          gap: 4,
+                                        }}>
+                                          <Clock size={10} color="#6B7280" />
+                                          <Text style={{
+                                            fontSize: 10,
+                                            color: "#6B7280",
+                                            fontWeight: "600",
+                                          }}>
+                                            {((recipe.prepTime || 0) + (recipe.cookTime || 0))}min
+                                          </Text>
+                                        </View>
+                                      </View>
+                                      <View style={{ padding: 10 }}>
+                                        <Text
+                                          style={{
+                                            fontSize: 14,
+                                            fontWeight: "600",
+                                            color: "#111827",
+                                            marginBottom: 4,
+                                          }}
+                                          numberOfLines={2}
+                                        >
+                                          {recipe.title}
+                                        </Text>
+                                        <Text style={{
+                                          fontSize: 11,
+                                          color: "#6B7280",
+                                          fontWeight: "500",
+                                        }}>
+                                          {recipe.cuisine}
+                                        </Text>
+                                      </View>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
+
+                            {/* Videos Section */}
+                            {groupedSearchResults.videos.length > 0 && (
+                              <View style={{ marginBottom: 24 }}>
+                                <Text style={{
+                                  color: "#1a1a1a",
+                                  fontSize: 20,
+                                  fontWeight: "700",
+                                  marginBottom: 12,
+                                  paddingHorizontal: 12,
+                                }}>
+                                  Videos
+                                </Text>
+                                <ScrollView
+                                  horizontal
+                                  showsHorizontalScrollIndicator={false}
+                                  contentContainerStyle={{ paddingLeft: 12, gap: 12 }}
+                                >
+                                  {groupedSearchResults.videos.map((video: any) => (
+                                    <TouchableOpacity
+                                      key={video._id || video.id}
+                                      onPress={() => router.push(`/nosh-heaven?video=${video._id || video.id}` as any)}
+                                      style={{
+                                        width: 160,
+                                        backgroundColor: "#fff",
+                                        borderRadius: 12,
+                                        overflow: "hidden",
+                                        shadowColor: "#000",
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.1,
+                                        shadowRadius: 6,
+                                        elevation: 3,
+                                      }}
+                                      activeOpacity={0.8}
+                                    >
+                                      <View style={{ position: "relative", height: 140 }}>
+                                        {video.thumbnailUrl ? (
+                                          <Image
+                                            source={{ uri: video.thumbnailUrl }}
+                                            style={{ width: "100%", height: "100%" }}
+                                            contentFit="cover"
+                                          />
+                                        ) : (
+                                          <View style={{ width: "100%", height: "100%", backgroundColor: "#F3F4F6" }} />
+                                        )}
+                                        <View style={{
+                                          position: "absolute",
+                                          top: 8,
+                                          right: 8,
+                                          backgroundColor: "rgba(0, 0, 0, 0.7)",
+                                          borderRadius: 6,
+                                          padding: 4,
+                                        }}>
+                                          <Video size={14} color="#fff" fill="#fff" />
+                                        </View>
+                                      </View>
+                                      <View style={{ padding: 10 }}>
+                                        <Text
+                                          style={{
+                                            fontSize: 14,
+                                            fontWeight: "600",
+                                            color: "#111827",
+                                            marginBottom: 4,
+                                          }}
+                                          numberOfLines={2}
+                                        >
+                                          {video.title}
+                                        </Text>
+                                        <Text style={{
+                                          fontSize: 11,
+                                          color: "#6B7280",
+                                        }}>
+                                          {video.viewsCount ? `${(video.viewsCount / 1000).toFixed(1)}k views` : "0 views"}
+                                        </Text>
+                                      </View>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
+
+                            {/* Show empty state if no results */}
+                            {Object.values(groupedSearchResults).flat().length === 0 && (
+                              <View style={{
+                                alignItems: "center",
+                                paddingVertical: 48,
+                                paddingHorizontal: 24,
+                              }}>
+                                <View style={{
+                                  width: 64,
+                                  height: 64,
+                                  borderRadius: 32,
+                                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  marginBottom: 16,
+                                }}>
+                                  <Search size={32} color="#6B7280" />
+                                </View>
+                                <Text style={{
+                                  color: "#2a2a2a",
+                                  fontSize: 17,
+                                  fontWeight: "600",
+                                  marginBottom: 6,
+                                  textAlign: "center",
+                                }}>
+                                  No results found
+                                </Text>
+                                <Text style={{
+                                  color: "#6a6a6a",
+                                  fontSize: 14,
+                                  textAlign: "center",
+                                }}>
+                                  Try a different search term
+                                </Text>
+                              </View>
+                            )}
+                          </>
+                        ) : filteredSuggestions.length > 0 ? (
                           filteredSuggestions.map((suggestion, index) => (
                       <TouchableOpacity
                         key={suggestion.id}
@@ -2941,6 +3928,38 @@ export function BottomSearchDrawer({
                         >
                           {suggestion.type === "kitchens" ? (
                             <RestaurantIcon size={16} color="#8a9a8f" />
+                          ) : suggestion.type === "videos" ? (
+                            <VideoIcon size={16} color="#8a9a8f" />
+                          ) : suggestion.type === "recipes" ? (
+                            <RecipeIcon size={16} color="#8a9a8f" />
+                          ) : suggestion.type === "stories" ? (
+                            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                              <Path
+                                d="M4 19.5C4 18.837 4.263 18.201 4.732 17.732C5.201 17.263 5.837 17 6.5 17H20"
+                                stroke="#8a9a8f"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <Path
+                                d="M6.5 2H20V22H6.5C5.837 22 5.201 21.737 4.732 21.268C4.263 20.799 4 20.163 4 19.5V4.5C4 3.837 4.263 3.201 4.732 2.732C5.201 2.263 5.837 2 6.5 2Z"
+                                stroke="#8a9a8f"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </Svg>
+                          ) : suggestion.type === "livestreams" ? (
+                            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                              <Path
+                                d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
+                                fill="#ef4444"
+                              />
+                              <Path
+                                d="M10 8L15 12L10 16V8Z"
+                                fill="#ffffff"
+                              />
+                            </Svg>
                           ) : (
                             <Svg
                               width={16}
@@ -2979,7 +3998,15 @@ export function BottomSearchDrawer({
                           >
                             {suggestion.type === "kitchens"
                               ? `${suggestion.category} • ${suggestion.rating}★ • ${suggestion.time}`
-                              : `${suggestion.category} • ${suggestion.kitchen} • ${suggestion.time}`}
+                              : suggestion.type === "videos"
+                                ? `${suggestion.category} • ${suggestion.rating}`
+                                : suggestion.type === "recipes"
+                                  ? `${suggestion.category} • ${suggestion.time}`
+                                  : suggestion.type === "stories"
+                                    ? `${suggestion.category} • ${suggestion.time}`
+                                    : suggestion.type === "livestreams"
+                                      ? `${suggestion.kitchen} • ${suggestion.rating}`
+                                      : `${suggestion.category} • ${suggestion.kitchen} • ${suggestion.time}`}
                           </Text>
                         </View>
 
@@ -3444,9 +4471,10 @@ export function BottomSearchDrawer({
                       >
                         <SearchArea
                           ref={searchInputRef}
-                          onSparklesPress={onOpenAIChat}
+                          onSparklesPress={handleAISparklesPress}
                           placeholder={searchPrompt.placeholder}
                           editable={false}
+                          isAIModeActive={isAIModeActive}
                         />
                       </Animated.View>
                     </TouchableOpacity>
@@ -3662,28 +4690,73 @@ export function BottomSearchDrawer({
                           );
                         }
                         
-                        // Extract meals array safely
-                        const meals = filteredMealsData?.data?.meals || [];
+                        // Extract content array safely (could be meals, videos, recipes, stories, etc.)
+                        const content = filteredMealsData?.data?.meals || [];
                         
-                        // Show meals if we have any
-                        if (Array.isArray(meals) && meals.length > 0) {
+                        // Show content if we have any
+                        if (Array.isArray(content) && content.length > 0) {
                           return (
                             <ScrollView
                               horizontal
                               showsHorizontalScrollIndicator={false}
                               contentContainerStyle={{ gap: 12 }}
                             >
-                              {meals.slice(0, 6).map((meal: any, index: number) => {
-                                const mealData = meal.meal || meal.result || meal;
-                                const mealId = mealData._id || mealData.id || meal.id;
-                                const mealName = mealData.name || mealData.title || "Meal";
-                                const mealPrice = mealData.price ? `£${mealData.price.toFixed(2)}` : "£0.00";
-                                const mealImage = mealData.image_url 
-                                  ? { uri: mealData.image_url }
-                                  : mealData.image
-                                  ? mealData.image
-                                  : require("../../assets/images/cribnoshpackaging.png");
-                                const chefName = mealData.chef?.name || mealData.kitchen || "Various Kitchens";
+                              {content.slice(0, 6).map((item: any, index: number) => {
+                                // Handle different content types
+                                const itemData = item.meal || item.result || item;
+                                const itemId = itemData._id || itemData.id || item.id;
+                                
+                                // For videos, recipes, stories - use different fields
+                                let itemName: string;
+                                let itemPrice: string;
+                                let itemImage: any;
+                                let creatorName: string;
+                                
+                                if (activeFilter === "videos") {
+                                  itemName = itemData.title || "Untitled Video";
+                                  itemPrice = ""; // Videos don't have prices
+                                  itemImage = itemData.thumbnailUrl 
+                                    ? { uri: itemData.thumbnailUrl }
+                                    : itemData.thumbnail
+                                    ? { uri: itemData.thumbnail }
+                                    : require("../../assets/images/cribnoshpackaging.png");
+                                  creatorName = itemData.creator?.name || "Food Creator";
+                                } else if (activeFilter === "recipes") {
+                                  itemName = itemData.title || "Untitled Recipe";
+                                  itemPrice = ""; // Recipes don't have prices
+                                  itemImage = itemData.featuredImage 
+                                    ? { uri: itemData.featuredImage }
+                                    : itemData.image
+                                    ? { uri: itemData.image }
+                                    : require("../../assets/images/cribnoshpackaging.png");
+                                  creatorName = itemData.author || "Chef";
+                                } else if (activeFilter === "stories") {
+                                  itemName = itemData.title || "Untitled Story";
+                                  itemPrice = ""; // Stories don't have prices
+                                  itemImage = itemData.coverImage || itemData.featuredImage
+                                    ? { uri: itemData.coverImage || itemData.featuredImage }
+                                    : require("../../assets/images/cribnoshpackaging.png");
+                                  creatorName = itemData.author?.name || itemData.author || "Writer";
+                                } else {
+                                  // Default to meal/dish format
+                                  itemName = itemData.name || itemData.title || "Meal";
+                                  // Prices are in pence, convert to pounds
+                                  const priceInPence = itemData.price || 0;
+                                  const priceInPounds = priceInPence / 100;
+                                  itemPrice = priceInPounds > 0 ? `£${priceInPounds.toFixed(2)}` : "";
+                                  itemImage = itemData.image_url 
+                                    ? { uri: itemData.image_url }
+                                    : itemData.image
+                                    ? itemData.image
+                                    : require("../../assets/images/cribnoshpackaging.png");
+                                  creatorName = itemData.chef?.name || itemData.kitchen || "Various Kitchens";
+                                }
+                                
+                                const mealId = itemId;
+                                const mealName = itemName;
+                                const mealPrice = itemPrice;
+                                const mealImage = itemImage;
+                                const chefName = creatorName;
 
                                 return (
                                   <TouchableOpacity
@@ -3697,11 +4770,48 @@ export function BottomSearchDrawer({
                                       borderColor: "rgba(255, 255, 255, 0.15)",
                                     }}
                                     onPress={() => {
-                                      if (onMealPress) {
+                                      // Use handleSuggestionSelect for proper navigation handling
+                                      if (activeFilter === "videos") {
+                                        handleSuggestionSelect({
+                                          id: mealId,
+                                          text: mealName,
+                                          type: "videos",
+                                          originalResult: itemData,
+                                        });
+                                      } else if (activeFilter === "recipes") {
+                                        handleSuggestionSelect({
+                                          id: mealId,
+                                          text: mealName,
+                                          type: "recipes",
+                                          originalResult: itemData,
+                                        });
+                                      } else if (activeFilter === "stories") {
+                                        handleSuggestionSelect({
+                                          id: mealId,
+                                          text: mealName,
+                                          type: "stories",
+                                          originalResult: itemData,
+                                        });
+                                      } else if (activeFilter === "livestreams") {
+                                        handleSuggestionSelect({
+                                          id: mealId,
+                                          text: mealName,
+                                          type: "livestreams",
+                                          originalResult: itemData,
+                                        });
+                                      } else if (activeFilter === "chefs" || activeFilter === "kitchens") {
+                                        handleSuggestionSelect({
+                                          id: mealId,
+                                          text: mealName,
+                                          type: "kitchens",
+                                          originalResult: itemData,
+                                        });
+                                      } else if (onMealPress) {
+                                        // Default to meal press for meals/dishes
                                         onMealPress({
                                           id: mealId,
                                           name: mealName,
-                                          price: mealData.price || 0,
+                                          price: itemData.price || 0,
                                           kitchen: chefName,
                                           image: mealImage,
                                           _id: mealId,
@@ -3715,7 +4825,7 @@ export function BottomSearchDrawer({
                                         source={mealImage}
                                         style={{ width: "100%", height: "100%", resizeMode: "cover" }}
                                       />
-                                      {mealData.isPopular && (
+                                      {itemData.isPopular && (
                                         <View
                                           style={{
                                             position: "absolute",
@@ -3761,15 +4871,30 @@ export function BottomSearchDrawer({
                                       >
                                         {chefName}
                                       </Text>
-                                      <Text
-                                        style={{
-                                          color: "#1a1a1a",
-                                          fontSize: 15,
-                                          fontWeight: "700",
-                                        }}
-                                      >
-                                        {mealPrice}
-                                      </Text>
+                                      {mealPrice && (
+                                        <Text
+                                          style={{
+                                            color: "#1a1a1a",
+                                            fontSize: 15,
+                                            fontWeight: "700",
+                                          }}
+                                        >
+                                          {mealPrice}
+                                        </Text>
+                                      )}
+                                      {(activeFilter === "videos" || activeFilter === "recipes" || activeFilter === "stories") && (
+                                        <Text
+                                          style={{
+                                            color: "#6a6a6a",
+                                            fontSize: 12,
+                                            marginTop: mealPrice ? 4 : 0,
+                                          }}
+                                        >
+                                          {activeFilter === "videos" && (itemData.viewsCount ? `${(itemData.viewsCount / 1000).toFixed(1)}k views` : "0 views")}
+                                          {activeFilter === "recipes" && (itemData.servings ? `${itemData.servings} servings` : "Recipe")}
+                                          {activeFilter === "stories" && (itemData.viewCount ? `${itemData.viewCount} views` : "Story")}
+                                        </Text>
+                                      )}
                                     </View>
                                   </TouchableOpacity>
                                 );
@@ -4163,6 +5288,20 @@ export function BottomSearchDrawer({
           </Animated.View>
         </Animated.View>
       </GestureDetector>
+      
+      {/* Recipe Detail Modal */}
+      {selectedRecipeId && (
+        <RecipeDetailScreen
+          recipeId={selectedRecipeId}
+          onClose={() => setSelectedRecipeId(null)}
+        />
+      )}
+
+      {/* AI Chat Drawer */}
+      <AIChatDrawer 
+        isVisible={isAIChatDrawerVisible} 
+        onClose={handleCloseAIChatDrawer} 
+      />
     </>
   );
 }

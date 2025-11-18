@@ -19,6 +19,12 @@ import SearchArea from '../../SearchArea';
 import { CartButton } from '../CartButton';
 import { KitchenBottomSheetContent } from './KitchenBottomSheetContent';
 import { KitchenBottomSheetHeader } from './KitchenBottomSheetHeader';
+import { AISearchResponseOverlay, ProductCardProps } from '../AISearchResponseOverlay';
+import { InlineAILoader } from '../InlineAILoader';
+import { sendChatMessage, transformDishToProductCard } from '@/utils/aiChatUtils';
+import { AIChatDrawer } from '../AIChatDrawer';
+import { useUserLocation } from '@/hooks/useUserLocation';
+import { showError } from '@/lib/GlobalToastManager';
 
 interface KitchenBottomSheetProps {
   deliveryTime: string;
@@ -76,6 +82,24 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const { getKitchenDetails } = useChefs();
   const [kitchenDetails, setKitchenDetails] = useState<any>(null);
+
+  // AI response state
+  const [isAIModeActive, setIsAIModeActive] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiResponse, setAiResponse] = useState<{
+    message: string;
+    products: ProductCardProps[];
+    dishIds: string[];
+  } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiConversationId, setAiConversationId] = useState<string | undefined>();
+  const [isAIChatDrawerVisible, setIsAIChatDrawerVisible] = useState(false);
+
+  // Location hook
+  const locationState = useUserLocation();
+
+  // Track search query when AI mode is activated
+  const searchQueryWhenAIActivatedRef = useRef<string>('');
 
   // Core animation values
   const drawerHeight = useSharedValue(SNAP_POINTS.COLLAPSED);
@@ -156,8 +180,98 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   const handleSearchCancel = useCallback(() => {
     setIsSearchMode(false);
     setSearchQuery('');
+    setIsAIModeActive(false);
+    setAiResponse(null);
+    setAiError(null);
     searchInputRef.current?.blur();
   }, []);
+
+  // Handle AI sparkles button press
+  const handleAISparklesPress = useCallback(async () => {
+    // Capture current search query before activating AI mode
+    searchQueryWhenAIActivatedRef.current = searchQuery;
+    setIsAIModeActive(true);
+    setIsGeneratingAI(true);
+    setAiError(null);
+    setAiResponse(null);
+
+    try {
+      // Use search query or default prompt
+      const message = searchQuery.trim() || "What are some great meal recommendations for me?";
+      
+      // Prepare location data
+      const location = locationState.location ? {
+        latitude: locationState.location.latitude,
+        longitude: locationState.location.longitude,
+      } : undefined;
+
+      // Send chat message
+      const response = await sendChatMessage({
+        message,
+        conversation_id: aiConversationId,
+        location,
+      });
+
+      // Transform recommendations to product cards
+      const products: ProductCardProps[] = response.data.recommendations
+        ? response.data.recommendations.map(transformDishToProductCard)
+        : [];
+
+      // Store dish IDs for cart operations
+      const dishIds = response.data.recommendations?.map(r => r.dish_id) || [];
+
+      setAiResponse({
+        message: response.data.message,
+        products,
+        dishIds,
+      });
+      setAiConversationId(response.data.conversation_id);
+    } catch (err: any) {
+      // Use the error message from the server (which is user-friendly)
+      const errorMessage = err?.message || 'Failed to get AI response';
+      setAiError(errorMessage);
+      // Show toast notification for better visibility
+      showError('AI Unavailable', errorMessage);
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  }, [searchQuery, locationState.location, aiConversationId]);
+
+  // Handle continue conversation - open full chat drawer
+  const handleContinueConversation = useCallback(() => {
+    setIsAIChatDrawerVisible(true);
+    setIsAIModeActive(false);
+  }, []);
+
+  // Handle close AI chat drawer
+  const handleCloseAIChatDrawer = useCallback(() => {
+    setIsAIChatDrawerVisible(false);
+  }, []);
+
+  // Handle retry AI request
+  const handleRetryAI = useCallback(() => {
+    handleAISparklesPress();
+  }, [handleAISparklesPress]);
+
+  // Dismiss AI mode when user starts typing (search query changes from when AI was activated)
+  useEffect(() => {
+    if (isAIModeActive && searchQuery !== searchQueryWhenAIActivatedRef.current) {
+      setIsAIModeActive(false);
+      setAiResponse(null);
+      setAiError(null);
+    }
+  }, [searchQuery, isAIModeActive]);
+
+  // Reset AI state when search mode is cancelled or drawer goes back to resting state
+  useEffect(() => {
+    if (!isSearchMode && !isExpandedState) {
+      setIsAIModeActive(false);
+      setAiResponse(null);
+      setAiError(null);
+      setIsGeneratingAI(false);
+      searchQueryWhenAIActivatedRef.current = '';
+    }
+  }, [isSearchMode, isExpandedState]);
 
   const handleBackdropPress = useCallback(() => {
     if (isExpandedState) {
@@ -443,9 +557,40 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
                       onSubmitEditing={() => handleSearchSubmit(searchQuery)}
                       autoFocus={true}
                       editable={true}
-                      onSparklesPress={onOpenAIChat || (() => router.push('/nosh-heaven' as any))}
+                      onSparklesPress={handleAISparklesPress}
+                      isAIModeActive={isAIModeActive}
                     />
                   </View>
+
+                  {/* AI Response Overlay */}
+                  {isAIModeActive && (
+                    <>
+                      {isGeneratingAI && <InlineAILoader isVisible={true} />}
+                      {aiResponse && !isGeneratingAI && (
+                        <AISearchResponseOverlay
+                          message={aiResponse.message}
+                          products={aiResponse.products}
+                          dishIds={aiResponse.dishIds}
+                          isLoading={false}
+                          error={null}
+                          onContinueConversation={handleContinueConversation}
+                          conversationId={aiConversationId}
+                        />
+                      )}
+                      {aiError && !isGeneratingAI && (
+                        <AISearchResponseOverlay
+                          message=""
+                          products={[]}
+                          dishIds={[]}
+                          isLoading={false}
+                          error={aiError}
+                          onRetry={handleRetryAI}
+                          onContinueConversation={handleContinueConversation}
+                          conversationId={aiConversationId}
+                        />
+                      )}
+                    </>
+                  )}
                   
                   {/* Search Results */}
                   <KitchenBottomSheetContent 
@@ -506,6 +651,12 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
           </Animated.View>
         </Animated.View>
       </GestureDetector>
+
+      {/* AI Chat Drawer */}
+      <AIChatDrawer 
+        isVisible={isAIChatDrawerVisible} 
+        onClose={handleCloseAIChatDrawer} 
+      />
     </>
   );
 };

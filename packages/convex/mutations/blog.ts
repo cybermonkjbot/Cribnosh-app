@@ -1,4 +1,4 @@
-import { mutation } from "../_generated/server";
+import { mutation, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { sanitizeContent } from "../../../apps/web/lib/utils/content-sanitizer";
 
@@ -325,6 +325,65 @@ export const archiveBlogPost = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// Internal mutation for seeding - bypasses auth
+export const createBlogPostForSeed = internalMutation({
+  args: {
+    title: v.string(),
+    content: v.string(),
+    excerpt: v.string(),
+    body: v.optional(v.array(v.string())),
+    author: v.object({
+      name: v.string(),
+      avatar: v.string(),
+    }),
+    categories: v.array(v.string()),
+    date: v.string(),
+    coverImage: v.optional(v.string()),
+    featuredImage: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    status: v.optional(v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("archived")
+    )),
+  },
+  returns: v.id("blogPosts"),
+  handler: async (ctx, args) => {
+    const slug = args.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    const now = Date.now();
+    
+    const postId = await ctx.db.insert("blogPosts", {
+      title: args.title,
+      slug,
+      content: args.content,
+      excerpt: args.excerpt,
+      body: args.body,
+      sections: undefined,
+      headings: undefined,
+      author: args.author,
+      authorName: args.author.name,
+      categories: args.categories,
+      date: args.date,
+      coverImage: args.coverImage,
+      featuredImage: args.featuredImage,
+      tags: args.tags || [],
+      status: args.status || "published",
+      categoryId: undefined,
+      seoTitle: args.title,
+      seoDescription: args.excerpt,
+      publishedAt: args.status === "published" ? now : undefined,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return postId;
   },
 });
 

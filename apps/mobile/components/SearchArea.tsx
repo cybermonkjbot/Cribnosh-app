@@ -16,6 +16,7 @@ interface SearchAreaProps {
   editable?: boolean;
   pointerEvents?: 'none' | 'auto';
   onSparklesPress?: () => void;
+  isAIModeActive?: boolean;
 }
 
 const DEFAULT_MAX_LENGTH = 100;
@@ -33,6 +34,7 @@ const SearchArea = React.forwardRef<TextInput, SearchAreaProps>(({
   editable = true,
   pointerEvents = 'auto',
   onSparklesPress,
+  isAIModeActive = false,
 }, ref) => {
   const [internalValue, setInternalValue] = useState('');
   const value = controlledValue !== undefined ? controlledValue : internalValue;
@@ -63,6 +65,7 @@ const SearchArea = React.forwardRef<TextInput, SearchAreaProps>(({
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
           autoFocus={autoFocus}
+          blurOnSubmit={false}
           accessibilityLabel="Search input"
         />
         {loading && (

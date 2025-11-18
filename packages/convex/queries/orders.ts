@@ -913,12 +913,34 @@ export const getEnrichedCartBySessionToken = query({
 
           // Get chef details if available
           let chefName: string | undefined;
+          let chefProfileImage: string | undefined;
           if (meal?.chefId) {
             try {
               const chef = await ctx.runQuery(api.queries.chefs.getById, {
                 chefId: meal.chefId as any,
               });
               chefName = chef?.name;
+              
+              // Get chef profile image URL if available
+              if (chef?.profileImage) {
+                const profileImage = chef.profileImage;
+                // Check if it's a Convex storage ID or already a URL
+                if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
+                  chefProfileImage = profileImage;
+                } else if (profileImage.startsWith('k')) {
+                  // It's likely a Convex storage ID, get the URL
+                  try {
+                    chefProfileImage = await ctx.storage.getUrl(profileImage as any);
+                  } catch (error) {
+                    console.error('Failed to get storage URL for chef profile image:', profileImage, error);
+                    // Fallback to relative path
+                    chefProfileImage = `/api/files/${profileImage}`;
+                  }
+                } else {
+                  // Fallback to relative path
+                  chefProfileImage = `/api/files/${profileImage}`;
+                }
+              }
             } catch (error) {
               // Chef not found, continue without chef name
             }
@@ -961,6 +983,7 @@ export const getEnrichedCartBySessionToken = query({
             image_url: imageUrl,
             chef_id: meal?.chefId || undefined,
             chef_name: chefName,
+            chef_profile_image: chefProfileImage,
             added_at: item.updatedAt || Date.now(),
             sides: sides.length > 0 ? sides : undefined,
           };
@@ -977,6 +1000,7 @@ export const getEnrichedCartBySessionToken = query({
             image_url: undefined,
             chef_id: undefined,
             chef_name: undefined,
+            chef_profile_image: undefined,
             added_at: item.updatedAt || Date.now(),
             sides: item.sides || undefined,
           };

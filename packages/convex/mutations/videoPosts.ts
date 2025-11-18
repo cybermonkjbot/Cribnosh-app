@@ -1,4 +1,4 @@
-import { mutation } from "../_generated/server";
+import { mutation, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 
@@ -634,6 +634,31 @@ export const flagVideo = mutation({
     // Update video status to flagged
     await ctx.db.patch(args.videoId, {
       status: "flagged",
+      updatedAt: Date.now(),
+    });
+
+    return null;
+  },
+});
+
+// Publish video post (internal version for seeding)
+// This bypasses authentication checks for use in seed actions
+export const publishVideoPostForSeed = internalMutation({
+  args: {
+    videoId: v.id("videoPosts"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Get video post
+    const video = await ctx.db.get(args.videoId);
+    if (!video) {
+      throw new Error("Video post not found");
+    }
+
+    // Publish video post
+    await ctx.db.patch(args.videoId, {
+      status: "published",
+      publishedAt: Date.now(),
       updatedAt: Date.now(),
     });
 

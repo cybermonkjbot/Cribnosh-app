@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
-import { mutation } from "../_generated/server";
+import { mutation, internalMutation } from "../_generated/server";
 import { requireAuth, requireStaff, requireAdmin, isAdmin, isStaff } from '../utils/auth';
 
 export const createChef = mutation(
@@ -220,5 +220,67 @@ export const updateAvailability = mutation({
     await ctx.db.patch(args.chefId, args.updates as any);
 
     return { success: true };
+  },
+});
+
+// Internal mutation for seeding - bypasses auth
+export const createChefForSeed = internalMutation({
+  args: {
+    userId: v.id('users'),
+    name: v.string(),
+    bio: v.optional(v.string()),
+    specialties: v.optional(v.array(v.string())),
+    location: v.object({
+      lat: v.number(),
+      lng: v.number(),
+      city: v.optional(v.string()),
+    }),
+    rating: v.optional(v.number()),
+    status: v.optional(v.union(v.literal('active'), v.literal('inactive'), v.literal('suspended'))),
+  },
+  handler: async (ctx, args) => {
+    const bio = args.bio || '';
+    const specialties = args.specialties || [];
+    const rating = typeof args.rating === 'number' ? args.rating : 0;
+    const status = args.status || 'active';
+    const city = args.location.city || '';
+    const coordinates = [args.location.lat, args.location.lng];
+    
+    const chefDoc = {
+      userId: args.userId,
+      name: args.name,
+      bio,
+      specialties,
+      rating,
+      status,
+      location: { city, coordinates },
+    };
+    
+    const id = await ctx.db.insert("chefs", chefDoc);
+    return id;
+  },
+});
+
+// Internal mutation for seeding cuisines - bypasses auth
+export const createCuisineForSeed = internalMutation({
+  args: {
+    name: v.string(),
+    description: v.string(),
+    status: v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),
+    createdBy: v.id('users'),
+    image: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const cuisineId = await ctx.db.insert('cuisines', {
+      name: args.name,
+      description: args.description,
+      status: args.status,
+      createdBy: args.createdBy,
+      createdAt: now,
+      updatedAt: now,
+      image: args.image,
+    });
+    return { cuisineId };
   },
 });

@@ -3,12 +3,13 @@
 import { useAdminUser } from "@/app/admin/AdminUserProvider";
 import { api } from '@/convex/_generated/api';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { useQuery } from 'convex/react';
 import { formatNumber } from '@/lib/utils/number-format';
+import { useQuery } from 'convex/react';
 import {
   AlertTriangle,
   Badge,
   BarChart2,
+  BookOpen,
   Briefcase,
   Calendar,
   CheckCircle,
@@ -25,12 +26,16 @@ import {
   LogOut,
   Mail,
   MapPin,
+  MessageCircle,
   Plus,
+  Radio,
   Settings,
   Shield,
   TrendingUp,
   UserCheck,
   Users,
+  Utensils,
+  Video,
   X
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -65,8 +70,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
   }, [pathname]);
 
   // Fetch real data for sidebar badges
-  const totalUsers = useQuery(api.queries.users.getTotalUserCount, sessionToken ? { sessionToken } : "skip");
-  const waitlistCount = useQuery(api.queries.waitlist.getWaitlistCount, sessionToken ? { sessionToken } : "skip");
+  const totalUsersQueryArgs = sessionToken ? { sessionToken } : "skip";
+  const waitlistQueryArgs = sessionToken ? { sessionToken } : "skip";
+  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
+  const totalUsers = useQuery(api.queries.users.getTotalUserCount, totalUsersQueryArgs);
+  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
+  const waitlistCount = useQuery(api.queries.waitlist.getWaitlistCount, waitlistQueryArgs);
   const newChefApplications = useQuery(api.queries.careers.getNewChefApplicationsCount);
   
   // Don't render if not in admin section or on login page
@@ -187,6 +196,36 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           href: '/admin/content/recipes',
           icon: ChefHat,
           description: 'Recipe database',
+        },
+        {
+          name: 'Videos',
+          href: '/admin/content/videos',
+          icon: Video,
+          description: 'Nosh Heaven videos',
+        },
+        {
+          name: 'Meals',
+          href: '/admin/content/meals',
+          icon: Utensils,
+          description: 'Meals & dishes',
+        },
+        {
+          name: 'Stories',
+          href: '/admin/content/stories',
+          icon: BookOpen,
+          description: 'Food stories',
+        },
+        {
+          name: 'Live Sessions',
+          href: '/admin/content/live-sessions',
+          icon: Radio,
+          description: 'Live cooking sessions',
+        },
+        {
+          name: 'Comments',
+          href: '/admin/content/comments',
+          icon: MessageCircle,
+          description: 'All comments',
         },
         {
           name: 'Pages',
@@ -416,7 +455,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                           }`} title={item.name}>
                             {item.name}
                           </span>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             {item.badge && (
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                 item.badge === 'New' 
@@ -430,7 +469,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                               <motion.div
                                 animate={{ rotate: isExpanded ? 90 : 0 }}
                                 transition={{ duration: 0.2 }}
-                                className="flex-shrink-0"
+                                className="shrink-0"
                               >
                                 <ChevronRight className="w-4 h-4 text-gray-400" />
                               </motion.div>
@@ -473,7 +512,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                           }`} title={item.name}>
                             {item.name}
                           </span>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             {item.badge && (
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                 item.badge === 'New' 

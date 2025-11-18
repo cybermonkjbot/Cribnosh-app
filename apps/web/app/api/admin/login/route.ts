@@ -150,14 +150,24 @@ export async function POST(request: NextRequest) {
           ipAddress,
         });
       });
-    } catch (convexErr) {
-      logger.error('[ADMIN LOGIN] Convex connection error:', convexErr);
+    } catch (convexErr: any) {
+      logger.error('[ADMIN LOGIN] Convex connection error:', {
+        error: convexErr,
+        message: convexErr?.message,
+        stack: convexErr?.stack,
+        code: convexErr?.code,
+        name: convexErr?.name,
+      });
       // Type guard for error object
       const errObj = convexErr as Record<string, any>;
       if (errObj && typeof errObj === 'object' && 'code' in errObj && String(errObj.code).includes('CONNECT_TIMEOUT')) {
         return ResponseFactory.error('Cannot connect to authentication service. Please check your network and try again.', 'CUSTOM_ERROR', 503);
       }
-      return ResponseFactory.error('Authentication service unavailable. Please try again later.', 'CUSTOM_ERROR', 503);
+      // Return more detailed error in development
+      const errorMessage = process.env.NODE_ENV === 'development' 
+        ? `Authentication service error: ${convexErr?.message || 'Unknown error'}`
+        : 'Authentication service unavailable. Please try again later.';
+      return ResponseFactory.error(errorMessage, 'CUSTOM_ERROR', 503);
     }
     logger.log('[ADMIN LOGIN] Convex result:', result);
     if (!result || !result.sessionToken) {
@@ -167,11 +177,27 @@ export async function POST(request: NextRequest) {
     
     // Now, fetch the user to check their role
     // getUserByEmail is a public query that doesn't require authentication
-    const user = await retryCritical(async () => {
-      return await convex.query(api.queries.users.getUserByEmail, {
-        email: sanitizedEmail
+    let user;
+    try {
+      user = await retryCritical(async () => {
+        return await convex.query(api.queries.users.getUserByEmail, {
+          email: sanitizedEmail
+        });
       });
-    });
+    } catch (userErr: any) {
+      logger.error('[ADMIN LOGIN] Error fetching user after login:', {
+        error: userErr,
+        message: userErr?.message,
+        stack: userErr?.stack,
+      });
+      return ResponseFactory.error(
+        process.env.NODE_ENV === 'development'
+          ? `Failed to fetch user data: ${userErr?.message || 'Unknown error'}`
+          : 'Authentication service error. Please try again.',
+        'CUSTOM_ERROR',
+        500
+      );
+    }
     
     if (!user || !user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin')) {
       logger.log('[ADMIN LOGIN] Not an admin:', sanitizedEmail);
@@ -213,8 +239,17 @@ export async function POST(request: NextRequest) {
     }
     
     return response;
-  } catch (e) {
-    logger.error('[ADMIN LOGIN] Internal Server Error:', e);
-    return ResponseFactory.internalError('Login failed');
+  } catch (e: any) {
+    logger.error('[ADMIN LOGIN] Internal Server Error:', {
+      error: e,
+      message: e?.message,
+      stack: e?.stack,
+      name: e?.name,
+    });
+    // Return more detailed error in development
+    const errorMessage = process.env.NODE_ENV === 'development'
+      ? `Login failed: ${e?.message || 'Unknown error'}`
+      : 'Login failed. Please try again later.';
+    return ResponseFactory.internalError(errorMessage);
   }
 } 

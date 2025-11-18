@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
-import { query, QueryCtx } from '../_generated/server';
+import { query, QueryCtx, internalQuery } from '../_generated/server';
 import { filterAndRankMealsByPreferences, getUserPreferences } from '../utils/userPreferencesFilter';
 import { requireStaff, requireAuth, isAdmin, isStaff } from '../utils/auth';
 import { calculateEcoImpact } from '../utils/ecoImpact';
@@ -675,8 +675,11 @@ export const searchMeals = query({
         if (args.filters.dietary && args.filters.dietary.length > 0) {
           meals = meals.filter((meal: MealDoc) => {
             const mealAny = meal as { dietary?: string[]; [key: string]: unknown };
-            return mealAny.dietary && args.filters!.dietary!.some((diet: string) => 
-              mealAny.dietary!.includes(diet)
+            if (!mealAny.dietary || mealAny.dietary.length === 0) return false;
+            // Case-insensitive matching for dietary restrictions
+            const mealDietaryLower = mealAny.dietary.map((d: string) => d.toLowerCase());
+            return args.filters!.dietary!.some((diet: string) => 
+              mealDietaryLower.includes(diet.toLowerCase())
             );
           });
         }
@@ -997,8 +1000,11 @@ export const search = query({
         if (args.filters.dietary && args.filters.dietary.length > 0) {
           meals = meals.filter((meal: MealDoc) => {
             const mealAny = meal as { dietary?: string[]; [key: string]: unknown };
-            return mealAny.dietary && args.filters!.dietary!.some((diet: string) => 
-              mealAny.dietary!.includes(diet)
+            if (!mealAny.dietary || mealAny.dietary.length === 0) return false;
+            // Case-insensitive matching for dietary restrictions
+            const mealDietaryLower = mealAny.dietary.map((d: string) => d.toLowerCase());
+            return args.filters!.dietary!.some((diet: string) => 
+              mealDietaryLower.includes(diet.toLowerCase())
             );
           });
         }
@@ -1405,5 +1411,29 @@ export const getPopular = query({
       console.error('Error fetching popular meals:', error);
       return [];
     }
+  },
+});
+
+// Internal query to get a meal by ID
+export const getMealById = internalQuery({
+  args: {
+    mealId: v.id('meals'),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.mealId);
+  },
+});
+
+// Internal query to get meals without embeddings
+export const getMealsWithoutEmbeddings = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const allMeals = await ctx.db
+      .query('meals')
+      .filter((q) => q.eq(q.field('status'), 'available'))
+      .collect();
+    
+    // Filter meals that don't have embeddings
+    return allMeals.filter((meal: { embedding?: number[] }) => !meal.embedding || meal.embedding.length === 0);
   },
 }); 

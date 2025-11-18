@@ -74,22 +74,19 @@ function Particle({ id, delay, isActive, color }: ParticleProps) {
     }
   }, [isActive, delay]);
 
-  // Derived values for safe access
+  // Derived value for rotation string interpolation
   const rotationDegrees = useDerivedValue(() => `${rotation.value}deg`);
-  const currentTranslateX = useDerivedValue(() => translateX.value);
-  const currentTranslateY = useDerivedValue(() => translateY.value);
-  const currentScale = useDerivedValue(() => scale.value);
-  const currentOpacity = useDerivedValue(() => opacity.value);
 
+  // Animated style - use shared values directly (safe in worklet context)
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateX: currentTranslateX.value },
-        { translateY: currentTranslateY.value },
-        { scale: currentScale.value },
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
         { rotate: rotationDegrees.value },
       ],
-      opacity: currentOpacity.value,
+      opacity: opacity.value,
     };
   });
 
@@ -154,23 +151,18 @@ export function NoshMagicPortal({
     }
   }, [isActive, onComplete]);
 
-  // Derived values for portal animations
-  const currentPortalScale = useDerivedValue(() => portalScale.value);
-  const currentPortalOpacity = useDerivedValue(() => portalOpacity.value);
-  const currentTextOpacity = useDerivedValue(() => textOpacity.value);
-  const currentTextScale = useDerivedValue(() => textScale.value);
-
+  // Animated styles - use shared values directly (safe in worklet context)
   const portalStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: currentPortalScale.value }],
-      opacity: currentPortalOpacity.value,
+      transform: [{ scale: portalScale.value }],
+      opacity: portalOpacity.value,
     };
   });
 
   const textStyle = useAnimatedStyle(() => {
     return {
-      opacity: currentTextOpacity.value,
-      transform: [{ scale: currentTextScale.value }],
+      opacity: textOpacity.value,
+      transform: [{ scale: textScale.value }],
     };
   });
 

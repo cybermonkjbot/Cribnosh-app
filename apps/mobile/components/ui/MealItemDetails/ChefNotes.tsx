@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -17,9 +16,6 @@ export function ChefNotes({ story, tips, chefName, chefAvatar }: ChefNotesProps)
       <View style={styles.notesContainer}>
         {/* Chef Info */}
         <View style={styles.chefInfo}>
-          <View style={styles.chefAvatar}>
-            <Ionicons name="person" size={24} color="#094327" />
-          </View>
           <View style={styles.chefDetails}>
             <Text style={styles.chefName}>{chefName || "Chef&apos;s Special"}</Text>
             <Text style={styles.chefSubtitle}>Personal Recipe</Text>
@@ -29,10 +25,7 @@ export function ChefNotes({ story, tips, chefName, chefAvatar }: ChefNotesProps)
         {/* Story */}
         {story && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="book-outline" size={16} color="#094327" />
-              <Text style={styles.sectionTitle}>The Story</Text>
-            </View>
+            <Text style={styles.sectionTitle}>The Story</Text>
             <Text style={styles.storyText}>{story}</Text>
           </View>
         )}
@@ -40,10 +33,7 @@ export function ChefNotes({ story, tips, chefName, chefAvatar }: ChefNotesProps)
         {/* Tips */}
         {tips && tips.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="bulb-outline" size={16} color="#FF3B30" />
-              <Text style={styles.sectionTitle}>Chef&apos;s Tips</Text>
-            </View>
+            <Text style={styles.sectionTitle}>Chef&apos;s Tips</Text>
             {tips.map((tip, index) => (
               <View key={index} style={styles.tipItem}>
                 <View style={styles.tipBullet}>
@@ -78,21 +68,10 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5E5',
   },
   chefInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
-  },
-  chefAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F8F9FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
   },
   chefDetails: {
     flex: 1,
@@ -110,16 +89,11 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 16,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#094327',
-    marginLeft: 8,
+    marginBottom: 8,
   },
   storyText: {
     fontSize: 14,

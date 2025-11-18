@@ -254,7 +254,7 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false, 
                   backgroundColor: activeHeaderTab === 'live' ? '#111827' : 'rgba(255, 255, 255, 0.8)',
                   borderWidth: activeHeaderTab === 'live' ? 0 : 1,
                   borderColor: 'rgba(229, 231, 235, 0.5)',
-                  minWidth: 60,
+                  minWidth: 90,
                   minHeight: 32,
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -266,7 +266,7 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false, 
                   color: activeHeaderTab === 'live' ? '#fff' : '#374151',
                   textAlign: 'center',
                 }}>
-                  Live
+                  Nosh Heaven
                 </Text>
               </TouchableOpacity>
             </Animated.View>
@@ -413,7 +413,7 @@ export function Header({ userName = "", isSticky = false, showSubtitle = false, 
             fontWeight: '500',
             color: activeHeaderTab === 'live' ? '#fff' : '#374151'
           }}>
-            Live
+            Nosh Heaven
           </Text>
         </TouchableOpacity>
       </Animated.View>

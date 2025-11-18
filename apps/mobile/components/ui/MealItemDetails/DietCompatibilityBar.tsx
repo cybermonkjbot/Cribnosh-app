@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { PlayfulTooltip } from '../PlayfulTooltip';
 
 interface DietCompatibilityBarProps {
   compatibility: number; // percentage (fallback if no reviews)
@@ -14,6 +15,8 @@ export function DietCompatibilityBar({
   reviews, 
   sentiment 
 }: DietCompatibilityBarProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   // Calculate sentiment percentage from reviews
   const sentimentPercentage = useMemo(() => {
     if (!reviews || reviews.length === 0) {
@@ -35,13 +38,25 @@ export function DietCompatibilityBar({
   // Show fire icon only when sentiment is "fire"
   const showFireIcon = sentiment === 'fire';
 
+  // Generate tooltip message with percentage and sentiment
+  const tooltipMessage = useMemo(() => {
+    if (sentiment) {
+      const sentimentText = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
+      return `${sentimentPercentage}% rate this ${sentimentText}`;
+    }
+    return `${sentimentPercentage}% of people rate this positively`;
+  }, [sentimentPercentage, sentiment]);
+
   return (
     <View style={styles.container}>
       {/* Nosh Sentiment Bar Label */}
       <Text style={styles.sentimentBarLabel}>Nosh Sentiment Bar</Text>
       
-      {/* Progress Bar Container */}
-      <View style={styles.progressBarContainer}>
+      {/* Progress Bar Container - Made tappable */}
+      <Pressable 
+        style={styles.progressBarContainer}
+        onPress={() => setShowTooltip(true)}
+      >
         {/* Progress Bar Track */}
         <View style={styles.progressBarTrack}>
           {/* Filled Progress Bar with Gradient */}
@@ -73,7 +88,15 @@ export function DietCompatibilityBar({
             <Ionicons name="flame" size={20} color="#FF6B35" />
           </View>
         )}
-      </View>
+      </Pressable>
+
+      {/* Playful Tooltip */}
+      <PlayfulTooltip
+        isVisible={showTooltip}
+        message={tooltipMessage}
+        onClose={() => setShowTooltip(false)}
+        mascotEmotion="happy"
+      />
     </View>
   );
 }

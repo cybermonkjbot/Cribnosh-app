@@ -1,6 +1,6 @@
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AlertCircle, MessageCircle, Play, Send, ShoppingCart, UserRound } from 'lucide-react-native';
+import { AlertCircle, Play, Send, ShoppingCart, UserRound } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, Pressable, Text, View } from 'react-native';
 import Animated, {
@@ -25,7 +25,6 @@ interface MealVideoCardProps {
   isVisible: boolean;
   isPreloaded?: boolean;
   onLike?: () => void;
-  onComment?: () => void;
   onShare?: () => void;
   onAddToCart?: () => void;
   onKitchenPress?: () => void;
@@ -43,7 +42,6 @@ export function MealVideoCard({
   isVisible,
   isPreloaded = false,
   onLike,
-  onComment,
   onShare,
   onAddToCart,
   onKitchenPress,
@@ -206,10 +204,15 @@ export function MealVideoCard({
   });
 
   // Validate required props
-  if (!videoSource || !title || !kitchenName || !price) {
+  // Allow empty price for videos (instructional content)
+  if (!videoSource || !title || !kitchenName) {
     logger.error('Invalid props provided', { videoSource, title, kitchenName, price });
     return null;
   }
+  
+  // Keep price as-is (empty string means no meal linked, will hide price and button)
+  const displayPrice = price;
+  const hasPrice = displayPrice && displayPrice.trim() !== '';
 
   logger.debug('MealVideoCard rendering', { 
     title, 
@@ -397,39 +400,6 @@ export function MealVideoCard({
           </Text>
         </View>
 
-        {/* Comment Button */}
-        <Pressable
-          onPress={onComment}
-          style={{
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          <View style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.2)',
-            backdropFilter: 'blur(10px)',
-          }}>
-            <MessageCircle size={24} color="#FFFFFF" />
-          </View>
-          <Text style={{
-            color: '#FFFFFF',
-            fontSize: 12,
-            fontWeight: '600',
-            textShadowColor: 'rgba(0, 0, 0, 0.75)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 2,
-          }}>
-            {comments}
-          </Text>
-        </Pressable>
-
         {/* Share Button */}
         <Pressable
           onPress={onShare}
@@ -510,27 +480,28 @@ export function MealVideoCard({
           {description.length > 80 ? `${description.substring(0, 80)}...` : description}
         </Text>
 
-        {/* Price and Order Button */}
-        <View style={{ 
-          flexDirection: 'row', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: 16, 
-          paddingHorizontal: 16 
-        }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: '#FF3B30',
-            textShadowColor: 'rgba(0, 0, 0, 0.75)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 2,
+        {/* Price and Order Button - Only show if meal is linked */}
+        {hasPrice && (
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 16, 
+            paddingHorizontal: 16 
           }}>
-            {price}
-          </Text>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: '#FF3B30',
+              textShadowColor: 'rgba(0, 0, 0, 0.75)',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 2,
+            }}>
+              {displayPrice}
+            </Text>
 
-          <Pressable
-            onPress={onAddToCart}
+            <Pressable
+              onPress={onAddToCart}
             style={{
               backgroundColor: 'rgba(255, 59, 48, 0.4)',
               paddingHorizontal: 20,
@@ -603,6 +574,7 @@ export function MealVideoCard({
             </Text>
           </Pressable>
         </View>
+        )}
       </View>
     </View>
   );

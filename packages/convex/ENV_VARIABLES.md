@@ -36,14 +36,19 @@ Based on the codebase analysis, these variables are **actively being used**:
    - **Where to get**: https://console.agora.io/ (same place as App ID)
    - **Example**: `abcdef1234567890abcdef1234567890`
 
-#### 4. **`OPENAI_API_KEY`** (Required for AI chat features)
+#### 4. **`OPENAI_API_KEY`** (Required for AI chat and embeddings)
    - **Status**: ❌ **MISSING** from `convex.json` - Add this
    - **Used in**: 
-     - `mutations/aiChat.ts` - AI chat functionality
-   - **Description**: OpenAI API key for AI-powered chat features
+     - `mutations/aiChat.ts` - AI chat functionality (via Convex AI Agents)
+     - `actions/generateEmbeddings.ts` - Vector embeddings for semantic meal search
+   - **Description**: OpenAI API key for AI-powered chat features and vector embeddings
    - **Where to get**: https://platform.openai.com/api-keys
    - **Example**: `sk-proj-...`
    - **Note**: Throws error if not set: "OPENAI_API_KEY environment variable is not set"
+   - **Features**:
+     - Powers Convex AI Agents for conversational AI chat
+     - Generates embeddings for semantic meal search (text-embedding-3-small model)
+     - Enables intelligent meal recommendations based on user queries
 
 #### 5. **`OPENWEATHERMAP_API_KEY`** (Optional - for weather features)
    - **Status**: ❌ **MISSING** from `convex.json`

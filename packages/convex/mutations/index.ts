@@ -168,5 +168,8 @@ export * from './eventChefRequests';
 // Export blog mutations
 export * from './blog';
 
+// Export recipes mutations
+export * from './recipes';
+
 // Export compliance mutations
 export * from './compliance';

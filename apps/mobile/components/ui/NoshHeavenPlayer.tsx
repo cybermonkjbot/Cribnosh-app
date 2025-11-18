@@ -25,6 +25,7 @@ export interface MealData {
   chef?: string;
   likes: number;
   comments: number;
+  mealId?: string; // Optional meal ID if video is linked to a meal
 }
 
 type PlayerMode = 'meals' | 'kitchenIntro';
@@ -33,6 +34,7 @@ interface NoshHeavenPlayerProps {
   isVisible: boolean;
   meals?: MealData[];
   mode?: PlayerMode;
+  initialIndex?: number;
   kitchenIntroVideo?: {
     id: string;
     videoSource: string;
@@ -44,7 +46,6 @@ interface NoshHeavenPlayerProps {
   onClose: () => void;
   onLoadMore?: () => void;
   onMealLike?: (mealId: string) => void;
-  onMealComment?: (mealId: string) => void;
   onMealShare?: (mealId: string) => void;
   onAddToCart?: (mealId: string) => void;
   onKitchenPress?: (kitchenName: string) => void;
@@ -54,18 +55,18 @@ export function NoshHeavenPlayer({
   isVisible,
   meals = [],
   mode = 'meals',
+  initialIndex = 0,
   kitchenIntroVideo,
   onClose,
   onLoadMore,
   onMealLike,
-  onMealComment,
   onMealShare,
   onAddToCart,
   onKitchenPress,
 }: NoshHeavenPlayerProps) {
   const insets = useSafeAreaInsets();
   const topPosition = useTopPosition(16);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [preloadedVideos, setPreloadedVideos] = useState<Set<string>>(new Set());
   const flatListRef = useRef<FlatList>(null);
   const isMountedRef = useRef(true);
@@ -80,7 +81,7 @@ export function NoshHeavenPlayer({
         description: kitchenIntroVideo.description || '',
         kitchenName: kitchenIntroVideo.kitchenName,
         chef: kitchenIntroVideo.chef,
-        price: '',
+        price: 'Free', // Kitchen intro videos are instructional content
         likes: 0,
         comments: 0,
       };
@@ -166,6 +167,29 @@ export function NoshHeavenPlayer({
     };
   }, [currentIndex, displayMeals, isVisible, preloadVideo, mode]);
 
+  // Scroll to initial index when player becomes visible
+  useEffect(() => {
+    if (isVisible && flatListRef.current && displayMeals.length > 0 && initialIndex > 0) {
+      // Small delay to ensure FlatList is ready
+      setTimeout(() => {
+        if (flatListRef.current && isMountedRef.current) {
+          flatListRef.current.scrollToIndex({
+            index: Math.min(initialIndex, displayMeals.length - 1),
+            animated: false,
+          });
+          setCurrentIndex(Math.min(initialIndex, displayMeals.length - 1));
+        }
+      }, 100);
+    }
+  }, [isVisible, initialIndex, displayMeals.length]);
+
+  // Update currentIndex when initialIndex changes
+  useEffect(() => {
+    if (initialIndex !== currentIndex && displayMeals.length > 0) {
+      setCurrentIndex(Math.min(initialIndex, displayMeals.length - 1));
+    }
+  }, [initialIndex]);
+
   // Preload initial videos when component mounts
   useEffect(() => {
     if (!isVisible || displayMeals.length === 0 || !isMountedRef.current) return;
@@ -213,13 +237,10 @@ export function NoshHeavenPlayer({
     };
   }, []);
 
-  // Derived value for safe access
-  const currentSwipeMessageOpacity = useDerivedValue(() => swipeMessageOpacity.value);
-
-  // Animated style for swipe message
+  // Animated style for swipe message - use shared value directly (safe in worklet context)
   const swipeMessageStyle = useAnimatedStyle(() => {
     return {
-      opacity: currentSwipeMessageOpacity.value,
+      opacity: swipeMessageOpacity.value,
     };
   });
 
@@ -284,7 +305,6 @@ export function NoshHeavenPlayer({
           isVisible={isCurrentItem}
           isPreloaded={isPreloaded}
           onLike={() => onMealLike?.(item.id)}
-          onComment={() => onMealComment?.(item.id)}
           onShare={() => onMealShare?.(item.id)}
           onAddToCart={() => onAddToCart?.(item.id)}
           onKitchenPress={() => onKitchenPress?.(item.kitchenName)}
@@ -294,7 +314,7 @@ export function NoshHeavenPlayer({
       console.warn('Render meal item error:', error);
       return null;
     }
-  }, [currentIndex, preloadedVideos, onMealLike, onMealComment, onMealShare, onAddToCart, onKitchenPress]);
+  }, [currentIndex, preloadedVideos, onMealLike, onMealShare, onAddToCart, onKitchenPress]);
 
   // Validate props - moved after all hooks
   if (!Array.isArray(displayMeals) || displayMeals.length === 0) {

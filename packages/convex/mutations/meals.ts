@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { mutation } from "../_generated/server";
+import { mutation, internalMutation } from "../_generated/server";
 import { requireAuth, requireStaff, requireAdmin, isAdmin, isStaff } from '../utils/auth';
 
 export const createMeal = mutation(
@@ -175,5 +175,48 @@ export const deleteMeal = mutation({
     
     await ctx.db.delete(args.mealId);
     return true;
+  },
+});
+
+// Internal mutation to update meal embedding
+export const updateMealEmbedding = internalMutation({
+  args: {
+    mealId: v.id('meals'),
+    embedding: v.array(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.mealId, {
+      embedding: args.embedding,
+    });
+    return { success: true };
+  },
+});
+
+// Internal mutation for seeding - bypasses auth
+export const createMealForSeed = internalMutation({
+  args: {
+    chefId: v.id('chefs'),
+    name: v.string(),
+    description: v.string(),
+    price: v.number(),
+    cuisine: v.array(v.string()),
+    dietary: v.array(v.string()),
+    status: v.union(v.literal('available'), v.literal('unavailable')),
+    images: v.optional(v.array(v.string())),
+    rating: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("meals", {
+      chefId: args.chefId,
+      name: args.name,
+      description: args.description,
+      price: args.price,
+      cuisine: args.cuisine,
+      dietary: args.dietary,
+      status: args.status,
+      images: args.images || [],
+      rating: args.rating,
+    });
+    return id;
   },
 });

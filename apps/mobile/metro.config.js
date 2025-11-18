@@ -93,15 +93,6 @@ if (!isEASBuild) {
   }
 }
 
-// Block test files from being bundled (they're not meant for the mobile app)
-if (!config.resolver.blockList) {
-  config.resolver.blockList = [];
-}
-// Exclude Convex test files that have incorrect import paths
-config.resolver.blockList.push(
-  new RegExp(`${workspaceRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/packages/convex/queries/testFriendsQuery\\.ts$`)
-);
-
 // Add support for @ alias and explicitly resolve React
 let reactPath = path.join(appNodeModules, 'react');
 let reactDomPath = path.join(appNodeModules, 'react-dom');

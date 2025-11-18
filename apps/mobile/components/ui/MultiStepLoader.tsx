@@ -221,13 +221,11 @@ export const MultiStepLoader: React.FC<MultiStepLoaderProps> = ({
     return cleanup;
   }, [cleanup]);
 
-  // Derived value for safe access
-  const currentOpacity = useDerivedValue(() => opacity.value);
-
+  // Animated style - use shared value directly (safe in worklet context)
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
     return {
-      opacity: currentOpacity.value,
+      opacity: opacity.value,
     };
   });
 

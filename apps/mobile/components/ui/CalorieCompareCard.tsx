@@ -56,32 +56,24 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
   const barsProgress = useSharedValue(0);
   const numbersScale = useSharedValue(0.8);
 
-  // Derived values for safe access
-  const currentCardOpacity = useDerivedValue(() => cardOpacity.value);
-  const currentCardScale = useDerivedValue(() => cardScale.value);
-  const currentCardTranslateY = useDerivedValue(() => cardTranslateY.value);
-  const currentNumbersScale = useDerivedValue(() => numbersScale.value);
-  const currentBarsProgress = useDerivedValue(() => barsProgress.value);
-
   // State for JSX access
   const [barsProgressState, setBarsProgressState] = useState(0);
 
   useDerivedValue(() => {
-    runOnJS(setBarsProgressState)(currentBarsProgress.value);
-  }, [currentBarsProgress]);
+    runOnJS(setBarsProgressState)(barsProgress.value);
+  }, [barsProgress]);
 
-  // Animated styles
+  // Animated styles - use shared values directly (safe in worklet context)
   const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: currentCardOpacity.value,
+    opacity: cardOpacity.value,
     transform: [
-      { scale: currentCardScale.value },
-      { translateY: currentCardTranslateY.value }
+      { scale: cardScale.value },
+      { translateY: cardTranslateY.value }
     ],
   }));
 
-
   const numbersAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: currentNumbersScale.value }],
+    transform: [{ scale: numbersScale.value }],
   }));
 
   // Start entrance animations

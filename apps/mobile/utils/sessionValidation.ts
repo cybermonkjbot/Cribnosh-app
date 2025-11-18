@@ -6,6 +6,7 @@
 import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { api } from "@/convex/_generated/api";
 import { clearAuthData } from "./authUtils";
+import { isNetworkError } from "./networkErrorHandler";
 
 /**
  * Validates a session token with the backend
@@ -31,8 +32,11 @@ export const validateSessionWithBackend = async (
     // If user is null, session is invalid/expired
     return user !== null;
   } catch (error) {
-    console.error("Error validating session with backend:", error);
-    // On error, assume session is invalid to be safe
+    // If it's a network error, assume session is still valid (we just can't verify it)
+    if (isNetworkError(error)) {
+      return true;
+    }
+    // For other errors, assume session is invalid to be safe
     return false;
   }
 };
@@ -54,6 +58,7 @@ export const validateAndClearInvalidSession = async (): Promise<boolean> => {
     
     if (!isValid) {
       // Session is invalid or expired, clear it
+      // Note: validateSessionWithBackend returns true on network errors, so this only runs on actual validation failures
       console.log("Session validation failed - clearing invalid session");
       await clearAuthData();
       return false;
@@ -61,8 +66,11 @@ export const validateAndClearInvalidSession = async (): Promise<boolean> => {
 
     return true;
   } catch (error) {
-    console.error("Error validating and clearing session:", error);
-    // On error, clear session to be safe
+    // If it's a network error, don't clear the session (assume it's still valid)
+    if (isNetworkError(error)) {
+      return true;
+    }
+    // For other errors, clear session to be safe
     await clearAuthData().catch(() => {});
     return false;
   }
@@ -88,7 +96,7 @@ export const validateSessionBeforeApiCall = async (): Promise<boolean> => {
     
     return true;
   } catch (error) {
-    console.error("Error in session pre-validation:", error);
+    // Silently handle errors
     return false;
   }
 };

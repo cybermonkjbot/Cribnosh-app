@@ -12,7 +12,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useQuery } from "convex/react";
 import { Link, router, usePathname } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { CarFront, MessageSquare, Utensils } from "lucide-react-native";
+import { CarFront, MessageSquare, Utensils, ChefHat } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -139,6 +139,29 @@ export default function CartScreen() {
   const hasItems = cartItems.length > 0;
   const isLoading = cartData === undefined; // undefined means query is loading
   const isEmpty = cartData !== undefined && cartItems.length === 0;
+
+  // Check if items come from multiple kitchens
+  const hasMultipleKitchens = useMemo(() => {
+    if (cartItems.length === 0) return false;
+    const uniqueKitchenIds = new Set(
+      cartItems
+        .map((item: any) => item.chef_id)
+        .filter((id: any) => id !== undefined && id !== null)
+    );
+    const result = uniqueKitchenIds.size > 1;
+    // Debug logging
+    console.log('Cart - Multiple kitchens check:', {
+      totalItems: cartItems.length,
+      uniqueKitchenIds: Array.from(uniqueKitchenIds),
+      hasMultiple: result,
+      itemsWithChefId: cartItems.map((item: any) => ({
+        name: item.dish_name,
+        chef_id: item.chef_id,
+        chef_profile_image: item.chef_profile_image,
+      })),
+    });
+    return result;
+  }, [cartItems]);
 
   const pathname = usePathname();
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -627,6 +650,22 @@ export default function CartScreen() {
                   <View style={styles.itemLeft}>
                     {(() => {
                       const absoluteImageUrl = getAbsoluteImageUrl(item.image_url);
+                      const kitchenProfileImage = item.chef_profile_image 
+                        ? getAbsoluteImageUrl(item.chef_profile_image)
+                        : null;
+                      const showKitchenBadge = hasMultipleKitchens;
+                      
+                      // Debug logging
+                      if (hasMultipleKitchens) {
+                        console.log('Cart Item - Badge check:', {
+                          dishName: item.dish_name,
+                          hasMultipleKitchens,
+                          chefProfileImage: item.chef_profile_image,
+                          kitchenProfileImage,
+                          showKitchenBadge,
+                        });
+                      }
+                      
                       return absoluteImageUrl ? (
                         <View style={styles.imageContainer}>
                           <Image
@@ -634,10 +673,40 @@ export default function CartScreen() {
                             style={styles.itemImage}
                             defaultSource={require("@/assets/images/sample.png")}
                           />
+                          {showKitchenBadge && (
+                            <View style={styles.kitchenBadgeContainer}>
+                              {kitchenProfileImage ? (
+                                <Image
+                                  source={{ uri: kitchenProfileImage }}
+                                  style={styles.kitchenBadge}
+                                  defaultSource={require("@/assets/images/sample.png")}
+                                />
+                              ) : (
+                                <View style={styles.kitchenBadgePlaceholder}>
+                                  <ChefHat size={16} color="#094327" />
+                                </View>
+                              )}
+                            </View>
+                          )}
                         </View>
                       ) : (
                         <View style={[styles.imageContainer, styles.iconContainer]}>
                           <Utensils size={32} color="#9CA3AF" />
+                          {showKitchenBadge && (
+                            <View style={styles.kitchenBadgeContainer}>
+                              {kitchenProfileImage ? (
+                                <Image
+                                  source={{ uri: kitchenProfileImage }}
+                                  style={styles.kitchenBadge}
+                                  defaultSource={require("@/assets/images/sample.png")}
+                                />
+                              ) : (
+                                <View style={styles.kitchenBadgePlaceholder}>
+                                  <ChefHat size={16} color="#094327" />
+                                </View>
+                              )}
+                            </View>
+                          )}
                         </View>
                       );
                     })()}
@@ -977,6 +1046,7 @@ const styles = StyleSheet.create({
     width: 80, // w-20
     borderRadius: 12, // rounded-xl
     padding: 8, // p-2
+    position: 'relative', // For absolute positioning of kitchen badge
   },
   itemImage: {
     width: '100%', // w-full
@@ -988,6 +1058,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F3F4F6', // Light gray background for icon
     padding: 8, // p-2
+  },
+  kitchenBadgeContainer: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 10,
+  },
+  kitchenBadge: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+  },
+  kitchenBadgePlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   itemPrice: {
     fontWeight: '700', // font-bold

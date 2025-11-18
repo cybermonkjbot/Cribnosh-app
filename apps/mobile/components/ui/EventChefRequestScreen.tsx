@@ -3,15 +3,8 @@ import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from '@/contexts/AuthContext';
 import {
-  Briefcase,
-  Cake,
   Calendar,
-  ChefHat,
   ChevronRight,
-  FileText,
-  Gift,
-  GraduationCap,
-  Heart,
   Mail,
   MapPin,
   Phone,
@@ -34,22 +27,22 @@ interface EventChefRequestScreenProps {
 }
 
 const EVENT_TYPES = [
-  { label: 'Wedding', Icon: Heart },
-  { label: 'Birthday Party', Icon: Cake },
-  { label: 'Corporate Event', Icon: Briefcase },
-  { label: 'Anniversary', Icon: Heart },
-  { label: 'Graduation', Icon: GraduationCap },
-  { label: 'Holiday Celebration', Icon: Gift },
-  { label: 'Other', Icon: Sparkles },
+  { label: 'Wedding' },
+  { label: 'Birthday Party' },
+  { label: 'Corporate Event' },
+  { label: 'Anniversary' },
+  { label: 'Graduation' },
+  { label: 'Holiday Celebration' },
+  { label: 'Other' },
 ];
 
 const STEPS = [
-  { id: 'eventType', question: "What's the occasion?", Icon: Sparkles },
-  { id: 'eventDate', question: 'When is your event?', Icon: Calendar },
-  { id: 'guests', question: 'How many guests?', Icon: Users },
-  { id: 'location', question: 'Where will it be?', Icon: MapPin },
-  { id: 'contact', question: 'How can we reach you?', Icon: Phone },
-  { id: 'details', question: 'Any special requirements?', Icon: FileText },
+  { id: 'eventType', question: "What's the occasion?" },
+  { id: 'eventDate', question: 'When is your event?' },
+  { id: 'guests', question: 'How many guests?' },
+  { id: 'location', question: 'Where will it be?' },
+  { id: 'contact', question: 'How can we reach you?' },
+  { id: 'details', question: 'Any special requirements?' },
 ];
 
 export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps) {
@@ -252,7 +245,6 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
           <View style={styles.stepContent}>
             <View style={styles.eventTypesGrid}>
               {EVENT_TYPES.map((type) => {
-                const IconComponent = type.Icon;
                 return (
                   <TouchableOpacity
                     key={type.label}
@@ -263,12 +255,6 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
                     onPress={() => setEventType(type.label)}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.eventTypeIconContainer}>
-                      <IconComponent 
-                        size={32} 
-                        color={eventType === type.label ? '#F23E2E' : '#6B7280'} 
-                      />
-                    </View>
                     <Text
                       style={[
                         styles.eventTypeLabel,
@@ -436,7 +422,6 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
 
   const currentStepData = STEPS[currentStep];
   const progress = ((currentStep + 1) / STEPS.length) * 100;
-  const StepIcon = currentStepData.Icon;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -444,7 +429,6 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <ChefHat size={24} color="#F23E2E" />
             <Text style={styles.title}>Let&apos;s plan your event</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -488,9 +472,6 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
 
             {/* Step Question */}
             <View style={styles.questionContainer}>
-              <View style={styles.questionIconContainer}>
-                <StepIcon size={40} color="#F23E2E" />
-              </View>
               <Text style={styles.questionText}>{currentStepData.question}</Text>
             </View>
 
@@ -600,15 +581,6 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     alignItems: 'center',
   },
-  questionIconContainer: {
-    marginBottom: 16,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FFF5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   questionText: {
     fontSize: 24,
     fontWeight: '700',
@@ -633,7 +605,7 @@ const styles = StyleSheet.create({
   },
   eventTypeCard: {
     width: '47%',
-    aspectRatio: 1.2,
+    minHeight: 80,
     backgroundColor: '#F9FAFB',
     borderRadius: 16,
     borderWidth: 2,
@@ -646,15 +618,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF5F5',
     borderColor: '#F23E2E',
     borderWidth: 2,
-  },
-  eventTypeIconContainer: {
-    marginBottom: 12,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   eventTypeLabel: {
     fontSize: 14,

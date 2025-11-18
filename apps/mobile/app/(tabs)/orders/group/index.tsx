@@ -5,16 +5,16 @@ import { Avatar } from '@/components/ui/Avatar';
 import { GroupMealSelection } from '@/components/ui/GroupMealSelection';
 import { Input } from '@/components/ui/Input';
 import ScatteredGroupMembers from '@/components/ui/ScatteredGroupMembers';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAuthState } from '@/hooks/useAuthState';
+import { useConnections } from '@/hooks/useConnections';
+import { useGroupOrders } from '@/hooks/useGroupOrders';
+import { GroupOrderParticipant } from '@/types/customer';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { ChevronLeft, SearchIcon, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useGroupOrders } from '@/hooks/useGroupOrders';
-import { useConnections } from '@/hooks/useConnections';
-import { useAuthState } from '@/hooks/useAuthState';
-import { GroupOrder, GroupOrderParticipant } from '@/types/customer';
 
 export default function GroupOrdersScreen() {
   const router = useRouter();
@@ -34,8 +34,7 @@ export default function GroupOrdersScreen() {
     getGroupOrder, 
     getGroupOrderStatus, 
     markSelectionsReady, 
-    startSelectionPhase,
-    isLoading: isLoadingGroupOrders 
+    startSelectionPhase
   } = useGroupOrders();
   
   const {
@@ -48,7 +47,6 @@ export default function GroupOrdersScreen() {
   const [statusData, setStatusData] = useState<any>(null);
   const [connectionsData, setConnectionsData] = useState<any>(null);
   const [isLoadingGroupOrder, setIsLoadingGroupOrder] = useState(false);
-  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
   const [groupOrderError, setGroupOrderError] = useState<any>(null);
   const [isMarkingReady, setIsMarkingReady] = useState(false);
   const [isStartingPhase, setIsStartingPhase] = useState(false);
@@ -78,20 +76,17 @@ export default function GroupOrdersScreen() {
     if (!groupOrderId) return;
     
     try {
-      setIsLoadingStatus(true);
       const result = await getGroupOrderStatus(groupOrderId);
       if (result.success) {
         // result.data is the Convex response which has success and spreads status properties
         setStatusData(result.data);
       }
-    } catch (error) {
+    } catch {
       // Error already handled in hook
-    } finally {
-      setIsLoadingStatus(false);
     }
   }, [groupOrderId, getGroupOrderStatus]);
   
-  // Load connections when searching
+  // Load connections when searching - only fetch once when search query changes
   const loadConnections = useCallback(async () => {
     if (!searchQuery) {
       setConnectionsData(null);
@@ -103,14 +98,16 @@ export default function GroupOrdersScreen() {
       if (result.success) {
         setConnectionsData({ success: true, data: result.data });
       }
-    } catch (error) {
+    } catch {
       // Error already handled in hook
     }
   }, [searchQuery, getConnections]);
   
   useEffect(() => {
+    // Only fetch when search query changes, not on every render
     loadConnections();
-  }, [loadConnections]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
   
   // Initial load
   useEffect(() => {
@@ -196,7 +193,7 @@ export default function GroupOrdersScreen() {
   const filteredUsers = useMemo(() => {
     if (!connectionsData?.data || !searchQuery) return [];
     const query = searchQuery.toLowerCase();
-    return connectionsData.data.filter(conn => 
+    return connectionsData.data.filter((conn: { user_name: string }) => 
       conn.user_name.toLowerCase().includes(query)
     );
   }, [connectionsData?.data, searchQuery]);
@@ -279,7 +276,7 @@ export default function GroupOrdersScreen() {
       
       setIsGeneratingLink(false);
       setShowShareModal(false);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error sharing:', error);
       setIsGeneratingLink(false);
       setShowShareModal(false);
@@ -297,7 +294,7 @@ export default function GroupOrdersScreen() {
         // Reload data to update UI
         await Promise.all([loadGroupOrderData(), loadStatusData()]);
       }
-    } catch (error: any) {
+    } catch {
       // Error already handled in hook
     } finally {
       setIsMarkingReady(false);
@@ -322,7 +319,7 @@ export default function GroupOrdersScreen() {
                 // Reload data to update UI
                 await Promise.all([loadGroupOrderData(), loadStatusData()]);
               }
-            } catch (error: any) {
+            } catch {
               // Error already handled in hook
             } finally {
               setIsStartingPhase(false);
@@ -548,7 +545,7 @@ export default function GroupOrdersScreen() {
               {isLoadingConnections ? 'Searching...' : 
                filteredUsers.length > 0 ? `Found ${filteredUsers.length} people` : 'No results found'}
             </Text>
-            {!isLoadingConnections && filteredUsers.map((conn) => (
+            {!isLoadingConnections && filteredUsers.map((conn: { user_id: string; user_name: string; avatar_url?: string; connection_type?: string; source?: string }) => (
               <View key={conn.user_id} style={styles.userResultItem}>
                 <TouchableOpacity 
                   style={styles.userResultContent}

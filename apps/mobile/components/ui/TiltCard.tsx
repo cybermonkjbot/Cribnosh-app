@@ -89,19 +89,18 @@ export function TiltCard({
     scale.value = withSpring(newScale, springConfig);
   }, [motionData, enabled, isAvailable, intensity, springConfig, tiltX, tiltY, scale]);
 
-  // Derived values for safe access
+  // Derived values for string interpolation
   const tiltXDegrees = useDerivedValue(() => `${tiltX.value}deg`);
   const tiltYDegrees = useDerivedValue(() => `${tiltY.value}deg`);
-  const currentScale = useDerivedValue(() => scale.value);
 
-  // Animated style for the tilt effect
+  // Animated style for the tilt effect - use shared values directly (safe in worklet context)
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
         { perspective: 1000 },
         { rotateX: tiltXDegrees.value },
         { rotateY: tiltYDegrees.value },
-        { scale: currentScale.value },
+        { scale: scale.value },
       ],
     };
   }, []);

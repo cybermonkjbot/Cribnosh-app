@@ -74,6 +74,19 @@ export const getBlogPosts = query({
           .collect()
           .then((comments: any[]) => comments.length);
 
+        // Convert storage IDs to URLs
+        const coverImageUrl = post.coverImage 
+          ? (typeof post.coverImage === 'string' && post.coverImage.startsWith('http') 
+              ? post.coverImage 
+              : await ctx.storage.getUrl(post.coverImage as any).catch(() => null))
+          : null;
+        
+        const featuredImageUrl = post.featuredImage 
+          ? (typeof post.featuredImage === 'string' && post.featuredImage.startsWith('http') 
+              ? post.featuredImage 
+              : await ctx.storage.getUrl(post.featuredImage as any).catch(() => null))
+          : null;
+
         return {
           _id: post._id,
           title: post.title,
@@ -87,8 +100,8 @@ export const getBlogPosts = query({
           headings: post.headings,
           categories: post.categories || [],
           date: post.date,
-          coverImage: post.coverImage,
-          featuredImage: post.featuredImage,
+          coverImage: coverImageUrl,
+          featuredImage: featuredImageUrl,
           tags: post.tags || [],
           publishedAt: post.publishedAt,
           createdAt: post.createdAt,
@@ -96,6 +109,7 @@ export const getBlogPosts = query({
           viewCount,
           likeCount,
           commentCount,
+          videoId: post.videoId,
           seoTitle: post.seoTitle,
           seoDescription: post.seoDescription,
         };
@@ -197,6 +211,19 @@ export const getBlogPostById = query({
       .collect()
       .then((comments: any[]) => comments.length);
     
+    // Convert storage IDs to URLs
+    const coverImageUrl = post.coverImage 
+      ? (typeof post.coverImage === 'string' && post.coverImage.startsWith('http') 
+          ? post.coverImage 
+          : await ctx.storage.getUrl(post.coverImage as any).catch(() => null))
+      : null;
+    
+    const featuredImageUrl = post.featuredImage 
+      ? (typeof post.featuredImage === 'string' && post.featuredImage.startsWith('http') 
+          ? post.featuredImage 
+          : await ctx.storage.getUrl(post.featuredImage as any).catch(() => null))
+      : null;
+    
     return {
       _id: post._id,
       title: post.title,
@@ -210,8 +237,8 @@ export const getBlogPostById = query({
       headings: post.headings,
       categories: post.categories || [],
       date: post.date,
-      coverImage: post.coverImage,
-      featuredImage: post.featuredImage,
+      coverImage: coverImageUrl,
+      featuredImage: featuredImageUrl,
       tags: post.tags || [],
       publishedAt: post.publishedAt,
       createdAt: post.createdAt,
@@ -219,6 +246,7 @@ export const getBlogPostById = query({
       viewCount,
       likeCount,
       commentCount,
+      videoId: post.videoId,
       seoTitle: post.seoTitle,
       seoDescription: post.seoDescription,
       categoryId: post.categoryId,

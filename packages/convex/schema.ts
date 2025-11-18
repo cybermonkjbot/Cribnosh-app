@@ -385,7 +385,14 @@ export default defineSchema({
     dietCompatibility: v.optional(v.number()),
     dietMessage: v.optional(v.string()),
     chefTips: v.optional(v.array(v.string())),
-  }),
+    // Vector embedding for semantic search (1536 dimensions for OpenAI text-embedding-3-small)
+    embedding: v.optional(v.array(v.number())),
+  })
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filter: (q) => q.eq(q.field("status"), "available"),
+    }),
   // Bookings table
   bookings: defineTable({
     chef_id: v.id("chefs"),
@@ -2755,6 +2762,7 @@ export default defineSchema({
     tags: v.array(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
+    videoId: v.optional(v.id("videoPosts")), // Associated video for story
     publishedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -2762,7 +2770,8 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
     .index("by_author", ["authorName"])
-    .index("by_published", ["publishedAt"]),
+    .index("by_published", ["publishedAt"])
+    .index("by_video", ["videoId"]),
 
   // Recipes table (separate from content for specific recipe functionality)
   recipes: defineTable({
@@ -2791,13 +2800,15 @@ export default defineSchema({
       v.literal("archived")
     ),
     featuredImage: v.optional(v.string()),
+    videoId: v.optional(v.id("videoPosts")), // Associated video for recipe demonstration
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_cuisine", ["cuisine"])
     .index("by_difficulty", ["difficulty"])
     .index("by_status", ["status"])
-    .index("by_author", ["author"]),
+    .index("by_author", ["author"])
+    .index("by_video", ["videoId"]),
 
   // Static Pages table (separate from content for specific page functionality)
   staticPages: defineTable({
@@ -2834,6 +2845,7 @@ export default defineSchema({
     createdAt: v.number(),
     lastMessageAt: v.optional(v.number()),
     isActive: v.boolean(),
+    threadId: v.optional(v.string()), // Agent thread ID for Convex AI Agents
   })
     .index("by_created_by", ["createdBy"])
     .index("by_active", ["isActive"])
@@ -2860,6 +2872,7 @@ export default defineSchema({
   videoPosts: defineTable({
     creatorId: v.id("users"), // Must be chef or food creator
     kitchenId: v.optional(v.id("kitchens")), // Kitchen associated with this video
+    mealId: v.optional(v.id("meals")), // Optional: specific meal this video is linked to
     title: v.string(),
     description: v.optional(v.string()),
     videoStorageId: v.id("_storage"), // Convex storage ID for video

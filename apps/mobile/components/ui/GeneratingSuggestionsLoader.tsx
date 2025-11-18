@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import Animated, {
     cancelAnimation,
@@ -8,6 +8,7 @@ import Animated, {
     interpolate,
     runOnJS,
     useAnimatedStyle,
+    useDerivedValue,
     useSharedValue,
     withRepeat,
     withTiming,
@@ -37,6 +38,14 @@ export const GeneratingSuggestionsLoader: React.FC<GeneratingSuggestionsLoaderPr
   const translateY = useSharedValue(20);
   const hasCompleted = useRef(false);
   const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+  
+  // State for JSX access to avoid reading shared value during render
+  const [currentStepState, setCurrentStepState] = useState(0);
+  
+  // Update state from shared value using useDerivedValue
+  useDerivedValue(() => {
+    runOnJS(setCurrentStepState)(Math.round(currentStep.value));
+  }, [currentStep]);
 
   const completeLoading = useCallback(() => {
     if (hasCompleted.current) return;
@@ -174,7 +183,7 @@ export const GeneratingSuggestionsLoader: React.FC<GeneratingSuggestionsLoaderPr
 
             {/* Current Step Text */}
             <Text style={styles.currentStepText}>
-              {LOADING_STEPS[Math.round(currentStep.value)] || LOADING_STEPS[0]}
+              {LOADING_STEPS[currentStepState] || LOADING_STEPS[0]}
             </Text>
           </Animated.View>
         </BlurView>

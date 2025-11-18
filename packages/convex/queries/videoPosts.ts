@@ -1,6 +1,5 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { Id } from "../_generated/dataModel";
+import { query } from "../_generated/server";
 
 // Helper: Get video URL from storage ID
 export const getVideoUrl = query({
@@ -35,6 +34,68 @@ export const getThumbnailUrl = query({
     }
   },
 });
+
+// Helper function to find meal by kitchenId and title match
+async function findMealByKitchenAndTitle(
+  ctx: any,
+  kitchenId: any,
+  videoTitle: string
+): Promise<{ mealId: any; price: number } | null> {
+  if (!kitchenId) {
+    return null;
+  }
+
+  try {
+    // Get kitchen to find chef
+    const kitchen = await ctx.db.get(kitchenId);
+    if (!kitchen) {
+      return null;
+    }
+
+    // Find chef by userId (kitchen owner_id)
+    const chef = await ctx.db
+      .query("chefs")
+      .withIndex("by_user", (q: any) => q.eq("userId", kitchen.owner_id))
+      .first();
+
+    if (!chef) {
+      return null;
+    }
+
+    // Get all available meals for this chef
+    const meals = await ctx.db
+      .query("meals")
+      .filter((q: any) => q.eq(q.field("chefId"), chef._id))
+      .filter((q: any) => q.eq(q.field("status"), "available"))
+      .collect();
+
+    if (meals.length === 0) {
+      return null;
+    }
+
+    // Try to match by title (case-insensitive partial match)
+    const videoTitleLower = videoTitle.toLowerCase();
+    const matchedMeal = meals.find((meal: any) => {
+      const mealName = meal.name?.toLowerCase() || "";
+      return (
+        mealName.includes(videoTitleLower) ||
+        videoTitleLower.includes(mealName)
+      );
+    });
+
+    if (matchedMeal && matchedMeal.price) {
+      return {
+        mealId: matchedMeal._id,
+        price: matchedMeal.price, // Price in cents
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error finding meal by kitchen and title:", error);
+    return null;
+  }
+}
 
 // Get video feed with pagination
 export const getVideoFeed = query({
@@ -92,6 +153,8 @@ export const getVideoFeed = query({
         roles: v.optional(v.array(v.string())),
       }),
       isLiked: v.boolean(),
+      mealId: v.optional(v.id("meals")),
+      mealPrice: v.optional(v.number()), // Price in cents
     })),
     nextCursor: v.optional(v.string()),
   }),
@@ -150,8 +213,35 @@ export const getVideoFeed = query({
           // Ignore auth errors for anonymous users
         }
 
+        // Exclude storage IDs from the response - only return URLs
+        const { videoStorageId, thumbnailStorageId, ...videoWithoutStorageIds } = video;
+
+        // Try to find associated meal by kitchenId and title
+        let mealId: any = undefined;
+        let mealPrice: number | undefined = undefined;
+        
+        // First check if video has direct mealId link
+        if (video.mealId) {
+          const meal = await ctx.db.get(video.mealId);
+          if (meal && meal.price) {
+            mealId = video.mealId;
+            mealPrice = meal.price;
+          }
+        } else if (video.kitchenId) {
+          // Otherwise, try to match by kitchenId and title
+          const mealMatch = await findMealByKitchenAndTitle(
+            ctx,
+            video.kitchenId,
+            video.title
+          );
+          if (mealMatch) {
+            mealId = mealMatch.mealId;
+            mealPrice = mealMatch.price;
+          }
+        }
+
         return {
-          ...video,
+          ...videoWithoutStorageIds,
           videoUrl,
           thumbnailUrl,
           creator: {
@@ -161,6 +251,8 @@ export const getVideoFeed = query({
             roles: creator.roles,
           },
           isLiked,
+          mealId,
+          mealPrice,
         };
       })
     );
@@ -227,7 +319,9 @@ export const getVideoById = query({
       avatar: v.optional(v.string()),
       roles: v.optional(v.array(v.string())),
     }),
-    isLiked: v.boolean(),
+      isLiked: v.boolean(),
+      mealId: v.optional(v.id("meals")),
+      mealPrice: v.optional(v.number()), // Price in cents
   }), v.null()),
   handler: async (ctx, args) => {
     const video = await ctx.db.get(args.videoId);
@@ -270,8 +364,35 @@ export const getVideoById = query({
       // Ignore auth errors for anonymous users
     }
 
+    // Exclude storage IDs from the response - only return URLs
+    const { videoStorageId, thumbnailStorageId, ...videoWithoutStorageIds } = video;
+
+    // Try to find associated meal by kitchenId and title
+    let mealId: any = undefined;
+    let mealPrice: number | undefined = undefined;
+    
+    // First check if video has direct mealId link
+    if (video.mealId) {
+      const meal = await ctx.db.get(video.mealId);
+      if (meal && meal.price) {
+        mealId = video.mealId;
+        mealPrice = meal.price;
+      }
+    } else if (video.kitchenId) {
+      // Otherwise, try to match by kitchenId and title
+      const mealMatch = await findMealByKitchenAndTitle(
+        ctx,
+        video.kitchenId,
+        video.title
+      );
+      if (mealMatch) {
+        mealId = mealMatch.mealId;
+        mealPrice = mealMatch.price;
+      }
+    }
+
     return {
-      ...video,
+      ...videoWithoutStorageIds,
       videoUrl,
       thumbnailUrl,
       creator: {
@@ -281,6 +402,8 @@ export const getVideoById = query({
         roles: creator.roles,
       },
       isLiked,
+      mealId,
+      mealPrice,
     };
   },
 });
@@ -389,8 +512,11 @@ export const getVideosByCreator = query({
           // Ignore auth errors for anonymous users
         }
 
+        // Exclude storage IDs from the response - only return URLs
+        const { videoStorageId, thumbnailStorageId, ...videoWithoutStorageIds } = video;
+
         return {
-          ...video,
+          ...videoWithoutStorageIds,
           videoUrl,
           thumbnailUrl,
           isLiked,
@@ -550,8 +676,11 @@ export const searchVideos = query({
           // Ignore auth errors for anonymous users
         }
 
+        // Exclude storage IDs from the response - only return URLs
+        const { videoStorageId, thumbnailStorageId, ...videoWithoutStorageIds } = video;
+
         return {
-          ...video,
+          ...videoWithoutStorageIds,
           videoUrl,
           thumbnailUrl,
           creator: {
@@ -707,8 +836,11 @@ export const getTrendingVideos = query({
           // Ignore auth errors for anonymous users
         }
 
+        // Exclude storage IDs from the response - only return URLs
+        const { videoStorageId, thumbnailStorageId, ...videoWithoutStorageIds } = video;
+
         return {
-          ...video,
+          ...videoWithoutStorageIds,
           videoUrl,
           thumbnailUrl,
           creator: {
@@ -727,5 +859,122 @@ export const getTrendingVideos = query({
     return videosWithEngagement
       .sort((a, b) => b.engagementScore - a.engagementScore)
       .slice(0, limit);
+  },
+});
+
+// Admin: Get all videos (for admin dashboard)
+export const getAllVideosForAdmin = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  returns: v.object({
+    videos: v.array(v.object({
+      _id: v.id("videoPosts"),
+      _creationTime: v.number(),
+      creatorId: v.id("users"),
+      title: v.string(),
+      description: v.optional(v.string()),
+      videoUrl: v.string(),
+      thumbnailUrl: v.optional(v.string()),
+      duration: v.number(),
+      fileSize: v.number(),
+      resolution: v.object({
+        width: v.number(),
+        height: v.number(),
+      }),
+      tags: v.array(v.string()),
+      cuisine: v.optional(v.string()),
+      difficulty: v.optional(v.union(
+        v.literal("beginner"),
+        v.literal("intermediate"),
+        v.literal("advanced")
+      )),
+      status: v.union(
+        v.literal("draft"),
+        v.literal("published"),
+        v.literal("archived"),
+        v.literal("flagged"),
+        v.literal("removed")
+      ),
+      visibility: v.union(
+        v.literal("public"),
+        v.literal("followers"),
+        v.literal("private")
+      ),
+      isLive: v.optional(v.boolean()),
+      liveSessionId: v.optional(v.id("liveSessions")),
+      likesCount: v.number(),
+      commentsCount: v.number(),
+      sharesCount: v.number(),
+      viewsCount: v.number(),
+      publishedAt: v.optional(v.number()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      creator: v.object({
+        _id: v.id("users"),
+        name: v.string(),
+        avatar: v.optional(v.string()),
+        roles: v.optional(v.array(v.string())),
+      }),
+    })),
+  }),
+  handler: async (ctx, args) => {
+    // Check if user is admin
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const email = identity.tokenIdentifier.split(':')[1];
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', q => q.eq('email', email))
+      .first();
+
+    if (!user || !user.roles?.includes('admin')) {
+      throw new Error("Not authorized - admin access required");
+    }
+
+    // Get all videos (not just published)
+    const limit = args.limit || 1000;
+    const videos = await ctx.db
+      .query('videoPosts')
+      .order('desc')
+      .take(limit);
+
+    // Get user info for each video
+    const videosWithCreator = await Promise.all(
+      videos.map(async (video) => {
+        const creator = await ctx.db.get(video.creatorId);
+        if (!creator) {
+          throw new Error("Creator not found");
+        }
+
+        // Generate URLs from Convex storage IDs
+        const videoUrl = await ctx.storage.getUrl(video.videoStorageId) || '';
+        const thumbnailUrl = video.thumbnailStorageId 
+          ? await ctx.storage.getUrl(video.thumbnailStorageId) || undefined
+          : undefined;
+
+        // Exclude storage IDs from the response - only return URLs
+        const { videoStorageId, thumbnailStorageId, ...videoWithoutStorageIds } = video;
+
+        return {
+          ...videoWithoutStorageIds,
+          videoUrl,
+          thumbnailUrl,
+          creator: {
+            _id: creator._id,
+            name: creator.name,
+            avatar: creator.avatar,
+            roles: creator.roles,
+          },
+        };
+      })
+    );
+
+    return {
+      videos: videosWithCreator,
+    };
   },
 });

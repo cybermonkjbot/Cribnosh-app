@@ -44,12 +44,11 @@ export default function StaffBlogPage() {
     api.queries.blog.getBlogPosts,
     sessionToken ? {
       status: statusFilter === 'all' ? undefined : statusFilter,
-      sessionToken,
     } : "skip"
   );
   const categories = useQuery(
     api.queries.blog.getBlogCategories,
-    sessionToken ? { sessionToken } : "skip"
+    sessionToken ? {} : "skip"
   );
 
   // Mutations

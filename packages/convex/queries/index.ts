@@ -92,6 +92,12 @@ export * from './waitlist';
 // Export blog queries
 export * from './blog';
 
+// Export recipes queries
+export * from './recipes';
+
+// Export video posts queries
+export * from './videoPosts';
+
 // Export users queries (explicit exports to avoid conflicts)
 export {
   countUnreadNotifications, getAll, getAllDocuments, getAllStaff, getAllUsers, getById, getCurrentUser, getDietaryPreferences,

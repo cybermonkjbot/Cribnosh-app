@@ -1,18 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { api } from '@/convex/_generated/api';
 import { useCart } from '@/hooks/useCart';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
 import { VideoPost } from '@/types/customer';
-import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';
-import { NoshHeavenErrorBoundary } from './ErrorBoundary';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Share } from 'react-native';
 import {
   showError,
   showSuccess,
   showWarning,
 } from '../../lib/GlobalToastManager';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
+import { NoshHeavenErrorBoundary } from './ErrorBoundary';
+import { MealData, NoshHeavenPlayer } from './NoshHeavenPlayer';
 
 interface NoshHeavenModalProps {
   onClose: () => void;
@@ -20,16 +21,24 @@ interface NoshHeavenModalProps {
 
 // Transform VideoPost to MealData format
 const transformVideoToMeal = (video: VideoPost): MealData => {
+  // Format price if meal is linked, otherwise empty string (will hide price and button)
+  let price = '';
+  if ((video as any).mealPrice && typeof (video as any).mealPrice === 'number') {
+    // Convert cents to pounds
+    price = `£${((video as any).mealPrice / 100).toFixed(2)}`;
+  }
+  
   return {
     id: video._id,
     videoSource: video.videoUrl || '',
     title: video.title,
     description: video.description || '',
     kitchenName: video.creator.name,
-    price: '', // Videos don't have prices
+    price,
     chef: video.creator.name,
     likes: video.likesCount,
     comments: video.commentsCount,
+    mealId: (video as any).mealId, // Include mealId if video is linked to a meal
   };
 };
 
@@ -261,27 +270,35 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
     [isAuthenticated, noshHeavenMeals, likeVideo, unlikeVideo]
   );
 
-  const handleMealComment = useCallback(
-    (mealId: string) => {
-      // Navigate to comments screen or open comment modal
-      router.push({
-        pathname: '/meal-comments',
-        params: { mealId },
-      });
-    },
-    [router]
-  );
-
   const handleMealShare = useCallback(
     async (mealId: string) => {
       try {
-        await shareVideo({ videoId: mealId });
-        showSuccess('Video shared!', 'Thanks for sharing');
-      } catch (error) {
-        showError('Failed to share video', 'Please try again');
+        const meal = noshHeavenMeals.find((m) => m.id === mealId);
+        if (!meal) return;
+
+        // Create share message
+        const shareMessage = `Check out this video: ${meal.title}\n\n${meal.videoSource}`;
+
+        // Use native share sheet
+        const result = await Share.share({
+          message: shareMessage,
+          title: meal.title,
+        });
+
+        // Record share in backend if authenticated and share was successful
+        if (isAuthenticated && result.action === Share.sharedAction) {
+          try {
+            await shareVideo({ videoId: mealId });
+          } catch (error) {
+            // Silently fail - share was successful even if backend recording fails
+            console.error('Failed to record share:', error);
+          }
+        }
+      } catch (error: any) {
+        showError('Failed to share video', error?.message || 'Please try again');
       }
     },
-    [shareVideo, showSuccess, showError]
+    [noshHeavenMeals, isAuthenticated, shareVideo]
   );
 
   // Handle video view tracking
@@ -307,6 +324,13 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
 
   const handleAddToCart = useCallback(
     async (mealId: string) => {
+      // Find the meal data to get mealId (the actual meal ID, not video ID)
+      const meal = noshHeavenMeals.find((m) => m.id === mealId);
+      if (!meal?.mealId) {
+        showError('Cannot add to cart', 'This video is not linked to a meal');
+        return;
+      }
+
       // Check authentication and token validity
       if (!isAuthenticated || !token) {
         showWarning(
@@ -331,16 +355,16 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
       }
 
       try {
-        const result = await addToCartAction(mealId, 1);
+        const result = await addToCartAction(meal.mealId, 1);
 
         if (result.success) {
-          showSuccess('Added to Cart!', result.data.item?.name || 'Item');
+          showSuccess('Added to Cart!', result.data.item?.name || meal.title);
         }
       } catch {
         showError('Failed to add item to cart', 'Please try again');
       }
     },
-    [isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCartAction]
+    [noshHeavenMeals, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCartAction]
   );
 
   const handleKitchenPress = useCallback(
@@ -354,19 +378,20 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
   );
 
   return (
-    <NoshHeavenErrorBoundary>
-      <NoshHeavenPlayer
-        isVisible={true}
-        meals={noshHeavenMeals}
-        onClose={onClose}
-        onLoadMore={handleLoadMoreMeals}
-        onMealLike={handleMealLike}
-        onMealComment={handleMealComment}
-        onMealShare={handleMealShare}
-        onAddToCart={handleAddToCart}
-        onKitchenPress={handleKitchenPress}
-      />
-    </NoshHeavenErrorBoundary>
+    <>
+      <NoshHeavenErrorBoundary>
+        <NoshHeavenPlayer
+          isVisible={true}
+          meals={noshHeavenMeals}
+          onClose={onClose}
+          onLoadMore={handleLoadMoreMeals}
+          onMealLike={handleMealLike}
+          onMealShare={handleMealShare}
+          onAddToCart={handleAddToCart}
+          onKitchenPress={handleKitchenPress}
+        />
+      </NoshHeavenErrorBoundary>
+    </>
   );
 }
 
