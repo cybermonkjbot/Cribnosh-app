@@ -55,9 +55,19 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Setup Bun
+      id: setup-bun
       uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
+      continue-on-error: true
+      
+    - name: Fallback - Install Bun manually
+      if: steps.setup-bun.outcome == 'failure'
+      run: |
+        echo "⚠️  setup-bun action failed, installing Bun manually..."
+        curl -fsSL https://bun.sh/install | bash
+        echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        bun --version
         
     - name: Install dependencies
       working-directory: apps/web
@@ -140,9 +150,19 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Setup Bun
+        id: setup-bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+        continue-on-error: true
+          
+      - name: Fallback - Install Bun manually
+        if: steps.setup-bun.outcome == 'failure'
+        run: |
+          echo "⚠️  setup-bun action failed, installing Bun manually..."
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+          bun --version
 
       - name: Install dependencies
         run: |
