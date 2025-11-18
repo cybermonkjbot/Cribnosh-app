@@ -291,7 +291,7 @@ const SkeletonCard = React.memo(() => {
       -1,
       true
     );
-  }, [shimmerOpacity]);
+  }, []);
 
   const shimmerOpacityInterpolated = useDerivedValue(() => {
     return interpolate(

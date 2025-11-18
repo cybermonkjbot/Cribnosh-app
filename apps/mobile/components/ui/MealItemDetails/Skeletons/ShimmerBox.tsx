@@ -36,7 +36,7 @@ export function SkeletonBox({
     } else {
       shimmerOpacity.value = withTiming(0.3, { duration: 300 });
     }
-  }, [isVisible, shimmerOpacity]);
+  }, [isVisible]);
 
   const shimmerOpacityInterpolated = useDerivedValue(() => {
     return interpolate(
@@ -60,7 +60,7 @@ export function SkeletonBox({
   // Use regular View for percentage widths, Animated.View for numeric widths
   if (typeof width === 'string') {
     return (
-      <View style={[baseStyle, style]}>
+      <View style={[baseStyle, style, { overflow: 'hidden' }]}>
         <Animated.View
           style={[
             {

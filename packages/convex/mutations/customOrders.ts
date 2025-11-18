@@ -11,7 +11,7 @@ const orderDetailsSchema = v.object({
   dietaryRestrictions: v.optional(v.union(v.string(), v.null())),
 });
 
-export const create = mutation({
+const createMutation = mutation({
   args: {
     userId: v.id('users'),
     requirements: v.string(),
@@ -48,6 +48,10 @@ export const create = mutation({
     return orderId;
   },
 });
+
+// Export as both 'create' and 'createCustomOrder' for compatibility
+export const create = createMutation;
+export const createCustomOrder = createMutation;
 
 export const update = mutation({
   args: {
