@@ -1,5 +1,5 @@
 import { getUserFromRequest } from '@/lib/auth/session';
-import { api, getConvexClientFromRequest } from '@/lib/conxed-client';
+import { api, getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { withErrorHandling } from '@/lib/errors';
@@ -147,17 +147,26 @@ export async function GET(request: NextRequest) {
       return ResponseFactory.unauthorized('Unauthorized');
     }
     const convex = getConvexClientFromRequest(request);
+    // Extract session token from cookies (middleware already validated it exists)
+    const sessionToken = request.cookies.get('convex-auth-token')?.value || getSessionTokenFromRequest(request);
+
+    if (!sessionToken) {
+      return ResponseFactory.unauthorized('Session token required');
+    }
+
     // Fetch today's timelogs for this user
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
+    // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
     const logs = await convex.query(api.queries.timelogs.getTimelogs, {
       staffId: user._id,
       start: startOfDay.getTime(),
       end: endOfDay.getTime(),
       limit: 1,
       skip: 0,
+      sessionToken,
     });
     // Determine clock-in status: if there is a log for today, assume clocked in
     // (You can refine this logic if you have explicit clock-in/clock-out events)
