@@ -13,4 +13,5 @@ export * from "./search";
 export * from "./specialOffers";
 export * from "./coupons";
 export * from "./generateEmbeddings";
-export * from "./noshHeaven"; 
+export * from "./noshHeaven";
+export * from "./courseContent"; 

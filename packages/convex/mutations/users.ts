@@ -4,7 +4,7 @@ import {
 } from '../../../apps/web/lib/errors/convex-exports';
 import { api } from '../_generated/api';
 import { Id } from '../_generated/dataModel';
-import { mutation, MutationCtx } from '../_generated/server';
+import { mutation, internalMutation, MutationCtx } from '../_generated/server';
 import { requireAuth, requireAdmin, requireStaff, isAdmin, isStaff } from '../utils/auth';
 
 /**
@@ -321,6 +321,24 @@ export const updateUserRoles = mutation({
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
     
+    await ctx.db.patch(args.userId, {
+      roles: args.roles,
+      lastModified: Date.now(),
+    });
+  },
+});
+
+/**
+ * Internal mutation to update user roles without authentication
+ * Used during sign-in flows when user doesn't have a session token yet
+ */
+export const _updateUserRolesInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    roles: v.array(v.string()),
+  },
+  returns: v.any(),
+  handler: async (ctx: MutationCtx, args) => {
     await ctx.db.patch(args.userId, {
       roles: args.roles,
       lastModified: Date.now(),

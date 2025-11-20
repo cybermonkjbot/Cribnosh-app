@@ -47,13 +47,54 @@ async function handleGET(
     const convex = getConvexClientFromRequest(request);
     const sessionToken = getSessionTokenFromRequest(request);
     
-    // Get kitchen details (including chef name)
+    // Normalize kitchen ID - handle both kitchen IDs and chef IDs
+    let normalizedKitchenId: string = kitchenId;
+    
+    // First try as kitchen ID
+    try {
+      const testKitchen = await convex.query(
+        (api as any).queries.kitchens.getKitchenDetails,
+        { kitchenId: kitchenId as any }
+      );
+      if (!testKitchen) {
+        // If not found as kitchen ID, try as chef ID
+        const kitchenIdFromChef = await convex.query(
+          (api as any).queries.kitchens.getKitchenByChefId,
+          { chefId: kitchenId as any }
+        );
+        if (kitchenIdFromChef) {
+          normalizedKitchenId = kitchenIdFromChef;
+        } else {
+          return ResponseFactory.notFound('Kitchen not found');
+        }
+      }
+    } catch (validationError: any) {
+      // If validation error suggests it's a chef ID, try converting
+      if (validationError?.message?.includes('chefs')) {
+        try {
+          const kitchenIdFromChef = await convex.query(
+            (api as any).queries.kitchens.getKitchenByChefId,
+            { chefId: kitchenId as any }
+          );
+          if (kitchenIdFromChef) {
+            normalizedKitchenId = kitchenIdFromChef;
+          } else {
+            return ResponseFactory.notFound('Kitchen not found');
+          }
+        } catch (chefError) {
+          return ResponseFactory.notFound('Kitchen not found');
+        }
+      } else {
+        throw validationError;
+      }
+    }
+    
+    // Get kitchen details with normalized ID
     const kitchenDetails = await convex.query(
       (api as any).queries.kitchens.getKitchenDetails,
       {
-      kitchenId,
-      sessionToken: sessionToken || undefined
-    }
+        kitchenId: normalizedKitchenId as any,
+      }
     );
 
     if (!kitchenDetails) {

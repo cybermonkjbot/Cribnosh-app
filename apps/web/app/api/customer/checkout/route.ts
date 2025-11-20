@@ -1,6 +1,7 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { getConvexClientFromRequest } from '@/lib/conxed-client';
@@ -9,7 +10,6 @@ import { getOrCreateCustomer, stripe } from '@/lib/stripe';
 import { logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 
 /**
  * @swagger
@@ -87,12 +87,30 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const convex = getConvexClientFromRequest(request);
     
     // Get user's cart
-    const cart = await convex.query(api.queries.orders.getUserCart, { userId });
-    if (!cart || cart.items.length === 0) {
+    // TypeScript has issues with deep type instantiation for Convex queries
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-ts-comment
+    // @ts-ignore - Type instantiation is excessively deep
+    const cart: any = await convex.query(api.queries.orders.getUserCart, { userId });
+    if (!cart || !cart.items || cart.items.length === 0) {
       return ResponseFactory.validationError('Cart is empty.');
     }
     
-    const total = cart.items.reduce((sum: number, item: { price: number; quantity: number }) => sum + (item.price * item.quantity), 0);
+    // Check if any chefs in the cart are offline
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chefAvailability: any = await convex.query(api.queries.orders.checkCartChefAvailability, { userId });
+      if (chefAvailability && !chefAvailability.allChefsOnline && chefAvailability.offlineChefs && chefAvailability.offlineChefs.length > 0) {
+        const offlineChefNames = chefAvailability.offlineChefs.map((c: { chefName: string }) => c.chefName).join(', ');
+        return ResponseFactory.validationError(
+          `Cannot proceed with checkout. The following food creator(s) are currently offline: ${offlineChefNames}. Please remove their items from your cart or wait until they come online.`
+        );
+      }
+    } catch (error) {
+      // If check fails, log but continue with checkout (fail open)
+      logger.warn('Failed to check chef availability:', error);
+    }
+    
+    const total = cart.items.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
     
     // Validate total amount
     if (total <= 0) {

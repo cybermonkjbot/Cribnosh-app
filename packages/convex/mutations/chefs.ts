@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
-import { mutation, internalMutation } from "../_generated/server";
-import { requireAuth, requireStaff, requireAdmin, isAdmin, isStaff } from '../utils/auth';
+import { internalMutation, mutation } from "../_generated/server";
+import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 
 export const createChef = mutation(
   async (
@@ -35,7 +35,7 @@ export const createChef = mutation(
     const status = args.status || 'active';
     const city = args.location.city || '';
     const coordinates = [args.location.lat, args.location.lng];
-    const chefDoc = {
+    const chefDoc: any = {
       userId: args.userId,
       name: args.name || '',
       bio,
@@ -44,7 +44,80 @@ export const createChef = mutation(
       status,
       location: { city, coordinates },
     };
+    
+    // Add profile image if provided
+    if (args.image) {
+      chefDoc.profileImage = args.image;
+    }
     const id = await ctx.db.insert("chefs", chefDoc);
+    
+    // Add 'chef' role to user if they don't have it
+    // This allows existing customers to become chefs
+    const currentUser = await ctx.db.get(args.userId);
+    if (currentUser) {
+      const userRoles = currentUser.roles || [];
+      if (!userRoles.includes('chef')) {
+        await ctx.db.patch(args.userId, {
+          roles: [...userRoles, 'chef'],
+          lastModified: Date.now(),
+        });
+      }
+    }
+    
+    // Auto-enroll chef in compliance course
+    try {
+      const courseId = "compliance-course-v1";
+      const courseName = "Home Cooking Compliance Course";
+      
+      // Check if already enrolled
+      const existingEnrollment = await ctx.db
+        .query('chefCourses')
+        .withIndex('by_chef_course', q => 
+          q.eq('chefId', id).eq('courseId', courseId)
+        )
+        .first();
+      
+      if (!existingEnrollment) {
+        // Get all published modules for this course to initialize progress
+        const courseModules = await ctx.db
+          .query('courseModules')
+          .withIndex('by_course', q => q.eq('courseId', courseId))
+          .filter(q => q.eq(q.field('status'), 'published'))
+          .collect();
+        
+        // Sort by module number
+        courseModules.sort((a, b) => a.moduleNumber - b.moduleNumber);
+        
+        // Initialize progress array with all modules
+        const initialProgress = courseModules.map(module => ({
+          moduleId: module.moduleId,
+          moduleName: module.moduleName,
+          moduleNumber: module.moduleNumber,
+          completed: false,
+          quizAttempts: 0,
+          lastAccessed: 0,
+          timeSpent: 0,
+        }));
+        
+        const now = Date.now();
+        await ctx.db.insert('chefCourses', {
+          chefId: id,
+          courseId,
+          courseName,
+          enrollmentDate: now,
+          status: 'enrolled',
+          progress: initialProgress,
+          totalTimeSpent: 0,
+          lastAccessed: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    } catch (error) {
+      // Log error but don't fail chef creation if enrollment fails
+      console.error('Error auto-enrolling chef in compliance course:', error);
+    }
+    
     return id;
   }
 );
@@ -120,6 +193,36 @@ export const updateChef = mutation({
   }
 });
 
+export const toggleAvailability = mutation({
+  args: {
+    chefId: v.id('chefs'),
+    isAvailable: v.boolean(),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get the chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only update their own chef profile, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied: You can only update your own availability');
+    }
+    
+    await ctx.db.patch(args.chefId, {
+      isAvailable: args.isAvailable,
+      updatedAt: Date.now(),
+    });
+    
+    return { success: true, isAvailable: args.isAvailable };
+  },
+});
+
 export const update = mutation({
   args: {
     chefId: v.id('chefs'),
@@ -129,11 +232,13 @@ export const update = mutation({
       specialties: v.optional(v.array(v.string())),
       rating: v.optional(v.number()),
       image: v.optional(v.string()),
+      profileImage: v.optional(v.string()),
       status: v.optional(v.union(v.literal('active'), v.literal('inactive'), v.literal('suspended'))),
       location: v.optional(v.object({
         city: v.optional(v.string()),
         coordinates: v.optional(v.array(v.number())),
       })),
+      isAvailable: v.optional(v.boolean()),
     }),
     sessionToken: v.optional(v.string())
   },
@@ -160,6 +265,12 @@ export const update = mutation({
     // Prepare updates, ensuring required location fields are present if location is being updated
     let updates: any = { ...args.updates };
     
+    // Map 'image' to 'profileImage' if provided (for backward compatibility)
+    if (updates.image && !updates.profileImage) {
+      updates.profileImage = updates.image;
+      delete updates.image;
+    }
+    
     // If location is being updated, ensure it has all required fields
     if (updates.location) {
       const coordinates = Array.isArray(updates.location.coordinates) ? updates.location.coordinates : [];
@@ -183,6 +294,79 @@ export const update = mutation({
     
     // Apply updates
     await ctx.db.patch(args.chefId, updates as any);
+
+    return { success: true };
+  },
+});
+
+export const saveOnboardingDraft = mutation({
+  args: {
+    chefId: v.id('chefs'),
+    draft: v.object({
+      name: v.optional(v.string()),
+      bio: v.optional(v.string()),
+      specialties: v.optional(v.array(v.string())),
+      city: v.optional(v.string()),
+      coordinates: v.optional(v.array(v.number())),
+      profileImage: v.optional(v.string()),
+      kitchenName: v.optional(v.string()),
+      kitchenAddress: v.optional(v.string()),
+      kitchenType: v.optional(v.string()),
+      kitchenImages: v.optional(v.array(v.string())),
+      currentStep: v.optional(v.string()),
+    }),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get the chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      throw new Error("Chef not found");
+    }
+
+    // Users can update their own draft, staff/admin can update any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error("Access denied");
+    }
+
+    // Save draft data
+    await ctx.db.patch(args.chefId, {
+      onboardingDraft: args.draft,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+export const clearOnboardingDraft = mutation({
+  args: {
+    chefId: v.id('chefs'),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get the chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      throw new Error("Chef not found");
+    }
+
+    // Users can clear their own draft, staff/admin can clear any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error("Access denied");
+    }
+
+    // Clear draft data
+    await ctx.db.patch(args.chefId, {
+      onboardingDraft: undefined,
+      updatedAt: Date.now(),
+    });
 
     return { success: true };
   },
@@ -282,5 +466,39 @@ export const createCuisineForSeed = internalMutation({
       image: args.image,
     });
     return { cuisineId };
+  },
+});
+
+/**
+ * Mark compliance training as skipped
+ */
+export const skipComplianceTraining = mutation({
+  args: {
+    chefId: v.id("chefs"),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only skip their own training, staff/admin can skip any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    // Mark compliance training as skipped
+    await ctx.db.patch(args.chefId, {
+      complianceTrainingSkipped: true,
+      updatedAt: Date.now(),
+    });
+    
+    return { success: true };
   },
 });

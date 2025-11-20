@@ -577,6 +577,20 @@ export const customerCreateOrderFromCart = action({
         return { success: false as const, error: 'Cart is empty. Cannot create order.' };
       }
 
+      // Check if any chefs in the cart are offline
+      const chefAvailability = await ctx.runQuery(api.queries.orders.checkCartChefAvailability, {
+        userId: user._id,
+        sessionToken: args.sessionToken,
+      });
+
+      if (!chefAvailability.allChefsOnline && chefAvailability.offlineChefs.length > 0) {
+        const offlineChefNames = chefAvailability.offlineChefs.map(c => c.chefName).join(', ');
+        return {
+          success: false as const,
+          error: `Cannot create order. The following food creator(s) are currently offline: ${offlineChefNames}. Please remove their items from your cart or wait until they come online.`,
+        };
+      }
+
       // Get all meals to map cart items to meals and extract chef_id
       const allMeals = await ctx.runQuery(api.queries.meals.getAll, {});
 

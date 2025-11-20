@@ -623,6 +623,43 @@ export const getLiveSessionById = query({
   },
 });
 
+// Get live sessions by chef ID
+export const getByChefId = query({
+  args: {
+    chefId: v.id('chefs'),
+    status: v.optional(v.union(v.literal('live'), v.literal('ended'))),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    let sessions;
+    
+    if (args.status === 'live') {
+      sessions = await ctx.db
+        .query('liveSessions')
+        .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+        .filter(q => q.eq(q.field('status'), 'live'))
+        .collect();
+    } else if (args.status === 'ended') {
+      sessions = await ctx.db
+        .query('liveSessions')
+        .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+        .filter(q => q.eq(q.field('status'), 'ended'))
+        .collect();
+    } else {
+      sessions = await ctx.db
+        .query('liveSessions')
+        .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+        .collect();
+    }
+    
+    // Sort by creation time (newest first) and apply limit
+    sessions.sort((a, b) => (b._creationTime || 0) - (a._creationTime || 0));
+    
+    const limit = args.limit || 50;
+    return sessions.slice(0, limit);
+  },
+});
+
 // Get live session with enriched data (chef and meal)
 export const getLiveSessionWithMeal = query({
   args: {

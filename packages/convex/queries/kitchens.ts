@@ -188,6 +188,41 @@ export const getKitchenDetails = query({
   },
 });
 
+// Get full kitchen document by kitchen ID (for chef settings)
+export const getKitchenById = query({
+  args: {
+    kitchenId: v.id("kitchens"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("kitchens"),
+      owner_id: v.id("users"),
+      address: v.string(),
+      certified: v.boolean(),
+      inspectionDates: v.optional(v.array(v.string())),
+      images: v.optional(v.array(v.string())),
+      featuredVideoId: v.optional(v.id("videoPosts")),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const kitchen = await ctx.db.get(args.kitchenId);
+    if (!kitchen) {
+      return null;
+    }
+    // Return only the fields defined in the validator
+    return {
+      _id: kitchen._id,
+      owner_id: kitchen.owner_id,
+      address: kitchen.address,
+      certified: kitchen.certified,
+      ...(kitchen.inspectionDates !== undefined && { inspectionDates: kitchen.inspectionDates }),
+      ...(kitchen.images !== undefined && { images: kitchen.images }),
+      ...(kitchen.featuredVideoId !== undefined && { featuredVideoId: kitchen.featuredVideoId }),
+    };
+  },
+});
+
 // Get unique tags from kitchen meals (dietary tags that kitchen has used)
 export const getKitchenTags = query({
   args: {

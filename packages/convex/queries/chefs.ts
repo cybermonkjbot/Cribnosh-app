@@ -47,6 +47,7 @@ const chefDocValidator = v.object({
     totalEarnings: v.number(),
     lastOrderDate: v.optional(v.number())
   })),
+  complianceTrainingSkipped: v.optional(v.boolean()),
   updatedAt: v.optional(v.number()),
 });
 
@@ -258,6 +259,50 @@ export const getByUserId = query({
   }
 });
 
+/**
+ * Check if chef has completed basic onboarding (profile setup)
+ * Basic onboarding is complete when chef profile has:
+ * - name (non-empty)
+ * - bio (non-empty)
+ * - specialties (at least one)
+ * - location with city and coordinates
+ */
+export const isBasicOnboardingComplete = query({
+  args: {
+    chefId: v.id("chefs"),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    
+    if (!chef) {
+      return false;
+    }
+    
+    // Users can only check their own onboarding, staff/admin can check any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      return false;
+    }
+    
+    // Check if all required basic profile fields are filled
+    const hasName = chef.name && chef.name.trim().length > 0;
+    const hasBio = chef.bio && chef.bio.trim().length > 0;
+    const hasSpecialties = chef.specialties && chef.specialties.length > 0;
+    const hasLocation = chef.location && 
+                       chef.location.city && 
+                       chef.location.city.trim().length > 0 &&
+                       chef.location.coordinates &&
+                       Array.isArray(chef.location.coordinates) &&
+                       chef.location.coordinates.length === 2;
+    
+    return hasName && hasBio && hasSpecialties && hasLocation;
+  },
+});
+
 // Chef with distance (for location queries)
 const chefWithDistanceValidator = v.union(
   chefDocValidator,
@@ -304,6 +349,7 @@ const chefWithDistanceValidator = v.union(
       totalEarnings: v.number(),
       lastOrderDate: v.optional(v.number())
     })),
+    complianceTrainingSkipped: v.optional(v.boolean()),
     updatedAt: v.optional(v.number()),
     distance: v.number(),
   })
@@ -343,7 +389,20 @@ export const findNearbyChefs = query({
         const distance = earthRadiusKm * c;
         return { ...chef, distance };
       });
-    return withDistance.filter(c => c.distance <= maxDistanceKm).sort((a, b) => a.distance - b.distance);
+    
+    // Filter by distance and sort: online chefs first, then by distance
+    return withDistance
+      .filter(c => c.distance <= maxDistanceKm)
+      .sort((a, b) => {
+        // Prioritize online chefs (isAvailable === true)
+        const aOnline = a.isAvailable === true ? 1 : 0;
+        const bOnline = b.isAvailable === true ? 1 : 0;
+        if (aOnline !== bOnline) {
+          return bOnline - aOnline; // Online chefs first
+        }
+        // If both have same online status, sort by distance
+        return a.distance - b.distance;
+      });
   }
 });
 
@@ -387,8 +446,17 @@ export const getChefsByLocation = query({
       return { ...chef, distance };
     }).filter((chef): chef is NonNullable<typeof chef> => chef !== null && chef.distance <= radiusKm);
     
-    // Sort by distance
-    chefsWithDistance.sort((a, b) => a.distance - b.distance);
+    // Sort: online chefs first, then by distance
+    chefsWithDistance.sort((a, b) => {
+      // Prioritize online chefs (isAvailable === true)
+      const aOnline = a.isAvailable === true ? 1 : 0;
+      const bOnline = b.isAvailable === true ? 1 : 0;
+      if (aOnline !== bOnline) {
+        return bOnline - aOnline; // Online chefs first
+      }
+      // If both have same online status, sort by distance
+      return a.distance - b.distance;
+    });
     
     // Apply pagination
     const startIndex = (page - 1) * limit;
@@ -463,8 +531,17 @@ export const searchChefsByQuery = query({
       return { ...chef, distance };
     }).filter((chef): chef is NonNullable<typeof chef> => chef !== null && chef.distance <= radiusKm);
     
-    // Sort by distance
-    chefsWithDistance.sort((a, b) => a.distance - b.distance);
+    // Sort: online chefs first, then by distance
+    chefsWithDistance.sort((a, b) => {
+      // Prioritize online chefs (isAvailable === true)
+      const aOnline = a.isAvailable === true ? 1 : 0;
+      const bOnline = b.isAvailable === true ? 1 : 0;
+      if (aOnline !== bOnline) {
+        return bOnline - aOnline; // Online chefs first
+      }
+      // If both have same online status, sort by distance
+      return a.distance - b.distance;
+    });
     
     // Apply limit
     const limitedChefs = chefsWithDistance.slice(0, limit);
@@ -521,6 +598,7 @@ const chefWithFavoriteValidator = v.object({
     totalEarnings: v.number(),
     lastOrderDate: v.optional(v.number())
   })),
+  complianceTrainingSkipped: v.optional(v.boolean()),
   updatedAt: v.optional(v.number()),
   isFavorited: v.boolean(),
   favoriteId: v.id("userFavorites"),
@@ -613,6 +691,18 @@ export const getFavoriteChefs = query({
         updatedAt?: number;
       }> = favoriteChefsResults.filter((chef): chef is NonNullable<typeof chef> => chef !== null);
       
+      // Sort: online chefs first, then by favoritedAt (most recently favorited first)
+      favoriteChefs.sort((a, b) => {
+        // Prioritize online chefs (isAvailable === true)
+        const aOnline = a.isAvailable === true ? 1 : 0;
+        const bOnline = b.isAvailable === true ? 1 : 0;
+        if (aOnline !== bOnline) {
+          return bOnline - aOnline; // Online chefs first
+        }
+        // If both have same online status, sort by most recently favorited
+        return b.favoritedAt - a.favoritedAt;
+      });
+      
       return favoriteChefs;
     } catch (error) {
       console.error('Error fetching favorite chefs:', error);
@@ -629,10 +719,19 @@ export const getTopRatedChefs = query({
     try {
       const chefs = await ctx.db.query('chefs').collect();
       
-      // Sort by rating and limit results
+      // Sort: online chefs first, then by rating, and limit results
       const topChefs = chefs
         .filter(chef => chef.status === 'active')
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        .sort((a, b) => {
+          // Prioritize online chefs (isAvailable === true)
+          const aOnline = a.isAvailable === true ? 1 : 0;
+          const bOnline = b.isAvailable === true ? 1 : 0;
+          if (aOnline !== bOnline) {
+            return bOnline - aOnline; // Online chefs first
+          }
+          // If both have same online status, sort by rating
+          return (b.rating || 0) - (a.rating || 0);
+        })
         .slice(0, args.limit || 10);
       
       return topChefs;
@@ -676,4 +775,118 @@ export const getAvailability = query({
       return null;
     }
   }
+});
+
+// Get all chef content (recipes, live sessions, videos, meals)
+export const getAllChefContent = query({
+  args: {
+    chefId: v.id('chefs'),
+    sessionToken: v.optional(v.string()),
+    contentType: v.optional(v.union(
+      v.literal('all'),
+      v.literal('recipes'),
+      v.literal('live'),
+      v.literal('videos'),
+      v.literal('meals')
+    )),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      return {
+        recipes: [],
+        liveSessions: [],
+        videos: [],
+        meals: [],
+        stats: {
+          recipes: 0,
+          liveSessions: 0,
+          videos: 0,
+          meals: 0,
+        },
+      };
+    }
+
+    const limit = args.limit || 50;
+
+    // Get recipes by author (chef name)
+    const recipes = await ctx.db
+      .query('recipes')
+      .withIndex('by_author', q => q.eq('author', chef.name))
+      .filter(q => q.eq(q.field('status'), 'published'))
+      .order('desc')
+      .take(limit);
+
+    // Get live sessions by chef
+    const liveSessions = await ctx.db
+      .query('liveSessions')
+      .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+      .order('desc')
+      .take(limit);
+
+    // Get videos by creator (user ID)
+    const videos = await ctx.db
+      .query('videoPosts')
+      .withIndex('by_creator', q => q.eq('creatorId', chef.userId))
+      .filter(q => q.eq(q.field('status'), 'published'))
+      .order('desc')
+      .take(limit);
+
+    // Get meals by chef
+    const meals = await ctx.db
+      .query('meals')
+      .filter(q => q.eq(q.field('chefId'), args.chefId))
+      .filter(q => q.or(
+        q.eq(q.field('status'), 'available'),
+        q.eq(q.field('status'), 'active')
+      ))
+      .order('desc')
+      .take(limit);
+
+    return {
+      recipes: recipes.map(r => ({
+        id: r._id,
+        type: 'recipe' as const,
+        title: r.title,
+        thumbnail: r.featuredImage,
+        createdAt: r.createdAt || r._creationTime,
+      })),
+      liveSessions: liveSessions.map(s => ({
+        id: s._id,
+        type: 'live' as const,
+        title: s.title,
+        thumbnail: s.thumbnailUrl,
+        createdAt: s._creationTime,
+        status: s.status,
+      })),
+      videos: await Promise.all(videos.map(async (v) => {
+        const thumbnailUrl = v.thumbnailStorageId 
+          ? await ctx.storage.getUrl(v.thumbnailStorageId) || undefined
+          : undefined;
+        return {
+          id: v._id,
+          type: 'video' as const,
+          title: v.title,
+          thumbnail: thumbnailUrl,
+          duration: v.duration,
+          views: v.viewsCount,
+          createdAt: v.createdAt || v._creationTime,
+        };
+      })),
+      meals: meals.map(m => ({
+        id: m._id,
+        type: 'meal' as const,
+        title: m.name,
+        thumbnail: m.images?.[0],
+        createdAt: m._creationTime,
+      })),
+      stats: {
+        recipes: recipes.length,
+        liveSessions: liveSessions.length,
+        videos: videos.length,
+        meals: meals.length,
+      },
+    };
+  },
 }); 

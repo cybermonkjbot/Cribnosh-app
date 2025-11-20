@@ -72,8 +72,9 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
   const handleGoogleSignIn = useCallback(() => {
     // Validate OAuth configuration before attempting sign-in
     if (!oauthConfig.google.webClientId || oauthConfig.google.webClientId.includes('<your-')) {
-      console.error('Google OAuth not properly configured. Please update oauthConfig.ts with your actual client IDs.');
-      alert('Google Sign-In is not configured. Please contact support.');
+      console.warn('Google OAuth not properly configured. Redirecting to email sign-in.');
+      // Gracefully handle by opening email sign-in modal
+      setIsEmailSignInModalVisible(true);
       return;
     }
 
@@ -89,8 +90,8 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         error,
         () => handleGoogleSignInRef.current?.(), // Retry function
         () => {
-          // Fallback to Apple Sign-In
-          handleAppleSignInRef.current?.();
+          // Fallback to email sign-in
+          setIsEmailSignInModalVisible(true);
         }
       );
     }

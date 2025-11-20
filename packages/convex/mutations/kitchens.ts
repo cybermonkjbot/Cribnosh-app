@@ -18,3 +18,34 @@ export const createKitchen = mutation(
     return id;
   }
 );
+
+export const updateKitchen = mutation(
+  async (
+    { db },
+    args: {
+      kitchenId: Id<'kitchens'>;
+      address?: string;
+      images?: string[];
+      inspectionDates?: string[];
+    }
+  ) => {
+    const kitchen = await db.get(args.kitchenId);
+    if (!kitchen) {
+      throw new Error("Kitchen not found");
+    }
+
+    const updates: any = {};
+    if (args.address !== undefined) {
+      updates.address = args.address;
+    }
+    if (args.images !== undefined) {
+      updates.images = args.images;
+    }
+    if (args.inspectionDates !== undefined) {
+      updates.inspectionDates = args.inspectionDates;
+    }
+
+    await db.patch(args.kitchenId, updates);
+    return args.kitchenId;
+  }
+);

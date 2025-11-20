@@ -112,3 +112,42 @@ export * from './vehicles';
 // Export banks queries
 export * from './banks';
 
+// Export chef courses queries with explicit naming to avoid conflicts
+export {
+  getByChefAndCourse as getChefCourseByChefAndCourse,
+  getProgressSummary as getChefCourseProgressSummary,
+  getByChefId as getChefCoursesByChefId,
+  isOnboardingComplete as isChefOnboardingComplete
+} from './chefCourses';
+
+// Export chef queries
+export {
+  getAllChefContent, isBasicOnboardingComplete
+} from './chefs';
+
+// Export chef documents queries with explicit naming to avoid conflicts
+export {
+  getByChefAndType as getChefDocumentsByChefAndType, getByChefId as getChefDocumentsByChefId, getSummary as getChefDocumentsSummary
+} from './chefDocuments';
+
+// Export chef earnings queries
+export * from './chefEarnings';
+
+// Export chef payouts queries
+export * from './chefPayouts';
+
+// Export chef bank accounts queries
+export * from './chefBankAccounts';
+
+// Export course modules queries
+export * from './courseModules';
+
+// Export certificates queries
+export * from './certificates';
+
+// Export live sessions queries
+export * from './liveSessions';
+
+// Export meals queries
+export * from './meals';
+

@@ -1,6 +1,6 @@
-import { mutation, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
-import { Id } from "../_generated/dataModel";
+import { internalMutation, mutation } from "../_generated/server";
+import { isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 // Create a new recipe
 export const createRecipe = mutation({
@@ -30,9 +30,29 @@ export const createRecipe = mutation({
       v.literal("published"),
       v.literal("archived")
     )),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.id("recipes"),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Verify author matches user (chefs can only create recipes for themselves)
+    // Get chef profile to verify name matches
+    const chefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('userId'), user._id))
+      .collect();
+    
+    const chef = chefs[0];
+    
+    // Allow if user is admin/staff, or if author matches chef name
+    if (!isAdmin(user) && !isStaff(user)) {
+      if (!chef || chef.name !== args.author) {
+        throw new Error('Access denied: You can only create recipes for yourself');
+      }
+    }
+    
     const now = Date.now();
     
     const recipeId = await ctx.db.insert("recipes", {
@@ -85,10 +105,35 @@ export const updateRecipe = mutation({
       v.literal("published"),
       v.literal("archived")
     )),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { recipeId, ...updates } = args;
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get recipe to verify ownership
+    const recipe = await ctx.db.get(args.recipeId);
+    if (!recipe) {
+      throw new Error('Recipe not found');
+    }
+    
+    // Get chef profile to verify ownership
+    const chefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('userId'), user._id))
+      .collect();
+    
+    const chef = chefs[0];
+    
+    // Allow if user is admin/staff, or if recipe author matches chef name
+    if (!isAdmin(user) && !isStaff(user)) {
+      if (!chef || chef.name !== recipe.author) {
+        throw new Error('Access denied: You can only edit your own recipes');
+      }
+    }
+    
+    const { recipeId, sessionToken, ...updates } = args;
     
     await ctx.db.patch(recipeId, {
       ...updates,
@@ -103,9 +148,34 @@ export const updateRecipe = mutation({
 export const deleteRecipe = mutation({
   args: {
     recipeId: v.id("recipes"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get recipe to verify ownership
+    const recipe = await ctx.db.get(args.recipeId);
+    if (!recipe) {
+      throw new Error('Recipe not found');
+    }
+    
+    // Get chef profile to verify ownership
+    const chefs = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('userId'), user._id))
+      .collect();
+    
+    const chef = chefs[0];
+    
+    // Allow if user is admin/staff, or if recipe author matches chef name
+    if (!isAdmin(user) && !isStaff(user)) {
+      if (!chef || chef.name !== recipe.author) {
+        throw new Error('Access denied: You can only delete your own recipes');
+      }
+    }
+    
     await ctx.db.patch(args.recipeId, {
       status: "archived",
       updatedAt: Date.now(),

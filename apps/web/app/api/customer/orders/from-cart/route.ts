@@ -238,6 +238,20 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.validationError('Cart is empty. Cannot create order.');
     }
 
+    // Check if any chefs in the cart are offline
+    type CheckChefAvailabilityQuery = FunctionReference<"query", "public", { userId: string }, { allChefsOnline: boolean; offlineChefs: Array<{ chefId: string; chefName: string; itemNames: string[] }> }>;
+    const chefAvailability = await convex.query(
+      (apiQueries.orders.checkCartChefAvailability as unknown as CheckChefAvailabilityQuery),
+      { userId }
+    ) as { allChefsOnline: boolean; offlineChefs: Array<{ chefId: string; chefName: string; itemNames: string[] }> };
+    
+    if (!chefAvailability.allChefsOnline && chefAvailability.offlineChefs.length > 0) {
+      const offlineChefNames = chefAvailability.offlineChefs.map(c => c.chefName).join(', ');
+      return ResponseFactory.validationError(
+        `Cannot create order. The following food creator(s) are currently offline: ${offlineChefNames}. Please remove their items from your cart or wait until they come online.`
+      );
+    }
+
     // Get all meals to map cart items to meals and extract chef_id
     type MealsQuery = FunctionReference<"query", "public", Record<string, never>, MealData[]>;
     const allMeals = await convex.query(

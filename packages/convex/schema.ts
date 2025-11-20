@@ -336,6 +336,19 @@ export default defineSchema({
     advanceBookingDays: v.optional(v.number()),
     specialInstructions: v.optional(v.string()),
     profileImage: v.optional(v.string()),
+    onboardingDraft: v.optional(v.object({
+      name: v.optional(v.string()),
+      bio: v.optional(v.string()),
+      specialties: v.optional(v.array(v.string())),
+      city: v.optional(v.string()),
+      coordinates: v.optional(v.array(v.number())),
+      profileImage: v.optional(v.string()),
+      kitchenName: v.optional(v.string()),
+      kitchenAddress: v.optional(v.string()),
+      kitchenType: v.optional(v.string()),
+      kitchenImages: v.optional(v.array(v.string())),
+      currentStep: v.optional(v.string()),
+    })),
     verificationStatus: v.optional(v.union(
       v.literal("pending"),
       v.literal("verified"),
@@ -354,6 +367,7 @@ export default defineSchema({
       totalEarnings: v.number(),
       lastOrderDate: v.optional(v.number())
     })),
+    complianceTrainingSkipped: v.optional(v.boolean()),
     updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
@@ -3646,4 +3660,170 @@ export default defineSchema({
     .index("by_customer", ["customer_id"])
     .index("by_status", ["status"])
     .index("by_event_date", ["event_date"]),
+
+  // Chef Courses table - Track course enrollment and progress
+  chefCourses: defineTable({
+    chefId: v.id("chefs"),
+    courseId: v.string(), // e.g., "compliance-course-v1"
+    courseName: v.string(), // e.g., "Home Cooking Compliance Course"
+    enrollmentDate: v.number(),
+    completionDate: v.optional(v.number()),
+    status: v.union(
+      v.literal("enrolled"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("expired")
+    ),
+    progress: v.array(v.object({
+      moduleId: v.string(), // e.g., "module-1-food-safety"
+      moduleName: v.string(),
+      moduleNumber: v.number(),
+      completed: v.boolean(),
+      completedAt: v.optional(v.number()),
+      quizScore: v.optional(v.number()), // 0-100
+      quizAttempts: v.number(),
+      lastAccessed: v.number(),
+      timeSpent: v.number(), // in seconds
+      quizAnswers: v.optional(v.array(v.object({
+        questionId: v.string(),
+        answer: v.any(),
+        isCorrect: v.boolean(),
+        attemptNumber: v.number(),
+        answeredAt: v.number()
+      })))
+    })),
+    certificateId: v.optional(v.id("certificates")),
+    totalTimeSpent: v.number(), // in seconds
+    lastAccessed: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number()
+  })
+    .index("by_chef", ["chefId"])
+    .index("by_course", ["courseId"])
+    .index("by_status", ["status"])
+    .index("by_chef_course", ["chefId", "courseId"]),
+
+  // Certificates table - Stores completion certificates for courses
+  certificates: defineTable({
+    chefId: v.id("chefs"),
+    courseId: v.string(),
+    courseName: v.string(),
+    certificateNumber: v.string(), // Unique certificate ID
+    issuedAt: v.number(),
+    chefName: v.string(),
+    documentStorageId: v.optional(v.id("_storage")), // PDF certificate
+    documentUrl: v.optional(v.string()),
+    expiresAt: v.optional(v.number()), // If certificates expire
+    status: v.union(
+      v.literal("active"),
+      v.literal("expired"),
+      v.literal("revoked")
+    ),
+    createdAt: v.number()
+  })
+    .index("by_chef", ["chefId"])
+    .index("by_course", ["courseId"])
+    .index("by_certificate_number", ["certificateNumber"]),
+
+  // Chef Documents table - Stores uploaded documents with verification status
+  chefDocuments: defineTable({
+    chefId: v.id("chefs"),
+    documentType: v.union(
+      v.literal("id"),
+      v.literal("health_permit"),
+      v.literal("insurance"),
+      v.literal("tax"),
+      v.literal("kitchen_cert"),
+      v.literal("other")
+    ),
+    documentName: v.string(), // User-friendly name
+    fileName: v.string(), // Original filename
+    fileStorageId: v.id("_storage"),
+    fileUrl: v.string(),
+    fileSize: v.number(), // in bytes
+    mimeType: v.string(), // e.g., "application/pdf", "image/jpeg"
+    uploadedAt: v.number(),
+    verifiedAt: v.optional(v.number()),
+    verifiedBy: v.optional(v.id("users")), // Admin user who verified
+    status: v.union(
+      v.literal("pending"), // Uploaded, awaiting verification
+      v.literal("verified"),
+      v.literal("rejected"),
+      v.literal("expired")
+    ),
+    rejectionReason: v.optional(v.string()),
+    rejectionDetails: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+    isRequired: v.boolean(), // Required for receiving orders
+    metadata: v.optional(v.object({
+      documentNumber: v.optional(v.string()),
+      issueDate: v.optional(v.number()),
+      expiryDate: v.optional(v.number()),
+      issuingAuthority: v.optional(v.string()),
+      additionalInfo: v.optional(v.any())
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number()
+  })
+    .index("by_chef", ["chefId"])
+    .index("by_type", ["documentType"])
+    .index("by_status", ["status"])
+    .index("by_chef_type", ["chefId", "documentType"])
+    .index("by_verification", ["status", "verifiedAt"]),
+
+  // Course Modules table - Stores course content (videos, text, quizzes)
+  courseModules: defineTable({
+    courseId: v.string(), // e.g., "compliance-course-v1"
+    moduleId: v.string(), // e.g., "module-1-food-safety"
+    moduleName: v.string(),
+    moduleNumber: v.number(),
+    description: v.optional(v.string()),
+    estimatedTime: v.number(), // in minutes
+    content: v.array(v.object({
+      type: v.union(v.literal("text"), v.literal("video"), v.literal("image"), v.literal("interactive")),
+      title: v.string(),
+      order: v.number(),
+      data: v.any(), // Flexible data structure for different content types
+      // For videos: { videoUrl: string, videoStorageId?: v.id("_storage"), thumbnailUrl?: string, duration?: number }
+      // For text: { text: string, html?: string }
+      // For images: { imageUrl: string, imageStorageId?: v.id("_storage"), caption?: string }
+    })),
+    videos: v.optional(v.array(v.object({
+      id: v.string(),
+      videoUrl: v.string(),
+      videoStorageId: v.optional(v.id("_storage")),
+      title: v.string(),
+      description: v.optional(v.string()),
+      thumbnailUrl: v.optional(v.string()),
+      duration: v.optional(v.number()), // in seconds
+      order: v.number(),
+    }))),
+    quiz: v.optional(v.object({
+      questions: v.array(v.object({
+        questionId: v.string(),
+        question: v.string(),
+        type: v.union(v.literal("multiple_choice"), v.literal("true_false"), v.literal("text")),
+        options: v.optional(v.array(v.string())), // For multiple choice
+        correctAnswer: v.any(),
+        explanation: v.optional(v.string()),
+        order: v.number(),
+      })),
+      passingScore: v.number(), // e.g., 80 (80%)
+      timeLimit: v.optional(v.number()), // in seconds
+    })),
+    prerequisites: v.optional(v.array(v.string())), // Array of moduleIds that must be completed first
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("archived")
+    ),
+    createdBy: v.optional(v.id("users")), // Admin who created the module
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_course", ["courseId"])
+    .index("by_module", ["moduleId"])
+    .index("by_course_module", ["courseId", "moduleId"])
+    .index("by_status", ["status"])
+    .index("by_course_number", ["courseId", "moduleNumber"]),
 });

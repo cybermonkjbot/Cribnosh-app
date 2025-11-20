@@ -311,11 +311,11 @@ const SkeletonCard = React.memo(() => {
         <View style={[styles.kitchenImage, { backgroundColor: 'rgba(156, 163, 175, 0.3)' }]} />
       </Animated.View>
       <View style={styles.kitchenInfo}>
-        <Animated.View style={[{ marginBottom: 6 }, animatedStyle]}>
+        <Animated.View style={[{ marginBottom: 6, overflow: 'hidden' }, animatedStyle]}>
           <View style={{ height: 14, backgroundColor: 'rgba(156, 163, 175, 0.3)', borderRadius: 4, width: '80%', marginBottom: 4 }} />
           <View style={{ height: 14, backgroundColor: 'rgba(156, 163, 175, 0.3)', borderRadius: 4, width: '60%' }} />
         </Animated.View>
-        <Animated.View style={animatedStyle}>
+        <Animated.View style={[{ overflow: 'hidden' }, animatedStyle]}>
           <View style={{ height: 11, backgroundColor: 'rgba(156, 163, 175, 0.3)', borderRadius: 4, width: '40%' }} />
         </Animated.View>
       </View>

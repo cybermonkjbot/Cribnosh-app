@@ -2,7 +2,6 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Modal,
@@ -32,7 +31,6 @@ export function EmailSignInModal({
   onEmailSubmit,
   onSignInSuccess,
 }: EmailSignInModalProps) {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [email, setEmail] = useState("");
@@ -107,14 +105,44 @@ export function EmailSignInModal({
         // Silently fail if haptics not available
       }
 
-      const errorText = 
+      // Extract error message from various possible structures
+      let errorText = 
         error?.data?.error?.message ||
         error?.data?.error ||
+        (typeof error?.data?.error === "string" ? error.data.error : null) ||
+        error?.data?.message ||
         error?.message ||
+        error?.error ||
         "Failed to send verification code. Please try again.";
       
-      setErrorMessage(errorText);
-      showError("Error", errorText);
+      // Normalize error message to string
+      errorText = typeof errorText === "string" ? errorText : String(errorText || "");
+      
+      // Provide user-friendly error messages
+      let errorTitle = "Error";
+      let userFriendlyMessage = errorText;
+      
+      const lowerError = errorText.toLowerCase();
+      
+      if (lowerError.includes("internal server error") || lowerError.includes("unable to process")) {
+        errorTitle = "Service Temporarily Unavailable";
+        userFriendlyMessage = "We're experiencing technical difficulties. Please try again in a few moments.";
+      } else if (lowerError.includes("rate limit") || lowerError.includes("too many requests")) {
+        errorTitle = "Too Many Requests";
+        userFriendlyMessage = "Please wait a moment before requesting another code.";
+      } else if (lowerError.includes("invalid email") || lowerError.includes("email format")) {
+        errorTitle = "Invalid Email";
+        userFriendlyMessage = "Please enter a valid email address.";
+      } else if (lowerError.includes("network") || lowerError.includes("connection")) {
+        errorTitle = "Connection Error";
+        userFriendlyMessage = "Unable to connect. Please check your internet connection and try again.";
+      } else if (lowerError.includes("failed to send email")) {
+        errorTitle = "Email Service Error";
+        userFriendlyMessage = "We couldn't send the verification code right now. Please try again in a moment.";
+      }
+      
+      setErrorMessage(userFriendlyMessage);
+      showError(errorTitle, userFriendlyMessage);
     } finally {
       setIsSendingOTP(false);
     }
@@ -203,6 +231,7 @@ export function EmailSignInModal({
       // Extract precise error message from API response
       let errorTitle = "Verification Failed";
       let errorMessage = "Please check your verification code and try again";
+      let isExpired = false;
 
       // Try multiple error paths to extract the message
       const apiError = 
@@ -220,16 +249,22 @@ export function EmailSignInModal({
       if (errorText) {
         const lowerError = errorText.toLowerCase();
         
-        if (
+        // Check specifically for expired OTP
+        if (lowerError.includes("expired") || lowerError.includes("otp has expired")) {
+          isExpired = true;
+          errorTitle = "Code Expired";
+          errorMessage = "This verification code has expired. Please request a new code.";
+          // Clear the OTP field so user can easily request a new one
+          setOtp("");
+        } else if (
           lowerError.includes("invalid") ||
           lowerError.includes("incorrect") ||
           lowerError.includes("wrong") ||
-          lowerError.includes("expired") ||
           error?.status === 400 ||
           error?.status === 401
         ) {
           errorTitle = "Invalid Code";
-          errorMessage = errorText || "The verification code is incorrect or has expired. Please try again.";
+          errorMessage = errorText || "The verification code is incorrect. Please try again.";
         } else if (lowerError.includes("network") || lowerError.includes("connection")) {
           errorTitle = "Connection Error";
           errorMessage = "Unable to connect. Please check your internet connection and try again.";
@@ -252,6 +287,12 @@ export function EmailSignInModal({
       
       // Show error toast with clear message
       showError(errorTitle, errorMessage);
+      
+      // If expired, show a helpful message about resending
+      if (isExpired) {
+        // The resend button is already visible, but we could add a small delay
+        // to make it more prominent, or just rely on the error message
+      }
     } finally {
       setIsVerifyingOTP(false);
     }
@@ -403,7 +444,7 @@ export function EmailSignInModal({
                 disabled={isSendingOTP}
               >
                 <Text style={styles.resendText}>
-                  Didn't receive the code?{' '}
+                  Didn&apos;t receive the code?{' '}
                   <Text style={styles.resendLink}>Resend</Text>
                 </Text>
               </TouchableOpacity>

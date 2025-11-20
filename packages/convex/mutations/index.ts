@@ -15,7 +15,8 @@ export {
   createChef,
   createCuisine, updateAvailability, updateChef,
   // Rename the conflicting 'update' to 'updateChefCustomOrder' for clarity
-  update as updateChefCustomOrder, updateCuisine
+  update as updateChefCustomOrder, updateCuisine,
+  skipComplianceTraining
 } from './chefs';
 
 // Export chef admin mutations with explicit naming to avoid conflicts
@@ -23,6 +24,24 @@ export {
   sendChefMessage,
   updateChefPerformance, updateChefVerification
 } from './chefAdmin';
+
+// Export chef courses mutations
+export * from './chefCourses';
+
+// Export chef documents mutations
+export * from './chefDocuments';
+
+// Export chef payouts mutations
+export * from './chefPayouts';
+
+// Export chef bank accounts mutations
+export * from './chefBankAccounts';
+
+// Export course modules mutations
+export * from './courseModules';
+
+// Export certificates mutations
+export * from './certificates';
 
 // Export order admin mutations with explicit naming to avoid conflicts
 export {

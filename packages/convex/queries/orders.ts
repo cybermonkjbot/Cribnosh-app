@@ -15,13 +15,19 @@ export const listByChef = query({
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
     
-    // Only allow if user is admin, or if they own the chef account
-    // For now, we'll require admin or staff for chef queries
-    // In a full implementation, you'd check if user owns the chef account
-    if (!isAdmin(user)) {
-      // Check if user is the chef (would need chef-user relationship)
-      // For now, require staff/admin
-      if (!isStaff(user)) {
+    // Allow if user is admin/staff, or if they own the chef account
+    if (!isAdmin(user) && !isStaff(user)) {
+      // Check if user owns the chef account
+      try {
+        const chef = await ctx.runQuery(api.queries.chefs.getById, {
+          chefId: args.chef_id as any,
+        });
+        
+        if (!chef || chef.userId !== user._id) {
+          throw new Error('Access denied');
+        }
+      } catch (error) {
+        // If chef not found or access denied, throw error
         throw new Error('Access denied');
       }
     }
@@ -1012,6 +1018,109 @@ export const getEnrichedCartBySessionToken = query({
       items: enrichedItems,
       userId: user._id,
       updatedAt: cart.updatedAt || Date.now(),
+    };
+  },
+});
+
+// Check if any chefs in the cart are offline
+export const checkCartChefAvailability = query({
+  args: {
+    userId: v.id("users"),
+    sessionToken: v.optional(v.string())
+  },
+  returns: v.object({
+    allChefsOnline: v.boolean(),
+    offlineChefs: v.array(v.object({
+      chefId: v.string(),
+      chefName: v.string(),
+      itemNames: v.array(v.string()),
+    })),
+  }),
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Ensure user can only access their own cart unless they're staff/admin
+    if (!isAdmin(user)) {
+      if (!isStaff(user) && args.userId !== user._id) {
+        throw new Error('Access denied');
+      }
+    }
+
+    const cart = await ctx.db
+      .query('carts')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .first();
+    
+    if (!cart || !cart.items || cart.items.length === 0) {
+      return {
+        allChefsOnline: true,
+        offlineChefs: [],
+      };
+    }
+
+    // Get all meals to map cart items to meals and extract chef_id
+    const allMeals = await ctx.runQuery(api.queries.meals.getAll, {});
+    
+    // Group cart items by chef and check availability
+    const chefItems = new Map<string, { chefName: string; itemNames: string[] }>();
+    const chefIds = new Set<string>();
+
+    for (const cartItem of cart.items) {
+      const meal = (allMeals as any[]).find((m: any) => m._id === cartItem.id || m._id === cartItem.dish_id);
+      
+      if (!meal) continue;
+      
+      const chefId = meal.chefId || meal.chef_id;
+      if (!chefId) continue;
+      
+      const chefIdStr = chefId.toString();
+      chefIds.add(chefIdStr);
+      
+      if (!chefItems.has(chefIdStr)) {
+        chefItems.set(chefIdStr, {
+          chefName: '',
+          itemNames: [],
+        });
+      }
+      
+      const itemName = cartItem.name || meal.name || 'Unknown Item';
+      chefItems.get(chefIdStr)!.itemNames.push(itemName);
+    }
+
+    // Check availability for each chef
+    const offlineChefs: Array<{ chefId: string; chefName: string; itemNames: string[] }> = [];
+    
+    for (const chefIdStr of chefIds) {
+      try {
+        const chef = await ctx.db.get(chefIdStr as Id<'chefs'>);
+        if (!chef) continue;
+        
+        // Update chef name
+        if (chefItems.has(chefIdStr)) {
+          chefItems.get(chefIdStr)!.chefName = chef.name;
+        }
+        
+        // Check if chef is online (isAvailable must be explicitly true)
+        if (chef.isAvailable !== true) {
+          const chefData = chefItems.get(chefIdStr);
+          if (chefData) {
+            offlineChefs.push({
+              chefId: chefIdStr,
+              chefName: chefData.chefName || chef.name,
+              itemNames: chefData.itemNames,
+            });
+          }
+        }
+      } catch (error) {
+        // Chef not found or error accessing, skip
+        console.warn(`Error checking chef availability for ${chefIdStr}:`, error);
+      }
+    }
+
+    return {
+      allChefsOnline: offlineChefs.length === 0,
+      offlineChefs,
     };
   },
 });

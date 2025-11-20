@@ -6,6 +6,7 @@
     "apps/mobile",
     "apps/web",
     "apps/driver-app",
+    "apps/chef-app",
     "packages/*"
   ],
   "scripts": {
@@ -15,6 +16,9 @@
     "driver:dev": "cd apps/driver-app && expo start --port 8082",
     "driver:android": "cd apps/driver-app && expo start --android --port 8082",
     "driver:ios": "cd apps/driver-app && expo start --ios --port 8082",
+    "chef:dev": "cd apps/chef-app && expo start --port 8083",
+    "chef:android": "cd apps/chef-app && expo start --android --port 8083",
+    "chef:ios": "cd apps/chef-app && expo start --ios --port 8083",
     "web:dev": "cd apps/web && next dev --turbo",
     "web:build": "cd apps/web && next build",
     "convex:dev": "cd packages/convex && convex dev",

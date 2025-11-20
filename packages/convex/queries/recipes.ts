@@ -141,6 +141,26 @@ export const getRecipeById = query({
   },
 });
 
+// Get recipes by author (returns all statuses for chef's own content)
+export const getByAuthor = query({
+  args: {
+    author: v.string(),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Get all recipes by author (including drafts and archived)
+    const recipes = await ctx.db
+      .query('recipes')
+      .withIndex('by_author', q => q.eq('author', args.author))
+      .collect();
+    
+    // Sort by creation time (newest first)
+    recipes.sort((a, b) => (b.createdAt || b._creationTime || 0) - (a.createdAt || a._creationTime || 0));
+    
+    return recipes;
+  },
+});
+
 // Get recipes by author
 export const getRecipesByAuthor = query({
   args: {

@@ -1,8 +1,7 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-
-
+import { requireAuth, isAdmin, isStaff } from '../utils/auth';
 
 export const createLiveSession = mutation({
   args: {
@@ -19,9 +18,23 @@ export const createLiveSession = mutation({
       address: v.optional(v.string()),
       radius: v.optional(v.number()), // Delivery radius in km
     })),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.id("liveSessions"),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get the chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only create live sessions for their own chef profile, staff/admin can create for any chef
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied: You can only create live sessions for yourself');
+    }
     // Get chef location if session location not provided
     let sessionLocation = args.location;
     if (!sessionLocation) {
@@ -237,17 +250,38 @@ export const endLiveSession = mutation({
   args: {
     sessionId: v.id("liveSessions"),
     reason: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
     message: v.string(),
   }),
   handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
       return {
         success: false,
         message: "Live session not found",
+      };
+    }
+    
+    // Get the chef to verify ownership
+    const chef = await ctx.db.get(session.chef_id);
+    if (!chef) {
+      return {
+        success: false,
+        message: "Chef not found",
+      };
+    }
+    
+    // Users can only end their own live sessions, staff/admin can end any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      return {
+        success: false,
+        message: "Access denied: You can only end your own live sessions",
       };
     }
 

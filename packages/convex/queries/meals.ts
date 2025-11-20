@@ -1,9 +1,8 @@
 import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
-import { query, QueryCtx, internalQuery } from '../_generated/server';
+import { QueryCtx, internalQuery, query } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 import { filterAndRankMealsByPreferences, getUserPreferences } from '../utils/userPreferencesFilter';
-import { requireStaff, requireAuth, isAdmin, isStaff } from '../utils/auth';
-import { calculateEcoImpact } from '../utils/ecoImpact';
 
 interface MealDoc {
   _id: Id<'meals'>;
@@ -395,6 +394,64 @@ export const getByChefId = query({
     }
     
     return results.slice(offset, offset + limit);
+  },
+});
+
+// Get all meals by chef ID for management (includes all statuses)
+export const getAllByChefIdForManagement = query({
+  args: { 
+    chefId: v.id('chefs'),
+    sessionToken: v.optional(v.string()),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx: QueryCtx, args: { 
+    chefId: Id<'chefs'>;
+    sessionToken?: string;
+  }) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only view meals for their own chef profile, staff/admin can view any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    // Get all meals for this chef (no status filtering)
+    const meals = await ctx.db
+      .query('meals')
+      .filter((q) => q.eq(q.field('chefId'), args.chefId))
+      .collect();
+    
+    // Get reviews for rating calculation
+    const mealsWithReviews = await Promise.all(
+      meals.map(async (meal: MealDoc) => {
+        const reviews = await ctx.db
+          .query('reviews')
+          .withIndex('by_meal', (q) => q.eq('meal_id', meal._id))
+          .collect();
+        
+        return {
+          ...meal,
+          reviewCount: reviews.length,
+          averageRating: reviews.length > 0 
+            ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
+            : meal.rating || 0
+        };
+      })
+    );
+    
+    // Sort by creation date (newest first)
+    return mealsWithReviews.sort((a, b) => {
+      const aTime = (a as { createdAt?: number }).createdAt || 0;
+      const bTime = (b as { createdAt?: number }).createdAt || 0;
+      return bTime - aTime;
+    });
   },
 });
 

@@ -1141,7 +1141,7 @@ export const customerEmailVerifyAndLogin = action({
           name: args.email.split('@')[0], // Use email prefix as name
           email: args.email,
           password: '', // No password for email OTP auth
-          roles: ['customer'],
+          roles: ['customer', 'chef'], // Chef app sign-in - grant both roles
           status: 'active',
         });
 
@@ -1159,11 +1159,21 @@ export const customerEmailVerifyAndLogin = action({
         finalUser = user;
       }
 
-      // Ensure user has 'customer' role
+      // Ensure user has 'customer' and 'chef' roles (chef app sign-in)
+      // Use internal mutation to update roles without requiring admin auth
       let userRoles = finalUser.roles || ['user'];
+      let rolesUpdated = false;
       if (!userRoles.includes('customer')) {
         userRoles = [...userRoles, 'customer'];
-        await ctx.runMutation(api.mutations.users.updateUserRoles, {
+        rolesUpdated = true;
+      }
+      if (!userRoles.includes('chef')) {
+        userRoles = [...userRoles, 'chef'];
+        rolesUpdated = true;
+      }
+      if (rolesUpdated) {
+        // Use internal mutation to update roles during sign-in (no auth required)
+        await ctx.runMutation(api.mutations.users._updateUserRolesInternal, {
           userId: finalUser._id,
           roles: userRoles,
         });
@@ -1314,11 +1324,21 @@ export const customerAppleSignIn = action({
         return { success: false as const, error: 'Failed to retrieve user information' };
       }
 
-      // Ensure user has 'customer' role
+      // Ensure user has 'customer' and 'chef' roles (chef app sign-in)
+      // Use internal mutation to update roles without requiring admin auth
       let userRoles = userDetails.roles || ['user'];
+      let rolesUpdated = false;
       if (!userRoles.includes('customer')) {
         userRoles = [...userRoles, 'customer'];
-        await ctx.runMutation(api.mutations.users.updateUserRoles, {
+        rolesUpdated = true;
+      }
+      if (!userRoles.includes('chef')) {
+        userRoles = [...userRoles, 'chef'];
+        rolesUpdated = true;
+      }
+      if (rolesUpdated) {
+        // Use internal mutation to update roles during sign-in (no auth required)
+        await ctx.runMutation(api.mutations.users._updateUserRolesInternal, {
           userId: userDetails._id,
           roles: userRoles,
         });
@@ -1371,6 +1391,157 @@ export const customerAppleSignIn = action({
       };
     } catch (error: any) {
       const errorMessage = error?.message || 'Apple sign-in failed. Please try again.';
+      return { success: false as const, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Customer Google Sign-In - for mobile app direct Convex communication
+ * Note: This accepts an accessToken and fetches user info from Google's API
+ */
+export const customerGoogleSignIn = action({
+  args: {
+    accessToken: v.string(),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({
+      success: v.literal(true),
+      sessionToken: v.string(),
+      user: v.object({
+        user_id: v.string(),
+        email: v.string(),
+        name: v.string(),
+        roles: v.array(v.string()),
+        picture: v.optional(v.string()),
+        isNewUser: v.boolean(),
+        provider: v.string(),
+      }),
+    }),
+    v.object({
+      success: v.literal(false),
+      requires2FA: v.literal(true),
+      verificationToken: v.string(),
+    }),
+    v.object({
+      success: v.literal(false),
+      error: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    try {
+      // Fetch user info from Google using access token
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${args.accessToken}`,
+        },
+      });
+
+      if (!userInfoResponse.ok) {
+        return { success: false as const, error: 'Failed to verify Google token' };
+      }
+
+      const googleUserInfo = await userInfoResponse.json();
+
+      if (!googleUserInfo.id || !googleUserInfo.email) {
+        return { success: false as const, error: 'Invalid Google user info received' };
+      }
+
+      // Create or update user with OAuth info
+      const result = await ctx.runMutation(api.mutations.users.createOrUpdateOAuthUser, {
+        provider: 'google',
+        providerId: googleUserInfo.id,
+        email: googleUserInfo.email,
+        name: googleUserInfo.name || googleUserInfo.email.split('@')[0],
+        picture: googleUserInfo.picture,
+        verified: googleUserInfo.verified_email || false,
+      });
+
+      if (!result || !result.userId) {
+        return { success: false as const, error: 'Failed to create or update user account' };
+      }
+
+      // Get user details using internal query (no auth required)
+      const userDetails = await ctx.runQuery(api.queries.users._getUserByIdInternal, {
+        userId: result.userId,
+      });
+      
+      if (!userDetails) {
+        return { success: false as const, error: 'Failed to retrieve user information' };
+      }
+
+      // Ensure user has 'customer' and 'chef' roles (chef app sign-in)
+      // Use internal mutation to update roles without requiring admin auth
+      let userRoles = userDetails.roles || ['user'];
+      let rolesUpdated = false;
+      if (!userRoles.includes('customer')) {
+        userRoles = [...userRoles, 'customer'];
+        rolesUpdated = true;
+      }
+      if (!userRoles.includes('chef')) {
+        userRoles = [...userRoles, 'chef'];
+        rolesUpdated = true;
+      }
+      if (rolesUpdated) {
+        // Use internal mutation to update roles during sign-in (no auth required)
+        await ctx.runMutation(api.mutations.users._updateUserRolesInternal, {
+          userId: userDetails._id,
+          roles: userRoles,
+        });
+      }
+
+      // Check if user has 2FA enabled
+      if (userDetails.twoFactorEnabled && userDetails.twoFactorSecret) {
+        try {
+          const verificationToken = await ctx.runMutation(api.mutations.verificationSessions.createVerificationSession, {
+            userId: userDetails._id,
+          });
+          
+          if (!verificationToken) {
+            return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
+          }
+          
+          return {
+            success: false as const,
+            requires2FA: true as const,
+            verificationToken,
+          };
+        } catch (error) {
+          console.error('Error creating 2FA verification session:', error);
+          return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
+        }
+      }
+
+      // No 2FA required - create session token
+      const sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
+        userId: userDetails._id,
+        expiresInDays: 30, // 30 days expiry
+        userAgent: args.userAgent,
+        ipAddress: args.ipAddress,
+        deviceId: args.deviceId,
+        deviceName: args.deviceName,
+      });
+
+      return {
+        success: true as const,
+        sessionToken: sessionResult.sessionToken,
+        user: {
+          user_id: userDetails._id,
+          email: userDetails.email,
+          name: userDetails.name,
+          roles: userRoles,
+          picture: userDetails.oauthProviders?.find((p: { provider: string; picture?: string }) => p.provider === 'google')?.picture || '',
+          isNewUser: result.isNewUser || false,
+          provider: 'google',
+        },
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Google sign-in failed. Please try again.';
       return { success: false as const, error: errorMessage };
     }
   },
@@ -3473,7 +3644,7 @@ export const customerGetRandomMeals = action({
  */
 export const customerGetTrendingSearches = action({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   returns: v.union(
@@ -3488,9 +3659,13 @@ export const customerGetTrendingSearches = action({
   ),
   handler: async (ctx, args) => {
     try {
-      const userId = await authenticateUser(ctx, args.sessionToken);
-      if (!userId) {
-        return { success: false as const, error: 'Authentication required' };
+      // If sessionToken is provided, authenticate user; otherwise proceed without authentication
+      let userId: Id<'users'> | undefined;
+      if (args.sessionToken) {
+        userId = await authenticateUser(ctx, args.sessionToken);
+        if (!userId) {
+          return { success: false as const, error: 'Authentication required' };
+        }
       }
 
       const limit = args.limit || 10;
@@ -3499,11 +3674,14 @@ export const customerGetTrendingSearches = action({
 
       // Get recent search queries from orders (meal names, chef names, etc.)
       // This is a simplified implementation - in production you'd have a dedicated search history table
-      const recentOrders = await ctx.runQuery(api.queries.orders.listByCustomer, {
-        customer_id: userId.toString(),
-        status: 'all',
-        order_type: 'all',
-      });
+      let recentOrders: any[] = [];
+      if (userId) {
+        recentOrders = await ctx.runQuery(api.queries.orders.listByCustomer, {
+          customer_id: userId.toString(),
+          status: 'all',
+          order_type: 'all',
+        });
+      }
 
       // Extract search terms from order items
       const searchTerms = new Map<string, number>();
@@ -3981,22 +4159,36 @@ function getWeekStartDate(year: number, week: number): Date {
 }
 
 // Helper to normalize kitchen ID - validates and converts string to Convex ID
+// Handles both kitchen IDs and chef IDs (converts chef IDs to kitchen IDs)
 async function normalizeKitchenId(ctx: any, id: string): Promise<Id<'kitchens'> | null> {
-  // Try to validate the ID by attempting to use it in a query
-  // If it's not a valid Convex ID format, the query will throw a validation error
   try {
-    const kitchenId = id as Id<'kitchens'>;
-    // Use getKitchenDetails query to validate the ID exists
-    // This will throw if the ID format is invalid or return null if kitchen doesn't exist
-    const kitchenDetails = await ctx.runQuery(api.queries.kitchens.getKitchenDetails, {
-      kitchenId,
-    });
-    if (kitchenDetails) {
-      return kitchenId;
+    // First, try as a kitchen ID
+    try {
+      const kitchenId = id as Id<'kitchens'>;
+      const kitchenDetails = await ctx.runQuery(api.queries.kitchens.getKitchenDetails, {
+        kitchenId,
+      });
+      if (kitchenDetails) {
+        return kitchenId;
+      }
+    } catch (kitchenError) {
+      // If it's not a valid kitchen ID, try as a chef ID
+      try {
+        const chefId = id as Id<'chefs'>;
+        const kitchenId = await ctx.runQuery(api.queries.kitchens.getKitchenByChefId, {
+          chefId,
+        });
+        if (kitchenId) {
+          return kitchenId;
+        }
+      } catch (chefError) {
+        // Not a valid chef ID either
+        return null;
+      }
     }
     return null;
   } catch (error) {
-    // If it's not a valid ID format or query fails, return null
+    // If all attempts fail, return null
     return null;
   }
 }

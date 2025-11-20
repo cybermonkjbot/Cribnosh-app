@@ -154,6 +154,36 @@ export const createOrderWithValidation = mutation({
       }
     }
     
+    // Check if this is the chef's first order and if compliance training is complete
+    const chef = await ctx.db.get(args.chef_id as Id<'chefs'>);
+    if (chef) {
+      // Check if chef has any completed orders
+      const existingOrders = await ctx.db
+        .query('orders')
+        .withIndex('by_chef', (q) => q.eq('chef_id', args.chef_id as Id<'chefs'>))
+        .filter((q) => 
+          q.or(
+            q.eq(q.field('order_status'), 'completed'),
+            q.eq(q.field('order_status'), 'delivered')
+          )
+        )
+        .collect();
+      
+      // If this is the first order, check compliance training
+      if (existingOrders.length === 0) {
+        // Check if compliance training is complete
+        const { isOnboardingComplete } = await import('../queries/chefCourses');
+        const onboardingComplete = await isOnboardingComplete(ctx, {
+          chefId: args.chef_id as Id<'chefs'>,
+          sessionToken: args.sessionToken,
+        });
+        
+        if (!onboardingComplete) {
+          throw new Error('Please complete compliance training before receiving your first order. You can access it from your profile.');
+        }
+      }
+    }
+    
     // Validate all dishes in a single query
     const allMeals = await ctx.db.query('meals').collect();
     const mealMap = new Map<string, any>();
@@ -277,6 +307,36 @@ export const createOrderWithPayment = mutation({
       
       if (!isRegionSupported) {
         throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+      }
+    }
+    
+    // Check if this is the chef's first order and if compliance training is complete
+    const chef = await ctx.db.get(args.chef_id as Id<'chefs'>);
+    if (chef) {
+      // Check if chef has any completed orders
+      const existingOrders = await ctx.db
+        .query('orders')
+        .withIndex('by_chef', (q) => q.eq('chef_id', args.chef_id as Id<'chefs'>))
+        .filter((q) => 
+          q.or(
+            q.eq(q.field('order_status'), 'completed'),
+            q.eq(q.field('order_status'), 'delivered')
+          )
+        )
+        .collect();
+      
+      // If this is the first order, check compliance training
+      if (existingOrders.length === 0) {
+        // Check if compliance training is complete
+        const { isOnboardingComplete } = await import('../queries/chefCourses');
+        const onboardingComplete = await isOnboardingComplete(ctx, {
+          chefId: args.chef_id as Id<'chefs'>,
+          sessionToken: args.sessionToken,
+        });
+        
+        if (!onboardingComplete) {
+          throw new Error('Please complete compliance training before receiving your first order. You can access it from your profile.');
+        }
       }
     }
     
