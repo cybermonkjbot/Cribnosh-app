@@ -739,19 +739,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                   <h3 className="text-sm font-medium text-gray-500  mb-2">Quick Actions</h3>
                   <div className={`grid ${contextMenu.isMobile ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'} gap-2`}>
                     <button className="flex items-center gap-2 p-2 hover:bg-gray-100  rounded-md transition-colors text-sm">
-                      <Utensils className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                      <Utensils className="w-4 h-4 text-[#ff3b30] shrink-0" />
                       <span className="truncate">Order Food</span>
                     </button>
                     <button className="flex items-center gap-2 p-2 hover:bg-gray-100  rounded-md transition-colors text-sm">
-                      <ChefHat className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                      <ChefHat className="w-4 h-4 text-[#ff3b30] shrink-0" />
                       <span className="truncate">Find Chefs</span>
                     </button>
                     <button className="flex items-center gap-2 p-2 hover:bg-gray-100  rounded-md transition-colors text-sm">
-                      <Star className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                      <Star className="w-4 h-4 text-[#ff3b30] shrink-0" />
                       <span className="truncate">Featured Meals</span>
                     </button>
                     <button className="flex items-center gap-2 p-2 hover:bg-gray-100  rounded-md transition-colors text-sm">
-                      <MapPin className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                      <MapPin className="w-4 h-4 text-[#ff3b30] shrink-0" />
                       <span className="truncate">Nearby</span>
                     </button>
                   </div>
@@ -763,26 +763,26 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                   <div className={contextMenu.isMobile ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'space-y-1'}>
                     {!env.DISABLE_TRY_IT && (
                       <Link href="/try-it" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
-                        <Search className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                        <Search className="w-4 h-4 text-[#ff3b30] shrink-0" />
                         <span className="truncate">Try CribNosh</span>
                       </Link>
                     )}
                     {env.DISABLE_TRY_IT && (
                       <Link href="/waitlist" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
-                        <Sparkles className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                        <Sparkles className="w-4 h-4 text-[#ff3b30] shrink-0" />
                         <span className="truncate">Get Early Access</span>
                       </Link>
                     )}
                     <Link href="/cooking/apply" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
-                      <ChefHat className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                      <ChefHat className="w-4 h-4 text-[#ff3b30] shrink-0" />
                       <span className="truncate">Become a Chef</span>
                       </Link>
                     <Link href="/driving/apply" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
-                      <Car className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                      <Car className="w-4 h-4 text-[#ff3b30] shrink-0" />
                       <span className="truncate">Deliver with Us</span>
                     </Link>
                     <Link href="/waitlist" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
-                      <Sparkles className="w-4 h-4 text-[#ff3b30] flex-shrink-0" />
+                      <Sparkles className="w-4 h-4 text-[#ff3b30] shrink-0" />
                       <span className="truncate">Join Waitlist</span>
                     </Link>
                   </div>
@@ -792,21 +792,21 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 <div className="mt-4 pt-3 border-t border-gray-200 ">
                   <div className={`${contextMenu.isMobile ? 'grid grid-cols-2 sm:grid-cols-4' : 'flex'} items-center justify-between text-sm text-gray-500  gap-2`}>
                     <button className="flex items-center gap-2 hover:text-[#ff3b30]  transition-colors">
-                      <Settings className="w-4 h-4 flex-shrink-0" />
+                      <Settings className="w-4 h-4 shrink-0" />
                       <span className="truncate">Settings</span>
                     </button>
                     <button className="flex items-center gap-2 hover:text-[#ff3b30]  transition-colors">
-                      <HelpCircle className="w-4 h-4 flex-shrink-0" />
+                      <HelpCircle className="w-4 h-4 shrink-0" />
                       <span className="truncate">Help Center</span>
                     </button>
                     {contextMenu.isMobile && (
                       <>
                         <button className="flex items-center gap-2 hover:text-[#ff3b30]  transition-colors">
-                          <Info className="w-4 h-4 flex-shrink-0" />
+                          <Info className="w-4 h-4 shrink-0" />
                           <span className="truncate">About Us</span>
                         </button>
                         <button className="flex items-center gap-2 hover:text-[#ff3b30]  transition-colors">
-                          <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                          <MessageCircle className="w-4 h-4 shrink-0" />
                           <span className="truncate">Contact</span>
                         </button>
                       </>
