@@ -87,8 +87,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   filterChipActive: {
-    backgroundColor: '#094327',
-    borderColor: '#094327',
+    backgroundColor: '#065f46',
+    borderColor: '#065f46',
   },
   icon: {
     marginRight: 0,

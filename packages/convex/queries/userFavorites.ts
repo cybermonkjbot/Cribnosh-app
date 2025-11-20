@@ -98,3 +98,24 @@ export const isMealFavorited = query({
   },
 });
 
+// Get count of likes (favorites) for a chef
+export const getChefLikesCount = query({
+  args: {
+    chefId: v.id("chefs"),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const favorites = await ctx.db
+      .query("userFavorites")
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("favoriteType"), "chef"),
+          q.eq(q.field("favoriteId"), args.chefId)
+        )
+      )
+      .collect();
+    
+    return favorites.length;
+  },
+});
+

@@ -6,7 +6,8 @@ import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { GradientBackground } from '@/components/ui/GradientBackground';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Wallet } from 'lucide-react-native';
+import { BlurEffect } from '@/utils/blurEffects';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -207,6 +208,28 @@ export default function EarningsScreen() {
           />
         )}
       </ScrollView>
+
+      {/* Floating Payout Button */}
+      <TouchableOpacity
+        style={[
+          styles.floatingPayoutButton,
+          { bottom: insets.bottom + 20, right: 20 }
+        ]}
+        onPress={() => router.push('/payout-settings')}
+        activeOpacity={0.8}
+      >
+        <BlurEffect
+          intensity={20}
+          tint="light"
+          useGradient={true}
+          backgroundColor="rgba(255, 59, 48, 0.75)"
+          style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, { zIndex: 0 }]}
+        />
+        <View style={styles.payoutButtonContent}>
+          <Wallet size={18} color="#FFFFFF" />
+          <Text style={styles.payoutButtonText}>Payout</Text>
+        </View>
+      </TouchableOpacity>
     </GradientBackground>
   );
 }
@@ -247,10 +270,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   title: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#094327',
-    fontFamily: 'Archivo',
+    color: '#031D11',
   },
   headerSpacer: {
     width: 40,
@@ -383,6 +405,38 @@ const styles = StyleSheet.create({
     color: '#094327',
     marginBottom: 16,
     fontFamily: 'Archivo',
+  },
+  floatingPayoutButton: {
+    position: 'absolute',
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 59, 48, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 999,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  payoutButtonContent: {
+    position: 'relative',
+    zIndex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  payoutButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'Inter',
   },
 });
 

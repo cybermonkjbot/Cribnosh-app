@@ -42,16 +42,6 @@ export function ChefBioSection({
         </View>
       )}
 
-      {specialties && specialties.length > 0 && (
-        <View style={styles.specialtiesContainer}>
-          {specialties.map((specialty, index) => (
-            <View key={index} style={styles.specialtyChip}>
-              <Text style={styles.specialtyText}>{specialty}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
       {showEditButton && onEdit && (
         <TouchableOpacity
           onPress={onEdit}
@@ -74,6 +64,7 @@ const styles = StyleSheet.create({
   },
   bioContainer: {
     marginBottom: 12,
+    alignItems: 'center',
   },
   bioText: {
     fontSize: 14,
@@ -81,9 +72,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '400',
     fontFamily: 'Inter',
+    textAlign: 'center',
   },
   readMoreButton: {
     marginTop: 4,
+    alignSelf: 'center',
   },
   readMoreText: {
     fontSize: 14,
@@ -91,31 +84,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Inter',
   },
-  specialtiesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-  },
-  specialtyChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  specialtyText: {
-    fontSize: 12,
-    color: '#094327',
-    fontWeight: '500',
-    fontFamily: 'Inter',
-  },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,

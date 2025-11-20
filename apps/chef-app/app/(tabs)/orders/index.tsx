@@ -10,6 +10,7 @@ import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { CameraModalScreen } from "@/components/ui/CameraModalScreen";
 import { CreateRecipeModal } from "@/components/ui/CreateRecipeModal";
 import { CreateMealModal } from "@/components/ui/CreateMealModal";
+import { CreateStoryModal } from "@/components/ui/CreateStoryModal";
 import { useChefAuth } from "@/contexts/ChefAuthContext";
 import { api } from '@/convex/_generated/api';
 import { useQuery, useMutation } from "convex/react";
@@ -92,6 +93,7 @@ export default function OrdersScreen() {
   const [autoShowLiveStreamSetup, setAutoShowLiveStreamSetup] = useState(false);
   const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
+  const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
 
   // Get orders (reactive query) - chef-specific
   const ordersDataRaw = useQuery(
@@ -524,7 +526,7 @@ export default function OrdersScreen() {
       {/* Floating Action Button */}
       {isAuthenticated && (
         <FloatingActionButton 
-          bottomPosition={5}
+          bottomPosition={2}
           onCameraPress={() => {
             setAutoShowLiveStreamSetup(false);
             setIsCameraVisible(true);
@@ -536,10 +538,9 @@ export default function OrdersScreen() {
             setAutoShowLiveStreamSetup(true);
             setIsCameraVisible(true);
           }}
-          onOrdersPress={() => {
-            // Already on orders screen, no action needed
+          onStoryPress={() => {
+            setIsStoryModalVisible(true);
           }}
-          isAnyModalOpen={isCameraVisible || isRecipeModalVisible || isMealModalVisible}
         />
       )}
 
@@ -581,6 +582,12 @@ export default function OrdersScreen() {
       <CreateMealModal
         isVisible={isMealModalVisible}
         onClose={() => setIsMealModalVisible(false)}
+      />
+
+      {/* Story Creation Modal */}
+      <CreateStoryModal
+        isVisible={isStoryModalVisible}
+        onClose={() => setIsStoryModalVisible(false)}
       />
     </GradientBackground>
   );

@@ -8,14 +8,13 @@ interface ProfileHeaderProps {
   profileImage?: string;
   kitchenName?: string;
   stats: {
-    recipes: number;
-    liveSessions: number;
-    videos: number;
-    meals: number;
+    likes: number;
+    servings: number;
   };
   rating?: number;
   reviewCount?: number;
   isVerified?: boolean;
+  specialties?: string[];
   onBack?: () => void;
   onNotifications?: () => void;
   onMenu?: () => void;
@@ -30,6 +29,7 @@ export function ProfileHeader({
   rating,
   reviewCount,
   isVerified,
+  specialties,
   onBack,
   onNotifications,
   onMenu,
@@ -47,7 +47,7 @@ export function ProfileHeader({
           <Text style={styles.username}>{name}</Text>
           {isVerified && (
             <View style={styles.verifiedBadge}>
-              <CheckCircle2 size={16} color="#0B9E58" fill="#0B9E58" />
+              <CheckCircle2 size={16} color="#059669" fill="#059669" />
             </View>
           )}
           {rating !== undefined && rating > 0 && (
@@ -88,11 +88,20 @@ export function ProfileHeader({
               </Text>
             </View>
           )}
+          {specialties && specialties.length > 0 && (
+            <View style={styles.specialtyChipOverlay}>
+              <View style={styles.specialtyChip}>
+                <Text style={styles.specialtyText}>{specialties[0]}</Text>
+              </View>
+            </View>
+          )}
         </View>
         <Text style={styles.handle}>@{handle}</Text>
         {kitchenName && (
           <View style={styles.kitchenNameContainer}>
-            <Text style={styles.kitchenName}>{kitchenName}</Text>
+            <View style={styles.kitchenNameTag}>
+              <Text style={styles.kitchenName}>{kitchenName}</Text>
+            </View>
           </View>
         )}
       </View>
@@ -100,20 +109,12 @@ export function ProfileHeader({
       {/* Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{stats.recipes}</Text>
-          <Text style={styles.statLabel}>Recipes</Text>
+          <Text style={styles.statNumber}>{stats.likes}</Text>
+          <Text style={styles.statLabel}>Likes</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{stats.liveSessions}</Text>
-          <Text style={styles.statLabel}>Live</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{stats.videos}</Text>
-          <Text style={styles.statLabel}>Videos</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{stats.meals}</Text>
-          <Text style={styles.statLabel}>Meals</Text>
+          <Text style={styles.statNumber}>{stats.servings}</Text>
+          <Text style={styles.statLabel}>Servings</Text>
         </View>
       </View>
     </View>
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     fontFamily: 'Archivo',
-    color: '#094327',
+    color: '#065f46',
   },
   verifiedBadge: {
     marginTop: 2,
@@ -185,18 +186,22 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    overflow: 'hidden',
+    overflow: 'visible',
     marginBottom: 8,
     borderWidth: 2,
     borderColor: '#E5E5E5',
+    position: 'relative',
   },
   profileImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 50,
+    overflow: 'hidden',
   },
   placeholderImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 50,
     backgroundColor: '#FF6B35',
     justifyContent: 'center',
     alignItems: 'center',
@@ -216,15 +221,23 @@ const styles = StyleSheet.create({
   kitchenNameContainer: {
     marginTop: 4,
   },
+  kitchenNameTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#FF3B30',
+  },
   kitchenName: {
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'Inter',
-    color: '#094327',
+    color: '#FFFFFF',
   },
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 32,
     paddingHorizontal: 16,
     paddingTop: 16,
     borderTopWidth: 1,
@@ -237,13 +250,42 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     fontFamily: 'Inter',
-    color: '#094327',
+    color: '#065f46',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
     color: '#6B7280',
     fontWeight: '400',
+    fontFamily: 'Inter',
+  },
+  specialtyChipOverlay: {
+    position: 'absolute',
+    bottom: -8,
+    right: -8,
+    transform: [{ rotate: '-12deg' }],
+    zIndex: 10,
+  },
+  specialtyChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#065f46',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  specialtyText: {
+    fontSize: 11,
+    color: '#065f46',
+    fontWeight: '600',
     fontFamily: 'Inter',
   },
 });

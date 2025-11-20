@@ -1124,3 +1124,43 @@ export const checkCartChefAvailability = query({
     };
   },
 });
+
+// Get count of completed orders (servings) for a chef
+export const getChefCompletedOrdersCount = query({
+  args: {
+    chefId: v.string(),
+    sessionToken: v.optional(v.string()),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    // Get authenticated user (optional for public viewing)
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    
+    // If authenticated and not admin/staff, verify chef ownership
+    if (user && !isAdmin(user) && !isStaff(user)) {
+      try {
+        const chef = await ctx.runQuery(api.queries.chefs.getById, {
+          chefId: args.chefId as any,
+        });
+        if (!chef || chef.userId !== user._id) {
+          // For public profiles, allow viewing stats
+          // Just continue without throwing error
+        }
+      } catch (error) {
+        // Chef not found or access denied, but allow public viewing
+      }
+    }
+    
+    const orders = await ctx.db
+      .query("orders")
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("chef_id"), args.chefId),
+          q.eq(q.field("order_status"), "delivered")
+        )
+      )
+      .collect();
+    
+    return orders.length;
+  },
+});

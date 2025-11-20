@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, Edit2, Eye, EyeOff, Plus, Trash2 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type StatusFilter = 'all' | 'available' | 'unavailable';
 
@@ -18,7 +18,6 @@ export default function MealsManagementScreen() {
   const { chef, sessionToken, isAuthenticated } = useChefAuth();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
-  const insets = useSafeAreaInsets();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
@@ -130,7 +129,7 @@ export default function MealsManagementScreen() {
     <GradientBackground>
       <SafeAreaView style={styles.container}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <ArrowLeft size={24} color="#031D11" />
           </TouchableOpacity>

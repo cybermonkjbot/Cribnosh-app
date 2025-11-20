@@ -8,11 +8,11 @@ import { api } from '@/convex/_generated/api';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { ContentTabs, ContentTabType } from '@/components/ContentTabs';
 import { ContentGrid, ContentItem } from '@/components/ContentGrid';
-import { ChefBioSection } from '@/components/ChefBioSection';
 import { ProfileMenu } from '@/components/ProfileMenu';
 import { CameraModalScreen } from '@/components/ui/CameraModalScreen';
 import { CreateRecipeModal } from '@/components/ui/CreateRecipeModal';
 import { CreateMealModal } from '@/components/ui/CreateMealModal';
+import { CreateStoryModal } from '@/components/ui/CreateStoryModal';
 import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
 import { useToast } from '@/lib/ToastContext';
 
@@ -27,6 +27,7 @@ export default function ChefProfileScreen() {
   const [autoShowLiveStreamSetup, setAutoShowLiveStreamSetup] = useState(false);
   const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
+  const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
 
   // Get all chef content
   const contentData = useQuery(
@@ -75,6 +76,22 @@ export default function ChefProfileScreen() {
     }
     return undefined;
   }, [kitchenDetails, chef?.onboardingDraft]);
+
+  // Get likes count for chef
+  const likesCount = useQuery(
+    api.queries.userFavorites.getChefLikesCount,
+    chef?._id ? { chefId: chef._id } : 'skip'
+  );
+
+  // Get completed orders count (servings) for chef
+  const servingsCount = useQuery(
+    api.queries.orders.getChefCompletedOrdersCount,
+    chef?._id && sessionToken
+      ? { chefId: chef._id.toString(), sessionToken }
+      : chef?._id
+      ? { chefId: chef._id.toString() }
+      : 'skip'
+  );
 
   // Transform content data into ContentItem format
   const allContentItems = useMemo(() => {
@@ -191,19 +208,10 @@ export default function ChefProfileScreen() {
     );
   }
 
-  const stats = contentData
-    ? {
-        recipes: contentData.stats.recipes,
-        liveSessions: contentData.stats.liveSessions,
-        videos: contentData.stats.videos,
-        meals: contentData.stats.meals,
-      }
-    : {
-        recipes: 0,
-        liveSessions: 0,
-        videos: 0,
-        meals: 0,
-      };
+  const stats = {
+    likes: likesCount ?? 0,
+    servings: servingsCount ?? 0,
+  };
 
   // Generate handle from name (lowercase, replace spaces with underscores)
   const handle = chef.name?.toLowerCase().replace(/\s+/g, '_') || 'chef';
@@ -230,15 +238,9 @@ export default function ChefProfileScreen() {
           rating={rating}
           reviewCount={reviewsCount}
           isVerified={isVerified}
+          specialties={chef.specialties}
           onBack={() => router.back()}
           onMenu={() => setIsMenuVisible(true)}
-        />
-
-        <ChefBioSection
-          bio={chef.bio}
-          specialties={chef.specialties}
-          onEdit={() => router.push('/personal-info')}
-          showEditButton={true}
         />
 
         <ContentTabs
@@ -259,7 +261,7 @@ export default function ChefProfileScreen() {
 
         {contentData === undefined ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#094327" />
+            <ActivityIndicator size="large" color="#065f46" />
             <Text style={styles.loadingText}>Loading content...</Text>
           </View>
         ) : filteredContent.length === 0 ? (
@@ -282,7 +284,7 @@ export default function ChefProfileScreen() {
         onEditProfile={() => router.push('/personal-info')}
         onAccountSettings={() => router.push('/account-details')}
         onPayoutSettings={() => router.push('/payout-settings')}
-        onViewEarnings={() => router.push('/payout-history')}
+        onViewEarnings={() => router.push('/(tabs)/earnings')}
       />
 
       {/* Camera Modal for Live Streaming */}
@@ -325,7 +327,7 @@ export default function ChefProfileScreen() {
 
       {/* Floating Action Button */}
       <FloatingActionButton 
-        bottomPosition={5}
+        bottomPosition={2}
         onCameraPress={() => {
           setAutoShowLiveStreamSetup(false);
           setIsCameraVisible(true);
@@ -337,10 +339,9 @@ export default function ChefProfileScreen() {
           setAutoShowLiveStreamSetup(true);
           setIsCameraVisible(true);
         }}
-        onOrdersPress={() => {
-          router.push('/(tabs)/orders');
+        onStoryPress={() => {
+          setIsStoryModalVisible(true);
         }}
-        isAnyModalOpen={isCameraVisible || isRecipeModalVisible || isMealModalVisible || isMenuVisible}
       />
     </SafeAreaView>
   );
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     fontFamily: 'Archivo',
-    color: '#094327',
+    color: '#065f46',
     marginBottom: 8,
   },
   emptyStateText: {

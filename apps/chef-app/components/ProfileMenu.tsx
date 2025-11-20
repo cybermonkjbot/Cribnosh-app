@@ -110,6 +110,9 @@ export function ProfileMenu({
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
       }}
+      containerStyle={{
+        zIndex: 1000000,
+      }}
     >
       <BottomSheetView style={styles.container}>
         <View style={styles.header}>

@@ -282,7 +282,7 @@ export default function ChefDashboard() {
           <View style={styles.earningsCard}>
             <View style={styles.earningsHeader}>
               <View style={styles.earningsInfo}>
-            <Text style={styles.earningsLabel}>Total Revenue (30 days)</Text>
+            <Text style={styles.earningsLabel}>Revenue</Text>
             <Text style={styles.earningsValue}>
               £{analytics ? (analytics.totalRevenue / 100).toFixed(2) : '0.00'}
             </Text>
@@ -292,7 +292,7 @@ export default function ChefDashboard() {
                 style={styles.earningsButton}
               >
                 <Text style={styles.earningsButtonText}>View Earnings</Text>
-                <ArrowRight size={16} color="#10B981" />
+                <ArrowRight size={16} color="#FF3B30" />
               </TouchableOpacity>
             </View>
           </View>
@@ -387,7 +387,7 @@ export default function ChefDashboard() {
       {/* Floating Action Button */}
       {isAuthenticated && (
         <FloatingActionButton 
-          bottomPosition={5}
+          bottomPosition={2}
           onCameraPress={() => {
             setAutoShowLiveStreamSetup(false);
             setIsCameraVisible(true);
@@ -399,8 +399,8 @@ export default function ChefDashboard() {
             setAutoShowLiveStreamSetup(true);
             setIsCameraVisible(true);
           }}
-          onOrdersPress={() => {
-            router.push('/(tabs)/orders');
+          onStoryPress={() => {
+            setIsStoryModalVisible(true);
           }}
         />
       )}
@@ -552,12 +552,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
     borderRadius: 12,
   },
   earningsButtonText: {
     fontSize: 14,
-    color: '#10B981',
+    color: '#FF3B30',
     fontWeight: '600',
   },
   ordersSection: {
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
-    color: '#10B981',
+    color: '#FF3B30',
     fontWeight: '600',
   },
   orderCard: {

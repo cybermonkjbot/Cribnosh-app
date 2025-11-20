@@ -1,7 +1,7 @@
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { BlurEffect } from '@/utils/blurEffects';
 import { useRouter } from 'expo-router';
-import { Camera, ChefHat, Plus, UtensilsCrossed, Video } from 'lucide-react-native';
+import { ChefHat, ImagePlus, Plus, Radio, Sparkles, UtensilsCrossed } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -19,12 +19,9 @@ interface FloatingActionButtonProps {
   onCameraPress?: () => void;
   onRecipePress?: () => void;
   onLiveStreamPress?: () => void;
-  onOrdersPress?: () => void;
+  onStoryPress?: () => void;
   showCartCounter?: boolean;
   cartItemCount?: number;
-  isSearchDrawerExpanded?: boolean;
-  isAnySheetOpen?: boolean;
-  isAnyModalOpen?: boolean;
 }
 
 export function FloatingActionButton({
@@ -33,60 +30,32 @@ export function FloatingActionButton({
   onCameraPress,
   onRecipePress,
   onLiveStreamPress,
-  onOrdersPress,
+  onStoryPress,
   showCartCounter = false,
   cartItemCount = 0,
-  isSearchDrawerExpanded = false,
-  isAnySheetOpen = false,
-  isAnyModalOpen = false,
 }: FloatingActionButtonProps) {
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
-  const [lastUsedFunction, setLastUsedFunction] = useState<'camera' | 'recipe' | 'live' | 'orders' | 'cart' | null>(null);
+  const [lastUsedFunction, setLastUsedFunction] = useState<'camera' | 'recipe' | 'live' | 'story' | 'cart' | null>(null);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useChefAuth();
   
   // Tab bar height is 95px
   const TAB_BAR_HEIGHT = 95;
-  // Default gap above tab bar (smaller gap for closer positioning)
-  const DEFAULT_GAP = 5;
+  // Default gap above tab bar - extremely close (2px)
+  const DEFAULT_GAP = 2;
   // If bottomPosition is provided, use it as the gap above the tab bar
   // If not provided, use the default gap
   const gapAboveTabBar = bottomPosition !== undefined ? bottomPosition : DEFAULT_GAP;
-  // Calculate position: tab bar height + gap above tab bar + safe area bottom
-  const calculatedBottomPosition = TAB_BAR_HEIGHT + gapAboveTabBar + insets.bottom;
-  
-  // Animated bottom position that adjusts when modals/sheets are open
-  // Initialize with calculated position
-  const animatedBottomPosition = useSharedValue(calculatedBottomPosition);
-  
-  // Update position when calculated position changes (e.g., safe area insets change)
-  useEffect(() => {
-    if (!isSearchDrawerExpanded && !isAnySheetOpen && !isAnyModalOpen) {
-      animatedBottomPosition.value = withSpring(calculatedBottomPosition, {
-        damping: 20,
-        stiffness: 300,
-      });
-    }
-  }, [calculatedBottomPosition, isSearchDrawerExpanded, isAnySheetOpen, isAnyModalOpen, animatedBottomPosition]);
-  
-  // Adjust position when search drawer is expanded or any sheet/modal is open
-  useEffect(() => {
-    const shouldMoveDown = isSearchDrawerExpanded || isAnySheetOpen || isAnyModalOpen;
-    // When sheets are open, move closer to bottom but still respect safe area
-    const targetPosition = shouldMoveDown ? insets.bottom + 10 : calculatedBottomPosition;
-    
-    animatedBottomPosition.value = withSpring(targetPosition, {
-      damping: 20,
-      stiffness: 300,
-    });
-  }, [isSearchDrawerExpanded, isAnySheetOpen, isAnyModalOpen, calculatedBottomPosition, insets.bottom, animatedBottomPosition]);
+  // Calculate position: tab bar height + gap above tab bar
+  // Note: insets.bottom is not added because the tab bar already accounts for safe area
+  const calculatedBottomPosition = TAB_BAR_HEIGHT + gapAboveTabBar;
   
   // Animation values for badge and icon
   const badgeScale = useSharedValue(cartItemCount > 0 ? 1 : 0);
   const iconOpacity = useSharedValue(1);
   const prevCartCountRef = useRef(cartItemCount);
-  const prevLastFunctionRef = useRef<'camera' | 'recipe' | 'live' | 'orders' | 'cart' | null>(null);
+  const prevLastFunctionRef = useRef<'camera' | 'recipe' | 'live' | 'story' | 'cart' | null>(null);
   const isInitialMount = useRef(true);
 
   // Circular menu configuration
@@ -108,10 +77,10 @@ export function FloatingActionButton({
   const liveTranslateX = useSharedValue(0);
   const liveTranslateY = useSharedValue(0);
 
-  const ordersScale = useSharedValue(0);
-  const ordersOpacity = useSharedValue(0);
-  const ordersTranslateX = useSharedValue(0);
-  const ordersTranslateY = useSharedValue(0);
+  const storyScale = useSharedValue(0);
+  const storyOpacity = useSharedValue(0);
+  const storyTranslateX = useSharedValue(0);
+  const storyTranslateY = useSharedValue(0);
   
   // Animate badge when cart count changes
   useEffect(() => {
@@ -157,18 +126,17 @@ export function FloatingActionButton({
   const getMainButtonIcon = () => {
     // Show icon based on last used function
     if (lastUsedFunction === 'camera') {
-      return <Camera size={20} color="#FFFFFF" />;
+      return <ImagePlus size={20} color="#FFFFFF" />;
     }
     if (lastUsedFunction === 'recipe') {
       return <ChefHat size={20} color="#FFFFFF" />;
     }
     if (lastUsedFunction === 'live') {
-      return <Video size={20} color="#FFFFFF" />;
+      return <Radio size={20} color="#FFFFFF" />;
     }
-    if (lastUsedFunction === 'orders') {
-      return <UtensilsCrossed size={20} color="#FFFFFF" />;
+    if (lastUsedFunction === 'story') {
+      return <Sparkles size={20} color="#FFFFFF" />;
     }
-    
     // Default plus icon
     return <Plus size={20} color="#FFFFFF" strokeWidth={3} />;
   };
@@ -219,13 +187,13 @@ export function FloatingActionButton({
     setIsActionMenuOpen(false);
   };
 
-  const handleOrdersPress = () => {
-    // Orders can be viewed without auth, but we'll still check
-    setLastUsedFunction('orders');
-    if (onOrdersPress) {
-      onOrdersPress();
+  const handleStoryPress = () => {
+    if (!requireAuth()) return;
+    setLastUsedFunction('story');
+    if (onStoryPress) {
+      onStoryPress();
     } else {
-      router.push('/(tabs)/orders' as any);
+      console.log('Story pressed');
     }
     setIsActionMenuOpen(false);
   };
@@ -281,11 +249,11 @@ export function FloatingActionButton({
 
     if (isActionMenuOpen) {
       // Opening animation - stagger each item slightly
-      // Angles: All positioned towards top and top-left (270°, 240°, 210°, 180°)
+      // Angles: Positioned towards top and top-left (270°, 240°, 210°, 180°)
       const cameraPos = calculatePosition(270, menuRadius); // Top
       const recipePos = calculatePosition(240, menuRadius); // Top-left
       const livePos = calculatePosition(210, menuRadius); // More towards left
-      const ordersPos = calculatePosition(180, menuRadius); // Left
+      const storyPos = calculatePosition(180, menuRadius); // Left
 
       cameraTranslateX.value = withDelay(0, withSpring(cameraPos.x, springConfig));
       cameraTranslateY.value = withDelay(0, withSpring(cameraPos.y, springConfig));
@@ -302,10 +270,10 @@ export function FloatingActionButton({
       liveScale.value = withDelay(100, withSpring(1, springConfig));
       liveOpacity.value = withDelay(100, withTiming(1, timingConfig));
 
-      ordersTranslateX.value = withDelay(150, withSpring(ordersPos.x, springConfig));
-      ordersTranslateY.value = withDelay(150, withSpring(ordersPos.y, springConfig));
-      ordersScale.value = withDelay(150, withSpring(1, springConfig));
-      ordersOpacity.value = withDelay(150, withTiming(1, timingConfig));
+      storyTranslateX.value = withDelay(150, withSpring(storyPos.x, springConfig));
+      storyTranslateY.value = withDelay(150, withSpring(storyPos.y, springConfig));
+      storyScale.value = withDelay(150, withSpring(1, springConfig));
+      storyOpacity.value = withDelay(150, withTiming(1, timingConfig));
     } else {
       // Closing animation - animate back to center
       cameraTranslateX.value = withTiming(0, timingConfig);
@@ -323,10 +291,10 @@ export function FloatingActionButton({
       liveScale.value = withTiming(0, timingConfig);
       liveOpacity.value = withTiming(0, timingConfig);
 
-      ordersTranslateX.value = withTiming(0, timingConfig);
-      ordersTranslateY.value = withTiming(0, timingConfig);
-      ordersScale.value = withTiming(0, timingConfig);
-      ordersOpacity.value = withTiming(0, timingConfig);
+      storyTranslateX.value = withTiming(0, timingConfig);
+      storyTranslateY.value = withTiming(0, timingConfig);
+      storyScale.value = withTiming(0, timingConfig);
+      storyOpacity.value = withTiming(0, timingConfig);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActionMenuOpen]);
@@ -359,25 +327,23 @@ export function FloatingActionButton({
     opacity: liveOpacity.value,
   }));
 
-  const ordersAnimatedStyle = useAnimatedStyle(() => ({
+  const storyAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: ordersTranslateX.value },
-      { translateY: ordersTranslateY.value },
-      { scale: ordersScale.value },
+      { translateX: storyTranslateX.value },
+      { translateY: storyTranslateY.value },
+      { scale: storyScale.value },
     ],
-    opacity: ordersOpacity.value,
+    opacity: storyOpacity.value,
   }));
 
-  // Animated style for bottom position
-  const animatedContainerStyle = useAnimatedStyle(() => {
-    return {
-      bottom: animatedBottomPosition.value,
-      right: rightPosition,
-    };
-  });
+  // Fixed style for bottom position (no auto adjustment)
+  const containerStyle = {
+    bottom: calculatedBottomPosition,
+    right: rightPosition,
+  };
 
   return (
-    <Animated.View style={[styles.floatingActionButton, animatedContainerStyle]}>
+    <View style={[styles.floatingActionButton, containerStyle]}>
       {/* Cart Counter Badge - Positioned on the right side of the pill */}
       {showCartCounter && cartItemCount > 0 && (
         <Animated.View style={[styles.cartBadge, badgeAnimatedStyle]}>
@@ -428,7 +394,7 @@ export function FloatingActionButton({
           accessibilityLabel="Create Food Content"
           accessibilityRole="button"
           >
-          <Camera size={24} color="#FF3B30" />
+          <ImagePlus size={24} color="#FF3B30" />
           </TouchableOpacity>
       </Animated.View>
 
@@ -448,7 +414,7 @@ export function FloatingActionButton({
           accessibilityLabel="Recipe Share"
           accessibilityRole="button"
           >
-          <ChefHat size={24} color="#0B9E58" />
+          <UtensilsCrossed size={24} color="#0B9E58" />
           </TouchableOpacity>
       </Animated.View>
 
@@ -468,27 +434,27 @@ export function FloatingActionButton({
           accessibilityLabel="Start Live Stream"
           accessibilityRole="button"
           >
-          <Video size={24} color="#8B5CF6" />
+          <Radio size={24} color="#8B5CF6" />
           </TouchableOpacity>
       </Animated.View>
 
-      {/* Orders Button */}
+      {/* Story Button */}
       <Animated.View
         style={[
           styles.circularMenuItem,
-          ordersAnimatedStyle,
+          storyAnimatedStyle,
           { position: 'absolute', top: 0, right: 0 },
         ]}
         pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
       >
           <TouchableOpacity
-          style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#10B981' }]}
-            onPress={handleOrdersPress}
+          style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#F59E0B' }]}
+            onPress={handleStoryPress}
             activeOpacity={0.8}
-          accessibilityLabel="View Orders"
+          accessibilityLabel="Create Story"
           accessibilityRole="button"
-        >
-          <UtensilsCrossed size={24} color="#10B981" />
+          >
+          <Sparkles size={24} color="#F59E0B" />
           </TouchableOpacity>
       </Animated.View>
 
@@ -500,7 +466,7 @@ export function FloatingActionButton({
           onPress={() => setIsActionMenuOpen(false)}
         />
       )}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -510,7 +476,7 @@ const styles = StyleSheet.create({
     zIndex: 999999,
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
-    // bottom and right are now controlled by animated style
+    // bottom and right are controlled by containerStyle prop
   },
   mainActionButton: {
     width: 50,
