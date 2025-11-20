@@ -9,7 +9,7 @@ import { EmailOTPVerification } from '@/components/waitlist/email-otp-verificati
 import { api } from "@/convex/_generated/api";
 import { Id } from '@/convex/_generated/dataModel';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { CheckCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
@@ -58,7 +58,7 @@ export default function WaitlistPage() {
   
   // Debounced email for query to prevent excessive queries
   const [debouncedEmail, setDebouncedEmail] = useState<string>('');
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounce email input for query
   useEffect(() => {

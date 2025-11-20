@@ -1,16 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { ErrorCode, ErrorFactory, errorHandler, ErrorSeverity, withErrorHandling } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { mattermostService } from '@/lib/mattermost';
-import { jwtVerify } from 'jose';
-import { onboardStaff } from '@/lib/onboarding/onboardStaff';
 import { api } from '@/convex/_generated/api';
-import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
-import { notifyStaffOnboardingComplete, notifyOnboardingError } from '@/lib/mattermost/utils';
+import { ResponseFactory } from '@/lib/api';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getUserFromRequest } from "@/lib/auth/session";
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { ErrorCode, ErrorFactory, ErrorSeverity, errorHandler, withErrorHandling } from '@/lib/errors';
+import { mattermostService } from '@/lib/mattermost';
+import { notifyOnboardingError, notifyStaffOnboardingComplete } from '@/lib/mattermost/utils';
+import { onboardStaff } from '@/lib/onboarding/onboardStaff';
 import { logger } from '@/lib/utils/logger';
-import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -148,6 +146,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const onboardingData: any = {};
     
     // Parse JSON data from form fields
+    // @ts-ignore - FormData.entries() exists but TypeScript types may not recognize it
     for (const [key, value] of formData.entries()) {
       if (key !== 'idDocument' && key !== 'taxForm' && key !== 'directDepositForm') {
         try {

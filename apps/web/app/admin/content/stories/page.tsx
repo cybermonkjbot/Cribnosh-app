@@ -68,15 +68,27 @@ export default function StoriesManagementPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    content: string;
+    status: "draft" | "published" | "archived";
+    author: string;
+    thumbnail: string;
+    metadata: {
+      description: string;
+      tags: string[];
+      readTime: number;
+    };
+    tagInput: string;
+  }>({
     title: '',
     content: '',
-    status: 'draft' as const,
+    status: 'draft',
     author: '',
     thumbnail: '',
     metadata: {
       description: '',
-      tags: [] as string[],
+      tags: [],
       readTime: 0,
     },
     tagInput: '',

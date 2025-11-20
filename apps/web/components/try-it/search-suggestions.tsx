@@ -15,7 +15,7 @@ interface SearchSuggestionsProps {
 }
 
 export function SearchSuggestions({ query, onSelectSuggestion }: SearchSuggestionsProps) {
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const convex = useConvex();
   const { user } = useSession();

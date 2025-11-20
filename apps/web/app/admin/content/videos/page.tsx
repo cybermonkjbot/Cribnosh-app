@@ -94,13 +94,21 @@ export default function VideosManagementPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    tags: string[];
+    cuisine: string;
+    difficulty: "beginner" | "intermediate" | "advanced";
+    visibility: "public" | "followers" | "private";
+    tagInput: string;
+  }>({
     title: '',
     description: '',
-    tags: [] as string[],
+    tags: [],
     cuisine: '',
-    difficulty: 'beginner' as const,
-    visibility: 'public' as const,
+    difficulty: 'beginner',
+    visibility: 'public',
     tagInput: '',
   });
 

@@ -75,7 +75,7 @@ export class EmailPerformanceMonitor {
   private alerts: EmailPerformanceAlert[] = [];
   private qualityScores: Map<string, EmailQualityScore> = new Map();
   private config: EmailMonitoringConfig;
-  private monitoringInterval: NodeJS.Timeout | null = null;
+  private monitoringInterval: ReturnType<typeof setTimeout> | null = null;
 
   constructor(config: EmailMonitoringConfig) {
     this.config = config;

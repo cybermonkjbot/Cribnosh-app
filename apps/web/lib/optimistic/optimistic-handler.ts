@@ -30,7 +30,7 @@ export function deleteOptimisticOperation(id: string) {
 
 export class OptimisticHandler {
   private static instance: OptimisticHandler;
-  private processingInterval: NodeJS.Timeout | null = null;
+  private processingInterval: ReturnType<typeof setTimeout> | null = null;
   private isShuttingDown = false;
 
   private constructor() {

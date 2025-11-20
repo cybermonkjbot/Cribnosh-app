@@ -1,10 +1,10 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, errorHandler, ErrorCode } from '@/lib/errors';
+import { ResponseFactory } from '@/lib/api';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClient } from '@/lib/conxed-client';
+import { ErrorCode, ErrorFactory, withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
+import { NextRequest } from 'next/server';
 
 // Endpoint: /v1/auth/phone-signin
 // Group: auth
@@ -210,6 +210,7 @@ async function handlePOST(request: NextRequest) {
                           request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                           undefined;
         const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
+        const body = await request.json().catch(() => ({}));
         const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
         
         const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
@@ -286,6 +287,7 @@ async function handlePOST(request: NextRequest) {
                         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                         undefined;
       const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
+      const body = await request.json().catch(() => ({}));
       const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
       
       const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {

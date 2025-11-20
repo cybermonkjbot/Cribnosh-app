@@ -23,7 +23,7 @@ export default function SearchContent() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || "");
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(!!searchParams.get('q'));
-  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Check for authentication errors and success from OAuth callbacks
   useEffect(() => {

@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
-import { withErrorHandling, ErrorFactory, ErrorCode, errorHandler } from '@/lib/errors';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
-import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
-import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { ErrorCode, ErrorFactory, withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * @swagger
@@ -153,6 +153,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       return ResponseFactory.forbidden('Forbidden: Only customers or admins can upload images.');
     }
     const formData = await request.formData();
+    // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
     const file = formData.get('file') as File;
     if (!file) {
       return ResponseFactory.error('No file uploaded.', 'CUSTOM_ERROR', 422);

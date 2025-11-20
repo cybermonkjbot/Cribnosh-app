@@ -1,12 +1,9 @@
 import { api } from '@/convex/_generated/api';
-import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { ErrorFactory, ErrorCode } from '@/lib/errors';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClient, getSessionTokenFromRequest } from '@/lib/conxed-client';
+import { ErrorCode, ErrorFactory } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -85,6 +82,7 @@ import { logger } from '@/lib/utils/logger';
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
+    // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
     const file = formData.get('file') as File;
     
     if (!file) {

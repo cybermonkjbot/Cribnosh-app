@@ -61,21 +61,20 @@
  *       - cookieAuth: []
  */
 
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
 import { emailAdminConfigManager } from '@/lib/email/admin-config';
-import { getAuthenticatedAdmin } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { NextRequest } from 'next/server';
 
 // POST /api/admin/email-config/import - Import email configurations
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const category = formData.get('category') as string;
+    // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
+    const file = formData.get('file') as File | null;
+    // @ts-ignore
+    const category = (formData.get('category') as string) || '';
+    // @ts-ignore
     const overwrite = formData.get('overwrite') === 'true';
 
     if (!file || !category) {

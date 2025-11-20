@@ -14,7 +14,7 @@ interface TryItSearchProps {
 export function TryItSearch({ searchQuery, setSearchQuery, isSearching }: TryItSearchProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(searchQuery);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   
   // Update local input value when searchQuery prop changes

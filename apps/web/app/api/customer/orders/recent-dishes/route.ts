@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
@@ -183,7 +183,6 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         kitchen_name: dishDetails.chef?.name || 'Unknown Kitchen',
         kitchen_id: dishDetails.chefId,
         last_ordered_at: lastOrder.order._creationTime || lastOrder.order.createdAt || Date.now(),
-        last_order_id: lastOrder.order._id || lastOrder.order.id || null,
         order_count: orderItems.length,
         rating: dishDetails.averageRating || 0,
       });
@@ -201,7 +200,6 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         kitchen_name: dish.kitchen_name,
         kitchen_id: dish.kitchen_id,
         last_ordered_at: dish.last_ordered_at,
-        last_order_id: dish.last_order_id,
         order_count: dish.order_count,
         has_bussin_badge: (dish.rating || 0) >= 4.5,
       }));

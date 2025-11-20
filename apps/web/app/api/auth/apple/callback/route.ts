@@ -1,9 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Apple Sign-In Callback Handler
@@ -12,9 +9,13 @@ import { logger } from '@/lib/utils/logger';
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
+    // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
     const code = formData.get('code') as string;
+    // @ts-ignore
     const idToken = formData.get('id_token') as string;
+    // @ts-ignore
     const state = formData.get('state') as string;
+    // @ts-ignore
     const user = formData.get('user') as string;
 
     // Parse state to get redirect URL

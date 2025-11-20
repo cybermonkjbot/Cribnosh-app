@@ -5,7 +5,7 @@ const monitoring = MonitoringService.getInstance();
 // In-memory rate limiting store
 class RateLimitStore {
   private store = new Map<string, { count: number; resetTime: number }>();
-  private cleanupInterval: NodeJS.Timeout;
+  private cleanupInterval: ReturnType<typeof setTimeout>;
 
   constructor() {
     // Clean up expired entries every 5 minutes

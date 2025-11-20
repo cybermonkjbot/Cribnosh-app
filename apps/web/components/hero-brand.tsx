@@ -1,15 +1,14 @@
 ﻿"use client";
 
-import React, { useState, useEffect } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
-import Link from "next/link";
-import Image from "next/image";
-import { ContainerTextFlip } from "@/components/ui/containedtextflip";
 import { CategoryPreview } from "@/components/ui/category-preview";
+import { ContainerTextFlip } from "@/components/ui/containedtextflip";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion, useScroll, useTransform } from "motion/react";
+import Image from "next/image";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
 import { HeroBrandPage2 } from "./hero-brand-page-2";
 import { HeroBrandPage3 } from "./hero-brand-page-3";
-import { MobileBrandAccordion } from "@/components/ui/mobile-brand-accordion";
 
 // Define the valid category types
 type CategoryType = 
@@ -26,7 +25,7 @@ export function HeroBrand({ className }: { className?: string }) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [currentPage, setCurrentPage] = useState<1 | 2 | 3>(1);
   const [isMobile, setIsMobile] = useState(false);
-  const [touchTimeout, setTouchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [touchTimeout, setTouchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [autoSwitchPaused, setAutoSwitchPaused] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [imageError, setImageError] = useState(false);

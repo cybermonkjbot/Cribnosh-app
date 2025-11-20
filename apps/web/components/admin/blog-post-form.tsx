@@ -50,7 +50,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
   const [showSeo, setShowSeo] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialLoadRef = useRef(true);
 
   // Fetch existing post if editing

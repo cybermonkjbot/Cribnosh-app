@@ -10,7 +10,7 @@ type AnalyticsEvent = {
 
 // Event queue for batching
 let eventQueue: AnalyticsEvent[] = [];
-let flushTimeout: NodeJS.Timeout | null = null;
+let flushTimeout: ReturnType<typeof setTimeout> | null = null;
 const FLUSH_INTERVAL = 2000; // Flush every 2 seconds
 const MAX_QUEUE_SIZE = 20; // Maximum events to batch
 
@@ -93,7 +93,7 @@ function debounce<T extends (...args: any[]) => void>(
   func: T,
   wait: number
 ): T {
-  let timeout: NodeJS.Timeout;
+  let timeout: ReturnType<typeof setTimeout>;
   return ((...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);

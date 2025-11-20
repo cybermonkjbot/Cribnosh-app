@@ -82,15 +82,26 @@ export default function MealsManagementPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    price: number;
+    cuisine: string[];
+    dietary: string[];
+    status: "available" | "unavailable";
+    images: string[];
+    calories: number | undefined;
+    cuisineInput: string;
+    dietaryInput: string;
+  }>({
     name: '',
     description: '',
     price: 0,
-    cuisine: [] as string[],
-    dietary: [] as string[],
-    status: 'available' as const,
-    images: [] as string[],
-    calories: undefined as number | undefined,
+    cuisine: [],
+    dietary: [],
+    status: 'available',
+    images: [],
+    calories: undefined,
     cuisineInput: '',
     dietaryInput: '',
   });

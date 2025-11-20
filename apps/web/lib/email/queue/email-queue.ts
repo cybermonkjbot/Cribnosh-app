@@ -12,7 +12,7 @@ const failedEmails = new Map<string, { failedAt: Date; error: string }>();
 
 export class EmailQueue {
   private retryStrategy: RetryStrategy;
-  private processingInterval: NodeJS.Timeout | null = null;
+  private processingInterval: ReturnType<typeof setTimeout> | null = null;
   private isProcessing = false;
 
   constructor(

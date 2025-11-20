@@ -1,32 +1,32 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { usePathname, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "motion/react";
+import { useSession } from '@/lib/auth/use-session';
+import { env } from '@/lib/config/env';
+import {
+  Car,
+  ChefHat,
+  HelpCircle,
+  Info,
+  MapPin,
+  MessageCircle,
+  Search,
+  Settings,
+  Sparkles,
+  Star,
+  Utensils
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { ThemeProvider } from 'next-themes';
 import Link from 'next/link';
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMobileDevice } from '../../hooks/use-device-info';
+import { FloatingCartIcon } from "../cart/floating-cart-icon";
 import { Footer } from "../footer/footer";
 import { Header } from "../header/header";
-import { CookieSettingsPopup } from "../ui/cookie-settings";
 import { FloatingBottomMenu } from "../navigation/floating-bottom-menu";
-import { FloatingCartIcon } from "../cart/floating-cart-icon";
-import { ThemeProvider } from 'next-themes';
+import { CookieSettingsPopup } from "../ui/cookie-settings";
 import { MultiStepLoader } from '../ui/loader';
-import { env } from '@/lib/config/env';
-import { useReducedMotion, useMobileDevice } from '../../hooks/use-device-info';
-import { useSession } from '@/lib/auth/use-session';
-import { 
-  Utensils, 
-  ChefHat, 
-  Star, 
-  MapPin, 
-  Search, 
-  Sparkles, 
-  Car, 
-  Settings, 
-  HelpCircle, 
-  Info, 
-  MessageCircle 
-} from "lucide-react";
 
 interface ContextMenuPosition {
   x: number;
@@ -108,10 +108,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [deviceOrientation, setDeviceOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition>({ x: 0, y: 0, show: false, isMobile: false });
   const [isCookieSettingsOpen, setIsCookieSettingsOpen] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchDebounceTimer, setSearchDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [searchDebounceTimer, setSearchDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState(true);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useMobileDevice();
@@ -138,7 +138,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // Debounced viewport height update
   const updateViewportHeight = useCallback(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {

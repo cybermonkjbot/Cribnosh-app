@@ -1,15 +1,12 @@
-import { NextRequest } from 'next/server';
+import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { randomUUID } from 'crypto';
-import { env } from '@/lib/config/env';
-import { jwtVerify } from 'jose';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { getUserFromRequest } from "@/lib/auth/session";
 import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
-import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
-import { api } from '@/convex/_generated/api';
-import { getErrorMessage } from '@/types/errors';
 import { logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/types/errors';
+import { randomUUID } from 'crypto';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -93,8 +90,11 @@ export async function POST(request: NextRequest) {
     return ResponseFactory.unauthorized('Unauthorized');
   }
   const formData = await request.formData();
+  // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
   const file = formData.get('file') as File;
+  // @ts-ignore
   const userEmail = formData.get('userEmail') as string;
+  // @ts-ignore
   const docType = formData.get('type') as string;
 
   if (!file || !userEmail) {

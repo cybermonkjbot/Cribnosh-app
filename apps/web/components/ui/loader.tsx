@@ -181,7 +181,7 @@ export const MultiStepLoader = ({
   }, [loop, loadingStates.length, onComplete]);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     if (loading && !hasShownLoader) {
       timeoutId = setTimeout(updateState, duration);

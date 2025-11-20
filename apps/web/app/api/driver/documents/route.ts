@@ -170,7 +170,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
 
     // Parse FormData
     const formData = await request.formData();
+    // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
     const file = formData.get('file') as File;
+    // @ts-ignore
     const type = formData.get('type') as string;
 
     // Validate request

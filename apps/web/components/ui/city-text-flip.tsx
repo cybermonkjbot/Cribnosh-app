@@ -33,7 +33,7 @@ export function CityTextFlip({
 }: CityTextFlipProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // For SEO and performance, allow static text mode
   if (staticText || words.length <= 1) {
