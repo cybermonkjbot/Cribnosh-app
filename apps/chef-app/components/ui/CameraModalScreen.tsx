@@ -1,15 +1,15 @@
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Ionicons } from '@expo/vector-icons';
+import { useMutation, useQuery } from 'convex/react';
 import { CameraView } from 'expo-camera';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Radio, X } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Dimensions, PanResponder, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { CribNoshLogo } from './CribNoshLogo';
 
@@ -19,6 +19,13 @@ interface CameraModalScreenProps {
   onClose: () => void;
   onStartLiveStream?: (sessionId: string) => void;
   autoShowLiveStreamSetup?: boolean;
+  onPhotoCaptured?: (photoUri: string) => void;
+  onVideoRecorded?: (videoUri: string) => void;
+  // Visibility controls based on trigger
+  showGoLiveButton?: boolean;
+  showVideoRecording?: boolean;
+  showFilters?: boolean;
+  mode?: 'photo' | 'video' | 'both' | 'live';
 }
 
 // Camera control icons
@@ -43,13 +50,24 @@ const captureButtonSVG = `<svg width="80" height="80" viewBox="0 0 80 80" fill="
 type CameraType = 'front' | 'back';
 type FlashMode = 'off' | 'on' | 'auto';
 
-export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStreamSetup = false }: CameraModalScreenProps) {
+export function CameraModalScreen({ 
+  onClose, 
+  onStartLiveStream, 
+  autoShowLiveStreamSetup = false, 
+  onPhotoCaptured, 
+  onVideoRecorded,
+  showGoLiveButton = true,
+  showVideoRecording = true,
+  showFilters = true,
+  mode = 'both'
+}: CameraModalScreenProps) {
   const router = useRouter();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraType, setCameraType] = useState<CameraType>('back');
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const [selectedFilter, setSelectedFilter] = useState<string>('normal');
   const [lastCapturedPhoto, setLastCapturedPhoto] = useState<string | null>(null);
+  const [showPhotoPreview, setShowPhotoPreview] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [lastRecordedVideo, setLastRecordedVideo] = useState<string | null>(null);
   const [showVideoPreview, setShowVideoPreview] = useState<boolean>(false);
@@ -57,6 +75,49 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
   const cameraRef = useRef<any>(null);
   const isMountedRef = useRef(true);
   const simulatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panY = useRef(new Animated.Value(0)).current;
+  const SWIPE_THRESHOLD = 100; // Minimum distance to trigger dismiss
+
+  // PanResponder for swipe down to dismiss
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only respond to downward swipes that are more vertical than horizontal
+        // Require significant downward movement to avoid interfering with camera controls
+        return gestureState.dy > 20 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 2;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // Only allow downward movement
+        if (gestureState.dy > 0) {
+          panY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const currentValue = gestureState.dy;
+        
+        // If swiped down enough, dismiss
+        if (currentValue > SWIPE_THRESHOLD) {
+          Animated.timing(panY, {
+            toValue: height,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            onClose();
+            panY.setValue(0);
+          });
+        } else {
+          // Spring back to original position
+          Animated.spring(panY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 7,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   React.useEffect(() => {
     (async () => {
@@ -91,9 +152,25 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
   };
 
   const handleCapture = async () => {
-    if (!cameraRef.current || !isMountedRef.current || isRecording) {
+    if (!cameraRef.current || !isMountedRef.current) {
       return;
     }
+    
+    // If mode is video-only, toggle recording
+    if (mode === 'video') {
+      if (isRecording) {
+        await stopRecording();
+      } else {
+        await startRecording();
+      }
+      return;
+    }
+    
+    // For photo modes, don't capture if recording
+    if (isRecording) {
+      return;
+    }
+    
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
@@ -101,6 +178,7 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
       });
       if (isMountedRef.current && photo?.uri) {
         setLastCapturedPhoto(photo.uri);
+        setShowPhotoPreview(true);
         console.log('Photo captured:', photo);
       }
     } catch (error) {
@@ -135,6 +213,10 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
             setLastRecordedVideo(mockVideoUri);
             setShowVideoPreview(true);
             console.log('Mock video recording completed for simulator testing');
+            // Call callback if provided
+            if (onVideoRecorded) {
+              onVideoRecorded(mockVideoUri);
+            }
           }
         }, 2000); // 2 second mock recording
       } else {
@@ -160,6 +242,10 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
           setLastRecordedVideo(video.uri);
           setShowVideoPreview(true);
           console.log('Video recording stopped:', video);
+          // Call callback if provided
+          if (onVideoRecorded) {
+            onVideoRecorded(video.uri);
+          }
         }
       }
     } catch (error) {
@@ -195,6 +281,7 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
         const selectedImage = result.assets[0];
         if (selectedImage.uri) {
           setLastCapturedPhoto(selectedImage.uri);
+          setShowPhotoPreview(true);
           console.log('Image selected from gallery:', selectedImage.uri);
         }
       }
@@ -213,6 +300,24 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
     console.log('Filter selected:', filter);
   };
 
+  const closePhotoPreview = () => {
+    setShowPhotoPreview(false);
+    setLastCapturedPhoto(null);
+  };
+
+  const usePhoto = () => {
+    if (lastCapturedPhoto && onPhotoCaptured) {
+      onPhotoCaptured(lastCapturedPhoto);
+    }
+    setShowPhotoPreview(false);
+    onClose();
+  };
+
+  const retakePhoto = () => {
+    setShowPhotoPreview(false);
+    setLastCapturedPhoto(null);
+  };
+
   const closeVideoPreview = () => {
     setShowVideoPreview(false);
     setLastRecordedVideo(null);
@@ -220,6 +325,7 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
 
   const closeCameraModal = () => {
     setShowVideoPreview(false);
+    setShowPhotoPreview(false);
     setLastRecordedVideo(null);
     setLastCapturedPhoto(null);
     onClose();
@@ -238,7 +344,15 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
   }
 
   return (
-    <View style={styles.container}>
+    <Animated.View 
+      style={[
+        styles.container,
+        {
+          transform: [{ translateY: panY }],
+        }
+      ]}
+      {...panResponder.panHandlers}
+    >
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
       {/* Camera View */}
@@ -248,6 +362,11 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
         facing={cameraType}
         flash={flashMode}
       >
+        {/* Swipe Down Indicator */}
+        <View style={styles.swipeIndicator}>
+          <View style={styles.swipeHandle} />
+        </View>
+
         {/* Top Controls */}
         <View style={styles.topControls}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -298,6 +417,42 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
           />
         )}
 
+        {/* Photo Preview Overlay */}
+        {showPhotoPreview && lastCapturedPhoto && (
+          <View style={styles.photoPreviewOverlay}>
+            <View style={styles.photoPreviewHeader}>
+              <TouchableOpacity style={styles.closePreviewButton} onPress={closeCameraModal}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.photoPreviewTitle}>Photo Preview</Text>
+              <View style={styles.closePreviewButton} />
+            </View>
+            <View style={styles.photoPreviewContainer}>
+              <Image 
+                source={{ uri: lastCapturedPhoto }} 
+                style={styles.photoPreviewImage}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.photoPreviewActions}>
+              <TouchableOpacity 
+                style={styles.photoPreviewActionButton}
+                onPress={retakePhoto}
+              >
+                <Ionicons name="refresh" size={20} color="#FFFFFF" />
+                <Text style={styles.photoPreviewActionText}>Retake</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.photoPreviewActionButton, styles.photoPreviewActionButtonPrimary]}
+                onPress={usePhoto}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                <Text style={[styles.photoPreviewActionText, styles.photoPreviewActionTextPrimary]}>Use Photo</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Video Preview Overlay */}
         {showVideoPreview && lastRecordedVideo && (
           <View style={styles.videoPreviewOverlay}>
@@ -340,12 +495,13 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
         )}
 
         {/* Camera Filters Section - Above Shutter */}
-        <View style={styles.filtersSection}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContainer}
-          >
+        {showFilters && (
+          <View style={styles.filtersSection}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersContainer}
+            >
             {/* Normal Filter */}
             <TouchableOpacity
               style={[
@@ -442,7 +598,8 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
               </Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
+          </View>
+        )}
 
         {/* Bottom Controls */}
         <View style={styles.bottomControls}>
@@ -463,8 +620,8 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
           <TouchableOpacity 
             style={[styles.captureButton, isRecording && styles.captureButtonRecording]} 
             onPress={handleCapture}
-            onLongPress={startRecording}
-            onPressOut={isRecording ? stopRecording : undefined}
+            onLongPress={(showVideoRecording && (mode === 'both' || mode === 'live')) ? startRecording : undefined}
+            onPressOut={(isRecording && (mode === 'both' || mode === 'live')) ? stopRecording : undefined}
             delayLongPress={200}
           >
             <SvgXml xml={captureButtonSVG} width={80} height={80} />
@@ -472,16 +629,19 @@ export function CameraModalScreen({ onClose, onStartLiveStream, autoShowLiveStre
           </TouchableOpacity>
           
           {/* Right side - Go Live Button */}
-          <TouchableOpacity 
-            style={styles.goLiveButton} 
-            onPress={() => setShowLiveStreamSetup(true)}
-          >
-            <Radio size={20} color="#FFFFFF" />
-            <Text style={styles.goLiveButtonText}>Go Live</Text>
-          </TouchableOpacity>
+          {showGoLiveButton && (
+            <TouchableOpacity 
+              style={styles.goLiveButton} 
+              onPress={() => setShowLiveStreamSetup(true)}
+            >
+              <Radio size={20} color="#FFFFFF" />
+              <Text style={styles.goLiveButtonText}>Go Live</Text>
+            </TouchableOpacity>
+          )}
+          {!showGoLiveButton && <View style={styles.leftControls} />}
         </View>
       </CameraView>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -492,6 +652,23 @@ const styles = StyleSheet.create({
   },
   camera: {
     flex: 1,
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    zIndex: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  swipeHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   topControls: {
     position: 'absolute',
@@ -670,6 +847,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     opacity: 0.8,
+  },
+  photoPreviewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000000',
+    zIndex: 200,
+  },
+  photoPreviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  photoPreviewTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  photoPreviewContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  photoPreviewImage: {
+    width: width,
+    height: height * 0.6,
+    borderRadius: 0,
+  },
+  photoPreviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingBottom: 50,
+    gap: 20,
+  },
+  photoPreviewActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    gap: 8,
+  },
+  photoPreviewActionButtonPrimary: {
+    backgroundColor: '#FF3B30',
+  },
+  photoPreviewActionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  photoPreviewActionTextPrimary: {
+    color: '#FFFFFF',
   },
   goLiveButton: {
     flexDirection: 'row',

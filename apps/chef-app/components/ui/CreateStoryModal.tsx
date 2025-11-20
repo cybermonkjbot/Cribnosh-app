@@ -6,10 +6,10 @@ import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
 import { useRouter } from 'expo-router';
-import { X, Plus, Image as ImageIcon, Camera, Video as VideoIcon, FileText, Sparkles, ChevronRight } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getConvexClient } from '@/lib/convexClient';
-import { CameraView } from 'expo-camera';
+import { CameraModalScreen } from './CameraModalScreen';
 import { SvgXml } from 'react-native-svg';
 
 // Close icon SVG
@@ -39,11 +39,8 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
-  const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
-  const [isRecording, setIsRecording] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const cameraRef = React.useRef<any>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -73,69 +70,23 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
       status: 'draft',
     });
     setShowCamera(false);
-    setIsRecording(false);
     setIsSubmitted(false);
     setCurrentStep(0);
     onClose();
   };
 
-  const handleOpenCamera = async () => {
-    try {
-      const { Camera } = await import('expo-camera');
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Camera permission is required.');
-        return;
-      }
-      setShowCamera(true);
-    } catch (error) {
-      showError('Error', 'Failed to access camera');
-    }
+  const handleOpenCamera = () => {
+    setShowCamera(true);
   };
 
-  const handleCapturePhoto = async () => {
-    if (!cameraRef.current) return;
-    try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: false,
-      });
-      if (photo?.uri) {
-        setFormData({ ...formData, media: { uri: photo.uri, type: 'photo' } });
-        setShowCamera(false);
-      }
-    } catch (error) {
-      showError('Error', 'Failed to capture photo');
-    }
+  const handlePhotoCaptured = (photoUri: string) => {
+    setFormData({ ...formData, media: { uri: photoUri, type: 'photo' } });
+    setShowCamera(false);
   };
 
-  const handleStartRecording = async () => {
-    if (!cameraRef.current || isRecording) return;
-    try {
-      setIsRecording(true);
-      await cameraRef.current.recordAsync({
-        quality: '720p',
-        maxDuration: 60,
-      });
-    } catch (error) {
-      setIsRecording(false);
-      showError('Error', 'Failed to start recording');
-    }
-  };
-
-  const handleStopRecording = async () => {
-    if (!cameraRef.current || !isRecording) return;
-    try {
-      setIsRecording(false);
-      const video = await cameraRef.current.stopRecordingAsync();
-      if (video?.uri) {
-        setFormData({ ...formData, media: { uri: video.uri, type: 'video' } });
-        setShowCamera(false);
-      }
-    } catch (error) {
-      setIsRecording(false);
-      showError('Error', 'Failed to stop recording');
-    }
+  const handleVideoRecorded = (videoUri: string) => {
+    setFormData({ ...formData, media: { uri: videoUri, type: 'video' } });
+    setShowCamera(false);
   };
 
   const handlePickMedia = async () => {
@@ -294,9 +245,7 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
                 {formData.media.type === 'photo' ? (
                   <Image source={{ uri: formData.media.uri }} style={styles.mediaPreview} />
                 ) : (
-                  <View style={styles.videoPreview}>
-                    <VideoIcon size={48} color="#fff" />
-                  </View>
+                  <View style={styles.videoPreview} />
                 )}
                 <TouchableOpacity
                   onPress={() => setFormData({ ...formData, media: null })}
@@ -311,14 +260,12 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
                   onPress={handleOpenCamera}
                   style={styles.mediaButtonCard}
                 >
-                  <Camera size={32} color="#F23E2E" />
                   <Text style={styles.mediaButtonText}>Camera</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handlePickMedia}
                   style={styles.mediaButtonCard}
                 >
-                  <ImageIcon size={32} color="#F23E2E" />
                   <Text style={styles.mediaButtonText}>Gallery</Text>
                 </TouchableOpacity>
               </View>
@@ -331,7 +278,6 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
         return (
           <View style={styles.stepContent}>
             <View style={styles.inputCard}>
-              <FileText size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={styles.inputCardText}
                 placeholder="Story title..."
@@ -341,7 +287,6 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
               />
             </View>
             <View style={[styles.inputCard, styles.inputCardMultiline, styles.inputCardMarginTop]}>
-              <FileText size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={[styles.inputCardText, styles.inputCardTextMultiline]}
                 placeholder="Tell your story..."
@@ -360,7 +305,6 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
         return (
           <View style={styles.stepContent}>
             <View style={styles.inputCard}>
-              <FileText size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={styles.inputCardText}
                 placeholder="Tags (comma-separated, e.g. cooking, recipe, italian)"
@@ -389,51 +333,6 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
     }
   };
 
-  const renderCameraView = () => {
-    if (!showCamera) return null;
-
-    return (
-      <View style={styles.cameraContainer}>
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing={cameraType}
-        >
-          <View style={[styles.cameraControls, { top: insets.top + 20 }]}>
-            <TouchableOpacity
-              style={styles.cameraButton}
-              onPress={() => setShowCamera(false)}
-            >
-              <SvgXml xml={closeIconSVG} width={24} height={24} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cameraButton}
-              onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')}
-            >
-              <Camera size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.cameraBottomControls}>
-            <TouchableOpacity
-              style={styles.mediaButton}
-              onPress={handlePickMedia}
-            >
-              <ImageIcon size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.captureButton, isRecording && styles.captureButtonRecording]}
-              onPress={handleCapturePhoto}
-              onLongPress={handleStartRecording}
-              onPressOut={isRecording ? handleStopRecording : undefined}
-            >
-              {isRecording && <View style={styles.recordingIndicator} />}
-            </TouchableOpacity>
-            <View style={styles.mediaButton} />
-          </View>
-        </CameraView>
-      </View>
-    );
-  };
 
   const currentStepData = STEPS[currentStep];
   const progress = ((currentStep + 1) / STEPS.length) * 100;
@@ -448,19 +347,15 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
     >
       <SafeAreaView style={[styles.container, { paddingTop: insets.top }]} edges={['top']}>
         <View style={styles.content}>
-          {showCamera ? (
-            renderCameraView()
-          ) : (
-            <>
-              {/* Header */}
-              <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                  <Text style={styles.title}>New Story</Text>
-                </View>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <SvgXml xml={closeIconSVG} width={24} height={24} />
-                </TouchableOpacity>
-              </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.title}>New Story</Text>
+            </View>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <SvgXml xml={closeIconSVG} width={24} height={24} />
+            </TouchableOpacity>
+          </View>
 
               {isSubmitted ? (
                 /* Success State */
@@ -469,9 +364,7 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
                   contentContainerStyle={styles.successContainer}
                   showsVerticalScrollIndicator={false}
                 >
-                  <View style={styles.successIconContainer}>
-                    <Sparkles size={48} color="#0B9E58" />
-                  </View>
+                  <View style={styles.successIconContainer} />
                   <Text style={styles.successTitle}>Story {formData.status === 'published' ? 'Published' : 'Saved'}!</Text>
                   <Text style={styles.successMessage}>
                     {formData.status === 'published' 
@@ -534,21 +427,36 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
                       {(isSubmitting || isUploadingMedia) ? (
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
-                        <>
-                          <Text style={styles.nextButtonText}>
-                            {currentStep === STEPS.length - 1 ? 'Publish' : 'Next'}
-                          </Text>
-                          <ChevronRight size={20} color="#FFFFFF" />
-                        </>
+                        <Text style={styles.nextButtonText}>
+                          {currentStep === STEPS.length - 1 ? 'Publish' : 'Next'}
+                        </Text>
                       )}
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
-            </>
-          )}
         </View>
       </SafeAreaView>
+
+      {/* Camera Modal */}
+      {showCamera && (
+        <Modal
+          visible={showCamera}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setShowCamera(false)}
+          statusBarTranslucent={true}
+          hardwareAccelerated={true}
+        >
+          <CameraModalScreen
+            onClose={() => setShowCamera(false)}
+            onPhotoCaptured={handlePhotoCaptured}
+            onVideoRecorded={handleVideoRecorded}
+            showGoLiveButton={false}
+            mode="both"
+          />
+        </Modal>
+      )}
     </Modal>
   );
 }
@@ -645,9 +553,6 @@ const styles = StyleSheet.create({
   },
   inputCardMarginTop: {
     marginTop: 16,
-  },
-  inputCardIcon: {
-    marginRight: 16,
   },
   inputCardText: {
     flex: 1,
@@ -832,63 +737,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Inter',
     textAlign: 'center',
-  },
-  cameraContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  camera: {
-    flex: 1,
-  },
-  cameraControls: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    zIndex: 10,
-  },
-  cameraButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraBottomControls: {
-    position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    zIndex: 10,
-  },
-  captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#fff',
-    borderWidth: 4,
-    borderColor: '#F23E2E',
-  },
-  captureButtonRecording: {
-    backgroundColor: '#F23E2E',
-    borderColor: '#F23E2E',
-  },
-  recordingIndicator: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#F23E2E',
-    borderWidth: 3,
-    borderColor: '#fff',
   },
 });

@@ -6,7 +6,7 @@ import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
 import { useRouter } from 'expo-router';
-import { X, Plus, Image as ImageIcon, ChefHat, DollarSign, Utensils, Sparkles, ChevronRight } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getConvexClient } from '@/lib/convexClient';
 import { SvgXml } from 'react-native-svg';
@@ -266,7 +266,6 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
         return (
           <View style={styles.stepContent}>
             <View style={styles.inputCard}>
-              <ChefHat size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={styles.inputCardText}
                 placeholder="Meal name (e.g., Grilled Chicken Pasta)"
@@ -276,7 +275,6 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
               />
             </View>
             <View style={[styles.inputCard, styles.inputCardMultiline, styles.inputCardMarginTop]}>
-              <ChefHat size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={[styles.inputCardText, styles.inputCardTextMultiline]}
                 placeholder="Describe your meal..."
@@ -295,7 +293,6 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
         return (
           <View style={styles.stepContent}>
             <View style={styles.inputCard}>
-              <DollarSign size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={styles.inputCardText}
                 placeholder="Price (e.g., 12.50)"
@@ -385,12 +382,9 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
               {isUploadingImage ? (
                 <ActivityIndicator size="large" color="#F23E2E" />
               ) : (
-                <>
-                  <ImageIcon size={32} color="#F23E2E" />
-                  <Text style={styles.imagePickerText}>
-                    {formData.images.length > 0 ? 'Add More Images' : 'Add Meal Images'}
-                  </Text>
-                </>
+                <Text style={styles.imagePickerText}>
+                  {formData.images.length > 0 ? 'Add More Images' : 'Add Meal Images'}
+                </Text>
               )}
             </TouchableOpacity>
             <Text style={styles.hintText}>Add photos to showcase your meal (optional)</Text>
@@ -408,7 +402,6 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
                   formData.status === 'available' && styles.statusCardSelected,
                 ]}
               >
-                <Utensils size={32} color={formData.status === 'available' ? '#F23E2E' : '#6B7280'} />
                 <Text
                   style={[
                     styles.statusCardText,
@@ -428,7 +421,6 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
                   formData.status === 'unavailable' && styles.statusCardSelected,
                 ]}
               >
-                <X size={32} color={formData.status === 'unavailable' ? '#F23E2E' : '#6B7280'} />
                 <Text
                   style={[
                     styles.statusCardText,
@@ -481,9 +473,7 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
               contentContainerStyle={styles.successContainer}
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.successIconContainer}>
-                <Sparkles size={48} color="#0B9E58" />
-              </View>
+              <View style={styles.successIconContainer} />
               <Text style={styles.successTitle}>Meal Created!</Text>
               <Text style={styles.successMessage}>
                 Your meal has been created successfully and is now {formData.status === 'available' ? 'available' : 'unavailable'} for customers to order.
@@ -544,12 +534,9 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <>
-                      <Text style={styles.nextButtonText}>
-                        {currentStep === STEPS.length - 1 ? 'Create Meal' : 'Next'}
-                      </Text>
-                      <ChevronRight size={20} color="#FFFFFF" />
-                    </>
+                    <Text style={styles.nextButtonText}>
+                      {currentStep === STEPS.length - 1 ? 'Create Meal' : 'Next'}
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -653,9 +640,6 @@ const styles = StyleSheet.create({
   },
   inputCardMarginTop: {
     marginTop: 16,
-  },
-  inputCardIcon: {
-    marginRight: 16,
   },
   inputCardText: {
     flex: 1,

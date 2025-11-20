@@ -6,7 +6,7 @@ import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
 import { useRouter } from 'expo-router';
-import { X, Plus, Image as ImageIcon, ChefHat, Clock, Users, Utensils, FileText, Sparkles, ChevronRight } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getConvexClient } from '@/lib/convexClient';
 import { SvgXml } from 'react-native-svg';
@@ -313,7 +313,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
         return (
           <View style={styles.stepContent}>
             <View style={styles.inputCard}>
-              <ChefHat size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={styles.inputCardText}
                 placeholder="Recipe title (e.g., Pasta Carbonara)"
@@ -323,7 +322,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
               />
             </View>
             <View style={[styles.inputCard, styles.inputCardMultiline, styles.inputCardMarginTop]}>
-              <FileText size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={[styles.inputCardText, styles.inputCardTextMultiline]}
                 placeholder="Describe your recipe..."
@@ -343,7 +341,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
           <View style={styles.stepContent}>
             <View style={styles.row}>
               <View style={[styles.inputCard, { flex: 1, marginRight: 8 }]}>
-                <Clock size={24} color="#F23E2E" style={styles.inputCardIcon} />
                 <TextInput
                   style={styles.inputCardText}
                   placeholder="Prep (min)"
@@ -354,7 +351,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
                 />
               </View>
               <View style={[styles.inputCard, { flex: 1, marginLeft: 8 }]}>
-                <Clock size={24} color="#F23E2E" style={styles.inputCardIcon} />
                 <TextInput
                   style={styles.inputCardText}
                   placeholder="Cook (min)"
@@ -366,7 +362,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
               </View>
             </View>
             <View style={[styles.inputCard, styles.inputCardMarginTop]}>
-              <Users size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={styles.inputCardText}
                 placeholder="Servings"
@@ -401,7 +396,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
               </View>
             </View>
             <View style={[styles.inputCard, styles.inputCardMarginTop]}>
-              <ChefHat size={24} color="#F23E2E" style={styles.inputCardIcon} />
               <TextInput
                 style={styles.inputCardText}
                 placeholder="Cuisine (e.g., Italian, Mediterranean)"
@@ -436,10 +430,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
                 {isUploadingImage ? (
                   <ActivityIndicator size="large" color="#F23E2E" />
                 ) : (
-                  <>
-                    <ImageIcon size={32} color="#F23E2E" />
-                    <Text style={styles.imagePickerText}>Add Featured Image</Text>
-                  </>
+                  <Text style={styles.imagePickerText}>Add Featured Image</Text>
                 )}
               </TouchableOpacity>
             )}
@@ -453,7 +444,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Ingredients *</Text>
               <TouchableOpacity onPress={handleAddIngredient} style={styles.addButton}>
-                <Plus size={20} color="#F23E2E" />
                 <Text style={styles.addButtonText}>Add</Text>
               </TouchableOpacity>
             </View>
@@ -462,7 +452,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
               <View key={index} style={[styles.ingredientRow, index > 0 && styles.ingredientRowMargin]}>
                 <View style={styles.ingredientFields}>
                   <View style={[styles.inputCard, { flex: 2, marginRight: 8 }]}>
-                    <Utensils size={20} color="#F23E2E" style={styles.inputCardIcon} />
                     <TextInput
                       style={styles.inputCardText}
                       placeholder="Ingredient"
@@ -512,7 +501,6 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Instructions *</Text>
               <TouchableOpacity onPress={handleAddInstruction} style={styles.addButton}>
-                <Plus size={20} color="#F23E2E" />
                 <Text style={styles.addButtonText}>Add Step</Text>
               </TouchableOpacity>
             </View>
@@ -583,9 +571,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
               contentContainerStyle={styles.successContainer}
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.successIconContainer}>
-                <Sparkles size={48} color="#0B9E58" />
-              </View>
+              <View style={styles.successIconContainer} />
               <Text style={styles.successTitle}>Recipe {formData.status === 'published' ? 'Published' : 'Saved'}!</Text>
               <Text style={styles.successMessage}>
                 {formData.status === 'published' 
@@ -648,12 +634,9 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <>
-                      <Text style={styles.nextButtonText}>
-                        {currentStep === STEPS.length - 1 ? 'Publish' : 'Next'}
-                      </Text>
-                      <ChevronRight size={20} color="#FFFFFF" />
-                    </>
+                    <Text style={styles.nextButtonText}>
+                      {currentStep === STEPS.length - 1 ? 'Publish' : 'Next'}
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -757,9 +740,6 @@ const styles = StyleSheet.create({
   },
   inputCardMarginTop: {
     marginTop: 16,
-  },
-  inputCardIcon: {
-    marginRight: 16,
   },
   inputCardText: {
     flex: 1,

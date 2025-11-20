@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/lib/ToastContext';
 import { Camera, Upload, CheckCircle, XCircle, FileText } from 'lucide-react-native';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { CameraModalScreen } from '@/components/ui/CameraModalScreen';
 import * as FileSystem from 'expo-file-system';
 
 export default function DocumentUploadScreen() {
@@ -22,6 +23,7 @@ export default function DocumentUploadScreen() {
   const documentId = params.id;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   // Get document details
   const documents = useQuery(
@@ -35,33 +37,13 @@ export default function DocumentUploadScreen() {
 
   const uploadDocument = useMutation(api.mutations.uploadDocument);
 
-  const handleTakePhoto = async () => {
-    try {
-      const { Camera } = await import('expo-camera');
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Camera permission is required to take photos of documents.'
-        );
-        return;
-      }
+  const handleTakePhoto = () => {
+    setShowCamera(true);
+  };
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error taking photo:', error);
-      showError('Error', 'Failed to take photo. Please try again.');
-    }
+  const handlePhotoCaptured = (photoUri: string) => {
+    setSelectedImage(photoUri);
+    setShowCamera(false);
   };
 
   const handlePickFromGallery = async () => {
@@ -324,6 +306,27 @@ export default function DocumentUploadScreen() {
           </Text>
         </Card>
       </ScrollView>
+
+      {/* Camera Modal */}
+      {showCamera && (
+        <Modal
+          visible={showCamera}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setShowCamera(false)}
+          statusBarTranslucent={true}
+          hardwareAccelerated={true}
+        >
+          <CameraModalScreen
+            onClose={() => setShowCamera(false)}
+            onPhotoCaptured={handlePhotoCaptured}
+            showGoLiveButton={false}
+            showVideoRecording={false}
+            showFilters={false}
+            mode="photo"
+          />
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
