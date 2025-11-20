@@ -119,12 +119,22 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
 
         <header className="mb-8">
           <div className="relative w-full h-64 rounded-2xl overflow-hidden mb-6">
-            <Image 
-              src={post.coverImage || post.featuredImage || '/backgrounds/masonry-1.jpg'} 
-              alt={post.title} 
-              fill 
-              className="object-cover" 
-            />
+            {(post.coverImage || post.featuredImage)?.startsWith('/api/files/') ? (
+              // Use regular img tag for API redirect URLs with fill layout
+              <img 
+                src={post.coverImage || post.featuredImage || '/backgrounds/masonry-1.jpg'} 
+                alt={post.title} 
+                className="absolute inset-0 w-full h-full object-cover" 
+                loading="eager"
+              />
+            ) : (
+              <Image 
+                src={post.coverImage || post.featuredImage || '/backgrounds/masonry-1.jpg'} 
+                alt={post.title} 
+                fill 
+                className="object-cover" 
+              />
+            )}
           </div>
           <h1 className="font-asgard text-3xl md:text-4xl mb-3">{post.title}</h1>
           <div className="flex items-center gap-3 text-sm text-neutral-600">
@@ -175,13 +185,24 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
                   ))}
                   {section.image && (
                     <div className="my-6 rounded-xl overflow-hidden">
-                      <Image 
-                        src={section.image} 
-                        alt={section.imageAlt || section.title} 
-                        width={800}
-                        height={600}
-                        className="w-full h-auto object-cover"
-                      />
+                      {section.image.startsWith('/api/files/') ? (
+                        // Use regular img tag for API redirect URLs
+                        <img 
+                          src={section.image} 
+                          alt={section.imageAlt || section.title} 
+                          className="w-full h-auto object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        // Use Next.js Image for direct URLs
+                        <Image 
+                          src={section.image} 
+                          alt={section.imageAlt || section.title} 
+                          width={800}
+                          height={600}
+                          className="w-full h-auto object-cover"
+                        />
+                      )}
                     </div>
                   )}
                   {section.video && (

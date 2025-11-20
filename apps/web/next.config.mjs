@@ -21,7 +21,18 @@ const nextConfig = {
   images: {
     // Enable image optimization
     // Configure image domains if using external images
-    // domains: ['example.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.convex.cloud',
+        pathname: '/storage/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.convex.cloud',
+        pathname: '/storage/**',
+      },
+    ],
   },
   
   // Transpile packages for better compatibility
