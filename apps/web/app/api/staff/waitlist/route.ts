@@ -2,7 +2,7 @@ import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withStaffAuth } from '@/lib/api/staff-middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { logger } from '@/lib/utils/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -103,6 +103,7 @@ async function handlePOST(request: NextRequest, user: any): Promise<NextResponse
     const convex = getConvexClientFromRequest(request);
 
     // Add directly to waitlist using the mutation
+    // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
     const result = await convex.mutation(api.mutations.waitlist.addToWaitlist, {
       email,
       name: undefined,
@@ -248,14 +249,22 @@ async function handleGET(request: NextRequest, user: any): Promise<NextResponse>
     const offset = (page - 1) * limit;
 
     const convex = getConvexClientFromRequest(request);
+    // Extract session token from cookies (middleware already validated it exists)
+    const sessionToken = request.cookies.get('convex-auth-token')?.value || getSessionTokenFromRequest(request);
+
+    if (!sessionToken) {
+      return ResponseFactory.unauthorized('Session token required');
+    }
 
     // Get waitlist entries - filter by entries added by this staff member
+    // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
     const result = await convex.query(api.queries.waitlist.getWaitlistEntries, {
       status: status === 'all' ? undefined : status,
       search,
       limit,
       offset,
       addedBy: user._id, // Only show entries added by this staff member
+      sessionToken,
     });
 
     return ResponseFactory.success({
