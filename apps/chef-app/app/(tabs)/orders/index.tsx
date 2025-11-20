@@ -6,13 +6,17 @@ import { OrderCardSkeleton } from "@/components/ui/OrderCardSkeleton";
 import { PremiumHeader } from "@/components/ui/PremiumHeader";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
+import { CameraModalScreen } from "@/components/ui/CameraModalScreen";
+import { CreateRecipeModal } from "@/components/ui/CreateRecipeModal";
+import { CreateMealModal } from "@/components/ui/CreateMealModal";
 import { useChefAuth } from "@/contexts/ChefAuthContext";
 import { api } from '@/convex/_generated/api';
 import { useQuery, useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useToast } from '@/lib/ToastContext';
 import { useMemo, useState } from "react";
-import { StyleSheet, Alert } from "react-native";
+import { StyleSheet, Alert, Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Extrapolate,
@@ -84,6 +88,10 @@ export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
   const { showSuccess, showError } = useToast();
   const updateStatus = useMutation(api.mutations.orders.updateStatus);
+  const [isCameraVisible, setIsCameraVisible] = useState(false);
+  const [autoShowLiveStreamSetup, setAutoShowLiveStreamSetup] = useState(false);
+  const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
+  const [isMealModalVisible, setIsMealModalVisible] = useState(false);
 
   // Get orders (reactive query) - chef-specific
   const ordersDataRaw = useQuery(
@@ -512,6 +520,68 @@ export default function OrdersScreen() {
       >
         {renderContent()}
       </Animated.ScrollView>
+
+      {/* Floating Action Button */}
+      {isAuthenticated && (
+        <FloatingActionButton 
+          bottomPosition={5}
+          onCameraPress={() => {
+            setAutoShowLiveStreamSetup(false);
+            setIsCameraVisible(true);
+          }}
+          onRecipePress={() => {
+            setIsRecipeModalVisible(true);
+          }}
+          onLiveStreamPress={() => {
+            setAutoShowLiveStreamSetup(true);
+            setIsCameraVisible(true);
+          }}
+          onOrdersPress={() => {
+            // Already on orders screen, no action needed
+          }}
+          isAnyModalOpen={isCameraVisible || isRecipeModalVisible || isMealModalVisible}
+        />
+      )}
+
+      {/* Camera Modal for Live Streaming */}
+      {isAuthenticated && (
+        <Modal
+          visible={isCameraVisible}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => {
+            setIsCameraVisible(false);
+            setAutoShowLiveStreamSetup(false);
+          }}
+          statusBarTranslucent={true}
+          hardwareAccelerated={true}
+        >
+          <CameraModalScreen 
+            onClose={() => {
+              setIsCameraVisible(false);
+              setAutoShowLiveStreamSetup(false);
+            }}
+            onStartLiveStream={(sessionId) => {
+              setIsCameraVisible(false);
+              setAutoShowLiveStreamSetup(false);
+              showSuccess('Live Session Started', 'Your live session has been created successfully!');
+            }}
+            autoShowLiveStreamSetup={autoShowLiveStreamSetup}
+          />
+        </Modal>
+      )}
+
+      {/* Recipe Creation Modal */}
+      <CreateRecipeModal
+        isVisible={isRecipeModalVisible}
+        onClose={() => setIsRecipeModalVisible(false)}
+      />
+
+      {/* Meal Creation Modal */}
+      <CreateMealModal
+        isVisible={isMealModalVisible}
+        onClose={() => setIsMealModalVisible(false)}
+      />
     </GradientBackground>
   );
 }

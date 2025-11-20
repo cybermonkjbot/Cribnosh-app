@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
@@ -10,14 +10,23 @@ import { ContentTabs, ContentTabType } from '@/components/ContentTabs';
 import { ContentGrid, ContentItem } from '@/components/ContentGrid';
 import { ChefBioSection } from '@/components/ChefBioSection';
 import { ProfileMenu } from '@/components/ProfileMenu';
-import { BookOpen, Radio, Video, Utensils } from 'lucide-react-native';
+import { CameraModalScreen } from '@/components/ui/CameraModalScreen';
+import { CreateRecipeModal } from '@/components/ui/CreateRecipeModal';
+import { CreateMealModal } from '@/components/ui/CreateMealModal';
+import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
+import { useToast } from '@/lib/ToastContext';
 
 export default function ChefProfileScreen() {
   const { chef, sessionToken } = useChefAuth();
   const router = useRouter();
+  const { showSuccess } = useToast();
   const [activeTab, setActiveTab] = useState<ContentTabType>('all');
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isCameraVisible, setIsCameraVisible] = useState(false);
+  const [autoShowLiveStreamSetup, setAutoShowLiveStreamSetup] = useState(false);
+  const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
+  const [isMealModalVisible, setIsMealModalVisible] = useState(false);
 
   // Get all chef content
   const contentData = useQuery(
@@ -151,7 +160,9 @@ export default function ChefProfileScreen() {
         router.push(`/(tabs)/chef/content/recipes/${item.id}`);
         break;
       case 'live':
-        router.push(`/(tabs)/chef/live/${item.id}`);
+        // Live sessions are managed through the camera, no detail screen needed
+        setAutoShowLiveStreamSetup(true);
+        setIsCameraVisible(true);
         break;
       case 'video':
         router.push(`/(tabs)/chef/content/videos/${item.id}`);
@@ -168,23 +179,6 @@ export default function ChefProfileScreen() {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  const handleCreateContent = (type: 'recipe' | 'live' | 'video' | 'meal') => {
-    switch (type) {
-      case 'recipe':
-        router.push('/(tabs)/chef/content/recipes/create');
-        break;
-      case 'live':
-        // Navigate to live screen which has the create button
-        router.push('/(tabs)/chef/live');
-        break;
-      case 'video':
-        router.push('/(tabs)/chef/content/videos/create');
-        break;
-      case 'meal':
-        router.push('/(tabs)/chef/meals/create');
-        break;
-    }
-  };
 
   if (!chef) {
     return (
@@ -276,42 +270,6 @@ export default function ChefProfileScreen() {
                 ? 'Start creating recipes, videos, live sessions, or meals to see them here!'
                 : `You haven't created any ${activeTab} yet.`}
             </Text>
-            {activeTab === 'all' && (
-              <View style={styles.emptyStateActions}>
-                <TouchableOpacity
-                  style={styles.emptyStateButton}
-                  onPress={() => handleCreateContent('recipe')}
-                  activeOpacity={0.7}
-                >
-                  <BookOpen size={20} color="#FFFFFF" />
-                  <Text style={styles.emptyStateButtonText}>Create Recipe</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.emptyStateButton}
-                  onPress={() => handleCreateContent('live')}
-                  activeOpacity={0.7}
-                >
-                  <Radio size={20} color="#FFFFFF" />
-                  <Text style={styles.emptyStateButtonText}>Start Live</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.emptyStateButton}
-                  onPress={() => handleCreateContent('video')}
-                  activeOpacity={0.7}
-                >
-                  <Video size={20} color="#FFFFFF" />
-                  <Text style={styles.emptyStateButtonText}>Upload Video</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.emptyStateButton}
-                  onPress={() => handleCreateContent('meal')}
-                  activeOpacity={0.7}
-                >
-                  <Utensils size={20} color="#FFFFFF" />
-                  <Text style={styles.emptyStateButtonText}>Add Meal</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         ) : (
           <ContentGrid items={filteredContent} onItemPress={handleItemPress} />
@@ -325,6 +283,64 @@ export default function ChefProfileScreen() {
         onAccountSettings={() => router.push('/account-details')}
         onPayoutSettings={() => router.push('/payout-settings')}
         onViewEarnings={() => router.push('/payout-history')}
+      />
+
+      {/* Camera Modal for Live Streaming */}
+      <Modal
+        visible={isCameraVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => {
+          setIsCameraVisible(false);
+          setAutoShowLiveStreamSetup(false);
+        }}
+        statusBarTranslucent={true}
+        hardwareAccelerated={true}
+      >
+        <CameraModalScreen 
+          onClose={() => {
+            setIsCameraVisible(false);
+            setAutoShowLiveStreamSetup(false);
+          }}
+          onStartLiveStream={(sessionId) => {
+            setIsCameraVisible(false);
+            setAutoShowLiveStreamSetup(false);
+            showSuccess('Live Session Started', 'Your live session has been created successfully!');
+          }}
+          autoShowLiveStreamSetup={autoShowLiveStreamSetup}
+        />
+      </Modal>
+
+      {/* Recipe Creation Modal */}
+      <CreateRecipeModal
+        isVisible={isRecipeModalVisible}
+        onClose={() => setIsRecipeModalVisible(false)}
+      />
+
+      {/* Meal Creation Modal */}
+      <CreateMealModal
+        isVisible={isMealModalVisible}
+        onClose={() => setIsMealModalVisible(false)}
+      />
+
+      {/* Floating Action Button */}
+      <FloatingActionButton 
+        bottomPosition={5}
+        onCameraPress={() => {
+          setAutoShowLiveStreamSetup(false);
+          setIsCameraVisible(true);
+        }}
+        onRecipePress={() => {
+          setIsRecipeModalVisible(true);
+        }}
+        onLiveStreamPress={() => {
+          setAutoShowLiveStreamSetup(true);
+          setIsCameraVisible(true);
+        }}
+        onOrdersPress={() => {
+          router.push('/(tabs)/orders');
+        }}
+        isAnyModalOpen={isCameraVisible || isRecipeModalVisible || isMealModalVisible || isMenuVisible}
       />
     </SafeAreaView>
   );
@@ -371,35 +387,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 24,
-  },
-  emptyStateActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  emptyStateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#094327',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    minWidth: 140,
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  emptyStateButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Inter',
-    color: '#FFFFFF',
   },
 });

@@ -1,16 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Alert } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { Card } from '@/components/ui/Card';
+import { CreateMealModal } from '@/components/ui/CreateMealModal';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { GradientBackground } from '@/components/ui/GradientBackground';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { CreateMealModal } from '@/components/ui/CreateMealModal';
-import { GradientBackground } from '@/components/ui/GradientBackground';
-import { Card } from '@/components/ui/Card';
-import { ArrowLeft, Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react-native';
+import { useMutation, useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, Edit2, Eye, EyeOff, Plus, Trash2 } from 'lucide-react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type StatusFilter = 'all' | 'available' | 'unavailable';
 
@@ -144,37 +144,34 @@ export default function MealsManagementScreen() {
         </View>
 
         {/* Status Filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterContainer}
-          contentContainerStyle={styles.filterContent}
-        >
-          <TouchableOpacity
-            onPress={() => setStatusFilter('all')}
-            style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
-          >
-            <Text style={[styles.filterText, statusFilter === 'all' && styles.filterTextActive]}>
-              All ({getStatusCount('all')})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setStatusFilter('available')}
-            style={[styles.filterChip, statusFilter === 'available' && styles.filterChipActive]}
-          >
-            <Text style={[styles.filterText, statusFilter === 'available' && styles.filterTextActive]}>
-              Available ({getStatusCount('available')})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setStatusFilter('unavailable')}
-            style={[styles.filterChip, statusFilter === 'unavailable' && styles.filterChipActive]}
-          >
-            <Text style={[styles.filterText, statusFilter === 'unavailable' && styles.filterTextActive]}>
-              Unavailable ({getStatusCount('unavailable')})
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+        <View style={styles.filterContainer}>
+          <View style={styles.filterContent}>
+            <TouchableOpacity
+              onPress={() => setStatusFilter('all')}
+              style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterText, statusFilter === 'all' && styles.filterTextActive]}>
+                All ({getStatusCount('all')})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setStatusFilter('available')}
+              style={[styles.filterChip, statusFilter === 'available' && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterText, statusFilter === 'available' && styles.filterTextActive]}>
+                Available ({getStatusCount('available')})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setStatusFilter('unavailable')}
+              style={[styles.filterChip, statusFilter === 'unavailable' && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterText, statusFilter === 'unavailable' && styles.filterTextActive]}>
+                Unavailable ({getStatusCount('unavailable')})
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Meals List */}
         <ScrollView
@@ -346,15 +343,20 @@ const styles = StyleSheet.create({
   },
   filterContent: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 8,
     gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   filterChip: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 10,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterChipActive: {
     backgroundColor: '#10B981',
