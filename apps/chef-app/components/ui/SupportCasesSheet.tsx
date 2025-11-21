@@ -52,9 +52,9 @@ export function SupportCasesSheet({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.modalContainer} edges={[]}>
+      <SafeAreaView style={styles.modalContainer}>
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
           <Text style={styles.title}>Support Cases</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <SvgXml xml={closeIconSVG} width={24} height={24} />
@@ -144,9 +144,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     marginBottom: 24,
     backgroundColor: '#FAFFFA',
-    paddingHorizontal: 16,
     marginHorizontal: -16,
     paddingBottom: 20,
   },
@@ -155,11 +156,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 24,
     lineHeight: 32,
+    flex: 1,
+    textAlign: 'left',
     color: '#094327',
   },
   closeButton: {
     padding: 8,
     borderRadius: 8,
+    marginLeft: 16,
   },
   loadingContainer: {
     flex: 1,

@@ -450,9 +450,9 @@ export default function LiveSessionsManagementPage() {
             >
               {/* Thumbnail */}
               <div className="relative aspect-video bg-gray-100">
-                {session.thumbnailUrl ? (
+                {session.thumbnailUrl || session.chef?.profileImage ? (
                   <Image
-                    src={session.thumbnailUrl}
+                    src={session.thumbnailUrl || session.chef?.profileImage || ''}
                     alt={session.title}
                     fill
                     className="object-cover"

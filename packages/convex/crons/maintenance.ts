@@ -1,5 +1,5 @@
 import { cronJobs } from "convex/server";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 
 // Maintenance cron jobs for Redis migration
 export const maintenanceCrons = cronJobs();
@@ -50,6 +50,22 @@ maintenanceCrons.interval(
   { hours: 1 },
   api.mutations.otp.cleanupExpiredOTPs,
   {}
+);
+
+// Clean up ended livestreams every minute (to ensure cleanup within 3 minutes)
+maintenanceCrons.interval(
+  "cleanup-ended-livestreams",
+  { minutes: 1 },
+  internal.maintenance.cleanupEndedLiveSessions,
+  {}
+);
+
+// Clean up orphaned livestreams daily (sessions that weren't cleaned up properly)
+maintenanceCrons.interval(
+  "cleanup-orphaned-livestreams",
+  { hours: 24 },
+  internal.maintenance.cleanupOrphanedLiveSessions,
+  { olderThanHours: 24 }
 );
 
 export default maintenanceCrons; 

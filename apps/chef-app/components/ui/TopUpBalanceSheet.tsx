@@ -2,7 +2,8 @@ import { useToast } from '@/lib/ToastContext';
 import { usePayments } from '@/hooks/usePayments';
 import { useStripe } from '@stripe/stripe-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import { AddCardSheet } from './AddCardSheet';
 
@@ -27,6 +28,7 @@ export function TopUpBalanceSheet({
   isVisible,
   onClose,
 }: TopUpBalanceSheetProps) {
+  const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const { confirmPayment } = useStripe();
   const { topUpBalance, getPaymentMethods, getBalance } = usePayments();
@@ -266,7 +268,7 @@ export function TopUpBalanceSheet({
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.container}>
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
               <Text style={styles.title}>Top Up Balance</Text>
               <TouchableOpacity onPress={handleClose} style={styles.closeButton} disabled={isProcessing}>
                 <SvgXml xml={closeIconSVG} width={24} height={24} />
@@ -455,6 +457,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     marginBottom: 24,
   },
   title: {
@@ -464,9 +468,10 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     color: '#094327',
     flex: 1,
-    marginRight: 16,
+    textAlign: 'left',
   },
   closeButton: {
+    marginLeft: 16,
     padding: 8,
     borderRadius: 8,
   },

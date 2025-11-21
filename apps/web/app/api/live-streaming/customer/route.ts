@@ -178,6 +178,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
             title: session.title,
             description: session.description || undefined,
             thumbnail_url: session.thumbnailUrl || undefined,
+            chef_profile_image: chef?.profileImage || undefined,
             viewer_count: session.viewerCount || session.currentViewers || 0,
             is_live: session.status === 'live',
             started_at: session.actual_start_time
@@ -199,6 +200,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
             title: session.title,
             description: session.description || undefined,
             thumbnail_url: session.thumbnailUrl || undefined,
+            chef_profile_image: undefined,
             viewer_count: session.viewerCount || session.currentViewers || 0,
             is_live: session.status === 'live',
             started_at: session.actual_start_time

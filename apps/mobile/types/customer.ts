@@ -324,6 +324,7 @@ export interface LiveStream {
   title: string;
   description?: string;
   thumbnail_url?: string;
+  chef_profile_image?: string;
   viewer_count: number;
   is_live: boolean;
   started_at: string;

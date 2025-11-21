@@ -80,6 +80,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
           data: {
             session: result.session,
             meal: result.session.meal,
+            chef: result.session.chef,
           },
         });
       } catch (error: any) {
@@ -286,6 +287,40 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     }
   }, [sessionId, isMockId, isAuthenticated]);
 
+  // Refetch session data to check if it ended
+  const refetchSession = useCallback(async () => {
+    if (!sessionId || isMockId || !isAuthenticated) return;
+
+    try {
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+
+      if (!sessionToken) {
+        return;
+      }
+
+      const result = await convex.action(api.actions.liveStreaming.customerGetLiveSession, {
+        sessionToken,
+        sessionId,
+      });
+
+      if (result.success === false) {
+        return;
+      }
+
+      // Transform to match expected format
+      setSessionData({
+        data: {
+          session: result.session,
+          meal: result.session.meal,
+          chef: result.session.chef,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error refetching live session:', error);
+    }
+  }, [sessionId, isMockId, isAuthenticated]);
+
   // Set up polling for live data
   useEffect(() => {
     if (!sessionId || isMockId || !isAuthenticated) return;
@@ -310,12 +345,18 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       fetchLiveReactions();
     }, 5000);
 
+    // Poll every 10 seconds to check if session ended
+    const sessionCheckInterval = setInterval(() => {
+      refetchSession();
+    }, 10000);
+
     return () => {
       clearInterval(commentsInterval);
       clearInterval(viewersInterval);
       clearInterval(reactionsInterval);
+      clearInterval(sessionCheckInterval);
     };
-  }, [sessionId, isMockId, isAuthenticated, fetchLiveComments, fetchLiveViewers, fetchLiveReactions]);
+  }, [sessionId, isMockId, isAuthenticated, fetchLiveComments, fetchLiveViewers, fetchLiveReactions, refetchSession]);
 
   // Transform API comments to component format
   const liveComments = useMemo(() => {
@@ -662,6 +703,70 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     );
   }
 
+  // Check if livestream has ended
+  const isEnded = useMemo(() => {
+    if (isMockId) return false;
+    if (!sessionData?.data?.session) return false;
+    return sessionData.data.session.status === "ended" || sessionData.data.session.ended_at;
+  }, [sessionData, isMockId]);
+
+  // Show ended view if livestream has ended
+  if (isEnded && !isMockId) {
+    return (
+      <Modal
+        visible={true}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        statusBarTranslucent={true}
+        onRequestClose={handleClose}
+      >
+        <View style={styles.container}>
+          <StatusBar 
+            hidden={true} 
+            backgroundColor="transparent"
+            translucent={true}
+            barStyle="light-content"
+          />
+          <ImageBackground
+            source={
+              sessionData?.data?.session?.thumbnail_url
+                ? { uri: sessionData.data.session.thumbnail_url }
+                : sessionData?.data?.chef?.profile_image
+                ? { uri: sessionData.data.chef.profile_image }
+                : require('../../assets/images/KitchenLive-01.png')
+            }
+            style={styles.backgroundImage}
+            resizeMode="cover"
+          >
+            <View style={styles.endedContainer}>
+              <TouchableOpacity onPress={handleClose} style={styles.backButton}>
+                <ChevronLeft color="#E6FFE8" size={24} />
+              </TouchableOpacity>
+              
+              <View style={styles.endedContent}>
+                <Text style={styles.endedTitle}>Livestream Ended</Text>
+                <Text style={styles.endedSubtitle}>
+                  This livestream has ended. Thank you for watching!
+                </Text>
+                {sessionData?.data?.chef && (
+                  <Text style={styles.endedChefName}>
+                    {sessionData.data.chef.name}
+                  </Text>
+                )}
+                <TouchableOpacity 
+                  style={styles.backToHomeButton}
+                  onPress={handleClose}
+                >
+                  <Text style={styles.backToHomeButtonText}>Back to Home</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ImageBackground>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       visible={true}
@@ -677,17 +782,19 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
           translucent={true}
           barStyle="light-content"
         />
-        <ImageBackground
-          source={
-            (isMockId && mockKitchenData?.image)
-              ? { uri: mockKitchenData.image }
-              : (sessionData?.data?.session?.thumbnail_url)
-              ? { uri: sessionData.data.session.thumbnail_url }
-              : require('../../assets/images/KitchenLive-01.png')
-          }
-          style={styles.backgroundImage}
-          resizeMode="cover"
-        >
+          <ImageBackground
+            source={
+              (isMockId && mockKitchenData?.image)
+                ? { uri: mockKitchenData.image }
+                : (sessionData?.data?.session?.thumbnail_url)
+                ? { uri: sessionData.data.session.thumbnail_url }
+                : (sessionData?.data?.chef?.profile_image)
+                ? { uri: sessionData.data.chef.profile_image }
+                : require('../../assets/images/KitchenLive-01.png')
+            }
+            style={styles.backgroundImage}
+            resizeMode="cover"
+          >
           {/* Back Button and Live Info Header */}
           <View style={styles.headerContainer}>
             <TouchableOpacity onPress={handleClose} style={styles.backButton}>
@@ -881,6 +988,61 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  endedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  endedContent: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(2, 18, 10, 0.9)',
+    borderRadius: 24,
+    padding: 32,
+    maxWidth: 320,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 255, 232, 0.2)',
+  },
+  endedTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#E6FFE8',
+    fontFamily: 'Inter',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  endedSubtitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: 'rgba(230, 255, 232, 0.8)',
+    fontFamily: 'Inter',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  endedChefName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#10B981',
+    fontFamily: 'Inter',
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  backToHomeButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    minWidth: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backToHomeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Inter',
   },
 });
 

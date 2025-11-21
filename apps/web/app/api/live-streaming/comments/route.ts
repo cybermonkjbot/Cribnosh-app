@@ -382,7 +382,6 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       limit,
       offset,
       commentType: (commentType === 'general' || commentType === 'question' || commentType === 'reaction' || commentType === 'tip' || commentType === 'moderation') ? commentType : undefined,
-      sessionToken: sessionToken || undefined
     });
 
     // Format comments

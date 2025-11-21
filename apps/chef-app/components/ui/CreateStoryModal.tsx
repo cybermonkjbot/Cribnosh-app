@@ -392,13 +392,11 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
       statusBarTranslucent
       onRequestClose={handleClose}
     >
-      <SafeAreaView style={[styles.container, { paddingTop: insets.top }]} edges={['top']}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.content}>
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.title}>New Story</Text>
-            </View>
+          <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
+            <Text style={styles.title}>New Story</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <SvgXml xml={closeIconSVG} width={24} height={24} />
             </TouchableOpacity>
@@ -522,15 +520,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     marginBottom: 20,
-    paddingTop: 8,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   title: {
+    flex: 1,
+    textAlign: 'left',
     fontSize: 22,
     fontWeight: '700',
     color: '#111827',
@@ -538,6 +534,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
+    marginLeft: 16,
   },
   wizardContainer: {
     flex: 1,

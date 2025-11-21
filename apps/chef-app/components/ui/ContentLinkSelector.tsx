@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
@@ -25,6 +25,7 @@ export function ContentLinkSelector({
   allowMultiple = false,
 }: ContentLinkSelectorProps) {
   const { chef, sessionToken } = useChefAuth();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'recipes' | 'videos'>('recipes');
 
   // Get recipes
@@ -78,9 +79,9 @@ export function ContentLinkSelector({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
           <Text style={styles.title}>Link Content</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#111827" />
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -234,9 +235,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     fontFamily: 'Inter',
+    flex: 1,
+    textAlign: 'left',
   },
   closeButton: {
     padding: 4,
+    marginLeft: 16,
   },
   tabs: {
     flexDirection: 'row',

@@ -1,12 +1,12 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SvgXml } from 'react-native-svg';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { getSessionToken } from '@/lib/convexClient';
+import { useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
 
 interface KitchenSetupSheetProps {
   isVisible: boolean;
@@ -216,10 +216,9 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+      <SafeAreaView style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerSpacer} />
+        <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
           <Text style={styles.headerTitle}>Complete Your Setup</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <SvgXml xml={closeIconSVG} width={24} height={24} />
@@ -250,9 +249,6 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
                   />
                 </View>
               </View>
-              <Text style={styles.progressPercentage}>
-                {Math.round(progressPercentage)}%
-              </Text>
             </View>
 
             {/* Setup Items */}
@@ -318,12 +314,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-  },
-  headerSpacer: {
-    width: 40,
   },
   headerTitle: {
     fontFamily: 'Archivo',
@@ -332,12 +325,15 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 28,
     color: '#094327',
+    flex: 1,
+    textAlign: 'left',
   },
   closeButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -389,15 +385,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#0B9E58',
     borderRadius: 4,
-  },
-  progressPercentage: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
-    fontWeight: '700',
-    fontSize: 24,
-    lineHeight: 32,
-    color: '#094327',
-    textAlign: 'center',
   },
   // Items Section
   itemsSection: {

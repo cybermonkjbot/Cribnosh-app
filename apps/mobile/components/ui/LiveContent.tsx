@@ -458,6 +458,7 @@ export default function LiveContent({
       isLive: stream.is_live,
       image:
         stream.thumbnail_url ||
+        stream.chef_profile_image ||
         "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
       description: stream.description || "Live cooking session",
       chef: stream.chef_name,

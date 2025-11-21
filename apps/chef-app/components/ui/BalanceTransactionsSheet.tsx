@@ -18,6 +18,7 @@ export function BalanceTransactionsSheet({
   isVisible,
   onClose,
 }: BalanceTransactionsSheetProps) {
+  const insets = useSafeAreaInsets();
   const { getBalanceTransactions } = usePayments();
   const [transactionsData, setTransactionsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -182,20 +183,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     marginBottom: 24,
   },
   title: {
+    flex: 1,
+    textAlign: 'left',
     fontFamily: 'Archivo',
     fontWeight: '700',
     fontSize: 24,
     lineHeight: 32,
     color: '#094327',
-    flex: 1,
-    marginRight: 16,
   },
   closeButton: {
     padding: 8,
     borderRadius: 8,
+    marginLeft: 16,
   },
   loadingContainer: {
     flex: 1,

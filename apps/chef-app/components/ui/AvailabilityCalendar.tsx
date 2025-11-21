@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { X } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AvailabilityCalendarProps {
   unavailableDates: number[]; // Array of timestamps
@@ -17,6 +17,7 @@ export function AvailabilityCalendar({
   visible,
   onClose,
 }: AvailabilityCalendarProps) {
+  const insets = useSafeAreaInsets();
   const [selectedDates, setSelectedDates] = useState<Record<string, any>>(() => {
     // Convert timestamps to marked dates format
     const marked: Record<string, any> = {};
@@ -70,8 +71,8 @@ export function AvailabilityCalendar({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
           <Text style={styles.title}>Mark Unavailable Dates</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#111827" />
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -152,9 +153,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     fontFamily: 'Inter',
+    flex: 1,
+    textAlign: 'left',
   },
   closeButton: {
     padding: 4,
+    marginLeft: 16,
   },
   content: {
     flex: 1,

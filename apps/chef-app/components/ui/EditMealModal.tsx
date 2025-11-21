@@ -238,10 +238,10 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
       statusBarTranslucent
       onRequestClose={handleClose}
     >
-      <SafeAreaView style={[styles.container, { paddingTop: insets.top }]} edges={['top']}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.content}>
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
             <Text style={styles.title}>Edit Meal</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <SvgXml xml={closeIconSVG} width={24} height={24} />
@@ -474,17 +474,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     marginBottom: 24,
-    paddingTop: 8,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
     color: '#111827',
     fontFamily: 'Inter',
+    flex: 1,
+    textAlign: 'left',
   },
   closeButton: {
     padding: 4,
+    marginLeft: 16,
   },
   loadingContainer: {
     flex: 1,
