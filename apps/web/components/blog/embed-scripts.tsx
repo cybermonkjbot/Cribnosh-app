@@ -91,9 +91,10 @@ export function EmbedScripts({ content }: EmbedScriptsProps) {
 
     iframes.forEach(iframe => {
       // Store src in data-src for lazy loading
-      if (iframe.src && !iframe.dataset.src) {
-        iframe.dataset.src = iframe.src;
-        iframe.removeAttribute('src');
+      const iframeElement = iframe as HTMLIFrameElement;
+      if (iframeElement.src && !iframeElement.dataset.src) {
+        iframeElement.dataset.src = iframeElement.src;
+        iframeElement.removeAttribute('src');
       }
       observer.observe(iframe);
     });
