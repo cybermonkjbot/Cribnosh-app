@@ -2,7 +2,7 @@ import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useToast } from '@/lib/ToastContext';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -17,6 +17,7 @@ interface OnlineOfflineToggleProps {
   chefId: Id<'chefs'>;
   isOnline: boolean;
   sessionToken?: string;
+  onShowSetup?: () => void;
 }
 
 // Brand colors
@@ -37,13 +38,21 @@ const COLORS = {
   offline: '#9CA3AF',
 };
 
-export function OnlineOfflineToggle({ chefId, isOnline, sessionToken }: OnlineOfflineToggleProps) {
+export function OnlineOfflineToggle({ chefId, isOnline, sessionToken, onShowSetup }: OnlineOfflineToggleProps) {
   const { showSuccess, showError } = useToast();
   const { isAuthenticated } = useChefAuth();
   const router = useRouter();
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const toggleAvailability = useMutation(api.mutations.chefs.toggleAvailability);
   const [isUpdating, setIsUpdating] = React.useState(false);
+
+  // Check if chef can go online
+  const canGoOnlineStatus = useQuery(
+    api.queries.chefCourses.canGoOnline,
+    chefId && sessionToken
+      ? { chefId, sessionToken }
+      : 'skip'
+  );
 
   // Simple animation values - only what we need
   const togglePosition = useSharedValue(isOnline ? 1 : 0);
@@ -69,6 +78,27 @@ export function OnlineOfflineToggle({ chefId, isOnline, sessionToken }: OnlineOf
         params: { notDismissable: 'true' }
       });
       return;
+    }
+
+    // If trying to go online, check if requirements are met
+    if (!isOnline) {
+      // Wait for query to resolve if still loading
+      if (canGoOnlineStatus === undefined) {
+        return; // Still loading, wait
+      }
+
+      if (!canGoOnlineStatus?.canGoOnline) {
+        // Show setup sheet instead of toggling
+        if (onShowSetup) {
+          onShowSetup();
+        } else {
+          showError(
+            'Setup Required',
+            canGoOnlineStatus.reasons?.join(', ') || 'Please complete your setup to go online'
+          );
+        }
+        return;
+      }
     }
 
     setIsUpdating(true);

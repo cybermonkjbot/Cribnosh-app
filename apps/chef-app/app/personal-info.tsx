@@ -1,5 +1,6 @@
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { ProfileUpdateOTPModal } from '@/components/ui/ProfileUpdateOTPModal';
+import { AvailabilityCalendar } from '@/components/ui/AvailabilityCalendar';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { useProfile } from '@/hooks/useProfile';
@@ -22,9 +23,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useToast } from '../lib/ToastContext';
 
 // Back arrow SVG
@@ -65,9 +68,18 @@ export default function PersonalInfoScreen() {
   // Availability Settings state
   const [isAvailable, setIsAvailable] = useState(false);
   const [availableDays, setAvailableDays] = useState<string[]>([]);
+  const [availableHours, setAvailableHours] = useState<Record<string, Array<{ start: string; end: string }>>>({});
+  const [unavailableDates, setUnavailableDates] = useState<number[]>([]);
   const [maxOrdersPerDay, setMaxOrdersPerDay] = useState(10);
   const [advanceBookingDays, setAdvanceBookingDays] = useState(7);
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [timePickerState, setTimePickerState] = useState<{
+    visible: boolean;
+    day: string | null;
+    rangeIndex: number | null;
+    field: 'start' | 'end' | null;
+  }>({ visible: false, day: null, rangeIndex: null, field: null });
 
   // OTP Modal state
   const [isOTPModalVisible, setIsOTPModalVisible] = useState(false);
@@ -155,6 +167,8 @@ export default function PersonalInfoScreen() {
           setCoordinates(chef.location?.coordinates as [number, number] || [0, 0]);
           setIsAvailable(chef.isAvailable || false);
           setAvailableDays(chef.availableDays || []);
+          setAvailableHours((chef.availableHours as any) || {});
+          setUnavailableDates((chef.unavailableDates as any) || []);
           setMaxOrdersPerDay(chef.maxOrdersPerDay || 10);
           setAdvanceBookingDays(chef.advanceBookingDays || 7);
           setSpecialInstructions(chef.specialInstructions || '');
@@ -586,7 +600,6 @@ export default function PersonalInfoScreen() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
         allowsMultipleSelection: true,
@@ -643,6 +656,8 @@ export default function PersonalInfoScreen() {
         updates: {
           isAvailable,
           availableDays,
+          availableHours,
+          unavailableDates,
           maxOrdersPerDay,
           advanceBookingDays,
           specialInstructions: specialInstructions.trim(),
@@ -684,9 +699,97 @@ export default function PersonalInfoScreen() {
   const handleToggleDay = (day: string) => {
     if (availableDays.includes(day)) {
       setAvailableDays(availableDays.filter(d => d !== day));
+      // Remove time ranges for this day
+      const newHours = { ...availableHours };
+      delete newHours[day];
+      setAvailableHours(newHours);
     } else {
       setAvailableDays([...availableDays, day]);
+      // Initialize with default time range if not exists
+      if (!availableHours[day] || availableHours[day].length === 0) {
+        setAvailableHours({
+          ...availableHours,
+          [day]: [{ start: '10:00', end: '14:00' }],
+        });
+      }
     }
+  };
+
+  const handleAddTimeRange = (day: string) => {
+    const currentRanges = availableHours[day] || [];
+    setAvailableHours({
+      ...availableHours,
+      [day]: [...currentRanges, { start: '17:00', end: '21:00' }],
+    });
+  };
+
+  const handleRemoveTimeRange = (day: string, index: number) => {
+    const currentRanges = availableHours[day] || [];
+    if (currentRanges.length > 1) {
+      setAvailableHours({
+        ...availableHours,
+        [day]: currentRanges.filter((_, i) => i !== index),
+      });
+    } else {
+      Alert.alert('Cannot Remove', 'Each day must have at least one time range.');
+    }
+  };
+
+  const handleTimeChange = (day: string, rangeIndex: number, field: 'start' | 'end', time: Date) => {
+    const hours = String(time.getHours()).padStart(2, '0');
+    const minutes = String(time.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+    
+    const currentRanges = [...(availableHours[day] || [])];
+    currentRanges[rangeIndex] = {
+      ...currentRanges[rangeIndex],
+      [field]: timeStr,
+    };
+    
+    setAvailableHours({
+      ...availableHours,
+      [day]: currentRanges,
+    });
+    
+    setTimePickerState({ visible: false, day: null, rangeIndex: null, field: null });
+  };
+
+  const handleCopyWeek = () => {
+    Alert.alert(
+      'Copy Week',
+      'This will copy the current week\'s availability settings to all weeks. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Copy',
+          onPress: () => {
+            // The availability settings are already week-based, so this is just a confirmation
+            showToast({
+              type: 'success',
+              title: 'Success',
+              message: 'Availability settings apply to all weeks',
+              duration: 2000,
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const formatTimeForDisplay = (timeStr: string) => {
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
+  const getTimeDate = (timeStr: string) => {
+    const [hours, minutes] = timeStr.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours, 10));
+    date.setMinutes(parseInt(minutes, 10));
+    return date;
   };
 
   const handleUseCurrentLocationForCity = async () => {
@@ -1080,6 +1183,88 @@ export default function PersonalInfoScreen() {
                 </View>
               </View>
 
+              {/* Time Ranges for Selected Days */}
+              {availableDays.map((day) => {
+                const timeRanges = availableHours[day] || [];
+                return (
+                  <View key={day} style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>{day} Hours</Text>
+                    <Text style={styles.fieldHint}>Set time ranges for {day}</Text>
+                    {timeRanges.map((range, index) => (
+                      <View key={index} style={styles.timeRangeContainer}>
+                        <TouchableOpacity
+                          style={styles.timePickerButton}
+                          onPress={() => setTimePickerState({ visible: true, day, rangeIndex: index, field: 'start' })}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="time-outline" size={20} color="#094327" />
+                          <Text style={styles.timePickerText}>{formatTimeForDisplay(range.start)}</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.timeRangeSeparator}>to</Text>
+                        <TouchableOpacity
+                          style={styles.timePickerButton}
+                          onPress={() => setTimePickerState({ visible: true, day, rangeIndex: index, field: 'end' })}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="time-outline" size={20} color="#094327" />
+                          <Text style={styles.timePickerText}>{formatTimeForDisplay(range.end)}</Text>
+                        </TouchableOpacity>
+                        {timeRanges.length > 1 && (
+                          <TouchableOpacity
+                            style={styles.removeTimeRangeButton}
+                            onPress={() => handleRemoveTimeRange(day, index)}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="close-circle" size={24} color="#EF4444" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ))}
+                    <TouchableOpacity
+                      style={styles.addTimeRangeButton}
+                      onPress={() => handleAddTimeRange(day)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="add-circle-outline" size={20} color="#094327" />
+                      <Text style={styles.addTimeRangeText}>Add Another Time Range</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+
+              {/* Unavailable Dates */}
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>Unavailable Dates</Text>
+                <Text style={styles.fieldHint}>Mark specific dates as unavailable (holidays, personal days)</Text>
+                <TouchableOpacity
+                  style={styles.calendarButton}
+                  onPress={() => setShowCalendar(true)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="calendar-outline" size={20} color="#094327" />
+                  <Text style={styles.calendarButtonText}>
+                    {unavailableDates.length > 0
+                      ? `${unavailableDates.length} date${unavailableDates.length !== 1 ? 's' : ''} marked`
+                      : 'Select Unavailable Dates'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Copy Week */}
+              <View style={styles.fieldContainer}>
+                <TouchableOpacity
+                  style={styles.copyWeekButton}
+                  onPress={handleCopyWeek}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="copy-outline" size={20} color="#094327" />
+                  <Text style={styles.copyWeekButtonText}>Copy Week Settings</Text>
+                </TouchableOpacity>
+                <Text style={styles.fieldHint}>
+                  Copy current availability settings to apply to all weeks
+                </Text>
+              </View>
+
               {/* Max Orders Per Day */}
               <View style={styles.fieldContainer}>
                 <Text style={styles.fieldLabel}>Max Orders Per Day</Text>
@@ -1146,6 +1331,83 @@ export default function PersonalInfoScreen() {
           onSendOTP={handleSendOTP}
           onOTPVerified={handleOTPVerified}
         />
+
+        {/* Availability Calendar Modal */}
+        <AvailabilityCalendar
+          visible={showCalendar}
+          unavailableDates={unavailableDates}
+          onDatesChange={setUnavailableDates}
+          onClose={() => setShowCalendar(false)}
+        />
+
+        {/* Time Picker */}
+        {timePickerState.visible && timePickerState.day && timePickerState.rangeIndex !== null && timePickerState.field && (
+          <DateTimePicker
+            value={getTimeDate(availableHours[timePickerState.day]?.[timePickerState.rangeIndex]?.[timePickerState.field] || '10:00')}
+            mode="time"
+            is24Hour={false}
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedTime) => {
+              if (Platform.OS === 'android') {
+                setTimePickerState({ visible: false, day: null, rangeIndex: null, field: null });
+              }
+              if (selectedTime && timePickerState.day && timePickerState.rangeIndex !== null && timePickerState.field) {
+                handleTimeChange(timePickerState.day, timePickerState.rangeIndex, timePickerState.field, selectedTime);
+              }
+            }}
+            onTouchCancel={() => setTimePickerState({ visible: false, day: null, rangeIndex: null, field: null })}
+          />
+        )}
+        {Platform.OS === 'ios' && timePickerState.visible && (
+          <View style={styles.timePickerModal}>
+            <View style={styles.timePickerModalContent}>
+              <View style={styles.timePickerModalHeader}>
+                <TouchableOpacity
+                  onPress={() => setTimePickerState({ visible: false, day: null, rangeIndex: null, field: null })}
+                >
+                  <Text style={styles.timePickerModalCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.timePickerModalTitle}>Select Time</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (timePickerState.day && timePickerState.rangeIndex !== null && timePickerState.field) {
+                      const currentTime = availableHours[timePickerState.day]?.[timePickerState.rangeIndex]?.[timePickerState.field] || '10:00';
+                      handleTimeChange(timePickerState.day, timePickerState.rangeIndex, timePickerState.field, getTimeDate(currentTime));
+                    }
+                  }}
+                >
+                  <Text style={styles.timePickerModalDone}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              {timePickerState.day && timePickerState.rangeIndex !== null && timePickerState.field && (
+                <DateTimePicker
+                  value={getTimeDate(availableHours[timePickerState.day]?.[timePickerState.rangeIndex]?.[timePickerState.field] || '10:00')}
+                  mode="time"
+                  is24Hour={false}
+                  display="spinner"
+                  onChange={(event, selectedTime) => {
+                    if (selectedTime && timePickerState.day && timePickerState.rangeIndex !== null && timePickerState.field) {
+                      const hours = String(selectedTime.getHours()).padStart(2, '0');
+                      const minutes = String(selectedTime.getMinutes()).padStart(2, '0');
+                      const timeStr = `${hours}:${minutes}`;
+                      
+                      const currentRanges = [...(availableHours[timePickerState.day] || [])];
+                      currentRanges[timePickerState.rangeIndex] = {
+                        ...currentRanges[timePickerState.rangeIndex],
+                        [timePickerState.field]: timeStr,
+                      };
+                      
+                      setAvailableHours({
+                        ...availableHours,
+                        [timePickerState.day]: currentRanges,
+                      });
+                    }
+                  }}
+                />
+              )}
+            </View>
+          </View>
+        )}
       </SafeAreaView>
     </>
   );
@@ -1544,5 +1806,134 @@ const styles = StyleSheet.create({
   dayChipTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  timeRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+    paddingVertical: 8,
+  },
+  timePickerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  timePickerText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  timeRangeSeparator: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    fontWeight: '500',
+  },
+  removeTimeRangeButton: {
+    padding: 4,
+  },
+  addTimeRangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignSelf: 'flex-start',
+  },
+  addTimeRangeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#094327',
+    fontFamily: 'Inter',
+  },
+  calendarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 8,
+  },
+  calendarButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  copyWeekButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 8,
+  },
+  copyWeekButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#094327',
+    fontFamily: 'Inter',
+  },
+  timePickerModal: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  timePickerModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  timePickerModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  timePickerModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  timePickerModalCancel: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  timePickerModalDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#094327',
+    fontFamily: 'Inter',
   },
 });

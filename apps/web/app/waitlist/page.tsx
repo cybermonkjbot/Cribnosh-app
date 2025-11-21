@@ -379,7 +379,7 @@ export default function WaitlistPage() {
                   transition={{ duration: 0.8 }}
                   className="text-center"
                 >
-                  <h1 className="font-asgard text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-gray-900 mb-4 sm:mb-8 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-[#ff3b30] to-gray-900 text-center mx-auto">
+                  <h1 className="font-asgard text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 sm:mb-8 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-[#ff3b30] to-gray-900 text-center mx-auto">
                     Join Our Waitlist
                   </h1>
                   <p className="font-satoshi text-lg sm:text-xl text-gray-600 max-w-3xl mb-6 sm:mb-8 text-center mx-auto">
@@ -413,7 +413,7 @@ export default function WaitlistPage() {
                 <AnimatePresence mode="wait">
                   {!isSuccess && (
                     <motion.div 
-                      className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 flex items-center justify-center mb-6"
+                      className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 flex items-center justify-center mb-6"
                       whileHover={{ scale: 1.1 }}
                       transition={{ type: "spring", stiffness: 400 }}
                       initial={{ opacity: 0, scale: 0.5 }}
@@ -535,7 +535,7 @@ export default function WaitlistPage() {
                               id="contact"
                               value={contact}
                               onChange={handleContactChange}
-                              className={`w-full p-3 rounded-lg border shadow-md bg-white focus:bg-white border-2 transition-colors duration-200 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-gray-900 placeholder-gray-400 font-medium text-base outline-none ${
+                              className={`w-full p-3 rounded-lg shadow-md bg-white focus:bg-white border-2 transition-colors duration-200 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-gray-900 placeholder-gray-400 font-medium text-base outline-none ${
                                 error ? 'border-red-500' : contactType ? 'border-green-500' : 'border-gray-300'
                               }`}
                               placeholder="your@email.com or +44 7123 456789"

@@ -10,6 +10,7 @@ import { X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getConvexClient } from '@/lib/convexClient';
 import { CameraModalScreen } from './CameraModalScreen';
+import { RichTextEditor } from './RichTextEditor';
 import { SvgXml } from 'react-native-svg';
 
 // Close icon SVG
@@ -41,13 +42,17 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
   const [showCamera, setShowCamera] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  
+  const createStory = useMutation(api.mutations.stories.createStory);
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    content: '', // HTML content from rich text editor
     media: null as { uri: string; type: MediaType } | null,
     tags: [] as string[],
     status: 'draft' as 'draft' | 'published',
+    scheduledDate: null as Date | null,
   });
 
   // Check authentication when modal opens
@@ -65,9 +70,11 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
     setFormData({
       title: '',
       description: '',
+      content: '',
       media: null,
       tags: [],
       status: 'draft',
+      scheduledDate: null,
     });
     setShowCamera(false);
     setIsSubmitted(false);
@@ -207,16 +214,21 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
 
       setIsUploadingMedia(false);
 
-      // Create story (you'll need to implement this mutation)
-      // await createStory({
-      //   title: formData.title.trim(),
-      //   description: formData.description.trim(),
-      //   mediaUrl,
-      //   mediaType: formData.media.type,
-      //   tags: formData.tags,
-      //   author: chef.name,
-      //   status: publish ? 'published' : 'draft',
-      // });
+      // Create story
+      const publishedAt = formData.scheduledDate 
+        ? formData.scheduledDate.getTime() 
+        : (publish ? Date.now() : undefined);
+
+      await createStory({
+        title: formData.title.trim(),
+        content: formData.content || formData.description || '', // Use rich text content or fallback to description
+        coverImage: formData.media.type === 'photo' ? mediaUrl : undefined,
+        featuredImage: formData.media.type === 'photo' ? mediaUrl : undefined,
+        tags: formData.tags,
+        status: publish ? 'published' : 'draft',
+        publishedAt,
+        sessionToken,
+      });
 
       setIsSubmitted(true);
       showSuccess(
@@ -286,18 +298,53 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
                 placeholderTextColor="#9CA3AF"
               />
             </View>
-            <View style={[styles.inputCard, styles.inputCardMultiline, styles.inputCardMarginTop]}>
-              <TextInput
-                style={[styles.inputCardText, styles.inputCardTextMultiline]}
+            <View style={[styles.inputCard, styles.inputCardMultiline, styles.inputCardMarginTop, { minHeight: 250 }]}>
+              <RichTextEditor
+                value={formData.content}
+                onChange={(html) => setFormData({ ...formData, content: html })}
                 placeholder="Tell your story..."
-                value={formData.description}
-                onChangeText={(text) => setFormData({ ...formData, description: text })}
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={4}
+                style={{ flex: 1 }}
               />
             </View>
-            <Text style={styles.hintText}>Give your story a title and describe what it's about</Text>
+            <Text style={styles.hintText}>Give your story a title and describe what it's about. Use the formatting toolbar to style your text.</Text>
+            
+            {/* Schedule Publish Date */}
+            <View style={styles.scheduleContainer}>
+              <TouchableOpacity
+                style={styles.scheduleButton}
+                onPress={() => {
+                  // Show date picker for scheduling
+                  Alert.alert(
+                    'Schedule Story',
+                    'Would you like to schedule this story for later?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Schedule', onPress: () => {
+                        // In a real implementation, show a date picker
+                        // For now, set to tomorrow
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        setFormData({ ...formData, scheduledDate: tomorrow });
+                      }},
+                    ]
+                  );
+                }}
+              >
+                <Text style={styles.scheduleButtonText}>
+                  {formData.scheduledDate 
+                    ? `Scheduled for ${formData.scheduledDate.toLocaleDateString('en-GB')}`
+                    : 'Schedule for later (optional)'}
+                </Text>
+              </TouchableOpacity>
+              {formData.scheduledDate && (
+                <TouchableOpacity
+                  onPress={() => setFormData({ ...formData, scheduledDate: null })}
+                  style={styles.removeScheduleButton}
+                >
+                  <X size={16} color="#EF4444" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         );
 

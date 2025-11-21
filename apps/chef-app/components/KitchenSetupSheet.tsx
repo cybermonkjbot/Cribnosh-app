@@ -94,6 +94,12 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
     chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
   );
 
+  // Get documents summary
+  const documentsSummary = useQuery(
+    api.queries.chefDocuments.getSummary,
+    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+  );
+
   // Check what's missing
   const setupItems = useMemo<SetupItem[]>(() => {
     if (!chef || !user) return [];
@@ -109,7 +115,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
 
     items.push({
       id: 'personal-info',
-      title: 'Complete Personal Information',
+      title: 'Complete Business Settings',
       description: 'Add your name and contact details',
       completed: personalInfoComplete,
       route: '/personal-info',
@@ -139,7 +145,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
       title: 'Set Up Your Kitchen',
       description: 'Add kitchen address and details',
       completed: kitchenComplete,
-      route: '/kitchen-settings',
+      route: '/personal-info',
     });
 
     // 4. Compliance Course
@@ -151,7 +157,22 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
       route: '/(tabs)/chef/onboarding',
     });
 
-    // 5. Bank Account (for payouts)
+    // 5. Required Documents Verification
+    const allRequiredDocumentsVerified = documentsSummary?.allRequiredVerified === true;
+    const requiredDocsCount = documentsSummary?.required || 0;
+    const verifiedDocsCount = documentsSummary?.requiredVerified || 0;
+    
+    items.push({
+      id: 'documents-verification',
+      title: 'Verify Required Documents',
+      description: requiredDocsCount > 0
+        ? `${verifiedDocsCount} of ${requiredDocsCount} required document${requiredDocsCount !== 1 ? 's' : ''} verified`
+        : 'Upload and verify required documents',
+      completed: allRequiredDocumentsVerified,
+      route: '/(tabs)/profile', // Navigate to profile where documents can be uploaded
+    });
+
+    // 6. Bank Account (for payouts)
     const hasBankAccount = bankAccounts && bankAccounts.length > 0;
     items.push({
       id: 'bank-account',
@@ -162,7 +183,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
     });
 
     return items;
-  }, [chef, user, kitchenId, kitchen, isOnboardingComplete, bankAccounts]);
+  }, [chef, user, kitchenId, kitchen, isOnboardingComplete, bankAccounts, documentsSummary]);
 
   const completedCount = setupItems.filter(item => item.completed).length;
   const totalCount = setupItems.length;

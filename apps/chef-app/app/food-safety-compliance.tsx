@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -7,6 +7,7 @@ import { useToast } from '../lib/ToastContext';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { CheckCircle, XCircle, FileText, Upload } from 'lucide-react-native';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -31,10 +32,18 @@ const certificateIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill
   <path d="M10 2L12 8L18 9L14 13L15 19L10 16L5 19L6 13L2 9L8 8L10 2Z" stroke="#094327" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
+// Required compliance document types
+const REQUIRED_DOCUMENTS = [
+  { type: 'fba' as const, name: 'Food Business Approval (FBA)', isRequired: true },
+  { type: 'health_permit' as const, name: 'Health Permit', isRequired: true },
+  { type: 'insurance' as const, name: 'Insurance Certificate', isRequired: true },
+  { type: 'kitchen_cert' as const, name: 'Kitchen Certification', isRequired: true },
+];
+
 export default function FoodSafetyComplianceScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { chef } = useChefAuth();
+  const { chef, sessionToken } = useChefAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [complianceStatus, setComplianceStatus] = useState<'compliant' | 'pending' | 'non-compliant'>('pending');
@@ -54,6 +63,34 @@ export default function FoodSafetyComplianceScreen() {
     api.queries.kitchens.getKitchenById,
     kitchenId ? { kitchenId } : 'skip'
   );
+
+  // Get chef documents
+  const documents = useQuery(
+    api.queries.chefDocuments.getByChefId,
+    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+  );
+
+  // Map documents by type for easy lookup
+  const documentsByType = useMemo(() => {
+    if (!documents) return {};
+    const map: Record<string, typeof documents[0]> = {};
+    documents.forEach(doc => {
+      map[doc.documentType] = doc;
+    });
+    return map;
+  }, [documents]);
+
+  // Get document status for each required document
+  const documentStatuses = useMemo(() => {
+    return REQUIRED_DOCUMENTS.map(reqDoc => {
+      const existingDoc = documentsByType[reqDoc.type];
+      return {
+        ...reqDoc,
+        status: existingDoc?.status || 'missing',
+        document: existingDoc,
+      };
+    });
+  }, [documentsByType]);
 
   useEffect(() => {
     if (kitchen) {
@@ -94,6 +131,61 @@ export default function FoodSafetyComplianceScreen() {
 
   const handleScheduleInspection = () => {
     router.push('/schedule-inspection' as any);
+  };
+
+  const handleUploadDocument = (documentType: string, documentId?: string) => {
+    if (documentId) {
+      // Navigate to existing document upload screen
+      router.push({
+        pathname: `/(tabs)/chef/onboarding/documents/${documentId}` as any,
+        params: { returnPath: '/food-safety-compliance' },
+      } as any);
+    } else {
+      // Navigate to new document upload by type
+      router.push({
+        pathname: '/(tabs)/chef/onboarding/documents/upload',
+        params: { type: documentType, returnPath: '/food-safety-compliance' },
+      } as any);
+    }
+  };
+
+  const getDocumentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return <CheckCircle size={20} color="#0B9E58" />;
+      case 'rejected':
+        return <XCircle size={20} color="#EF4444" />;
+      case 'pending':
+        return <FileText size={20} color="#FF6B35" />;
+      default:
+        return <Upload size={20} color="#6B7280" />;
+    }
+  };
+
+  const getDocumentStatusColor = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return '#0B9E58';
+      case 'rejected':
+        return '#EF4444';
+      case 'pending':
+        return '#FF6B35';
+      default:
+        return '#6B7280';
+    }
+  };
+
+  const getDocumentStatusText = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return 'Verified';
+      case 'rejected':
+        return 'Rejected';
+      case 'pending':
+        return 'Pending Review';
+      default:
+        return 'Not Uploaded';
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -260,6 +352,37 @@ export default function FoodSafetyComplianceScreen() {
                       </TouchableOpacity>
                     </View>
                   )}
+                </View>
+              </View>
+
+              {/* Required Documents */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Required Documents</Text>
+                </View>
+                <View style={styles.documentsCard}>
+                  {documentStatuses.map((docStatus, index) => (
+                    <TouchableOpacity
+                      key={docStatus.type}
+                      style={[
+                        styles.documentItem,
+                        index === documentStatuses.length - 1 && styles.documentItemLast
+                      ]}
+                      onPress={() => handleUploadDocument(docStatus.type, docStatus.document?._id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.documentItemLeft}>
+                        {getDocumentStatusIcon(docStatus.status)}
+                        <View style={styles.documentItemInfo}>
+                          <Text style={styles.documentItemName}>{docStatus.name}</Text>
+                          <Text style={[styles.documentItemStatus, { color: getDocumentStatusColor(docStatus.status) }]}>
+                            {getDocumentStatusText(docStatus.status)}
+                          </Text>
+                        </View>
+                      </View>
+                      <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
 
@@ -526,6 +649,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#6B7280',
+  },
+  // Documents Card
+  documentsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  documentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  documentItemLast: {
+    borderBottomWidth: 0,
+  },
+  documentItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  documentItemInfo: {
+    flex: 1,
+  },
+  documentItemName: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#094327',
+    marginBottom: 4,
+  },
+  documentItemStatus: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 12,
+    lineHeight: 16,
   },
 });
 

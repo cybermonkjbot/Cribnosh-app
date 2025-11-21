@@ -4,12 +4,25 @@ import { useToast } from '@/lib/ToastContext';
 import { useMutation, useQuery } from 'convex/react';
 import { ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CheckCircle, X } from 'lucide-react-native';
+import { CheckCircle, X, ChevronRight } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Pressable, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Cribnosh brand colors
+const BRAND_COLORS = {
+  primary: '#FF3B30', // Cribnosh red/orange
+  primaryDark: '#ed1d12',
+  primaryLight: '#ff5e54',
+  white: '#FFFFFF',
+  black: '#000000',
+  overlay: 'rgba(0, 0, 0, 0.7)',
+  overlayLight: 'rgba(0, 0, 0, 0.5)',
+  textSecondary: 'rgba(255, 255, 255, 0.8)',
+  textTertiary: 'rgba(255, 255, 255, 0.6)',
+};
 
 interface ModuleVideo {
   id: string;
@@ -47,6 +60,7 @@ export default function ModuleDetailScreen() {
   const flatListRef = useRef<FlatList>(null);
   const videoRefs = useRef<{ [key: string]: Video | null }>({});
   const [playingVideos, setPlayingVideos] = useState<Set<string>>(new Set());
+  const saveProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get course enrollment to find module progress
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
@@ -75,27 +89,6 @@ export default function ModuleDetailScreen() {
     if (!enrollment?.progress) return null;
     return enrollment.progress.find((m: any) => m.moduleId === moduleId);
   }, [enrollment, moduleId]);
-
-  // Get sorted modules to find next module
-  const sortedModules = useMemo(() => {
-    if (!enrollment?.progress) return [];
-    return [...enrollment.progress].sort((a: any, b: any) => a.moduleNumber - b.moduleNumber);
-  }, [enrollment]);
-
-  // Find next incomplete module
-  const nextModule = useMemo(() => {
-    if (!currentModule || !sortedModules.length) return null;
-    const currentIndex = sortedModules.findIndex((m: any) => m.moduleId === moduleId);
-    if (currentIndex === -1) return null;
-    
-    // Find next incomplete module after current
-    for (let i = currentIndex + 1; i < sortedModules.length; i++) {
-      if (!sortedModules[i].completed) {
-        return sortedModules[i];
-      }
-    }
-    return null;
-  }, [currentModule, sortedModules, moduleId]);
 
   // Extract videos from module content
   const moduleVideos = useMemo(() => {
@@ -136,6 +129,74 @@ export default function ModuleDetailScreen() {
     // Sort by order
     return videos.sort((a, b) => a.order - b.order);
   }, [moduleContent, moduleId]);
+
+  // Restore video index from saved progress
+  useEffect(() => {
+    if (currentModule?.lastVideoIndex !== undefined && moduleVideos && moduleVideos.length > 0) {
+      const savedIndex = Math.min(currentModule.lastVideoIndex, moduleVideos.length - 1);
+      setCurrentIndex(savedIndex);
+      // Scroll to saved position after a brief delay
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({ index: savedIndex, animated: false });
+      }, 100);
+    }
+  }, [currentModule?.lastVideoIndex, moduleVideos]);
+
+  // Save video progress when index changes
+  const saveVideoProgress = useCallback(async (videoIndex: number) => {
+    if (!chef?._id || !courseId || !moduleId || !sessionToken || !currentModule || !moduleContent) return;
+    
+    // Clear existing timeout
+    if (saveProgressTimeoutRef.current) {
+      clearTimeout(saveProgressTimeoutRef.current);
+    }
+    
+    // Debounce saves - only save after 1 second of no changes
+    saveProgressTimeoutRef.current = setTimeout(async () => {
+      try {
+        await updateProgress({
+          chefId: chef._id,
+          courseId,
+          moduleId,
+          moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',
+          moduleNumber: currentModule.moduleNumber,
+          completed: currentModule.completed || false,
+          sessionToken,
+          lastVideoIndex: videoIndex,
+        });
+      } catch (error) {
+        console.error('Error saving video progress:', error);
+      }
+    }, 1000);
+  }, [chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress]);
+
+  // Save video progress when currentIndex changes
+  useEffect(() => {
+    if (moduleVideos && moduleVideos.length > 0 && currentIndex >= 0) {
+      saveVideoProgress(currentIndex);
+    }
+  }, [currentIndex, moduleVideos, saveVideoProgress]);
+
+  // Get sorted modules to find next module
+  const sortedModules = useMemo(() => {
+    if (!enrollment?.progress) return [];
+    return [...enrollment.progress].sort((a: any, b: any) => a.moduleNumber - b.moduleNumber);
+  }, [enrollment]);
+
+  // Find next incomplete module
+  const nextModule = useMemo(() => {
+    if (!currentModule || !sortedModules.length) return null;
+    const currentIndex = sortedModules.findIndex((m: any) => m.moduleId === moduleId);
+    if (currentIndex === -1) return null;
+    
+    // Find next incomplete module after current
+    for (let i = currentIndex + 1; i < sortedModules.length; i++) {
+      if (!sortedModules[i].completed) {
+        return sortedModules[i];
+      }
+    }
+    return null;
+  }, [currentModule, sortedModules, moduleId]);
 
   // Track time spent watching videos
   const startTimeRef = useRef<number>(Date.now());
@@ -229,7 +290,7 @@ export default function ModuleDetailScreen() {
     const isPlaying = playingVideos.has(item.id);
 
     return (
-      <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: '#000' }}>
+      <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: BRAND_COLORS.black }}>
         <Video
           ref={(ref) => {
             videoRefs.current[item.id] = ref;
@@ -251,55 +312,53 @@ export default function ModuleDetailScreen() {
         />
         
         {/* Video Overlay with Title and Description */}
+        {/* Adjust bottom padding when action buttons are shown */}
         <View
           style={{
             position: 'absolute',
             bottom: 0,
             left: 0,
             right: 0,
-            padding: 20,
-            paddingBottom: insets.bottom + 20,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            paddingTop: 24,
+            paddingHorizontal: 20,
+            paddingBottom: index === moduleVideos.length - 1 && currentModule && !currentModule.completed
+              ? insets.bottom + 100 // Extra space for action button
+              : insets.bottom + 24,
           }}
         >
-          <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>
-            {item.title}
-          </Text>
-          {item.description && (
-            <Text style={{ color: '#fff', fontSize: 14, opacity: 0.9 }}>
-              {item.description}
-            </Text>
-          )}
-        </View>
-
-        {/* Progress indicator */}
-        {currentModule && (
           <View
             style={{
-              position: 'absolute',
-              top: insets.top + 60,
-              left: 20,
-              right: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
+              backgroundColor: BRAND_COLORS.overlay,
+              borderRadius: 16,
+              padding: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.1)',
             }}
           >
-            <View style={{ flex: 1, height: 4, backgroundColor: 'rgba(255, 255, 255, 0.3)', borderRadius: 2 }}>
-              <View
-                style={{
-                  width: `${((index + 1) / moduleVideos.length) * 100}%`,
-                  height: '100%',
-                  backgroundColor: '#fff',
-                  borderRadius: 2,
-                }}
-              />
-            </View>
-            <Text style={{ color: '#fff', fontSize: 12 }}>
-              {index + 1} / {moduleVideos.length}
+            <Text 
+              style={{ 
+                color: BRAND_COLORS.white, 
+                fontSize: 24, 
+                fontWeight: '700', 
+                marginBottom: 8,
+                letterSpacing: -0.5,
+              }}
+            >
+              {item.title}
             </Text>
+            {item.description && (
+              <Text 
+                style={{ 
+                  color: BRAND_COLORS.textSecondary, 
+                  fontSize: 15, 
+                  lineHeight: 22,
+                }}
+              >
+                {item.description}
+              </Text>
+            )}
           </View>
-        )}
+        </View>
       </View>
     );
   }, [currentIndex, playingVideos, insets, currentModule, moduleVideos.length, handleVideoPlayback]);
@@ -333,10 +392,12 @@ export default function ModuleDetailScreen() {
 
   if (isLoading || moduleContent === undefined) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: BRAND_COLORS.black, justifyContent: 'center', alignItems: 'center' }}>
         <StatusBar hidden />
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={{ color: '#fff', marginTop: 16 }}>Loading module content...</Text>
+        <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
+        <Text style={{ color: BRAND_COLORS.white, marginTop: 16, fontSize: 15, fontWeight: '500' }}>
+          Loading module content...
+        </Text>
       </View>
     );
   }
@@ -344,10 +405,12 @@ export default function ModuleDetailScreen() {
   // If no videos, show loading while auto-navigating
   if (moduleVideos.length === 0) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: BRAND_COLORS.black, justifyContent: 'center', alignItems: 'center' }}>
         <StatusBar hidden />
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={{ color: '#fff', marginTop: 16 }}>Skipping to next step...</Text>
+        <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
+        <Text style={{ color: BRAND_COLORS.white, marginTop: 16, fontSize: 15, fontWeight: '500' }}>
+          Skipping to next step...
+        </Text>
       </View>
     );
   }
@@ -355,7 +418,7 @@ export default function ModuleDetailScreen() {
   const moduleName = moduleContent?.moduleName || currentModule?.moduleName || `Module ${currentModule?.moduleNumber || ''}`;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <View style={{ flex: 1, backgroundColor: BRAND_COLORS.black }}>
       <StatusBar hidden />
       
       {/* Vertical Video List */}
@@ -384,68 +447,77 @@ export default function ModuleDetailScreen() {
         extraData={currentIndex}
       />
 
-      {/* Close Button */}
-      <Pressable
-        onPress={() => router.back()}
-        style={{
-          position: 'absolute',
-          top: insets.top + 16,
-          left: 20,
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-        }}
-      >
-        <X size={24} color="#fff" />
-      </Pressable>
-
-      {/* Module Info */}
+      {/* Header with Close Button */}
       <View
         style={{
           position: 'absolute',
           top: insets.top + 16,
-          right: 20,
+          left: 20,
           zIndex: 10000,
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
-          {moduleName}
-        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: BRAND_COLORS.overlay,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <X size={22} color={BRAND_COLORS.white} strokeWidth={2.5} />
+        </Pressable>
       </View>
 
       {/* Action Buttons (shown on last video) */}
-      {currentIndex === moduleVideos.length - 1 && currentModule && !currentModule.completed && (
+      {currentIndex === moduleVideos.length - 1 && currentModule && !currentModule.completed ? (
         <View
           style={{
             position: 'absolute',
-            bottom: insets.bottom + 100,
+            bottom: insets.bottom + 24,
             left: 20,
             right: 20,
             zIndex: 10000,
             gap: 12,
+            paddingBottom: 8, // Extra padding to ensure visibility
           }}
         >
-          {/* Quiz Button (if quiz exists) - Auto-navigate after a short delay */}
+          {/* Quiz Button (if quiz exists) */}
           {moduleContent?.quiz && (
             <TouchableOpacity
               onPress={() => router.push(`/(tabs)/chef/onboarding/course/${courseId}/module/${moduleId}/quiz`)}
+              activeOpacity={0.8}
               style={{
-                backgroundColor: '#007AFF',
-                padding: 16,
-                borderRadius: 8,
+                backgroundColor: BRAND_COLORS.primary,
+                paddingVertical: 18,
+                paddingHorizontal: 24,
+                borderRadius: 14,
                 alignItems: 'center',
                 flexDirection: 'row',
                 justifyContent: 'center',
-                gap: 8,
+                gap: 10,
+                shadowColor: BRAND_COLORS.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+              <Text 
+                style={{ 
+                  color: BRAND_COLORS.white, 
+                  fontSize: 17, 
+                  fontWeight: '700',
+                  letterSpacing: 0.3,
+                }}
+              >
                 Continue to Quiz
               </Text>
+              <ChevronRight size={20} color={BRAND_COLORS.white} strokeWidth={2.5} />
             </TouchableOpacity>
           )}
           
@@ -453,49 +525,71 @@ export default function ModuleDetailScreen() {
           {(!moduleContent?.quiz || (currentModule.quizScore && currentModule.quizScore >= (moduleContent.quiz.passingScore || 80))) && (
             <TouchableOpacity
               onPress={handleCompleteModule}
+              activeOpacity={0.8}
               style={{
-                backgroundColor: '#4CAF50',
-                padding: 16,
-                borderRadius: 8,
+                backgroundColor: BRAND_COLORS.primary,
+                paddingVertical: 18,
+                paddingHorizontal: 24,
+                borderRadius: 14,
                 alignItems: 'center',
                 flexDirection: 'row',
                 justifyContent: 'center',
-                gap: 8,
+                gap: 10,
+                shadowColor: BRAND_COLORS.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
               }}
             >
-              <CheckCircle size={20} color="#fff" />
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+              <CheckCircle size={22} color={BRAND_COLORS.white} strokeWidth={2.5} />
+              <Text 
+                style={{ 
+                  color: BRAND_COLORS.white, 
+                  fontSize: 17, 
+                  fontWeight: '700',
+                  letterSpacing: 0.3,
+                }}
+              >
                 Complete Module
               </Text>
             </TouchableOpacity>
           )}
         </View>
-      )}
+      ) : null}
 
       {/* Swipe indicator */}
-      {moduleVideos.length > 1 && (
+      {moduleVideos.length > 1 && currentIndex < moduleVideos.length - 1 && (
         <View
           style={{
             position: 'absolute',
-            top: insets.top + 70,
+            bottom: insets.bottom + 180, // Moved higher to avoid overlap with video overlay
             left: 0,
             right: 0,
             alignItems: 'center',
             zIndex: 10000,
           }}
         >
-          <Text
+          <View
             style={{
-              color: '#fff',
-              fontSize: 14,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              paddingHorizontal: 16,
-              paddingVertical: 8,
+              backgroundColor: BRAND_COLORS.overlay,
+              paddingHorizontal: 20,
+              paddingVertical: 10,
               borderRadius: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.1)',
             }}
           >
-            Swipe up for next video
-          </Text>
+            <Text
+              style={{
+                color: BRAND_COLORS.textSecondary,
+                fontSize: 13,
+                fontWeight: '500',
+              }}
+            >
+              Swipe up for next video
+            </Text>
+          </View>
         </View>
       )}
     </View>

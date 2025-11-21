@@ -1,7 +1,6 @@
 import { v } from 'convex/values';
 import { mutation } from '../_generated/server';
-import { requireAuth, isAdmin, isStaff } from '../utils/auth';
-import { Id } from '../_generated/dataModel';
+import { isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 /**
  * Enroll a chef in a course
@@ -38,7 +37,8 @@ export const enrollInCourse = mutation({
       .first();
     
     if (existing) {
-      throw new Error('Already enrolled in this course');
+      // Already enrolled - return existing enrollment ID
+      return existing._id;
     }
     
     // Get all published modules for this course to initialize progress
@@ -177,6 +177,9 @@ export const updateModuleProgress = mutation({
     completed: v.boolean(),
     timeSpent: v.optional(v.number()), // in seconds
     quizScore: v.optional(v.number()),
+    lastVideoIndex: v.optional(v.number()), // Last video index watched
+    partialQuizAnswers: v.optional(v.record(v.string(), v.any())), // Partial quiz answers before submission
+    currentQuizQuestionIndex: v.optional(v.number()), // Current question index in quiz
     quizAnswers: v.optional(v.array(v.object({
       questionId: v.string(),
       answer: v.any(),
@@ -239,6 +242,9 @@ export const updateModuleProgress = mutation({
           : existingModule.quizAttempts,
         lastAccessed: now,
         timeSpent: existingModule.timeSpent + timeSpent,
+        lastVideoIndex: args.lastVideoIndex !== undefined ? args.lastVideoIndex : existingModule.lastVideoIndex,
+        partialQuizAnswers: args.partialQuizAnswers !== undefined ? args.partialQuizAnswers : existingModule.partialQuizAnswers,
+        currentQuizQuestionIndex: args.currentQuizQuestionIndex !== undefined ? args.currentQuizQuestionIndex : existingModule.currentQuizQuestionIndex,
         quizAnswers: args.quizAnswers || existingModule.quizAnswers,
       };
     } else {
@@ -253,6 +259,9 @@ export const updateModuleProgress = mutation({
         quizAttempts: args.quizScore !== undefined ? 1 : 0,
         lastAccessed: now,
         timeSpent: timeSpent,
+        lastVideoIndex: args.lastVideoIndex,
+        partialQuizAnswers: args.partialQuizAnswers,
+        currentQuizQuestionIndex: args.currentQuizQuestionIndex,
         quizAnswers: args.quizAnswers,
       });
     }

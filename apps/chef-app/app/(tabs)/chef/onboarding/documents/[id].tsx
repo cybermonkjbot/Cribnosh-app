@@ -1,33 +1,38 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Modal, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useToast } from '@/lib/ToastContext';
 import { Camera, Upload, CheckCircle, XCircle, FileText } from 'lucide-react-native';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { CameraModalScreen } from '@/components/ui/CameraModalScreen';
 import * as FileSystem from 'expo-file-system';
+import { SvgXml } from 'react-native-svg';
+
+// Back arrow SVG
+const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M19 12H5M12 19L5 12L12 5" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
 
 export default function DocumentUploadScreen() {
   const { chef, sessionToken } = useChefAuth();
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; returnPath?: string }>();
   const { showSuccess, showError } = useToast();
   
   const documentId = params.id;
+  const returnPath = params.returnPath;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
 
   // Get document details
   const documents = useQuery(
-    api.queries.getChefDocumentsByChefId,
+    api.queries.chefDocuments.getByChefId,
     chef?._id && sessionToken
       ? { chefId: chef._id, sessionToken }
       : 'skip'
@@ -141,7 +146,16 @@ export default function DocumentUploadScreen() {
       });
 
       showSuccess('Document Uploaded', 'Your document has been submitted for verification.');
-      router.back();
+      // Small delay to ensure success message is shown before navigating
+      setTimeout(() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else if (returnPath) {
+          router.push(returnPath as any);
+        } else {
+          router.push('/food-safety-compliance' as any);
+        }
+      }, 500);
     } catch (error: any) {
       console.error('Error uploading document:', error);
       showError('Upload Failed', error.message || 'Failed to upload document. Please try again.');
@@ -152,9 +166,9 @@ export default function DocumentUploadScreen() {
 
   if (!document) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.mainContainer}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color="#094327" />
           <Text style={styles.loadingText}>Loading document...</Text>
         </View>
       </SafeAreaView>
@@ -186,126 +200,166 @@ export default function DocumentUploadScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
+    <>
+      <Stack.Screen 
+        options={{ 
+          headerShown: false,
+          title: document.documentName || document.documentType
+        }} 
+      />
+      <SafeAreaView style={styles.mainContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
+        
+        {/* Header with back button */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else if (returnPath) {
+                router.push(returnPath as any);
+              } else {
+                router.push('/food-safety-compliance' as any);
+              }
+            }}
+          >
+            <SvgXml xml={backArrowSVG} width={24} height={24} />
           </TouchableOpacity>
-          <Text style={styles.title}>{document.documentName || document.documentType}</Text>
+          <View style={styles.headerSpacer} />
         </View>
 
-        {/* Status Card */}
-        <Card style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <View style={styles.statusInfo}>
-              {getStatusIcon(document.status)}
-              <Text style={styles.statusLabel}>Status</Text>
+        {/* Content */}
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Main Title */}
+          <Text style={styles.mainTitle}>{document.documentName || document.documentType}</Text>
+
+          {/* Status Card */}
+          <View style={styles.statusCard}>
+            <View style={styles.statusHeader}>
+              <View style={styles.statusInfo}>
+                {getStatusIcon(document.status)}
+                <Text style={styles.statusLabel}>Status</Text>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(document.status) + '20' }]}>
+                <Text style={[styles.statusBadgeText, { color: getStatusColor(document.status) }]}>
+                  {document.status.charAt(0).toUpperCase() + document.status.slice(1)}
+                </Text>
+              </View>
             </View>
-            <Text style={[styles.statusText, { color: getStatusColor(document.status) }]}>
-              {document.status.charAt(0).toUpperCase() + document.status.slice(1)}
-            </Text>
+            {document.status === 'rejected' && document.rejectionReason && (
+              <View style={styles.rejectionBox}>
+                <Text style={styles.rejectionTitle}>Rejection Reason:</Text>
+                <Text style={styles.rejectionText}>{document.rejectionReason}</Text>
+                {document.rejectionDetails && (
+                  <Text style={styles.rejectionDetails}>{document.rejectionDetails}</Text>
+                )}
+              </View>
+            )}
+            {document.status === 'verified' && document.verifiedAt && (
+              <Text style={styles.verifiedText}>
+                Verified on {new Date(document.verifiedAt).toLocaleDateString('en-GB', { 
+                  day: 'numeric', 
+                  month: 'long', 
+                  year: 'numeric' 
+                })}
+              </Text>
+            )}
           </View>
-          {document.status === 'rejected' && document.rejectionReason && (
-            <View style={styles.rejectionBox}>
-              <Text style={styles.rejectionTitle}>Rejection Reason:</Text>
-              <Text style={styles.rejectionText}>{document.rejectionReason}</Text>
-              {document.rejectionDetails && (
-                <Text style={styles.rejectionDetails}>{document.rejectionDetails}</Text>
+
+          {/* Current Document */}
+          {document.fileUrl && (
+            <View style={styles.documentCard}>
+              <Text style={styles.sectionTitle}>Current Document</Text>
+              <Image source={{ uri: document.fileUrl }} style={styles.documentImage} />
+              <View style={styles.documentInfo}>
+                <Text style={styles.documentFileName}>{document.fileName}</Text>
+                <Text style={styles.documentSize}>
+                  {(document.fileSize / 1024 / 1024).toFixed(2)} MB
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Upload Section */}
+          {document.status !== 'verified' && (
+            <View style={styles.uploadCard}>
+              <Text style={styles.sectionTitle}>
+                {document.fileUrl ? 'Replace Document' : 'Upload Document'}
+              </Text>
+              <Text style={styles.uploadDescription}>
+                Take a clear photo or select from your gallery. Make sure the document is fully visible and readable.
+              </Text>
+
+              {/* Selected Image Preview */}
+              {selectedImage && (
+                <View style={styles.previewContainer}>
+                  <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+                  <TouchableOpacity
+                    onPress={() => setSelectedImage(null)}
+                    style={styles.removeButton}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.removeButtonText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Upload Options */}
+              {!selectedImage && (
+                <View style={styles.uploadOptions}>
+                  <TouchableOpacity
+                    onPress={handleTakePhoto}
+                    style={styles.uploadOption}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.uploadOptionIconContainer}>
+                      <Camera size={24} color="#094327" />
+                    </View>
+                    <Text style={styles.uploadOptionText}>Take Photo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handlePickFromGallery}
+                    style={styles.uploadOption}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.uploadOptionIconContainer}>
+                      <Upload size={24} color="#094327" />
+                    </View>
+                    <Text style={styles.uploadOptionText}>Choose from Gallery</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Upload Button */}
+              {selectedImage && (
+                <TouchableOpacity
+                  onPress={handleUpload}
+                  disabled={isUploading}
+                  style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
+                  activeOpacity={0.8}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.uploadButtonText}>Upload Document</Text>
+                  )}
+                </TouchableOpacity>
               )}
             </View>
           )}
-          {document.status === 'verified' && document.verifiedAt && (
-            <Text style={styles.verifiedText}>
-              Verified on {new Date(document.verifiedAt).toLocaleDateString()}
+
+          {/* Requirements */}
+          <View style={styles.requirementsCard}>
+            <Text style={styles.requirementsTitle}>Requirements</Text>
+            <Text style={styles.requirementsText}>
+              • Document must be clear and fully visible{'\n'}
+              • All text must be readable{'\n'}
+              • Document must be valid and not expired{'\n'}
+              • File size must be under 10MB
             </Text>
-          )}
-        </Card>
-
-        {/* Current Document */}
-        {document.fileUrl && (
-          <Card style={styles.documentCard}>
-            <Text style={styles.sectionTitle}>Current Document</Text>
-            <Image source={{ uri: document.fileUrl }} style={styles.documentImage} />
-            <Text style={styles.documentFileName}>{document.fileName}</Text>
-            <Text style={styles.documentSize}>
-              {(document.fileSize / 1024 / 1024).toFixed(2)} MB
-            </Text>
-          </Card>
-        )}
-
-        {/* Upload Section */}
-        {document.status !== 'verified' && (
-          <Card style={styles.uploadCard}>
-            <Text style={styles.sectionTitle}>
-              {document.fileUrl ? 'Replace Document' : 'Upload Document'}
-            </Text>
-            <Text style={styles.uploadDescription}>
-              Take a clear photo or select from your gallery. Make sure the document is fully visible and readable.
-            </Text>
-
-            {/* Selected Image Preview */}
-            {selectedImage && (
-              <View style={styles.previewContainer}>
-                <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-                <TouchableOpacity
-                  onPress={() => setSelectedImage(null)}
-                  style={styles.removeButton}
-                >
-                  <Text style={styles.removeButtonText}>Remove</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Upload Options */}
-            {!selectedImage && (
-              <View style={styles.uploadOptions}>
-                <TouchableOpacity
-                  onPress={handleTakePhoto}
-                  style={styles.uploadOption}
-                >
-                  <Camera size={32} color="#007AFF" />
-                  <Text style={styles.uploadOptionText}>Take Photo</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handlePickFromGallery}
-                  style={styles.uploadOption}
-                >
-                  <Upload size={32} color="#007AFF" />
-                  <Text style={styles.uploadOptionText}>Choose from Gallery</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Upload Button */}
-            {selectedImage && (
-              <Button
-                onPress={handleUpload}
-                disabled={isUploading}
-                style={styles.uploadButton}
-              >
-                {isUploading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  'Upload Document'
-                )}
-              </Button>
-            )}
-          </Card>
-        )}
-
-        {/* Requirements */}
-        <Card style={styles.requirementsCard}>
-          <Text style={styles.requirementsTitle}>Requirements</Text>
-          <Text style={styles.requirementsText}>
-            • Document must be clear and fully visible{'\n'}
-            • All text must be readable{'\n'}
-            • Document must be valid and not expired{'\n'}
-            • File size must be under 10MB
-          </Text>
-        </Card>
-      </ScrollView>
+          </View>
+        </ScrollView>
 
       {/* Camera Modal */}
       {showCamera && (
@@ -327,183 +381,317 @@ export default function DocumentUploadScreen() {
           />
         </Modal>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FAFFFA',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 12,
+  },
+  mainTitle: {
+    fontFamily: 'Archivo',
+    fontStyle: 'normal',
+    fontWeight: '700',
+    fontSize: 28,
+    lineHeight: 36,
+    color: '#094327',
+    textAlign: 'left',
+    marginTop: 20,
+    marginBottom: 32,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 60,
   },
   loadingText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 16,
+    lineHeight: 24,
     marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  backButton: {
-    marginBottom: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    color: '#6B7280',
   },
   statusCard: {
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   statusHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   statusInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   statusLabel: {
-    fontSize: 16,
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
     fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#094327',
   },
-  statusText: {
-    fontSize: 16,
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusBadgeText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
     fontWeight: '600',
-    textTransform: 'capitalize',
+    fontSize: 12,
+    lineHeight: 16,
   },
   rejectionBox: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#FFEBEE',
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#FEF2F2',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
   },
   rejectionTitle: {
-    fontSize: 14,
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
     fontWeight: '600',
-    color: '#F44336',
-    marginBottom: 4,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#EF4444',
+    marginBottom: 8,
   },
   rejectionText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
     fontSize: 14,
-    color: '#666',
+    lineHeight: 20,
+    color: '#6B7280',
   },
   rejectionDetails: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
     fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  verifiedText: {
-    fontSize: 12,
-    color: '#4CAF50',
+    lineHeight: 16,
+    color: '#9CA3AF',
     marginTop: 8,
   },
+  verifiedText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#0B9E58',
+    marginTop: 12,
+  },
   documentCard: {
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   sectionTitle: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '700',
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
+    lineHeight: 24,
+    color: '#094327',
+    marginBottom: 16,
   },
   documentImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#f0f0f0',
+    height: 240,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: '#F5F5F5',
+  },
+  documentInfo: {
+    marginTop: 8,
   },
   documentFileName: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '500',
     fontSize: 14,
-    color: '#666',
+    lineHeight: 20,
+    color: '#374151',
     marginBottom: 4,
   },
   documentSize: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
     fontSize: 12,
-    color: '#999',
+    lineHeight: 16,
+    color: '#9CA3AF',
   },
   uploadCard: {
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   uploadDescription: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
     fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
+    lineHeight: 20,
+    color: '#6B7280',
+    marginBottom: 24,
   },
   previewContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   previewImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#f0f0f0',
+    height: 240,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: '#F5F5F5',
   },
   removeButton: {
     alignSelf: 'flex-start',
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   removeButtonText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '500',
     fontSize: 14,
-    color: '#F44336',
+    lineHeight: 20,
+    color: '#EF4444',
   },
   uploadOptions: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 20,
   },
   uploadOption: {
     flex: 1,
-    padding: 24,
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#007AFF',
-    borderStyle: 'dashed',
-    borderRadius: 8,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+  },
+  uploadOptionIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#E6FFE8',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   uploadOptionText: {
-    fontSize: 14,
-    color: '#007AFF',
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
     fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#094327',
+    textAlign: 'center',
   },
   uploadButton: {
     width: '100%',
+    backgroundColor: '#094327',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  uploadButtonDisabled: {
+    opacity: 0.6,
+  },
+  uploadButtonText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#FFFFFF',
   },
   requirementsCard: {
-    padding: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   requirementsTitle: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '700',
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
+    lineHeight: 24,
+    color: '#094327',
+    marginBottom: 12,
   },
   requirementsText: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '400',
     fontSize: 14,
-    color: '#666',
     lineHeight: 20,
+    color: '#6B7280',
   },
 });
 

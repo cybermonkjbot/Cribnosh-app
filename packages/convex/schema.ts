@@ -331,7 +331,11 @@ export default defineSchema({
     }),
     isAvailable: v.optional(v.boolean()),
     availableDays: v.optional(v.array(v.string())),
-    availableHours: v.optional(v.object({})),
+    availableHours: v.optional(v.object({
+      // Day of week -> array of time ranges: { start: "HH:mm", end: "HH:mm" }
+      // Example: { "Monday": [{ start: "10:00", end: "14:00" }, { start: "17:00", end: "21:00" }] }
+    })),
+    unavailableDates: v.optional(v.array(v.number())), // Array of timestamps for unavailable dates (holidays, etc.)
     maxOrdersPerDay: v.optional(v.number()),
     advanceBookingDays: v.optional(v.number()),
     specialInstructions: v.optional(v.string()),
@@ -384,6 +388,8 @@ export default defineSchema({
     status: v.union(v.literal("available"), v.literal("unavailable")),
     rating: v.optional(v.number()),
     images: v.array(v.string()),
+    linkedRecipeId: v.optional(v.id("recipes")), // Linked recipe
+    linkedVideoIds: v.optional(v.array(v.id("videoPosts"))), // Linked videos
     calories: v.optional(v.number()),
     ingredients: v.optional(v.array(v.object({
       name: v.string(),
@@ -3684,6 +3690,9 @@ export default defineSchema({
       quizAttempts: v.number(),
       lastAccessed: v.number(),
       timeSpent: v.number(), // in seconds
+      lastVideoIndex: v.optional(v.number()), // Last video index watched
+      partialQuizAnswers: v.optional(v.record(v.string(), v.any())), // Partial quiz answers before submission
+      currentQuizQuestionIndex: v.optional(v.number()), // Current question index in quiz
       quizAnswers: v.optional(v.array(v.object({
         questionId: v.string(),
         answer: v.any(),
@@ -3734,6 +3743,7 @@ export default defineSchema({
       v.literal("insurance"),
       v.literal("tax"),
       v.literal("kitchen_cert"),
+      v.literal("fba"),
       v.literal("other")
     ),
     documentName: v.string(), // User-friendly name

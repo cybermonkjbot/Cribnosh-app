@@ -133,6 +133,12 @@ export {
 // Export chef earnings queries
 export * from './chefEarnings';
 
+// Export chef transactions queries
+export * from './chefTransactions';
+
+// Export chef tax queries
+export * from './chefTax';
+
 // Export chef payouts queries
 export * from './chefPayouts';
 

@@ -104,7 +104,13 @@ export default function EarningsScreen() {
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Earnings</Text>
           </View>
-          <View style={styles.headerSpacer} />
+          <TouchableOpacity
+            style={styles.headerTransactionsButton}
+            onPress={() => router.push('/(tabs)/earnings/transactions')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.headerTransactionsButtonText}>Transactions</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Time Range Selector */}
@@ -209,27 +215,33 @@ export default function EarningsScreen() {
         )}
       </ScrollView>
 
-      {/* Floating Payout Button */}
-      <TouchableOpacity
-        style={[
-          styles.floatingPayoutButton,
-          { bottom: insets.bottom + 20, right: 20 }
-        ]}
-        onPress={() => router.push('/payout-settings')}
-        activeOpacity={0.8}
-      >
-        <BlurEffect
-          intensity={20}
-          tint="light"
-          useGradient={true}
-          backgroundColor="rgba(255, 59, 48, 0.75)"
-          style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, { zIndex: 0 }]}
-        />
-        <View style={styles.payoutButtonContent}>
-          <Wallet size={18} color="#FFFFFF" />
-          <Text style={styles.payoutButtonText}>Payout</Text>
-        </View>
-      </TouchableOpacity>
+      {/* Action Buttons */}
+      <View style={[styles.actionButtonsContainer, { bottom: insets.bottom + 20 }]}>
+        <TouchableOpacity
+          style={styles.viewTaxesButton}
+          onPress={() => router.push('/(tabs)/earnings/taxes')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.viewTaxesButtonText}>Tax Info</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.floatingPayoutButton}
+          onPress={() => router.push('/payout-settings')}
+          activeOpacity={0.8}
+        >
+          <BlurEffect
+            intensity={20}
+            tint="light"
+            useGradient={true}
+            backgroundColor="rgba(255, 59, 48, 0.75)"
+            style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, { zIndex: 0 }]}
+          />
+          <View style={styles.payoutButtonContent}>
+            <Wallet size={18} color="#FFFFFF" />
+            <Text style={styles.payoutButtonText}>Payout</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
     </GradientBackground>
   );
 }
@@ -274,8 +286,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#031D11',
   },
-  headerSpacer: {
-    width: 40,
+  headerTransactionsButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  headerTransactionsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#094327',
+    fontFamily: 'Inter',
   },
   timeRangeContainer: {
     flexDirection: 'row',
@@ -406,9 +434,40 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontFamily: 'Archivo',
   },
-  floatingPayoutButton: {
+  actionButtonsContainer: {
     position: 'absolute',
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    gap: 12,
+    zIndex: 999,
+    alignItems: 'center',
+  },
+  viewTaxesButton: {
+    flex: 1,
     height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  viewTaxesButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#094327',
+    fontFamily: 'Inter',
+  },
+  floatingPayoutButton: {
+    height: 40,
+    minWidth: 100,
     paddingHorizontal: 16,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 59, 48, 0.75)',
@@ -420,7 +479,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    zIndex: 999,
     flexDirection: 'row',
     gap: 8,
   },

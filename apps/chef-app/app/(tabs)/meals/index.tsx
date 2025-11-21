@@ -1,5 +1,3 @@
-import { Card } from '@/components/ui/Card';
-import { CreateMealModal } from '@/components/ui/CreateMealModal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { GradientBackground } from '@/components/ui/GradientBackground';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
@@ -7,8 +5,9 @@ import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
 import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Edit2, Eye, EyeOff, Plus, Trash2 } from 'lucide-react-native';
-import React, { useMemo, useState } from 'react';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
+import { ArrowLeft, Edit2, Eye, EyeOff, MoreVertical, Plus, Trash2, X } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,7 +19,10 @@ export default function MealsManagementScreen() {
   const { showSuccess, showError } = useToast();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [isMealModalVisible, setIsMealModalVisible] = useState(false);
+  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  
+  const actionSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['35%'], []);
 
   const deleteMeal = useMutation(api.mutations.meals.deleteMeal);
   const updateMeal = useMutation(api.mutations.meals.updateMeal);
@@ -91,6 +93,33 @@ export default function MealsManagementScreen() {
     );
   };
 
+  useEffect(() => {
+    if (selectedMealId) {
+      actionSheetRef.current?.expand();
+    } else {
+      actionSheetRef.current?.close();
+    }
+  }, [selectedMealId]);
+
+  const handleSheetChanges = useCallback((index: number) => {
+    if (index === -1) {
+      setSelectedMealId(null);
+    }
+  }, []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.3}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
+
   const handleToggleStatus = async (meal: any) => {
     const currentStatus = meal.status || 'unavailable';
     const newStatus = currentStatus === 'available' || currentStatus === 'active' 
@@ -107,9 +136,25 @@ export default function MealsManagementScreen() {
         'Status Updated',
         `Meal is now ${newStatus === 'available' ? 'available' : 'unavailable'}.`
       );
+      actionSheetRef.current?.close();
+      setSelectedMealId(null);
     } catch (error: any) {
       showError('Error', error.message || 'Failed to update meal status');
     }
+  };
+
+  const handleOpenActionMenu = (mealId: string) => {
+    setSelectedMealId(mealId);
+  };
+
+  const handleCloseActionMenu = () => {
+    actionSheetRef.current?.close();
+    setSelectedMealId(null);
+  };
+
+  const getSelectedMeal = () => {
+    if (!selectedMealId || !meals) return null;
+    return meals.find(meal => meal._id === selectedMealId);
   };
 
   if (!chef) {
@@ -131,20 +176,24 @@ export default function MealsManagementScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#031D11" />
+            <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
           <Text style={styles.title}>Meal Management</Text>
           <TouchableOpacity
-            onPress={() => setIsMealModalVisible(true)}
+            onPress={() => router.push('/(tabs)/meals/create')}
             style={styles.addButton}
           >
-            <Plus size={24} color="#10B981" />
+            <Plus size={24} color="#FF3B30" />
           </TouchableOpacity>
         </View>
 
         {/* Status Filters */}
         <View style={styles.filterContainer}>
-          <View style={styles.filterContent}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterContent}
+          >
             <TouchableOpacity
               onPress={() => setStatusFilter('all')}
               style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
@@ -169,7 +218,7 @@ export default function MealsManagementScreen() {
                 Unavailable ({getStatusCount('unavailable')})
               </Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </View>
 
         {/* Meals List */}
@@ -184,10 +233,10 @@ export default function MealsManagementScreen() {
               subtitle={statusFilter === 'all' 
                 ? 'Create your first meal to get started!' 
                 : `You don't have any ${statusFilter} meals.`}
-              icon="utensils"
+              icon="restaurant-outline"
               actionButton={statusFilter === 'all' ? {
                 label: 'Create Meal',
-                onPress: () => setIsMealModalVisible(true)
+                onPress: () => router.push('/(tabs)/meals/create')
               } : undefined}
               style={{ paddingVertical: 40 }}
             />
@@ -200,7 +249,7 @@ export default function MealsManagementScreen() {
                 : null;
 
               return (
-                <Card key={meal._id} style={styles.mealCard}>
+                <View key={meal._id} style={styles.mealCard}>
                   <View style={styles.mealHeader}>
                     {primaryImage ? (
                       <Image source={{ uri: primaryImage }} style={styles.mealImage} />
@@ -212,18 +261,29 @@ export default function MealsManagementScreen() {
                       </View>
                     )}
                     <View style={styles.mealInfo}>
-                      <Text style={styles.mealName}>{meal.name || 'Unnamed Meal'}</Text>
+                      <View style={styles.mealTitleRow}>
+                        <Text style={styles.mealName} numberOfLines={1}>
+                          {meal.name || 'Unnamed Meal'}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => handleOpenActionMenu(meal._id)}
+                          style={styles.moreButton}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                          <MoreVertical size={20} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
                       <Text style={styles.mealPrice}>
                         £{((meal.price || 0) / 100).toFixed(2)}
                       </Text>
                       <View style={styles.mealMeta}>
                         <View style={[
                           styles.statusBadge,
-                          { backgroundColor: isAvailable ? '#D1FAE5' : '#FEE2E2' }
+                          { backgroundColor: isAvailable ? '#FFE5E5' : '#FEE2E2' }
                         ]}>
                           <Text style={[
                             styles.statusText,
-                            { color: isAvailable ? '#065F46' : '#991B1B' }
+                            { color: isAvailable ? '#FF3B30' : '#991B1B' }
                           ]}>
                             {isAvailable ? 'Available' : 'Unavailable'}
                           </Text>
@@ -251,50 +311,91 @@ export default function MealsManagementScreen() {
                       {meal.description}
                     </Text>
                   )}
-
-                  <View style={styles.mealActions}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleToggleStatus(meal)}
-                    >
-                      {isAvailable ? (
-                        <EyeOff size={16} color="#666" />
-                      ) : (
-                        <Eye size={16} color="#10B981" />
-                      )}
-                      <Text style={[styles.actionButtonText, { color: isAvailable ? '#666' : '#10B981' }]}>
-                        {isAvailable ? 'Make Unavailable' : 'Make Available'}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => {
-                        // TODO: Navigate to edit screen or open edit modal
-                        showError('Coming Soon', 'Edit functionality will be available soon.');
-                      }}
-                    >
-                      <Edit2 size={16} color="#007AFF" />
-                      <Text style={[styles.actionButtonText, { color: '#007AFF' }]}>Edit</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleDeleteMeal(meal._id, meal.name || 'this meal')}
-                    >
-                      <Trash2 size={16} color="#EF4444" />
-                      <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Delete</Text>
-                    </TouchableOpacity>
-                  </View>
-                </Card>
+                </View>
               );
             })
           )}
         </ScrollView>
 
-        {/* Meal Creation Modal */}
-        <CreateMealModal
-          isVisible={isMealModalVisible}
-          onClose={() => setIsMealModalVisible(false)}
-        />
+        {/* Action Menu Bottom Sheet */}
+        <BottomSheet
+          ref={actionSheetRef}
+          snapPoints={snapPoints}
+          index={-1}
+          onChange={handleSheetChanges}
+          enablePanDownToClose={true}
+          backdropComponent={renderBackdrop}
+          backgroundStyle={{
+            backgroundColor: '#FFFFFF',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+          }}
+          containerStyle={{
+            zIndex: 1000000,
+          }}
+        >
+          <BottomSheetView style={styles.actionSheetContainer}>
+            {(() => {
+              const selectedMeal = getSelectedMeal();
+              if (!selectedMeal) return null;
+              const mealStatus = selectedMeal.status || 'unavailable';
+              const isMealAvailable = mealStatus === 'available' || mealStatus === 'active';
+              
+              return (
+                <>
+                  <View style={styles.actionSheetHeader}>
+                    <Text style={styles.actionSheetTitle}>Meal Actions</Text>
+                    <TouchableOpacity onPress={handleCloseActionMenu} style={styles.closeButton}>
+                      <X size={24} color="#000" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.actionMenuItems}>
+                    <TouchableOpacity
+                      style={styles.actionMenuItem}
+                      onPress={() => {
+                        handleToggleStatus(selectedMeal);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      {isMealAvailable ? (
+                        <EyeOff size={20} color="#6B7280" />
+                      ) : (
+                        <Eye size={20} color="#FF3B30" />
+                      )}
+                      <Text style={[styles.actionMenuItemText, { color: isMealAvailable ? '#6B7280' : '#FF3B30' }]}>
+                        {isMealAvailable ? 'Make Unavailable' : 'Make Available'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionMenuItem}
+                      onPress={() => {
+                        handleCloseActionMenu();
+                        router.push(`/(tabs)/meals/${selectedMeal._id}/edit`);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Edit2 size={20} color="#FF3B30" />
+                      <Text style={[styles.actionMenuItemText, { color: '#FF3B30' }]}>Edit</Text>
+                    </TouchableOpacity>
+                    <View style={styles.actionMenuDivider} />
+                    <TouchableOpacity
+                      style={styles.actionMenuItem}
+                      onPress={() => {
+                        handleCloseActionMenu();
+                        handleDeleteMeal(selectedMeal._id, selectedMeal.name || 'this meal');
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Trash2 size={20} color="#EF4444" />
+                      <Text style={[styles.actionMenuItemText, { color: '#EF4444' }]}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              );
+            })()}
+          </BottomSheetView>
+        </BottomSheet>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -318,7 +419,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 16,
     backgroundColor: 'transparent',
   },
@@ -328,7 +429,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#031D11',
+    color: '#111827',
     flex: 1,
     marginLeft: 12,
   },
@@ -341,11 +442,11 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255, 255, 255, 0.3)',
   },
   filterContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   filterChip: {
     paddingHorizontal: 16,
@@ -358,7 +459,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterChipActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#FF3B30',
   },
   filterText: {
     fontSize: 14,
@@ -372,38 +473,55 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 120, // Account for tab bar
   },
   mealCard: {
     marginBottom: 16,
     padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(229, 231, 235, 0.5)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   mealHeader: {
     flexDirection: 'row',
     marginBottom: 12,
   },
+  mealTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  moreButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
   mealImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: 90,
+    height: 90,
+    borderRadius: 12,
     marginRight: 12,
+    backgroundColor: '#F3F4F6',
   },
   mealImagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: 90,
+    height: 90,
+    borderRadius: 12,
     marginRight: 12,
     backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
   },
   mealImagePlaceholderText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: '#9CA3AF',
   },
@@ -413,14 +531,15 @@ const styles = StyleSheet.create({
   mealName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#031D11',
-    marginBottom: 4,
+    color: '#111827',
+    flex: 1,
   },
   mealPrice: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#FF3B30',
     marginBottom: 8,
+    marginTop: 4,
   },
   mealMeta: {
     flexDirection: 'row',
@@ -429,12 +548,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     textTransform: 'capitalize',
   },
@@ -452,34 +571,59 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
   },
   cuisineTagText: {
     fontSize: 11,
-    color: '#10B981',
+    color: '#FF3B30',
     fontWeight: '500',
   },
   mealDescription: {
     fontSize: 14,
     color: '#6B7280',
-    marginBottom: 12,
     lineHeight: 20,
+    marginTop: 4,
   },
-  mealActions: {
-    flexDirection: 'row',
-    gap: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(229, 231, 235, 0.5)',
+  actionSheetContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
-  actionButton: {
+  actionSheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-  actionButtonText: {
-    fontSize: 14,
+  actionSheetTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: 'Archivo',
+    color: '#111827',
+  },
+  actionMenuItems: {
+    paddingVertical: 8,
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  actionMenuItemText: {
+    fontSize: 16,
+    color: '#111827',
     fontWeight: '500',
+    fontFamily: 'Inter',
+  },
+  actionMenuDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 4,
   },
 });
 

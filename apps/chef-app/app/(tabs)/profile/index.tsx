@@ -239,7 +239,6 @@ export default function ChefProfileScreen() {
           reviewCount={reviewsCount}
           isVerified={isVerified}
           specialties={chef.specialties}
-          onBack={() => router.back()}
           onMenu={() => setIsMenuVisible(true)}
         />
 

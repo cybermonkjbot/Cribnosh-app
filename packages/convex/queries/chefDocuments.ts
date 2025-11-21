@@ -63,6 +63,7 @@ export const getByChefAndType = query({
       v.literal("insurance"),
       v.literal("tax"),
       v.literal("kitchen_cert"),
+      v.literal("fba"),
       v.literal("other")
     ),
     sessionToken: v.optional(v.string()),

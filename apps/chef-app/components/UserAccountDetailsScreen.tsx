@@ -65,16 +65,6 @@ const heartHandshakeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" f
 <path d="M12 5C13.5 3.5 14.74 3 16.5 3C17.9587 3 19.3576 3.57946 20.3891 4.61091C21.4205 5.64236 22 7.04131 22 8.5C22 10.79 20.49 12.54 19 14L12 21L5 14C3.5 12.55 2 10.8 2 8.5C2 7.04131 2.57946 5.64236 3.61091 4.61091C4.64236 3.57946 6.04131 3 7.5 3C9.26 3 10.5 3.5 12 5ZM12 5L9.04 7.96C8.83682 8.16171 8.67556 8.40162 8.56552 8.66593C8.45548 8.93023 8.39882 9.2137 8.39882 9.5C8.39882 9.7863 8.45548 10.0698 8.56552 10.3341C8.67556 10.5984 8.83682 10.8383 9.04 11.04C9.86 11.86 11.17 11.89 12.04 11.11L14.11 9.21C14.6289 8.73919 15.3044 8.47839 16.005 8.47839C16.7056 8.47839 17.3811 8.73919 17.9 9.21L20.86 11.87M18 15L16 13M15 18L13 16" stroke="#707070" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const chefIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M10 10C12.7614 10 15 7.76142 15 5C15 2.23858 12.7614 0 10 0C7.23858 0 5 2.23858 5 5C5 7.76142 7.23858 10 10 10Z" fill="#707070"/>
-<path d="M20 20C20 15.5817 15.5228 12 10 12C4.47715 12 0 15.5817 0 20" fill="#707070"/>
-</svg>`;
-
-const kitchenIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M3 3V17H17V3H3ZM5 5H15V15H5V5Z" fill="#707070"/>
-<path d="M7 7H9V9H7V7ZM11 7H13V9H11V7ZM7 11H9V13H7V11ZM11 11H13V13H11V11Z" fill="#707070"/>
-</svg>`;
-
 const hopOffIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M10.82 16.1199C12.51 16.7199 14.73 16.9099 16 16.9699C16.28 16.9799 16.53 16.8799 16.7 16.6999M11.14 20.5699C11.66 20.8099 13.58 21.6899 15.22 21.9399C15.68 21.9999 16.08 21.6899 16.12 21.2299C16.24 19.7099 15.82 17.7999 15.62 16.9499M16.13 21.0499C17.78 21.6799 19.81 21.8899 21 21.9599C21.1285 21.9692 21.2575 21.9508 21.3782 21.9059C21.499 21.861 21.6087 21.7908 21.7 21.6999M17.99 5.51988C19.234 6.87425 20.2932 8.3874 21.14 10.0199C21.1938 10.138 21.218 10.2675 21.2106 10.3971C21.2031 10.5267 21.1643 10.6526 21.0973 10.7638C21.0304 10.875 20.9374 10.9683 20.8264 11.0356C20.7153 11.1028 20.5896 11.1421 20.46 11.1499C19.29 11.2499 17.96 11.1699 16.56 10.8999M20.57 11.1399C20.81 11.6599 21.69 13.5799 21.94 15.2199C21.98 15.5199 21.86 15.8099 21.63 15.9699M4.93 4.92988C3.17718 6.68306 2.13807 9.02482 2.01427 11.5008C1.89047 13.9769 2.69081 16.4106 4.26 18.3299C4.61 18.7599 5.22 18.7299 5.43 18.2099C6.12 16.4999 6.5 13.1399 6.5 11.4999C7.84 11.9499 9.6 12.3999 11.38 12.1199C11.5617 12.0938 11.7301 12.0096 11.86 11.8799M5.52 17.9899C6.57 18.9399 8.43 20.4099 10.02 21.1399C10.1382 21.1937 10.2676 21.2179 10.3972 21.2105C10.5268 21.203 10.6527 21.1642 10.7639 21.0972C10.8752 21.0303 10.9684 20.9373 11.0357 20.8262C11.103 20.7152 11.1422 20.5895 11.15 20.4599C11.35 18.1199 10.82 15.1599 9.58 12.1799M8.35 2.67988C10.004 2.03338 11.8003 1.83898 13.5542 2.11667C15.3082 2.39435 16.9566 3.1341 18.33 4.25988C18.76 4.60988 18.73 5.21988 18.21 5.42988C16.71 6.02988 13.91 6.40988 12.14 6.47988M2 1.99988L22 21.9999" stroke="#707070" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
@@ -120,7 +110,7 @@ export function UserAccountDetailsScreen({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSetupSheetVisible, setIsSetupSheetVisible] = useState(false);
-  const { logout, isAuthenticated } = useChefAuth();
+  const { logout, isAuthenticated, chef } = useChefAuth();
 
   // Get session token for reactive queries
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -148,6 +138,34 @@ export function UserAccountDetailsScreen({
     api.queries.users.getUserProfile,
     user?._id && sessionToken ? { userId: user._id, sessionToken } : "skip"
   );
+
+  // Get kitchen ID for chef
+  const kitchenId = useQuery(
+    api.queries.kitchens.getKitchenByChefId,
+    chef?._id
+      ? { chefId: chef._id }
+      : 'skip'
+  );
+
+  // Get kitchen details to get kitchen name
+  const kitchenDetails = useQuery(
+    api.queries.kitchens.getKitchenDetails,
+    kitchenId
+      ? { kitchenId }
+      : 'skip'
+  );
+
+  // Get kitchen name from kitchen details or onboarding draft
+  const kitchenName = useMemo(() => {
+    if (kitchenDetails?.kitchenName) {
+      return kitchenDetails.kitchenName;
+    }
+    // Fallback to onboarding draft kitchen name
+    if (chef?.onboardingDraft?.kitchenName) {
+      return chef.onboardingDraft.kitchenName;
+    }
+    return undefined;
+  }, [kitchenDetails, chef?.onboardingDraft]);
 
   // Transform profile data to match expected format
   const transformedProfileData = useMemo(() => {
@@ -456,7 +474,11 @@ export function UserAccountDetailsScreen({
             </View>
           )}
         </View>
-        <Text style={styles.userName}>{userName}</Text>
+        {kitchenName ? (
+          <Text style={styles.userName}>{kitchenName}</Text>
+        ) : (
+          <Text style={styles.userName}>{userName}</Text>
+        )}
       </View>
       
       {/* Verification Banner - Only show if authenticated and profile is not complete */}
@@ -476,7 +498,7 @@ export function UserAccountDetailsScreen({
       <View style={styles.section}>
         <MenuItem 
           icon={userIconSVG} 
-          text="Personal info" 
+          text="Business settings" 
           onPress={() => router.push('/personal-info' as any)}
           disabled={!isAuthenticated}
         />
@@ -502,23 +524,6 @@ export function UserAccountDetailsScreen({
           icon={handIconSVG} 
           text="Privacy" 
           onPress={() => router.push('/privacy' as any)}
-          disabled={!isAuthenticated}
-        />
-      </View>
-      
-      {/* Chef & Kitchen Section */}
-      <View style={styles.section}>
-        <SectionHeader title="Chef & Kitchen" />
-        <MenuItem 
-          icon={chefIconSVG} 
-          text="Chef Profile" 
-          onPress={() => router.push('/(tabs)/profile' as any)}
-          disabled={!isAuthenticated}
-        />
-        <MenuItem 
-          icon={kitchenIconSVG} 
-          text="Kitchen Settings" 
-          onPress={() => router.push('/kitchen-settings' as any)}
           disabled={!isAuthenticated}
         />
       </View>

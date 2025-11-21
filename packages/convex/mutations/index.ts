@@ -190,5 +190,8 @@ export * from './blog';
 // Export recipes mutations
 export * from './recipes';
 
+// Export stories mutations
+export * from './stories';
+
 // Export compliance mutations
 export * from './compliance';

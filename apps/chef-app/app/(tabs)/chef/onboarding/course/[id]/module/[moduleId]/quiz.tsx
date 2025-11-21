@@ -1,15 +1,16 @@
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
 import { useMutation, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, CheckCircle, Clock, XCircle } from 'lucide-react-native';
-import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface QuizQuestion {
   questionId: string;
@@ -38,6 +39,16 @@ export default function ModuleQuizScreen() {
   
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const saveQuizProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showingFeedback, setShowingFeedback] = useState(false);
+  const [currentFeedback, setCurrentFeedback] = useState<{
+    isCorrect: boolean;
+    userAnswer: any;
+    correctAnswer: any;
+    explanation?: string;
+    question: QuizQuestion;
+  } | null>(null);
   const [quizResults, setQuizResults] = useState<{
     score: number;
     totalQuestions: number;
@@ -46,6 +57,7 @@ export default function ModuleQuizScreen() {
     questionResults: Record<string, { isCorrect: boolean; userAnswer: any; correctAnswer: any }>;
   } | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const feedbackOpacity = useRef(new Animated.Value(0)).current;
 
   // Get module content to access quiz
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
@@ -74,6 +86,47 @@ export default function ModuleQuizScreen() {
     if (!enrollment?.progress) return null;
     return enrollment.progress.find((m: any) => m.moduleId === moduleId);
   }, [enrollment, moduleId]);
+
+  // Restore quiz progress when module data loads
+  React.useEffect(() => {
+    if (currentModule?.partialQuizAnswers && !submitted) {
+      // Restore saved answers
+      setAnswers(currentModule.partialQuizAnswers);
+      // Restore question index if available
+      if (currentModule.currentQuizQuestionIndex !== undefined) {
+        setCurrentQuestionIndex(currentModule.currentQuizQuestionIndex);
+      }
+    }
+  }, [currentModule?.partialQuizAnswers, currentModule?.currentQuizQuestionIndex, submitted]);
+
+  // Save quiz progress as answers change
+  const saveQuizProgress = React.useCallback(async (newAnswers: Record<string, any>, questionIndex: number) => {
+    if (!chef?._id || !courseId || !moduleId || !sessionToken || !currentModule || !moduleContent || submitted) return;
+    
+    // Clear existing timeout
+    if (saveQuizProgressTimeoutRef.current) {
+      clearTimeout(saveQuizProgressTimeoutRef.current);
+    }
+    
+    // Debounce saves - only save after 500ms of no changes
+    saveQuizProgressTimeoutRef.current = setTimeout(async () => {
+      try {
+        await updateProgress({
+          chefId: chef._id,
+          courseId,
+          moduleId,
+          moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',
+          moduleNumber: currentModule.moduleNumber,
+          completed: currentModule.completed || false,
+          sessionToken,
+          partialQuizAnswers: newAnswers,
+          currentQuizQuestionIndex: questionIndex,
+        });
+      } catch (error) {
+        console.error('Error saving quiz progress:', error);
+      }
+    }, 500);
+  }, [chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress, submitted]);
 
   // Get all modules sorted to find next module
   const sortedModules = React.useMemo(() => {
@@ -119,13 +172,68 @@ export default function ModuleQuizScreen() {
     return () => clearInterval(interval);
   }, [quiz?.timeLimit, submitted]);
 
-  const handleAnswerChange = useCallback((questionId: string, answer: any) => {
-    if (submitted) return;
-    setAnswers((prev) => ({
-      ...prev,
+  const handleAnswerChange = useCallback((questionId: string, answer: any, question: QuizQuestion, totalQuestions: number, isLastQuestion: boolean, submitCallback: () => void) => {
+    if (submitted || showingFeedback) return;
+    
+    // Save the answer
+    const newAnswers = {
+      ...answers,
       [questionId]: answer,
-    }));
-  }, [submitted]);
+    };
+    setAnswers(newAnswers);
+    
+    // Save progress immediately
+    saveQuizProgress(newAnswers, currentQuestionIndex);
+
+    // Check if answer is correct
+    const isCorrect = JSON.stringify(answer) === JSON.stringify(question.correctAnswer);
+    
+    // Show feedback immediately
+    setCurrentFeedback({
+      isCorrect,
+      userAnswer: answer,
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation,
+      question,
+    });
+    setShowingFeedback(true);
+
+    // Animate feedback in
+    Animated.timing(feedbackOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    // Auto-advance after delay
+    const delay = isCorrect ? 2000 : 4000; // 2s for correct, 4s for wrong (to read explanation)
+    
+    setTimeout(() => {
+      Animated.timing(feedbackOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowingFeedback(false);
+        setCurrentFeedback(null);
+        
+        // Move to next question or submit if last
+        if (isLastQuestion) {
+          // Last question - submit quiz after a brief delay
+          setTimeout(() => {
+            submitCallback();
+          }, 100);
+        } else {
+          // Move to next question
+          const nextIndex = currentQuestionIndex + 1;
+          setCurrentQuestionIndex(nextIndex);
+          // Save progress with new question index
+          const updatedAnswers = { ...answers, [questionId]: answer };
+          saveQuizProgress(updatedAnswers, nextIndex);
+        }
+      });
+    }, delay);
+  }, [submitted, showingFeedback, feedbackOpacity, currentQuestionIndex, answers, saveQuizProgress]);
 
   const calculateScore = useCallback((userAnswers: Record<string, any>, questions: QuizQuestion[]) => {
     let correctCount = 0;
@@ -200,38 +308,62 @@ export default function ModuleQuizScreen() {
         quizScore: results.score,
         quizAnswers,
         sessionToken,
+        // Clear partial progress since quiz is submitted
+        partialQuizAnswers: undefined,
+        currentQuizQuestionIndex: undefined,
       });
 
       if (results.passed) {
         showSuccess('Quiz Passed!', `You scored ${results.score}%. Module completed!`);
-        
-        // Auto-navigate to next module or completion after 1.5 seconds
-        setTimeout(() => {
-          if (nextModule) {
-            // Navigate to next module videos
-            router.replace(`/(tabs)/chef/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
-          } else {
-            // All modules completed - go back to onboarding screen which will show completion
-            router.replace('/(tabs)/chef/onboarding');
-          }
-        }, 1500);
       } else {
-        showError('Quiz Failed', `You scored ${results.score}%. Minimum ${quiz.passingScore}% required. You can retake the quiz.`);
+        showError('Quiz Failed', `You scored ${results.score}%. Minimum ${quiz.passingScore}% required.`);
       }
+      
+      // Auto-navigate to next module or completion after 1.5 seconds
+      setTimeout(() => {
+        if (nextModule) {
+          // Navigate to next module videos
+          router.replace(`/(tabs)/chef/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
+        } else {
+          // All modules completed - go back to onboarding screen which will show completion
+          router.replace('/(tabs)/chef/onboarding');
+        }
+      }, 1500);
     } catch (error: any) {
       showError('Error', error.message || 'Failed to submit quiz');
       setSubmitted(false);
     }
   }, [quiz, answers, chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress, calculateScore, showSuccess, showError, nextModule, router]);
 
-  const handleRetake = useCallback(() => {
+  const handleRetake = useCallback(async () => {
     setAnswers({});
     setSubmitted(false);
     setQuizResults(null);
+    setCurrentQuestionIndex(0);
+    
+    // Clear saved progress
+    if (chef?._id && courseId && moduleId && sessionToken && currentModule && moduleContent) {
+      try {
+        await updateProgress({
+          chefId: chef._id,
+          courseId,
+          moduleId,
+          moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',
+          moduleNumber: currentModule.moduleNumber,
+          completed: currentModule.completed || false,
+          sessionToken,
+          partialQuizAnswers: undefined,
+          currentQuizQuestionIndex: undefined,
+        });
+      } catch (error) {
+        console.error('Error clearing quiz progress:', error);
+      }
+    }
+    
     if (quiz?.timeLimit) {
       setTimeRemaining(quiz.timeLimit);
     }
-  }, [quiz?.timeLimit]);
+  }, [quiz?.timeLimit, chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress]);
 
   if (!moduleContent) {
     return (
@@ -266,7 +398,11 @@ export default function ModuleQuizScreen() {
   }
 
   const sortedQuestions = [...quiz.questions].sort((a, b) => a.order - b.order);
+  const currentQuestion = sortedQuestions[currentQuestionIndex];
   const allAnswered = sortedQuestions.every((q) => answers[q.questionId] !== undefined && answers[q.questionId] !== null);
+  const currentQuestionAnswered = currentQuestion && (answers[currentQuestion.questionId] !== undefined && answers[currentQuestion.questionId] !== null);
+  const isFirstQuestion = currentQuestionIndex === 0;
+  const isLastQuestion = currentQuestionIndex === sortedQuestions.length - 1;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -279,38 +415,9 @@ export default function ModuleQuizScreen() {
           <Text style={styles.title}>Module Quiz</Text>
         </View>
 
-        {/* Quiz Info */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Questions:</Text>
-            <Text style={styles.infoValue}>{quiz.questions.length}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Passing Score:</Text>
-            <Text style={styles.infoValue}>{quiz.passingScore}%</Text>
-          </View>
-          {quiz.timeLimit && (
-            <View style={styles.infoRow}>
-              <Clock size={16} color={COLORS.text.muted} />
-              <Text style={styles.infoLabel}>Time Limit:</Text>
-              <Text style={styles.infoValue}>
-                {timeRemaining !== null
-                  ? `${Math.floor(timeRemaining / 60)}:${String(timeRemaining % 60).padStart(2, '0')}`
-                  : `${Math.floor(quiz.timeLimit / 60)}:${String(quiz.timeLimit % 60).padStart(2, '0')}`}
-              </Text>
-            </View>
-          )}
-          {currentModule && currentModule.quizAttempts > 0 && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Previous Attempts:</Text>
-              <Text style={styles.infoValue}>{currentModule.quizAttempts}</Text>
-            </View>
-          )}
-        </View>
-
         {/* Quiz Results */}
         {submitted && quizResults && (
-          <Card style={[styles.resultsCard, quizResults.passed ? styles.passedCard : styles.failedCard]}>
+          <View style={[styles.resultsCard, quizResults.passed ? styles.passedCard : styles.failedCard]}>
             <View style={styles.resultsHeader}>
               {quizResults.passed ? (
                 <CheckCircle size={32} color={COLORS.secondary} />
@@ -318,163 +425,110 @@ export default function ModuleQuizScreen() {
                 <XCircle size={32} color={COLORS.link} />
               )}
               <Text style={[styles.resultsTitle, quizResults.passed ? styles.passedText : styles.failedText]}>
-                {quizResults.passed ? 'Quiz Passed!' : 'Quiz Failed'}
+                {quizResults.passed ? 'Great job!' : 'Let\'s try again'}
               </Text>
             </View>
-            <Text style={styles.resultsScore}>
-              Score: {quizResults.score}% ({quizResults.correctAnswers}/{quizResults.totalQuestions} correct)
-            </Text>
             {!quizResults.passed && (
               <Text style={styles.resultsMessage}>
-                Minimum {quiz.passingScore}% required to pass. You can retake the quiz.
+                You can retake this to improve your score.
               </Text>
             )}
-          </Card>
+          </View>
         )}
 
-        {/* Questions */}
-        {sortedQuestions.map((question, index) => {
-          const userAnswer = answers[question.questionId];
-          const isAnswered = userAnswer !== undefined && userAnswer !== null;
-          const questionResult = submitted && quizResults ? quizResults.questionResults[question.questionId] : null;
+        {/* Current Question Only */}
+        {currentQuestion && (
+          <View key={currentQuestion.questionId} style={styles.questionCard}>
+            <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
-          return (
-            <View key={question.questionId} style={styles.questionCard}>
-              <View style={styles.questionHeader}>
-                <Text style={styles.questionNumber}>Question {index + 1}</Text>
-                {questionResult && (
-                  questionResult.isCorrect ? (
-                    <CheckCircle size={20} color={COLORS.secondary} />
-                  ) : (
-                    <XCircle size={20} color={COLORS.link} />
-                  )
-                )}
-              </View>
-              <Text style={styles.questionText}>{question.question}</Text>
+            {/* Multiple Choice */}
+            {currentQuestion.type === 'multiple_choice' && currentQuestion.options && (
+              <View style={styles.optionsContainer}>
+                {currentQuestion.options.map((option, optIndex) => {
+                  const userAnswer = answers[currentQuestion.questionId];
+                  const isSelected = userAnswer === option;
 
-              {/* Multiple Choice */}
-              {question.type === 'multiple_choice' && question.options && (
-                <View style={styles.optionsContainer}>
-                  {question.options.map((option, optIndex) => {
-                    const isSelected = userAnswer === option;
-                    const isCorrect = questionResult && questionResult.correctAnswer === option;
-                    const isWrong = questionResult && !questionResult.isCorrect && isSelected;
-
-                    return (
-                      <TouchableOpacity
-                        key={optIndex}
-                        onPress={() => !submitted && handleAnswerChange(question.questionId, option)}
-                        disabled={submitted}
-                        style={[
-                          styles.option,
-                          isSelected && !submitted && styles.optionSelected,
-                          isCorrect && submitted && styles.optionCorrect,
-                          isWrong && submitted && styles.optionWrong,
-                        ]}
-                      >
-                        <View style={styles.optionContent}>
-                          <View style={[
-                            styles.radioButton,
-                            isSelected && styles.radioButtonSelected,
-                            isCorrect && submitted && styles.radioButtonCorrect,
-                            isWrong && submitted && styles.radioButtonWrong,
-                          ]}>
-                            {isSelected && <View style={styles.radioButtonInner} />}
-                          </View>
-                          <Text style={styles.optionText}>{option}</Text>
-                        </View>
-                        {submitted && isCorrect && <CheckCircle size={20} color={COLORS.secondary} />}
-                        {submitted && isWrong && <XCircle size={20} color={COLORS.link} />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-
-              {/* True/False */}
-              {question.type === 'true_false' && (
-                <View style={styles.optionsContainer}>
-                  {['True', 'False'].map((option) => {
-                    const isSelected = userAnswer === option;
-                    const isCorrect = questionResult && questionResult.correctAnswer === option;
-                    const isWrong = questionResult && !questionResult.isCorrect && isSelected;
-
-                    return (
-                      <TouchableOpacity
-                        key={option}
-                        onPress={() => !submitted && handleAnswerChange(question.questionId, option)}
-                        disabled={submitted}
-                        style={[
-                          styles.option,
-                          isSelected && !submitted && styles.optionSelected,
-                          isCorrect && submitted && styles.optionCorrect,
-                          isWrong && submitted && styles.optionWrong,
-                        ]}
-                      >
-                        <View style={styles.optionContent}>
-                          <View style={[
-                            styles.radioButton,
-                            isSelected && styles.radioButtonSelected,
-                            isCorrect && submitted && styles.radioButtonCorrect,
-                            isWrong && submitted && styles.radioButtonWrong,
-                          ]}>
-                            {isSelected && <View style={styles.radioButtonInner} />}
-                          </View>
-                          <Text style={styles.optionText}>{option}</Text>
-                        </View>
-                        {submitted && isCorrect && <CheckCircle size={20} color={COLORS.secondary} />}
-                        {submitted && isWrong && <XCircle size={20} color={COLORS.link} />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-
-              {/* Text Answer */}
-              {question.type === 'text' && (
-                <View style={styles.textAnswerContainer}>
-                  <Text style={styles.textAnswerLabel}>Your Answer:</Text>
-                  {submitted ? (
-                    <View style={styles.textAnswerDisplay}>
-                      <Text style={styles.textAnswerText}>{userAnswer || 'No answer provided'}</Text>
-                      {questionResult && (
-                        <View style={styles.textAnswerResult}>
-                          {questionResult.isCorrect ? (
-                            <CheckCircle size={20} color={COLORS.secondary} />
-                          ) : (
-                            <XCircle size={20} color={COLORS.link} />
-                          )}
-                        </View>
+                  return (
+                    <TouchableOpacity
+                      key={optIndex}
+                      onPress={() => !submitted && !showingFeedback && handleAnswerChange(
+                        currentQuestion.questionId, 
+                        option, 
+                        currentQuestion,
+                        sortedQuestions.length,
+                        isLastQuestion,
+                        handleSubmit
                       )}
-                    </View>
-                  ) : (
-                    <Text style={styles.textAnswerNote}>
-                      Text answers will be reviewed manually.
-                    </Text>
-                  )}
-                </View>
-              )}
+                      disabled={submitted || showingFeedback}
+                      style={[
+                        styles.option,
+                        isSelected && !submitted && !showingFeedback && styles.optionSelected,
+                      ]}
+                    >
+                      <View style={styles.optionContent}>
+                        <View style={[
+                          styles.radioButton,
+                          isSelected && styles.radioButtonSelected,
+                        ]}>
+                          {isSelected && <View style={styles.radioButtonInner} />}
+                        </View>
+                        <Text style={styles.optionText}>{option}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
-              {/* Explanation */}
-              {submitted && question.explanation && (
-                <View style={styles.explanationContainer}>
-                  <Text style={styles.explanationTitle}>Explanation:</Text>
-                  <Text style={styles.explanationText}>{question.explanation}</Text>
-                </View>
-              )}
-            </View>
-          );
-        })}
+            {/* True/False */}
+            {currentQuestion.type === 'true_false' && (
+              <View style={styles.optionsContainer}>
+                {['True', 'False'].map((option) => {
+                  const userAnswer = answers[currentQuestion.questionId];
+                  const isSelected = userAnswer === option;
 
-        {/* Submit Button */}
-        {!submitted && (
-          <Button
-            onPress={handleSubmit}
-            disabled={!allAnswered}
-            style={[styles.submitButton, !allAnswered && styles.submitButtonDisabled]}
-          >
-            {allAnswered ? 'Submit Quiz' : `Answer ${sortedQuestions.length - Object.keys(answers).length} more question(s)`}
-          </Button>
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      onPress={() => !submitted && !showingFeedback && handleAnswerChange(
+                        currentQuestion.questionId, 
+                        option, 
+                        currentQuestion,
+                        sortedQuestions.length,
+                        isLastQuestion,
+                        handleSubmit
+                      )}
+                      disabled={submitted || showingFeedback}
+                      style={[
+                        styles.option,
+                        isSelected && !submitted && !showingFeedback && styles.optionSelected,
+                      ]}
+                    >
+                      <View style={styles.optionContent}>
+                        <View style={[
+                          styles.radioButton,
+                          isSelected && styles.radioButtonSelected,
+                        ]}>
+                          {isSelected && <View style={styles.radioButtonInner} />}
+                        </View>
+                        <Text style={styles.optionText}>{option}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Text Answer */}
+            {currentQuestion.type === 'text' && (
+              <View style={styles.textAnswerContainer}>
+                <Text style={styles.textAnswerLabel}>Your Answer:</Text>
+                <Text style={styles.textAnswerNote}>
+                  Text answers will be reviewed manually.
+                </Text>
+              </View>
+            )}
+          </View>
         )}
 
         {/* Retake Button */}
@@ -504,6 +558,49 @@ export default function ModuleQuizScreen() {
           </Button>
         )}
       </ScrollView>
+
+      {/* Full Screen Feedback Overlay */}
+      {showingFeedback && currentFeedback && (
+        <Animated.View 
+          style={[
+            styles.feedbackOverlay,
+            { opacity: feedbackOpacity }
+          ]}
+        >
+          <View style={styles.feedbackContainer}>
+            {currentFeedback.isCorrect ? (
+              <View style={styles.feedbackContent}>
+                <View style={styles.feedbackIconContainer}>
+                  <CheckCircle size={80} color={COLORS.secondary} strokeWidth={2} />
+                </View>
+                <Text style={styles.feedbackTitle}>Correct!</Text>
+                <Text style={styles.feedbackSubtitle}>Great job</Text>
+              </View>
+            ) : (
+              <View style={styles.feedbackContent}>
+                <View style={styles.feedbackIconContainer}>
+                  <XCircle size={80} color={COLORS.link} strokeWidth={2} />
+                </View>
+                <Text style={styles.feedbackTitle}>Not quite</Text>
+                <View style={styles.correctAnswerContainer}>
+                  <Text style={styles.correctAnswerLabel}>Correct answer:</Text>
+                  <Text style={styles.correctAnswerText}>
+                    {typeof currentFeedback.correctAnswer === 'string' 
+                      ? currentFeedback.correctAnswer 
+                      : JSON.stringify(currentFeedback.correctAnswer)}
+                  </Text>
+                </View>
+                {currentFeedback.explanation && (
+                  <View style={styles.feedbackExplanationContainer}>
+                    <Text style={styles.feedbackExplanationTitle}>Why:</Text>
+                    <Text style={styles.feedbackExplanationText}>{currentFeedback.explanation}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -569,39 +666,13 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     color: COLORS.text.primary,
   },
-  infoCard: {
+  resultsCard: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    padding: 20,
+    marginBottom: 24,
     borderWidth: 1,
     borderColor: COLORS.border,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  infoLabel: {
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '400',
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.text.muted,
-  },
-  infoValue: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
-    fontWeight: '600',
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.text.primary,
-  },
-  resultsCard: {
-    padding: 16,
-    marginBottom: 16,
   },
   passedCard: {
     backgroundColor: COLORS.lightGreen,
@@ -651,48 +722,30 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   questionCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  questionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  questionNumber: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
-    fontWeight: '600',
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.text.muted,
+    marginBottom: 24,
   },
   questionText: {
     fontFamily: 'Poppins',
     fontStyle: 'normal',
     fontWeight: '600',
-    fontSize: 16,
-    lineHeight: 20,
-    marginBottom: 16,
+    fontSize: 20,
+    lineHeight: 28,
+    marginBottom: 24,
     color: COLORS.text.primary,
   },
   optionsContainer: {
-    gap: 12,
+    marginTop: 8,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    padding: 16,
     borderWidth: 2,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: COLORS.white,
+    marginBottom: 12,
   },
   optionSelected: {
     borderColor: COLORS.link,
@@ -829,6 +882,99 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  feedbackOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10000,
+  },
+  feedbackContainer: {
+    width: '100%',
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  feedbackContent: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  feedbackIconContainer: {
+    marginBottom: 24,
+  },
+  feedbackTitle: {
+    fontFamily: 'Poppins',
+    fontStyle: 'normal',
+    fontWeight: '700',
+    fontSize: 32,
+    lineHeight: 40,
+    color: COLORS.white,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  feedbackSubtitle: {
+    fontFamily: 'SF Pro',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 18,
+    lineHeight: 24,
+    color: COLORS.textSecondary || 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+  },
+  correctAnswerContainer: {
+    width: '100%',
+    marginTop: 24,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  correctAnswerLabel: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.textSecondary || 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 8,
+  },
+  correctAnswerText: {
+    fontFamily: 'Poppins',
+    fontStyle: 'normal',
+    fontWeight: '600',
+    fontSize: 18,
+    lineHeight: 24,
+    color: COLORS.white,
+  },
+  feedbackExplanationContainer: {
+    width: '100%',
+    marginTop: 16,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+  },
+  feedbackExplanationTitle: {
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+    color: COLORS.textSecondary || 'rgba(255, 255, 255, 0.8)',
+  },
+  feedbackExplanationText: {
+    fontFamily: 'SF Pro',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 16,
+    lineHeight: 24,
+    color: COLORS.white,
   },
 });
 

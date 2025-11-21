@@ -1,23 +1,103 @@
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import type { Sticker } from '@/utils/stickerData';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery } from 'convex/react';
+import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { CameraView } from 'expo-camera';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Radio, X } from 'lucide-react-native';
+import * as Sharing from 'expo-sharing';
+import { Radio, Type, X } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Dimensions, PanResponder, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+import { captureRef } from 'react-native-view-shot';
 import { CribNoshLogo } from './CribNoshLogo';
+import { StickerEditor } from './StickerEditor';
+import { StickerItem, type StickerItemData } from './StickerItem';
+import { StickerLibrary } from './StickerLibrary';
 
 const { width, height } = Dimensions.get('window');
 
+// Draggable Text Overlay Component
+interface DraggableTextOverlayProps {
+  textOverlay: { id: string; text: string; x: number; y: number; color: string; fontSize: number };
+  imageLayout: { x: number; y: number; width: number; height: number };
+  onUpdate: (id: string, x: number, y: number) => void;
+  onPress: () => void;
+}
+
+function DraggableTextOverlay({ textOverlay, imageLayout, onUpdate, onPress }: DraggableTextOverlayProps) {
+  const startPos = useRef({ x: textOverlay.x, y: textOverlay.y });
+  
+  const textPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        startPos.current = { x: textOverlay.x, y: textOverlay.y };
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const newX = Math.max(
+          imageLayout.x, 
+          Math.min(
+            imageLayout.x + imageLayout.width - 100, 
+            startPos.current.x + gestureState.dx
+          )
+        );
+        const newY = Math.max(
+          imageLayout.y, 
+          Math.min(
+            imageLayout.y + imageLayout.height - 30, 
+            startPos.current.y + gestureState.dy
+          )
+        );
+        onUpdate(textOverlay.id, newX, newY);
+      },
+      onPanResponderRelease: () => {
+        // Keep editing state for tap to edit
+      },
+    })
+  ).current;
+
+  return (
+    <View
+      style={[
+        styles.textOverlay,
+        {
+          left: textOverlay.x,
+          top: textOverlay.y,
+        },
+      ]}
+      {...textPanResponder.panHandlers}
+    >
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <Text
+          style={[
+            styles.textOverlayText,
+            {
+              color: textOverlay.color,
+              fontSize: textOverlay.fontSize,
+            },
+          ]}
+        >
+          {textOverlay.text}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 interface CameraModalScreenProps {
   onClose: () => void;
-  onStartLiveStream?: (sessionId: string) => void;
+  onStartLiveStream?: (sessionId: string, liveSessionId?: Id<'liveSessions'>) => void;
   autoShowLiveStreamSetup?: boolean;
   onPhotoCaptured?: (photoUri: string) => void;
   onVideoRecorded?: (videoUri: string) => void;
@@ -72,11 +152,39 @@ export function CameraModalScreen({
   const [lastRecordedVideo, setLastRecordedVideo] = useState<string | null>(null);
   const [showVideoPreview, setShowVideoPreview] = useState<boolean>(false);
   const [showLiveStreamSetup, setShowLiveStreamSetup] = useState<boolean>(autoShowLiveStreamSetup);
+  const [showStickerEditor, setShowStickerEditor] = useState<boolean>(false);
+  const [editedPhotoUri, setEditedPhotoUri] = useState<string | null>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
+  const [showVideoControls, setShowVideoControls] = useState<boolean>(true);
+  const [videoControlsTimeout, setVideoControlsTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const videoRef = useRef<Video>(null);
   const cameraRef = useRef<any>(null);
   const isMountedRef = useRef(true);
   const simulatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panY = useRef(new Animated.Value(0)).current;
+  const videoPanY = useRef(new Animated.Value(0)).current;
+  const videoControlsOpacity = useRef(new Animated.Value(1)).current;
   const SWIPE_THRESHOLD = 100; // Minimum distance to trigger dismiss
+  
+  // Snapchat-like photo preview state
+  const [previewStickers, setPreviewStickers] = useState<StickerItemData[]>([]);
+  const [showStickerLibrary, setShowStickerLibrary] = useState<boolean>(false);
+  const [showTextInput, setShowTextInput] = useState<boolean>(false);
+  const [textOverlays, setTextOverlays] = useState<Array<{ id: string; text: string; x: number; y: number; color: string; fontSize: number }>>([]);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [imageLayout, setImageLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const photoPreviewRef = useRef<View>(null);
+  const filterSwipeX = useRef(new Animated.Value(0)).current;
+  const filters = ['normal', 'vivid', 'warm', 'cool', 'dramatic', 'mono'];
+  const filterIndex = useRef(filters.indexOf(selectedFilter));
+  
+  // Update filter index when selectedFilter changes
+  React.useEffect(() => {
+    const index = filters.indexOf(selectedFilter);
+    if (index !== -1) {
+      filterIndex.current = index;
+    }
+  }, [selectedFilter]);
 
   // PanResponder for swipe down to dismiss
   const panResponder = useRef(
@@ -306,21 +414,309 @@ export function CameraModalScreen({
   };
 
   const usePhoto = () => {
-    if (lastCapturedPhoto && onPhotoCaptured) {
-      onPhotoCaptured(lastCapturedPhoto);
+    const photoToUse = editedPhotoUri || lastCapturedPhoto;
+    if (photoToUse && onPhotoCaptured) {
+      onPhotoCaptured(photoToUse);
     }
     setShowPhotoPreview(false);
+    setEditedPhotoUri(null);
     onClose();
   };
 
+  const handleStickerEditorSave = (editedUri: string) => {
+    setEditedPhotoUri(editedUri);
+    setShowStickerEditor(false);
+    // Update the preview to show edited image
+    setLastCapturedPhoto(editedUri);
+  };
+
+  const handleStickerEditorCancel = () => {
+    setShowStickerEditor(false);
+  };
+
+  // Snapchat-like photo preview handlers
+  const handleAddSticker = (sticker: Sticker) => {
+    const newSticker: StickerItemData = {
+      id: `sticker-${Date.now()}`,
+      sticker,
+      x: imageLayout.x + imageLayout.width / 2 - 60,
+      y: imageLayout.y + imageLayout.height / 2 - 30,
+      width: 120,
+      height: 60,
+      rotation: 0,
+    };
+    setPreviewStickers([...previewStickers, newSticker]);
+  };
+
+  const handleUpdateSticker = (updatedSticker: StickerItemData) => {
+    setPreviewStickers(previewStickers.map(s => s.id === updatedSticker.id ? updatedSticker : s));
+  };
+
+  const handleUpdateTextPosition = (id: string, x: number, y: number) => {
+    setTextOverlays(textOverlays.map(t => t.id === id ? { ...t, x, y } : t));
+  };
+
+  const handleDeleteSticker = (stickerId: string) => {
+    setPreviewStickers(previewStickers.filter(s => s.id !== stickerId));
+  };
+
+  const handleAddText = () => {
+    const newText = {
+      id: `text-${Date.now()}`,
+      text: 'Tap to edit',
+      x: imageLayout.width > 0 ? imageLayout.x + imageLayout.width / 2 - 50 : width / 2 - 50,
+      y: imageLayout.height > 0 ? imageLayout.y + imageLayout.height / 2 - 15 : height / 2 - 15,
+      color: '#FFFFFF',
+      fontSize: 24,
+    };
+    setTextOverlays([...textOverlays, newText]);
+    setEditingTextId(newText.id);
+    setShowTextInput(true);
+  };
+
+  const handleTextInputChange = (text: string) => {
+    if (editingTextId) {
+      setTextOverlays(textOverlays.map(t => 
+        t.id === editingTextId ? { ...t, text } : t
+      ));
+    }
+  };
+
+  const handleTextInputSubmit = () => {
+    setShowTextInput(false);
+    setEditingTextId(null);
+  };
+
+  const handleImageLayout = (event: any) => {
+    const { x, y, width, height } = event.nativeEvent.layout;
+    setImageLayout({ x, y, width, height });
+  };
+
+  // Filter swipe gesture handler
+  const filterSwipeResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        filterSwipeX.setValue(gestureState.dx);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const threshold = 50;
+        if (gestureState.dx > threshold) {
+          // Swipe right - previous filter
+          filterIndex.current = Math.max(0, filterIndex.current - 1);
+          setSelectedFilter(filters[filterIndex.current]);
+        } else if (gestureState.dx < -threshold) {
+          // Swipe left - next filter
+          filterIndex.current = Math.min(filters.length - 1, filterIndex.current + 1);
+          setSelectedFilter(filters[filterIndex.current]);
+        }
+        Animated.spring(filterSwipeX, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }).start();
+      },
+    })
+  ).current;
+
+  const saveEditedPhoto = async () => {
+    try {
+      if (!photoPreviewRef.current) {
+        usePhoto();
+        return;
+      }
+
+      const uri = await captureRef(photoPreviewRef.current, {
+        format: 'jpg',
+        quality: 0.9,
+        result: 'tmpfile',
+      });
+
+      setEditedPhotoUri(uri);
+      usePhoto();
+    } catch (error) {
+      console.error('Error saving edited photo:', error);
+      usePhoto();
+    }
+  };
+
+  const resetPhotoPreview = () => {
+    setPreviewStickers([]);
+    setTextOverlays([]);
+    setShowStickerLibrary(false);
+    setShowTextInput(false);
+    setEditingTextId(null);
+    filterIndex.current = 0;
+    setSelectedFilter('normal');
+  };
+
   const retakePhoto = () => {
+    resetPhotoPreview();
     setShowPhotoPreview(false);
     setLastCapturedPhoto(null);
   };
 
   const closeVideoPreview = () => {
+    setIsVideoPlaying(false);
+    setShowVideoControls(true);
+    if (videoRef.current) {
+      videoRef.current.pauseAsync();
+      videoRef.current.setPositionAsync(0);
+    }
+    if (videoControlsTimeout) {
+      clearTimeout(videoControlsTimeout);
+      setVideoControlsTimeout(null);
+    }
     setShowVideoPreview(false);
     setLastRecordedVideo(null);
+    videoPanY.setValue(0);
+    videoControlsOpacity.setValue(1);
+  };
+
+  // Auto-hide controls after 3 seconds
+  const resetControlsTimeout = () => {
+    if (videoControlsTimeout) {
+      clearTimeout(videoControlsTimeout);
+    }
+    setShowVideoControls(true);
+    Animated.timing(videoControlsOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+
+    const timeout = setTimeout(() => {
+      if (isMountedRef.current && isVideoPlaying) {
+        setShowVideoControls(false);
+        Animated.timing(videoControlsOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }
+    }, 3000);
+    setVideoControlsTimeout(timeout);
+  };
+
+  // Auto-play video when preview opens
+  React.useEffect(() => {
+    if (showVideoPreview && lastRecordedVideo && videoRef.current) {
+      // Small delay to ensure video is ready
+      setTimeout(() => {
+        if (videoRef.current && isMountedRef.current) {
+          videoRef.current.playAsync();
+          setIsVideoPlaying(true);
+          resetControlsTimeout();
+        }
+      }, 100);
+    }
+    return () => {
+      if (videoControlsTimeout) {
+        clearTimeout(videoControlsTimeout);
+      }
+    };
+  }, [showVideoPreview, lastRecordedVideo]);
+
+  const handleVideoPlayPause = async () => {
+    if (!videoRef.current) return;
+    
+    resetControlsTimeout();
+    
+    if (isVideoPlaying) {
+      await videoRef.current.pauseAsync();
+      setIsVideoPlaying(false);
+    } else {
+      await videoRef.current.playAsync();
+      setIsVideoPlaying(true);
+      resetControlsTimeout();
+    }
+  };
+
+  const handleVideoTap = () => {
+    handleVideoPlayPause();
+  };
+
+  // PanResponder for video preview swipe down to dismiss
+  const videoPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 20 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 2;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          videoPanY.setValue(gestureState.dy);
+          // Fade out as user swipes
+          const opacity = Math.max(0, 1 - gestureState.dy / 300);
+          videoControlsOpacity.setValue(opacity);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const currentValue = gestureState.dy;
+        
+        if (currentValue > SWIPE_THRESHOLD) {
+          Animated.parallel([
+            Animated.timing(videoPanY, {
+              toValue: height,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.timing(videoControlsOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            closeVideoPreview();
+          });
+        } else {
+          Animated.parallel([
+            Animated.spring(videoPanY, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 50,
+              friction: 7,
+            }),
+            Animated.timing(videoControlsOpacity, {
+              toValue: showVideoControls ? 1 : 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        }
+      },
+    })
+  ).current;
+
+  const handleVideoShare = async () => {
+    if (!lastRecordedVideo) return;
+    
+    try {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(lastRecordedVideo, {
+          mimeType: 'video/mp4',
+          dialogTitle: 'Share your video',
+        });
+      } else {
+        Alert.alert('Sharing not available', 'Sharing is not available on this device.');
+      }
+    } catch (error) {
+      console.error('Error sharing video:', error);
+      Alert.alert('Error', 'Failed to share video. Please try again.');
+    }
+  };
+
+  const handleUseVideo = () => {
+    if (lastRecordedVideo && onVideoRecorded) {
+      onVideoRecorded(lastRecordedVideo);
+    }
+    closeVideoPreview();
+    onClose();
   };
 
   const closeCameraModal = () => {
@@ -403,95 +799,265 @@ export function CameraModalScreen({
           />
         )}
 
-        {/* Live Stream Setup Overlay */}
-        {showLiveStreamSetup && (
-          <LiveStreamSetupOverlay
-            onClose={() => setShowLiveStreamSetup(false)}
-            onStartLiveStream={(sessionId) => {
-              setShowLiveStreamSetup(false);
-              if (onStartLiveStream) {
-                onStartLiveStream(sessionId);
-              }
-              onClose();
-            }}
+
+        {/* Photo Preview Overlay - Snapchat Style */}
+        {showPhotoPreview && lastCapturedPhoto && (
+          <View style={styles.photoPreviewOverlay}>
+            {/* Top Bar - Minimal */}
+            <View style={styles.photoPreviewTopBar}>
+              <TouchableOpacity 
+                style={styles.photoPreviewTopButton} 
+                onPress={retakePhoto}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <View style={styles.photoPreviewTopButton} />
+            </View>
+
+            {/* Photo with overlays - Swipeable for filters */}
+            <Animated.View 
+              style={styles.photoPreviewContainer}
+              {...filterSwipeResponder.panHandlers}
+            >
+              <View 
+                ref={photoPreviewRef} 
+                collapsable={false}
+                style={StyleSheet.absoluteFill}
+                onLayout={handleImageLayout}
+              >
+                <Image 
+                  source={{ uri: editedPhotoUri || lastCapturedPhoto }} 
+                  style={styles.photoPreviewImage}
+                  resizeMode="contain"
+                />
+                
+                {/* Text Overlays - Draggable */}
+                {textOverlays.map((textOverlay) => (
+                  <DraggableTextOverlay
+                    key={textOverlay.id}
+                    textOverlay={textOverlay}
+                    imageLayout={imageLayout}
+                    onUpdate={handleUpdateTextPosition}
+                    onPress={() => {
+                      setEditingTextId(textOverlay.id);
+                      setShowTextInput(true);
+                    }}
+                  />
+                ))}
+
+                {/* Stickers */}
+                {previewStickers.map((stickerData) => (
+                  <StickerItem
+                    key={stickerData.id}
+                    stickerData={stickerData}
+                    onUpdate={handleUpdateSticker}
+                    onDelete={() => handleDeleteSticker(stickerData.id)}
+                    imageWidth={imageLayout.width}
+                    imageHeight={imageLayout.height}
+                    imageX={imageLayout.x}
+                    imageY={imageLayout.y}
+                  />
+                ))}
+              </View>
+
+              {/* Filter indicator */}
+              {showFilters && (
+                <View style={styles.filterIndicator}>
+                  <Text style={styles.filterIndicatorText}>
+                    {selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1)}
+                  </Text>
+                  <Text style={styles.filterIndicatorHint}>Swipe left/right to change</Text>
+                </View>
+              )}
+            </Animated.View>
+
+            {/* Bottom Toolbar - Snapchat Style */}
+            <View style={styles.photoPreviewBottomBar}>
+              <TouchableOpacity
+                style={styles.photoPreviewToolButton}
+                onPress={handleAddText}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Type size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.photoPreviewToolButton}
+                onPress={() => setShowStickerLibrary(!showStickerLibrary)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="happy" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.photoPreviewSendButton}
+                onPress={saveEditedPhoto}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="send" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Text Input Modal */}
+            {showTextInput && editingTextId && (
+              <View style={styles.textInputOverlay}>
+                <View style={styles.textInputContainer}>
+                  <TextInput
+                    style={styles.textInput}
+                    value={textOverlays.find(t => t.id === editingTextId)?.text || ''}
+                    onChangeText={handleTextInputChange}
+                    placeholder="Enter text"
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                    autoFocus
+                    multiline
+                    maxLength={50}
+                    onSubmitEditing={handleTextInputSubmit}
+                  />
+                  <TouchableOpacity
+                    style={styles.textInputDoneButton}
+                    onPress={handleTextInputSubmit}
+                  >
+                    <Text style={styles.textInputDoneText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Sticker Library */}
+            <StickerLibrary
+              onSelectSticker={handleAddSticker}
+              onClose={() => setShowStickerLibrary(false)}
+              isVisible={showStickerLibrary}
+            />
+          </View>
+        )}
+
+        {/* Sticker Editor */}
+        {showStickerEditor && lastCapturedPhoto && (
+          <StickerEditor
+            imageUri={lastCapturedPhoto}
+            onSave={handleStickerEditorSave}
+            onCancel={handleStickerEditorCancel}
+            visible={showStickerEditor}
           />
         )}
 
-        {/* Photo Preview Overlay */}
-        {showPhotoPreview && lastCapturedPhoto && (
-          <View style={styles.photoPreviewOverlay}>
-            <View style={styles.photoPreviewHeader}>
-              <TouchableOpacity style={styles.closePreviewButton} onPress={closeCameraModal}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-              <Text style={styles.photoPreviewTitle}>Photo Preview</Text>
-              <View style={styles.closePreviewButton} />
-            </View>
-            <View style={styles.photoPreviewContainer}>
-              <Image 
-                source={{ uri: lastCapturedPhoto }} 
-                style={styles.photoPreviewImage}
-                resizeMode="contain"
-              />
-            </View>
-            <View style={styles.photoPreviewActions}>
-              <TouchableOpacity 
-                style={styles.photoPreviewActionButton}
-                onPress={retakePhoto}
-              >
-                <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.photoPreviewActionText}>Retake</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.photoPreviewActionButton, styles.photoPreviewActionButtonPrimary]}
-                onPress={usePhoto}
-              >
-                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                <Text style={[styles.photoPreviewActionText, styles.photoPreviewActionTextPrimary]}>Use Photo</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Video Preview Overlay */}
+        {/* Video Preview Overlay - Snapchat/TikTok Style */}
         {showVideoPreview && lastRecordedVideo && (
-          <View style={styles.videoPreviewOverlay}>
-            <View style={styles.videoPreviewHeader}>
-              <TouchableOpacity style={styles.closePreviewButton} onPress={closeCameraModal}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-              <Text style={styles.videoPreviewTitle}>Video Preview</Text>
-              <TouchableOpacity style={styles.editVideoButton}>
-                <Ionicons name="create" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.videoPreviewContainer}>
-              <Image 
-                source={{ uri: lastRecordedVideo }} 
-                style={styles.videoPreviewThumbnail}
-                resizeMode="cover"
+          <Animated.View 
+            style={[
+              styles.videoPreviewOverlay,
+              {
+                transform: [{ translateY: videoPanY }],
+              }
+            ]}
+            {...videoPanResponder.panHandlers}
+          >
+            {/* Full-screen video */}
+            <TouchableOpacity 
+              style={styles.videoPreviewFullScreen}
+              activeOpacity={1}
+              onPress={handleVideoTap}
+            >
+              <Video
+                ref={videoRef}
+                source={{ uri: lastRecordedVideo }}
+                style={styles.videoPreviewFullScreenVideo}
+                resizeMode={ResizeMode.COVER}
+                isLooping={false}
+                shouldPlay={false}
+                onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+                  if (status.isLoaded) {
+                    setIsVideoPlaying(status.isPlaying);
+                    if (status.didJustFinish) {
+                      setIsVideoPlaying(false);
+                      resetControlsTimeout();
+                    }
+                  }
+                }}
               />
-              <View style={styles.videoPreviewControls}>
-                <TouchableOpacity style={styles.videoPreviewPlayButton}>
-                  <Ionicons name="play" size={32} color="#FFFFFF" />
+              
+              {/* Large play/pause overlay - shows when paused */}
+              {!isVideoPlaying && (
+                <Animated.View 
+                  style={[
+                    styles.videoPreviewPlayOverlay,
+                    { opacity: videoControlsOpacity }
+                  ]}
+                >
+                  <TouchableOpacity 
+                    style={styles.videoPreviewLargePlayButton}
+                    onPress={handleVideoPlayPause}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="play" size={64} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+            </TouchableOpacity>
+
+            {/* Top controls - fade in/out */}
+            <Animated.View 
+              style={[
+                styles.videoPreviewTopControls,
+                { opacity: videoControlsOpacity }
+              ]}
+              pointerEvents="box-none"
+            >
+              <TouchableOpacity 
+                style={styles.videoPreviewCloseButton} 
+                onPress={closeVideoPreview}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Bottom action bar - always visible but can fade */}
+            <Animated.View 
+              style={[
+                styles.videoPreviewBottomBar,
+                { opacity: videoControlsOpacity }
+              ]}
+            >
+              <TouchableOpacity 
+                style={styles.videoPreviewBottomAction}
+                onPress={handleVideoShare}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <View style={styles.videoPreviewBottomActionIcon}>
+                  <Ionicons name="share-social" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.videoPreviewBottomActionText}>Share</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.videoPreviewBottomCaptureButton}
+                onPress={handleUseVideo}
+                activeOpacity={0.8}
+              >
+                <View style={styles.videoPreviewBottomCaptureButtonInner} />
+              </TouchableOpacity>
+              
+              {showGoLiveButton && (
+                <TouchableOpacity 
+                  style={styles.videoPreviewBottomGoLive}
+                  onPress={() => {
+                    closeVideoPreview();
+                    setShowLiveStreamSetup(true);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Radio size={20} color="#FFFFFF" />
+                  <Text style={styles.videoPreviewBottomGoLiveText}>Go Live</Text>
                 </TouchableOpacity>
-              </View>
-            </View>
-            <View style={styles.videoPreviewActions}>
-              <TouchableOpacity style={styles.videoPreviewActionButton}>
-                <Ionicons name="share" size={20} color="#FFFFFF" />
-                <Text style={styles.videoPreviewActionText}>Share</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.videoPreviewActionButton}>
-                <Ionicons name="save" size={20} color="#FFFFFF" />
-                <Text style={styles.videoPreviewActionText}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.videoPreviewActionButton}>
-                <Ionicons name="trash" size={20} color="#FFFFFF" />
-                <Text style={styles.videoPreviewActionText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+              )}
+              {!showGoLiveButton && (
+                <View style={styles.videoPreviewBottomAction} />
+              )}
+            </Animated.View>
+          </Animated.View>
         )}
 
         {/* Camera Filters Section - Above Shutter */}
@@ -632,7 +1198,10 @@ export function CameraModalScreen({
           {showGoLiveButton && (
             <TouchableOpacity 
               style={styles.goLiveButton} 
-              onPress={() => setShowLiveStreamSetup(true)}
+              onPress={() => {
+                onClose();
+                router.push('/(tabs)/chef/live' as any);
+              }}
             >
               <Radio size={20} color="#FFFFFF" />
               <Text style={styles.goLiveButtonText}>Go Live</Text>
@@ -775,78 +1344,140 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     zIndex: 20,
   },
-  videoPreviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  closePreviewButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  videoPreviewFullScreen: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  videoPreviewTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+  videoPreviewFullScreenVideo: {
+    width: width,
+    height: height,
+    backgroundColor: '#000000',
   },
-  editVideoButton: {
+  videoPreviewPlayOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  videoPreviewLargePlayButton: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  videoPreviewTopControls: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    zIndex: 21,
+  },
+  videoPreviewCloseButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
+    backdropFilter: 'blur(10px)',
   },
-  videoPreviewContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  videoPreviewThumbnail: {
-    width: width * 0.8,
-    height: height * 0.4,
-    borderRadius: 12,
-    backgroundColor: '#1F1F1F',
-  },
-  videoPreviewControls: {
+  videoPreviewBottomBar: {
     position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoPreviewPlayButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  videoPreviewActions: {
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 50,
+    paddingTop: 20,
+    zIndex: 21,
   },
-  videoPreviewActionButton: {
+  videoPreviewBottomAction: {
     alignItems: 'center',
-    padding: 16,
+    justifyContent: 'center',
+    minWidth: 60,
   },
-  videoPreviewActionText: {
+  videoPreviewBottomActionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  videoPreviewBottomActionText: {
     color: '#FFFFFF',
     fontSize: 12,
-    marginTop: 8,
-    opacity: 0.8,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  videoPreviewBottomCaptureButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 4,
+    borderColor: '#1F1F1F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  videoPreviewBottomCaptureButtonInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#1F1F1F',
+  },
+  videoPreviewBottomGoLive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 6,
+    minWidth: 100,
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  videoPreviewBottomGoLiveText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   photoPreviewOverlay: {
     position: 'absolute',
@@ -857,59 +1488,130 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     zIndex: 200,
   },
-  photoPreviewHeader: {
+  photoPreviewTopBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
-  photoPreviewTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+  photoPreviewTopButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   photoPreviewContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
   photoPreviewImage: {
     width: width,
-    height: height * 0.6,
-    borderRadius: 0,
+    height: height * 0.75,
   },
-  photoPreviewActions: {
+  photoPreviewBottomBar: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 20,
     paddingBottom: 50,
-    gap: 20,
+    paddingTop: 20,
   },
-  photoPreviewActionButton: {
-    flex: 1,
+  photoPreviewToolButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoPreviewSendButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  textOverlay: {
+    position: 'absolute',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 100,
+  },
+  textOverlayText: {
+    fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  textInputOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    paddingBottom: 50,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+  },
+  textInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    gap: 8,
+    gap: 12,
   },
-  photoPreviewActionButtonPrimary: {
+  textInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  textInputDoneButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     backgroundColor: '#FF3B30',
+    borderRadius: 12,
   },
-  photoPreviewActionText: {
+  textInputDoneText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  photoPreviewActionTextPrimary: {
+  filterIndicator: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  filterIndicatorText: {
     color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  filterIndicatorHint: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    marginTop: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   goLiveButton: {
     flexDirection: 'row',
@@ -1191,7 +1893,7 @@ const styles = StyleSheet.create({
 // Live Stream Setup Overlay Component
 interface LiveStreamSetupOverlayProps {
   onClose: () => void;
-  onStartLiveStream: (sessionId: string) => void;
+  onStartLiveStream: (sessionId: string, liveSessionId?: Id<'liveSessions'>) => void;
 }
 
 function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupOverlayProps) {
@@ -1206,11 +1908,13 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
   const isMountedRef = React.useRef(true);
 
   // Get chef's meals using Convex query
+  // Note: TypeScript has type instantiation depth issues with complex Convex queries
+  // This is a known limitation but the query works correctly at runtime
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
     api.queries.meals.getByChefId,
-    chef?._id
-      ? { chefId: chef._id.toString() }
-      : 'skip'
+    chef?._id ? { chefId: chef._id, limit: 50 } : 'skip'
   ) as any[] | undefined;
 
   const createLiveSession = useMutation(api.mutations.liveSessions.createLiveSession);
@@ -1262,7 +1966,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
       // Generate a unique channel name
       const channelName = `chef-${chef._id}-${Date.now()}`;
       
-      await createLiveSession({
+      const liveSessionId = await createLiveSession({
         channelName,
         chefId: chef._id,
         title: title.trim(),
@@ -1275,7 +1979,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
       if (isMountedRef.current) {
         // Generate session ID from channel name for navigation
         const sessionId = channelName;
-        onStartLiveStream(sessionId);
+        onStartLiveStream(sessionId, liveSessionId);
       }
     } catch (error: any) {
       if (!isMountedRef.current) return;

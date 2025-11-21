@@ -1,12 +1,10 @@
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
-import { useToast } from '@/lib/ToastContext';
 import { useMutation, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { BookOpen, CheckCircle, Circle, Clock } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle } from 'lucide-react-native';
 import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +13,6 @@ export default function CourseModuleViewer() {
   const { chef, sessionToken, isBasicOnboardingComplete, isLoading } = useChefAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
-  const { showSuccess, showError } = useToast();
   
   const courseId = params.id;
 
@@ -64,7 +61,6 @@ export default function CourseModuleViewer() {
 
   // Mark course as accessed
   const markAccessed = useMutation(api.mutations.chefCourses.markCourseAccessed);
-  const updateProgress = useMutation(api.mutations.chefCourses.updateModuleProgress);
   const enrollInCourse = useMutation(api.mutations.chefCourses.enrollInCourse);
 
   // Sync modules and mark course as accessed when component mounts
@@ -115,31 +111,8 @@ export default function CourseModuleViewer() {
   const handleModulePress = async (moduleId: string, moduleName: string, moduleNumber: number) => {
     if (!chef?._id || !courseId || !sessionToken) return;
 
-    // Navigate to module detail screen (to be created)
+    // Navigate to module detail screen
     router.push(`/(tabs)/chef/onboarding/course/${courseId}/module/${moduleId}`);
-  };
-
-  const handleCompleteModule = async (
-    moduleId: string,
-    moduleName: string,
-    moduleNumber: number
-  ) => {
-    if (!chef?._id || !courseId || !sessionToken) return;
-
-    try {
-      await updateProgress({
-        chefId: chef._id,
-        courseId,
-        moduleId,
-        moduleName,
-        moduleNumber,
-        completed: true,
-        sessionToken,
-      });
-      showSuccess('Module Completed', 'Great job! Continue to the next module.');
-    } catch (error: any) {
-      showError('Error', error.message || 'Failed to update progress');
-    }
   };
 
   // Show message if basic onboarding is not complete
@@ -188,109 +161,61 @@ export default function CourseModuleViewer() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
+            <ArrowLeft size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>{enrollment.courseName}</Text>
         </View>
 
-        {/* Progress Card */}
-        <Card style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <View style={styles.progressInfo}>
-              <BookOpen size={24} color={COLORS.secondary} />
-              <Text style={styles.progressLabel}>Course Progress</Text>
-            </View>
-            <Text style={styles.progressPercentage}>{Math.round(progressPercentage)}%</Text>
-          </View>
+        {/* Simple Progress */}
+        <View style={styles.progressContainer}>
           <View style={styles.progressBarContainer}>
             <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
           </View>
           <Text style={styles.progressText}>
-            {completedCount} of {totalCount} modules completed
+            {completedCount} of {totalCount} modules
           </Text>
-          {enrollment.status === 'completed' && (
-            <View style={styles.completedBadge}>
-              <CheckCircle size={20} color={COLORS.secondary} />
-              <Text style={styles.completedText}>Course Completed!</Text>
-            </View>
-          )}
-        </Card>
+        </View>
 
         {/* Modules List */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Course Modules</Text>
-          {sortedModules.length > 0 ? (
-            sortedModules.map((module, index) => {
-              const isCompleted = module.completed;
-              const isLocked = index > 0 && !sortedModules[index - 1].completed;
+        {sortedModules.length > 0 ? (
+          sortedModules.map((module, index) => {
+            const isCompleted = module.completed;
+            const isLocked = index > 0 && !sortedModules[index - 1].completed;
 
-              return (
-                <View key={module.moduleId} style={styles.moduleCard}>
-                  <View style={styles.moduleHeader}>
-                    <View style={styles.moduleNumber}>
-                      {isCompleted ? (
-                        <CheckCircle size={24} color={COLORS.secondary} />
-                      ) : (
-                        <Circle size={24} color={COLORS.text.muted} />
-                      )}
-                      <Text style={styles.moduleNumberText}>{module.moduleNumber}</Text>
-                    </View>
-                    <View style={styles.moduleInfo}>
-                      <Text style={styles.moduleTitle}>{module.moduleName}</Text>
-                      <View style={styles.moduleMeta}>
-                        {module.timeSpent > 0 && (
-                          <View style={styles.metaItem}>
-                            <Clock size={14} color={COLORS.text.muted} />
-                            <Text style={styles.metaText}>
-                              {Math.round(module.timeSpent / 60)} min
-                            </Text>
-                          </View>
-                        )}
-                        {module.quizScore !== undefined && (
-                          <Text style={styles.quizScore}>
-                            Quiz: {module.quizScore}%
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                  {isLocked ? (
-                    <View style={styles.lockedOverlay}>
-                      <Text style={styles.lockedText}>
-                        Complete previous modules to unlock
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={styles.moduleActions}>
-                      <Button
-                        variant="outline"
-                        onPress={() => handleModulePress(module.moduleId, module.moduleName, module.moduleNumber)}
-                        style={styles.moduleButton}
-                      >
-                        {isCompleted ? 'Review' : 'Start'}
-                      </Button>
-                      {!isCompleted && (
-                        <Button
-                          onPress={() => handleCompleteModule(module.moduleId, module.moduleName, module.moduleNumber)}
-                          style={styles.completeButton}
-                        >
-                          Mark Complete
-                        </Button>
-                      )}
-                    </View>
+            return (
+              <TouchableOpacity
+                key={module.moduleId}
+                style={[styles.moduleCard, isLocked && styles.moduleCardLocked]}
+                onPress={() => !isLocked && handleModulePress(module.moduleId, module.moduleName, module.moduleNumber)}
+                disabled={isLocked}
+              >
+                <View style={styles.moduleContent}>
+                  {isCompleted && (
+                    <CheckCircle size={20} color={COLORS.secondary} style={styles.moduleIcon} />
                   )}
+                  <View style={styles.moduleInfo}>
+                    <Text style={styles.moduleTitle}>{module.moduleName}</Text>
+                  </View>
                 </View>
-              );
-            })
-          ) : (
-            <EmptyState
-              title="No modules available yet"
-              subtitle="Course content will be available soon"
-              icon="book-outline"
-              style={{ paddingVertical: 40 }}
-            />
-          )}
-        </View>
+                {!isLocked && (
+                  <Text style={styles.moduleButton}>
+                    {isCompleted ? 'Continue' : 'Start'}
+                  </Text>
+                )}
+                {isLocked && (
+                  <Text style={styles.lockedText}>Locked</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })
+        ) : (
+          <EmptyState
+            title="No modules available yet"
+            subtitle="Course content will be available soon"
+            icon="book-outline"
+            style={{ paddingVertical: 40 }}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -341,69 +266,37 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 24,
+    gap: 12,
   },
   backButton: {
-    marginBottom: 12,
-  },
-  backButtonText: {
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '400',
-    fontSize: 17,
-    lineHeight: 22,
-    color: COLORS.link,
+    padding: 4,
   },
   title: {
     fontFamily: 'Poppins',
     fontStyle: 'normal',
     fontWeight: '700',
-    fontSize: 28,
-    lineHeight: 36,
-    color: COLORS.text.primary,
-  },
-  progressCard: {
-    padding: 16,
-    marginBottom: 24,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  progressLabel: {
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '600',
-    fontSize: 16,
-    lineHeight: 20,
-    color: COLORS.text.primary,
-  },
-  progressPercentage: {
-    fontFamily: 'Poppins',
-    fontStyle: 'normal',
-    fontWeight: '700',
     fontSize: 24,
     lineHeight: 32,
-    color: COLORS.secondary,
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  progressContainer: {
+    marginBottom: 24,
   },
   progressBarContainer: {
-    height: 8,
+    height: 6,
     backgroundColor: COLORS.border,
-    borderRadius: 4,
+    borderRadius: 3,
     marginBottom: 8,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.secondary,
-    borderRadius: 4,
+    backgroundColor: COLORS.link,
+    borderRadius: 3,
   },
   progressText: {
     fontFamily: 'SF Pro',
@@ -413,35 +306,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: COLORS.text.muted,
   },
-  completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    padding: 8,
-    backgroundColor: COLORS.lightGreen,
-    borderRadius: 8,
-  },
-  completedText: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
-    fontWeight: '600',
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.secondary,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontFamily: 'Poppins',
-    fontStyle: 'normal',
-    fontWeight: '600',
-    fontSize: 18,
-    lineHeight: 24,
-    marginBottom: 12,
-    color: COLORS.text.primary,
-  },
   moduleCard: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
@@ -449,25 +313,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
-    position: 'relative',
-  },
-  moduleHeader: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  moduleNumber: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
   },
-  moduleNumberText: {
-    fontFamily: 'Poppins',
-    fontStyle: 'normal',
-    fontWeight: '700',
-    fontSize: 18,
-    lineHeight: 24,
-    color: COLORS.text.primary,
+  moduleCardLocked: {
+    opacity: 0.6,
+  },
+  moduleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  moduleIcon: {
+    marginRight: 4,
   },
   moduleInfo: {
     flex: 1,
@@ -477,59 +337,24 @@ const styles = StyleSheet.create({
     fontStyle: 'normal',
     fontWeight: '600',
     fontSize: 16,
-    lineHeight: 20,
-    marginBottom: 4,
+    lineHeight: 22,
     color: COLORS.text.primary,
   },
-  moduleMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
+  moduleButton: {
     fontFamily: 'SF Pro',
     fontStyle: 'normal',
-    fontWeight: '400',
-    fontSize: 12,
-    lineHeight: 16,
-    color: COLORS.text.muted,
-  },
-  quizScore: {
-    fontFamily: 'Inter',
-    fontStyle: 'normal',
     fontWeight: '600',
-    fontSize: 12,
-    lineHeight: 16,
-    color: COLORS.text.muted,
-  },
-  lockedOverlay: {
-    padding: 12,
-    backgroundColor: COLORS.border,
-    borderRadius: 8,
-    alignItems: 'center',
+    fontSize: 15,
+    lineHeight: 20,
+    color: COLORS.link,
   },
   lockedText: {
     fontFamily: 'SF Pro',
-    fontStyle: 'italic',
+    fontStyle: 'normal',
     fontWeight: '400',
     fontSize: 14,
     lineHeight: 20,
     color: COLORS.text.muted,
-  },
-  moduleActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  moduleButton: {
-    flex: 1,
-  },
-  completeButton: {
-    flex: 1,
   },
 });
 

@@ -15,6 +15,7 @@ export const uploadDocument = mutation({
       v.literal("insurance"),
       v.literal("tax"),
       v.literal("kitchen_cert"),
+      v.literal("fba"),
       v.literal("other")
     ),
     documentName: v.string(),

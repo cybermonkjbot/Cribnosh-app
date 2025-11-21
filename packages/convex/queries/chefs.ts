@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
-import { query } from '../_generated/server';
+import { internalQuery, query } from '../_generated/server';
 import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 
 // Chef document validator based on schema
@@ -901,5 +901,34 @@ export const getAllChefContent = query({
         meals: meals.length,
       },
     };
+  },
+});
+
+/**
+ * Internal query to get chef by user ID without authentication
+ * Used by actions during seeding and setup flows
+ */
+export const getChefByUserIdInternal = internalQuery({
+  args: { 
+    userId: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('userId'), args.userId))
+      .first();
+  },
+});
+
+/**
+ * Internal query to get chef by ID without authentication
+ * Used by actions during seeding and setup flows
+ */
+export const getChefByIdInternal = internalQuery({
+  args: { 
+    chefId: v.id('chefs'),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.chefId);
   },
 }); 

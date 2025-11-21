@@ -120,6 +120,8 @@ export const updateMeal = mutation({
       status: v.optional(v.union(v.literal('available'), v.literal('unavailable'))),
       images: v.optional(v.array(v.string())),
       rating: v.optional(v.number()),
+      linkedRecipeId: v.optional(v.id('recipes')),
+      linkedVideoIds: v.optional(v.array(v.id('videoPosts'))),
     }),
     sessionToken: v.optional(v.string())
   },

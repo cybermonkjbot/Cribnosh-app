@@ -9,7 +9,7 @@ import { useToast } from '@/lib/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LiveChatDrawer } from '@/components/ui/LiveChatDrawer';
-import { MessageCircle, Plus, Clock, CheckCircle, XCircle, HelpCircle } from 'lucide-react-native';
+import { MessageCircle, Plus, Clock, CheckCircle, XCircle, HelpCircle, Search, Filter, X, Star } from 'lucide-react-native';
 
 type SupportCategory = 'order' | 'payment' | 'account' | 'technical' | 'other';
 type SupportPriority = 'low' | 'medium' | 'high';
@@ -29,6 +29,11 @@ export default function SupportScreen() {
   });
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [isChatVisible, setIsChatVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'open' | 'history'>('open');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<SupportStatus | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<SupportCategory | 'all'>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Get chef's support cases
   const supportCases = useQuery(
@@ -145,6 +150,34 @@ export default function SupportScreen() {
   const openCases = supportCases?.filter(c => c.status === 'open') || [];
   const resolvedCases = supportCases?.filter(c => c.status === 'resolved' || c.status === 'closed') || [];
 
+  // Filter cases for history tab
+  const filteredHistoryCases = React.useMemo(() => {
+    let filtered = resolvedCases;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(c =>
+        c.subject?.toLowerCase().includes(query) ||
+        c.message?.toLowerCase().includes(query) ||
+        c.last_message?.toLowerCase().includes(query) ||
+        c.support_reference?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(c => c.status === statusFilter);
+    }
+    
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(c => c.category === categoryFilter);
+    }
+    
+    return filtered;
+  }, [resolvedCases, searchQuery, statusFilter, categoryFilter]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -255,6 +288,7 @@ export default function SupportScreen() {
         )}
 
         {/* Quick Help */}
+        {!showCreateForm && (
         <View style={styles.helpCard}>
           <View style={styles.helpHeader}>
             <HelpCircle size={24} color="#007AFF" />
@@ -264,9 +298,98 @@ export default function SupportScreen() {
             Need help? Create a support case and our team will assist you. For urgent matters, select "High" priority.
           </Text>
         </View>
+        )}
+
+        {/* Tabs */}
+        {!showCreateForm && (
+          <View style={styles.tabs}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'open' && styles.tabActive]}
+              onPress={() => setActiveTab('open')}
+            >
+              <Text style={[styles.tabText, activeTab === 'open' && styles.tabTextActive]}>
+                Open ({openCases.length})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+              onPress={() => setActiveTab('history')}
+            >
+              <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
+                History ({resolvedCases.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Search and Filters for History */}
+        {!showCreateForm && activeTab === 'history' && (
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Search size={20} color="#666" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search history..."
+                placeholderTextColor="#999"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <X size={18} color="#666" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={18} color="#007AFF" />
+              <Text style={styles.filterButtonText}>Filters</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Filter Options */}
+        {!showCreateForm && activeTab === 'history' && showFilters && (
+          <View style={styles.filtersContainer}>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Status</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+                {(['all', 'resolved', 'closed'] as const).map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
+                    onPress={() => setStatusFilter(status)}
+                  >
+                    <Text style={[styles.filterChipText, statusFilter === status && styles.filterChipTextActive]}>
+                      {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+                {(['all', 'order', 'payment', 'account', 'technical', 'other'] as const).map((category) => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[styles.filterChip, categoryFilter === category && styles.filterChipActive]}
+                    onPress={() => setCategoryFilter(category)}
+                  >
+                    <Text style={[styles.filterChipText, categoryFilter === category && styles.filterChipTextActive]}>
+                      {category === 'all' ? 'All' : getCategoryLabel(category)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        )}
 
         {/* Open Cases */}
-        {openCases.length > 0 && (
+        {!showCreateForm && activeTab === 'open' && openCases.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Open Cases ({openCases.length})</Text>
             {openCases.map((supportCase: any) => (
@@ -312,11 +435,24 @@ export default function SupportScreen() {
           </View>
         )}
 
-        {/* Resolved Cases */}
-        {resolvedCases.length > 0 && (
+        {/* History Cases */}
+        {!showCreateForm && activeTab === 'history' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Resolved Cases ({resolvedCases.length})</Text>
-            {resolvedCases.slice(0, 5).map((supportCase: any) => (
+            <Text style={styles.sectionTitle}>
+              History {filteredHistoryCases.length !== resolvedCases.length 
+                ? `(${filteredHistoryCases.length} of ${resolvedCases.length})`
+                : `(${resolvedCases.length})`}
+            </Text>
+            {filteredHistoryCases.length === 0 ? (
+              <View style={styles.emptyHistoryContainer}>
+                <Text style={styles.emptyHistoryText}>
+                  {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
+                    ? 'No cases match your filters'
+                    : 'No resolved cases yet'}
+                </Text>
+              </View>
+            ) : (
+              filteredHistoryCases.map((supportCase: any) => (
               <View key={supportCase._id} style={styles.caseCard}>
                 <View style={styles.caseHeader}>
                   <View style={styles.caseTitleRow}>
@@ -341,13 +477,37 @@ export default function SupportScreen() {
                   </View>
                   <Text style={styles.caseDate}>{formatDate(supportCase.created_at)}</Text>
                 </View>
+                {supportCase.resolved_at && (
+                  <View style={styles.resolutionInfo}>
+                    <CheckCircle size={14} color="#4CAF50" />
+                    <Text style={styles.resolutionText}>
+                      Resolved {formatDate(supportCase.resolved_at)}
+                    </Text>
+                  </View>
+                )}
+                {supportCase.rating && (
+                  <View style={styles.ratingContainer}>
+                    <Text style={styles.ratingLabel}>Your Rating:</Text>
+                    <View style={styles.ratingStars}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={16}
+                          color={star <= supportCase.rating ? '#FFB800' : '#E5E7EB'}
+                          fill={star <= supportCase.rating ? '#FFB800' : 'transparent'}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                )}
               </View>
-            ))}
+              ))
+            )}
           </View>
         )}
 
         {/* Empty State */}
-        {!showCreateForm && (!supportCases || supportCases.length === 0) && (
+        {!showCreateForm && (!supportCases || supportCases.length === 0) && activeTab === 'open' && (
           <EmptyState
             title="No support cases yet"
             subtitle="If you need help, create a new support case and our team will assist you."
@@ -622,6 +782,160 @@ const styles = StyleSheet.create({
   },
   chatButtonText: {
     marginLeft: 4,
+  },
+  tabs: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  tabActive: {
+    backgroundColor: '#007AFF',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+    fontFamily: 'Inter',
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007AFF',
+    fontFamily: 'Inter',
+  },
+  filtersContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+    fontFamily: 'Inter',
+  },
+  filterChips: {
+    flexDirection: 'row',
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginRight: 8,
+  },
+  filterChipActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  emptyHistoryContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptyHistoryText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  resolutionInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  resolutionText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontFamily: 'Inter',
+    fontWeight: '500',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  ratingLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  ratingStars: {
+    flexDirection: 'row',
+    gap: 4,
   },
 });
 

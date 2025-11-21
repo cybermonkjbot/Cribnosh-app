@@ -214,6 +214,37 @@ export const toggleAvailability = mutation({
       throw new Error('Access denied: You can only update your own availability');
     }
     
+    // If trying to go online, check if requirements are met (staff/admin can bypass)
+    if (args.isAvailable && !isAdmin(user) && !isStaff(user)) {
+      // Check compliance training
+      const complianceCourse = await ctx.db
+        .query('chefCourses')
+        .withIndex('by_chef_course', q => 
+          q.eq('chefId', args.chefId).eq('courseId', 'compliance-course-v1')
+        )
+        .first();
+      
+      const complianceTrainingComplete = complianceCourse?.status === 'completed';
+      
+      if (!complianceTrainingComplete) {
+        throw new Error('Please complete compliance training before going online. You can access it from your profile.');
+      }
+      
+      // Check required documents
+      const documents = await ctx.db
+        .query('chefDocuments')
+        .withIndex('by_chef', q => q.eq('chefId', args.chefId as any))
+        .collect();
+      
+      const requiredDocuments = documents.filter(d => d.isRequired);
+      const verifiedRequiredDocuments = requiredDocuments.filter(d => d.status === 'verified');
+      
+      if (requiredDocuments.length > 0 && verifiedRequiredDocuments.length !== requiredDocuments.length) {
+        const missingCount = requiredDocuments.length - verifiedRequiredDocuments.length;
+        throw new Error(`Please verify ${missingCount} required document${missingCount !== 1 ? 's' : ''} before going online. You can upload them from your profile.`);
+      }
+    }
+    
     await ctx.db.patch(args.chefId, {
       isAvailable: args.isAvailable,
       updatedAt: Date.now(),
@@ -378,7 +409,8 @@ export const updateAvailability = mutation({
     updates: v.object({
       isAvailable: v.optional(v.boolean()),
       availableDays: v.optional(v.array(v.string())),
-      availableHours: v.optional(v.any()),
+      availableHours: v.optional(v.any()), // Object mapping day -> array of { start: string, end: string }
+      unavailableDates: v.optional(v.array(v.number())), // Array of timestamps
       maxOrdersPerDay: v.optional(v.number()),
       advanceBookingDays: v.optional(v.number()),
       specialInstructions: v.optional(v.string()),
@@ -423,6 +455,16 @@ export const createChefForSeed = internalMutation({
     status: v.optional(v.union(v.literal('active'), v.literal('inactive'), v.literal('suspended'))),
   },
   handler: async (ctx, args) => {
+    // Check if chef already exists
+    const existing = await ctx.db
+      .query('chefs')
+      .filter(q => q.eq(q.field('userId'), args.userId))
+      .first();
+    
+    if (existing) {
+      return existing._id;
+    }
+    
     const bio = args.bio || '';
     const specialties = args.specialties || [];
     const rating = typeof args.rating === 'number' ? args.rating : 0;
@@ -441,6 +483,73 @@ export const createChefForSeed = internalMutation({
     };
     
     const id = await ctx.db.insert("chefs", chefDoc);
+    
+    // Add chef role to user
+    const user = await ctx.db.get(args.userId);
+    if (user) {
+      const userRoles = user.roles || [];
+      if (!userRoles.includes('chef')) {
+        await ctx.db.patch(args.userId, {
+          roles: [...userRoles, 'chef'],
+          lastModified: Date.now(),
+        });
+      }
+    }
+    
+    // Auto-enroll chef in compliance course
+    try {
+      const courseId = "compliance-course-v1";
+      const courseName = "Home Cooking Compliance Course";
+      
+      // Check if already enrolled
+      const existingEnrollment = await ctx.db
+        .query('chefCourses')
+        .withIndex('by_chef_course', q => 
+          q.eq('chefId', id).eq('courseId', courseId)
+        )
+        .first();
+      
+      if (!existingEnrollment) {
+        // Get all published modules for this course to initialize progress
+        const courseModules = await ctx.db
+          .query('courseModules')
+          .withIndex('by_course', q => q.eq('courseId', courseId))
+          .filter(q => q.eq(q.field('status'), 'published'))
+          .collect();
+        
+        // Sort by module number
+        courseModules.sort((a, b) => a.moduleNumber - b.moduleNumber);
+        
+        // Initialize progress array with all modules
+        const initialProgress = courseModules.map(module => ({
+          moduleId: module.moduleId,
+          moduleName: module.moduleName,
+          moduleNumber: module.moduleNumber,
+          completed: false,
+          quizAttempts: 0,
+          lastAccessed: 0,
+          timeSpent: 0,
+        }));
+        
+        const now = Date.now();
+        await ctx.db.insert('chefCourses', {
+          chefId: id,
+          courseId,
+          courseName,
+          enrollmentDate: now,
+          status: 'enrolled',
+          progress: initialProgress,
+          totalTimeSpent: 0,
+          lastAccessed: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    } catch (error) {
+      // Log error but don't fail chef creation if enrollment fails
+      console.error('Error auto-enrolling chef in compliance course:', error);
+    }
+    
     return id;
   },
 });

@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BlogContent } from "@/components/blog/blog-content";
 
 type Params = { slug: string };
 
@@ -156,12 +157,7 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
 
         <div className="prose prose-neutral max-w-none font-satoshi">
           {/* Render rich content from editor */}
-          {post.content && (
-            <div 
-              className="prose prose-neutral max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
-          )}
+          {post.content && <BlogContent content={post.content} />}
 
           {/* Render body paragraphs if available */}
           {post.body && Array.isArray(post.body) && post.body.length > 0 && (

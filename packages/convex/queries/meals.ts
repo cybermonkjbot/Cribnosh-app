@@ -1471,6 +1471,40 @@ export const getPopular = query({
   },
 });
 
+// Public query to get a meal by ID (for editing)
+export const getMealByIdForEdit = query({
+  args: {
+    mealId: v.id('meals'),
+    sessionToken: v.optional(v.string()),
+  },
+  returns: v.any(),
+  handler: async (ctx: QueryCtx, args: { 
+    mealId: Id<'meals'>;
+    sessionToken?: string;
+  }) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    const meal = await ctx.db.get(args.mealId);
+    if (!meal) {
+      throw new Error('Meal not found');
+    }
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(meal.chefId);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+    
+    // Users can only view meals for their own chef profile, staff/admin can view any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      throw new Error('Access denied');
+    }
+    
+    return meal;
+  },
+});
+
 // Internal query to get a meal by ID
 export const getMealById = internalQuery({
   args: {

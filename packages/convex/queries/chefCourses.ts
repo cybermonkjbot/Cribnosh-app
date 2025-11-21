@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
-import { query } from '../_generated/server';
-import { requireAuth, isAdmin, isStaff } from '../utils/auth';
+import { internalQuery, query } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 /**
  * Get all courses for a chef
@@ -173,6 +173,101 @@ export const isOnboardingComplete = query({
     
     // Onboarding is complete if compliance course exists and is completed
     return complianceCourse?.status === 'completed';
+  },
+});
+
+/**
+ * Check if chef can go online (compliance training + required documents verified)
+ */
+export const canGoOnline = query({
+  args: {
+    chefId: v.id("chefs"),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    
+    if (!chef) {
+      return {
+        canGoOnline: false,
+        reasons: ['Chef not found'],
+        complianceTrainingComplete: false,
+        allDocumentsVerified: false,
+      };
+    }
+    
+    // Users can only check their own status, staff/admin can check any
+    if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
+      return {
+        canGoOnline: false,
+        reasons: ['Access denied'],
+        complianceTrainingComplete: false,
+        allDocumentsVerified: false,
+      };
+    }
+    
+    // Check if compliance course is completed
+    const complianceCourse = await ctx.db
+      .query('chefCourses')
+      .withIndex('by_chef_course', q => 
+        q.eq('chefId', args.chefId).eq('courseId', 'compliance-course-v1')
+      )
+      .first();
+    
+    const complianceTrainingComplete = complianceCourse?.status === 'completed';
+    
+    // Check required documents
+    const documents = await ctx.db
+      .query('chefDocuments')
+      .withIndex('by_chef', q => q.eq('chefId', args.chefId as any))
+      .collect();
+    
+    const requiredDocuments = documents.filter(d => d.isRequired);
+    const verifiedRequiredDocuments = requiredDocuments.filter(d => d.status === 'verified');
+    const allDocumentsVerified = requiredDocuments.length > 0 
+      ? verifiedRequiredDocuments.length === requiredDocuments.length
+      : true; // If no required documents, consider it verified
+    
+    const reasons: string[] = [];
+    if (!complianceTrainingComplete) {
+      reasons.push('Complete compliance training');
+    }
+    if (!allDocumentsVerified) {
+      const missingCount = requiredDocuments.length - verifiedRequiredDocuments.length;
+      reasons.push(`${missingCount} required document${missingCount !== 1 ? 's' : ''} need${missingCount === 1 ? 's' : ''} verification`);
+    }
+    
+    return {
+      canGoOnline: complianceTrainingComplete && allDocumentsVerified,
+      reasons,
+      complianceTrainingComplete,
+      allDocumentsVerified,
+      requiredDocumentsCount: requiredDocuments.length,
+      verifiedRequiredDocumentsCount: verifiedRequiredDocuments.length,
+    };
+  },
+});
+
+/**
+ * Internal query to get enrollment by chef and course without authentication
+ * Used by actions during seeding and setup flows
+ */
+export const getEnrollmentByChefAndCourse = internalQuery({
+  args: {
+    chefId: v.id("chefs"),
+    courseId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('chefCourses')
+      .withIndex('by_chef_course', q => 
+        q.eq('chefId', args.chefId).eq('courseId', args.courseId)
+      )
+      .first();
   },
 });
 

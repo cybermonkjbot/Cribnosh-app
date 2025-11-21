@@ -1,8 +1,8 @@
 import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
-import { query, QueryCtx, internalQuery } from '../_generated/server';
-import { isAdmin, isStaff, requireAdmin, requireAuth, requireAuthBySessionToken, requireStaff, getAuthenticatedUser } from '../utils/auth';
+import { QueryCtx, internalQuery, query } from '../_generated/server';
+import { getAuthenticatedUser, isAdmin, isStaff, requireAdmin, requireAuth, requireAuthBySessionToken, requireStaff } from '../utils/auth';
 
 export const getById = query({
   args: { 
@@ -83,6 +83,22 @@ export const _getUserByIdInternal = internalQuery({
   },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.userId);
+  },
+});
+
+/**
+ * Internal query to get user by email without authentication
+ * Used by actions during seeding and setup flows
+ */
+export const getUserByEmailInternal = internalQuery({
+  args: { 
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', args.email))
+      .first();
   },
 });
 

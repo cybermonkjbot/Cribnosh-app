@@ -74,6 +74,8 @@ export function ContentGrid({ items, onItemPress, numColumns = 3 }: ContentGridP
       contentContainerStyle={styles.container}
       columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
       showsVerticalScrollIndicator={false}
+      scrollEnabled={false}
+      nestedScrollEnabled={true}
     />
   );
 }

@@ -273,6 +273,7 @@ export default function ChefDashboard() {
             chefId={chef._id}
             isOnline={chef.isAvailable || false}
             sessionToken={sessionToken || undefined}
+            onShowSetup={() => setIsSetupSheetVisible(true)}
           />
         </View>
         )}
@@ -396,8 +397,7 @@ export default function ChefDashboard() {
             setIsRecipeModalVisible(true);
           }}
           onLiveStreamPress={() => {
-            setAutoShowLiveStreamSetup(true);
-            setIsCameraVisible(true);
+            router.push('/(tabs)/chef/live' as any);
           }}
           onStoryPress={() => {
             setIsStoryModalVisible(true);
@@ -420,10 +420,16 @@ export default function ChefDashboard() {
               setIsCameraVisible(false);
               setAutoShowLiveStreamSetup(false);
             }}
-            onStartLiveStream={(sessionId) => {
+            onStartLiveStream={(sessionId, liveSessionId) => {
+              // Close camera and navigate to live stream screen
               setIsCameraVisible(false);
               setAutoShowLiveStreamSetup(false);
+              if (liveSessionId) {
+                router.push(`/(tabs)/chef/live/${liveSessionId}` as any);
+                showSuccess('Live Session Started', 'Your live session is now live!');
+              } else {
               showSuccess('Live Session Started', 'Your live session has been created successfully!');
+              }
             }}
             autoShowLiveStreamSetup={autoShowLiveStreamSetup}
           />

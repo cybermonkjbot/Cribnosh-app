@@ -52,13 +52,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: 'Profile',
         }}
       />
       <Tabs.Screen
-        name="earnings"
+        name="earnings/index"
         options={{
           href: null, // Hide from tab bar but keep accessible via navigation
         }}

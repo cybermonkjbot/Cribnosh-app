@@ -6,6 +6,7 @@ import type {
   User
 } from "../types/livestream";
 import { calculateDistance } from "../types/livestream";
+import { requireAuth } from "../utils/auth";
 
 // Type for the enriched session with distance
 interface NearbySession extends Omit<LiveSession, 'location'> {
@@ -131,17 +132,17 @@ interface EnrichedLiveOrder {
 
 // Get live orders for chef
 export const getLiveOrdersForChef = query({
-  args: {},
-  handler: async (ctx): Promise<EnrichedLiveOrder[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<EnrichedLiveOrder[]> => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Get the chef associated with the current user
     const chef = await ctx.db
       .query("chefs")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject as Id<"users">))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .first();
 
     if (!chef) {
@@ -608,7 +609,7 @@ export const getLiveReactions = query({
   },
 });
 
-// Get live session by ID
+// Get live session by ID (string session_id)
 export const getLiveSessionById = query({
   args: {
     sessionId: v.string(),
@@ -619,6 +620,17 @@ export const getLiveSessionById = query({
       .withIndex('by_session_id', q => q.eq('session_id', args.sessionId))
       .first();
 
+    return session;
+  },
+});
+
+// Get live session by ID (Id<'liveSessions'>)
+export const getById = query({
+  args: {
+    sessionId: v.id('liveSessions'),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
     return session;
   },
 });

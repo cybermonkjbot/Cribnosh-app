@@ -44,7 +44,6 @@ export function ProfileHeader({
           </TouchableOpacity>
         )}
         <View style={styles.nameContainer}>
-          <Text style={styles.username}>{name}</Text>
           {isVerified && (
             <View style={styles.verifiedBadge}>
               <CheckCircle2 size={16} color="#059669" fill="#059669" />
