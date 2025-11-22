@@ -51,11 +51,11 @@ export default function SharedLinkScreen() {
 
       {/* Header with back and done buttons */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton} hitSlop={12}>
           <ChevronLeft size={24} color="#fff" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleStartOrder} style={styles.doneButton}>
+        <TouchableOpacity onPress={handleStartOrder} style={styles.doneButton} hitSlop={12}>
           <Text style={styles.doneText}>Done</Text>
         </TouchableOpacity>
       </View>

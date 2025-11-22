@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SentimentRating } from './SentimentRating';
 import { TiltCard } from './TiltCard';
@@ -18,7 +19,7 @@ interface CategoryFoodItemCardProps {
   tiltEnabled?: boolean;
 }
 
-export function CategoryFoodItemCard({
+function CategoryFoodItemCardComponent({
   id,
   title,
   description,
@@ -134,6 +135,9 @@ export function CategoryFoodItemCard({
 
   return cardContent;
 }
+
+// Memoize component to prevent unnecessary re-renders
+export const CategoryFoodItemCard = React.memo(CategoryFoodItemCardComponent);
 
 const styles = StyleSheet.create({
   container: {

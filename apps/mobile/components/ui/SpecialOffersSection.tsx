@@ -1,12 +1,11 @@
 import { useOffersAndTreats } from "@/hooks/useOffersAndTreats";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useRouter } from "expo-router";
 import { useAuthContext } from "../../contexts/AuthContext";
-import { showError } from "../../lib/GlobalToastManager";
-import { SpecialOffersSectionSkeleton } from "./SpecialOffersSectionSkeleton";
 import { SkeletonWithTimeout } from "./SkeletonWithTimeout";
+import { SpecialOffersSectionSkeleton } from "./SpecialOffersSectionSkeleton";
 
 interface SpecialOffer {
   id: string;
@@ -74,7 +73,7 @@ interface SpecialOffersSectionProps {
   isFirstSection?: boolean;
 }
 
-export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
+const SpecialOffersSectionComponent: React.FC<SpecialOffersSectionProps> = ({
   offers: propOffers,
   onOfferPress,
   onSeeAllPress,
@@ -395,7 +394,7 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
           Special Offers
         </Text>
 
-        <TouchableOpacity onPress={onSeeAllPress}>
+        <TouchableOpacity onPress={onSeeAllPress} hitSlop={12}>
           <Text
             style={{
               color: "#ef4444",
@@ -420,3 +419,5 @@ export const SpecialOffersSection: React.FC<SpecialOffersSectionProps> = ({
     </View>
   );
 };
+
+export const SpecialOffersSection = React.memo(SpecialOffersSectionComponent);

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
 import { SupportMessage, SupportAgent } from '../types/customer';
@@ -9,6 +10,7 @@ interface UseSupportChatOptions {
   caseId?: string; // Optional: specific support case ID to load
   onNewMessage?: (message: SupportMessage) => void;
   onAgentChange?: (agent: SupportAgent | null) => void;
+  isVisible?: boolean; // Optional: whether the chat drawer is visible
 }
 
 export function useSupportChat(options: UseSupportChatOptions = {}) {
@@ -18,6 +20,7 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
     caseId,
     onNewMessage,
     onAgentChange,
+    isVisible = true, // Default to visible
   } = options;
 
   const [chatId, setChatId] = useState<string | null>(null);
@@ -276,43 +279,115 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
     }
   }, [enabled, caseId, fetchSupportChat]); // Only fetch when enabled or caseId changes
 
-  // Set up polling for messages
+  // Track app state for visibility detection
+  const appState = useRef(AppState.currentState);
+
+  // Set up polling for messages with visibility detection
   useEffect(() => {
-    if (enabled && chatId) {
+    if (enabled && chatId && isVisible) {
       // Initial fetch
       fetchMessages();
 
       // Set up polling
-      pollingIntervalRef.current = setInterval(() => {
-        fetchMessages();
-      }, pollingInterval);
+      const startPolling = () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+        pollingIntervalRef.current = setInterval(() => {
+          // Only poll if app is active and drawer is visible
+          if (appState.current === 'active' && isVisible) {
+            fetchMessages();
+          }
+        }, pollingInterval);
+      };
+
+      startPolling();
+
+      // Handle app state changes
+      const handleAppStateChange = (nextAppState: AppStateStatus) => {
+        appState.current = nextAppState;
+        if (nextAppState === 'active' && isVisible) {
+          // Resume polling when app becomes active
+          startPolling();
+        } else {
+          // Pause polling when app is backgrounded
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        }
+      };
+
+      const subscription = AppState.addEventListener('change', handleAppStateChange);
 
       return () => {
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);
         }
+        subscription.remove();
       };
+    } else {
+      // Stop polling if not enabled, no chatId, or not visible
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
     }
-  }, [enabled, chatId, pollingInterval, fetchMessages]);
+  }, [enabled, chatId, pollingInterval, fetchMessages, isVisible]);
 
-  // Set up polling for agent (less frequent)
+  // Set up polling for agent (less frequent) with visibility detection
   useEffect(() => {
-    if (enabled && chatId) {
+    if (enabled && chatId && isVisible) {
       // Initial fetch
       fetchAgent();
 
-      // Set up polling (less frequent)
-      agentPollingIntervalRef.current = setInterval(() => {
-        fetchAgent();
-      }, pollingInterval * 2);
+      // Set up polling (less frequent than messages)
+      const startAgentPolling = () => {
+        if (agentPollingIntervalRef.current) {
+          clearInterval(agentPollingIntervalRef.current);
+        }
+        agentPollingIntervalRef.current = setInterval(() => {
+          // Only poll if app is active and drawer is visible
+          if (appState.current === 'active' && isVisible) {
+            fetchAgent();
+          }
+        }, pollingInterval * 2); // Poll agent half as often as messages
+      };
+
+      startAgentPolling();
+
+      // Handle app state changes
+      const handleAppStateChange = (nextAppState: AppStateStatus) => {
+        appState.current = nextAppState;
+        if (nextAppState === 'active' && isVisible) {
+          // Resume polling when app becomes active
+          startAgentPolling();
+        } else {
+          // Pause polling when app is backgrounded
+          if (agentPollingIntervalRef.current) {
+            clearInterval(agentPollingIntervalRef.current);
+            agentPollingIntervalRef.current = null;
+          }
+        }
+      };
+
+      const subscription = AppState.addEventListener('change', handleAppStateChange);
 
       return () => {
         if (agentPollingIntervalRef.current) {
           clearInterval(agentPollingIntervalRef.current);
+          agentPollingIntervalRef.current = null;
         }
+        subscription.remove();
       };
+    } else {
+      // Stop polling if not enabled, no chatId, or not visible
+      if (agentPollingIntervalRef.current) {
+        clearInterval(agentPollingIntervalRef.current);
+        agentPollingIntervalRef.current = null;
+      }
     }
-  }, [enabled, chatId, pollingInterval, fetchAgent]);
+  }, [enabled, chatId, pollingInterval, fetchAgent, isVisible]);
 
   // Fetch quick replies once when chat is initialized
   useEffect(() => {

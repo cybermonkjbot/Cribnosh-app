@@ -281,6 +281,23 @@ export function NoshHeavenPlayer({
     minimumViewTime: 300, // Minimum time item must be viewable
   }), []);
 
+  // Memoize callbacks to prevent unnecessary re-renders
+  const handleMealLike = useCallback((mealId: string) => {
+    onMealLike?.(mealId);
+  }, [onMealLike]);
+
+  const handleMealShare = useCallback((mealId: string) => {
+    onMealShare?.(mealId);
+  }, [onMealShare]);
+
+  const handleMealAddToCart = useCallback((mealId: string) => {
+    onAddToCart?.(mealId);
+  }, [onAddToCart]);
+
+  const handleKitchenPress = useCallback((kitchenName: string) => {
+    onKitchenPress?.(kitchenName);
+  }, [onKitchenPress]);
+
   // Optimized render function with minimal dependencies
   const renderMealItem = useCallback(({ item, index }: { item: MealData; index: number }) => {
     try {
@@ -304,17 +321,17 @@ export function NoshHeavenPlayer({
           comments={item.comments}
           isVisible={isCurrentItem}
           isPreloaded={isPreloaded}
-          onLike={() => onMealLike?.(item.id)}
-          onShare={() => onMealShare?.(item.id)}
-          onAddToCart={() => onAddToCart?.(item.id)}
-          onKitchenPress={() => onKitchenPress?.(item.kitchenName)}
+          onLike={() => handleMealLike(item.id)}
+          onShare={() => handleMealShare(item.id)}
+          onAddToCart={() => handleMealAddToCart(item.id)}
+          onKitchenPress={() => handleKitchenPress(item.kitchenName)}
         />
       );
     } catch (error) {
       console.warn('Render meal item error:', error);
       return null;
     }
-  }, [currentIndex, preloadedVideos, onMealLike, onMealShare, onAddToCart, onKitchenPress]);
+  }, [currentIndex, preloadedVideos, handleMealLike, handleMealShare, handleMealAddToCart, handleKitchenPress]);
 
   // Validate props - moved after all hooks
   if (!Array.isArray(displayMeals) || displayMeals.length === 0) {
@@ -360,13 +377,19 @@ export function NoshHeavenPlayer({
   }
 
   // Early return check moved after all hooks
-  console.log('[NoshHeavenPlayer] Render check, isVisible:', isVisible, 'displayMeals.length:', displayMeals.length, 'mode:', mode);
+  if (__DEV__) {
+    console.log('[NoshHeavenPlayer] Render check, isVisible:', isVisible, 'displayMeals.length:', displayMeals.length, 'mode:', mode);
+  }
   if (!isVisible) {
-    console.log('[NoshHeavenPlayer] Not visible, returning null');
+    if (__DEV__) {
+      console.log('[NoshHeavenPlayer] Not visible, returning null');
+    }
     return null;
   }
 
-  console.log('[NoshHeavenPlayer] Rendering player component');
+  if (__DEV__) {
+    console.log('[NoshHeavenPlayer] Rendering player component');
+  }
   return (
     <View style={{
       flex: 1,

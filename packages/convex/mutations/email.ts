@@ -1,6 +1,7 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel";
+import { api } from "../_generated/api";
 
 export const createEmailCampaign = mutation({
   args: {
@@ -181,5 +182,150 @@ export const deleteEmailCampaign = mutation({
   handler: async (ctx, args) => {
     await ctx.db.delete(args.campaignId);
     return { success: true };
+  },
+});
+
+export const initializeCampaignTemplate = mutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    templateId: v.union(v.id("emailTemplates"), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    // Check if template already exists
+    const existing = await ctx.db
+      .query("emailTemplates")
+      .withIndex("by_template_id", (q) => q.eq("templateId", "campaign-template"))
+      .first();
+    
+    if (existing) {
+      return { success: true, templateId: existing._id };
+    }
+    
+    // Create the campaign template with HTML that supports campaign data
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{subject}}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #333333;
+    }
+    .campaign-content {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #555555;
+      margin: 20px 0;
+    }
+    .footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #888888;
+      border-top: 1px solid #e9ecef;
+    }
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>CribNosh</h1>
+    </div>
+    <div class="content">
+      <div class="greeting">
+        Hello {{name}},
+      </div>
+      <div class="campaign-content">
+        {{{content}}}
+      </div>
+    </div>
+    <div class="footer">
+      <p>© ${new Date().getFullYear()} CribNosh. All rights reserved.</p>
+      <p>You're receiving this email because you're part of the CribNosh community.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const templateId = await ctx.runMutation(api.emailConfig.createEmailTemplate, {
+      templateId: "campaign-template",
+      name: "Campaign Email Template",
+      isActive: true,
+      subject: "{{subject}}",
+      previewText: "{{campaignName}}",
+      senderName: "CribNosh",
+      senderEmail: "noreply@cribnosh.com",
+      replyToEmail: "support@cribnosh.com",
+      htmlContent: htmlContent,
+      fromEmail: "CribNosh <onboarding@cribnosh.com>",
+      customFields: {},
+      styling: {
+        primaryColor: "#667eea",
+        secondaryColor: "#764ba2",
+        accent: "#667eea",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto",
+        logoUrl: "https://cribnosh.com/logo.svg",
+        footerText: "CribNosh – Personalized Dining, Every Time.",
+      },
+      scheduling: {
+        timezone: "UTC",
+        sendTime: "09:00",
+        frequency: "immediate",
+      },
+      targeting: {
+        audience: "all",
+        segmentId: undefined,
+        customFilters: undefined,
+      },
+      testing: {
+        testEmails: [],
+        testData: {},
+        previewMode: false,
+      },
+      changedBy: "system",
+    });
+
+    return { success: true, templateId };
   },
 });

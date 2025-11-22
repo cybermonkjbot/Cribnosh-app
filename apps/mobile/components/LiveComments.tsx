@@ -87,6 +87,12 @@ const LiveComments: React.FC<LiveCommentsProps> = ({ comments }) => {
         contentContainerStyle={styles.contentContainer}
         getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
         scrollEnabled={false}
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={VISIBLE_ITEMS}
+        windowSize={5}
+        initialNumToRender={VISIBLE_ITEMS}
+        updateCellsBatchingPeriod={50}
       />
       {/* Top fade overlay for smooth transition */}
       <Animated.View pointerEvents="none" style={styles.topFade}>

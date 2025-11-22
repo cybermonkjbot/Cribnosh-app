@@ -32,11 +32,11 @@ export default function TrySomethingNew() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton} hitSlop={12}>
           <ChevronLeft size={20} color="#E6FFE8" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity style={styles.actionButton} hitSlop={12}>
           <Text style={styles.actionText}>Order</Text>
         </TouchableOpacity>
       </View>

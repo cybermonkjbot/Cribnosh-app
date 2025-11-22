@@ -1,10 +1,9 @@
 import { useMeals } from '@/hooks/useMeals';
+import { useUserLocation } from '@/hooks/useUserLocation';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { showError } from '../../lib/GlobalToastManager';
-import { PopularMealsSectionEmpty } from './PopularMealsSectionEmpty';
 import { PopularMealsSectionSkeleton } from './PopularMealsSectionSkeleton';
 import { SentimentRating } from './SentimentRating';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
@@ -34,7 +33,7 @@ interface PopularMealsSectionProps {
   isFirstSection?: boolean;
 }
 
-export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
+const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
   meals: propMeals,
   onMealPress,
   onSeeAllPress,
@@ -47,6 +46,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
 }) => {
   const { isAuthenticated, user } = useAuthContext();
   const { getRandomMeals, isLoading: isLoadingMeals } = useMeals();
+  const locationState = useUserLocation();
   
   const [popularMealsData, setPopularMealsData] = useState<any>(null);
   const [backendLoading, setBackendLoading] = useState(false);
@@ -61,7 +61,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
           setBackendError(null);
           // For now, use random meals as popular meals
           // In the future, we can add a specific getPopularMeals action
-          const result = await getRandomMeals(20);
+          const result = await getRandomMeals(20, locationState.location || null);
           if (result.success) {
             // Transform to match expected format
             setPopularMealsData({ 
@@ -84,7 +84,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
     } else {
       setPopularMealsData(null);
     }
-  }, [useBackend, isAuthenticated, getRandomMeals]);
+  }, [useBackend, isAuthenticated, getRandomMeals, locationState.location]);
 
   // Transform API data to component format
   const transformMealData = useCallback((apiMeal: any): Meal | null => {
@@ -105,7 +105,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
       isPopular: true, // These are popular meals by definition
       isNew: meal.is_new || false,
       sentiment: meal.sentiment || 'solid',
-      deliveryTime: meal.delivery_time || '30 min',
+      deliveryTime: meal.deliveryTime || meal.delivery_time || null, // Use backend-calculated delivery time
     };
   }, []);
 
@@ -312,7 +312,7 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
           </Text>
           
           {shouldShowSeeAll && (
-            <TouchableOpacity onPress={onSeeAllPress}>
+            <TouchableOpacity onPress={onSeeAllPress} hitSlop={12}>
               <Text style={{
                 color: '#ef4444',
                 fontSize: 14,
@@ -351,4 +351,6 @@ export const PopularMealsSection: React.FC<PopularMealsSectionProps> = ({
       </ScrollView>
     </View>
   );
-}; 
+};
+
+export const PopularMealsSection = React.memo(PopularMealsSectionComponent); 

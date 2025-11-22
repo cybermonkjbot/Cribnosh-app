@@ -1,5 +1,5 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { CategoryFoodItemCard } from './CategoryFoodItemCard';
 
 interface FoodItem {
@@ -24,7 +24,7 @@ interface CategoryFoodItemsGridProps {
   showPrepTime?: boolean;
 }
 
-export function CategoryFoodItemsGrid({
+function CategoryFoodItemsGridComponent({
   title,
   subtitle,
   items,
@@ -34,44 +34,78 @@ export function CategoryFoodItemsGrid({
   showSentiments = false,
   showPrepTime = false
 }: CategoryFoodItemsGridProps) {
+  // Memoize render item to prevent unnecessary re-renders
+  const renderItem = useCallback(({ item }: { item: FoodItem }) => (
+    <View style={styles.itemWrapper}>
+      <CategoryFoodItemCard
+        id={item.id}
+        title={item.title}
+        description={item.description}
+        price={item.price}
+        imageUrl={item.imageUrl}
+        sentiment={showSentiments ? item.sentiment : undefined}
+        prepTime={showPrepTime ? item.prepTime : undefined}
+        isPopular={item.isPopular}
+        onAddToCart={onAddToCart}
+        onPress={onItemPress}
+      />
+    </View>
+  ), [showSentiments, showPrepTime, onAddToCart, onItemPress]);
+
+  const keyExtractor = useCallback((item: FoodItem) => item.id, []);
+
+  // Estimate item width for getItemLayout (140px card + 16px margin)
+  const ITEM_WIDTH = 156;
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: ITEM_WIDTH,
+      offset: ITEM_WIDTH * index,
+      index,
+    }),
+    []
+  );
+
+  // Memoize title section to prevent re-renders
+  const titleSection = useMemo(() => {
+    if (!title) return null;
+    return (
+      <View style={styles.titleContainer}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {subtitle && (
+          <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+        )}
+      </View>
+    );
+  }, [title, subtitle]);
+
   return (
     <View style={styles.container}>
-      {title && (
-        <View style={styles.titleContainer}>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          {subtitle && (
-            <Text style={styles.sectionSubtitle}>{subtitle}</Text>
-          )}
-        </View>
-      )}
+      {titleSection}
       
       <View style={showShadow ? [styles.gridContainer, styles.gridContainerWithShadow] : styles.gridContainer}>
-        <ScrollView
+        <FlatList
+          data={items}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
-        >
-          {items.map((item, index) => (
-            <View key={item.id} style={styles.itemWrapper}>
-              <CategoryFoodItemCard
-                id={item.id}
-                title={item.title}
-                description={item.description}
-                price={item.price}
-                imageUrl={item.imageUrl}
-                sentiment={showSentiments ? item.sentiment : undefined}
-                prepTime={showPrepTime ? item.prepTime : undefined}
-                isPopular={item.isPopular}
-                onAddToCart={onAddToCart}
-                onPress={onItemPress}
-              />
-            </View>
-          ))}
-        </ScrollView>
+          getItemLayout={getItemLayout}
+          // Performance optimizations
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          initialNumToRender={3}
+          updateCellsBatchingPeriod={50}
+          decelerationRate="fast"
+        />
       </View>
     </View>
   );
 }
+
+// Memoize component to prevent unnecessary re-renders
+export const CategoryFoodItemsGrid = React.memo(CategoryFoodItemsGridComponent);
 
 const styles = StyleSheet.create({
   container: {
@@ -107,7 +141,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 0,
-    gap: 16,
+    paddingRight: 16, // Add right padding for last item
   },
   itemWrapper: {
     marginRight: 16,

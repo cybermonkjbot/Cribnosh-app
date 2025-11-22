@@ -3,7 +3,6 @@ import { useChefs } from '@/hooks/useChefs';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { showError } from '../../lib/GlobalToastManager';
 import { FeaturedKitchensSectionSkeleton } from './FeaturedKitchensSectionSkeleton';
 import { KitchenRating } from './KitchenRating';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
@@ -32,7 +31,7 @@ interface FeaturedKitchensSectionProps {
   isFirstSection?: boolean;
 }
 
-export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = ({
+const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> = ({
   kitchens: propKitchens,
   onKitchenPress,
   onSeeAllPress,
@@ -94,7 +93,7 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
       name: apiKitchen.name || 'Unknown Kitchen',
       cuisine: apiKitchen.cuisine || 'Various',
       sentiment,
-      deliveryTime: apiKitchen.delivery_time || '25-30 min',
+      deliveryTime: apiKitchen.deliveryTime || apiKitchen.delivery_time || null, // Use backend-calculated delivery time
       distance: apiKitchen.distance || 'N/A',
       image: { uri: imageUrl },
       isLive: apiKitchen.is_live || false,
@@ -281,7 +280,7 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
           </Text>
           
           {shouldShowSeeAll && (
-            <TouchableOpacity onPress={onSeeAllPress}>
+            <TouchableOpacity onPress={onSeeAllPress} hitSlop={12}>
               <Text style={{
                 color: '#ef4444',
                 fontSize: 14,
@@ -306,4 +305,6 @@ export const FeaturedKitchensSection: React.FC<FeaturedKitchensSectionProps> = (
       </ScrollView>
     </View>
   );
-}; 
+};
+
+export const FeaturedKitchensSection = React.memo(FeaturedKitchensSectionComponent); 

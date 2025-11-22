@@ -12,6 +12,7 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import {
+  FlatList,
   Modal,
   RefreshControl,
   ScrollView,
@@ -740,7 +741,7 @@ export default function LiveContent({
             }
           } catch (error) {
             // Silently fail - share was successful even if backend recording fails
-            console.error('Failed to record share:', error);
+            if (__DEV__) console.error('Failed to record share:', error);
           }
         }
       } catch (error: any) {
@@ -750,6 +751,98 @@ export default function LiveContent({
     [videoPlayerMeals, isAuthenticated]
   );
 
+  // Memoized render functions for FlatList
+  const renderAllContentItem = useCallback(({ item }: { item: any }) => {
+    if (item.type === 'recipe') {
+      return (
+        <RecipeCard
+          recipe={item}
+          onPress={(recipeId) => setSelectedRecipeId(recipeId)}
+          onVideoPress={handleVideoPress}
+          hasVideo={!!item.videoId}
+        />
+      );
+    } else if (item.type === 'story') {
+      return (
+        <StoryCard
+          story={item}
+          onPress={(storyId) => setSelectedStoryId(storyId)}
+          onVideoPress={handleVideoPress}
+          hasVideo={!!item.videoId}
+        />
+      );
+    } else if (item.type === 'video') {
+      return (
+        <VideoCard
+          video={item}
+          onPress={handleVideoCardPress}
+        />
+      );
+    } else if (item.type === 'live') {
+      return (
+        <KitchenCard
+          kitchen={item}
+          onPress={handleKitchenPress}
+          formatNumber={formatNumber}
+        />
+      );
+    }
+    return null;
+  }, [handleVideoPress, handleVideoCardPress, handleKitchenPress, formatNumber]);
+
+  const renderRecipeItem = useCallback(({ item }: { item: any }) => {
+    return (
+      <RecipeCard
+        recipe={item}
+        onPress={(recipeId) => setSelectedRecipeId(recipeId)}
+        onVideoPress={handleVideoPress}
+        hasVideo={!!item.videoId}
+      />
+    );
+  }, [handleVideoPress]);
+
+  const renderStoryItem = useCallback(({ item }: { item: any }) => {
+    if (item.type === 'story') {
+      return (
+        <StoryCard
+          story={item}
+          onPress={(storyId) => setSelectedStoryId(storyId)}
+          onVideoPress={handleVideoPress}
+          hasVideo={!!item.videoId}
+        />
+      );
+    } else {
+      return (
+        <VideoCard
+          video={item}
+          onPress={handleVideoCardPress}
+        />
+      );
+    }
+  }, [handleVideoPress, handleVideoCardPress]);
+
+  const renderLiveItem = useCallback(({ item }: { item: LiveKitchen }) => {
+    return (
+      <KitchenCard
+        kitchen={item}
+        onPress={handleKitchenPress}
+        formatNumber={formatNumber}
+      />
+    );
+  }, [handleKitchenPress, formatNumber]);
+
+  // Key extractors
+  const keyExtractorAll = useCallback((item: any) => {
+    if (item.type === 'recipe') return `recipe-${item._id}`;
+    if (item.type === 'story') return `story-${item._id}`;
+    if (item.type === 'video') return `video-${item._id}`;
+    if (item.type === 'live') return `live-${item.id}`;
+    return `item-${item._id || item.id}`;
+  }, []);
+
+  const keyExtractorRecipe = useCallback((item: any) => item._id, []);
+  const keyExtractorStory = useCallback((item: any) => item._id, []);
+  const keyExtractorLive = useCallback((item: LiveKitchen) => item.id, []);
 
   const renderContent = () => {
     switch (activeCategory) {
@@ -810,49 +903,21 @@ export default function LiveContent({
 
         return (
           <View style={styles.kitchensContainer}>
-            <View style={styles.kitchensGrid}>
-              {allContent.map((item: any) => {
-                if (item.type === 'recipe') {
-                  return (
-                    <RecipeCard
-                      key={`recipe-${item._id}`}
-                      recipe={item}
-                      onPress={(recipeId) => setSelectedRecipeId(recipeId)}
-                      onVideoPress={handleVideoPress}
-                      hasVideo={!!item.videoId}
-                    />
-                  );
-                } else if (item.type === 'story') {
-                  return (
-                    <StoryCard
-                      key={`story-${item._id}`}
-                      story={item}
-                      onPress={(storyId) => setSelectedStoryId(storyId)}
-                      onVideoPress={handleVideoPress}
-                      hasVideo={!!item.videoId}
-                    />
-                  );
-                } else if (item.type === 'video') {
-                  return (
-                    <VideoCard
-                      key={`video-${item._id}`}
-                      video={item}
-                      onPress={handleVideoCardPress}
-                    />
-                  );
-                } else if (item.type === 'live') {
-                  return (
-                    <KitchenCard
-                      key={`live-${item.id}`}
-                      kitchen={item}
-                      onPress={handleKitchenPress}
-                      formatNumber={formatNumber}
-                    />
-                  );
-                }
-                return null;
-              })}
-            </View>
+            <FlatList
+              data={allContent}
+              renderItem={renderAllContentItem}
+              keyExtractor={keyExtractorAll}
+              numColumns={3}
+              contentContainerStyle={{ gap: 12 }}
+              columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+              scrollEnabled={false}
+              // Performance optimizations
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={9}
+              windowSize={10}
+              initialNumToRender={9}
+              updateCellsBatchingPeriod={50}
+            />
           </View>
         );
 
@@ -871,17 +936,21 @@ export default function LiveContent({
         }
         return (
           <View style={styles.kitchensContainer}>
-            <View style={styles.kitchensGrid}>
-              {recipesData.recipes.map((recipe: any) => (
-                <RecipeCard
-                  key={recipe._id}
-                  recipe={recipe}
-                  onPress={(recipeId) => setSelectedRecipeId(recipeId)}
-                  onVideoPress={handleVideoPress}
-                  hasVideo={!!recipe.videoId}
-                />
-              ))}
-            </View>
+            <FlatList
+              data={recipesData.recipes}
+              renderItem={renderRecipeItem}
+              keyExtractor={keyExtractorRecipe}
+              numColumns={3}
+              contentContainerStyle={{ gap: 12 }}
+              columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+              scrollEnabled={false}
+              // Performance optimizations
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={9}
+              windowSize={10}
+              initialNumToRender={9}
+              updateCellsBatchingPeriod={50}
+            />
           </View>
         );
 
@@ -911,29 +980,21 @@ export default function LiveContent({
 
         return (
           <View style={styles.kitchensContainer}>
-            <View style={styles.kitchensGrid}>
-              {allStories.map((item: any) => {
-                if (item.type === 'story') {
-                  return (
-                    <StoryCard
-                      key={item._id}
-                      story={item}
-                      onPress={(storyId) => setSelectedStoryId(storyId)}
-                      onVideoPress={handleVideoPress}
-                      hasVideo={!!item.videoId}
-                    />
-                  );
-                } else {
-                  return (
-                    <VideoCard
-                      key={item._id}
-                      video={item}
-                      onPress={handleVideoCardPress}
-                    />
-                  );
-                }
-              })}
-            </View>
+            <FlatList
+              data={allStories}
+              renderItem={renderStoryItem}
+              keyExtractor={keyExtractorStory}
+              numColumns={3}
+              contentContainerStyle={{ gap: 12 }}
+              columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+              scrollEnabled={false}
+              // Performance optimizations
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={9}
+              windowSize={10}
+              initialNumToRender={9}
+              updateCellsBatchingPeriod={50}
+            />
           </View>
         );
 
@@ -951,16 +1012,28 @@ export default function LiveContent({
         return (
           <View style={styles.kitchensContainer}>
             {filteredKitchens.length > 0 ? (
-              <View style={styles.kitchensGrid}>
-                {filteredKitchens.map((kitchen) => (
-                  <KitchenCard
-                    key={kitchen.id}
-                    kitchen={kitchen}
-                    onPress={handleKitchenPress}
-                    formatNumber={formatNumber}
-                  />
-                ))}
-              </View>
+              <FlatList
+                data={filteredKitchens}
+                renderItem={renderLiveItem}
+                keyExtractor={keyExtractorLive}
+                numColumns={3}
+                contentContainerStyle={{ gap: 12 }}
+                columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+                scrollEnabled={false}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateSubtitle}>
+                      You&apos;ll be able to order meals right from the stove from here when anyone goes live
+                    </Text>
+                  </View>
+                }
+                // Performance optimizations
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={9}
+                windowSize={10}
+                initialNumToRender={9}
+                updateCellsBatchingPeriod={50}
+              />
             ) : (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateSubtitle}>

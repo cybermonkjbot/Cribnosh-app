@@ -22,7 +22,7 @@ interface TopKebabsProps {
   isFirstSection?: boolean;
 }
 
-export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress, hasInitialLoadCompleted = false, isFirstSection = false }: TopKebabsProps) {
+function TopKebabsComponent({ onOpenDrawer, useBackend = true, onKebabPress, hasInitialLoadCompleted = false, isFirstSection = false }: TopKebabsProps) {
   const { isAuthenticated } = useAuthContext();
 
   const { getTopKebabs } = useMeals();
@@ -165,4 +165,6 @@ export function TopKebabs({ onOpenDrawer, useBackend = true, onKebabPress, hasIn
       </ScrollView>
     </View>
   );
-} 
+}
+
+export const TopKebabs = React.memo(TopKebabsComponent); 

@@ -6,7 +6,7 @@ interface LiveCommentItemProps {
   comment: string;
 }
 
-export const LiveCommentItem: React.FC<LiveCommentItemProps> = ({ name, comment }) => {
+const LiveCommentItemComponent: React.FC<LiveCommentItemProps> = ({ name, comment }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.name}>{name}</Text>
@@ -16,6 +16,9 @@ export const LiveCommentItem: React.FC<LiveCommentItemProps> = ({ name, comment 
     </View>
   );
 };
+
+// Memoize component to prevent unnecessary re-renders
+export const LiveCommentItem = React.memo(LiveCommentItemComponent);
 
 const styles = StyleSheet.create({
   container: {

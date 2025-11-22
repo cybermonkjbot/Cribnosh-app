@@ -1,7 +1,7 @@
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AlertCircle, Play, Send, ShoppingCart, UserRound } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Pressable, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -32,7 +32,7 @@ interface MealVideoCardProps {
   comments?: number;
 }
 
-export function MealVideoCard({
+function MealVideoCardComponent({
   videoSource,
   title,
   description,
@@ -578,4 +578,7 @@ export function MealVideoCard({
       </View>
     </View>
   );
-} 
+}
+
+// Memoize component to prevent unnecessary re-renders
+export const MealVideoCard = React.memo(MealVideoCardComponent); 

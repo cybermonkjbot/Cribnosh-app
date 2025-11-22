@@ -109,6 +109,7 @@ export const customerGetNearbyChefs = action({
           city: chef.location?.city || '',
         },
         distance: chef.distance || 0,
+        deliveryTime: chef.deliveryTime || null,
         profileImage: chef.profileImage,
         isAvailable: chef.isAvailable,
         status: chef.status,

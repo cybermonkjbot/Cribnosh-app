@@ -254,6 +254,7 @@ import type * as utils_mealRecommendations from "../utils/mealRecommendations.js
 import type * as utils_offerDiscount from "../utils/offerDiscount.js";
 import type * as utils_priceEstimation from "../utils/priceEstimation.js";
 import type * as utils_regionValidation from "../utils/regionValidation.js";
+import type * as utils_timeCalculations from "../utils/timeCalculations.js";
 import type * as utils_userPreferencesFilter from "../utils/userPreferencesFilter.js";
 
 import type {
@@ -509,6 +510,7 @@ declare const fullApi: ApiFromModules<{
   "utils/offerDiscount": typeof utils_offerDiscount;
   "utils/priceEstimation": typeof utils_priceEstimation;
   "utils/regionValidation": typeof utils_regionValidation;
+  "utils/timeCalculations": typeof utils_timeCalculations;
   "utils/userPreferencesFilter": typeof utils_userPreferencesFilter;
 }>;
 

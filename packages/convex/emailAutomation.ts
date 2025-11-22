@@ -470,21 +470,69 @@ export const sendEmail = internalAction({
   returns: v.string(), // Return email ID
   handler: async (ctx, args): Promise<string> => {
     // Get the template configuration
-    const template: any = await ctx.runQuery(api.queries.emailConfig.getTemplate, { 
+    let template: any = await ctx.runQuery(api.queries.emailConfig.getTemplate, { 
       templateId: args.templateId 
     });
+    
+    // Auto-create campaign-template if it doesn't exist
+    if (!template && args.templateId === "campaign-template") {
+      console.log("Campaign template not found, creating it...");
+      try {
+        await ctx.runMutation(api.mutations.email.initializeCampaignTemplate, {});
+        // Try to get it again
+        template = await ctx.runQuery(api.queries.emailConfig.getTemplate, { 
+          templateId: args.templateId 
+        });
+      } catch (error) {
+        console.error("Failed to auto-create campaign template:", error);
+      }
+    }
     
     if (!template) {
       throw new Error(`Template ${args.templateId} not found`);
     }
 
     // Render the email with the data
+    // Helper function to safely get nested values
+    const getValue = (obj: any, key: string): string => {
+      const value = obj[key];
+      if (value === null || value === undefined) {
+        return '';
+      }
+      if (typeof value === 'object') {
+        return JSON.stringify(value);
+      }
+      return String(value);
+    };
+    
+    // Helper to escape HTML for subject (which should be plain text)
+    const escapeHtml = (text: string): string => {
+      const map: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, (m) => map[m]);
+    };
+    
     const renderedSubject: string = template.subject.replace(/\{\{(\w+)\}\}/g, (match: string, key: string) => {
-      return args.recipientData[key] || match;
+      const value = getValue(args.recipientData, key);
+      return value ? escapeHtml(value) : match;
     });
     
-    const renderedHtml: string = template.htmlContent.replace(/\{\{(\w+)\}\}/g, (match: string, key: string) => {
-      return args.recipientData[key] || match;
+    // For HTML content, support both {{key}} (escaped) and {{{key}}} (unescaped/raw HTML)
+    let renderedHtml: string = template.htmlContent;
+    // First handle triple braces (raw HTML) - these should not be escaped
+    renderedHtml = renderedHtml.replace(/\{\{\{(\w+)\}\}\}/g, (match: string, key: string) => {
+      const value = getValue(args.recipientData, key);
+      return value || '';
+    });
+    // Then handle double braces (escaped HTML)
+    renderedHtml = renderedHtml.replace(/\{\{(\w+)\}\}/g, (match: string, key: string) => {
+      const value = getValue(args.recipientData, key);
+      return value ? escapeHtml(value) : match;
     });
 
     // Send via Resend

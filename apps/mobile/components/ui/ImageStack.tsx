@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 interface ImageStackItem {
   _id?: string;
@@ -87,6 +88,8 @@ const StackedImage: React.FC<StackedImageProps> = ({
       <Image
         source={{ uri: imageUrl }}
         style={styles.stackedImageContent}
+        contentFit="cover"
+        cachePolicy="memory-disk"
         onError={() => {
           setImageError(true);
         }}

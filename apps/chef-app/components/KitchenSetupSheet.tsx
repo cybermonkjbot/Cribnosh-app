@@ -3,7 +3,7 @@ import { api } from '@/convex/_generated/api';
 import { getSessionToken } from '@/lib/convexClient';
 import { useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -39,65 +39,137 @@ interface SetupItem {
   onPress?: () => void;
 }
 
+interface SetupItemComponentProps {
+  item: SetupItem;
+  index: number;
+  totalItems: number;
+  onPress: (item: SetupItem) => void;
+  checkIconSVG: string;
+  circleIconSVG: string;
+  chevronRightIconSVG: string;
+}
+
+// Memoized setup item component to prevent unnecessary re-renders
+const SetupItemComponent: React.FC<SetupItemComponentProps> = React.memo(({
+  item,
+  index,
+  totalItems,
+  onPress,
+  checkIconSVG,
+  circleIconSVG,
+  chevronRightIconSVG,
+}) => {
+  const handlePress = useCallback(() => {
+    onPress(item);
+  }, [item, onPress]);
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.setupItem,
+        index === totalItems - 1 && styles.lastItem
+      ]}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.itemLeft}>
+        <View style={styles.iconContainer}>
+          {item.completed ? (
+            <SvgXml xml={checkIconSVG} width={24} height={24} />
+          ) : (
+            <SvgXml xml={circleIconSVG} width={24} height={24} />
+          )}
+        </View>
+        <View style={styles.itemContent}>
+          <Text style={[
+            styles.itemTitle,
+            item.completed && styles.itemTitleCompleted
+          ]}>
+            {item.title}
+          </Text>
+          <Text style={styles.itemDescription}>
+            {item.description}
+          </Text>
+        </View>
+      </View>
+      {!item.completed && (
+        <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+      )}
+    </TouchableOpacity>
+  );
+});
+
+SetupItemComponent.displayName = 'SetupItemComponent';
+
 export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { chef, user, sessionToken: authSessionToken } = useChefAuth();
-  const [isLoading, setIsLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Get session token
+  // Get session token - memoized to prevent unnecessary re-runs
+  const loadToken = useCallback(async () => {
+    if (authSessionToken) {
+      setSessionToken(authSessionToken);
+    } else {
+      const token = await getSessionToken();
+      setSessionToken(token);
+    }
+  }, [authSessionToken]);
+
   useEffect(() => {
-    const loadToken = async () => {
-      if (authSessionToken) {
-        setSessionToken(authSessionToken);
-      } else {
-        const token = await getSessionToken();
-        setSessionToken(token);
-      }
-    };
     if (isVisible && user) {
       loadToken();
     }
-  }, [isVisible, user, authSessionToken]);
+  }, [isVisible, user, loadToken]);
 
   // Get chef profile data (use chef from context, but query if needed for fresh data)
   // We already have chef from useChefAuth, so we can use that directly
 
+  // All queries run in parallel automatically - Convex handles this efficiently
   // Get kitchen ID
+  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
     chef?._id ? { chefId: chef._id } : 'skip'
   );
 
-  // Get kitchen details
+  // Get kitchen details (depends on kitchenId, but Convex optimizes this)
   const kitchen = useQuery(
     api.queries.kitchens.getKitchenById,
     kitchenId ? { kitchenId } : 'skip'
   );
 
+  // These queries can all run in parallel once sessionToken is available
+  const queryArgs = useMemo(() => ({
+    hasChef: !!chef?._id,
+    hasToken: !!sessionToken,
+    chefId: chef?._id,
+    sessionToken: sessionToken || undefined,
+  }), [chef?._id, sessionToken]);
+
   // Get onboarding completion status
   const isOnboardingComplete = useQuery(
     api.queries.chefCourses.isOnboardingComplete,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
   // Get basic onboarding status
   const isBasicOnboardingComplete = useQuery(
     api.queries.chefs.isBasicOnboardingComplete,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
   // Get bank accounts
   const bankAccounts = useQuery(
     api.queries.chefBankAccounts.getByChefId,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
   // Get documents summary
   const documentsSummary = useQuery(
     api.queries.chefDocuments.getSummary,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
   // Check what's missing
@@ -185,17 +257,22 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
     return items;
   }, [chef, user, kitchenId, kitchen, isOnboardingComplete, bankAccounts, documentsSummary]);
 
-  const completedCount = setupItems.filter(item => item.completed).length;
-  const totalCount = setupItems.length;
-  const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  // Memoize progress calculations
+  const { completedCount, totalCount, progressPercentage } = useMemo(() => {
+    const completed = setupItems.filter(item => item.completed).length;
+    const total = setupItems.length;
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
+    return { completedCount: completed, totalCount: total, progressPercentage: percentage };
+  }, [setupItems]);
 
-  useEffect(() => {
-    if (isVisible) {
-      setIsLoading(false);
-    }
-  }, [isVisible]);
+  // Determine if we have enough data to show content (progressive loading)
+  const hasMinimumData = useMemo(() => {
+    // We can show content as soon as we have chef and user data
+    // Queries will update progressively
+    return !!chef && !!user;
+  }, [chef, user]);
 
-  const handleItemPress = (item: SetupItem) => {
+  const handleItemPress = useCallback((item: SetupItem) => {
     if (item.route) {
       onClose();
       // Small delay to allow sheet to close
@@ -205,7 +282,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
     } else if (item.onPress) {
       item.onPress();
     }
-  };
+  }, [onClose, router]);
 
   if (!isVisible) return null;
 
@@ -225,7 +302,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
           </TouchableOpacity>
         </View>
 
-        {isLoading ? (
+        {!hasMinimumData ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#094327" />
           </View>
@@ -255,39 +332,16 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
             <View style={styles.itemsSection}>
               <Text style={styles.sectionTitle}>What's Missing</Text>
               {setupItems.map((item, index) => (
-                <TouchableOpacity
+                <SetupItemComponent
                   key={item.id}
-                  style={[
-                    styles.setupItem,
-                    index === setupItems.length - 1 && styles.lastItem
-                  ]}
-                  onPress={() => handleItemPress(item)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.itemLeft}>
-                    <View style={styles.iconContainer}>
-                      {item.completed ? (
-                        <SvgXml xml={checkIconSVG} width={24} height={24} />
-                      ) : (
-                        <SvgXml xml={circleIconSVG} width={24} height={24} />
-                      )}
-                    </View>
-                    <View style={styles.itemContent}>
-                      <Text style={[
-                        styles.itemTitle,
-                        item.completed && styles.itemTitleCompleted
-                      ]}>
-                        {item.title}
-                      </Text>
-                      <Text style={styles.itemDescription}>
-                        {item.description}
-                      </Text>
-                    </View>
-                  </View>
-                  {!item.completed && (
-                    <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
-                  )}
-                </TouchableOpacity>
+                  item={item}
+                  index={index}
+                  totalItems={setupItems.length}
+                  onPress={handleItemPress}
+                  checkIconSVG={checkIconSVG}
+                  circleIconSVG={circleIconSVG}
+                  chevronRightIconSVG={chevronRightIconSVG}
+                />
               ))}
             </View>
 

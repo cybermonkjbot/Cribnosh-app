@@ -1,10 +1,9 @@
 import { useMeals } from '@/hooks/useMeals';
+import { useUserLocation } from '@/hooks/useUserLocation';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { showError } from '../../lib/GlobalToastManager';
-import { PopularMealsSectionEmpty } from './PopularMealsSectionEmpty';
 import { PopularMealsSectionSkeleton } from './PopularMealsSectionSkeleton';
 import { SentimentRating } from './SentimentRating';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
@@ -32,7 +31,7 @@ interface RecommendedMealsSectionProps {
   isFirstSection?: boolean;
 }
 
-export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = ({
+const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> = ({
   onMealPress,
   onSeeAllPress,
   title = 'Recommended For You',
@@ -43,6 +42,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
 }) => {
   const { isAuthenticated, user } = useAuthContext();
   const { getRecommendedMeals, isLoading: isLoadingMeals } = useMeals();
+  const locationState = useUserLocation();
   
   const [recommendationsData, setRecommendationsData] = useState<any>(null);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
@@ -55,7 +55,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
         try {
           setIsLoadingRecommendations(true);
           setRecommendationsError(null);
-          const result = await getRecommendedMeals(limit);
+          const result = await getRecommendedMeals(limit, locationState.location || null);
           if (result.success) {
             setRecommendationsData({ success: true, data: { recommendations: result.data.meals } });
           }
@@ -69,7 +69,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
     } else {
       setRecommendationsData(null);
     }
-  }, [isAuthenticated, limit, getRecommendedMeals]);
+  }, [isAuthenticated, limit, getRecommendedMeals, locationState.location]);
 
   // Transform API data to component format
   const transformMealData = useCallback((apiMeal: any): Meal | null => {
@@ -90,7 +90,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
       isPopular: true,
       isNew: meal.is_new || false,
       sentiment: meal.sentiment || 'solid',
-      deliveryTime: meal.delivery_time || meal.deliveryTime || '30 min',
+      deliveryTime: meal.deliveryTime || meal.delivery_time || null, // Use backend-calculated delivery time
     };
   }, []);
 
@@ -251,7 +251,7 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
           </Text>
           
           {shouldShowSeeAll && (
-            <TouchableOpacity onPress={onSeeAllPress}>
+            <TouchableOpacity onPress={onSeeAllPress} hitSlop={12}>
               <Text style={{
                 color: '#ef4444',
                 fontSize: 14,
@@ -293,3 +293,5 @@ export const RecommendedMealsSection: React.FC<RecommendedMealsSectionProps> = (
     </View>
   );
 };
+
+export const RecommendedMealsSection = React.memo(RecommendedMealsSectionComponent);

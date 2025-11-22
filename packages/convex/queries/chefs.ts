@@ -2,6 +2,19 @@ import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { internalQuery, query } from '../_generated/server';
 import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
+import { calculateDeliveryTimeFromLocations, formatDeliveryTime } from '../utils/timeCalculations';
+
+/**
+ * Helper function to check if a chef has any meals
+ * Returns true if chef has at least one meal (regardless of status)
+ */
+async function chefHasMeals(ctx: any, chefId: Id<"chefs">): Promise<boolean> {
+  const meals = await ctx.db
+    .query('meals')
+    .filter(q => q.eq(q.field('chefId'), chefId))
+    .first();
+  return meals !== null;
+}
 
 // Chef document validator based on schema
 const chefDocValidator = v.object({
@@ -113,8 +126,17 @@ export const getAllChefLocations = query({
     // Fetch all chefs (will be optimized with index in schema if needed)
     const allChefs = await ctx.db.query('chefs').collect();
     
+    // Filter out chefs with no meals
+    const chefsWithMeals = await Promise.all(
+      allChefs.map(async (chef) => {
+        const hasMeals = await chefHasMeals(ctx, chef._id);
+        return hasMeals ? chef : null;
+      })
+    );
+    const filteredChefs = chefsWithMeals.filter((chef): chef is NonNullable<typeof chef> => chef !== null);
+    
     // Map to location format
-    const mapped = allChefs.map(chef => ({
+    const mapped = filteredChefs.map(chef => ({
       chefId: chef._id,
       userId: chef.userId,
       city: chef.location.city,
@@ -148,13 +170,22 @@ export const getAll = query({
     // Fetch all chefs (will be optimized with index in schema if needed)
     const allChefs = await ctx.db.query('chefs').collect();
     
+    // Filter out chefs with no meals
+    const chefsWithMeals = await Promise.all(
+      allChefs.map(async (chef) => {
+        const hasMeals = await chefHasMeals(ctx, chef._id);
+        return hasMeals ? chef : null;
+      })
+    );
+    const filteredChefs = chefsWithMeals.filter((chef): chef is NonNullable<typeof chef> => chef !== null);
+    
     // Apply pagination
     if (limit !== undefined) {
-      return allChefs.slice(offset, offset + limit);
+      return filteredChefs.slice(offset, offset + limit);
     }
     
     // If no limit, return all from offset
-    return allChefs.slice(offset);
+    return filteredChefs.slice(offset);
   }
 });
 
@@ -162,7 +193,18 @@ export const getChefById = query({
   args: { chefId: v.id('chefs') },
   returns: v.union(chefDocValidator, v.null()),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.chefId);
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      return null;
+    }
+    
+    // Filter out chefs with no meals
+    const hasMeals = await chefHasMeals(ctx, args.chefId);
+    if (!hasMeals) {
+      return null;
+    }
+    
+    return chef;
   }
 });
 
@@ -317,56 +359,68 @@ export const isBasicOnboardingComplete = query({
 });
 
 // Chef with distance (for location queries)
-const chefWithDistanceValidator = v.union(
-  chefDocValidator,
-  v.object({
-    _id: v.id("chefs"),
-    _creationTime: v.number(),
-    userId: v.id("users"),
-    name: v.string(),
-    bio: v.string(),
-    specialties: v.array(v.string()),
-    rating: v.number(),
-    status: v.union(
-      v.literal("active"),
-      v.literal("inactive"),
-      v.literal("suspended"),
-      v.literal("pending_verification")
-    ),
-    location: v.object({
-      city: v.string(),
-      coordinates: v.array(v.number()),
-    }),
-    isAvailable: v.optional(v.boolean()),
-    availableDays: v.optional(v.array(v.string())),
-    availableHours: v.optional(v.object({})),
-    maxOrdersPerDay: v.optional(v.number()),
-    advanceBookingDays: v.optional(v.number()),
-    specialInstructions: v.optional(v.string()),
+// Extends chefDocValidator to include distance field
+const chefWithDistanceValidator = v.object({
+  _id: v.id("chefs"),
+  _creationTime: v.number(),
+  userId: v.id("users"),
+  name: v.string(),
+  bio: v.string(),
+  specialties: v.array(v.string()),
+  rating: v.number(),
+  status: v.union(
+    v.literal("active"),
+    v.literal("inactive"),
+    v.literal("suspended"),
+    v.literal("pending_verification")
+  ),
+  location: v.object({
+    city: v.string(),
+    coordinates: v.array(v.number()),
+  }),
+  isAvailable: v.optional(v.boolean()),
+  availableDays: v.optional(v.array(v.string())),
+  availableHours: v.optional(v.object({})),
+  maxOrdersPerDay: v.optional(v.number()),
+  advanceBookingDays: v.optional(v.number()),
+  specialInstructions: v.optional(v.string()),
+  profileImage: v.optional(v.string()),
+  onboardingDraft: v.optional(v.object({
+    name: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    specialties: v.optional(v.array(v.string())),
+    city: v.optional(v.string()),
+    coordinates: v.optional(v.array(v.number())),
     profileImage: v.optional(v.string()),
-    verificationStatus: v.optional(v.union(
-      v.literal("pending"),
-      v.literal("verified"),
-      v.literal("rejected")
-    )),
-    verificationDocuments: v.optional(v.object({
-      healthPermit: v.boolean(),
-      insurance: v.boolean(),
-      backgroundCheck: v.boolean(),
-      certifications: v.array(v.string())
-    })),
-    performance: v.optional(v.object({
-      totalOrders: v.number(),
-      completedOrders: v.number(),
-      averageRating: v.number(),
-      totalEarnings: v.number(),
-      lastOrderDate: v.optional(v.number())
-    })),
-    complianceTrainingSkipped: v.optional(v.boolean()),
-    updatedAt: v.optional(v.number()),
-    distance: v.number(),
-  })
-);
+    kitchenName: v.optional(v.string()),
+    kitchenAddress: v.optional(v.string()),
+    kitchenType: v.optional(v.string()),
+    kitchenImages: v.optional(v.array(v.string())),
+    currentStep: v.optional(v.string()),
+  })),
+  verificationStatus: v.optional(v.union(
+    v.literal("pending"),
+    v.literal("verified"),
+    v.literal("rejected")
+  )),
+  verificationDocuments: v.optional(v.object({
+    healthPermit: v.boolean(),
+    insurance: v.boolean(),
+    backgroundCheck: v.boolean(),
+    certifications: v.array(v.string())
+  })),
+  performance: v.optional(v.object({
+    totalOrders: v.number(),
+    completedOrders: v.number(),
+    averageRating: v.number(),
+    totalEarnings: v.number(),
+    lastOrderDate: v.optional(v.number())
+  })),
+  complianceTrainingSkipped: v.optional(v.boolean()),
+  updatedAt: v.optional(v.number()),
+  distance: v.number(),
+  deliveryTime: v.optional(v.string()),
+});
 
 export const findNearbyChefs = query({
   args: { latitude: v.number(), longitude: v.number(), maxDistanceKm: v.optional(v.number()) },
@@ -382,7 +436,16 @@ export const findNearbyChefs = query({
       .filter(q => q.eq(q.field('status'), 'active'))
       .collect();
     
-    const withDistance = chefs
+    // Filter out chefs with no meals
+    const chefsWithMeals = await Promise.all(
+      chefs.map(async (chef) => {
+        const hasMeals = await chefHasMeals(ctx, chef._id);
+        return hasMeals ? chef : null;
+      })
+    );
+    const filteredChefs = chefsWithMeals.filter((chef): chef is NonNullable<typeof chef> => chef !== null);
+    
+    const withDistance = filteredChefs
       .filter(chef => {
         // Filter out chefs without location data
         return chef.location && 
@@ -400,7 +463,17 @@ export const findNearbyChefs = query({
         const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(latitude)) * Math.cos(toRad(chefLat)) * Math.sin(dLng/2) ** 2;
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         const distance = earthRadiusKm * c;
-        return { ...chef, distance };
+        
+        // Calculate delivery time based on distance
+        const deliveryTimeMinutes = calculateDeliveryTimeFromLocations(
+          chefLat,
+          chefLng,
+          latitude,
+          longitude
+        );
+        const deliveryTime = formatDeliveryTime(deliveryTimeMinutes);
+        
+        return { ...chef, distance, deliveryTime };
       });
     
     // Filter by distance and sort: online chefs first, then by distance
@@ -443,8 +516,17 @@ export const getChefsByLocation = query({
       .filter(q => q.eq(q.field('status'), 'active'))
       .collect();
     
+    // Filter out chefs with no meals
+    const chefsWithMeals = await Promise.all(
+      allChefs.map(async (chef) => {
+        const hasMeals = await chefHasMeals(ctx, chef._id);
+        return hasMeals ? chef : null;
+      })
+    );
+    const filteredChefs = chefsWithMeals.filter((chef): chef is NonNullable<typeof chef> => chef !== null);
+    
     // Calculate distances and filter by radius
-    const chefsWithDistance = allChefs.map(chef => {
+    const chefsWithDistance = filteredChefs.map(chef => {
       const chefLat = chef.location?.coordinates?.[0];
       const chefLng = chef.location?.coordinates?.[1];
       
@@ -456,7 +538,16 @@ export const getChefsByLocation = query({
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const distance = earthRadiusKm * c;
       
-      return { ...chef, distance };
+      // Calculate delivery time based on distance
+      const deliveryTimeMinutes = calculateDeliveryTimeFromLocations(
+        chefLat,
+        chefLng,
+        latitude,
+        longitude
+      );
+      const deliveryTime = formatDeliveryTime(deliveryTimeMinutes);
+      
+      return { ...chef, distance, deliveryTime };
     }).filter((chef): chef is NonNullable<typeof chef> => chef !== null && chef.distance <= radiusKm);
     
     // Sort: online chefs first, then by distance
@@ -508,6 +599,15 @@ export const searchChefsByQuery = query({
       .filter(q => q.eq(q.field('status'), 'active'))
       .collect();
     
+    // Filter out chefs with no meals
+    const chefsWithMeals = await Promise.all(
+      chefs.map(async (chef) => {
+        const hasMeals = await chefHasMeals(ctx, chef._id);
+        return hasMeals ? chef : null;
+      })
+    );
+    chefs = chefsWithMeals.filter((chef): chef is NonNullable<typeof chef> => chef !== null);
+    
     // Filter by cuisine if specified
     if (cuisine) {
       chefs = chefs.filter(chef => 
@@ -541,7 +641,16 @@ export const searchChefsByQuery = query({
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const distance = earthRadiusKm * c;
       
-      return { ...chef, distance };
+      // Calculate delivery time based on distance
+      const deliveryTimeMinutes = calculateDeliveryTimeFromLocations(
+        chefLat,
+        chefLng,
+        latitude,
+        longitude
+      );
+      const deliveryTime = formatDeliveryTime(deliveryTimeMinutes);
+      
+      return { ...chef, distance, deliveryTime };
     }).filter((chef): chef is NonNullable<typeof chef> => chef !== null && chef.distance <= radiusKm);
     
     // Sort: online chefs first, then by distance
@@ -651,6 +760,11 @@ export const getFavoriteChefs = query({
             const chefId = favorite.favoriteId as Id<"chefs">;
             const chef = await ctx.db.get(chefId);
             if (chef && chef.status === 'active') {
+              // Check if chef has meals
+              const hasMeals = await chefHasMeals(ctx, chefId);
+              if (!hasMeals) {
+                return null;
+              }
               return {
                 ...chef,
                 isFavorited: true,
@@ -732,8 +846,17 @@ export const getTopRatedChefs = query({
     try {
       const chefs = await ctx.db.query('chefs').collect();
       
+      // Filter out chefs with no meals
+      const chefsWithMeals = await Promise.all(
+        chefs.map(async (chef) => {
+          const hasMeals = await chefHasMeals(ctx, chef._id);
+          return hasMeals ? chef : null;
+        })
+      );
+      const filteredChefs = chefsWithMeals.filter((chef): chef is NonNullable<typeof chef> => chef !== null);
+      
       // Sort: online chefs first, then by rating, and limit results
-      const topChefs = chefs
+      const topChefs = filteredChefs
         .filter(chef => chef.status === 'active')
         .sort((a, b) => {
           // Prioritize online chefs (isAvailable === true)

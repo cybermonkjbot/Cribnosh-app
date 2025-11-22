@@ -1,9 +1,9 @@
-import { useSupport } from '@/hooks/useSupport';
-import { Stack, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { api } from '@/convex/_generated/api';
+import { useSupport } from '@/hooks/useSupport';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { Stack, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -117,10 +117,10 @@ export default function HelpSupportScreen() {
   const [selectedHelpCategory, setSelectedHelpCategory] = useState<{
     title: string;
     content: string;
-    sections?: Array<{
+    sections?: {
       title: string;
       content: string;
-    }>;
+    }[];
   } | null>(null);
 
   // Get the most recent order
@@ -416,6 +416,7 @@ export default function HelpSupportScreen() {
                 <TouchableOpacity 
                   style={styles.olderOrderLink}
                   onPress={handleSelectOlderOrder}
+                  hitSlop={12}
                 >
                   <Text style={styles.olderOrderText}>Select a much older order</Text>
                 </TouchableOpacity>

@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { Avatar } from './Avatar';
@@ -741,6 +741,31 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
     }
   }, [messages, retryCount, handleSendMessage, showError]);
 
+  // Memoized render function for FlatList
+  const renderMessageItem = useCallback(({ item: message }: { item: Message }) => {
+    return (
+      <View>
+        {message.type === 'user' ? (
+          <UserMessage
+            message={message.content}
+            userAvatarUri={userAvatarUri}
+          />
+        ) : (
+          <AIMessage
+            message={message.content}
+            products={message.products}
+            title={message.title}
+            onAddToCart={message.products && message.products.length > 0 ? () => handleAddToCart(message) : undefined}
+            isLoadingCart={isAddingToCart}
+          />
+        )}
+      </View>
+    );
+  }, [userAvatarUri, handleAddToCart, isAddingToCart]);
+
+  // Memoized key extractor
+  const keyExtractor = useCallback((item: Message) => item.id.toString(), []);
+
   // Animated styles
   const animatedContainerStyle = useAnimatedStyle(() => ({
     transform: [
@@ -827,40 +852,19 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
           </View>
 
           {/* Messages */}
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingVertical: 20 }}
-            showsVerticalScrollIndicator={false}
-            automaticallyAdjustKeyboardInsets={true}
-          >
-            {messages.length === 0 ? (
-              // Empty state
+          <FlatList
+            data={messages}
+            keyExtractor={keyExtractor}
+            renderItem={renderMessageItem}
+            ListEmptyComponent={
               <View style={{ padding: 20, alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                 <Text style={{ fontSize: 16, color: COLORS.gray[600], textAlign: 'center' }}>
                   Start a conversation with CribNosh AI to discover amazing meals!
                 </Text>
               </View>
-            ) : (
+            }
+            ListFooterComponent={
               <>
-            {messages.map((message) => (
-              <View key={message.id}>
-                {message.type === 'user' ? (
-                  <UserMessage
-                    message={message.content}
-                    userAvatarUri={userAvatarUri}
-                  />
-                ) : (
-                  <AIMessage
-                    message={message.content}
-                    products={message.products}
-                    title={message.title}
-                        onAddToCart={message.products && message.products.length > 0 ? () => handleAddToCart(message) : undefined}
-                        isLoadingCart={isAddingToCart}
-                  />
-                )}
-              </View>
-            ))}
-                
                 {/* Loading indicator */}
                 {isLoadingMessage && (
                   <View style={{ paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' }}>
@@ -912,8 +916,18 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
                   </View>
                 )}
               </>
-            )}
-          </ScrollView>
+            }
+            contentContainerStyle={{ paddingVertical: 20, flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            automaticallyAdjustKeyboardInsets={true}
+            style={{ flex: 1 }}
+            // Performance optimizations
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+            initialNumToRender={10}
+            updateCellsBatchingPeriod={50}
+          />
 
           {/* Chat Input */}
           <ChatInput onSend={handleSendMessage} isLoading={isLoadingMessage || isSendingMessage} />

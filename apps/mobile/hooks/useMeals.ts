@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { api } from '@/convex/_generated/api';
 import { useToast } from "@/lib/ToastContext";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { useCallback, useState } from "react";
 
 export const useMeals = () => {
   const { showToast } = useToast();
@@ -282,7 +282,7 @@ export const useMeals = () => {
    * Get recommended meals
    */
   const getRecommendedMeals = useCallback(
-    async (limit?: number) => {
+    async (limit?: number, location?: { latitude: number; longitude: number } | null) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -297,6 +297,8 @@ export const useMeals = () => {
           {
             sessionToken,
             limit,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
           }
         );
 
@@ -333,7 +335,7 @@ export const useMeals = () => {
    * Get random meals
    */
   const getRandomMeals = useCallback(
-    async (limit?: number) => {
+    async (limit?: number, location?: { latitude: number; longitude: number } | null) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -344,6 +346,8 @@ export const useMeals = () => {
           {
             sessionToken: sessionToken || undefined,
             limit,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
           }
         );
 
@@ -607,7 +611,7 @@ export const useMeals = () => {
    * Get takeaway items
    */
   const getTakeawayItems = useCallback(
-    async (limit?: number, page?: number) => {
+    async (limit?: number, page?: number, location?: { latitude: number; longitude: number } | null) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -621,6 +625,8 @@ export const useMeals = () => {
           sessionToken,
           limit,
           page,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
         });
 
         if (result.success === false) {
@@ -703,7 +709,7 @@ export const useMeals = () => {
    * Get too fresh to waste items
    */
   const getTooFreshItems = useCallback(
-    async (limit?: number, page?: number) => {
+    async (limit?: number, page?: number, location?: { latitude: number; longitude: number } | null) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -717,6 +723,8 @@ export const useMeals = () => {
           sessionToken,
           limit,
           page,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
         });
 
         if (result.success === false) {

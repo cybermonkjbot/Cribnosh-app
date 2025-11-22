@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
 import { Play, Clock } from 'lucide-react-native';
 
@@ -18,8 +18,8 @@ interface ContentGridProps {
   numColumns?: number;
 }
 
-export function ContentGrid({ items, onItemPress, numColumns = 3 }: ContentGridProps) {
-  const renderItem = ({ item }: { item: ContentItem }) => {
+function ContentGridComponent({ items, onItemPress, numColumns = 3 }: ContentGridProps) {
+  const renderItem = useCallback(({ item }: { item: ContentItem }) => {
     return (
       <TouchableOpacity
         style={styles.item}
@@ -63,22 +63,33 @@ export function ContentGrid({ items, onItemPress, numColumns = 3 }: ContentGridP
         )}
       </TouchableOpacity>
     );
-  };
+  }, [onItemPress]);
+
+  const keyExtractor = useCallback((item: ContentItem) => item.id, []);
 
   return (
     <FlatList
       data={items}
       renderItem={renderItem}
       numColumns={numColumns}
-      keyExtractor={(item) => item.id}
+      keyExtractor={keyExtractor}
       contentContainerStyle={styles.container}
       columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
       showsVerticalScrollIndicator={false}
       scrollEnabled={false}
       nestedScrollEnabled={true}
+      // Performance optimizations
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={6}
+      windowSize={5}
+      initialNumToRender={6}
+      updateCellsBatchingPeriod={50}
     />
   );
 }
+
+// Memoize component to prevent unnecessary re-renders
+export const ContentGrid = React.memo(ContentGridComponent);
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);

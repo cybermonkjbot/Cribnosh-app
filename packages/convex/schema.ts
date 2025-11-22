@@ -402,6 +402,7 @@ export default defineSchema({
     carbs: v.optional(v.string()),
     prepTime: v.optional(v.string()),
     deliveryTime: v.optional(v.string()),
+    expiresAt: v.optional(v.number()), // Expiration timestamp for "Too Fresh To Waste" items
     dietCompatibility: v.optional(v.number()),
     dietMessage: v.optional(v.string()),
     chefTips: v.optional(v.array(v.string())),
@@ -2121,6 +2122,8 @@ export default defineSchema({
     senderName: v.string(),
     senderEmail: v.string(),
     replyToEmail: v.string(),
+    htmlContent: v.string(),
+    fromEmail: v.optional(v.string()),
     customFields: v.record(v.string(), v.any()),
     styling: v.object({
       primaryColor: v.string(),

@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import { useAuthState } from '../hooks/useAuthState';
 
 interface AuthContextType {
@@ -27,31 +27,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const authState = useAuthState();
   const [isSessionExpired, setIsSessionExpired] = useState(false);
 
-  const handleSessionExpired = () => {
+  const handleSessionExpired = useCallback(() => {
     console.log("Session expired - showing modal");
     setIsSessionExpired(true);
-  };
+  }, []);
 
-  const clearSessionExpired = () => {
+  const clearSessionExpired = useCallback(() => {
     setIsSessionExpired(false);
-  };
+  }, []);
 
   // Enhanced checkTokenExpiration that triggers session expired modal
-  const checkTokenExpirationWithModal = () => {
+  const checkTokenExpirationWithModal = useCallback(() => {
     const wasExpired = authState.checkTokenExpiration();
     if (wasExpired) {
       handleSessionExpired();
     }
     return wasExpired;
-  };
+  }, [authState, handleSessionExpired]);
 
-  const contextValue = {
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
     ...authState,
     isSessionExpired,
     checkTokenExpiration: checkTokenExpirationWithModal,
     handleSessionExpired,
     clearSessionExpired,
-  };
+  }), [
+    authState,
+    isSessionExpired,
+    checkTokenExpirationWithModal,
+    handleSessionExpired,
+    clearSessionExpired,
+  ]);
 
   return (
     <AuthContext.Provider value={contextValue}>

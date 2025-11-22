@@ -147,7 +147,7 @@ const getStatusStyle = (status: OrderStatus) => {
   }
 };
 
-export const OrderCard: React.FC<OrderCardProps> = ({
+const OrderCardComponent: React.FC<OrderCardProps> = ({
   time,
   description,
   price,
@@ -335,6 +335,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     </View>
   );
 };
+
+// Memoize component to prevent unnecessary re-renders
+export const OrderCard = React.memo(OrderCardComponent);
 
 const styles = StyleSheet.create({
   container: {

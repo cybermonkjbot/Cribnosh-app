@@ -97,7 +97,9 @@ export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: 
     if (isAuthenticated) {
       const loadRandomMeals = async () => {
         try {
-          const result = await getRandomMeals(20);
+          // Note: ShakeToEatFlow doesn't have location context, so we pass null
+          // This is acceptable as delivery times are optional
+          const result = await getRandomMeals(20, null);
           if (result.success) {
             setRandomMealsData({ success: true, data: result.data });
           }

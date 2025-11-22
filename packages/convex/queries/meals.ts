@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
 import { QueryCtx, internalQuery, query } from '../_generated/server';
 import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
+import { getFormattedDeliveryTime } from '../utils/timeCalculations';
 import { filterAndRankMealsByPreferences, getUserPreferences } from '../utils/userPreferencesFilter';
 
 interface MealDoc {
@@ -899,9 +900,11 @@ export const getAvailable = query({
     userId: v.optional(v.id('users')),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   },
   returns: v.array(v.any()),
-  handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number; offset?: number }) => {
+  handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number; offset?: number; latitude?: number; longitude?: number }) => {
     const meals = await ctx.db.query('meals')
       .filter((q) => q.or(
         q.eq(q.field('status'), 'available'),
@@ -939,6 +942,37 @@ export const getAvailable = query({
       const chef = chefMap.get(meal.chefId);
       const reviews = reviewMap.get(meal._id) || [];
       
+      // Calculate delivery time if user location and chef location are available
+      let deliveryTime: string | null = null;
+      if (args.latitude && args.longitude && chef) {
+        const chefLocation = (chef as any).location;
+        if (chefLocation?.coordinates && Array.isArray(chefLocation.coordinates) && chefLocation.coordinates.length === 2) {
+          const [chefLat, chefLng] = chefLocation.coordinates;
+          const mealAny = meal as { prepTime?: string; prep_time?: string };
+          // Parse prep time if available (format: "20 min" or "20")
+          let prepTimeMinutes: number | null = null;
+          if (mealAny.prepTime || mealAny.prep_time) {
+            const prepTimeStr = mealAny.prepTime || mealAny.prep_time || '';
+            const match = prepTimeStr.match(/(\d+)/);
+            if (match) {
+              prepTimeMinutes = parseInt(match[1], 10);
+            }
+          }
+          try {
+            deliveryTime = getFormattedDeliveryTime(
+              chefLat,
+              chefLng,
+              args.latitude,
+              args.longitude,
+              prepTimeMinutes
+            );
+          } catch (error) {
+            // If calculation fails, leave deliveryTime as null
+            console.error('Error calculating delivery time:', error);
+          }
+        }
+      }
+      
       return {
         ...meal,
         chef: chef ? {
@@ -961,7 +995,8 @@ export const getAvailable = query({
         reviewCount: reviews.length,
         averageRating: reviews.length > 0 
           ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
-          : meal.rating || 0
+          : meal.rating || 0,
+        deliveryTime,
       };
     });
 
@@ -1261,9 +1296,11 @@ export const getRandomMeals = query({
   args: {
     userId: v.optional(v.id('users')),
     limit: v.optional(v.number()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   },
   returns: v.array(v.any()),
-  handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number }) => {
+  handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number; latitude?: number; longitude?: number }) => {
     const limit = args.limit || 20;
     
     try {
@@ -1298,6 +1335,38 @@ export const getRandomMeals = query({
       // Build meals with chef data for preference filtering
       const mealsWithChefData = allMeals.map((meal: MealDoc) => {
         const chef = chefMap.get(meal.chefId);
+        
+        // Calculate delivery time if user location and chef location are available
+        let deliveryTime: string | null = null;
+        if (args.latitude && args.longitude && chef) {
+          const chefLocation = (chef as any).location;
+          if (chefLocation?.coordinates && Array.isArray(chefLocation.coordinates) && chefLocation.coordinates.length === 2) {
+            const [chefLat, chefLng] = chefLocation.coordinates;
+            const mealAny = meal as { prepTime?: string; prep_time?: string };
+            // Parse prep time if available (format: "20 min" or "20")
+            let prepTimeMinutes: number | null = null;
+            if (mealAny.prepTime || mealAny.prep_time) {
+              const prepTimeStr = mealAny.prepTime || mealAny.prep_time || '';
+              const match = prepTimeStr.match(/(\d+)/);
+              if (match) {
+                prepTimeMinutes = parseInt(match[1], 10);
+              }
+            }
+            try {
+              deliveryTime = getFormattedDeliveryTime(
+                chefLat,
+                chefLng,
+                args.latitude,
+                args.longitude,
+                prepTimeMinutes
+              );
+            } catch (error) {
+              // If calculation fails, leave deliveryTime as null
+              console.error('Error calculating delivery time:', error);
+            }
+          }
+        }
+        
         return {
           ...meal,
           chef: chef ? {
@@ -1317,6 +1386,7 @@ export const getRandomMeals = query({
             rating: 0,
             profileImage: null,
           },
+          deliveryTime,
         };
       });
       

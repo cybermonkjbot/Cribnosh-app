@@ -164,6 +164,12 @@ function NoticesCarousel({ notices, renderNoticeItem }: NoticesCarouselProps) {
             flatListRef.current?.scrollToIndex({ index: info.index, animated: false });
           });
         }}
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        initialNumToRender={3}
+        updateCellsBatchingPeriod={50}
       />
       
       {/* Pagination dots */}

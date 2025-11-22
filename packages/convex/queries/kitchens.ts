@@ -1,5 +1,18 @@
 import { v } from "convex/values";
+import { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
+
+/**
+ * Helper function to check if a chef has any meals
+ * Returns true if chef has at least one meal (regardless of status)
+ */
+async function chefHasMeals(ctx: any, chefId: Id<"chefs">): Promise<boolean> {
+  const meals = await ctx.db
+    .query('meals')
+    .filter(q => q.eq(q.field('chefId'), chefId))
+    .first();
+  return meals !== null;
+}
 
 // Get featured video for a kitchen
 export const getFeaturedVideo = query({
@@ -142,10 +155,11 @@ export const getKitchenByChefId = query({
   },
 });
 
-// Get kitchen details by kitchen ID (including chef name)
+// Get kitchen details by kitchen ID or chef ID (including chef name)
+// This flexible version accepts either ID type and normalizes it
 export const getKitchenDetails = query({
   args: {
-    kitchenId: v.id("kitchens"),
+    kitchenId: v.union(v.id("kitchens"), v.id("chefs")),
   },
   returns: v.union(
     v.object({
@@ -159,7 +173,24 @@ export const getKitchenDetails = query({
     v.null()
   ),
   handler: async (ctx, args) => {
-    const kitchen = await ctx.db.get(args.kitchenId);
+    let kitchen: any = null;
+    const id = args.kitchenId as any;
+
+    // Try as kitchen ID first
+    kitchen = await ctx.db.get(id);
+    
+    // If not found as kitchen, try as chef ID
+    if (!kitchen) {
+      const chef = await ctx.db.get(id);
+      if (chef) {
+        // Find kitchen by owner_id (chef userId)
+        kitchen = await ctx.db
+          .query("kitchens")
+          .filter((q) => q.eq(q.field("owner_id"), chef.userId))
+          .first();
+      }
+    }
+
     if (!kitchen) {
       return null;
     }
@@ -171,6 +202,12 @@ export const getKitchenDetails = query({
       .first();
 
     if (!chef) {
+      return null;
+    }
+
+    // Filter out kitchens where the chef has no meals
+    const hasMeals = await chefHasMeals(ctx, chef._id);
+    if (!hasMeals) {
       return null;
     }
 

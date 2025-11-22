@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
-  ScrollView,
+  FlatList,
   Text,
   TouchableOpacity,
   View,
@@ -36,7 +36,7 @@ interface OrderAgainSectionProps {
   hasInitialLoadCompleted?: boolean;
 }
 
-export function OrderAgainSection({
+function OrderAgainSectionComponent({
   isHeaderSticky = false,
   isAuthenticated = false,
   shouldShow = true, // Default to showing
@@ -45,7 +45,7 @@ export function OrderAgainSection({
   onAddEntireOrder,
   hasInitialLoadCompleted = false,
 }: OrderAgainSectionProps) {
-  const horizontalScrollRef = useRef<ScrollView>(null);
+  const horizontalScrollRef = useRef<FlatList<OrderItem>>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   const [modalVisible, setModalVisible] = useState(false);
@@ -104,6 +104,114 @@ export function OrderAgainSection({
     // Return empty array instead of mock data when not authenticated or no API results
     return [];
   }, [recentDishesData, isAuthenticated, transformDishesData]);
+
+  // Item width and gap constants for getItemLayout
+  const ITEM_WIDTH = 120;
+  const ITEM_GAP = 12;
+  const ITEM_TOTAL_WIDTH = ITEM_WIDTH + ITEM_GAP;
+  const PADDING_LEFT = 10;
+
+  // Memoized render function for FlatList
+  const renderOrderItem = useCallback(({ item, index }: { item: OrderItem; index: number }) => {
+    return (
+      <TouchableOpacity
+        style={{
+          width: ITEM_WIDTH,
+          backgroundColor: "#fff",
+          borderRadius: 16,
+          padding: 12,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 3,
+          marginLeft: index === 0 ? 0 : ITEM_GAP,
+        }}
+        onPress={() => {
+          if (onAddItem || onAddEntireOrder) {
+            setSelectedItem(item);
+            setModalVisible(true);
+          } else {
+            onItemPress?.(item);
+          }
+        }}
+        activeOpacity={0.8}
+      >
+            <View style={{ position: "relative", marginBottom: 8 }}>
+              <Image
+                source={{ uri: item.image }}
+                style={{
+                  width: 96,
+                  height: 96,
+                  borderRadius: 12,
+                }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
+          {item.hasBussinBadge && (
+            <View
+              style={{
+                position: "absolute",
+                top: 6,
+                right: 6,
+                backgroundColor: "#ef4444",
+                borderRadius: 12,
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 10,
+                  fontWeight: "600",
+                  marginRight: 2,
+                }}
+              >
+                Bussin
+              </Text>
+              <Ionicons name="flame" size={8} color="#FFE4E1" />
+            </View>
+          )}
+        </View>
+
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "500",
+            color: "#000",
+            marginBottom: 4,
+          }}
+          numberOfLines={1}
+        >
+          {item.name}
+        </Text>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "bold",
+            color: "#000",
+          }}
+        >
+          {item.price}
+        </Text>
+      </TouchableOpacity>
+    );
+  }, [onAddItem, onAddEntireOrder, onItemPress]);
+
+  // Memoized key extractor
+  const keyExtractor = useCallback((item: OrderItem) => item.id, []);
+
+  // Memoized getItemLayout for performance
+  const getItemLayout = useCallback((_: any, index: number) => {
+    return {
+      length: ITEM_TOTAL_WIDTH,
+      offset: PADDING_LEFT + (index * ITEM_TOTAL_WIDTH),
+      index,
+    };
+  }, []);
 
   // Error state is shown in UI - no toast needed
 
@@ -196,105 +304,27 @@ export function OrderAgainSection({
         </Text>
       </View>
 
-      <ScrollView
+      <FlatList
         ref={horizontalScrollRef}
+        data={orderItems}
+        renderItem={renderOrderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingLeft: 10, // Changed from paddingHorizontal to paddingLeft only
-          gap: 12,
+          paddingLeft: PADDING_LEFT,
         }}
-        scrollEventThrottle={16}
         decelerationRate="fast"
         nestedScrollEnabled={true}
         scrollEnabled={true}
-      >
-        {orderItems.map((item, index) => (
-          <TouchableOpacity
-            key={item.id}
-            style={{
-              width: 120,
-              backgroundColor: "#fff",
-              borderRadius: 16,
-              padding: 12,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 8,
-              elevation: 3,
-            }}
-            onPress={() => {
-              if (onAddItem || onAddEntireOrder) {
-                setSelectedItem(item);
-                setModalVisible(true);
-              } else {
-                onItemPress?.(item);
-              }
-            }}
-            activeOpacity={0.8}
-          >
-            <View style={{ position: "relative", marginBottom: 8 }}>
-              <Image
-                source={{ uri: item.image }}
-                style={{
-                  width: 96,
-                  height: 96,
-                  borderRadius: 12,
-                }}
-                contentFit="cover"
-              />
-              {item.hasBussinBadge && (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 6,
-                    right: 6,
-                    backgroundColor: "#ef4444",
-                    borderRadius: 12,
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#fff",
-                      fontSize: 10,
-                      fontWeight: "600",
-                      marginRight: 2,
-                    }}
-                  >
-                    Bussin
-                  </Text>
-                  <Ionicons name="flame" size={8} color="#FFE4E1" />
-                </View>
-              )}
-            </View>
-
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "500",
-                color: "#000",
-                marginBottom: 4,
-              }}
-              numberOfLines={1}
-            >
-              {item.name}
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "bold",
-                color: "#000",
-              }}
-            >
-              {item.price}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        initialNumToRender={5}
+        updateCellsBatchingPeriod={50}
+      />
 
       {/* Quick Action Modal */}
       <OrderAgainQuickActionModal
@@ -310,3 +340,5 @@ export function OrderAgainSection({
     </Animated.View>
   );
 }
+
+export const OrderAgainSection = React.memo(OrderAgainSectionComponent);

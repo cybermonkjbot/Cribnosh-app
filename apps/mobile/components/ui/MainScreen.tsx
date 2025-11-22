@@ -193,7 +193,7 @@ export function MainScreen() {
     try {
       setMealsLoading(true);
       setMealsError(null);
-      const result = await getRandomMeals(50);
+      const result = await getRandomMeals(50, locationState.location || null);
       if (result.success) {
         // Transform to match expected format
         setPopularMealsData({ 
@@ -386,7 +386,7 @@ export function MainScreen() {
       isPopular: true,
       isNew: meal.is_new || false,
       sentiment: meal.sentiment || 'solid',
-      deliveryTime: meal.delivery_time || '30 min',
+      deliveryTime: meal.deliveryTime || meal.delivery_time || null, // Use backend-calculated delivery time
     };
   }, []);
 
@@ -1459,19 +1459,17 @@ export function MainScreen() {
   const { getNearbyChefs: getNearbyChefsFromHook } = useChefs();
   useEffect(() => {
     const loadNearbyChefs = async () => {
+      // Don't load if no user location available
+      if (!locationState.location) {
+        setMapChefs([]);
+        isFirstMapLoad.current = false;
+        return;
+      }
+      
       try {
-        // Default to San Francisco coordinates if no user location
-        const defaultLocation = { latitude: 37.7749, longitude: -122.4194 };
-        
-        // Try to get user location first
-        let userLocation = defaultLocation;
-        if (locationState.location) {
-          userLocation = locationState.location;
-        }
-        
         const result = await getNearbyChefsFromHook({
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
+          latitude: locationState.location.latitude,
+          longitude: locationState.location.longitude,
           radius: 5,
           limit: 20,
           page: 1,
@@ -1503,91 +1501,16 @@ export function MainScreen() {
     // Ensure we have a valid meal ID - use _id if id is missing
     const mealId = meal.id || meal._id || meal.mealId || `meal-${Date.now()}`;
     
-    // Parse price safely - handle different formats
-    let priceInCents = 0;
-    if (meal.price) {
-      if (typeof meal.price === 'string') {
-        // Remove currency symbols and parse
-        const priceStr = meal.price.replace(/[£$€,]/g, '').trim();
-        const priceNum = parseFloat(priceStr);
-        priceInCents = isNaN(priceNum) ? 0 : Math.round(priceNum * 100);
-      } else if (typeof meal.price === 'number') {
-        // If already a number, assume it's in cents or pounds
-        priceInCents = meal.price < 1000 ? Math.round(meal.price * 100) : meal.price;
-      }
-    }
-    
-    // Convert meal data to MealItemDetails format
-    const mealData = {
+    // MealItemDetails will fetch the data itself using the mealId
+    // Only pass minimal data if available for initial render
+    const mealData = meal.name || meal.kitchen ? {
       title: meal.name || 'Unknown Meal',
-      description: `Delicious ${meal.name || 'meal'} from ${meal.kitchen || 'Unknown Kitchen'}. Experience authentic flavors crafted with the finest ingredients and traditional cooking methods.`,
-      price: priceInCents,
+      description: meal.description || `Delicious ${meal.name || 'meal'} from ${meal.kitchen || 'Unknown Kitchen'}.`,
       imageUrl: meal.image?.uri || meal.image_url || meal.image,
       kitchenName: meal.kitchen || meal.kitchenName || 'Unknown Kitchen',
-      kitchenAvatar: undefined,
-      calories: Math.floor(Math.random() * 500) + 300, // Random calories between 300-800
-      fat: `${Math.floor(Math.random() * 20) + 5}g`,
-      protein: `${Math.floor(Math.random() * 30) + 10}g`,
-      carbs: `${Math.floor(Math.random() * 50) + 20}g`,
-      dietCompatibility: Math.floor(Math.random() * 40) + 60, // Random percentage 60-100
-      dietMessage: "Great choice for your current diet goals",
-      ingredients: [
-        { name: "Chicken breasts", quantity: "250 g" },
-        {
-          name: "Unsalted butter",
-          quantity: "1 tbsp",
-          isAllergen: true,
-          allergenType: "dairy",
-        },
-        {
-          name: "Sesame oil",
-          quantity: "2 tsp",
-          isAllergen: true,
-          allergenType: "nuts",
-        },
-        { name: "Fresh ginger", quantity: "2 tsp" },
-        {
-          name: "Wheat flour",
-          quantity: "100 g",
-          isAllergen: true,
-          allergenType: "gluten",
-        },
-      ],
-      chefName: "Chef Stan",
-      chefStory:
-        "This Shawarma recipe has been perfected over 20 years of cooking. It combines traditional Middle Eastern spices with modern cooking techniques to create a dish that's both authentic and accessible.",
-      chefTips: [
-        "Best enjoyed hot and fresh - reheat for 2 minutes if needed",
-        "Add extra garlic sauce for an authentic Middle Eastern taste",
-        "Pair with our fresh mint tea for the complete experience",
-        "Perfect for sharing - order extra pita bread on the side",
-      ],
-      similarMeals: [
-        {
-          id: "kebab-001",
-          name: "Chicken Kebab",
-          price: "£12.99",
-          sentiment: "bussing",
-          isVegetarian: false,
-        },
-        {
-          id: "falafel-001",
-          name: "Falafel Wrap",
-          price: "£9.99",
-          sentiment: "mid",
-          isVegetarian: true,
-        },
-        {
-          id: "hummus-001",
-          name: "Hummus Plate",
-          price: "£8.99",
-          sentiment: "bussing",
-          isVegetarian: true,
-        },
-      ],
-    };
+    } : undefined;
 
-    // Always open meal details modal - never fall back to kitchen
+    // Always open meal details modal - MealItemDetails will fetch full data
     setSelectedMeal({ id: mealId, data: mealData });
     setIsMealDetailsVisible(true);
   }, []);
@@ -2423,7 +2346,7 @@ export function MainScreen() {
             cuisine={selectedKitchen.cuisine}
             deliveryTime={selectedKitchen.deliveryTime}
             distance={selectedKitchen.distance}
-            cartItems={2}
+            cartItems={cartData?.items?.length || 0}
             kitchenId={selectedKitchen.id || selectedKitchen.kitchenId}
             foodcreatorId={selectedKitchen.ownerId || selectedKitchen.foodcreatorId || selectedKitchen.userId}
             onCartPress={handleKitchenCartPress}

@@ -25,7 +25,7 @@ interface TakeAwaysProps {
   isFirstSection?: boolean;
 }
 
-export function TakeAways({ onOpenDrawer, useBackend = true, hasInitialLoadCompleted = false, isFirstSection = false }: TakeAwaysProps) {
+function TakeAwaysComponent({ onOpenDrawer, useBackend = true, hasInitialLoadCompleted = false, isFirstSection = false }: TakeAwaysProps) {
   const { addToCart } = useCart();
   const { getTakeawayItems } = useMeals();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
@@ -240,4 +240,6 @@ export function TakeAways({ onOpenDrawer, useBackend = true, hasInitialLoadCompl
       </ScrollView>
     </View>
   );
-} 
+}
+
+export const TakeAways = React.memo(TakeAwaysComponent); 

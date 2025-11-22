@@ -1,13 +1,13 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '../../../../packages/convex/_generated/api';
 import { LiveComment } from '@/types/customer';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ImageBackground, Modal, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, AppStateStatus, ImageBackground, Modal, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { api } from '../../../../packages/convex/_generated/api';
 import { showError, showSuccess, showWarning } from '../../lib/GlobalToastManager';
 import LiveComments from '../LiveComments';
 import OnTheStoveBottomSheet from '../OnTheStoveBottomSheet';
@@ -321,40 +321,79 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     }
   }, [sessionId, isMockId, isAuthenticated]);
 
-  // Set up polling for live data
+  // Set up polling for live data with app state detection
+  const appState = useRef(AppState.currentState);
+  
   useEffect(() => {
     if (!sessionId || isMockId || !isAuthenticated) return;
+
+    let commentsInterval: ReturnType<typeof setInterval> | null = null;
+    let viewersInterval: ReturnType<typeof setInterval> | null = null;
+    let reactionsInterval: ReturnType<typeof setInterval> | null = null;
+    let sessionCheckInterval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      // Clear existing intervals
+      if (commentsInterval) clearInterval(commentsInterval);
+      if (viewersInterval) clearInterval(viewersInterval);
+      if (reactionsInterval) clearInterval(reactionsInterval);
+      if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+
+      // Start polling with optimized intervals
+      commentsInterval = setInterval(() => {
+        if (appState.current === 'active') fetchLiveComments();
+      }, 8000); // Increased from 5s to 8s for better performance
+
+      viewersInterval = setInterval(() => {
+        if (appState.current === 'active') fetchLiveViewers();
+      }, 15000); // Increased from 10s to 15s
+
+      reactionsInterval = setInterval(() => {
+        if (appState.current === 'active') fetchLiveReactions();
+      }, 8000); // Increased from 5s to 8s
+
+      sessionCheckInterval = setInterval(() => {
+        if (appState.current === 'active') refetchSession();
+      }, 15000); // Increased from 10s to 15s
+    };
+
+    const stopPolling = () => {
+      if (commentsInterval) clearInterval(commentsInterval);
+      if (viewersInterval) clearInterval(viewersInterval);
+      if (reactionsInterval) clearInterval(reactionsInterval);
+      if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+      commentsInterval = null;
+      viewersInterval = null;
+      reactionsInterval = null;
+      sessionCheckInterval = null;
+    };
+
+    // Handle app state changes to pause/resume polling
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App came to foreground - resume polling
+        startPolling();
+      } else if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
+        // App went to background - pause polling
+        stopPolling();
+      }
+      appState.current = nextAppState;
+    };
 
     // Initial fetch
     fetchLiveComments();
     fetchLiveViewers();
     fetchLiveReactions();
 
-    // Poll every 5 seconds for comments and reactions
-    const commentsInterval = setInterval(() => {
-      fetchLiveComments();
-    }, 5000);
+    // Start polling
+    startPolling();
 
-    // Poll every 10 seconds for viewers
-    const viewersInterval = setInterval(() => {
-      fetchLiveViewers();
-    }, 10000);
-
-    // Poll every 5 seconds for reactions
-    const reactionsInterval = setInterval(() => {
-      fetchLiveReactions();
-    }, 5000);
-
-    // Poll every 10 seconds to check if session ended
-    const sessionCheckInterval = setInterval(() => {
-      refetchSession();
-    }, 10000);
+    // Listen for app state changes
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
 
     return () => {
-      clearInterval(commentsInterval);
-      clearInterval(viewersInterval);
-      clearInterval(reactionsInterval);
-      clearInterval(sessionCheckInterval);
+      stopPolling();
+      subscription.remove();
     };
   }, [sessionId, isMockId, isAuthenticated, fetchLiveComments, fetchLiveViewers, fetchLiveReactions, refetchSession]);
 
@@ -541,18 +580,14 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       // If ordered or quantity changed, add/update in cart
       // This handles the case where increment happens after order button is clicked
       try {
-        await addToCart({
-          dish_id: sessionData.data.meal._id,
-          quantity,
-          special_instructions: undefined,
-        }).unwrap();
-        refetchCart();
+        await addToCartAction(sessionData.data.meal._id, quantity);
+        await refetchCart();
       } catch (err: any) {
         const errorMessage = err?.data?.error?.message || err?.message || 'Failed to add item to cart';
         showError('Failed to add item to cart', errorMessage);
       }
     }
-  }, [isAuthenticated, sessionData, cartData, isOrdered, updateCartItem, addToCart, refetchCart]);
+  }, [isAuthenticated, sessionData, cartData, isOrdered, updateCartItemAction, addToCartAction, refetchCart]);
 
   const handleClose = () => {
     onClose();

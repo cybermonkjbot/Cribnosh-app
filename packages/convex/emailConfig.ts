@@ -54,6 +54,8 @@ export const createEmailTemplate = mutation({
     senderName: v.string(),
     senderEmail: v.string(),
     replyToEmail: v.string(),
+    htmlContent: v.string(),
+    fromEmail: v.optional(v.string()),
     customFields: v.record(v.string(), v.any()),
     styling: v.object({
       primaryColor: v.string(),
@@ -119,6 +121,8 @@ export const createEmailTemplate = mutation({
       senderName: args.senderName,
       senderEmail: args.senderEmail,
       replyToEmail: args.replyToEmail,
+      htmlContent: args.htmlContent,
+      fromEmail: args.fromEmail,
       customFields: args.customFields,
       styling: args.styling,
       scheduling: args.scheduling,

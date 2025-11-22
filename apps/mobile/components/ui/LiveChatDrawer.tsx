@@ -343,6 +343,7 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
     refresh,
   } = useSupportChat({
     enabled: isVisible,
+    isVisible,
     pollingInterval: 5000,
     caseId,
     onNewMessage: () => {

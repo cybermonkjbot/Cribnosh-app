@@ -1,7 +1,8 @@
 import { useMeals } from '@/hooks/useMeals';
+import { useUserLocation } from '@/hooks/useUserLocation';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
@@ -12,6 +13,7 @@ interface FreshItem {
   name: string;
   cuisine: string;  
   image: string;
+  expirationBadge?: string; // Badge text like "in 30 Min"
 }
 
 // Component for individual fresh item with error handling
@@ -49,30 +51,32 @@ const FreshItemCard = ({ item, index, isLast, onItemPress }: {
           onError={() => setImageError(true)}
         />
         
-        {/* Exp. in 30 Min Badge */}
-        <View style={{ 
-          position: 'absolute', 
-          top: 8, 
-          left: 8, 
-          right: 8 
-        }}>
+        {/* Expiration Badge */}
+        {item.expirationBadge && (
           <View style={{ 
-            backgroundColor: '#fff',
-            borderRadius: 8,
-            padding: 6,
-            alignItems: 'center'
+            position: 'absolute', 
+            top: 8, 
+            left: 8, 
+            right: 8 
           }}>
-            <Text style={{ 
-              fontSize: 8, 
-              fontWeight: '600', 
-              color: '#000',
-              textAlign: 'center',
-              lineHeight: 10
+            <View style={{ 
+              backgroundColor: '#fff',
+              borderRadius: 8,
+              padding: 6,
+              alignItems: 'center'
             }}>
-              in 30 Min
-            </Text>
+              <Text style={{ 
+                fontSize: 8, 
+                fontWeight: '600', 
+                color: '#000',
+                textAlign: 'center',
+                lineHeight: 10
+              }}>
+                {item.expirationBadge}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
       </View>
       
       <View style={{ padding: 8 }}>
@@ -104,7 +108,7 @@ interface TooFreshToWasteProps {
   isFirstSection?: boolean;
 }
 
-export function TooFreshToWaste({ 
+function TooFreshToWasteComponent({ 
   onOpenDrawer, 
   onOpenSustainability,
   useBackend = true,
@@ -113,6 +117,7 @@ export function TooFreshToWaste({
   isFirstSection = false,
 }: TooFreshToWasteProps) {
   const { isAuthenticated } = useAuthContext();
+  const locationState = useUserLocation();
 
   const { getTooFreshItems } = useMeals();
   const [tooFreshData, setTooFreshData] = useState<any>(null);
@@ -124,7 +129,7 @@ export function TooFreshToWaste({
       const loadTooFreshItems = async () => {
         setBackendLoading(true);
         try {
-          const result = await getTooFreshItems(20, 1);
+          const result = await getTooFreshItems(20, 1, locationState.location || null);
           if (result?.success) {
             setTooFreshData({ success: true, data: result.data });
           }
@@ -137,7 +142,7 @@ export function TooFreshToWaste({
       };
       loadTooFreshItems();
     }
-  }, [useBackend, isAuthenticated, getTooFreshItems]);
+  }, [useBackend, isAuthenticated, getTooFreshItems, locationState.location]);
 
   // Transform API data to component format
   const transformFreshItem = useCallback((apiItem: unknown): FreshItem | null => {
@@ -151,6 +156,7 @@ export function TooFreshToWaste({
       name: item.name || 'Unknown Item',
       cuisine: item.cuisine?.[0] || item.cuisine || 'Various',
       image: item.image_url || item.image || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=120&h=160&fit=crop',
+      expirationBadge: item.expirationBadge || undefined, // Use backend-calculated expiration badge
     };
   }, []);
 
@@ -224,4 +230,6 @@ export function TooFreshToWaste({
       </ScrollView>
     </View>
   );
-} 
+}
+
+export const TooFreshToWaste = React.memo(TooFreshToWasteComponent); 

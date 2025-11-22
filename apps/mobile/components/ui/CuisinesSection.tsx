@@ -1,10 +1,8 @@
+import { useCuisines } from '@/hooks/useCuisines';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useCuisines } from '@/hooks/useCuisines';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { showError } from '../../lib/GlobalToastManager';
-import { CuisinesSectionEmpty } from './CuisinesSectionEmpty';
 import { CuisinesSectionSkeleton } from './CuisinesSectionSkeleton';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
@@ -23,7 +21,7 @@ interface CuisinesSectionProps {
   isFirstSection?: boolean;
 }
 
-export function CuisinesSection({ 
+function CuisinesSectionComponent({ 
   cuisines: propCuisines,
   onCuisinePress, 
   onSeeAllPress,
@@ -121,7 +119,7 @@ export function CuisinesSection({
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           Cuisines
         </Text>
-        <TouchableOpacity onPress={onSeeAllPress}>
+        <TouchableOpacity onPress={onSeeAllPress} hitSlop={12}>
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
         </TouchableOpacity>
       </View>
@@ -168,4 +166,6 @@ export function CuisinesSection({
       </ScrollView>
     </View>
   );
-} 
+}
+
+export const CuisinesSection = React.memo(CuisinesSectionComponent); 

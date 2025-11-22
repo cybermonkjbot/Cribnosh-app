@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 
 // Types for tabs and filters
 export type HeaderTab = 'for-you' | 'live';
@@ -36,15 +36,15 @@ export function AppProvider({ children }: AppProviderProps) {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<CategoryFilter>('all');
   const [scrollToTopCallback, setScrollToTopCallback] = useState<(() => void) | null>(null);
 
-  const handleHeaderTabChange = (tab: HeaderTab) => {
+  const handleHeaderTabChange = useCallback((tab: HeaderTab) => {
     setActiveHeaderTab(tab);
-  };
+  }, []);
 
-  const handleCategoryFilterChange = (filter: CategoryFilter) => {
+  const handleCategoryFilterChange = useCallback((filter: CategoryFilter) => {
     setActiveCategoryFilter(filter);
-  };
+  }, []);
 
-  const getFilteredContent = (content: any[]) => {
+  const getFilteredContent = useCallback((content: any[]) => {
     // Filter content based on active category
     if (activeCategoryFilter === 'all') {
       return content;
@@ -57,21 +57,22 @@ export function AppProvider({ children }: AppProviderProps) {
              item.cuisine === activeCategoryFilter ||
              item.tags?.includes(activeCategoryFilter);
     });
-  };
+  }, [activeCategoryFilter]);
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     // Only call the scroll callback - don't switch tabs automatically
     // Tab switching should be handled separately by the double-tap handler
     if (scrollToTopCallback) {
       scrollToTopCallback();
     }
-  };
+  }, [scrollToTopCallback]);
 
   const registerScrollToTopCallback = useCallback((callback: () => void) => {
     setScrollToTopCallback(() => callback);
   }, []);
 
-  const value: AppContextType = {
+  // Memoize context value to prevent unnecessary re-renders
+  const value: AppContextType = useMemo(() => ({
     activeHeaderTab,
     setActiveHeaderTab,
     activeCategoryFilter,
@@ -81,7 +82,15 @@ export function AppProvider({ children }: AppProviderProps) {
     handleCategoryFilterChange,
     scrollToTop,
     registerScrollToTopCallback,
-  };
+  }), [
+    activeHeaderTab,
+    activeCategoryFilter,
+    getFilteredContent,
+    handleHeaderTabChange,
+    handleCategoryFilterChange,
+    scrollToTop,
+    registerScrollToTopCallback,
+  ]);
 
   return (
     <AppContext.Provider value={value}>

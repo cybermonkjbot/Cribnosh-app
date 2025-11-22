@@ -6,6 +6,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { api } from '../_generated/api';
 import type { Id } from '../_generated/dataModel';
 import { action } from '../_generated/server';
+import { formatExpirationBadge } from '../utils/timeCalculations';
 
 export const applyReferralRewardToNewUser = action({
   args: {
@@ -351,6 +352,8 @@ export const customerGetTakeawayItems = action({
     sessionToken: v.string(),
     limit: v.optional(v.number()),
     page: v.optional(v.number()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   },
   returns: v.union(
     v.object({
@@ -378,6 +381,8 @@ export const customerGetTakeawayItems = action({
       // Get random meals (which filters by available status)
       const allMeals = await ctx.runQuery(api.queries.meals.getRandomMeals, {
         limit: limit + offset,
+        latitude: args.latitude,
+        longitude: args.longitude,
       });
       
       // Apply pagination
@@ -520,6 +525,8 @@ export const customerGetTooFreshItems = action({
     sessionToken: v.string(),
     limit: v.optional(v.number()),
     page: v.optional(v.number()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   },
   returns: v.union(
     v.object({
@@ -548,33 +555,49 @@ export const customerGetTooFreshItems = action({
       const meals = await ctx.runQuery(api.queries.meals.getAvailable, {
         limit,
         offset,
+        latitude: args.latitude,
+        longitude: args.longitude,
       });
 
-      // Transform to match API format
-      const items = meals.map((meal: any) => ({
-        _id: meal._id,
-        id: meal._id,
-        dish: {
+      // Transform to match API format with expiration time calculations
+      const items = meals.map((meal: any) => {
+        // Calculate expiration time (default: 2 hours from creation, or use meal.expiresAt if available)
+        const mealCreatedAt = meal._creationTime || Date.now();
+        const defaultExpirationHours = 2; // Meals expire 2 hours after creation by default
+        const expiresAt = meal.expiresAt || (mealCreatedAt + (defaultExpirationHours * 60 * 60 * 1000));
+        const expirationBadge = formatExpirationBadge(expiresAt);
+
+        return {
           _id: meal._id,
           id: meal._id,
-          name: meal.name,
-          description: meal.description || '',
-          price: meal.price || 0,
-          cuisine: meal.cuisine || [],
-          image_url: meal.images?.[0] || '',
-          image: meal.images?.[0] || '',
-        },
-        meal: {
-          _id: meal._id,
-          id: meal._id,
-          name: meal.name,
-          description: meal.description || '',
-          price: meal.price || 0,
-          cuisine: meal.cuisine || [],
-          image_url: meal.images?.[0] || '',
-          image: meal.images?.[0] || '',
-        },
-      }));
+          expiresAt,
+          expirationBadge,
+          dish: {
+            _id: meal._id,
+            id: meal._id,
+            name: meal.name,
+            description: meal.description || '',
+            price: meal.price || 0,
+            cuisine: meal.cuisine || [],
+            image_url: meal.images?.[0] || '',
+            image: meal.images?.[0] || '',
+            expiresAt,
+            expirationBadge,
+          },
+          meal: {
+            _id: meal._id,
+            id: meal._id,
+            name: meal.name,
+            description: meal.description || '',
+            price: meal.price || 0,
+            cuisine: meal.cuisine || [],
+            image_url: meal.images?.[0] || '',
+            image: meal.images?.[0] || '',
+            expiresAt,
+            expirationBadge,
+          },
+        };
+      });
 
       return {
         success: true as const,
@@ -3570,6 +3593,8 @@ export const customerGetRecommendedMeals = action({
   args: {
     sessionToken: v.string(),
     limit: v.optional(v.number()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   },
   returns: v.union(
     v.object({
@@ -3608,6 +3633,8 @@ export const customerGetRandomMeals = action({
   args: {
     sessionToken: v.string(),
     limit: v.optional(v.number()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   },
   returns: v.union(
     v.object({
@@ -3630,6 +3657,8 @@ export const customerGetRandomMeals = action({
       const meals = await ctx.runQuery(api.queries.meals.getRandomMeals, {
         userId,
         limit,
+        latitude: args.latitude,
+        longitude: args.longitude,
       });
 
       return { success: true as const, meals };

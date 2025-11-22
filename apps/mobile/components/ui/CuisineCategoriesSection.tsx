@@ -3,8 +3,6 @@ import { useCuisines } from '@/hooks/useCuisines';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { showError } from '../../lib/GlobalToastManager';
-import { CuisineCategoriesSectionEmpty } from './CuisineCategoriesSectionEmpty';
 import { CuisineCategoriesSectionSkeleton } from './CuisineCategoriesSectionSkeleton';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
@@ -27,7 +25,7 @@ interface CuisineCategoriesSectionProps {
   isFirstSection?: boolean;
 }
 
-export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> = ({
+const CuisineCategoriesSectionComponent: React.FC<CuisineCategoriesSectionProps> = ({
   cuisines: propCuisines,
   onCuisinePress,
   onSeeAllPress,
@@ -240,7 +238,7 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
           </Text>
           
           {onSeeAllPress && (
-            <TouchableOpacity onPress={onSeeAllPress}>
+            <TouchableOpacity onPress={onSeeAllPress} hitSlop={12}>
               <Text style={{
                 color: '#ef4444',
                 fontSize: 14,
@@ -266,4 +264,6 @@ export const CuisineCategoriesSection: React.FC<CuisineCategoriesSectionProps> =
       </ScrollView>
     </View>
   );
-}; 
+};
+
+export const CuisineCategoriesSection = React.memo(CuisineCategoriesSectionComponent); 

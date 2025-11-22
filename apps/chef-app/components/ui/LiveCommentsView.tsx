@@ -99,6 +99,12 @@ export function LiveCommentsView({ comments }: LiveCommentsViewProps) {
         contentContainerStyle={styles.contentContainer}
         getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
         scrollEnabled={false}
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={VISIBLE_ITEMS}
+        windowSize={5}
+        initialNumToRender={VISIBLE_ITEMS}
+        updateCellsBatchingPeriod={50}
       />
       <Animated.View pointerEvents="none" style={styles.topFade}>
         <LinearGradient
